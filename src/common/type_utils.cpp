@@ -153,11 +153,6 @@ string TypeUtils::toString(const Value& val) {
     }
 }
 
-void TypeUtils::castLiteralToString(Literal& literal) {
-    literal.strVal = toString(literal);
-    literal.dataType.typeID = STRING;
-}
-
 void TypeUtils::copyString(
     const char* src, uint64_t len, gf_string_t& dest, OverflowBuffer& overflowBuffer) {
     TypeUtils::allocateSpaceForStringIfNecessary(dest, len, overflowBuffer);

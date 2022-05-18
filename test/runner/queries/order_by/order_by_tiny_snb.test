@@ -209,3 +209,24 @@ Alice
 Bob
 Dan
 Carol
+
+# If the payload column and the orderBy key column are in different dataChunks and one of them is unflat, the order by
+# scanner can only scan one tuple from factorizedTable at a time.
+-NAME OrderByScanSingleTupleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName
+-PARALLELISM 2
+---- 14
+Bob
+Carol
+Dan
+Alice
+Carol
+Dan
+Alice
+Bob
+Dan
+Alice
+Bob
+Carol
+Elizabeth
+Elizabeth

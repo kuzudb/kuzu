@@ -31,8 +31,6 @@ public:
     static string toString(const Literal& val);
     static string toString(const Value& val);
 
-    static void castLiteralToString(Literal& literal);
-
     // Currently, this function is only used in `allocateStringIfNecessary`. Make this function
     // private once we remove allocateStringIfNecessary.
     static inline void allocateSpaceForStringIfNecessary(
@@ -114,7 +112,7 @@ inline void TypeUtils::setListElement(gf_list_t& result, uint64_t elementPos, gf
 template<>
 inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const DataType& leftDataType,
     const DataType& rightDataType) {
-    if (leftDataType != rightDataType) {
+    if (leftDataType != rightDataType || left.size != right.size) {
         return false;
     }
 
