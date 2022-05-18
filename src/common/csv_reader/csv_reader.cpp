@@ -9,7 +9,6 @@ namespace common {
 
 CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
     : CSVReader{fName, config} {
-    openFile(fName);
     readingBlockStartOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * blockId;
     readingBlockEndOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;

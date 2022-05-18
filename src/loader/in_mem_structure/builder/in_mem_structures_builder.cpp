@@ -31,7 +31,9 @@ uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
     colDefinitions = parseCSVFileHeader(fileHeader);
     logger->info(
         "Done parsing csv headers and calculating number of blocks for label {}.", labelName);
-    return 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
+    auto numBlocksInFile = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
+    inf.close();
+    return numBlocksInFile;
 }
 
 vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& header) const {
