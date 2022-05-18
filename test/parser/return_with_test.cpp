@@ -66,7 +66,7 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
     auto projectionBody = make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(projectionExpressions));
     projectionBody->setLimitExpression(
-        make_unique<ParsedLiteralExpression>(LITERAL_INT, "10", EMPTY));
+        make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)10), EMPTY));
     auto returnClause = make_unique<ReturnClause>(move(projectionBody));
     string input = "MATCH () RETURN a.name LIMIT 10;";
     auto regularQuery = Parser::parseQuery(input);
@@ -75,10 +75,10 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
 
 TEST_F(ReturnWithTest, SingleWithTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
+    auto one = make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)1), EMPTY);
     one->setAlias("one");
     expressions.push_back(move(one));
-    auto name = make_unique<ParsedLiteralExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
+    auto name = make_unique<ParsedLiteralExpression>(make_unique<Literal>(string("Xiyang")), EMPTY);
     name->setAlias("name");
     expressions.push_back(move(name));
     auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
@@ -93,7 +93,7 @@ TEST_F(ReturnWithTest, SingleWithTest) {
 
 TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
+    auto one = make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)1), EMPTY);
     one->setAlias("one");
     expressions.push_back(move(one));
     auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
@@ -110,7 +110,7 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     auto expressions1 = vector<unique_ptr<ParsedExpression>>();
     auto withClause1 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, true /* containsStar */, move(expressions1)));
-    auto one1 = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
+    auto one1 = make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)1), EMPTY);
     auto aAge1 = makeAAgeExpression();
     auto where1 = make_unique<ParsedExpression>(LESS_THAN, move(aAge1), move(one1), EMPTY);
     withClause1->setWhereExpression(move(where1));
@@ -121,7 +121,7 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     expressions2.push_back(move(aAge2));
     auto withClause2 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions2)));
-    auto ten2 = make_unique<ParsedLiteralExpression>(LITERAL_INT, "10", EMPTY);
+    auto ten2 = make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)10), EMPTY);
     auto newAge = make_unique<ParsedVariableExpression>("newAge", EMPTY);
     auto where2 = make_unique<ParsedExpression>(EQUALS, move(newAge), move(ten2), EMPTY);
     withClause2->setWhereExpression(move(where2));

@@ -26,7 +26,8 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapLiteralExpression(
     const shared_ptr<Expression>& expression) {
     auto& literalExpression = (LiteralExpression&)*expression;
-    return make_unique<LiteralExpressionEvaluator>(make_shared<Literal>(literalExpression.literal));
+    return make_unique<LiteralExpressionEvaluator>(
+        make_shared<Literal>(*literalExpression.literal));
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(

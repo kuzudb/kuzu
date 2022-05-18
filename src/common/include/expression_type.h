@@ -181,17 +181,7 @@ enum ExpressionType : uint8_t {
      **/
     PROPERTY = 60,
 
-    /**
-     * Literal Expressions
-     **/
-    LITERAL_INT = 80,
-    LITERAL_DOUBLE = 81,
-    LITERAL_STRING = 82,
-    LITERAL_BOOLEAN = 83,
-    LITERAL_DATE = 84,
-    LITERAL_TIMESTAMP = 85,
-    LITERAL_INTERVAL = 86,
-    LITERAL_NULL = 87,
+    LITERAL = 70,
 
     VARIABLE = 90,
 

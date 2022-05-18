@@ -24,9 +24,9 @@ http_archive(
 http_archive(
     name = "nlohmann_json",
     build_file = "nlohmann_json.BUILD.bazel",
-    sha256 = "6bea5877b1541d353bd77bdfbdb2696333ae5ed8f9e8cc22df657192218cad91",
+    sha256 = "b94997df68856753b72f0d7a3703b7d484d4745c567f3584ef97c96c25a5798e",
     strip_prefix = "single_include",
-    url = "https://github.com/nlohmann/json/releases/download/v3.9.1/include.zip",
+    url = "https://github.com/nlohmann/json/releases/download/v3.10.5/include.zip",
 )
 
 # Command-line parser
@@ -76,9 +76,9 @@ http_archive(
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
+    sha256 = "c2ed3fc84db08f40a36ce1d03331624ed6977497b35dfed36a1423396928559a",
     strip_prefix = "pybind11-2.6.0",
     urls = ["https://github.com/pybind/pybind11/archive/v2.6.0.zip"],
-     sha256 = "c2ed3fc84db08f40a36ce1d03331624ed6977497b35dfed36a1423396928559a",
 )
 
 load("@pybind11_bazel//:python_configure.bzl", "python_configure")

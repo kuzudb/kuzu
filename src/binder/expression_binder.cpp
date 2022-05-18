@@ -23,7 +23,6 @@ namespace graphflow {
 namespace binder {
 
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
-    validateNoNullLiteralChildren(parsedExpression);
     shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (isExpressionBoolConnection(expressionType)) {
@@ -214,17 +213,17 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,
     const ParsedExpression& parsedExpression, const expression_vector& children) {
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
-        return make_shared<LiteralExpression>(LITERAL_DATE, DataType(DATE),
-            Literal(Date::FromCString(strVal.c_str(), strVal.length())));
+        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
+        return make_shared<LiteralExpression>(DataType(DATE),
+            make_unique<Literal>(Date::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
-        return make_shared<LiteralExpression>(LITERAL_TIMESTAMP, DataType(TIMESTAMP),
-            Literal(Timestamp::FromCString(strVal.c_str(), strVal.length())));
+        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
+        return make_shared<LiteralExpression>(DataType(TIMESTAMP),
+            make_unique<Literal>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_INTERVAL_FUNC_NAME) {
-        auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
-        return make_shared<LiteralExpression>(LITERAL_INTERVAL, DataType(INTERVAL),
-            Literal(Interval::FromCString(strVal.c_str(), strVal.length())));
+        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
+        return make_shared<LiteralExpression>(DataType(INTERVAL),
+            make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == ID_FUNC_NAME) {
         return bindIDFunctionExpression(parsedExpression);
     }
@@ -255,25 +254,8 @@ shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
-    auto literalVal = literalExpression.getValInStr();
-    auto literalType = parsedExpression.getExpressionType();
-    switch (literalType) {
-    case LITERAL_INT:
-        return make_shared<LiteralExpression>(
-            LITERAL_INT, INT64, Literal(TypeUtils::convertToInt64(literalVal.c_str())));
-    case LITERAL_DOUBLE:
-        return make_shared<LiteralExpression>(
-            LITERAL_DOUBLE, DOUBLE, Literal(TypeUtils::convertToDouble(literalVal.c_str())));
-    case LITERAL_BOOLEAN:
-        return make_shared<LiteralExpression>(
-            LITERAL_BOOLEAN, BOOL, Literal(TypeUtils::convertToBoolean(literalVal.c_str())));
-    case LITERAL_STRING:
-        return make_shared<LiteralExpression>(LITERAL_STRING, STRING,
-            Literal(literalVal.substr(1, literalVal.size() - 2) /* strip double quotation */));
-    default:
-        throw NotImplementedException(
-            "Literal " + parsedExpression.getRawName() + "is not implemented.");
-    }
+    auto literal = literalExpression.getLiteral();
+    return make_shared<LiteralExpression>(literal->dataType, make_unique<Literal>(*literal));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
@@ -303,7 +285,10 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (expression->dataType.typeID == ANY) { // resolve type for parameter expression
-        assert(expression->expressionType == PARAMETER);
+        auto isParameterExpression = expression->expressionType == PARAMETER;
+        auto isNullLiteralExpression =
+            expression->expressionType == LITERAL && ((LiteralExpression&)*expression).isNull();
+        assert(isParameterExpression || isNullLiteralExpression);
         static_pointer_cast<ParameterExpression>(expression)->setDataType(DataType(targetTypeID));
         return expression;
     }
@@ -379,16 +364,6 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
         ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(UNSTRUCTURED), move(children),
         move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = parsedExpression.getChild(i);
-        if (LITERAL_NULL == child->getExpressionType()) {
-            throw BinderException("Expression " + parsedExpression.getRawName() +
-                                  " cannot have null literal children.");
-        }
-    }
 }
 
 void ExpressionBinder::validateExpectedDataType(

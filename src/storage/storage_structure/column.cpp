@@ -19,9 +19,8 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
 
 Literal Column::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
-    Literal retVal;
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
-    memcpy(&retVal.val, frame + mapElementPosToByteOffset(cursor.pos), elementSize);
+    auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.pos), dataType);
     bufferManager.unpin(fileHandle, cursor.idx);
     return retVal;
 }
@@ -137,9 +136,7 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
     memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_string_t));
     bufferManager.unpin(fileHandle, cursor.idx);
-    Literal retVal;
-    retVal.strVal = stringOverflowPages.readString(gfString);
-    return retVal;
+    return Literal(stringOverflowPages.readString(gfString));
 }
 
 Literal ListPropertyColumn::readValue(node_offset_t offset) {
@@ -148,10 +145,7 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.idx);
-    Literal retVal;
-    retVal.dataType = dataType;
-    retVal.listVal = listOverflowPages.readList(gfList, dataType);
-    return retVal;
+    return Literal(listOverflowPages.readList(gfList, dataType), dataType);
 }
 
 void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,

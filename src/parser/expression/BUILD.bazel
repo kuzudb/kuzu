@@ -34,5 +34,6 @@ cc_library(
     ],
     deps = [
         "parsed_expression",
+        "//src/common:type_utils",
     ],
 )

@@ -28,7 +28,7 @@ public:
     static inline string toString(const gf_string_t& val) { return val.getAsString(); }
     static inline string toString(const string& val) { return val; }
     static string toString(const gf_list_t& val, const DataType& dataType);
-    static string toString(const Literal& val);
+    static string toString(const Literal& literal);
     static string toString(const Value& val);
 
     // Currently, this function is only used in `allocateStringIfNecessary`. Make this function

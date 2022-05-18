@@ -1,0 +1,17 @@
+# description: filter null nodes
+
+-NAME FilterNullTest1
+-QUERY MATCH (a:person) WHERE a.age <= null RETURN COUNT(*)
+---- 1
+0
+
+-NAME FilterNullTest2
+-QUERY MATCH (a:person) WHERE a.age + null <= 200 RETURN COUNT(*)
+---- 1
+0
+
+-NAME FilterNullTest3
+-QUERY MATCH (a:person) WHERE a.isStudent OR null RETURN COUNT(*)
+---- 1
+3
+
