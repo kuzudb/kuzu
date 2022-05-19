@@ -23,8 +23,8 @@ public:
 
 private:
     void loadBenchmark(const string& benchmarkPath);
-    void logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryResult) const;
-    void verify(QueryResult& queryResult) const;
+    void logQueryInfo(ofstream& log, uint32_t runNum, vector<string>& actualOutput) const;
+    void verify(vector<string>& actualOutput) const;
 
 public:
     BenchmarkConfig& config;
