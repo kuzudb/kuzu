@@ -10,11 +10,6 @@ void gf_list_t::set(const uint8_t* values, const DataType& dataType) const {
         size * Types::getDataTypeSize(*dataType.childType));
 }
 
-void gf_list_t::set(const gf_list_t& other, const DataType& dataType) {
-    this->size = other.size;
-    set(reinterpret_cast<uint8_t*>(other.overflowPtr), dataType);
-}
-
 void gf_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) {
     this->size = parameters.size();
     auto numBytesOfListElement = Types::getDataTypeSize(childTypeId);

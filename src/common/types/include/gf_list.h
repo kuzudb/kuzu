@@ -15,7 +15,6 @@ public:
 private:
     friend class TypeUtils;
 
-    void set(const gf_list_t& other, const DataType& dataType);
     void set(const vector<uint8_t*>& parameters, DataTypeID childTypeId);
 
 public:

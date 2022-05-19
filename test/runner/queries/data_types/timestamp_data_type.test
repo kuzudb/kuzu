@@ -30,6 +30,26 @@
 ---- 1
 6
 
+-NAME TimestampDateGreaterThan
+-QUERY MATCH (a:person) WHERE a.registerTime > date('1976-12-23') RETURN COUNT(*)
+---- 1
+6
+
+-NAME TimestampDateGreaterThanEqual
+-QUERY MATCH (a:person) WHERE a.registerTime >= date('1976-12-23') RETURN COUNT(*)
+---- 1
+6
+
+-NAME TimestampDateLessThan
+-QUERY MATCH (a:person) WHERE a.registerTime < date('1976-12-23') RETURN COUNT(*)
+---- 1
+2
+
+-NAME TimestampDateLessThanEqual
+-QUERY MATCH (a:person) WHERE a.registerTime <= date('1976-12-23') RETURN COUNT(*)
+---- 1
+2
+
 -NAME StructuredTimestampComparisonAcrossNodesNonEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <> b.registerTime RETURN COUNT(*)
 ---- 1

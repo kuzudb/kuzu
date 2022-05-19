@@ -62,10 +62,15 @@
 ---- 1
 1
 
--NAME DateTimestampComparison
+-NAME DateTimestampEqual
 -QUERY MATCH (a:person) WHERE a.unstrDateProp2 = timestamp('1920-01-01') RETURN COUNT(*)
 ---- 1
 1
+
+-NAME DateTimestampGreaterThan
+-QUERY MATCH (a:person) WHERE a.unstrDateProp2 >= timestamp('1920-01-01') RETURN COUNT(*)
+---- 1
+3
 
 -NAME TwoUnstructuredDateNotEqual
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 <> a.unstrDateProp2 RETURN COUNT(*)
