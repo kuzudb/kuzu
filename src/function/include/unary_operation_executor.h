@@ -14,16 +14,25 @@ namespace function {
 
 struct UnaryOperationWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(
-        OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr) {
+    static inline void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result,
+        void* dataptr, const DataType& inputType) {
         OP::operation(input, isNull, result);
     }
 };
 
 struct UnaryStringOperationWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
-    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr) {
+    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr,
+        const DataType& inputType) {
         OP::operation(input, isNull, result, *(ValueVector*)dataptr);
+    }
+};
+
+struct UnaryCastOperationWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
+    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr,
+        const DataType& inputType) {
+        OP::operation(input, isNull, result, *(ValueVector*)dataptr, inputType);
     }
 };
 
@@ -33,7 +42,8 @@ struct UnaryOperationExecutor {
         ValueVector& resultValueVector) {
         auto operandValues = (OPERAND_TYPE*)operand.values;
         OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(operandValues[operandPos],
-            (bool)operand.isNull(operandPos), resultValue, (void*)&resultValueVector);
+            (bool)operand.isNull(operandPos), resultValue, (void*)&resultValueVector,
+            operand.dataType);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
@@ -94,6 +104,11 @@ struct UnaryOperationExecutor {
     static void executeString(ValueVector& operand, ValueVector& result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryStringOperationWrapper>(
             operand, result);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeCast(ValueVector& operand, ValueVector& result) {
+        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastOperationWrapper>(operand, result);
     }
 
     template<typename OPERAND_TYPE, typename FUNC>

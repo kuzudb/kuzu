@@ -10,8 +10,6 @@ class ValueVectorUtils {
 public:
     static void addLiteralToStructuredVector(
         ValueVector& resultVector, uint64_t pos, const Literal& literal);
-    static void addGFStringToUnstructuredVector(
-        ValueVector& resultVector, uint64_t pos, const gf_string_t& value);
 
     // These two functions assume that the given uint8_t* srcData/dstData are pointing to a data
     // with the same data type as this ValueVector. If this ValueVector is unstructured, then

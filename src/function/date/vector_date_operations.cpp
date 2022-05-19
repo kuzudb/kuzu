@@ -58,8 +58,8 @@ vector<unique_ptr<VectorOperationDefinition>> DatePartVectorOperation::getDefini
         vector<DataTypeID>{STRING, INTERVAL}, INT64,
         BinaryExecFunction<gf_string_t, interval_t, int64_t, operation::DatePart>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
-        vector<DataTypeID>{STRING, UNSTRUCTURED}, INT64,
-        BinaryExecFunction<gf_string_t, Value, int64_t, operation::DatePart>));
+        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, INT64,
+        BinaryExecFunction<Value, Value, int64_t, operation::DatePart>));
     return result;
 }
 
@@ -72,8 +72,8 @@ vector<unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefin
         vector<DataTypeID>{STRING, TIMESTAMP}, TIMESTAMP,
         BinaryExecFunction<gf_string_t, timestamp_t, timestamp_t, operation::DateTrunc>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
-        vector<DataTypeID>{STRING, UNSTRUCTURED}, UNSTRUCTURED,
-        BinaryExecFunction<gf_string_t, Value, Value, operation::DateTrunc>));
+        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
+        BinaryExecFunction<Value, Value, Value, operation::DateTrunc>));
     return result;
 }
 

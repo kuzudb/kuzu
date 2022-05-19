@@ -14,5 +14,6 @@ cc_library(
     deps = [
         "//src/function",
         "//src/function/cast/operations:cast_operations",
+        "//src/function/string:vector_string_operations",
     ],
 )

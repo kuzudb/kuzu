@@ -30,35 +30,12 @@ public:
 
     static scalar_exec_func bindImplicitCastToUnstructured(const expression_vector& children);
 
-    // TODO(Guodong): make this function reuse string function executor
-    template<typename OPERAND_TYPE>
-    static void castToString(const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryCastExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
         assert(params.size() == 1);
-        auto& operand = *params[0];
-        result.resetOverflowBuffer();
-        if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
-            assert(pos == result.state->getPositionOfCurrIdx());
-            result.setNull(pos, operand.isNull(pos));
-            if (!result.isNull(pos)) {
-                string val = TypeUtils::toString(((OPERAND_TYPE*)operand.values)[pos]);
-                result.addString(pos, val);
-            }
-        } else {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                assert(pos == result.state->selectedPositions[i]);
-                result.setNull(pos, operand.isNull(pos));
-                if (!result.isNull(pos)) {
-                    result.addString(
-                        pos, TypeUtils::toString(((OPERAND_TYPE*)operand.values)[pos]));
-                }
-            }
-        }
+        UnaryOperationExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
-
-    static void castStringToUnstructured(
-        const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
 };
 
 struct CastToDateVectorOperation : public VectorCastOperations {

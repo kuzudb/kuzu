@@ -35,14 +35,6 @@ void ValueVectorUtils::addLiteralToStructuredVector(
     }
 }
 
-void ValueVectorUtils::addGFStringToUnstructuredVector(
-    ValueVector& resultVector, uint64_t pos, const gf_string_t& value) {
-    assert(resultVector.dataType.typeID == UNSTRUCTURED);
-    auto& val = ((Value*)resultVector.values)[pos];
-    val.dataType.typeID = STRING;
-    TypeUtils::copyString(value, val.val.strVal, resultVector.getOverflowBuffer());
-}
-
 void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
     copyNonNullDataWithSameType(resultVector.dataType, srcData,
