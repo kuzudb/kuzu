@@ -73,7 +73,6 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
         // mapping
         auto mapper = PlanMapper(*database->catalog, *database->storageManager);
         physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
-        preparedStatement->physicalIDToLogicalOperatorMap = mapper.physicalIDToLogicalOperatorMap;
     } catch (Exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();

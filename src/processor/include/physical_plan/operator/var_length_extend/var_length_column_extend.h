@@ -26,9 +26,9 @@ class VarLengthColumnExtend : public VarLengthExtend {
 public:
     VarLengthColumnExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
         StorageStructure* storage, uint8_t lowerBound, uint8_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : VarLengthExtend(
-              boundNodeDataPos, nbrNodeDataPos, storage, lowerBound, upperBound, move(child), id) {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, storage, lowerBound, upperBound,
+              move(child), id, paramsString) {}
 
     PhysicalOperatorType getOperatorType() override { return VAR_LENGTH_COLUMN_EXTEND; }
 
@@ -38,7 +38,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<VarLengthColumnExtend>(boundNodeDataPos, nbrNodeDataPos, storage,
-            lowerBound, upperBound, children[0]->clone(), id);
+            lowerBound, upperBound, children[0]->clone(), id, paramsString);
     }
 
 private:

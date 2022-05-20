@@ -30,8 +30,7 @@ private:
 
 class OpProfileTree {
 public:
-    OpProfileTree(PhysicalOperator* opProfileBoxes, Profiler& profiler,
-        unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap);
+    OpProfileTree(PhysicalOperator* opProfileBoxes, Profiler& profiler);
 
     void prettyPrintToShell() const;
 
@@ -40,8 +39,7 @@ private:
         PhysicalOperator* op, uint32_t& numRows, uint32_t& numCols);
 
     uint32_t fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
-        uint32_t& maxFieldWidth, Profiler& profiler,
-        unordered_map<uint32_t, shared_ptr<LogicalOperator>>& physicalToLogicalOperatorMap);
+        uint32_t& maxFieldWidth, Profiler& profiler);
 
     void printOpProfileBoxUpperFrame(uint32_t rowIdx, ostringstream& oss) const;
 
@@ -84,31 +82,27 @@ private:
 class PlanPrinter {
 
 public:
-    PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan,
-        unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap,
-        unique_ptr<Profiler> profiler)
-        : physicalPlan{move(physicalPlan)},
-          physicalToLogicalOperatorMap{move(physicalToLogicalOperatorMap)}, profiler{
-                                                                                move(profiler)} {}
+    PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan, unique_ptr<Profiler> profiler)
+        : physicalPlan{move(physicalPlan)}, profiler{move(profiler)} {}
 
     inline nlohmann::json printPlanToJson() {
         return toJson(physicalPlan->lastOperator.get(), *profiler);
     }
 
     inline void printPlanToShell() {
-        OpProfileTree(physicalPlan->lastOperator.get(), *profiler, physicalToLogicalOperatorMap)
-            .prettyPrintToShell();
+        OpProfileTree(physicalPlan->lastOperator.get(), *profiler).prettyPrintToShell();
     }
 
-    static string getOperatorName(PhysicalOperator* physicalOperator,
-        unordered_map<uint32_t, shared_ptr<LogicalOperator>>& physicalToLogicalOperatorMap);
+    static inline string getOperatorName(PhysicalOperator* physicalOperator) {
+        return PhysicalOperatorTypeNames[physicalOperator->getOperatorType()] + "(" +
+               physicalOperator->getParamsString() + ")";
+    }
 
 private:
     nlohmann::json toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
 
 private:
     unique_ptr<PhysicalPlan> physicalPlan;
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap;
     unique_ptr<Profiler> profiler;
 };
 

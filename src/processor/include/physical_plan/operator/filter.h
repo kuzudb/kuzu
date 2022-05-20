@@ -13,9 +13,9 @@ class Filter : public PhysicalOperator, public FilteringOperator {
 
 public:
     Filter(unique_ptr<BaseExpressionEvaluator> expressionEvaluator, uint32_t dataChunkToSelectPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator{move(child), id}, FilteringOperator{}, expressionEvaluator{move(
-                                                                      expressionEvaluator)},
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, FilteringOperator{},
+          expressionEvaluator{move(expressionEvaluator)},
           dataChunkToSelectPos(dataChunkToSelectPos) {}
 
     PhysicalOperatorType getOperatorType() override { return FILTER; }
@@ -27,8 +27,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Filter>(
-            expressionEvaluator->clone(), dataChunkToSelectPos, children[0]->clone(), id);
+        return make_unique<Filter>(expressionEvaluator->clone(), dataChunkToSelectPos,
+            children[0]->clone(), id, paramsString);
     }
 
 private:

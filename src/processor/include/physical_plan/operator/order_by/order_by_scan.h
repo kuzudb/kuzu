@@ -15,16 +15,18 @@ public:
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator{move(child), id}, SourceOperator{move(resultSetDescriptor)},
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, SourceOperator{move(
+                                                               resultSetDescriptor)},
           outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
                                                                           0} {}
 
     // This constructor is used for cloning only.
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
-        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id)
-        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
+        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
           outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
                                                                           0} {}
 
@@ -35,7 +37,12 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderByScan>(resultSetDescriptor->copy(), outDataPoses, sharedState, id);
+        return make_unique<OrderByScan>(
+            resultSetDescriptor->copy(), outDataPoses, sharedState, id, paramsString);
+    }
+
+    inline double getExecutionTime(Profiler& profiler) const override {
+        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
 
 private:

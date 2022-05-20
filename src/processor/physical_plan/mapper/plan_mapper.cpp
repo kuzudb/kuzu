@@ -161,8 +161,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     default:
         assert(false);
     }
-    // This map is populated regardless of whether PROFILE or EXPLAIN is enabled.
-    physicalIDToLogicalOperatorMap.insert({physicalOperator->getOperatorID(), logicalOperator});
     return physicalOperator;
 }
 
@@ -173,7 +171,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     auto dataPos = mapperContext.getDataPos(logicalScan.nodeID);
     mapperContext.addComputedExpressions(logicalScan.nodeID);
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        logicalScan.label, dataPos, sharedState, mapperContext.getOperatorID());
+        logicalScan.label, dataPos, sharedState, getOperatorID(),
+        logicalScan.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
@@ -194,8 +193,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
         mapperContext.addComputedExpressions(expressionName);
     }
     return make_unique<ResultScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(inDataPoses), outDataChunkPos, move(outValueVectorsPos),
-        mapperContext.getOperatorID());
+        move(inDataPoses), outDataChunkPos, move(outValueVectorsPos), getOperatorID(),
+        resultScan.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
@@ -206,27 +205,28 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto outDataPos = mapperContext.getDataPos(extend.nbrNodeID);
     mapperContext.addComputedExpressions(extend.nbrNodeID);
     auto& relsStore = storageManager.getRelsStore();
+    auto paramsString = extend.getExpressionsForPrinting();
     if (extend.isColumn) {
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
                 relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-                move(prevOperator), mapperContext.getOperatorID());
+                move(prevOperator), getOperatorID(), paramsString);
         } else {
             return make_unique<VarLengthColumnExtend>(inDataPos, outDataPos,
                 relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-                extend.lowerBound, extend.upperBound, move(prevOperator),
-                mapperContext.getOperatorID());
+                extend.lowerBound, extend.upperBound, move(prevOperator), getOperatorID(),
+                paramsString);
         }
     } else {
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjListExtend>(
-                inDataPos, outDataPos, adjLists, move(prevOperator), mapperContext.getOperatorID());
+                inDataPos, outDataPos, adjLists, move(prevOperator), getOperatorID(), paramsString);
         } else {
             return make_unique<VarLengthAdjListExtend>(inDataPos, outDataPos, adjLists,
-                extend.lowerBound, extend.upperBound, move(prevOperator),
-                mapperContext.getOperatorID());
+                extend.lowerBound, extend.upperBound, move(prevOperator), getOperatorID(),
+                paramsString);
         }
     }
 }
@@ -237,7 +237,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto dataChunkPos =
         mapperContext.getDataPos(flatten.getExpressionToFlatten()->getUniqueName()).dataChunkPos;
-    return make_unique<Flatten>(dataChunkPos, move(prevOperator), mapperContext.getOperatorID());
+    return make_unique<Flatten>(
+        dataChunkPos, move(prevOperator), getOperatorID(), flatten.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
@@ -247,7 +248,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
     auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.expression, mapperContext);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
-        mapperContext.getOperatorID());
+        getOperatorID(), logicalFilter.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
@@ -256,8 +257,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto leftDataPos = mapperContext.getDataPos(logicalIntersect.getLeftNodeID());
     auto rightDataPos = mapperContext.getDataPos(logicalIntersect.getRightNodeID());
-    return make_unique<Intersect>(
-        leftDataPos, rightDataPos, move(prevOperator), mapperContext.getOperatorID());
+    return make_unique<Intersect>(leftDataPos, rightDataPos, move(prevOperator), getOperatorID(),
+        logicalIntersect.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
@@ -272,8 +273,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
-        logicalProjection.getDiscardedGroupsPos(), move(prevOperator),
-        mapperContext.getOperatorID());
+        logicalProjection.getDiscardedGroupsPos(), move(prevOperator), getOperatorID(),
+        logicalProjection.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
@@ -281,6 +282,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto inputNodeIDVectorPos = mapperContext.getDataPos(scanProperty.getNodeID());
+    auto paramsString = scanProperty.getExpressionsForPrinting();
     vector<DataPos> outputPropertyVectorsPos;
     for (auto& propertyName : scanProperty.getPropertyNames()) {
         outputPropertyVectorsPos.push_back(mapperContext.getDataPos(propertyName));
@@ -291,7 +293,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
         auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getNodeLabel());
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
             move(outputPropertyVectorsPos), scanProperty.getPropertyKeys(), lists,
-            move(prevOperator), mapperContext.getOperatorID());
+            move(prevOperator), getOperatorID(), paramsString);
     }
     vector<Column*> propertyColumns;
     for (auto& propertyKey : scanProperty.getPropertyKeys()) {
@@ -299,7 +301,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
             nodeStore.getNodePropertyColumn(scanProperty.getNodeLabel(), propertyKey));
     }
     return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, move(outputPropertyVectorsPos),
-        move(propertyColumns), move(prevOperator), mapperContext.getOperatorID());
+        move(propertyColumns), move(prevOperator), getOperatorID(), paramsString);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
@@ -312,17 +314,18 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
     mapperContext.addComputedExpressions(propertyName);
     auto& relStore = storageManager.getRelsStore();
+    auto paramsString = scanRelProperty.getExpressionsForPrinting();
     if (scanRelProperty.getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(
             scanRelProperty.getRelLabel(), scanRelProperty.getBoundNodeLabel(), propertyKey);
         return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
             vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
-            mapperContext.getOperatorID());
+            getOperatorID(), paramsString);
     }
     auto lists = relStore.getRelPropertyLists(scanRelProperty.getDirection(),
         scanRelProperty.getBoundNodeLabel(), scanRelProperty.getRelLabel(), propertyKey);
     return make_unique<ReadRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
-        lists, move(prevOperator), mapperContext.getOperatorID());
+        lists, move(prevOperator), getOperatorID(), paramsString);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
@@ -336,6 +339,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     // Populate build side and probe side vector positions
     auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.getJoinNodeID());
     auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.getJoinNodeID());
+    auto paramsString = hashJoin.getExpressionsForPrinting();
     vector<bool> isBuildSideNonKeyDataFlat;
     vector<DataPos> buildSideNonKeyDataPoses;
     vector<DataPos> probeSideNonKeyDataPoses;
@@ -356,18 +360,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
     auto hashJoinBuild = make_unique<HashJoinBuild>(
-        sharedState, buildDataInfo, move(buildSidePrevOperator), mapperContext.getOperatorID());
+        sharedState, buildDataInfo, move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, probeDataInfo,
-        move(probeSidePrevOperator), move(hashJoinBuild), mapperContext.getOperatorID());
+        move(probeSidePrevOperator), move(hashJoinBuild), getOperatorID(), paramsString);
     return hashJoinProbe;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    return make_unique<MultiplicityReducer>(move(prevOperator), mapperContext.getOperatorID());
+    return make_unique<MultiplicityReducer>(
+        move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
@@ -376,8 +381,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
-        dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator),
-        mapperContext.getOperatorID());
+        dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator), getOperatorID(),
+        logicalSkip.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
@@ -387,7 +392,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator),
-        mapperContext.getOperatorID());
+        getOperatorID(), logicalLimit.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
@@ -397,6 +402,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         make_unique<ResultSetDescriptor>(*logicalAggregate.getSchemaBeforeAggregate()));
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContextBeforeAggregate);
+    auto paramsString = logicalAggregate.getExpressionsForPrinting();
     vector<DataPos> inputAggVectorsPos;
     vector<DataPos> outputAggVectorsPos;
     vector<DataType> outputAggVectorsDataTypes;
@@ -419,14 +425,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         return createHashAggregate(move(aggregateFunctions), inputAggVectorsPos,
             outputAggVectorsPos, outputAggVectorsDataTypes,
             logicalAggregate.getExpressionsToGroupBy(), move(prevOperator),
-            mapperContextBeforeAggregate, mapperContext);
+            mapperContextBeforeAggregate, mapperContext, paramsString);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
         auto aggregate = make_unique<SimpleAggregate>(sharedState, inputAggVectorsPos,
-            move(aggregateFunctions), move(prevOperator), mapperContext.getOperatorID());
+            move(aggregateFunctions), move(prevOperator), getOperatorID(), paramsString);
         auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState,
             mapperContext.getResultSetDescriptor()->copy(), outputAggVectorsPos,
-            outputAggVectorsDataTypes, move(aggregate), mapperContext.getOperatorID());
+            outputAggVectorsDataTypes, move(aggregate), getOperatorID(), paramsString);
         return aggregateScan;
     }
 }
@@ -445,7 +451,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
     return createHashAggregate(move(emptyAggregateFunctions), emptyInputAggVectorsPos,
         emptyOutputAggVectorsPos, emptyOutputAggVectorsDataTypes,
         logicalDistinct.getExpressionsToDistinct(), move(prevOperator), mapperContextBeforeDistinct,
-        mapperContext);
+        mapperContext, logicalDistinct.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
@@ -460,8 +466,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     exitSubquery(prevContext);
     mapperContext.addComputedExpressions(logicalExists.subqueryExpression->getUniqueName());
     auto outDataPos = mapperContext.getDataPos(logicalExists.subqueryExpression->getUniqueName());
-    return make_unique<Exists>(
-        outDataPos, move(prevOperator), move(subPlanLastOperator), mapperContext.getOperatorID());
+    return make_unique<Exists>(outDataPos, move(prevOperator), move(subPlanLastOperator),
+        getOperatorID(), logicalExists.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
@@ -490,7 +496,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
         }
     }
     return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping), move(prevOperator),
-        move(subPlanLastOperator), mapperContext.getOperatorID());
+        move(subPlanLastOperator), getOperatorID(),
+        logicalLeftNestedLoopJoin.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
@@ -501,6 +508,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         MapperContext(make_unique<ResultSetDescriptor>(schemaBeforeOrderBy));
     auto orderByPrevOperator =
         mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0), mapperContextBeforeOrderBy);
+    auto paramsString = logicalOrderBy.getExpressionsForPrinting();
     vector<DataPos> keyDataPoses;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
         keyDataPoses.emplace_back(
@@ -522,11 +530,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderBySharedState = make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
     auto orderBy = make_unique<OrderBy>(orderByDataInfo, orderBySharedState,
-        move(orderByPrevOperator), mapperContext.getOperatorID());
+        move(orderByPrevOperator), getOperatorID(), paramsString);
     auto orderByMerge =
-        make_unique<OrderByMerge>(orderBySharedState, move(orderBy), mapperContext.getOperatorID());
+        make_unique<OrderByMerge>(orderBySharedState, move(orderBy), getOperatorID(), paramsString);
     auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
-        outputDataPoses, orderBySharedState, move(orderByMerge), mapperContext.getOperatorID());
+        outputDataPoses, orderBySharedState, move(orderByMerge), getOperatorID(), paramsString);
     return orderByScan;
 }
 
@@ -540,16 +548,21 @@ unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         auto isFlat = schema.getGroup(expressionName)->getIsFlat();
         valueVectorsToCollectInfo.emplace_back(dataPos, isFlat);
     }
+    auto paramsString = string();
+    for (auto& expression : expressionsToCollect) {
+        paramsString += expression->getUniqueName() + ", ";
+    }
     auto sharedState = make_shared<FTableSharedState>();
     return make_unique<ResultCollector>(
-        valueVectorsToCollectInfo, sharedState, move(prevOperator), mapperContext.getOperatorID());
+        valueVectorsToCollectInfo, sharedState, move(prevOperator), getOperatorID(), paramsString);
 }
 
-unique_ptr<PhysicalOperator> createHashAggregate(
+unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
     vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
     vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataType,
     const expression_vector& groupByExpressions, unique_ptr<PhysicalOperator> prevOperator,
-    MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext) {
+    MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext,
+    const string& paramsString) {
     vector<DataPos> inputGroupByHashKeyVectorsPos;
     vector<DataPos> inputGroupByNonHashKeyVectorsPos;
     vector<DataPos> outputGroupByKeyVectorsPos;
@@ -582,15 +595,15 @@ unique_ptr<PhysicalOperator> createHashAggregate(
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
     auto aggregate = make_unique<HashAggregate>(sharedState, inputGroupByHashKeyVectorsPos,
         inputGroupByNonHashKeyVectorsPos, move(inputAggVectorsPos), move(aggregateFunctions),
-        move(prevOperator), mapperContext.getOperatorID());
+        move(prevOperator), getOperatorID(), paramsString);
     auto aggregateScan = make_unique<HashAggregateScan>(sharedState,
         mapperContext.getResultSetDescriptor()->copy(), outputGroupByKeyVectorsPos,
         outputGroupByKeyVectorsDataTypeId, move(outputAggVectorsPos),
-        move(outputAggVectorsDataType), move(aggregate), mapperContext.getOperatorID());
+        move(outputAggVectorsDataType), move(aggregate), getOperatorID(), paramsString);
     return aggregateScan;
 }
 
-void appendGroupByExpressions(const expression_vector& groupByExpressions,
+void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpressions,
     vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
     vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
     MapperContext& mapperContext) {

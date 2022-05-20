@@ -28,8 +28,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
         expressionEvaluators.push_back(expressionMapper.mapExpression(target, mapperContext));
     }
     return make_unique<SetNodeStructuredProperty>(move(nodeIDVectorPositions),
-        move(propertyColumns), move(expressionEvaluators), move(prevOperator),
-        mapperContext.getOperatorID());
+        move(propertyColumns), move(expressionEvaluators), move(prevOperator), getOperatorID(),
+        logicalSet.getExpressionsForPrinting());
 }
 
 } // namespace processor

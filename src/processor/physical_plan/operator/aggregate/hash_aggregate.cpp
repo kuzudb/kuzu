@@ -85,7 +85,7 @@ unique_ptr<PhysicalOperator> HashAggregate::clone() {
     }
     return make_unique<HashAggregate>(sharedState, groupByHashKeyVectorsPos,
         groupByNonHashKeyVectorsPos, aggregateVectorsPos, move(clonedAggregateFunctions),
-        children[0]->clone(), id);
+        children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

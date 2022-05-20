@@ -44,8 +44,9 @@ class ResultCollector : public Sink {
 
 public:
     ResultCollector(vector<pair<DataPos, bool>> vectorsToCollectInfo,
-        shared_ptr<FTableSharedState> sharedState, unique_ptr<PhysicalOperator> child, uint32_t id)
-        : Sink{move(child), id}, vectorsToCollectInfo{move(vectorsToCollectInfo)},
+        shared_ptr<FTableSharedState> sharedState, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : Sink{move(child), id, paramsString}, vectorsToCollectInfo{move(vectorsToCollectInfo)},
           sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
@@ -56,7 +57,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ResultCollector>(
-            vectorsToCollectInfo, sharedState, children[0]->clone(), id);
+            vectorsToCollectInfo, sharedState, children[0]->clone(), id, paramsString);
     }
 
     inline shared_ptr<FTableSharedState> getSharedState() { return sharedState; }

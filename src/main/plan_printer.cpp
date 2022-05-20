@@ -18,8 +18,7 @@ string OpProfileBox::getAttribute(uint32_t i) const {
     return attributes[i];
 }
 
-OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler,
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap) {
+OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     auto numRows = 0u, numCols = 0u;
     calculateNumRowsAndColsForOp(op, numRows, numCols);
     opProfileBoxes.resize(numRows);
@@ -27,8 +26,7 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler,
         [numCols](
             vector<unique_ptr<OpProfileBox>>& profileBoxes) { profileBoxes.resize(numCols); });
     auto maxFieldWidth = 0u;
-    fillOpProfileBoxes(
-        op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth, profiler, physicalToLogicalOperatorMap);
+    fillOpProfileBoxes(op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth, profiler);
     // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
     // rightIndentWidth + boxRightFrameWidth;
     this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
@@ -63,11 +61,9 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
 }
 
 uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
-    uint32_t& maxFieldWidth, Profiler& profiler,
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>>& physicalToLogicalOperatorMap) {
+    uint32_t& maxFieldWidth, Profiler& profiler) {
     auto opProfileBox =
-        make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op, physicalToLogicalOperatorMap),
-            op->getAttributes(profiler));
+        make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op), op->getAttributes(profiler));
     maxFieldWidth = max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, move(opProfileBox));
     if (!op->getNumChildren()) {
@@ -76,8 +72,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
 
     uint32_t colOffset = 0;
     for (auto i = 0u; i < op->getNumChildren(); i++) {
-        colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset,
-            maxFieldWidth, profiler, physicalToLogicalOperatorMap);
+        colOffset += fillOpProfileBoxes(
+            op->getChild(i), rowIdx + 1, colIdx + colOffset, maxFieldWidth, profiler);
     }
     return colOffset;
 }
@@ -128,7 +124,7 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
                 oss << "│" << string(opProfileBoxWidth - 2, ' ') << "│";
             } else {
                 if (hasOpProfileBox(rowIdx + 1, j) && i >= halfWayPoint) {
-                    auto leftHorizLineSize = opProfileBoxWidth / 2 - 1;
+                    auto leftHorizLineSize = opProfileBoxWidth / 2;
                     if (i == halfWayPoint) {
                         oss << genHorizLine(leftHorizLineSize);
                         if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1)) {
@@ -167,7 +163,7 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& 
         } else if (hasOpProfileBox(rowIdx + 1, i)) {
             // If there is a opProfileBox at the bottom, we need to print out a vertical line to
             // connect it.
-            auto leftFrameLength = opProfileBoxWidth / 2 - 1;
+            auto leftFrameLength = opProfileBoxWidth / 2;
             oss << string(leftFrameLength, ' ') << "│"
                 << string(opProfileBoxWidth - leftFrameLength - 1, ' ');
         } else {
@@ -233,20 +229,9 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     return height * 2 + 1;
 }
 
-string PlanPrinter::getOperatorName(PhysicalOperator* physicalOperator,
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>>& physicalToLogicalOperatorMap) {
-    auto operatorID = physicalOperator->getOperatorID();
-    auto operatorName = PhysicalOperatorTypeNames[physicalOperator->getOperatorType()];
-    if (physicalToLogicalOperatorMap.contains(operatorID)) {
-        operatorName +=
-            "(" + physicalToLogicalOperatorMap.at(operatorID)->getExpressionsForPrinting() + ")";
-    }
-    return operatorName;
-}
-
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
     auto json = nlohmann::json();
-    json["name"] = getOperatorName(physicalOperator, physicalToLogicalOperatorMap);
+    json["name"] = getOperatorName(physicalOperator);
     if (physicalOperator->getNumChildren()) {
         json["prev"] = toJson(physicalOperator->getChild(0), profiler);
     }

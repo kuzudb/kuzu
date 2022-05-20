@@ -14,13 +14,15 @@ class BaseAggregateScan : public PhysicalOperator, public SourceOperator {
 public:
     BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator{move(child), id}, SourceOperator{move(resultSetDescriptor)},
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, SourceOperator{move(
+                                                               resultSetDescriptor)},
           aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
 
     BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id)
-        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
+        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
           aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATE_SCAN; }
@@ -30,6 +32,10 @@ public:
     bool getNextTuples() override = 0;
 
     unique_ptr<PhysicalOperator> clone() override = 0;
+
+    inline double getExecutionTime(Profiler& profiler) const override {
+        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
+    }
 
 protected:
     void writeAggregateResultToVector(

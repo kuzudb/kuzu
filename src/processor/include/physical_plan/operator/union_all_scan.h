@@ -26,17 +26,17 @@ public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
         shared_ptr<UnionAllScanSharedState> sharedState,
-        vector<unique_ptr<PhysicalOperator>> children, uint32_t id)
+        vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
         : BaseTableScan{move(resultSetDescriptor), move(outVecPositions), move(outVecDataTypes),
-              move(children), id},
+              move(children), id, paramsString},
           sharedState{move(sharedState)} {}
 
     // For clone only
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
-        shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id)
-        : BaseTableScan{move(resultSetDescriptor), move(outVecPositions), move(outVecDataTypes),
-              id},
+        shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id, const string& paramsString)
+        : BaseTableScan{move(resultSetDescriptor), move(outVecPositions), move(outVecDataTypes), id,
+              paramsString},
           sharedState{move(sharedState)} {}
 
     inline void setMaxMorselSize() override { maxMorselSize = sharedState->getMaxMorselSize(); }
@@ -54,8 +54,8 @@ public:
     }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<UnionAllScan>(
-            resultSetDescriptor->copy(), outVecPositions, outVecDataTypes, sharedState, id);
+        return make_unique<UnionAllScan>(resultSetDescriptor->copy(), outVecPositions,
+            outVecDataTypes, sharedState, id, paramsString);
     }
 
 private:

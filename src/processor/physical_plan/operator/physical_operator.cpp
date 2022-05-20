@@ -5,20 +5,22 @@
 namespace graphflow {
 namespace processor {
 
-PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id)
-    : PhysicalOperator{id} {
+PhysicalOperator::PhysicalOperator(
+    unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    : PhysicalOperator{id, paramsString} {
     children.push_back(move(child));
 }
 
-PhysicalOperator::PhysicalOperator(
-    unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right, uint32_t id)
-    : PhysicalOperator{id} {
+PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
+    unique_ptr<PhysicalOperator> right, uint32_t id, const string& paramsString)
+    : PhysicalOperator{id, paramsString} {
     children.push_back(move(left));
     children.push_back(move(right));
 }
 
-PhysicalOperator::PhysicalOperator(vector<unique_ptr<PhysicalOperator>> children, uint32_t id)
-    : PhysicalOperator{id} {
+PhysicalOperator::PhysicalOperator(
+    vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
+    : PhysicalOperator{id, paramsString} {
     for (auto& child : children) {
         this->children.push_back(move(child));
     }
@@ -59,6 +61,8 @@ void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profil
     }
     // Time metric measures execution time of the subplan under current operator (like a CDF).
     // By subtracting prevOperator runtime, we get the runtime of current operator
+    auto executionTime = profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
+    auto numOutputTuples = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
     json["executionTime"] =
         to_string(profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime);
     json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());

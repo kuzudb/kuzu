@@ -24,9 +24,9 @@ class VarLengthAdjListExtend : public VarLengthExtend {
 public:
     VarLengthAdjListExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
         StorageStructure* adjLists, uint8_t lowerBound, uint8_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, adjLists, lowerBound, upperBound,
-              move(child), id) {}
+              move(child), id, paramsString) {}
 
     PhysicalOperatorType getOperatorType() override { return VAR_LENGTH_ADJ_LIST_EXTEND; }
 
@@ -38,7 +38,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<VarLengthAdjListExtend>(boundNodeDataPos, nbrNodeDataPos, storage,
-            lowerBound, upperBound, children[0]->clone(), id);
+            lowerBound, upperBound, children[0]->clone(), id, paramsString);
     }
 
 private:

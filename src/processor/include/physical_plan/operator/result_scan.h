@@ -14,8 +14,9 @@ class ResultScan : public PhysicalOperator, public SourceOperator {
 
 public:
     ResultScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> inDataPoses,
-        uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, uint32_t id)
-        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
+        uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, uint32_t id,
+        string paramsString)
+        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
           inDataPoses{move(inDataPoses)}, outDataChunkPos{outDataChunkPos},
           outValueVectorsPos{move(outValueVectorsPos)}, isFirstExecution{true} {}
 
@@ -32,8 +33,12 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultScan>(
-            resultSetDescriptor->copy(), inDataPoses, outDataChunkPos, outValueVectorsPos, id);
+        return make_unique<ResultScan>(resultSetDescriptor->copy(), inDataPoses, outDataChunkPos,
+            outValueVectorsPos, id, paramsString);
+    }
+
+    inline double getExecutionTime(Profiler& profiler) const override {
+        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
 
 private:

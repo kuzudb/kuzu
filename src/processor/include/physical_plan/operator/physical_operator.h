@@ -65,14 +65,16 @@ class PhysicalOperator {
 
 public:
     // Leaf operator
-    PhysicalOperator(uint32_t id) : id{id} {}
+    PhysicalOperator(uint32_t id, const string& paramsString)
+        : id{id}, paramsString{paramsString} {}
     // Unary operator
-    PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id);
+    PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
     // Binary operator
-    PhysicalOperator(
-        unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right, uint32_t id);
+    PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
+        uint32_t id, const string& paramsString);
     // This constructor is used by UnionAllScan only since it may have multiple children.
-    PhysicalOperator(vector<unique_ptr<PhysicalOperator>> children, uint32_t id);
+    PhysicalOperator(
+        vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString);
 
     virtual ~PhysicalOperator() = default;
 
@@ -102,16 +104,18 @@ public:
 
     virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
-    double getExecutionTime(Profiler& profiler) const;
+    virtual double getExecutionTime(Profiler& profiler) const;
 
     inline uint64_t getNumOutputTuples(Profiler& profiler) const {
         return profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
     }
 
     vector<string> getAttributes(Profiler& profiler) const;
+    inline string getTimeMetricKey() const { return "time-" + to_string(id); }
+
+    inline string getParamsString() const { return paramsString; }
 
 protected:
-    inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
 
     void registerProfilingMetrics(Profiler* profiler);
@@ -125,6 +129,8 @@ protected:
     vector<unique_ptr<PhysicalOperator>> children;
     shared_ptr<ResultSet> resultSet;
     Transaction* transaction;
+
+    string paramsString;
 };
 
 } // namespace processor

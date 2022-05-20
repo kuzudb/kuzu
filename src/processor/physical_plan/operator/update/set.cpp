@@ -39,8 +39,8 @@ unique_ptr<PhysicalOperator> SetNodeStructuredProperty::clone() {
     for (auto& expressionEvaluator : expressionEvaluators) {
         clonedExpressionEvaluators.push_back(expressionEvaluator->clone());
     }
-    return make_unique<SetNodeStructuredProperty>(
-        nodeIDVectorPositions, columns, move(clonedExpressionEvaluators), children[0]->clone(), id);
+    return make_unique<SetNodeStructuredProperty>(nodeIDVectorPositions, columns,
+        move(clonedExpressionEvaluators), children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

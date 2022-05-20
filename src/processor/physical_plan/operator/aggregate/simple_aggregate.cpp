@@ -40,8 +40,9 @@ pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
 
 SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
     vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-    unique_ptr<PhysicalOperator> child, uint32_t id)
-    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id},
+    unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id,
+          paramsString},
       sharedState{move(sharedState)} {}
 
 shared_ptr<ResultSet> SimpleAggregate::init(ExecutionContext* context) {
@@ -83,8 +84,8 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<SimpleAggregate>(
-        sharedState, aggregateVectorsPos, move(clonedAggregateFunctions), children[0]->clone(), id);
+    return make_unique<SimpleAggregate>(sharedState, aggregateVectorsPos,
+        move(clonedAggregateFunctions), children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

@@ -37,8 +37,9 @@ public:
         vector<DataPos> inputGroupByHashKeyVectorsPos,
         vector<DataPos> inputGroupByNonHashKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id},
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id,
+              paramsString},
           groupByHashKeyVectorsPos{move(inputGroupByHashKeyVectorsPos)},
           groupByNonHashKeyVectorsPos{move(inputGroupByNonHashKeyVectorsPos)}, sharedState{move(
                                                                                    sharedState)} {}

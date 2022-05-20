@@ -8,8 +8,8 @@ namespace processor {
 class MultiplicityReducer : public PhysicalOperator {
 
 public:
-    MultiplicityReducer(unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator{move(child), id}, prevMultiplicity{1}, numRepeat{0} {}
+    MultiplicityReducer(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, prevMultiplicity{1}, numRepeat{0} {}
 
     PhysicalOperatorType getOperatorType() override { return MULTIPLICITY_REDUCER; }
 
@@ -18,7 +18,7 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<MultiplicityReducer>(children[0]->clone(), id);
+        return make_unique<MultiplicityReducer>(children[0]->clone(), id, paramsString);
     }
 
 private:
