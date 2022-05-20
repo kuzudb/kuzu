@@ -33,8 +33,7 @@ unique_ptr<QueryResult> Benchmark::run() {
     return conn->query(query);
 }
 
-void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryResult) const {
-    vector<string> actualOutput = testing::TestHelper::convertResultToString(queryResult);
+void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, vector<string>& actualOutput) const {
     log << "Run Num: " << runNum << endl;
     log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << endl;
     log << "Query: " << query << endl;
@@ -50,25 +49,26 @@ void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryR
 
 void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
+    auto actualOutput = testing::TestHelper::convertResultToString(queryResult);
     string plan = "Plan: \n" + querySummary->printPlanToJson().dump(4);
     spdlog::info("Run number: {}", runNum);
     spdlog::info("Compiling time {}", querySummary->getCompilingTime());
     spdlog::info("Execution time {}", querySummary->getExecutionTime());
-    verify(queryResult);
+    verify(actualOutput);
     spdlog::info("");
     if (config.enableProfile) {
         spdlog::info("{}", plan);
     }
     if (!config.outputPath.empty()) {
         ofstream logFile(config.outputPath + "/" + name + "_log.txt", ios_base::app);
-        logQueryInfo(logFile, runNum, queryResult);
+        logQueryInfo(logFile, runNum, actualOutput);
         logFile << "Compiling time: " << querySummary->getCompilingTime() << endl;
         logFile << "Execution time: " << querySummary->getExecutionTime() << endl << endl;
         logFile.flush();
         logFile.close();
         if (config.enableProfile) {
             ofstream profileFile(config.outputPath + "/" + name + "_profile.txt", ios_base::app);
-            logQueryInfo(profileFile, runNum, queryResult);
+            logQueryInfo(profileFile, runNum, actualOutput);
             profileFile << plan << endl << endl;
             profileFile.flush();
             profileFile.close();
@@ -76,8 +76,7 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     }
 }
 
-void Benchmark::verify(QueryResult& queryResult) const {
-    vector<string> actualOutput = testing::TestHelper::convertResultToString(queryResult);
+void Benchmark::verify(vector<string>& actualOutput) const {
     if (actualOutput != expectedOutput) {
         spdlog::error("Query: {}", query);
         spdlog::error("Result tuples are not matched");
