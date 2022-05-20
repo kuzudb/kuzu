@@ -41,31 +41,30 @@ bool Frame::acquireFrameLock(bool block) {
     return !frameLock.test_and_set();
 }
 
-BufferPool::BufferPool(uint64_t pageSizeLog2, uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")},
-      pageSizeLog2{pageSizeLog2}, clockHand{0}, numFrames((uint32_t)(maxSize >> pageSizeLog2)) {
-    assert(pageSizeLog2 == DEFAULT_PAGE_SIZE_LOG_2 || pageSizeLog2 == LARGE_PAGE_SIZE_LOG_2);
+BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
+    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
+      numFrames((uint32_t)(ceil((double)maxSize / (double)pageSize))) {
+    assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
     for (auto i = 0u; i < numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>(1 << pageSizeLog2));
+        bufferCache.emplace_back(make_unique<Frame>(pageSize));
     }
     logger->info("Initializing Buffer Pool.");
-    logger->info("BufferPool Size {}B, #{}byte-pages {}.", maxSize, 1 << pageSizeLog2,
-        maxSize >> pageSizeLog2);
+    logger->info("BufferPool Size {}B, #{}byte-pages {}.", maxSize, pageSize,
+        ceil((double)maxSize / (double)pageSize));
     logger->info("Done Initializing Buffer Pool.");
 }
 
 void BufferPool::resize(uint64_t newSize) {
-    if ((numFrames << pageSizeLog2) > newSize) {
+    if ((numFrames * pageSize) > newSize) {
         throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported!");
     }
-    auto newNumFrames = (uint32_t)(newSize >> pageSizeLog2);
+    auto newNumFrames = (uint32_t)(ceil((double)newSize / (double)pageSize));
     for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>(1 << pageSizeLog2));
+        bufferCache.emplace_back(make_unique<Frame>(pageSize));
     }
     numFrames = newNumFrames;
     logger->info("Resizing buffer pool.");
-    logger->info(
-        "New buffer pool size {}B, #{}byte-pages {}.", newSize, 2 << pageSizeLog2, newNumFrames);
+    logger->info("New buffer pool size {}B, #{}byte-pages {}.", newSize, pageSize, newNumFrames);
     logger->info("Done resizing buffer pool.");
 }
 

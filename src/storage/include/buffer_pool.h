@@ -70,7 +70,7 @@ class BufferPool {
     friend class BufferManager;
 
 public:
-    BufferPool(uint64_t pageSizeLog2, uint64_t maxSize);
+    BufferPool(uint64_t pageSize, uint64_t maxSize);
 
     uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
 
@@ -118,7 +118,7 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    uint64_t pageSizeLog2;
+    uint64_t pageSize;
     vector<unique_ptr<Frame>> bufferCache;
     atomic<uint64_t> clockHand;
     uint32_t numFrames;

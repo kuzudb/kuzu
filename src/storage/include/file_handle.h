@@ -107,9 +107,6 @@ private:
     inline uint64_t getPageSize() const {
         return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
     }
-    inline uint64_t getPageSizeLog2() const {
-        return isLargePaged() ? LARGE_PAGE_SIZE_LOG_2 : DEFAULT_PAGE_SIZE_LOG_2;
-    }
 
     inline void addNewPageLockAndFramePtrWithoutLock(uint64_t i);
 
