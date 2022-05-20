@@ -34,7 +34,7 @@ void FileHandle::constructExistingFileHandle(const string& path) {
     int openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
     fileInfo = FileUtils::openFile(path, openFlags);
     auto fileLength = FileUtils::getFileSize(fileInfo->fd);
-    numPages = fileLength >> getPageSizeLog2();
+    numPages = ceil((double)fileLength / (double)getPageSize());
     logger->trace("FileHandle[disk]: Size {}B, #{}B-pages {}", fileLength, getPageSize(), numPages);
     pageCapacity = numPages;
     initPageIdxToFrameMapAndLocks();
@@ -77,11 +77,11 @@ bool FileHandle::acquire(uint32_t pageIdx) {
 }
 
 void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) const {
-    FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx << getPageSizeLog2());
+    FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
 }
 
 void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
-    FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx << getPageSizeLog2());
+    FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
 }
 
 void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t i) {

@@ -14,11 +14,11 @@ InMemPages::InMemPages(
     auto numElementsInAPage =
         hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
                        PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
-    data = make_unique<uint8_t[]>(numPages << DEFAULT_PAGE_SIZE_LOG_2);
+    data = make_unique<uint8_t[]>(numPages * DEFAULT_PAGE_SIZE);
     pages.resize(numPages);
     for (auto i = 0u; i < numPages; i++) {
         pages[i] = make_unique<InMemPage>(
-            numElementsInAPage, data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2), hasNULLBytes);
+            numElementsInAPage, data.get() + (i * DEFAULT_PAGE_SIZE), hasNULLBytes);
     }
 };
 
@@ -30,7 +30,7 @@ void InMemPages::saveToFile() {
         page->encodeNULLBytes();
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    uint64_t byteSize = pages.size() << DEFAULT_PAGE_SIZE_LOG_2;
+    uint64_t byteSize = pages.size() * DEFAULT_PAGE_SIZE;
     FileUtils::writeToFile(fileInfo.get(), data.get(), byteSize, 0);
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -104,7 +104,7 @@ gf_list_t InMemOverflowPages::addList(const Literal& listLiteral, PageByteCursor
     resultGFList.size = listLiteral.listVal.size();
     // Allocate a new page if necessary.
     if (overflowCursor.offset + (resultGFList.size * numBytesOfListElement) >= DEFAULT_PAGE_SIZE ||
-        0 > overflowCursor.idx) {
+        overflowCursor.idx == UINT64_MAX) {
         overflowCursor.offset = 0;
         overflowCursor.idx = getNewOverflowPageIdx();
     }
@@ -137,7 +137,8 @@ gf_list_t InMemOverflowPages::addList(const Literal& listLiteral, PageByteCursor
 void InMemOverflowPages::copyStringOverflow(
     PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString) {
     // Allocate a new page if necessary.
-    if (overflowCursor.offset + dstGFString->len >= DEFAULT_PAGE_SIZE || 0 > overflowCursor.idx) {
+    if (overflowCursor.offset + dstGFString->len >= DEFAULT_PAGE_SIZE ||
+        overflowCursor.idx == UINT64_MAX) {
         overflowCursor.offset = 0;
         overflowCursor.idx = getNewOverflowPageIdx();
     }
@@ -155,7 +156,7 @@ void InMemOverflowPages::copyListOverflow(InMemOverflowPages* srcOverflowPages,
     auto numBytesOfListElement = Types::getDataTypeSize(*listChildDataType);
     // Allocate a new page if necessary.
     if (dstOverflowCursor.offset + (dstGFList->size * numBytesOfListElement) >= DEFAULT_PAGE_SIZE ||
-        0 > dstOverflowCursor.idx) {
+        dstOverflowCursor.idx == UINT64_MAX) {
         dstOverflowCursor.offset = 0;
         dstOverflowCursor.idx = getNewOverflowPageIdx();
     }
@@ -197,19 +198,19 @@ uint32_t InMemOverflowPages::getNewOverflowPageIdx() {
     if (numUsedPages < pages.size()) {
         return page;
     }
-    auto newNumPages = (size_t)(1.5 * pages.size());
-    auto newData = new uint8_t[newNumPages << DEFAULT_PAGE_SIZE_LOG_2];
-    memcpy(newData, data.get(), pages.size() << DEFAULT_PAGE_SIZE_LOG_2);
+    auto newNumPages = (uint32_t)(1.5 * pages.size());
+    auto newData = new uint8_t[newNumPages * DEFAULT_PAGE_SIZE];
+    memcpy(newData, data.get(), pages.size() * DEFAULT_PAGE_SIZE);
     data.reset(newData);
     auto oldNumPages = pages.size();
     pages.resize(newNumPages);
     for (auto i = 0; i < oldNumPages; i++) {
-        pages[i]->data = data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2);
+        pages[i]->data = data.get() + (i * DEFAULT_PAGE_SIZE);
     }
     auto numElementsInPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(1);
     for (auto i = oldNumPages; i < newNumPages; i++) {
         pages[i] = make_unique<InMemPage>(
-            numElementsInPage, data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2), false /*hasNULLBytes*/);
+            numElementsInPage, data.get() + (i * DEFAULT_PAGE_SIZE), false /*hasNULLBytes*/);
     }
     return page;
 }
@@ -222,7 +223,7 @@ void InMemOverflowPages::saveToFile() {
         page->encodeNULLBytes();
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto bytesToWrite = numUsedPages << DEFAULT_PAGE_SIZE_LOG_2;
+    auto bytesToWrite = numUsedPages * DEFAULT_PAGE_SIZE;
     FileUtils::writeToFile(fileInfo.get(), data.get(), bytesToWrite, 0);
     FileUtils::closeFile(fileInfo->fd);
 }

@@ -17,7 +17,7 @@ constexpr uint8_t bitMasksWithSingle0s[8] = {
 struct PageByteCursor {
 
     PageByteCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
-    PageByteCursor() : PageByteCursor{-1ul, (uint16_t)-1} {};
+    PageByteCursor() : PageByteCursor{UINT64_MAX, UINT16_MAX} {};
 
     uint64_t idx;
     uint16_t offset;
