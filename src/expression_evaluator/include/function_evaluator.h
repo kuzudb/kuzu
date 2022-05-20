@@ -25,11 +25,6 @@ public:
     unique_ptr<BaseExpressionEvaluator> clone() override;
 
 private:
-    void getExecFunction();
-
-    void getSelectFunction();
-
-private:
     shared_ptr<Expression> expression;
     scalar_exec_func execFunc;
     scalar_select_func selectFunc;

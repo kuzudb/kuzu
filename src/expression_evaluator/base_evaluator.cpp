@@ -19,14 +19,5 @@ void BaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
     }
 }
 
-bool BaseExpressionEvaluator::isResultVectorFlat() {
-    for (auto& child : children) {
-        if (!child->isResultVectorFlat()) {
-            return false;
-        }
-    }
-    return true;
-}
-
 } // namespace evaluator
 } // namespace graphflow

@@ -17,14 +17,6 @@ public:
         return resultSetDescriptor->getDataPos(name);
     }
 
-    inline void flattenDataChunk(uint64_t dataChunkPos) {
-        resultSetDescriptor->getDataChunkDescriptor(dataChunkPos)->flatten();
-    }
-
-    inline bool isDataChunkFlat(uint64_t dataChunkPos) const {
-        return resultSetDescriptor->getDataChunkDescriptor(dataChunkPos)->getIsFlat();
-    }
-
     // We keep track of computed expressions during a bottom-up mapping of logical plan so that we
     // can differentiate if an expression is leaf or not.
     inline void addComputedExpressions(const string& name) { computedExpressionNames.insert(name); }

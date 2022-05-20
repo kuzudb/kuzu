@@ -43,6 +43,7 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeAllFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        result.state = a.state;
         auto aPos = a.state->getPositionOfCurrIdx();
         auto bPos = b.state->getPositionOfCurrIdx();
         auto cPos = c.state->getPositionOfCurrIdx();
@@ -58,10 +59,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeFlatFlatUnflat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        result.state = c.state;
         auto aPos = a.state->getPositionOfCurrIdx();
         auto bPos = b.state->getPositionOfCurrIdx();
-        // c and result should share the same dataChunk state.
-        assert(c.state == result.state);
         if (a.isNull(aPos) || b.isNull(bPos)) {
             result.setAllNull();
         } else if (c.hasNoNullsGuarantee()) {
@@ -103,9 +103,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatUnflat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        assert(b.state == c.state);
+        result.state = b.state;
         auto aPos = a.state->getPositionOfCurrIdx();
-        // b, c and result should share the same dataChunk state.
-        assert(b.state == c.state && c.state == result.state);
         if (a.isNull(aPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
@@ -147,10 +147,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        result.state = b.state;
         auto aPos = a.state->getPositionOfCurrIdx();
         auto cPos = c.state->getPositionOfCurrIdx();
-        // b and result should share the same dataChunk state.
-        assert(b.state == result.state);
         if (a.isNull(aPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee()) {
@@ -192,8 +191,8 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeAllUnFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
-        // a, b, c and result should share the same dataChunk state.
-        assert(a.state == b.state && b.state == c.state && c.state == result.state);
+        assert(a.state == b.state && b.state == c.state);
+        result.state = a.state;
         if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
             if (a.state->isUnfiltered()) {
                 for (uint64_t i = 0; i < a.state->selectedSize; i++) {
@@ -233,10 +232,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        result.state = a.state;
         auto bPos = b.state->getPositionOfCurrIdx();
         auto cPos = c.state->getPositionOfCurrIdx();
-        // a and result should share the same dataChunk state.
-        assert(a.state == result.state);
         if (b.isNull(bPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee()) {
@@ -278,9 +276,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatUnflat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        assert(a.state == c.state);
+        result.state = a.state;
         auto bPos = b.state->getPositionOfCurrIdx();
-        // a, c and result should share the same dataChunk state.
-        assert(a.state == c.state && c.state == result.state);
         if (b.isNull(bPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
@@ -322,9 +320,9 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeUnflatUnFlatFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        assert(a.state == b.state);
+        result.state = a.state;
         auto cPos = c.state->getPositionOfCurrIdx();
-        // a, b and result should share the same dataChunk state.
-        assert(a.state == b.state && b.state == result.state);
         if (c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee()) {

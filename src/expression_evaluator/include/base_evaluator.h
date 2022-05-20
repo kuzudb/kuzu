@@ -37,8 +37,6 @@ public:
 
     virtual void init(const ResultSet& resultSet, MemoryManager* memoryManager);
 
-    virtual bool isResultVectorFlat();
-
     virtual void evaluate() = 0;
 
     virtual uint64_t select(sel_t* selectedPos) = 0;

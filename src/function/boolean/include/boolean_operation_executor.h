@@ -30,6 +30,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = left.state;
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
         auto resPos = result.state->getPositionOfCurrIdx();
@@ -38,6 +39,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = right.state;
         auto lPos = left.state->getPositionOfCurrIdx();
         if (right.state->isUnfiltered()) {
             for (auto i = 0u; i < right.state->selectedSize; ++i) {
@@ -53,6 +55,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = left.state;
         auto rPos = right.state->getPositionOfCurrIdx();
         if (left.state->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
@@ -68,6 +71,8 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeBothUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        assert(left.state == right.state);
+        result.state = left.state;
         if (left.state->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
                 executeOnValue<FUNC>(left, right, result, i, i, i);
