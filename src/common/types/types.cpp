@@ -58,10 +58,8 @@ DataType Types::dataTypeFromString(const string& dataTypeString) {
 DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
     if ("LABEL" == dataTypeIDString) {
         return LABEL;
-    } else if ("NODE" == dataTypeIDString) {
-        return NODE;
-    } else if ("REL" == dataTypeIDString) {
-        return REL;
+    } else if ("NODE_ID" == dataTypeIDString) {
+        return NODE_ID;
     } else if ("INT64" == dataTypeIDString) {
         return INT64;
     } else if ("DOUBLE" == dataTypeIDString) {
@@ -93,7 +91,38 @@ string Types::dataTypeToString(const DataType& dataType) {
 
 string Types::dataTypeToString(DataTypeID dataTypeID) {
     assert(dataTypeID != LIST);
-    return DataTypeIdNames[dataTypeID];
+    switch (dataTypeID) {
+    case ANY:
+        return "ANY";
+    case NODE:
+        return "NODE";
+    case REL:
+        return "REL";
+    case LABEL:
+        return "LABEL";
+    case NODE_ID:
+        return "NODE_ID";
+    case BOOL:
+        return "BOOL";
+    case INT64:
+        return "INT64";
+    case DOUBLE:
+        return "DOUBLE";
+    case DATE:
+        return "DATE";
+    case TIMESTAMP:
+        return "TIMESTAMP";
+    case INTERVAL:
+        return "INTERVAL";
+    case STRING:
+        return "STRING";
+    case UNSTRUCTURED:
+        return "UNSTRUCTURED";
+    case LIST:
+        return "LIST";
+    default:
+        assert(false);
+    }
 }
 
 string Types::dataTypesToString(const vector<DataType>& dataTypes) {
@@ -120,24 +149,24 @@ size_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case LABEL:
         return sizeof(label_t);
-    case NODE:
+    case NODE_ID:
         return sizeof(nodeID_t);
+    case BOOL:
+        return sizeof(uint8_t);
     case INT64:
         return sizeof(int64_t);
     case DOUBLE:
         return sizeof(double_t);
-    case BOOL:
-        return sizeof(uint8_t);
-    case STRING:
-        return sizeof(gf_string_t);
-    case UNSTRUCTURED:
-        return sizeof(Value);
     case DATE:
         return sizeof(date_t);
     case TIMESTAMP:
         return sizeof(timestamp_t);
     case INTERVAL:
         return sizeof(interval_t);
+    case STRING:
+        return sizeof(gf_string_t);
+    case UNSTRUCTURED:
+        return sizeof(Value);
     case LIST:
         return sizeof(gf_list_t);
     default:

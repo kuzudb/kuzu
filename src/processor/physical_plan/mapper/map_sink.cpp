@@ -22,10 +22,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSinkToPhysical(
     for (auto& expression : logicalSink.getExpressions()) {
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        // TODO(Xiyang): solve this together with issue #244
-        outVecDataTypes.push_back(expression->getDataType().typeID == NODE_ID ?
-                                      DataType(NODE) :
-                                      expression->getDataType());
+        outVecDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
     }
     auto sharedState = resultCollector->getSharedState();

@@ -16,7 +16,7 @@ shared_ptr<ResultSet> VarLengthExtend::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     boundNodeValueVector = resultSet->dataChunks[boundNodeDataPos.dataChunkPos]
                                ->valueVectors[boundNodeDataPos.valueVectorPos];
-    nbrNodeValueVector = make_shared<ValueVector>(context->memoryManager, NODE);
+    nbrNodeValueVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
     resultSet->dataChunks[nbrNodeDataPos.dataChunkPos]->insert(
         nbrNodeDataPos.valueVectorPos, nbrNodeValueVector);
     return resultSet;

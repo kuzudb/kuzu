@@ -74,7 +74,7 @@ class InMemAdjLists : public InMemLists {
 
 public:
     InMemAdjLists(string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numNodes)
-        : InMemLists{move(fName), DataType(NODE), compressionScheme.getNumTotalBytes()},
+        : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes()},
           compressionScheme{compressionScheme} {
         listHeaders = make_unique<ListHeaders>(numNodes);
     };

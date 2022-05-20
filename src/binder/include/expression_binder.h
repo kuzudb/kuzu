@@ -61,12 +61,11 @@ private:
     static shared_ptr<Expression> implicitCastToTimestamp(const shared_ptr<Expression>& expression);
 
     /****** validation *****/
-    static void validateExpectedDataType(const Expression& expression, DataTypeID expectedType) {
-        validateExpectedDataType(expression, unordered_set<DataTypeID>{expectedType});
+    static void validateExpectedDataType(const Expression& expression, DataTypeID target) {
+        validateExpectedDataType(expression, unordered_set<DataTypeID>{target});
     }
     static void validateExpectedDataType(
-        const Expression& expression, const unordered_set<DataTypeID>& expectedTypes);
-
+        const Expression& expression, const unordered_set<DataTypeID>& targets);
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 

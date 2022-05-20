@@ -55,7 +55,7 @@ vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& 
                 // skip over this property.
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
-                colHeaderDefinition.dataType.typeID = NODE;
+                colHeaderDefinition.dataType.typeID = NODE_ID;
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_LABEL_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_LABEL_FIELD) {
                 colHeaderDefinition.dataType.typeID = LABEL;
@@ -66,10 +66,10 @@ vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& 
         } else {
             colHeaderDefinition.name = colHeaderComponents[0];
             colHeaderDefinition.dataType = Types::dataTypeFromString(colHeaderComponents[1]);
-            if (colHeaderDefinition.dataType.typeID == NODE ||
+            if (colHeaderDefinition.dataType.typeID == NODE_ID ||
                 colHeaderDefinition.dataType.typeID == LABEL) {
-                throw LoaderException(
-                    "PropertyNameDataType column header cannot be of system types NODE or LABEL.");
+                throw LoaderException("PropertyNameDataType column header cannot be of system "
+                                      "types NODE_ID or LABEL.");
             }
         }
         if (columnNameSet.find(colHeaderDefinition.name) != columnNameSet.end()) {

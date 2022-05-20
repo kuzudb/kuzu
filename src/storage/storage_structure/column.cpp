@@ -5,7 +5,7 @@ namespace storage {
 
 void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector) {
-    assert(nodeIDVector->dataType.typeID == NODE);
+    assert(nodeIDVector->dataType.typeID == NODE_ID);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);

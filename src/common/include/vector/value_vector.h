@@ -66,7 +66,7 @@ public:
     inline uint64_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
-        assert(dataType.typeID == NODE);
+        assert(dataType.typeID == NODE_ID);
         return ((nodeID_t*)values)[pos].offset;
     }
 

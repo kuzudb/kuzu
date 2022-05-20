@@ -66,10 +66,6 @@ public:
             false /* is node label */);
     }
 
-    static Property constructDummyPropertyForAdjColumnEdges(label_t relLabel) {
-        return Property("", DataType(NODE), UINT32_MAX, relLabel, false /* is node label */);
-    }
-
 public:
     uint32_t propertyID;
     label_t label;

@@ -95,7 +95,7 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
         return make_unique<AggregateFunction>(MinMaxFunction<gf_string_t>::initialize,
             MinMaxFunction<gf_string_t>::update<FUNC>, MinMaxFunction<gf_string_t>::combine<FUNC>,
             MinMaxFunction<gf_string_t>::finalize, inputType, isDistinct);
-    case NODE:
+    case NODE_ID:
         return make_unique<AggregateFunction>(MinMaxFunction<nodeID_t>::initialize,
             MinMaxFunction<nodeID_t>::update<FUNC>, MinMaxFunction<nodeID_t>::combine<FUNC>,
             MinMaxFunction<nodeID_t>::finalize, inputType, isDistinct);

@@ -28,7 +28,7 @@ public:
             database->getCatalog()->getNodeProperty(personNodeLabel, "eyeSight").propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
-        nodeVector = make_shared<ValueVector>(database->getMemoryManager(), NODE);
+        nodeVector = make_shared<ValueVector>(database->getMemoryManager(), NODE_ID);
         dataChunk->insert(0, nodeVector);
         ((nodeID_t*)nodeVector->values)[0].offset = 0;
         ((nodeID_t*)nodeVector->values)[1].offset = 1;

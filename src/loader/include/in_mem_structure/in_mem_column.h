@@ -61,7 +61,7 @@ class InMemAdjColumn : public InMemColumn {
 public:
     InMemAdjColumn(
         string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numElements)
-        : InMemColumn{move(fName), DataType(NODE), compressionScheme.getNumTotalBytes(),
+        : InMemColumn{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes(),
               numElements},
           compressionScheme{compressionScheme} {};
 

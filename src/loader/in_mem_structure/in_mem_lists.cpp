@@ -34,7 +34,7 @@ InMemLists::InMemLists(string fName, DataType dataType, uint64_t numBytesForElem
 
 void InMemLists::init() {
     pages = make_unique<InMemPages>(fName, numBytesForElement,
-        this->dataType.typeID != NODE && this->dataType.typeID != UNSTRUCTURED,
+        this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED,
         listsMetadata->getNumPages());
 }
 

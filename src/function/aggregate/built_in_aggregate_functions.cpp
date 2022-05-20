@@ -117,7 +117,8 @@ void BuiltInAggregateFunctions::registerAvg() {
 
 void BuiltInAggregateFunctions::registerMin() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, NODE, UNSTRUCTURED}) {
+    for (auto typeID :
+        vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, NODE_ID, UNSTRUCTURED}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MIN_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,
@@ -129,7 +130,8 @@ void BuiltInAggregateFunctions::registerMin() {
 
 void BuiltInAggregateFunctions::registerMax() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, NODE, UNSTRUCTURED}) {
+    for (auto typeID :
+        vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, NODE_ID, UNSTRUCTURED}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MAX_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,

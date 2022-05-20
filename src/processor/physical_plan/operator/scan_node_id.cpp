@@ -18,7 +18,7 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     PhysicalOperator::init(context);
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE);
+    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     return resultSet;
 }

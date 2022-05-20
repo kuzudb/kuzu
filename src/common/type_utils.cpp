@@ -104,7 +104,7 @@ string TypeUtils::toString(const Literal& literal) {
         return TypeUtils::toString(literal.val.int64Val);
     case DOUBLE:
         return TypeUtils::toString(literal.val.doubleVal);
-    case NODE:
+    case NODE_ID:
         return TypeUtils::toString(literal.val.nodeID);
     case DATE:
         return TypeUtils::toString(literal.val.dateVal);
@@ -141,7 +141,7 @@ string TypeUtils::toString(const Value& val) {
         return TypeUtils::toString(val.val.doubleVal);
     case STRING:
         return TypeUtils::toString(val.val.strVal);
-    case NODE:
+    case NODE_ID:
         return TypeUtils::toString(val.val.nodeID);
     case DATE:
         return TypeUtils::toString(val.val.dateVal);

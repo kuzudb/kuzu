@@ -12,9 +12,9 @@ public:
         auto result = make_unique<ResultSet>(2);
         auto dataChunkA = make_shared<DataChunk>(2);
         auto dataChunkB = make_shared<DataChunk>(2);
-        auto vectorA1 = make_shared<ValueVector>(memoryManager.get(), NODE);
+        auto vectorA1 = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
         auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT64);
-        auto vectorB1 = make_shared<ValueVector>(memoryManager.get(), NODE);
+        auto vectorB1 = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
         auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
         dataChunkA->insert(0, vectorA1);
         dataChunkA->insert(1, vectorA2);
@@ -82,7 +82,7 @@ public:
     static void checkFlatTupleIteratorResult(FlatTupleIterator& flatTupleIterator) {
         for (auto i = 0; i < 100; i++) {
             for (auto j = 0; j < 100; j++) {
-                vector<DataType> dataTypesInFlatTuple = {DataType(NODE), DataType(NODE)};
+                vector<DataType> dataTypesInFlatTuple = {DataType(NODE_ID), DataType(NODE_ID)};
                 ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
                 auto& resultFlatTuple = *flatTupleIterator.getNextFlatTuple();
                 if (i % 15) {
@@ -209,7 +209,7 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
 TEST_F(FactorizedTableTest, ReadFlatTuplesFromFactorizedTable) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
     auto flatTupleIterator =
-        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE), DataType(NODE)});
+        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE_ID), DataType(NODE_ID)});
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }
@@ -222,7 +222,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeTest) {
     factorizedTable->merge(*factorizedTable1);
     ASSERT_EQ(factorizedTable->getTotalNumFlatTuples(), 20000);
     auto flatTupleIterator =
-        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE), DataType(NODE)});
+        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE_ID), DataType(NODE_ID)});
     checkFlatTupleIteratorResult(flatTupleIterator);
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
