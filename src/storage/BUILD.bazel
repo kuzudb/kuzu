@@ -155,22 +155,22 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "column",
+        "hash_index",
         "lists",
         "//src/catalog",
     ],
 )
-
 
 cc_library(
     name = "wal",
     srcs = [
         "wal/wal.cpp",
         "wal/wal_record.cpp",
-        ],
+    ],
     hdrs = [
         "include/wal/wal.h",
         "include/wal/wal_record.h",
-        ],
+    ],
     visibility = [
         "//visibility:public",
     ],
@@ -185,11 +185,11 @@ cc_library(
     name = "storage_manager",
     srcs = [
         "storage_manager.cpp",
-        "wal_replayer.cpp"
+        "wal_replayer.cpp",
     ],
     hdrs = [
         "include/storage_manager.h",
-        "include/wal_replayer.h"
+        "include/wal_replayer.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

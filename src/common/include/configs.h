@@ -36,11 +36,12 @@ constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEA
 
 struct StorageConfig {
     // The default amount of memory pre-allocated to the buffer pool (= 2MB).
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 21;
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 22;
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
+    static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;

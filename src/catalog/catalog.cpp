@@ -368,17 +368,6 @@ const Property& Catalog::getNodeProperty(label_t labelId, const string& property
     return getUnstructuredNodeProperties(labelId)[unstrPropertyIdx];
 }
 
-const Property& Catalog::getStructuredNodeProperty(
-    label_t labelID, const uint32_t propertyID) const {
-    for (auto& property : nodeLabels[labelID].structuredProperties) {
-        if (propertyID == property.propertyID) {
-            return property;
-        }
-    }
-    throw CatalogException("Structured Node Property with labelID: " + to_string(labelID) +
-                           " propertyID: " + to_string(propertyID) + " does not exist");
-}
-
 bool Catalog::containRelProperty(label_t labelId, const string& propertyName) const {
     for (auto& property : relLabels[labelId].properties) {
         if (propertyName == property.name) {

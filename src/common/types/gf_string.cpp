@@ -44,7 +44,9 @@ string gf_string_t::getAsString() const {
 
 bool gf_string_t::operator==(const gf_string_t& rhs) const {
     // First compare the length and prefix of the strings.
-    if (!memcmp(this, &rhs, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH)) {
+    auto numBytesOfLenAndPrefix =
+        sizeof(uint32_t) + min((uint64_t)len, static_cast<uint64_t>(gf_string_t::PREFIX_LENGTH));
+    if (!memcmp(this, &rhs, numBytesOfLenAndPrefix)) {
         // If length and prefix of a and b are equal, we compare the overflow buffer.
         return !memcmp(getData(), rhs.getData(), len);
     }

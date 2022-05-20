@@ -19,6 +19,7 @@ GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t
       inputDirectory{std::move(inputDirectory)}, outputDirectory{std::move(outputDirectory)} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
     catalog = make_unique<Catalog>();
+    bufferManager = make_unique<BufferManager>();
 }
 
 GraphLoader::~GraphLoader() {
@@ -33,24 +34,8 @@ void GraphLoader::loadGraph() {
         logger->info("Starting GraphLoader.");
         readAndParseMetadata(datasetMetadata);
         progressBar = make_unique<LoaderProgressBar>();
-
-        auto nodeIDMaps = loadNodes();
-
-        logger->info("Creating nodeIDToOffset maps.");
-        progressBar->addAndStartNewJob("Constructing reverse nodeIDMaps", nodeIDMaps.size());
-        for (auto& nodeIDMap : nodeIDMaps) {
-            taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](NodeIDMap* x, LoaderProgressBar* progressBar_) {
-                    x->createNodeIDToOffsetMap();
-                    progressBar_->incrementTaskFinished();
-                },
-                nodeIDMap.get(), progressBar.get()));
-        }
-        taskScheduler->waitAllTasksToCompleteOrError();
-        logger->info("Done creating nodeIDToOffset maps.");
-
-        loadRels(nodeIDMaps);
-
+        auto IDIndexes = loadNodes();
+        loadRels(IDIndexes);
         progressBar->addAndStartNewJob("Saving Catalog to file.", 1);
         catalog->saveToFile(outputDirectory);
         progressBar->incrementTaskFinished();
@@ -89,27 +74,27 @@ void GraphLoader::readAndParseMetadata(DatasetMetadata& metadata) {
     logger->info("Done reading and parsing metadata from metadata.json.");
 }
 
-vector<unique_ptr<NodeIDMap>> GraphLoader::loadNodes() {
+vector<unique_ptr<HashIndex>> GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
     auto numNodeLabels = datasetMetadata.getNumNodeFiles();
-    vector<unique_ptr<NodeIDMap>> nodeIDMaps(numNodeLabels);
+    vector<unique_ptr<HashIndex>> IDIndexes(numNodeLabels);
     for (auto nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
         auto nodeBuilder = make_unique<InMemNodeBuilder>(nodeLabel,
             datasetMetadata.getNodeFileDescription(nodeLabel), outputDirectory, *taskScheduler,
-            *catalog, progressBar.get());
-        nodeIDMaps[nodeLabel] = nodeBuilder->load();
+            *catalog, *bufferManager, progressBar.get());
+        IDIndexes[nodeLabel] = nodeBuilder->load();
     }
     logger->info("Done loading nodes.");
-    return nodeIDMaps;
+    return IDIndexes;
 }
 
-void GraphLoader::loadRels(const vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
+void GraphLoader::loadRels(const vector<unique_ptr<HashIndex>>& IDIndexes) {
     logger->info("Starting to load rels.");
     auto numRelLabels = datasetMetadata.getNumRelFiles();
     for (auto relLabel = 0u; relLabel < numRelLabels; relLabel++) {
         auto relBuilder =
             make_unique<InMemRelBuilder>(relLabel, datasetMetadata.getRelFileDescription(relLabel),
-                outputDirectory, *taskScheduler, *catalog, nodeIDMaps, progressBar.get());
+                outputDirectory, *taskScheduler, *catalog, IDIndexes, progressBar.get());
         relBuilder->load();
     }
     logger->info("Done loading rels.");

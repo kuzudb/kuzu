@@ -11,29 +11,28 @@ namespace loader {
 
 InMemNodeBuilder::InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    LoaderProgressBar* progressBar)
+    BufferManager& bufferManager, LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{nodeLabel, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
-      IDType{fileDescription.IDType} {}
+      IDType{fileDescription.IDType}, bufferManager{bufferManager} {}
 
-unique_ptr<NodeIDMap> InMemNodeBuilder::load() {
+unique_ptr<HashIndex> InMemNodeBuilder::load() {
     logger->info("Loading node {} with label {}.", labelName, label);
-    addLabelToCatalogAndCountLines();
-    nodeIDMap = make_unique<NodeIDMap>(catalog.getNumNodes(label));
+    auto numNodes = addLabelToCatalogAndCountLines();
     initializeColumnsAndList();
-    // Construct columns and list.
-    populateColumnsAndCountUnstrPropertyListSizes();
+    // Populate structured columns with the ID hash index and count the size of unstructured lists.
+    auto IDIndex = populateColumnsAndCountUnstrPropertyListSizes(numNodes);
     if (unstrPropertyLists) {
         calcUnstrListsHeadersAndMetadata();
         populateUnstrPropertyLists();
     }
     saveToFile();
     logger->info("Done loading node {} with label {}.", labelName, label);
-    return move(nodeIDMap);
+    return IDIndex;
 }
 
-void InMemNodeBuilder::addLabelToCatalogAndCountLines() {
+uint64_t InMemNodeBuilder::addLabelToCatalogAndCountLines() {
     // Parse csv header and calculate num blocks.
     vector<PropertyNameDataType> colDefinitions;
     numBlocks = parseCSVHeaderAndCalcNumBlocks(inputFilePath, colDefinitions);
@@ -58,6 +57,7 @@ void InMemNodeBuilder::addLabelToCatalogAndCountLines() {
     }
     catalog.addNodeLabel(
         labelName, IDType, move(colDefinitions), unstructuredPropertyNames, numNodes);
+    return numNodes;
 }
 
 void InMemNodeBuilder::initializeColumnsAndList() {
@@ -95,21 +95,76 @@ vector<unordered_set<string>> InMemNodeBuilder::countLinesPerBlockAndParseUnstrP
     return blockUnstrPropertyNames;
 }
 
-void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes() {
-    logger->debug("Populating structured properties and Counting unstructured properties.");
+unique_ptr<HashIndex> InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(
+    uint64_t numNodes) {
+    logger->info("Populating structured properties and Counting unstructured properties.");
+    auto IDIndex =
+        make_unique<HashIndex>(StorageUtils::getNodeIndexFName(this->outputDirectory, label),
+            IDType, bufferManager, false /* isInMemoryForLookup */);
+    IDIndex->bulkReserve(numNodes);
+    uint32_t IDColumnIdx = UINT32_MAX;
+    auto properties = catalog.getStructuredNodeProperties(label);
+    for (auto i = 0u; i < properties.size(); i++) {
+        if (properties[i].isIDProperty()) {
+            IDColumnIdx = i;
+            break;
+        }
+    }
+    assert(IDColumnIdx != UINT32_MAX);
     node_offset_t offsetStart = 0;
     progressBar->addAndStartNewJob("Populating property columns for node: " + labelName, numBlocks);
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-            populateColumnsAndCountUnstrPropertyListSizesTask, blockIdx, offsetStart, this));
+        taskScheduler.scheduleTask(
+            LoaderTaskFactory::createLoaderTask(populateColumnsAndCountUnstrPropertyListSizesTask,
+                IDColumnIdx, blockIdx, offsetStart, IDIndex.get(), this));
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Done populating structured properties and counting unstructured properties.");
+    IDIndex->flush();
+    logger->info("Done populating structured properties and counting unstructured properties.");
+    return IDIndex;
 }
 
-void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(
-    uint64_t blockId, uint64_t offsetStart, InMemNodeBuilder* builder) {
+template<DataTypeID DT>
+void InMemNodeBuilder::addIDsToIndex(
+    InMemColumn* column, HashIndex* hashIndex, node_offset_t startOffset, uint64_t numValues) {
+    assert(DT == INT64 || DT == STRING);
+    for (auto i = 0u; i < numValues; i++) {
+        auto offset = i + startOffset;
+        if constexpr (DT == INT64) {
+            auto key = *(int64_t*)column->getElement(offset);
+            if (!hashIndex->insert(key, offset)) {
+                throw LoaderException("ID value " + to_string(key) +
+                                      " violates the uniqueness constraint for the ID property.");
+            }
+        } else {
+            auto key = ((gf_string_t*)column->getElement(offset))->getAsString();
+            if (!hashIndex->insert(key.c_str(), offset)) {
+                throw LoaderException("ID value  " + key +
+                                      " violates the uniqueness constraint for the ID property.");
+            }
+        }
+    }
+}
+
+void InMemNodeBuilder::populateIDIndex(
+    InMemColumn* column, HashIndex* IDIndex, node_offset_t startOffset, uint64_t numValues) {
+    switch (column->getDataType().typeID) {
+    case INT64: {
+        addIDsToIndex<INT64>(column, IDIndex, startOffset, numValues);
+    } break;
+    case STRING: {
+        addIDsToIndex<STRING>(column, IDIndex, startOffset, numValues);
+    } break;
+    default:
+        throw LoaderException("Unsupported data type " +
+                              Types::dataTypeToString(column->getDataType()) +
+                              " for the ID index.");
+    }
+}
+
+void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
+    uint64_t blockId, uint64_t startOffset, HashIndex* IDIndex, InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
     auto structuredProperties = builder->catalog.getStructuredNodeProperties(builder->label);
     vector<PageByteCursor> overflowCursors(structuredProperties.size());
@@ -121,14 +176,16 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        putPropsOfLineIntoColumns(builder->structuredColumns, builder->nodeIDMap.get(),
-            structuredProperties, overflowCursors, reader, offsetStart + bufferOffset);
+        putPropsOfLineIntoColumns(builder->structuredColumns, structuredProperties, overflowCursors,
+            reader, startOffset + bufferOffset);
         if (builder->unstrPropertyLists) {
             calcLengthOfUnstrPropertyLists(
-                reader, offsetStart + bufferOffset, builder->unstrPropertyLists.get());
+                reader, startOffset + bufferOffset, builder->unstrPropertyLists.get());
         }
         bufferOffset++;
     }
+    populateIDIndex(builder->structuredColumns[IDColumnIdx].get(), IDIndex, startOffset,
+        builder->numLinesPerBlock[blockId]);
     builder->progressBar->incrementTaskFinished();
     builder->logger->trace("End: path={0} blkIdx={1}", builder->inputFilePath, blockId);
 }
@@ -235,8 +292,8 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
 }
 
 void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& structuredColumns,
-    NodeIDMap* nodeIDMap, const vector<Property>& structuredProperties,
-    vector<PageByteCursor>& overflowCursors, CSVReader& reader, uint64_t nodeOffset) {
+    const vector<Property>& structuredProperties, vector<PageByteCursor>& overflowCursors,
+    CSVReader& reader, uint64_t nodeOffset) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
         reader.hasNextToken();
         auto column = structuredColumns[columnIdx].get();
@@ -245,9 +302,6 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
             if (!reader.skipTokenIfNull()) {
                 auto int64Val = reader.getInt64();
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&int64Val));
-                if (structuredProperties[columnIdx].isIDProperty()) {
-                    nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
-                }
             }
         } break;
         case DOUBLE: {
@@ -286,9 +340,6 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
                 auto gfStr =
                     column->getOverflowPages()->addString(strVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfStr));
-                if (structuredProperties[columnIdx].isIDProperty()) {
-                    nodeIDMap->set(strVal, nodeOffset);
-                }
             }
         } break;
         case LIST: {

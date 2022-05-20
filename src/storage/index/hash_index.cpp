@@ -18,13 +18,14 @@ void HashIndexHeader::incrementLevel() {
     higherLevelHashMask = (1 << (currentLevel + 1)) - 1;
 }
 
-HashIndex::HashIndex(
-    string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory)
-    : fName{move(fName)}, bm{bufferManager} {
+HashIndex::HashIndex(string fName, const DataType& keyDataType, BufferManager& bufferManager,
+    bool isInMemoryForLookup)
+    : fName{move(fName)},
+      isInMemoryForLookup{isInMemoryForLookup}, isFlushed{false}, bm{bufferManager} {
     assert(keyDataType.typeID == INT64 || keyDataType.typeID == STRING);
     fh = make_unique<FileHandle>(
         this->fName, FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
-    initializeHeaderAndPages(keyDataType, isInMemory);
+    initializeHeaderAndPages(keyDataType);
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     insertKeyToEntryFunc =
@@ -34,14 +35,19 @@ HashIndex::HashIndex(
 }
 
 HashIndex::~HashIndex() {
-    bm.flushAllDirtyPagesInFrames(*fh);
+    if ((indexMode == READ_ONLY && isInMemoryForLookup) || (indexMode == WRITE && !isFlushed)) {
+        StorageStructureUtils::unpinEachPageOfFile(*fh, bm);
+    }
 }
 
-void HashIndex::initializeHeaderAndPages(const DataType& keyDataType, bool isInMemory) {
+void HashIndex::initializeHeaderAndPages(const DataType& keyDataType) {
     if (fh->getNumPages() == 0) {
+        assert(isInMemoryForLookup == false);
+        indexMode = WRITE;
         indexHeader = make_unique<HashIndexHeader>(keyDataType.typeID);
         // Allocate the index header page, which is always the first page in the index file.
         auto headerPageIdx = fh->addNewPage();
+        bm.pinWithoutReadingFromFile(*fh, headerPageIdx);
         assert(headerPageIdx == INDEX_HEADER_PAGE_ID);
         // Allocate the first primary page.
         allocateAndCachePageWithoutLock(true /* isPrimary */);
@@ -56,12 +62,16 @@ void HashIndex::initializeHeaderAndPages(const DataType& keyDataType, bool isInM
                 nullptr;
     } else {
         // Read the index header from file.
+        indexMode = READ_ONLY;
         auto buffer = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
         indexHeader = make_unique<HashIndexHeader>(*(HashIndexHeader*)buffer);
         bm.unpin(*fh, INDEX_HEADER_PAGE_ID);
+        if (isInMemoryForLookup) {
+            StorageStructureUtils::pinEachPageOfFile(*fh, bm);
+        }
         assert(indexHeader->keyDataTypeID == keyDataType.typeID);
         stringOvfPages = indexHeader->keyDataTypeID == STRING ?
-                             make_unique<OverflowPages>(fName, bm, isInMemory) :
+                             make_unique<OverflowPages>(fName, bm, isInMemoryForLookup) :
                              nullptr;
         readLogicalToPhysicalPageMappings();
     }
@@ -307,13 +317,18 @@ void HashIndex::flush() {
     auto headerFrame = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
     memcpy(headerFrame, (uint8_t*)indexHeader.get(), sizeof(HashIndexHeader));
     setDirtyAndUnPinPage(INDEX_HEADER_PAGE_ID);
-    // Flush primary and ovf pages.
+    // Extra unpin of the header page for that it is pinned when initialization.
+    bm.unpin(*fh, INDEX_HEADER_PAGE_ID);
+    // Set primary and ovf pages to dirty and unPin.
     for (auto page : primaryLogicalToPhysicalPagesMapping) {
         setDirtyAndUnPinPage(page);
     }
     for (auto page : ovfLogicalToPhysicalPagesMapping) {
         setDirtyAndUnPinPage(page);
     }
+    bm.flushAllDirtyPagesInFrames(*fh);
+    isFlushed = true;
+    // Flush string overflow pages if necessary, and flush page mappings to the end of the file.
     if (indexHeader->keyDataTypeID == STRING) {
         inMemStringOvfPages->saveToFile();
     }

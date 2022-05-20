@@ -9,13 +9,13 @@ namespace loader {
 
 InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    const vector<unique_ptr<NodeIDMap>>& nodeIDMaps, LoaderProgressBar* progressBar)
+    const vector<unique_ptr<HashIndex>>& IDIndexes, LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{label, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
       relMultiplicity{getRelMultiplicityFromString(fileDescription.relMultiplicity)},
       srcNodeLabelNames{fileDescription.srcNodeLabelNames},
-      dstNodeLabelNames{fileDescription.dstNodeLabelNames}, nodeIDMaps{nodeIDMaps} {}
+      dstNodeLabelNames{fileDescription.dstNodeLabelNames}, IDIndexes{IDIndexes} {}
 
 void InMemRelBuilder::load() {
     logger->info("Loading rel {} with label {}.", labelName, label);
@@ -130,18 +130,22 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
         }
     }
     vector<bool> requireToReadLabels{true, true};
-    vector<nodeID_t> nodeIDs(2);
+    vector<nodeID_t> nodeIDs{2};
+    vector<DataType> nodeIDTypes{2};
     auto properties = builder->catalog.getRelProperties(builder->label);
     for (auto& relDirection : REL_DIRECTIONS) {
         auto nodeLabels =
             builder->catalog.getNodeLabelsForRelLabelDirection(builder->label, relDirection);
         requireToReadLabels[relDirection] = nodeLabels.size() != 1;
         nodeIDs[relDirection].label = *nodeLabels.begin();
+        nodeIDTypes[relDirection] =
+            builder->catalog.getNodeProperty(nodeIDs[relDirection].label, LoaderConfig::ID_FIELD)
+                .dataType;
     }
     vector<PageByteCursor> overflowPagesCursors{properties.size()};
     while (reader.hasNextLine()) {
-        inferLabelsAndOffsets(
-            reader, nodeIDs, builder->nodeIDMaps, builder->catalog, requireToReadLabels);
+        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes, builder->catalog,
+            requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto nodeLabel = nodeIDs[relDirection].label;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -252,21 +256,35 @@ void InMemRelBuilder::putPropsOfLineIntoColumns(
 }
 
 void InMemRelBuilder::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-    const vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const Catalog& catalog,
-    vector<bool>& requireToReadLabels) {
-    for (auto& direction : REL_DIRECTIONS) {
+    vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
+    const Catalog& catalog, vector<bool>& requireToReadLabels) {
+    for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
-        if (requireToReadLabels[direction]) {
-            nodeIDs[direction].label = catalog.getNodeLabelFromName(reader.getString());
+        if (requireToReadLabels[relDirection]) {
+            nodeIDs[relDirection].label = catalog.getNodeLabelFromName(reader.getString());
         } else {
             reader.skipToken();
         }
         reader.hasNextToken();
-        auto offsetStr = reader.getString();
-        try {
-            nodeIDs[direction].offset = nodeIDMaps[nodeIDs[direction].label]->get(offsetStr);
-        } catch (const std::out_of_range& e) {
-            throw LoaderException(string(e.what()) + " nodeOffset: " + offsetStr);
+        auto keyStr = reader.getString();
+        switch (nodeIDTypes[relDirection].typeID) {
+        case INT64: {
+            auto key = TypeUtils::convertToInt64(keyStr);
+            if (!IDIndexes[nodeIDs[relDirection].label]->lookup(
+                    key, nodeIDs[relDirection].offset)) {
+                throw LoaderException("Cannot find key: " + to_string(key) + " in the IDIndex.");
+            }
+        } break;
+        case STRING: {
+            if (!IDIndexes[nodeIDs[relDirection].label]->lookup(
+                    keyStr, nodeIDs[relDirection].offset)) {
+                throw LoaderException("Cannot find key: " + string(keyStr) + " in the IDIndex.");
+            }
+        } break;
+        default:
+            throw LoaderException("Unsupported data type " +
+                                  Types::dataTypeToString(nodeIDTypes[relDirection]) +
+                                  " for index lookup.");
         }
     }
 }
@@ -466,6 +484,7 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
     }
     vector<bool> requireToReadLabels{true, true};
     vector<nodeID_t> nodeIDs(2);
+    vector<DataType> nodeIDTypes{2};
     vector<uint64_t> reversePos(2);
     auto properties = builder->catalog.getRelProperties(builder->label);
     for (auto relDirection : REL_DIRECTIONS) {
@@ -473,11 +492,14 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
             builder->catalog.getNodeLabelsForRelLabelDirection(builder->label, relDirection);
         requireToReadLabels[relDirection] = nodeLabels.size() != 1;
         nodeIDs[relDirection].label = *nodeLabels.begin();
+        nodeIDTypes[relDirection] =
+            builder->catalog.getNodeProperty(nodeIDs[relDirection].label, LoaderConfig::ID_FIELD)
+                .dataType;
     }
     vector<PageByteCursor> overflowPagesCursors(properties.size());
     while (reader.hasNextLine()) {
-        inferLabelsAndOffsets(
-            reader, nodeIDs, builder->nodeIDMaps, builder->catalog, requireToReadLabels);
+        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes, builder->catalog,
+            requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!builder->catalog.isSingleMultiplicityInDirection(builder->label, relDirection)) {
                 auto nodeOffset = nodeIDs[relDirection].offset;

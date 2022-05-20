@@ -34,6 +34,7 @@ cc_library(
         "//src/common:type_utils",
         "//src/common/types",
         "//src/storage:compression_scheme",
+        "//src/storage:hash_index",
         "//src/storage:storage_manager",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",

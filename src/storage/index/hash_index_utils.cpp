@@ -28,13 +28,13 @@ insert_function_t HashIndexUtils::initializeInsertKeyToEntryFunc(const DataTypeI
 
 bool HashIndexUtils::isStringPrefixAndLenEquals(
     const uint8_t* keyToLookup, const gf_string_t* keyInEntry) {
-    if (memcmp(keyToLookup, keyInEntry->prefix, gf_string_t::PREFIX_LENGTH) != 0) {
-        return false;
+    auto prefixLen =
+        min((uint64_t)keyInEntry->len, static_cast<uint64_t>(gf_string_t::PREFIX_LENGTH));
+    if (strlen(reinterpret_cast<const char*>(keyToLookup)) == keyInEntry->len &&
+        memcmp(keyToLookup, keyInEntry->prefix, prefixLen) == 0) {
+        return true;
     }
-    if (strlen(reinterpret_cast<const char*>(keyToLookup)) != keyInEntry->len) {
-        return false;
-    }
-    return true;
+    return false;
 }
 
 bool HashIndexUtils::equalsFuncInWriteModeForString(const uint8_t* keyToLookup,

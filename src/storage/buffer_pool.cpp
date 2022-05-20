@@ -254,8 +254,9 @@ void BufferPool::moveClockHand(uint64_t newClockHand) {
 void BufferPool::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto& frame = bufferCache[fileHandle.getFrameIdx(pageIdx)];
-    assert(frame->pinCount.load() >= 1);
-    frame->pinCount.fetch_sub(1);
+    // `count` is the value of `pinCount` before sub.
+    auto count = frame->pinCount.fetch_sub(1);
+    assert(count >= 1);
     fileHandle.releasePageLock(pageIdx);
 }
 } // namespace storage

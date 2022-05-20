@@ -13,7 +13,7 @@ namespace storage {
 StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& bufferManager,
     string directory, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
-      bufferManager{bufferManager}, directory{move(directory)}, isInMemoryMode{isInMemoryMode} {
+      bufferManager{bufferManager}, directory{move(directory)} {
     logger->info("Initializing StorageManager from directory: " + this->directory);
     wal = make_unique<storage::WAL>(
         FileUtils::joinPath(this->directory, string(StorageConfig::WAL_FILE_SUFFIX)),

@@ -22,6 +22,7 @@ public:
     inline UnstructuredPropertyLists* getNodeUnstrPropertyLists(label_t nodeLabel) const {
         return nodes[nodeLabel]->getUnstrPropertyLists();
     }
+    inline HashIndex* getIDIndex(label_t nodeLabel) { return nodes[nodeLabel]->getIDIndex(); }
 
 private:
     shared_ptr<spdlog::logger> logger;

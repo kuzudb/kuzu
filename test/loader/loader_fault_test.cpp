@@ -63,6 +63,10 @@ class LoaderDuplicateColHeaderTest : public LoaderFaultTest {
     string getInputCSVDir() override { return "dataset/loader-fault-tests/duplicate-col-header/"; }
 };
 
+class LoaderDuplicateIDTest : public LoaderFaultTest {
+    string getInputCSVDir() override { return "dataset/loader-fault-tests/duplicate-ids/"; }
+};
+
 TEST_F(LoaderLongStringTest, LongStringError) {
     checkLoadingFaultWithErrMsg(
         "Maximum length of strings is 4096. Input string's length is 5625.");
@@ -99,4 +103,9 @@ TEST_F(LoaderImproperPropertyColHeaderTest, ImproperPropertyColHeaderError) {
 TEST_F(LoaderDuplicateColHeaderTest, DuplicateColHeaderError) {
     checkLoadingFaultWithErrMsg(
         "Loader exception: Column fName already appears previously in the column headers.");
+}
+
+TEST_F(LoaderDuplicateIDTest, DuplicateIDsError) {
+    checkLoadingFaultWithErrMsg(
+        "Loader exception: ID value 10 violates the uniqueness constraint for the ID property.");
 }
