@@ -99,7 +99,6 @@ public:
     static string dataTypesToString(const vector<DataType>& dataTypes);
     static string dataTypesToString(const vector<DataTypeID>& dataTypeIDs);
     static DataType dataTypeFromString(const string& dataTypeString);
-    static bool isLiteralType(DataTypeID dataTypeID);
 
 private:
     static DataTypeID dataTypeIDFromString(const string& dataTypeIDString);

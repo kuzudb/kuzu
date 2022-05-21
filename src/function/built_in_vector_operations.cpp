@@ -31,7 +31,7 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
     }
     if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
             functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
-        children[0]->expressionType == LITERAL_STRING) {
+        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == STRING) {
         return true; // bind as literal
     }
     return false;

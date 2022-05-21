@@ -8,6 +8,10 @@ using namespace common;
 
 void ValueVectorUtils::addLiteralToStructuredVector(
     ValueVector& resultVector, uint64_t pos, const Literal& literal) {
+    if (literal.isNull()) {
+        resultVector.setNull(pos, true);
+        return;
+    }
     switch (literal.dataType.typeID) {
     case INT64: {
         ((int64_t*)resultVector.values)[pos] = literal.val.int64Val;

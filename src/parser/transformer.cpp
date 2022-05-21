@@ -10,6 +10,8 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
+using namespace std;
+
 namespace graphflow {
 namespace parser {
 
@@ -487,10 +489,12 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
+        auto str = ctx.StringLiteral()->getText();
+        auto strStripped = str.substr(1, str.size() - 2); /* strip double quotation */
         return make_unique<ParsedLiteralExpression>(
-            LITERAL_STRING, ctx.StringLiteral()->getText(), ctx.getText());
+            make_unique<Literal>(strStripped), ctx.getText());
     } else if (ctx.NULL_()) {
-        return make_unique<ParsedLiteralExpression>(LITERAL_NULL, string(), ctx.getText());
+        return make_unique<ParsedLiteralExpression>(make_unique<Literal>(), ctx.getText());
     } else if (ctx.oC_ListLiteral()) {
         return transformListLiteral(*ctx.oC_ListLiteral());
     }
@@ -499,12 +503,14 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
 
 unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     CypherParser::OC_BooleanLiteralContext& ctx) {
+    unique_ptr<Literal> literal;
     if (ctx.TRUE()) {
-        return make_unique<ParsedLiteralExpression>(LITERAL_BOOLEAN, "true", ctx.getText());
+        literal = make_unique<Literal>(true);
     } else if (ctx.FALSE()) {
-        return make_unique<ParsedLiteralExpression>(LITERAL_BOOLEAN, "false", ctx.getText());
+        literal = make_unique<Literal>(false);
     }
-    assert(false);
+    assert(literal);
+    return make_unique<ParsedLiteralExpression>(move(literal), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformListLiteral(
@@ -586,14 +592,16 @@ string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameCon
 
 unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
-    return make_unique<ParsedLiteralExpression>(
-        LITERAL_INT, ctx.DecimalInteger()->getText(), ctx.getText());
+    auto literal =
+        make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
+    return make_unique<ParsedLiteralExpression>(move(literal), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    return make_unique<ParsedLiteralExpression>(
-        LITERAL_DOUBLE, ctx.RegularDecimalReal()->getText(), ctx.getText());
+    auto literal = make_unique<Literal>(
+        TypeUtils::convertToDouble(ctx.RegularDecimalReal()->getText().c_str()));
+    return make_unique<ParsedLiteralExpression>(move(literal), ctx.getText());
 }
 
 string Transformer::transformSchemaName(CypherParser::OC_SchemaNameContext& ctx) {

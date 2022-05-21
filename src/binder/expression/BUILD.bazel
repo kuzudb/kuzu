@@ -21,7 +21,6 @@ cc_library(
     name = "expression_implementations",
     srcs = [
         "existential_subquery_expression.cpp",
-        "literal_expression.cpp",
         "property_expression.cpp",
     ],
     hdrs = [

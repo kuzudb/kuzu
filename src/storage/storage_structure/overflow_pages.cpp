@@ -76,25 +76,22 @@ vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
-    vector<Literal> retLiterals(numValuesInList);
+    vector<Literal> retLiterals;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto gfListVal = *(gf_string_t*)(frame + cursor.offset);
-            retLiterals[i].strVal = readString(gfListVal);
-            retLiterals[i].dataType.typeID = STRING;
+            retLiterals.emplace_back(readString(gfListVal));
             cursor.offset += numBytesOfSingleValue;
         }
     } else if (dataType.childType->typeID == LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto gfListVal = *(gf_list_t*)(frame + cursor.offset);
-            retLiterals[i].listVal = readList(gfListVal, *dataType.childType);
-            retLiterals[i].dataType = *dataType.childType;
+            retLiterals.emplace_back(readList(gfListVal, *dataType.childType), *dataType.childType);
             cursor.offset += numBytesOfSingleValue;
         }
     } else {
         for (auto i = 0u; i < numValuesInList; i++) {
-            memcpy(&retLiterals[i].val, frame + cursor.offset, numBytesOfSingleValue);
-            retLiterals[i].dataType.typeID = dataType.childType->typeID;
+            retLiterals.emplace_back(frame + cursor.offset, *dataType.childType);
             cursor.offset += numBytesOfSingleValue;
         }
     }

@@ -5,11 +5,44 @@
 namespace graphflow {
 namespace common {
 
+Literal::Literal(uint8_t* value, const DataType& dataType) : _isNull{false}, dataType{dataType} {
+    switch (dataType.typeID) {
+    case BOOL:
+        val.booleanVal = *(bool*)value;
+        break;
+    case INT64:
+        val.int64Val = *(int64_t*)value;
+        break;
+    case DOUBLE:
+        val.doubleVal = *(double_t*)value;
+        break;
+    case NODE_ID:
+        val.nodeID = *(nodeID_t*)value;
+        break;
+    case DATE:
+        val.dateVal = *(date_t*)value;
+        break;
+    case TIMESTAMP:
+        val.timestampVal = *(timestamp_t*)value;
+        break;
+    case INTERVAL:
+        val.intervalVal = *(interval_t*)value;
+        break;
+    default:
+        assert(false);
+    }
+}
+
 Literal::Literal(const Literal& other) : dataType{other.dataType} {
     bind(other);
 }
 
 void Literal::bind(const Literal& other) {
+    if (other._isNull) {
+        _isNull = true;
+        return;
+    }
+    _isNull = false;
     assert(dataType.typeID == other.dataType.typeID);
     switch (dataType.typeID) {
     case BOOL: {

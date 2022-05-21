@@ -93,33 +93,36 @@ string TypeUtils::toString(const gf_list_t& val, const DataType& dataType) {
     return result;
 }
 
-string TypeUtils::toString(const Literal& val) {
-    switch (val.dataType.typeID) {
+string TypeUtils::toString(const Literal& literal) {
+    if (literal.isNull()) {
+        return "NULL";
+    }
+    switch (literal.dataType.typeID) {
     case BOOL:
-        return TypeUtils::toString(val.val.booleanVal);
+        return TypeUtils::toString(literal.val.booleanVal);
     case INT64:
-        return TypeUtils::toString(val.val.int64Val);
+        return TypeUtils::toString(literal.val.int64Val);
     case DOUBLE:
-        return TypeUtils::toString(val.val.doubleVal);
+        return TypeUtils::toString(literal.val.doubleVal);
     case NODE:
-        return TypeUtils::toString(val.val.nodeID);
+        return TypeUtils::toString(literal.val.nodeID);
     case DATE:
-        return TypeUtils::toString(val.val.dateVal);
+        return TypeUtils::toString(literal.val.dateVal);
     case TIMESTAMP:
-        return TypeUtils::toString(val.val.timestampVal);
+        return TypeUtils::toString(literal.val.timestampVal);
     case INTERVAL:
-        return TypeUtils::toString(val.val.intervalVal);
+        return TypeUtils::toString(literal.val.intervalVal);
     case STRING:
-        return val.strVal;
+        return literal.strVal;
     case LIST: {
-        if (val.listVal.empty()) {
+        if (literal.listVal.empty()) {
             return "[]";
         }
         string result = "[";
-        for (auto i = 0u; i < val.listVal.size() - 1; i++) {
-            result += toString(val.listVal[i]) + ",";
+        for (auto i = 0u; i < literal.listVal.size() - 1; i++) {
+            result += toString(literal.listVal[i]) + ",";
         }
-        result += toString(val.listVal[val.listVal.size() - 1]);
+        result += toString(literal.listVal[literal.listVal.size() - 1]);
         result += "]";
         return result;
     }

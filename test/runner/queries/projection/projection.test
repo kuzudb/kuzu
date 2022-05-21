@@ -30,6 +30,18 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True|False
 8|
 9|
 
+-NAME PersonNodesTestNull
+-QUERY MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
+---- 8
+0||False|False
+10||True|
+2||False|False
+3||True|
+5||True|
+7||True|
+8||False|False
+9||False|False
+
 -NAME PersonNodesTestString
 -QUERY MATCH (a:person) RETURN a.fName
 ---- 8

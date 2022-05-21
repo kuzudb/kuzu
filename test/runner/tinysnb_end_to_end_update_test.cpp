@@ -54,6 +54,13 @@ TEST_F(TinySnbUpdateTest, SetNodeIntervalPropTest) {
         Interval::FromCString(intervalStr.c_str(), intervalStr.length()));
 }
 
+TEST_F(TinySnbUpdateTest, SetNodePropNullTest) {
+    conn->query("MATCH (a:person) SET a.age=null");
+    auto result = conn->query("MATCH (a:person) RETURN a.age");
+    auto groundTruth = vector<string>{"", "", "", "", "", "", "", ""};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
 TEST_F(TinySnbUpdateTest, SetBothUnflatTest) {
     conn->query("MATCH (a:person) SET a.age=a.ID");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age");
@@ -88,5 +95,12 @@ TEST_F(TinySnbUpdateTest, SetTwoHopTest) {
         "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 SET a.age=c.age");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.age");
     auto groundTruth = vector<string>{"0|35", "2|20", "3|20", "5|20"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
+    conn->query("MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) SET a.age=null");
+    auto result = conn->query("MATCH (a:person) RETURN a.ID, a.age");
+    auto groundTruth = vector<string>{"0|", "10|83", "2|", "3|", "5|", "7|20", "8|25", "9|40"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

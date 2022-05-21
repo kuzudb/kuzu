@@ -61,9 +61,6 @@ private:
     static shared_ptr<Expression> implicitCastToTimestamp(const shared_ptr<Expression>& expression);
 
     /****** validation *****/
-    // NOTE: this validation should be removed and front end binds any null operation to null
-    static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
-
     static void validateExpectedDataType(const Expression& expression, DataTypeID expectedType) {
         validateExpectedDataType(expression, unordered_set<DataTypeID>{expectedType});
     }

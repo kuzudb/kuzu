@@ -78,13 +78,12 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
             Types::getDataTypeSize(propertyKeyDataType.dataTypeID), byteCursor, info.mapper);
         numBytesRead += dataTypeSize;
         Literal propertyValueAsLiteral;
-        propertyValueAsLiteral.dataType = unstrPropertyValue.dataType;
         if (STRING == propertyKeyDataType.dataTypeID) {
-            propertyValueAsLiteral.strVal =
-                stringOverflowPages.readString(unstrPropertyValue.val.strVal);
+            propertyValueAsLiteral =
+                Literal(stringOverflowPages.readString(unstrPropertyValue.val.strVal));
         } else {
-            memcpy(&propertyValueAsLiteral.val, &unstrPropertyValue.val,
-                Types::getDataTypeSize(propertyKeyDataType.dataTypeID));
+            propertyValueAsLiteral = Literal(
+                (uint8_t*)&unstrPropertyValue.val, DataType(propertyKeyDataType.dataTypeID));
         }
         retVal->insert(pair<uint32_t, Literal>(propertyKeyDataType.keyIdx, propertyValueAsLiteral));
     }

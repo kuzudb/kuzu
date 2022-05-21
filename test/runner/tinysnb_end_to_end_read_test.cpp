@@ -35,6 +35,8 @@ TEST_F(TinySnbReadTest, FilteredQueries) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/nodes.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/null.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/paths.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/stars.test");

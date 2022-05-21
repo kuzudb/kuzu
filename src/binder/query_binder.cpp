@@ -207,8 +207,7 @@ expression_vector QueryBinder::bindOrderByExpressions(
 
 uint64_t QueryBinder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
-    assert(boundExpression->expressionType == LITERAL_INT);
-    auto skipOrLimitNumber = ((LiteralExpression&)(*boundExpression)).literal.val.int64Val;
+    auto skipOrLimitNumber = ((LiteralExpression&)(*boundExpression)).literal->val.int64Val;
     GF_ASSERT(skipOrLimitNumber >= 0);
     return skipOrLimitNumber;
 }

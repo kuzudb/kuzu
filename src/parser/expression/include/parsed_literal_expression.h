@@ -2,25 +2,27 @@
 
 #include "parsed_expression.h"
 
+#include "src/common/include/type_utils.h"
+
 namespace graphflow {
 namespace parser {
 
 class ParsedLiteralExpression : public ParsedExpression {
 
 public:
-    ParsedLiteralExpression(ExpressionType type, string valInStr, string raw)
-        : ParsedExpression{type, move(raw)}, valInStr{move(valInStr)} {}
+    ParsedLiteralExpression(unique_ptr<Literal> literal, string raw)
+        : ParsedExpression{LITERAL, move(raw)}, literal{move(literal)} {}
 
-    inline string getValInStr() const { return valInStr; }
+    inline Literal* getLiteral() const { return literal.get(); }
 
     bool equals(const ParsedExpression& other) const override {
         return ParsedExpression::equals(other) &&
-               valInStr == ((ParsedLiteralExpression&)other).valInStr;
+               TypeUtils::toString(*literal) ==
+                   TypeUtils::toString(*((ParsedLiteralExpression&)other).literal);
     }
 
 private:
-    string valInStr;
-    vector<ParsedExpression> children;
+    unique_ptr<Literal> literal;
 };
 
 } // namespace parser

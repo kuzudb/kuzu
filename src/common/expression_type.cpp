@@ -27,9 +27,7 @@ bool isExpressionNullOperator(ExpressionType type) {
 }
 
 bool isExpressionLiteral(ExpressionType type) {
-    return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
-           LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_TIMESTAMP == type ||
-           LITERAL_INTERVAL == type || LITERAL_NULL == type;
+    return LITERAL == type;
 }
 
 bool isExpressionAggregate(ExpressionType type) {
@@ -68,20 +66,8 @@ string expressionTypeToString(ExpressionType type) {
         return "IS_NOT_NULL";
     case PROPERTY:
         return "PROPERTY";
-    case LITERAL_INT:
-        return "LITERAL_INT";
-    case LITERAL_DOUBLE:
-        return "LITERAL_DOUBLE";
-    case LITERAL_STRING:
-        return "LITERAL_STRING";
-    case LITERAL_BOOLEAN:
-        return "LITERAL_BOOLEAN";
-    case LITERAL_DATE:
-        return "LITERAL_DATE";
-    case LITERAL_TIMESTAMP:
-        return "LITERAL_TIMESTAMP";
-    case LITERAL_NULL:
-        return "LITERAL_NULL";
+    case LITERAL:
+        return "LITERAL";
     case VARIABLE:
         return "VARIABLE";
     case PARAMETER:
