@@ -38,8 +38,11 @@ constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEA
     5000000;
 
 struct StorageConfig {
-    // The default amount of memory pre-allocated to the buffer pool (= 2MB).
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 22;
+    // The default amount of memory pre-allocated to both the default and large pages buffer pool.
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 23; // (8MB)
+    // The default ratio of buffer allocated to large pages.
+    static constexpr double DEFAULT_PAGES_BUFFER_RATIO = 0.5;
+    static constexpr double LARGE_PAGES_BUFFER_RATIO = 1.0 - DEFAULT_PAGES_BUFFER_RATIO;
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";

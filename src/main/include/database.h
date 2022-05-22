@@ -15,8 +15,10 @@ namespace main {
 struct SystemConfig {
 
     explicit SystemConfig(
-        uint64_t defaultPageBufferPoolSize = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE,
-        uint64_t largePageBufferPoolSize = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE)
+        uint64_t defaultPageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
+                                             StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+        uint64_t largePageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
+                                           StorageConfig::LARGE_PAGES_BUFFER_RATIO)
         : defaultPageBufferPoolSize{defaultPageBufferPoolSize}, largePageBufferPoolSize{
                                                                     largePageBufferPoolSize} {}
 
