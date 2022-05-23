@@ -178,9 +178,7 @@ char* CSVReader::getString() {
     setNextTokenIsProcessed();
     auto strVal = line + linePtrStart;
     if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
-        throw CSVReaderException(StringUtils::string_format(
-            "Maximum length of strings is %d. Input string's length is %d.", DEFAULT_PAGE_SIZE,
-            strlen(strVal), strVal));
+        throw CSVReaderException(StringUtils::getLongStringErrorMessage(strVal, DEFAULT_PAGE_SIZE));
     }
     return strVal;
 }

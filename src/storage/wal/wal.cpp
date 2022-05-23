@@ -14,22 +14,22 @@ WAL::WAL(const string& path, BufferManager& bufferManager)
     initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
 }
 
-uint32_t WAL::logStructuredNodePropertyPageRecord(
-    label_t nodeLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile) {
+uint32_t WAL::logPageUpdateRecord(
+    StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     uint32_t pageIdxInWAL = fileHandle->addNewPage();
-    WALRecord walRecord = WALRecord::newStructuredNodePropertyPageUpdateRecord(
-        nodeLabel, propertyID, pageIdxInOriginalFile, pageIdxInWAL);
+    WALRecord walRecord =
+        WALRecord::newPageUpdateRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordWithoutLock(walRecord);
     return pageIdxInWAL;
 }
 
-uint32_t WAL::logStructuredAdjColumnPropertyPage(
-    label_t nodeLabel, label_t relLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile) {
+uint32_t WAL::logPageInsertRecord(
+    StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     uint32_t pageIdxInWAL = fileHandle->addNewPage();
-    WALRecord walRecord = WALRecord::newStructuredAdjColumnPropertyPageUpdateRecord(
-        nodeLabel, relLabel, propertyID, pageIdxInOriginalFile, pageIdxInWAL);
+    WALRecord walRecord =
+        WALRecord::newPageInsertRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordWithoutLock(walRecord);
     return pageIdxInWAL;
 }
@@ -105,7 +105,8 @@ WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)
     : BaseWALAndWALIterator(fileHandle), mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (fileHandle->getNumPages() > 0) {
-        fileHandle->readPage(currentHeaderPageBuffer.get(), 0 /* first header page is at idx 0 */);
+        fileHandle->readPage(
+            currentHeaderPageBuffer.get(), 0 /* first header page is at pageIdx 0 */);
     }
     numRecordsReadInCurrentHeaderPage = 0;
 }

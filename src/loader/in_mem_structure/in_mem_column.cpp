@@ -22,7 +22,7 @@ void InMemColumn::saveToFile() {
 
 void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto cursor = getPageElementCursorForOffset(offset);
-    pages->pages[cursor.idx]->write(
+    pages->pages[cursor.pageIdx]->write(
         cursor.pos * numBytesForElement, cursor.pos, val, numBytesForElement);
 }
 
@@ -31,7 +31,7 @@ InMemColumnWithOverflow::InMemColumnWithOverflow(
     : InMemColumn{move(fName), move(dataType), Types::getDataTypeSize(dataType), numElements} {
     assert(dataType.typeID == STRING || dataType.typeID == LIST);
     overflowPages =
-        make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(this->fName));
+        make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(this->fName));
 }
 
 void InMemColumnWithOverflow::saveToFile() {
@@ -42,7 +42,7 @@ void InMemColumnWithOverflow::saveToFile() {
 void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = *(nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
-    pages->pages[cursor.idx]->write(cursor.pos * numBytesForElement, cursor.pos,
+    pages->pages[cursor.pageIdx]->write(cursor.pos * numBytesForElement, cursor.pos,
         (uint8_t*)(&node.label), compressionScheme.getNumBytesForLabel(), (uint8_t*)(&node.offset),
         compressionScheme.getNumBytesForOffset());
 }

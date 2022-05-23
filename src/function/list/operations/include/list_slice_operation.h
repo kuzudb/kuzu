@@ -22,7 +22,7 @@ struct ListSlice {
         result.size = end - begin;
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace(result.size * elementSize));
-        TypeUtils::copyListRecursiveIfNested(list, result, resultValueVector.dataType,
+        OverflowBufferUtils::copyListRecursiveIfNested(list, result, resultValueVector.dataType,
             resultValueVector.getOverflowBuffer(), begin - 1, end - 2);
     }
 };

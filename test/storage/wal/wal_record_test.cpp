@@ -39,23 +39,25 @@ public:
         readBackWALRecordAndAssert(expectedWALRecord, offset);
     }
 
-    WALRecord constructExampleStructuredNodePropertyPageUpdateRecord() {
+    WALRecord constructExampleStructuredNodePropertyMainFilePageUpdateRecord() {
         label_t nodeLabel = 4;
         uint32_t propertyID = 89;
         uint64_t pageIdxInOriginalFile = 1455304;
         uint64_t pageIdxInWAL = 3;
-        return WALRecord::newStructuredNodePropertyPageUpdateRecord(
-            nodeLabel, propertyID, pageIdxInOriginalFile, pageIdxInWAL);
+        return WALRecord::newPageUpdateRecord(
+            StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, propertyID),
+            pageIdxInOriginalFile, pageIdxInWAL);
     }
 
-    WALRecord constructExampleStructuredAdjColumnPropertyPageUpdateRecord() {
+    WALRecord constructExampleStructuredNodePropertyOverflowFilePageUpdateRecord() {
         label_t nodeLabel = 0;
-        label_t relLabel = 128;
         uint32_t propertyID = 2463;
         uint64_t pageIdxInOriginalFile = 44436;
         uint64_t pageIdxInWAL = 1234;
-        return WALRecord::newStructuredAdjColumnPropertyPageUpdateRecord(
-            nodeLabel, relLabel, propertyID, pageIdxInOriginalFile, pageIdxInWAL);
+        return WALRecord::newPageUpdateRecord(
+            StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(
+                nodeLabel, propertyID),
+            pageIdxInOriginalFile, pageIdxInWAL);
     }
 
     WALRecord constructExampleCommitRecord() {
@@ -65,12 +67,13 @@ public:
 };
 
 TEST_F(WALRecordTest, StructuredNodePropertyPageUpdateRecordTest) {
-    WALRecord expectedWALRecord = constructExampleStructuredNodePropertyPageUpdateRecord();
+    WALRecord expectedWALRecord = constructExampleStructuredNodePropertyMainFilePageUpdateRecord();
     writeExpectedWALRecordReadBackAndAssert(expectedWALRecord);
 }
 
 TEST_F(WALRecordTest, StructuredAdjColumnPropertyPageUpdateRecordTest) {
-    WALRecord expectedWALRecord = constructExampleStructuredAdjColumnPropertyPageUpdateRecord();
+    WALRecord expectedWALRecord =
+        constructExampleStructuredNodePropertyOverflowFilePageUpdateRecord();
     writeExpectedWALRecordReadBackAndAssert(expectedWALRecord);
 }
 
@@ -80,8 +83,9 @@ TEST_F(WALRecordTest, CommitRecordTest) {
 }
 
 TEST_F(WALRecordTest, MultipleRecordWritingTest) {
-    WALRecord expectedWALRecord1 = constructExampleStructuredNodePropertyPageUpdateRecord();
-    WALRecord expectedWALRecord2 = constructExampleStructuredAdjColumnPropertyPageUpdateRecord();
+    WALRecord expectedWALRecord1 = constructExampleStructuredNodePropertyMainFilePageUpdateRecord();
+    WALRecord expectedWALRecord2 =
+        constructExampleStructuredNodePropertyOverflowFilePageUpdateRecord();
     WALRecord expectedWALRecord3 = constructExampleCommitRecord();
 
     uint64_t offset = 0;

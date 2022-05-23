@@ -28,7 +28,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
     }
     unordered_set<uint32_t> propertyKeysFound;
     auto info = getListInfo(nodeIDVector->readNodeOffset(pos));
-    PageByteCursor cursor{info.cursor.idx, info.cursor.pos};
+    PageByteCursor cursor{info.cursor.pageIdx, info.cursor.pos};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < info.listLen) {
@@ -65,8 +65,8 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
 unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPropertiesOfNode(
     node_offset_t nodeOffset) {
     auto info = getListInfo(nodeOffset);
-    auto retVal = make_unique<map<uint32_t /*unstructuredProperty idx*/, Literal>>();
-    PageByteCursor byteCursor{info.cursor.idx, info.cursor.pos};
+    auto retVal = make_unique<map<uint32_t /*unstructuredProperty pageIdx*/, Literal>>();
+    PageByteCursor byteCursor{info.cursor.pageIdx, info.cursor.pos};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < info.listLen) {

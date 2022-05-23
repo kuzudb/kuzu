@@ -60,6 +60,12 @@ public:
         snprintf(buf.get(), size, format.c_str(), args...);
         return string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
     }
+
+    static string getLongStringErrorMessage(const char* strToInsert, uint64_t maxAllowedStrSize) {
+        return StringUtils::string_format(
+            "Maximum length of strings is %d. Input string's length is %d.", maxAllowedStrSize,
+            strlen(strToInsert), strToInsert);
+    }
 };
 
 template<typename FROM, typename TO>

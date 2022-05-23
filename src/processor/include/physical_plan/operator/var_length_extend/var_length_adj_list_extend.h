@@ -23,7 +23,7 @@ class VarLengthAdjListExtend : public VarLengthExtend {
 
 public:
     VarLengthAdjListExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
-        StorageStructure* adjLists, uint8_t lowerBound, uint8_t upperBound,
+        BaseColumnOrList* adjLists, uint8_t lowerBound, uint8_t upperBound,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, adjLists, lowerBound, upperBound,
               move(child), id, paramsString) {}

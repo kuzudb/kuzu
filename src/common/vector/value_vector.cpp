@@ -1,5 +1,6 @@
 #include "src/common/include/vector/value_vector.h"
 
+#include "src/common/include/overflow_buffer_utils.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
@@ -27,7 +28,7 @@ void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
     assert(dataType.typeID == STRING);
     auto vectorData = (gf_string_t*)values;
     auto& result = vectorData[pos];
-    TypeUtils::copyString(value, len, result, *overflowBuffer);
+    OverflowBufferUtils::copyString(value, len, result, *overflowBuffer);
 }
 
 void ValueVector::addString(uint64_t pos, string value) const {

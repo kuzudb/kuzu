@@ -79,10 +79,15 @@ public:
     // responsibility of the caller.
     uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx);
 
+    uint8_t* pinWithoutAcquiringPageLock(
+        FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile);
+
     void setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
+
+    void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, uint32_t pageIdx);
 
     void resize(uint64_t newSize);
 

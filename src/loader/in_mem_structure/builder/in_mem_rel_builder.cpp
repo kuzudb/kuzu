@@ -583,13 +583,13 @@ void InMemRelBuilder::sortOverflowValuesOfPropertyListsTask(const DataType& data
                 Types::getDataTypeSize(dataType), offsetStart, *propertyLists->getListsMetadata(),
                 true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
-                auto gfStr = reinterpret_cast<gf_string_t*>(
-                    propertyLists->getMemPtrToLoc(propertyListCursor.idx, propertyListCursor.pos));
+                auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
+                    propertyListCursor.pageIdx, propertyListCursor.pos));
                 copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
             } else if (dataType.typeID == LIST) {
-                auto gfList = reinterpret_cast<gf_list_t*>(
-                    propertyLists->getMemPtrToLoc(propertyListCursor.idx, propertyListCursor.pos));
+                auto gfList = reinterpret_cast<gf_list_t*>(propertyLists->getMemPtrToLoc(
+                    propertyListCursor.pageIdx, propertyListCursor.pos));
                 copyListOverflowFromUnorderedToOrderedPages(gfList, dataType,
                     unorderedOverflowCursor, orderedOverflowCursor, unorderedOverflowPages,
                     orderedOverflowPages);

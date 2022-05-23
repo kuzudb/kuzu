@@ -58,7 +58,7 @@ void HashIndex::initializeHeaderAndPages(const DataType& keyDataType) {
         }
         inMemStringOvfPages =
             indexHeader->keyDataTypeID == STRING ?
-                make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName)) :
+                make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(fName)) :
                 nullptr;
     } else {
         // Read the index header from file.

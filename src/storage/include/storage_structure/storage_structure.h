@@ -4,18 +4,73 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/compression_scheme.h"
+#include "src/storage/include/storage_structure_utils.h"
 #include "src/storage/include/storage_utils.h"
+#include "src/storage/include/versioned_file_handle.h"
+#include "src/storage/include/wal/wal.h"
+#include "src/transaction/include/transaction.h"
 
 using namespace graphflow::common;
+using namespace graphflow::transaction;
 
 namespace graphflow {
 namespace storage {
 
-// StorageStructure is the parent class of BaseColumn and BaseLists. It abstracts the state and
+struct UpdatedPageInfoAndWALPageFrame {
+    UpdatedPageInfoAndWALPageFrame(
+        PageElementCursor originalPageCursor, uint64_t pageIdxInWAL, uint8_t* frame)
+        : originalPageCursor{originalPageCursor}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
+
+    PageElementCursor originalPageCursor;
+    uint64_t pageIdxInWAL;
+    uint8_t* frame;
+};
+
+class StorageStructure {
+public:
+    StorageStructure(const StorageStructureIDAndFName storageStructureIDAndFName,
+        BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
+          fileHandle{
+              storageStructureIDAndFName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate},
+          bufferManager{bufferManager}, isInMemory_{isInMemory}, wal{wal} {
+        if (isInMemory) {
+            StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
+        }
+    }
+
+    pair<FileHandle*, uint64_t> getFileHandleAndPageIdxToPin(
+        Transaction* transaction, PageElementCursor pageCursor);
+
+    inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
+
+protected:
+    // If necessary creates a second version (backed by the WAL) of a page that contains the value
+    // that will be written to. The position of the value, which determines the original page to
+    // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains
+    // *and does not release* the lock original page. Pins and updates the WAL version of the
+    // page. Note that caller must ensure to unpin and release the WAL version of the page by
+    // calling StorageStructure::finishUpdatingPage.
+    UpdatedPageInfoAndWALPageFrame getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+        uint64_t elementOffset, uint64_t numElementsPerPage);
+
+    // Unpins the WAL version of a page that was updated and releases the lock of the page (recall
+    // we use the same lock to do operations on both the original and WAL version of the page).
+    void finishUpdatingPage(UpdatedPageInfoAndWALPageFrame& updatedPageInfoAndWALPageFrame);
+
+protected:
+    shared_ptr<spdlog::logger> logger;
+    VersionedFileHandle fileHandle;
+    BufferManager& bufferManager;
+    bool isInMemory_;
+    WAL* wal;
+};
+
+// BaseColumnOrList is the parent class of Column and Lists. It abstracts the state and
 // functions that are common in both column and lists, like, 1) layout info (size of a unit of
 // element and number of elements that can be accommodated in a page), 2) getting pageIdx and
 // pageOffset of an element and, 3) reading from pages.
-class StorageStructure {
+class BaseColumnOrList : public StorageStructure {
 
 public:
     DataTypeID getDataTypeId() const { return dataType.typeID; }
@@ -25,15 +80,20 @@ public:
         return pageElementPos * elementSize;
     }
 
-    inline FileHandle* getFileHandle() { return &fileHandle; }
-
-    inline bool isInMemory() { return isInMemory_; }
-
 protected:
-    StorageStructure(const string& fName, const DataType& dataType, const size_t& elementSize,
-        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory);
+    BaseColumnOrList(const StorageStructureIDAndFName storageStructureIDAndFName,
+        const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
+        bool hasNULLBytes, bool isInMemory, WAL* wal);
 
-    virtual ~StorageStructure() {
+    BaseColumnOrList(const string& fName, const DataType& dataType, const size_t& elementSize,
+        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
+        : BaseColumnOrList{
+              StorageStructureIDAndFName(
+                  StorageStructureID::newStructuredNodePropertyMainColumnID(-1, -1), fName),
+              dataType, elementSize, bufferManager, hasNULLBytes, isInMemory,
+              nullptr /* null wal */} {}
+
+    virtual ~BaseColumnOrList() {
         if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
@@ -72,13 +132,6 @@ public:
     DataType dataType;
     size_t elementSize;
     uint32_t numElementsPerPage;
-
-protected:
-    shared_ptr<spdlog::logger> logger;
-
-    FileHandle fileHandle;
-    BufferManager& bufferManager;
-    bool isInMemory_;
 };
 
 } // namespace storage

@@ -12,6 +12,28 @@ public:
         systemConfig->largePageBufferPoolSize = (1ull << 22);
         createConn();
     }
+
+    void beginWriteTrxInsertLongStringToNode0AndVerify() {
+        conn->beginWriteTransaction();
+        auto result =
+            conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
+        result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+        ASSERT_EQ(
+            result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdefghijklmnopqrstuvwxyz");
+    }
+
+    void beginWriteTrxAndInsertLongStrings1000TimesAndVerify() {
+        conn->beginWriteTransaction();
+        int numWriteQueries = 1000;
+        for (int i = 0; i < numWriteQueries; ++i) {
+            conn->query("MATCH (a:person) WHERE a.ID < 100 SET a.fName = "
+                        "concat('abcdefghijklmnopqrstuvwxyz', string(a.ID+" +
+                        to_string(numWriteQueries) + "))");
+        }
+        auto result = conn->query("MATCH (a:person) WHERE a.ID=2 RETURN a.fName");
+        ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+            "abcdefghijklmnopqrstuvwxyz" + to_string(numWriteQueries + 2));
+    }
 };
 
 TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {
@@ -44,6 +66,52 @@ TEST_F(TinySnbUpdateTest, SetNodeTimestampPropTest) {
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime");
     ASSERT_EQ(result->getNext()->getValue(0)->val.timestampVal,
         Timestamp::FromDatetime(Date::FromDate(2200, 10, 10), Time::FromTime(12, 1, 1)));
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeShortStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdef'");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdef");
+}
+
+TEST_F(TinySnbUpdateTest, SetOneNodeLongStringPropCommitTest) {
+    beginWriteTrxInsertLongStringToNode0AndVerify();
+    conn->commit();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(
+        result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdefghijklmnopqrstuvwxyz");
+}
+
+TEST_F(TinySnbUpdateTest, SetOneNodeLongStringPropRollbackTest) {
+    beginWriteTrxInsertLongStringToNode0AndVerify();
+    conn->rollback();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
+}
+
+TEST_F(TinySnbUpdateTest, SetVeryLongStringErrorsTest) {
+    conn->beginWriteTransaction();
+    string veryLongStr = "";
+    for (int i = 0; i < DEFAULT_PAGE_SIZE + 1; ++i) {
+        veryLongStr += "a";
+    }
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='" + veryLongStr + "'");
+    ASSERT_FALSE(result->isSuccess());
+}
+
+TEST_F(TinySnbUpdateTest, SetManyNodeLongStringPropCommitTest) {
+    beginWriteTrxAndInsertLongStrings1000TimesAndVerify();
+    conn->commit();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+        "abcdefghijklmnopqrstuvwxyz" + to_string(1000));
+}
+
+TEST_F(TinySnbUpdateTest, SetManyNodeLongStringPropRollbackTest) {
+    beginWriteTrxAndInsertLongStrings1000TimesAndVerify();
+    conn->rollback();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeIntervalPropTest) {

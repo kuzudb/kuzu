@@ -22,12 +22,12 @@ struct ListPrepend {
             resultValueVector.getOverflowBuffer().allocateSpace((element.size + 1) * elementSize));
         result.size = element.size + 1;
         gf_list_t tmpList;
-        TypeUtils::copyListRecursiveIfNested(
+        OverflowBufferUtils::copyListRecursiveIfNested(
             element, tmpList, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
         memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr) + elementSize,
             reinterpret_cast<uint8_t*>(tmpList.overflowPtr), element.size * elementSize);
-        TypeUtils::setListElement(result, 0 /* elementPos */, list, resultValueVector.dataType,
-            resultValueVector.getOverflowBuffer());
+        OverflowBufferUtils::setListElement(result, 0 /* elementPos */, list,
+            resultValueVector.dataType, resultValueVector.getOverflowBuffer());
     }
 };
 

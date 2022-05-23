@@ -37,29 +37,56 @@ public:
         // read before update
         readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
         readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+        readAndAssertNodeProperty(
+            conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+        readAndAssertNodeProperty(
+            readConn.get(), 0 /* nodeoffset */, "fName", vector<string>{"Alice"});
         // update
         conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+        conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz'");
         // read after update but before commit
         readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
         readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+        readAndAssertNodeProperty(
+            conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+        readAndAssertNodeProperty(
+            readConn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
     }
 
 public:
     unique_ptr<Connection> readConn;
 };
 
-TEST_F(TinySnbTransactionTest, SingleTransactionReadWriteToStructuredNodePropertyNonNullTest) {
+TEST_F(TinySnbTransactionTest,
+    SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNonNullTest) {
     conn->beginWriteTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
     conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
 }
 
-TEST_F(TinySnbTransactionTest, SingleTransactionReadWriteToStructuredNodePropertyNullTest) {
+TEST_F(
+    TinySnbTransactionTest, SingleTransactionReadWriteToStringStructuredNodePropertyNonNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz';");
+    readAndAssertNodeProperty(
+        conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+}
+
+TEST_F(
+    TinySnbTransactionTest, SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNullTest) {
     conn->beginWriteTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
     conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = a.unstrNumericProp;");
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{""});
+}
+
+TEST_F(TinySnbTransactionTest, SingleTransactionReadWriteToStringStructuredNodePropertyNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = a.label3;");
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{""});
 }
 
 TEST_F(TinySnbTransactionTest, Concurrent1Write1ReadTransactionInTheMiddleOfTransaction) {
@@ -75,6 +102,10 @@ TEST_F(TinySnbTransactionTest, Concurrent1Write1ReadTransactionCommitAndCheckpoi
     readConn->beginReadOnlyTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
     readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"70"});
+    readAndAssertNodeProperty(
+        conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+    readAndAssertNodeProperty(
+        readConn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
 }
 
 TEST_F(TinySnbTransactionTest, Concurrent1Write1ReadTransactionRollback) {
@@ -86,6 +117,9 @@ TEST_F(TinySnbTransactionTest, Concurrent1Write1ReadTransactionRollback) {
     readConn->beginReadOnlyTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
     readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    readAndAssertNodeProperty(
+        readConn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
 }
 
 TEST_F(TinySnbTransactionTest, OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {

@@ -1,12 +1,25 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "catalog_structs",
+    srcs = [],
+    hdrs = glob([
+        "include/catalog_structs.h",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common/types",
+    ],
+)
+
+
+cc_library(
     name = "catalog",
     srcs = glob([
-        "*.cpp",
+        "catalog.cpp",
     ]),
     hdrs = glob([
-        "include/*.h",
+        "include/catalog.h",
     ]),
     visibility = ["//visibility:public"],
     deps = [

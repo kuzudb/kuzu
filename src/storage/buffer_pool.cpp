@@ -116,6 +116,13 @@ void BufferPool::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
 
 uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
+    auto retVal = pinWithoutAcquiringPageLock(fileHandle, pageIdx, doNotReadFromFile);
+    fileHandle.releasePageLock(pageIdx);
+    return retVal;
+}
+
+uint8_t* BufferPool::pinWithoutAcquiringPageLock(
+    FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
         auto& frame = bufferCache[frameIdx];
@@ -129,9 +136,8 @@ uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotRea
             bmMetrics.numCacheMiss += 1;
         }
     }
-    fileHandle.releasePageLock(pageIdx);
     bmMetrics.numPins += 1;
-    return bufferCache[frameIdx]->buffer.get();
+    return bufferCache[fileHandle.getFrameIdx(pageIdx)]->buffer.get();
 }
 
 void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
@@ -252,11 +258,16 @@ void BufferPool::moveClockHand(uint64_t newClockHand) {
 
 void BufferPool::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
+    unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
+    fileHandle.releasePageLock(pageIdx);
+}
+
+void BufferPool::unpinWithoutAcquiringPageLock(FileHandle& fileHandle, uint32_t pageIdx) {
     auto& frame = bufferCache[fileHandle.getFrameIdx(pageIdx)];
     // `count` is the value of `pinCount` before sub.
     auto count = frame->pinCount.fetch_sub(1);
     assert(count >= 1);
-    fileHandle.releasePageLock(pageIdx);
 }
+
 } // namespace storage
 } // namespace graphflow

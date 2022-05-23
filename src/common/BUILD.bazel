@@ -38,8 +38,22 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "overflow_buffer",
         "//src/common/types",
+    ],
+)
+
+cc_library(
+    name = "overflow_buffer_utils",
+    srcs = [
+        "overflow_buffer_utils.cpp",
+    ],
+    hdrs = [
+        "include/overflow_buffer_utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "overflow_buffer",
+        "type_utils"
     ],
 )
 
@@ -59,6 +73,7 @@ cc_library(
     deps = [
         "expression_type",
         "type_utils",
+        "overflow_buffer_utils",
         "//src/common/types",
         "//src/storage:memory_manager",
     ],

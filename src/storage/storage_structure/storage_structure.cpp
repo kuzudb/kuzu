@@ -5,27 +5,71 @@
 namespace graphflow {
 namespace storage {
 
-StorageStructure::StorageStructure(const string& fName, const DataType& dataType,
-    const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
-    : dataType{dataType}, elementSize{elementSize}, logger{LoggerUtils::getOrCreateSpdLogger(
-                                                        "storage")},
-      fileHandle{fName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate},
-      bufferManager{bufferManager}, isInMemory_{isInMemory} {
-    numElementsPerPage = hasNULLBytes ?
-                             PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
-                             PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
-    if (isInMemory) {
-        StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
+pair<FileHandle*, uint64_t> StorageStructure::getFileHandleAndPageIdxToPin(
+    Transaction* transaction, PageElementCursor pageCursor) {
+    if (transaction->isReadOnly() ||
+        !fileHandle.hasUpdatedWALPageVersionNoLock(pageCursor.pageIdx)) {
+        return make_pair(&fileHandle, pageCursor.pageIdx);
+    } else {
+        return make_pair(
+            wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(pageCursor.pageIdx));
     }
 }
 
-void StorageStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
+UpdatedPageInfoAndWALPageFrame
+StorageStructure::getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+    uint64_t elementOffset, uint64_t numElementsPerPage) {
+    auto originalPageCursor =
+        PageUtils::getPageElementCursorForOffset(elementOffset, numElementsPerPage);
+    fileHandle.createPageVersionGroupIfNecessary(originalPageCursor.pageIdx);
+    fileHandle.acquirePageLock(originalPageCursor.pageIdx, true /* block */);
+    uint32_t pageIdxInWAL;
+    uint8_t* frame;
+    if (fileHandle.hasUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx)) {
+        pageIdxInWAL = fileHandle.getUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx);
+        frame = bufferManager.pinWithoutAcquiringPageLock(
+            *wal->fileHandle, pageIdxInWAL, false /* read from file */);
+    } else {
+        pageIdxInWAL = wal->logPageUpdateRecord(fileHandle.getStorageStructureIDIDForWALRecord(),
+            originalPageCursor.pageIdx /* pageIdxInOriginalFile */);
+        frame = bufferManager.pinWithoutAcquiringPageLock(
+            *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
+        uint8_t* originalFrame = bufferManager.pinWithoutAcquiringPageLock(
+            fileHandle, originalPageCursor.pageIdx, false /* read from file */);
+        // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
+        memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
+        bufferManager.unpinWithoutAcquiringPageLock(fileHandle, originalPageCursor.pageIdx);
+        fileHandle.setUpdatedWALPageVersionNoLock(
+            originalPageCursor.pageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
+        bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+    }
+    return UpdatedPageInfoAndWALPageFrame(originalPageCursor, pageIdxInWAL, frame);
+}
+
+void StorageStructure::finishUpdatingPage(
+    UpdatedPageInfoAndWALPageFrame& updatedPageInfoAndWALPageFrame) {
+    bufferManager.unpinWithoutAcquiringPageLock(
+        *wal->fileHandle, updatedPageInfoAndWALPageFrame.pageIdxInWAL);
+    fileHandle.releasePageLock(updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx);
+}
+
+BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName storageStructureIDAndFName,
+    const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
+    bool hasNULLBytes, bool isInMemory, WAL* wal)
+    : StorageStructure(storageStructureIDAndFName, bufferManager, isInMemory, wal),
+      dataType{dataType}, elementSize{elementSize} {
+    numElementsPerPage = hasNULLBytes ?
+                             PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
+                             PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+}
+
+void BaseColumnOrList::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     uint64_t sizeLeftToCopy, PageElementCursor& cursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
     auto values = valueVector->values;
     auto offsetInVector = 0;
     while (sizeLeftToCopy) {
-        auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
+        auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
         auto sizeToCopyInPage =
             min((uint64_t)(numElementsPerPage - cursor.pos) * elementSize, sizeLeftToCopy);
         auto numValuesToCopyInPage = sizeToCopyInPage / elementSize;
@@ -37,11 +81,11 @@ void StorageStructure::readBySequentialCopy(const shared_ptr<ValueVector>& value
         sizeLeftToCopy -= sizeToCopyInPage;
         offsetInVector += numValuesToCopyInPage;
         cursor.pos = 0;
-        cursor.idx++;
+        cursor.pageIdx++;
     }
 }
 
-void StorageStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
     PageElementCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
     auto numValuesToCopy = valueVector->state->originalSize;
@@ -49,17 +93,17 @@ void StorageStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVect
     while (numValuesToCopy > 0) {
         auto numValuesToCopyInPage =
             min(numValuesToCopy, (uint64_t)(numElementsPerPage - cursor.pos));
-        auto physicalPageId = logicalToPhysicalPageMapper(cursor.idx);
+        auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
         readNodeIDsFromAPage(valueVector, posInVector, physicalPageId, cursor.pos,
             numValuesToCopyInPage, compressionScheme, isAdjLists);
-        cursor.idx++;
+        cursor.pageIdx++;
         cursor.pos = 0;
         numValuesToCopy -= numValuesToCopyInPage;
         posInVector += numValuesToCopyInPage;
     }
 }
 
-void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
     uint32_t posInVector, uint32_t physicalPageId, uint32_t elementPos, uint64_t numValuesToCopy,
     NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)valueVector->values;
@@ -83,7 +127,7 @@ void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& value
     bufferManager.unpin(fileHandle, physicalPageId);
 }
 
-void StorageStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
     uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
     while (num) {
         auto numInCurrentByte = min(num, 8 - (elementPos % 8));
@@ -97,14 +141,14 @@ void StorageStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueV
     }
 }
 
-void StorageStructure::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
     uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
     auto NULLByteAndByteLevelOffset =
         PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPos);
     setNULLBitsFromANULLByte(valueVector, NULLByteAndByteLevelOffset, 1, offsetInVector);
 }
 
-void StorageStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
     pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num, uint64_t offsetInVector) {
     auto NULLByte = NULLByteAndByteLevelStartOffset.first;
     auto startPos = NULLByteAndByteLevelStartOffset.second;
@@ -113,7 +157,7 @@ void StorageStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& v
     }
 }
 
-void StorageStructure::setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) {
+void BaseColumnOrList::setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) {
     auto NULLBytePtrAndByteLevelOffset =
         PageUtils::getNULLBytePtrAndByteLevelOffsetPair(frame, elementPos);
     uint8_t NULLByte = *NULLBytePtrAndByteLevelOffset.first;

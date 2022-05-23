@@ -55,7 +55,7 @@ void InMemPage::encodeNULLBytes() {
         uint8_t NULLByte = 0b0000000;
         for (auto j = 0; j < 8; j++) {
             if (uncompressedNULLs[pos]) {
-                NULLByte = NULLByte | bitMasksWithSingle1s[pos % 8];
+                NULLByte = NULLByte | storage::bitMasksWithSingle1s[pos % 8];
             }
             pos++;
         }

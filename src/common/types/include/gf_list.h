@@ -13,7 +13,7 @@ public:
     void set(const uint8_t* values, const DataType& dataType) const;
 
 private:
-    friend class TypeUtils;
+    friend class OverflowBufferUtils;
 
     void set(const vector<uint8_t*>& parameters, DataTypeID childTypeId);
 

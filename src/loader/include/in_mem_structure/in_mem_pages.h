@@ -3,10 +3,12 @@
 #include <shared_mutex>
 
 #include "src/common/include/configs.h"
+#include "src/common/types/include/literal.h"
 #include "src/loader/include/in_mem_structure/in_mem_page.h"
 #include "src/storage/include/storage_utils.h"
 
 using namespace graphflow::common;
+using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {
