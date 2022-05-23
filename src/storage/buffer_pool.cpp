@@ -68,9 +68,6 @@ void BufferPool::resize(uint64_t newSize) {
     logger->info("Done resizing buffer pool.");
 }
 
-uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx) {
-    return pin(fileHandle, pageIdx, false /* read page from file */);
-}
 
 uint8_t* BufferPool::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx) {
     return pin(fileHandle, pageIdx, true /* do not read page from file */);

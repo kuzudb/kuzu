@@ -36,10 +36,10 @@ void BufferManager::resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeF
 // should be flushed to disk if it is evicted.
 // (3) If multiple threads are writing to the page, they should coordinate separately because they
 // both get access to the same piece of memory.
-uint8_t* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
-    return fileHandle.isLargePaged() ? bufferPoolLargePages->pin(fileHandle, pageIdx) :
-                                       bufferPoolDefaultPages->pin(fileHandle, pageIdx);
-}
+//uint8_t* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
+//    return fileHandle.isLargePaged() ? bufferPoolLargePages->pin(fileHandle, pageIdx) :
+//                                       bufferPoolDefaultPages->pin(fileHandle, pageIdx);
+//}
 
 // Important Note: This function will pin a page but if the page was not yet in a frame, it will
 // not read it from the file. So this can be used if the page is a new page of a file, or a page

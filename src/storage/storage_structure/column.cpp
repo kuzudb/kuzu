@@ -1,5 +1,6 @@
 #include "src/storage/include/storage_structure/column.h"
 
+#include <iostream>
 namespace graphflow {
 namespace storage {
 
@@ -10,10 +11,21 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
     } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selectedPositions[i];
-            readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
-        }
+//        cout << "readBySequentialCopy called!" << endl;
+        auto sizeLeftToCopy = nodeIDVector->state->selectedSize * elementSize;
+        auto firstNodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[0]);
+        auto pageCursor =
+            PageUtils::getPageElementCursorForOffset(firstNodeOffset, numElementsPerPage);
+        readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, [](uint32_t i) { return i; }
+            /*no logical-physical page mapping is required for columns*/);
+//                for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
+//                    auto pos = nodeIDVector->state->selectedPositions[i];
+//                    readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
+//                }
+//        for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
+//            auto pos = nodeIDVector->state->selectedPositions[i];
+//            readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
+//        }
     }
 }
 

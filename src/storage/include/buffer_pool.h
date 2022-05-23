@@ -72,7 +72,10 @@ class BufferPool {
 public:
     BufferPool(uint64_t pageSize, uint64_t maxSize);
 
-    uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
+//    uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
+    inline uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx) {
+        return pin(fileHandle, pageIdx, false /* do not read page from file */);
+    }
 
     // Pins a new page that has been added to the file. This means that the BufferManager does not
     // need to read the page from the file for now. Ensuring that the given pageIdx is new is the

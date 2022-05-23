@@ -5,6 +5,7 @@
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/processor_task.h"
 
+#include <iostream>
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -22,6 +23,7 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
     // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
     auto task = make_shared<ProcessorTask>(resultCollector, context);
+    cout << "context->numThreads: " << context->numThreads << endl;
     decomposePlanIntoTasks(lastOperator, lastOperator, task.get(), context);
     taskScheduler->scheduleTaskAndWaitOrError(task);
     return resultCollector->getResultFactorizedTable();

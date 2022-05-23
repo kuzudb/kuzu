@@ -64,8 +64,11 @@ public:
     BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool);
     ~BufferManager();
 
-    uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
-
+//    uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
+    inline uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx) {
+        return fileHandle.isLargePaged() ? bufferPoolLargePages->pin(fileHandle, pageIdx) :
+               bufferPoolDefaultPages->pin(fileHandle, pageIdx);
+    }
     // The caller should ensure that the given pageIdx is indeed a new page, so should not be read
     // from disk
     uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx);

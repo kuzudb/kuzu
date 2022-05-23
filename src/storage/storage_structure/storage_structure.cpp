@@ -29,7 +29,8 @@ void StorageStructure::readBySequentialCopy(const shared_ptr<ValueVector>& value
         auto sizeToCopyInPage =
             min((uint64_t)(numElementsPerPage - cursor.pos) * elementSize, sizeLeftToCopy);
         auto numValuesToCopyInPage = sizeToCopyInPage / elementSize;
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        auto frame =
+            bufferManager.pin(fileHandle, physicalPageIdx);
         memcpy(values, frame + mapElementPosToByteOffset(cursor.pos), sizeToCopyInPage);
         setNULLBitsForRange(valueVector, frame, cursor.pos, offsetInVector, numValuesToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
