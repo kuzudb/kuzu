@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace graphflow::common;
+using lock_t = unique_lock<mutex>;
 
 namespace spdlog {
 class logger;
@@ -73,7 +74,8 @@ public:
     // addNewPage should be written to ensure that once T_W calls addNewPage, it should be followed
     // by a BufferManager::pinNewPage call and the code should ensure that no other thread can try
     // to pin the newly added page in between these calls.
-    uint32_t addNewPage();
+    virtual uint32_t addNewPage();
+    virtual void removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove);
 
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
 
@@ -85,18 +87,22 @@ public:
 
     inline uint64_t getFrameIdx(uint32_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
 
-private:
+    bool acquirePageLock(uint32_t pageIdx, bool block);
+
+    void releasePageLock(uint32_t pageIdx) { pageLocks[pageIdx]->clear(); }
+
+protected:
+    uint32_t addNewPageWithoutLock();
+
+    void removePageIdxAndTruncateIfNecessaryWithoutLock(uint64_t pageIdxToRemove);
+
     void initPageIdxToFrameMapAndLocks();
 
     void constructExistingFileHandle(const string& path);
 
     void constructNewFileHandle(const string& path);
 
-    bool acquirePageLock(uint32_t pageIdx, bool block);
-
     bool acquire(uint32_t pageIdx);
-
-    void releasePageLock(uint32_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
     inline void swizzle(uint32_t pageIdx, uint64_t swizzledVal) {
         pageIdxToFrameMap[pageIdx]->store(swizzledVal);
@@ -110,7 +116,7 @@ private:
 
     inline void addNewPageLockAndFramePtrWithoutLock(uint64_t i);
 
-private:
+protected:
     shared_ptr<spdlog::logger> logger;
     uint8_t flags;
     unique_ptr<FileInfo> fileInfo;

@@ -14,36 +14,53 @@ WALReplayer::WALReplayer(
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     switch (walRecord.recordType) {
-    case PAGE_UPDATE_RECORD: {
+    case PAGE_UPDATE_OR_INSERT_RECORD: {
         Column* column;
-        auto fileID = walRecord.pageUpdateRecord.fileID;
-        switch (fileID.fileIDType) {
-        case STRUCTURED_NODE_PROPERTY_FILE_ID: {
+        auto storageStructureID = walRecord.pageInsertOrUpdateRecord.storageStructureID;
+        switch (storageStructureID.storageStructureType) {
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
             column = storageManager.getNodesStore().getNodePropertyColumn(
-                fileID.structuredNodePropFileID.nodeLabel,
-                fileID.structuredNodePropFileID.propertyID);
-        } break;
-        case ADJ_COLUMN_PROPERTY_FILE_ID: {
-            column = storageManager.getRelsStore().getRelPropertyColumn(
-                fileID.adjColumnPropertyFileID.relLabel, fileID.adjColumnPropertyFileID.nodeLabel,
-                fileID.adjColumnPropertyFileID.propertyID);
+                storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+                storageStructureID.structuredNodePropertyColumnID.propertyID);
         } break;
         default:
-            throw RuntimeException(
-                "Unrecognized FileIDType inside WALReplayer::replay(). FileIDType:" +
-                to_string(fileID.fileIDType));
+            throw RuntimeException("Unrecognized StorageStructureType inside "
+                                   "WALReplayer::replay(). StorageStructureType:" +
+                                   to_string(storageStructureID.storageStructureType));
         }
+        // TODO(Semih/Guodong): We are explicitly assuming that if the log record's
+        // storageStructureID is an overflow file, then the storage structure is a
+        // StringPropertyColumn. This should change as we support other variable length data types
+        // and in other storage structures.
+        VersionedFileHandle* fileHandle =
+            storageStructureID.isOverflow ?
+                reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFileHandle() :
+                column->getFileHandle();
         if (isCheckpoint) {
-            // First update the original db file on disk
-            FileHandle* fileHandleToWriteTo = column->getFileHandle();
-            walFileHandle->readPage(pageBuffer.get(), walRecord.pageUpdateRecord.pageIdxInWAL);
-            fileHandleToWriteTo->writePage(
-                pageBuffer.get(), walRecord.pageUpdateRecord.pageIdxInOriginalFile);
+            walFileHandle->readPage(
+                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
+            fileHandle->writePage(
+                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
             // Update the page in buffer manager if it is in a frame
-            bufferManager.updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandleToWriteTo,
-                pageBuffer.get(), walRecord.pageUpdateRecord.pageIdxInOriginalFile);
+            bufferManager.updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandle,
+                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         }
-        column->clearPageVersionInfo(walRecord.pageUpdateRecord.pageIdxInOriginalFile);
+        if (!isCheckpoint && walRecord.pageInsertOrUpdateRecord.isInsert) {
+            // Note: We can directly call removePageIdxAndTruncateIfNecessary here because we assume
+            // there is asingle write transaction in the system at any point in time. Suppose page 5
+            // and page 6 were added to a file during a transaction, which is now rolling back. As
+            // we replay the log to rollback, we see page 5's insertion first. However, we can
+            // directly truncate the file to 5 (even if later we will see a page 6 insertion),
+            // because we assume that if there were further new page additions to the same file,
+            // they must also be part of the rolling back transaction. If this assumption fails,
+            // instead of truncating, we need to indicate that page 5 is a "free" page again and
+            // have some logic to maintain free pages.
+            fileHandle->removePageIdxAndTruncateIfNecessary(
+                walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+        } else {
+            fileHandle->clearUpdatedWALPageVersion(
+                walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+        }
     }
     case COMMIT_RECORD: {
         break;

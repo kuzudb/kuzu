@@ -51,7 +51,8 @@ protected:
 
     inline void resetCurrentHeaderPagePrefix() {
         ((uint64_t*)currentHeaderPageBuffer.get())[0] = 0;
-        setNextHeaderPageOfCurrentHeaderPage(UINT64_MAX); // set next page idx to UINT64_MAX as null
+        setNextHeaderPageOfCurrentHeaderPage(
+            UINT64_MAX); // set next page pageIdx to UINT64_MAX as null
         offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
     }
 
@@ -86,27 +87,12 @@ public:
         return make_unique<WALIterator>(fileHandle, mtx);
     }
 
-    /**
-     * Adds a new log entry for an update to an existing node property page.
-     *
-     * @param nodeLabel ID of the label of the node (needed to identify the file)
-     * @param propertyID ID of node property (needed to identify the file)
-     * @param pageIdxInOriginalFile index of the updated page in the original file
-     * @return index of the updated page in the wal
-     */
-    uint32_t logStructuredNodePropertyPageRecord(
-        label_t nodeLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile);
-    /**
-     * Adds a new log entry for an update to an existing property page of an adj column.
-     *
-     * @param nodeLabel ID of the label of the src node (needed to identify the file)
-     * @param relabel ID of the label of the rel (needed to identify the file)
-     * @param propertyID ID of rel property (needed to identify the file)
-     * @param pageIdxInOriginalFile index of the updated page in the original file
-     * @return index of the updated page in the wal
-     */
-    uint32_t logStructuredAdjColumnPropertyPage(
-        label_t nodeLabel, label_t relLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile);
+    uint32_t logPageUpdateRecord(
+        StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile);
+
+    uint32_t logPageInsertRecord(
+        StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile);
+
     void logCommit(uint64_t transactionID);
     // Removes the contents of WAL file.
     void clearWAL();

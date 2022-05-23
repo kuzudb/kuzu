@@ -29,7 +29,10 @@ constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
 // e.g., a worker thread is in TaskScheduler, needs to block.
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
 
-constexpr const uint64_t PAGE_VERSION_INFO_PAGE_GROUP_SIZE = 64;
+// The number of pages for which we maintain a lock and a page version array for. Multi version file
+// design is meant to not contain any page version arrays if a group of pages do not contain
+// any updates to reduce our memory footprint.
+constexpr const uint64_t MULTI_VERSION_FILE_PAGE_GROUP_SIZE = 64;
 
 constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS =
     5000000;

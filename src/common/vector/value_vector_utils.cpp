@@ -1,6 +1,6 @@
 #include "src/common/include/vector/value_vector_utils.h"
 
-#include "src/common/include/type_utils.h"
+#include "src/common/include/overflow_buffer_utils.h"
 #include "src/common/types/include/value.h"
 
 using namespace graphflow;
@@ -55,9 +55,10 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
 void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
     uint8_t* dstData, OverflowBuffer& overflowBuffer) {
     if (dataType.typeID == STRING) {
-        TypeUtils::copyString(*(gf_string_t*)srcData, *(gf_string_t*)dstData, overflowBuffer);
+        OverflowBufferUtils::copyString(
+            *(gf_string_t*)srcData, *(gf_string_t*)dstData, overflowBuffer);
     } else if (dataType.typeID == LIST) {
-        TypeUtils::copyListRecursiveIfNested(
+        OverflowBufferUtils::copyListRecursiveIfNested(
             *(gf_list_t*)srcData, *(gf_list_t*)dstData, dataType, overflowBuffer);
     } else {
         // Regardless of whether the dataType is unstructured or a structured non-string type, we
@@ -72,7 +73,7 @@ void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, con
             // the entire data first even though the unstrValueDstPtr->val.strVal.set call below
             // will copy over the 16 bytes for the string.
             if (unstrValueSrcPtr->dataType.typeID == STRING) {
-                TypeUtils::copyString(
+                OverflowBufferUtils::copyString(
                     unstrValueSrcPtr->val.strVal, unstrValueDstPtr->val.strVal, overflowBuffer);
             }
         }

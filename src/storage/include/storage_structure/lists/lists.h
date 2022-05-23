@@ -30,7 +30,7 @@ struct ListInfo {
  * a list, {@class ListsMetadata} contains information that maps logical location of the list to the
  * actual physical location in the Lists file on disk.
  * */
-class Lists : public StorageStructure {
+class Lists : public BaseColumnOrList {
 
 public:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -47,7 +47,7 @@ protected:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
         bool isInMemory)
-        : StorageStructure{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
+        : BaseColumnOrList{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
           metadata{fName}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,

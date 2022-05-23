@@ -1,123 +1,120 @@
 #pragma once
 
+#include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
-#include "src/storage/include/file_handle.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
 
-struct StructuredNodePropertyFileID {
+struct StructuredNodePropertyColumnID {
     label_t nodeLabel;
     uint32_t propertyID;
 
-    inline bool operator==(const StructuredNodePropertyFileID& rhs) const {
+    inline bool operator==(const StructuredNodePropertyColumnID& rhs) const {
         return nodeLabel == rhs.nodeLabel && propertyID == rhs.propertyID;
     }
 
     inline uint64_t numBytesToWrite() { return sizeof(label_t) + sizeof(uint32_t); }
 
-    static void constructStructuredNodePropertyFileIDFromBytes(
-        StructuredNodePropertyFileID& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeStructuredNodePropertyFileIDToBytes(uint8_t* bytes, uint64_t& offset);
+    static void constructStructuredNodePropertyColumnIDFromBytes(
+        StructuredNodePropertyColumnID& retVal, uint8_t* bytes, uint64_t& offset);
+    void writeStructuredNodePropertyColumnIDToBytes(uint8_t* bytes, uint64_t& offset);
 };
 
-struct AdjColumnPropertyFileID {
-    label_t nodeLabel;
-    label_t relLabel;
-    uint32_t propertyID;
-
-    inline bool operator==(const AdjColumnPropertyFileID& rhs) const {
-        return nodeLabel == rhs.nodeLabel && relLabel == rhs.relLabel &&
-               propertyID == rhs.propertyID;
-    }
-
-    inline uint64_t numBytesToWrite() {
-        return sizeof(label_t) + sizeof(label_t) + sizeof(uint32_t);
-    }
-
-    static void constructAdjColumnPropertyFileIDFromBytes(
-        AdjColumnPropertyFileID& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeAdjColumnPropertyFileIDToBytes(uint8_t* bytes, uint64_t& offset);
+enum StorageStructureType : uint8_t {
+    STRUCTURED_NODE_PROPERTY_COLUMN = 0,
 };
 
-enum FileIDType : uint8_t { STRUCTURED_NODE_PROPERTY_FILE_ID = 0, ADJ_COLUMN_PROPERTY_FILE_ID = 1 };
-
-// FileIDs start with 1 byte type and follow with additional bytes needed by the different log
-// types. We don't need these to be byte aligned because they are not stored in memory. These are
-// used to serialize and deserialize log entries.
-struct FileID {
-    FileIDType fileIDType;
+// StorageStructureIDs start with 1 byte type and 1 byte isOverflow field followed with additional
+// bytes needed by the different log types. We don't need these to be byte aligned because they are
+// not stored in memory. These are used to serialize and deserialize log entries.
+struct StorageStructureID {
+    StorageStructureType storageStructureType;
+    bool isOverflow;
     union {
-        StructuredNodePropertyFileID structuredNodePropFileID;
-        AdjColumnPropertyFileID adjColumnPropertyFileID;
+        StructuredNodePropertyColumnID structuredNodePropertyColumnID;
     };
 
-    inline bool operator==(const FileID& rhs) const {
-        if (fileIDType != rhs.fileIDType) {
+    inline bool operator==(const StorageStructureID& rhs) const {
+        if (storageStructureType != rhs.storageStructureType || isOverflow != rhs.isOverflow) {
             return false;
         }
-        switch (fileIDType) {
-        case STRUCTURED_NODE_PROPERTY_FILE_ID: {
-            return structuredNodePropFileID == rhs.structuredNodePropFileID;
-        }
-        case ADJ_COLUMN_PROPERTY_FILE_ID: {
-            return adjColumnPropertyFileID == rhs.adjColumnPropertyFileID;
+        switch (storageStructureType) {
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+            return structuredNodePropertyColumnID == rhs.structuredNodePropertyColumnID;
         }
         default: {
             throw RuntimeException(
-                "Unrecognized FileIDType inside ==. FileIDType:" + to_string(fileIDType));
+                "Unrecognized StorageStructureType inside ==. StorageStructureType:" +
+                to_string(storageStructureType));
         }
         }
     }
 
     inline uint64_t numBytesToWrite() {
-        switch (fileIDType) {
-        case STRUCTURED_NODE_PROPERTY_FILE_ID: {
-            return 1 + structuredNodePropFileID.numBytesToWrite();
-        }
-        case ADJ_COLUMN_PROPERTY_FILE_ID: {
-            return 1 + adjColumnPropertyFileID.numBytesToWrite();
+        switch (storageStructureType) {
+            // We add 2 bytes below because: 1 for StorageStructureType and 2 for isOverflow
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+            return 2 + structuredNodePropertyColumnID.numBytesToWrite();
         }
         default: {
-            throw RuntimeException("Unrecognized FileIDType inside numBytesToWrite(). FileIDType:" +
-                                   to_string(fileIDType));
+            throw RuntimeException("Unrecognized StorageStructureType inside numBytesToWrite(). "
+                                   "StorageStructureType:" +
+                                   to_string(storageStructureType));
         }
         }
     }
 
-    static FileID newStructuredNodePropertyFileID(label_t nodeLabel, uint32_t propertyID);
-    static FileID newStructuredAdjColumnPropertyFileID(
-        label_t nodeLabel, label_t relLabel, uint32_t propertyID);
-    static void constructFileIDFromBytes(FileID& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeFileIDToBytes(uint8_t* bytes, uint64_t& offset);
+    inline static StorageStructureID newStructuredNodePropertyMainColumnID(
+        label_t nodeLabel, uint32_t propertyID) {
+        return newStructuredNodePropertyColumnID(nodeLabel, propertyID, false /* is main file */);
+    }
+    inline static StorageStructureID newStructuredNodePropertyColumnOverflowPagesID(
+        label_t nodeLabel, uint32_t propertyID) {
+        return newStructuredNodePropertyColumnID(
+            nodeLabel, propertyID, true /* is overflow file */);
+    }
+
+    static void constructStorageStructureIDFromBytes(
+        StorageStructureID& retVal, uint8_t* bytes, uint64_t& offset);
+    void writeStorageStructureIDToBytes(uint8_t* bytes, uint64_t& offset);
+
+private:
+    static StorageStructureID newStructuredNodePropertyColumnID(
+        label_t nodeLabel, uint32_t propertyID, bool isOverflow);
 };
 
-enum WALRecordType : uint8_t { PAGE_UPDATE_RECORD = 0, COMMIT_RECORD = 1 };
+enum WALRecordType : uint8_t {
+    PAGE_UPDATE_OR_INSERT_RECORD = 0,
+    COMMIT_RECORD = 1,
+};
 
-struct PageUpdateRecord {
-    FileID fileID;
+struct PageUpdateOrInsertRecord {
+    StorageStructureID storageStructureID;
+    // PageIdx in the file of updated storage structure, identified by the storageStructureID field
     uint64_t pageIdxInOriginalFile;
     uint64_t pageIdxInWAL;
+    bool isInsert;
 
-    inline bool operator==(const PageUpdateRecord& rhs) const {
-        return fileID == rhs.fileID && pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
-               pageIdxInWAL == rhs.pageIdxInWAL;
+    inline bool operator==(const PageUpdateOrInsertRecord& rhs) const {
+        return storageStructureID == rhs.storageStructureID &&
+               pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
+               pageIdxInWAL == rhs.pageIdxInWAL && isInsert == rhs.isInsert;
     }
 
     inline uint64_t numBytesToWrite() {
-        return fileID.numBytesToWrite() + sizeof(uint64_t) + sizeof(uint64_t);
+        return storageStructureID.numBytesToWrite() + sizeof(uint64_t) + sizeof(uint64_t) +
+               sizeof(bool);
     }
 
-    static PageUpdateRecord newStructuredNodePropertyPageUpdateRecord(label_t nodeLabel,
-        uint32_t propertyID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
-    static PageUpdateRecord newStructuredAdjColumnPropertyPageUpdateRecord(label_t nodeLabel,
-        label_t relLabel, uint32_t propertyID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL);
-    static void constructPageUpdateRecordFromBytes(
-        PageUpdateRecord& retVal, uint8_t* bytes, uint64_t& offset);
-    void writePageUpdateLogToBytes(uint8_t* bytes, uint64_t& offset);
+    static PageUpdateOrInsertRecord newPageInsertOrUpdateRecord(
+        StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert);
+    static void constructPageUpdateOrInsertRecordFromBytes(
+        PageUpdateOrInsertRecord& retVal, uint8_t* bytes, uint64_t& offset);
+    void writePageUpdateOrInsertRecordToBytes(uint8_t* bytes, uint64_t& offset);
 };
 
 struct CommitRecord {
@@ -138,7 +135,7 @@ struct CommitRecord {
 struct WALRecord {
     WALRecordType recordType;
     union {
-        PageUpdateRecord pageUpdateRecord;
+        PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
     };
 
@@ -147,8 +144,8 @@ struct WALRecord {
             return false;
         }
         switch (recordType) {
-        case PAGE_UPDATE_RECORD: {
-            return pageUpdateRecord == rhs.pageUpdateRecord;
+        case PAGE_UPDATE_OR_INSERT_RECORD: {
+            return pageInsertOrUpdateRecord == rhs.pageInsertOrUpdateRecord;
         }
         case COMMIT_RECORD: {
             return commitRecord == rhs.commitRecord;
@@ -162,8 +159,8 @@ struct WALRecord {
 
     inline uint64_t numBytesToWrite() {
         switch (recordType) {
-        case PAGE_UPDATE_RECORD: {
-            return 1 + pageUpdateRecord.numBytesToWrite();
+        case PAGE_UPDATE_OR_INSERT_RECORD: {
+            return 1 + pageInsertOrUpdateRecord.numBytesToWrite();
         }
         case COMMIT_RECORD: {
             return 1 + commitRecord.numBytesToWrite();
@@ -176,16 +173,19 @@ struct WALRecord {
         }
     }
 
-    static WALRecord newStructuredNodePropertyPageUpdateRecord(label_t nodeLabel,
-        uint32_t propertyID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
-    static WALRecord newStructuredAdjColumnPropertyPageUpdateRecord(label_t nodeLabel,
-        label_t relLabel, uint32_t propertyID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL);
+    static WALRecord newPageUpdateRecord(StorageStructureID storageStructureID_,
+        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
+    static WALRecord newPageInsertRecord(StorageStructureID storageStructureID_,
+        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.
     void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset);
+
+private:
+    static WALRecord newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
+        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert);
 };
 
 } // namespace storage

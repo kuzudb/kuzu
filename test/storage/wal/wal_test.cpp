@@ -14,23 +14,25 @@ protected:
 
     void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
-    void addStructuredNodePropertyPageRecord(
+    void addStructuredNodePropertyMainFilePageRecord(
         vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
             label_t nodeLabel = 4;
             uint32_t propertyID = 89;
             uint64_t pageIdxInOriginalFile = 1455304;
-            uint64_t pageIdxInWAL = wal->logStructuredNodePropertyPageRecord(
-                nodeLabel, propertyID, pageIdxInOriginalFile);
+            uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
+                StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, propertyID),
+                pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
     }
 
-    void readAndVerifyStructuredNodePropertyPageRecords(WALIterator* walIterator,
+    void readAndVerifyStructuredNodePropertyMainFilePageRecords(WALIterator* walIterator,
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
-            WALRecord expectedRecord = WALRecord::newStructuredNodePropertyPageUpdateRecord(
-                4, 89, 1455304, assignedPageIndices[startOff + i]);
+            WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
+                StorageStructureID::newStructuredNodePropertyMainColumnID(4, 89), 1455304,
+                assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;
             walIterator->getNextRecord(retVal);
@@ -38,24 +40,26 @@ protected:
         }
     }
 
-    void addStructuredAdjColumnPropertyPageRecord(
+    void addStructuredNodePropertyOveflowFilePageRecord(
         vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
             label_t nodeLabel = 0;
-            label_t relLabel = 128;
             uint32_t propertyID = 2463;
             uint64_t pageIdxInOriginalFile = 44436;
-            uint64_t pageIdxInWAL = wal->logStructuredAdjColumnPropertyPage(
-                nodeLabel, relLabel, propertyID, pageIdxInOriginalFile);
+            uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
+                StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(
+                    nodeLabel, propertyID),
+                pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
     }
 
-    void readAndVerifyStructuredAdjColumnPropertyPageRecords(WALIterator* walIterator,
+    void readAndVerifyStructuredNodePropertyOveflowFilePageRecord(WALIterator* walIterator,
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
-            WALRecord expectedRecord = WALRecord::newStructuredAdjColumnPropertyPageUpdateRecord(
-                0, 128, 2463, 44436, assignedPageIndices[startOff + i]);
+            WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
+                StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(0, 2463), 44436,
+                assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;
             walIterator->getNextRecord(retVal);
@@ -78,18 +82,19 @@ public:
     unique_ptr<WAL> wal;
 };
 
-TEST_F(WALTests, LogNewStructuredNodePropertyPageTest) {
+TEST_F(WALTests, LogNewStructuredNodePropertyMainPageTest) {
     vector<uint64_t> assignedPageIndices;
-    addStructuredNodePropertyPageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
+    addStructuredNodePropertyMainFilePageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
     auto walIterator = wal->getIterator();
-    readAndVerifyStructuredNodePropertyPageRecords(walIterator.get(), assignedPageIndices, 0, 1);
+    readAndVerifyStructuredNodePropertyMainFilePageRecords(
+        walIterator.get(), assignedPageIndices, 0, 1);
 }
 
-TEST_F(WALTests, LogStructuredAdjColumnPropertyPageTest) {
+TEST_F(WALTests, LogNewStructuredNodePropertyOverlfowPageTest) {
     vector<uint64_t> assignedPageIndices;
-    addStructuredAdjColumnPropertyPageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
+    addStructuredNodePropertyOveflowFilePageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
     auto walIterator = wal->getIterator();
-    readAndVerifyStructuredAdjColumnPropertyPageRecords(
+    readAndVerifyStructuredNodePropertyOveflowFilePageRecord(
         walIterator.get(), assignedPageIndices, 0, 1);
 }
 
@@ -100,29 +105,31 @@ TEST_F(WALTests, LogCommitTest) {
 }
 
 TEST_F(WALTests, LogManyRecords) {
-    uint64_t numStructuredNodePropertyPageRecords = 1000;
+    uint64_t numStructuredNodePropertyMainFilePageRecords = 1000;
     vector<uint64_t> assignedPageIdxs;
-    addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
+    addStructuredNodePropertyMainFilePageRecord(
+        assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
 
-    uint64_t numStructuredAdjColumnPropertyPageRecords = 7000;
-    addStructuredAdjColumnPropertyPageRecord(
-        assignedPageIdxs, numStructuredAdjColumnPropertyPageRecords);
+    uint64_t numStructuredNodePropertyOverflowPageRecords = 7000;
+    addStructuredNodePropertyOveflowFilePageRecord(
+        assignedPageIdxs, numStructuredNodePropertyOverflowPageRecords);
     addCommitRecord();
 
     auto walIterator = wal->getIterator();
-    readAndVerifyStructuredNodePropertyPageRecords(walIterator.get(), assignedPageIdxs,
-        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyPageRecords);
-    readAndVerifyStructuredAdjColumnPropertyPageRecords(walIterator.get(), assignedPageIdxs,
-        numStructuredNodePropertyPageRecords /* startOffset in assignedPageIdxs */,
-        numStructuredAdjColumnPropertyPageRecords);
+    readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,
+        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyMainFilePageRecords);
+    readAndVerifyStructuredNodePropertyOveflowFilePageRecord(walIterator.get(), assignedPageIdxs,
+        numStructuredNodePropertyMainFilePageRecords /* startOffset in assignedPageIdxs */,
+        numStructuredNodePropertyOverflowPageRecords);
     readAndVerifyCommitRecord(walIterator.get());
     ASSERT_FALSE(walIterator->hasNextRecord());
 }
 
 TEST_F(WALTests, TestDeleteAndReopenWALFile) {
-    uint64_t numStructuredNodePropertyPageRecords = 1500;
+    uint64_t numStructuredNodePropertyMainFilePageRecords = 1500;
     vector<uint64_t> assignedPageIdxs;
-    addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
+    addStructuredNodePropertyMainFilePageRecord(
+        assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     addCommitRecord();
     // Pin and unpin some pages
     bufferManager->pin(*wal->fileHandle, assignedPageIdxs[100]);
@@ -133,23 +140,25 @@ TEST_F(WALTests, TestDeleteAndReopenWALFile) {
     wal->clearWAL();
 
     assignedPageIdxs.clear();
-    addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
+    addStructuredNodePropertyMainFilePageRecord(
+        assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
 
     auto walIterator = wal->getIterator();
-    readAndVerifyStructuredNodePropertyPageRecords(walIterator.get(), assignedPageIdxs,
-        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyPageRecords);
+    readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,
+        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyMainFilePageRecords);
     ASSERT_FALSE(walIterator->hasNextRecord());
 }
 
 TEST_F(WALTests, TestOpeningExistingWAL) {
-    uint64_t numStructuredNodePropertyPageRecords = 100;
+    uint64_t numStructuredNodePropertyMainFilePageRecords = 100;
     vector<uint64_t> assignedPageIdxs;
-    addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
+    addStructuredNodePropertyMainFilePageRecord(
+        assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();
     wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
 
     auto walIterator = wal->getIterator();
-    readAndVerifyStructuredNodePropertyPageRecords(walIterator.get(), assignedPageIdxs,
-        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyPageRecords);
+    readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,
+        0 /* startOffset in assignedPageIdxs */, numStructuredNodePropertyMainFilePageRecords);
     ASSERT_FALSE(walIterator->hasNextRecord());
 }

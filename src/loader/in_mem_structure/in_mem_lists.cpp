@@ -14,14 +14,14 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
         auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
         cursor = PageUtils::getPageElementCursorForOffset(pos, numElementsInAPage);
-        cursor.idx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.idx);
+        cursor.pageIdx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
     } else {
         auto chunkId = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto listLen = ListHeaders::getSmallListLen(header);
         auto pos = listLen - reversePos;
         cursor = PageUtils::getPageElementCursorForOffset(csrOffset + pos, numElementsInAPage);
-        cursor.idx =
+        cursor.pageIdx =
             metadata.getPageMapperForChunkIdx(chunkId)((csrOffset + pos) / numElementsInAPage);
     }
     return cursor;
@@ -46,7 +46,7 @@ void InMemLists::saveToFile() {
 void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, true /* hasNULLBytes */);
-    pages->pages[cursor.idx]->write(
+    pages->pages[cursor.pageIdx]->write(
         cursor.pos * numBytesForElement, cursor.pos, val, numBytesForElement);
 }
 
@@ -55,9 +55,9 @@ void InMemAdjLists::setElement(
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, false /* hasNULLBytes */);
     auto node = *(nodeID_t*)val;
-    pages->pages[cursor.idx]->write(cursor.pos * compressionScheme.getNumTotalBytes(), cursor.pos,
-        (uint8_t*)&node.label, compressionScheme.getNumBytesForLabel(), (uint8_t*)&node.offset,
-        compressionScheme.getNumBytesForOffset());
+    pages->pages[cursor.pageIdx]->write(cursor.pos * compressionScheme.getNumTotalBytes(),
+        cursor.pos, (uint8_t*)&node.label, compressionScheme.getNumBytesForLabel(),
+        (uint8_t*)&node.offset, compressionScheme.getNumBytesForOffset());
 }
 
 void InMemAdjLists::saveToFile() {
@@ -69,7 +69,7 @@ InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType)
     : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType)} {
     assert(dataType.typeID == STRING || dataType.typeID == LIST || dataType.typeID == UNSTRUCTURED);
     overflowPages =
-        make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(this->fName));
+        make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(this->fName));
 }
 
 void InMemListsWithOverflow::saveToFile() {

@@ -4,17 +4,21 @@ cc_library(
     name = "file_handle",
     srcs = [
         "file_handle.cpp",
+        "versioned_file_handle.cpp",
     ],
     hdrs = [
         "include/file_handle.h",
+        "include/versioned_file_handle.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
+        "storage_utils",
+        "wal_record",
         "//src/common:configs",
-        "//src/common:utils",
         "@gabime_spdlog",
     ],
 )
+
 
 cc_library(
     name = "buffer_manager",
@@ -63,6 +67,18 @@ cc_library(
 )
 
 cc_library(
+    name = "storage_structure_utils",
+    srcs = [    ],
+    hdrs = [
+        "include/storage_structure_utils.h",
+    ],
+    deps = [
+        "buffer_manager",
+        "file_handle"
+    ],
+)
+
+cc_library(
     name = "storage_utils",
     srcs = [
         "storage_utils.cpp",
@@ -71,7 +87,10 @@ cc_library(
         "include/storage_utils.h",
     ],
     deps = [
-        "//src/common:type_utils",
+        "wal_record",
+        "//src/catalog:catalog_structs",
+        "//src/common:configs",
+        "//src/common/types:types",
         "//src/common:utils",
     ],
 )
@@ -90,7 +109,10 @@ cc_library(
     deps = [
         "buffer_manager",
         "compression_scheme",
+        "storage_structure_utils",
         "storage_utils",
+        "wal",
+                "//src/transaction",
         "//src/common:profiler",
         "//src/common:vector",
     ],
@@ -123,18 +145,14 @@ cc_library(
     name = "column",
     srcs = [
         "storage_structure/column.cpp",
-        "storage_structure/page_version_info.cpp",
     ],
     hdrs = [
         "include/storage_structure/column.h",
-        "include/storage_structure/page_version_info.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "storage_structure",
-        "wal",
-        "//src/catalog",
-        "//src/transaction",
+        "//src/catalog:catalog",
     ],
 )
 
@@ -157,7 +175,24 @@ cc_library(
         "column",
         "hash_index",
         "lists",
-        "//src/catalog",
+        "//src/catalog:catalog",
+    ],
+)
+
+cc_library(
+    name = "wal_record",
+    srcs = [
+        "wal/wal_record.cpp",
+        ],
+    hdrs = [
+        "include/wal/wal_record.h",
+        ],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//src/common:type_utils",
+        "//src/common:utils",
     ],
 )
 
@@ -165,17 +200,16 @@ cc_library(
     name = "wal",
     srcs = [
         "wal/wal.cpp",
-        "wal/wal_record.cpp",
-    ],
+        ],
     hdrs = [
         "include/wal/wal.h",
-        "include/wal/wal_record.h",
-    ],
+        ],
     visibility = [
         "//visibility:public",
     ],
     deps = [
         "buffer_manager",
+        "wal_record",
         "//src/common:type_utils",
         "//src/common:utils",
     ],

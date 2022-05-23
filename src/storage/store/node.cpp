@@ -15,8 +15,9 @@ Node::Node(label_t labelID, BufferManager& bufferManager, bool isInMemory,
             hasUnstructuredProperties = true;
         } else {
             propertyColumns.push_back(ColumnFactory::getColumn(
-                StorageUtils::getNodePropertyColumnFName(directory, labelID, property.name),
-                property, UINT32_MAX /* no relLabel */, bufferManager, isInMemory, wal));
+                StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
+                    directory, property),
+                property.dataType, bufferManager, isInMemory, wal));
         }
     }
     if (hasUnstructuredProperties) {

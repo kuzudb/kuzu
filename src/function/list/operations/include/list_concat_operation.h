@@ -22,9 +22,9 @@ public:
             reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(
                 (left.size + right.size) * elementSize));
         gf_list_t tmpList1, tmpList2;
-        TypeUtils::copyListRecursiveIfNested(
+        OverflowBufferUtils::copyListRecursiveIfNested(
             left, tmpList1, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
-        TypeUtils::copyListRecursiveIfNested(
+        OverflowBufferUtils::copyListRecursiveIfNested(
             right, tmpList2, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
         memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr),
             reinterpret_cast<uint8_t*>(tmpList1.overflowPtr), left.size * elementSize);

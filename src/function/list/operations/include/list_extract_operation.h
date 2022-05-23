@@ -47,7 +47,7 @@ inline void ListExtract::setValue(
 
 template<>
 inline void ListExtract::setValue(gf_list_t& src, gf_list_t& dest, ValueVector& resultValueVector) {
-    TypeUtils::copyListRecursiveIfNested(
+    OverflowBufferUtils::copyListRecursiveIfNested(
         src, dest, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
 }
 

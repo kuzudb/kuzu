@@ -31,9 +31,9 @@ void Rel::initAdjColumnOrLists(const Catalog& catalog, const string& directory,
                 nodeIDCompressionScheme.getCommonLabel());
             if (catalog.isSingleMultiplicityInDirection(relLabel, relDirection)) {
                 // Add adj column.
-                auto fName =
-                    StorageUtils::getAdjColumnFName(directory, relLabel, nodeLabel, relDirection);
-                auto adjColumn = make_unique<AdjColumn>(fName, nodeLabel, relLabel, bufferManager,
+                auto storageStructureIDAndFName = StorageUtils::getAdjColumnStructureIDAndFName(
+                    directory, relLabel, nodeLabel, relDirection);
+                auto adjColumn = make_unique<AdjColumn>(storageStructureIDAndFName, bufferManager,
                     nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjColumns[relDirection].emplace(nodeLabel, move(adjColumn));
             } else {
@@ -73,14 +73,14 @@ void Rel::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& d
         auto& properties = catalog.getRelProperties(relLabel);
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
-            auto fName = StorageUtils::getRelPropertyColumnFName(
+            auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
                 directory, relLabel, nodeLabel, property.name);
             logger->debug(
                 "DIR {} nodeLabelForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
                 relDirection, nodeLabel, property.propertyID, property.dataType.typeID,
                 property.name);
             propertyColumns[nodeLabel][property.propertyID] = ColumnFactory::getColumn(
-                fName, property, relLabel, bufferManager, isInMemoryMode, wal);
+                storageStructureIDAndFName, property.dataType, bufferManager, isInMemoryMode, wal);
         }
     }
     logger->debug("Initializing PropertyColumns done.");

@@ -23,7 +23,7 @@ class VarLengthExtend : public PhysicalOperator {
 
 public:
     VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
-        StorageStructure* storage, uint8_t lowerBound, uint8_t upperBound,
+        BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
@@ -33,7 +33,7 @@ public:
 protected:
     DataPos boundNodeDataPos;
     DataPos nbrNodeDataPos;
-    StorageStructure* storage;
+    BaseColumnOrList* storage;
     uint8_t lowerBound;
     uint8_t upperBound;
     shared_ptr<ValueVector> boundNodeValueVector;

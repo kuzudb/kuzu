@@ -140,8 +140,8 @@ void TaskScheduler::runWorkerThread() {
             logger->debug(
                 "Thread {} completed task successfully.", ThreadUtils::getThreadIDString());
         } catch (exception& e) {
-            logger->info("Thread {} caught an exception. Setting the exception of the task.",
-                ThreadUtils::getThreadIDString());
+            logger->info("Thread {} caught an exception {}. Setting the exception of the task.",
+                e.what(), ThreadUtils::getThreadIDString());
             scheduledTask->task->setException(current_exception());
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
             continue;

@@ -105,7 +105,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
-    auto physicalPageId = info.mapper(info.cursor.idx);
+    auto physicalPageId = info.mapper(info.cursor.pageIdx);
     readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.pos, numValuesToCopy,
         nodeIDCompressionScheme, true /*isAdjLists*/);
 }
@@ -130,7 +130,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     auto sizeLeftToCopy = listLenInBytes;
     auto bufferPtr = buffer.get();
     while (sizeLeftToCopy) {
-        auto physicalPageIdx = info.mapper(info.cursor.idx);
+        auto physicalPageIdx = info.mapper(info.cursor.pageIdx);
         auto sizeToCopyInPage =
             min(((uint64_t)(numElementsPerPage - info.cursor.pos) * elementSize), sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
@@ -139,7 +139,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
         info.cursor.pos = 0;
-        info.cursor.idx++;
+        info.cursor.pageIdx++;
     }
 
     // Step 2

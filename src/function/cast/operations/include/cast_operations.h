@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "src/common/include/overflow_buffer_utils.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
@@ -73,7 +74,8 @@ template<>
 inline void CastToUnstructured::operation(
     const gf_string_t& input, bool isNull, Value& result, const ValueVector& resultValueVector) {
     assert(!isNull);
-    TypeUtils::copyString(input, result.val.strVal, resultValueVector.getOverflowBuffer());
+    OverflowBufferUtils::copyString(
+        input, result.val.strVal, resultValueVector.getOverflowBuffer());
     result.dataType.typeID = STRING;
 }
 

@@ -19,74 +19,68 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
 
 Literal Column::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.pos), dataType);
-    bufferManager.unpin(fileHandle, cursor.idx);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     return retVal;
 }
 
 // Note this is only used for tests
 bool Column::isNull(node_offset_t nodeOffset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto NULLByteAndByteLevelOffset =
         PageUtils::getNULLByteAndByteLevelOffsetPair(frame, cursor.pos);
-    bufferManager.unpin(fileHandle, cursor.idx);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     return isNullFromNULLByte(NULLByteAndByteLevelOffset.first, NULLByteAndByteLevelOffset.second);
 }
 
-void Column::writeValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& vectorToWriteFrom) {
+void Column::writeValues(
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& vectorToWriteFrom) {
     if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
-        writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom,
-            vectorToWriteFrom->state->getPositionOfCurrIdx());
+        writeValueForSingleNodeIDPosition(
+            nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
     } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
         auto lastPos = vectorToWriteFrom->state->selectedSize - 1;
-        writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom, lastPos);
+        writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom, lastPos);
     } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
             auto nodeOffset =
                 nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[i]);
-            writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom,
-                vectorToWriteFrom->state->getPositionOfCurrIdx());
+            writeValueForSingleNodeIDPosition(
+                nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
         }
     } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
         for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selectedPositions[i];
             auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-            writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom, pos);
+            writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom, pos);
         }
     }
 }
 
-void Column::writeValueForSingleNodeIDPosition(Transaction* transaction, node_offset_t nodeOffset,
-    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t resultVectorPos) {
-    auto cursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
-    pageVersionInfo.acquireLockForWritingToPage(cursor.idx);
-    uint32_t pageIdxInWAL;
-    uint8_t* frame;
-    if (pageVersionInfo.hasUpdatedWALPageVersionNoLock(cursor.idx)) {
-        pageIdxInWAL = pageVersionInfo.getUpdatedWALPageVersionNoLock(cursor.idx);
-        frame = bufferManager.pin(*wal->fileHandle, pageIdxInWAL);
-    } else {
-        pageIdxInWAL = wal->logStructuredNodePropertyPageRecord(
-            property.label, property.propertyID, cursor.idx /* pageIdxInOriginalFile */);
-        frame = bufferManager.pinWithoutReadingFromFile(*wal->fileHandle, pageIdxInWAL);
-        uint8_t* originalFrame = bufferManager.pin(fileHandle, cursor.idx);
-        // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
-        memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
-        bufferManager.unpin(fileHandle, cursor.idx);
-        pageVersionInfo.setUpdatedWALPageVersionNoLock(
-            cursor.idx /* pageIdxInOriginalFile */, pageIdxInWAL);
-    }
-    bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
-    memcpy(frame + mapElementPosToByteOffset(cursor.pos),
-        vectorToWriteFrom->values + resultVectorPos * elementSize, elementSize);
-    setNullBitOfAPosInFrame(frame, cursor.pos, vectorToWriteFrom->isNull(resultVectorPos));
-    pageVersionInfo.releaseLock(cursor.idx);
-    bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
+UpdatedPageInfoAndWALPageFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
+    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto updatedPageInfoAndWALPageFrame =
+        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+            nodeOffset, numElementsPerPage);
+    memcpy(updatedPageInfoAndWALPageFrame.frame +
+               mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.originalPageCursor.pos),
+        vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
+    setNullBitOfAPosInFrame(updatedPageInfoAndWALPageFrame.frame,
+        updatedPageInfoAndWALPageFrame.originalPageCursor.pos,
+        vectorToWriteFrom->isNull(posInVectorToWriteFrom));
+    return UpdatedPageInfoAndWALPageFrame(updatedPageInfoAndWALPageFrame.originalPageCursor,
+        updatedPageInfoAndWALPageFrame.pageIdxInWAL, updatedPageInfoAndWALPageFrame.frame);
+}
+
+void Column::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto updatedPageInfoAndWALPageFrame =
+        beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
 }
 
 void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
@@ -97,31 +91,44 @@ void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    // Note: The below code assumes that we do not have to acquire a lock on the page lock inside
-    // pageVersionInfo if the transaction is write only. That is because we assume that we do not
-    // have concurrent pipelines P1, P2, where P1 reads from and P2 writes to original DB files.
-    FileHandle& fileHandleToPin =
-        transaction->isReadOnly() ||
-                !pageVersionInfo.hasUpdatedWALPageVersionNoLock(pageCursor.idx) ?
-            fileHandle :
-            *wal->fileHandle;
-    uint64_t pageIdxToPin =
-        transaction->isReadOnly() ||
-                !pageVersionInfo.hasUpdatedWALPageVersionNoLock(pageCursor.idx) ?
-            pageCursor.idx :
-            pageVersionInfo.getUpdatedWALPageVersionNoLock(pageCursor.idx);
-    auto frame = bufferManager.pin(fileHandleToPin, pageIdxToPin);
+    auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, pageCursor);
+    auto frame =
+        bufferManager.pin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
 
     memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);
-    bufferManager.unpin(fileHandleToPin, pageIdxToPin);
+    bufferManager.unpin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
+}
+
+void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto updatedPageInfoAndWALPageFrame =
+        beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
+        auto stringToWriteToPtr =
+            ((gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
+                            mapElementPosToByteOffset(
+                                updatedPageInfoAndWALPageFrame.originalPageCursor.pos)));
+        auto stringToWriteFrom = ((gf_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        if (stringToWriteFrom.len > DEFAULT_PAGE_SIZE) {
+            throw RuntimeException(StringUtils::getLongStringErrorMessage(
+                stringToWriteFrom.getAsString().c_str(), DEFAULT_PAGE_SIZE));
+        }
+        // If the string we write is a long string, it's overflowptr is current pointing to the
+        // overflow buffer of vectorToWriteFrom. We need to move it to storage.
+        if (!gf_string_t::isShortString(stringToWriteFrom.len)) {
+            stringOverflowPages.writeStringOverflowAndUpdateOverflowPtr(
+                *stringToWriteToPtr, stringToWriteFrom);
+        }
+    }
+    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
 }
 
 void StringPropertyColumn::readValues(Transaction* transaction,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
     Column::readValues(transaction, nodeIDVector, valueVector);
-    stringOverflowPages.readStringsToVector(*valueVector);
+    stringOverflowPages.readStringsToVector(transaction, *valueVector);
 }
 
 void ListPropertyColumn::readValues(Transaction* transaction,
@@ -133,18 +140,18 @@ void ListPropertyColumn::readValues(Transaction* transaction,
 Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
     gf_string_t gfString;
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_string_t));
-    bufferManager.unpin(fileHandle, cursor.idx);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(stringOverflowPages.readString(gfString));
 }
 
 Literal ListPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
     gf_list_t gfList;
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_list_t));
-    bufferManager.unpin(fileHandle, cursor.idx);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(listOverflowPages.readList(gfList, dataType), dataType);
 }
 
@@ -156,8 +163,8 @@ void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t p
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    readNodeIDsFromAPage(resultVector, pos, pageCursor.idx, pageCursor.pos, 1 /* numValuesToCopy */,
-        nodeIDCompressionScheme, false /*isAdjLists*/);
+    readNodeIDsFromAPage(resultVector, pos, pageCursor.pageIdx, pageCursor.pos,
+        1 /* numValuesToCopy */, nodeIDCompressionScheme, false /*isAdjLists*/);
 }
 
 } // namespace storage

@@ -28,7 +28,7 @@ bool SetNodeStructuredProperty::getNextTuples() {
         expressionEvaluators[i]->evaluate();
         auto expressionVector = expressionEvaluators[i]->resultVector;
         auto column = columns[i];
-        column->writeValues(transaction, nodeIDVector, expressionVector);
+        column->writeValues(nodeIDVector, expressionVector);
     }
     metrics->executionTime.stop();
     return true;

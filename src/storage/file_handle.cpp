@@ -10,8 +10,6 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-using lock_t = unique_lock<mutex>;
-
 FileHandle::FileHandle(const string& path, uint8_t flags)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
@@ -91,6 +89,10 @@ void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t i) {
 
 uint32_t FileHandle::addNewPage() {
     lock_t lock(fhMutex);
+    return addNewPageWithoutLock();
+}
+
+uint32_t FileHandle::addNewPageWithoutLock() {
     if (numPages == pageCapacity) {
         auto oldCapacity = pageCapacity;
         pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));
@@ -106,6 +108,22 @@ uint32_t FileHandle::addNewPage() {
     }
     addNewPageLockAndFramePtrWithoutLock(numPages);
     return numPages++;
+}
+
+void FileHandle::removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove) {
+    lock_t lock(fhMutex);
+    removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
+}
+
+void FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(uint64_t pageIdxToRemove) {
+    if (numPages <= pageIdxToRemove) {
+        return;
+    }
+    for (int pageIdx = pageIdxToRemove; pageIdx < numPages; ++pageIdx) {
+        pageIdxToFrameMap[pageIdx].reset();
+        pageLocks[pageIdx].reset();
+    }
+    numPages = pageIdxToRemove;
 }
 
 } // namespace storage
