@@ -22,8 +22,7 @@ public:
     }
 
     inline void createPlanPrinter(unique_ptr<Profiler> profiler) {
-        querySummary->planPrinter = make_unique<PlanPrinter>(
-            move(physicalPlan), move(physicalIDToLogicalOperatorMap), move(profiler));
+        querySummary->planPrinter = make_unique<PlanPrinter>(move(physicalPlan), move(profiler));
     }
 
     inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
@@ -35,9 +34,6 @@ private:
     unique_ptr<QuerySummary> querySummary;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
     unique_ptr<QueryResultHeader> resultHeader;
-    // TODO(Xiyang): Open an issue to remove this stupid map by copying whatever information needed
-    // for plan printing.
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalIDToLogicalOperatorMap;
     unique_ptr<PhysicalPlan> physicalPlan;
 };
 

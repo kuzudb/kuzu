@@ -15,8 +15,8 @@ class Projection : public PhysicalOperator {
 public:
     Projection(vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
         vector<DataPos> expressionsOutputPos, unordered_set<uint32_t> discardedDataChunksPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator(move(child), id),
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator(move(child), id, paramsString),
           expressionEvaluators(move(expressionEvaluators)), expressionsOutputPos{move(
                                                                 expressionsOutputPos)},
           discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{1} {}

@@ -32,7 +32,7 @@ public:
     SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
         vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id);
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 

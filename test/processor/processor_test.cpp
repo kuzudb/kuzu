@@ -33,9 +33,9 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto vectorsToCollectInfo = vector<pair<DataPos, bool>>{make_pair(aIDPos, false)};
     auto plan = make_unique<PhysicalPlan>(
         make_unique<ResultCollector>(vectorsToCollectInfo, make_shared<FTableSharedState>(),
-            make_unique<ScanNodeID>(
-                make_unique<ResultSetDescriptor>(schema), 0, aIDPos, sharedState, 0),
-            1),
+            make_unique<ScanNodeID>(make_unique<ResultSetDescriptor>(schema), 0, aIDPos,
+                sharedState, 0, "" /* paramsString */),
+            1, "" /* paramsString */),
         true /* readOnly */);
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), executionContext.get());

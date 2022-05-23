@@ -11,8 +11,8 @@ class LeftNestedLoopJoin : public PhysicalOperator {
 public:
     LeftNestedLoopJoin(vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping,
         unique_ptr<PhysicalOperator> child, unique_ptr<PhysicalOperator> subPlanLastOperator,
-        uint32_t id)
-        : PhysicalOperator{move(child), move(subPlanLastOperator), id},
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), move(subPlanLastOperator), id, paramsString},
           subPlanVectorsToRefPosMapping{move(subPlanVectorsToRefPosMapping)}, isFirstExecution{
                                                                                   true} {}
 
@@ -27,8 +27,8 @@ public:
     bool pullOnceFromLeftAndRight();
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<LeftNestedLoopJoin>(
-            subPlanVectorsToRefPosMapping, children[0]->clone(), children[1]->clone(), id);
+        return make_unique<LeftNestedLoopJoin>(subPlanVectorsToRefPosMapping, children[0]->clone(),
+            children[1]->clone(), id, paramsString);
     }
 
 private:

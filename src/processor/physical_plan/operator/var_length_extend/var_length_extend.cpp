@@ -5,8 +5,8 @@ namespace processor {
 
 VarLengthExtend::VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
     StorageStructure* storage, uint8_t lowerBound, uint8_t upperBound,
-    unique_ptr<PhysicalOperator> child, uint32_t id)
-    : PhysicalOperator{move(child), id}, boundNodeDataPos{boundNodeDataPos},
+    unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    : PhysicalOperator{move(child), id, paramsString}, boundNodeDataPos{boundNodeDataPos},
       nbrNodeDataPos{nbrNodeDataPos}, storage{storage}, lowerBound{lowerBound}, upperBound{
                                                                                     upperBound} {
     dfsLevelInfos.resize(upperBound);

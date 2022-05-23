@@ -63,8 +63,9 @@ public:
 class HashJoinBuild : public Sink {
 public:
     HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : Sink{move(child), id}, sharedState{move(sharedState)}, buildDataInfo{buildDataInfo} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : Sink{move(child), id, paramsString}, sharedState{move(sharedState)}, buildDataInfo{
+                                                                                   buildDataInfo} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
@@ -74,7 +75,8 @@ public:
     void finalize(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinBuild>(sharedState, buildDataInfo, children[0]->clone(), id);
+        return make_unique<HashJoinBuild>(
+            sharedState, buildDataInfo, children[0]->clone(), id, paramsString);
     }
 
 private:

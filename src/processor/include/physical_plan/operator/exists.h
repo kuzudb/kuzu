@@ -10,8 +10,9 @@ class Exists : public PhysicalOperator {
 
 public:
     Exists(const DataPos& outDataPos, unique_ptr<PhysicalOperator> child,
-        unique_ptr<PhysicalOperator> subPlanLastOperator, uint32_t id)
-        : PhysicalOperator{move(child), move(subPlanLastOperator), id}, outDataPos{outDataPos} {}
+        unique_ptr<PhysicalOperator> subPlanLastOperator, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), move(subPlanLastOperator), id, paramsString},
+          outDataPos{outDataPos} {}
 
     PhysicalOperatorType getOperatorType() override { return EXISTS; }
 
@@ -22,7 +23,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Exists>(outDataPos, children[0]->clone(), children[1]->clone(), id);
+        return make_unique<Exists>(
+            outDataPos, children[0]->clone(), children[1]->clone(), id, paramsString);
     }
 
 private:

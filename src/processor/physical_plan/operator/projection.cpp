@@ -30,6 +30,7 @@ bool Projection::getNextTuples() {
         resultSet->multiplicity *=
             resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
+    metrics->numOutputTuple.increase(1);
     metrics->executionTime.stop();
     return true;
 }
@@ -40,7 +41,7 @@ unique_ptr<PhysicalOperator> Projection::clone() {
         rootExpressionsCloned.push_back(expressionEvaluator->clone());
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionsOutputPos,
-        discardedDataChunksPos, children[0]->clone(), id);
+        discardedDataChunksPos, children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

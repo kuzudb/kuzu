@@ -32,8 +32,8 @@ public:
 protected:
     BaseAggregate(vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : Sink{move(child), id}, aggregateVectorsPos{move(aggregateVectorsPos)},
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : Sink{move(child), id, paramsString}, aggregateVectorsPos{move(aggregateVectorsPos)},
           aggregateFunctions{move(aggregateFunctions)} {}
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATE; }

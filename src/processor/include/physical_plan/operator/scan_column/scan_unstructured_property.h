@@ -16,9 +16,9 @@ public:
     ScanUnstructuredProperty(const DataPos& inputNodeIDVectorPos,
         vector<DataPos> outputPropertyVectorsPos, vector<uint32_t> propertyKeys,
         UnstructuredPropertyLists* unstructuredPropertyLists, unique_ptr<PhysicalOperator> child,
-        uint32_t id)
-        : ScanMultipleColumns{inputNodeIDVectorPos, move(outputPropertyVectorsPos), move(child),
-              id},
+        uint32_t id, const string& paramsString)
+        : ScanMultipleColumns{inputNodeIDVectorPos, move(outputPropertyVectorsPos), move(child), id,
+              paramsString},
           propertyKeys{move(propertyKeys)}, unstructuredPropertyLists{unstructuredPropertyLists} {}
 
     ~ScanUnstructuredProperty() = default;
@@ -31,7 +31,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos, outputVectorsPos,
-            propertyKeys, unstructuredPropertyLists, children[0]->clone(), id);
+            propertyKeys, unstructuredPropertyLists, children[0]->clone(), id, paramsString);
     }
 
 private:

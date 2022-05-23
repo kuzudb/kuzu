@@ -19,7 +19,7 @@ public:
     // Create plan mapper with default mapper context.
     PlanMapper(const catalog::Catalog& catalog, const StorageManager& storageManager)
         : catalog{catalog}, storageManager{storageManager}, outerMapperContext{nullptr},
-          expressionMapper{} {}
+          expressionMapper{}, physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
@@ -79,15 +79,28 @@ private:
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator,
         MapperContext& mapperContext);
 
+    inline uint32_t getOperatorID() { return physicalOperatorID++; }
+
+    unique_ptr<PhysicalOperator> createHashAggregate(
+        vector<unique_ptr<AggregateFunction>> aggregateFunctions,
+        vector<DataPos> inputAggVectorsPos, vector<DataPos> outputAggVectorsPos,
+        vector<DataType> outputAggVectorsDataType, const expression_vector& groupByExpressions,
+        unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContextBeforeAggregate,
+        MapperContext& mapperContext, const string& paramsString);
+
+    void appendGroupByExpressions(const expression_vector& groupByExpressions,
+        vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
+        vector<DataType>& outputGroupByKeyVectorsDataTypes,
+        MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext);
+
 public:
     const catalog::Catalog& catalog;
     const StorageManager& storageManager;
     const MapperContext* outerMapperContext;
     ExpressionMapper expressionMapper;
 
-    // used for EXPLAIN & PROFILE which require print physical operator and logical information.
-    // e.g. SCAN_NODE_ID (a), SCAN_NODE_ID is physical operator name and "a" is logical information.
-    unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalIDToLogicalOperatorMap;
+private:
+    uint32_t physicalOperatorID;
 };
 
 } // namespace processor

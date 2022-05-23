@@ -11,8 +11,10 @@ class AdjColumnExtend : public ScanSingleColumn, public FilteringOperator {
 
 public:
     AdjColumnExtend(const DataPos& inputNodeIDVectorPos, const DataPos& outputNodeIDVectorPos,
-        Column* nodeIDColumn, unique_ptr<PhysicalOperator> child, uint32_t id)
-        : ScanSingleColumn{inputNodeIDVectorPos, outputNodeIDVectorPos, move(child), id},
+        Column* nodeIDColumn, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : ScanSingleColumn{inputNodeIDVectorPos, outputNodeIDVectorPos, move(child), id,
+              paramsString},
           FilteringOperator(), nodeIDColumn{nodeIDColumn} {}
 
     PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
@@ -24,8 +26,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjColumnExtend>(
-            inputNodeIDVectorPos, outputVectorPos, nodeIDColumn, children[0]->clone(), id);
+        return make_unique<AdjColumnExtend>(inputNodeIDVectorPos, outputVectorPos, nodeIDColumn,
+            children[0]->clone(), id, paramsString);
     }
 
     static bool discardNullNodesInVector(ValueVector& valueVector);

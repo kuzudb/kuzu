@@ -31,8 +31,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSinkToPhysical(
     auto sharedState = resultCollector->getSharedState();
     return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
         move(outDataPoses), move(outVecDataTypes), sharedState,
-        logicalSink.getFlatOutputGroupPositions(), move(resultCollector),
-        mapperContext.getOperatorID());
+        logicalSink.getFlatOutputGroupPositions(), move(resultCollector), getOperatorID(),
+        logicalSink.getExpressionsForPrinting());
 }
 
 } // namespace processor

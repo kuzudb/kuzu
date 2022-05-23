@@ -28,9 +28,10 @@ class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
     ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, label_t nodeLabel,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id)
-        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)}, nodeLabel{nodeLabel},
-          outDataPos{outDataPos}, sharedState{move(sharedState)} {}
+        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
+        string paramsString)
+        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
+          nodeLabel{nodeLabel}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -40,7 +41,11 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeLabel, outDataPos, sharedState, id);
+            resultSetDescriptor->copy(), nodeLabel, outDataPos, sharedState, id, paramsString);
+    }
+
+    inline double getExecutionTime(Profiler& profiler) const override {
+        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
 
 private:

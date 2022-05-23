@@ -10,9 +10,10 @@ namespace processor {
 class BaseScanColumn : public PhysicalOperator {
 
 public:
-    BaseScanColumn(
-        const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child, uint32_t id)
-        : PhysicalOperator{move(child), id}, inputNodeIDVectorPos{inputNodeIDVectorPos} {}
+    BaseScanColumn(const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, inputNodeIDVectorPos{
+                                                               inputNodeIDVectorPos} {}
 
     PhysicalOperatorType getOperatorType() override = 0;
 
@@ -31,8 +32,9 @@ class ScanSingleColumn : public BaseScanColumn {
 
 protected:
     ScanSingleColumn(const DataPos& inputNodeIDVectorPos, const DataPos& outputVectorPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), id}, outputVectorPos{outputVectorPos} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : BaseScanColumn{inputNodeIDVectorPos, move(child), id, paramsString},
+          outputVectorPos{outputVectorPos} {}
 
 protected:
     DataPos outputVectorPos;
@@ -44,9 +46,9 @@ class ScanMultipleColumns : public BaseScanColumn {
 
 protected:
     ScanMultipleColumns(const DataPos& inputNodeIDVectorPos, vector<DataPos> outputVectorsPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), id}, outputVectorsPos{
-                                                                     move(outputVectorsPos)} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : BaseScanColumn{inputNodeIDVectorPos, move(child), id, paramsString},
+          outputVectorsPos{move(outputVectorsPos)} {}
 
 protected:
     vector<DataPos> outputVectorsPos;

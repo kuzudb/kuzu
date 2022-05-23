@@ -33,7 +33,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     auto unionSharedState = make_shared<UnionAllScanSharedState>(move(resultCollectorSharedStates));
     return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
         move(outDataPoses), move(outVecDataTypes), unionSharedState, move(prevOperators),
-        mapperContext.getOperatorID());
+        getOperatorID(), logicalUnionAll.getExpressionsForPrinting());
 }
 
 } // namespace processor

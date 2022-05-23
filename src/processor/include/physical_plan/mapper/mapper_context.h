@@ -9,7 +9,7 @@ class MapperContext {
 
 public:
     explicit MapperContext(unique_ptr<ResultSetDescriptor> resultSetDescriptor)
-        : resultSetDescriptor{move(resultSetDescriptor)}, physicalOperatorID{0} {}
+        : resultSetDescriptor{move(resultSetDescriptor)} {}
 
     inline ResultSetDescriptor* getResultSetDescriptor() const { return resultSetDescriptor.get(); }
 
@@ -25,13 +25,9 @@ public:
         return computedExpressionNames.contains(name);
     }
 
-    inline uint32_t getOperatorID() { return physicalOperatorID++; }
-
 private:
     unique_ptr<ResultSetDescriptor> resultSetDescriptor;
     unordered_set<string> computedExpressionNames;
-
-    uint32_t physicalOperatorID;
 };
 
 } // namespace processor
