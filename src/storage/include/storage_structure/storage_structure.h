@@ -39,8 +39,8 @@ public:
         }
     }
 
-    pair<FileHandle*, uint64_t> getFileHandleAndPageIdxToPin(
-        Transaction* transaction, PageElementCursor pageCursor);
+    pair<FileHandle*, uint32_t> getFileHandleAndPhysicalPageIdxToPin(
+        Transaction* transaction, uint32_t physicalPageIdx);
 
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
@@ -76,6 +76,7 @@ public:
     DataTypeID getDataTypeId() const { return dataType.typeID; }
 
     // Maps the position of element in page to its byte offset in page.
+    // TODO(Everyone): we should slowly get rid of this function.
     inline uint16_t mapElementPosToByteOffset(uint16_t pageElementPos) const {
         return pageElementPos * elementSize;
     }
@@ -98,21 +99,28 @@ protected:
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
     }
-    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
+
+    void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
-    void readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+    void readBySequentialCopyWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
+
+    void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme compressionScheme, bool isAdjLists);
 
-    void readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector, uint32_t posInVector,
-        uint32_t physicalPageId, uint32_t elementPos, uint64_t numValuesToCopy,
-        NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
+    void readNodeIDsBySequentialCopyWithSelState(const shared_ptr<ValueVector>& valueVector,
+        PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        NodeIDCompressionScheme compressionScheme);
 
-    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
-        uint64_t elementPos, uint64_t offsetInVector, uint64_t num);
+    void readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
+        uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
 
     static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector);
@@ -124,6 +132,26 @@ protected:
     }
 
 private:
+    uint64_t getNumValuesToSkipInSequentialCopy(
+        uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage);
+
+    void readAPageBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
+        uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t numValuesToRead);
+
+    void readAPageBySequentialCopyWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
+        uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
+        uint64_t vectorPosOfLastUnselElement);
+
+    void readNodeIDsFromAPageBySequentialCopyWithSelState(const shared_ptr<ValueVector>& vector,
+        uint64_t& nextSelectedPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement,
+        NodeIDCompressionScheme& compressionScheme);
+
+    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
+        uint64_t posInPage, uint64_t posInVector, uint64_t num);
+
     static void setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
         pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num,
         uint64_t offsetInVector);

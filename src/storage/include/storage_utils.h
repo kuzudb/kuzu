@@ -42,7 +42,12 @@ struct PageElementCursor {
     PageElementCursor(uint64_t idx, uint16_t pos) : pageIdx{idx}, pos{pos} {};
     PageElementCursor() : PageElementCursor{-1ul, (uint16_t)-1} {};
 
-    uint64_t pageIdx;
+    inline void nextPage() {
+        pageIdx++;
+        pos = 0;
+    }
+
+    uint64_t pageIdx; // physical page index
     uint16_t pos;
 };
 

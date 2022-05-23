@@ -51,13 +51,13 @@ void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     // assumes that the associated adjList has already updated the syncState.
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
-    auto sizeLeftToCopy = elementSize * valueVector->state->originalSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, info.mapper);
+    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    readBySequentialCopy(tmpTransaction.get(), valueVector, pageCursor, info.mapper);
 }
 
 void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
-    auto sizeLeftToCopy = valueVector->state->originalSize * elementSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, info.cursor, info.mapper);
+    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    readBySequentialCopy(tmpTransaction.get(), valueVector, info.cursor, info.mapper);
 }
 
 void StringPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
@@ -106,15 +106,15 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.pageIdx);
-    readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.pos, numValuesToCopy,
-        nodeIDCompressionScheme, true /*isAdjLists*/);
+    readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId, info.cursor.pos,
+        numValuesToCopy, nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
 // read a list of nodes and edges.
 void AdjLists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
     valueVector->state->initOriginalAndSelectedSize(info.listLen);
-    readNodeIDsFromSequentialPages(
+    readNodeIDsBySequentialCopy(
         valueVector, info.cursor, info.mapper, nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 

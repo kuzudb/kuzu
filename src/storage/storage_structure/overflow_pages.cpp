@@ -49,12 +49,12 @@ void OverflowPages::readStringToVector(
     PageElementCursor cursor;
     if (!gf_string_t::isShortString(gfStr.len)) {
         TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.pageIdx, cursor.pos);
-        auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, cursor);
-        auto frame =
-            bufferManager.pin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
+        auto [fileHandleToPin, pageIdxToPin] =
+            getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
+        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
         OverflowBufferUtils::copyString(
             (char*)(frame + cursor.pos), gfStr.len, gfStr, overflowBuffer);
-        bufferManager.unpin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
+        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     }
 }
 
