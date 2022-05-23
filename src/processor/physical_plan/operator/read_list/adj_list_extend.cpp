@@ -5,7 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
     resultSet = ReadList::init(context);
-    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE);
+    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     resultSet->insert(outDataPos.dataChunkPos, listSyncState);

@@ -234,8 +234,7 @@ shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, NODE);
-    return make_shared<PropertyExpression>(DataType(NODE_ID), INTERNAL_ID_SUFFIX,
-        UINT32_MAX /* property key for internal id */, move(child));
+    return ((NodeExpression&)*child).getNodeIDPropertyExpression();
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
@@ -367,13 +366,13 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
 }
 
 void ExpressionBinder::validateExpectedDataType(
-    const Expression& expression, const unordered_set<DataTypeID>& expectedTypes) {
+    const Expression& expression, const unordered_set<DataTypeID>& targets) {
     auto dataType = expression.dataType;
-    if (!expectedTypes.contains(dataType.typeID)) {
-        vector<DataTypeID> expectedTypesVec{expectedTypes.begin(), expectedTypes.end()};
+    if (!targets.contains(dataType.typeID)) {
+        vector<DataTypeID> targetsVec{targets.begin(), targets.end()};
         throw BinderException(expression.getRawName() + " has data type " +
                               Types::dataTypeToString(dataType.typeID) + ". " +
-                              Types::dataTypesToString(expectedTypesVec) + " was expected.");
+                              Types::dataTypesToString(targetsVec) + " was expected.");
     }
 }
 

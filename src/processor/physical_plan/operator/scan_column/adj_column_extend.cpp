@@ -5,7 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
     resultSet = BaseScanColumn::init(context);
-    outputVector = make_shared<ValueVector>(context->memoryManager, NODE);
+    outputVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
     inputNodeIDDataChunk->insert(outputVectorPos.valueVectorPos, outputVector);
     return resultSet;
 }
@@ -35,7 +35,7 @@ bool AdjColumnExtend::getNextTuples() {
 }
 
 bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
-    assert(valueVector.dataType.typeID == NODE);
+    assert(valueVector.dataType.typeID == NODE_ID);
     if (valueVector.state->isFlat()) {
         return !valueVector.isNull(valueVector.state->getPositionOfCurrIdx());
     } else {

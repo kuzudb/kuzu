@@ -70,7 +70,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value, bool isNull
     case LIST: {
         return convertValueToPyObject((uint8_t*)(&value.val.listVal), dataType);
     }
-    case NODE: {
+    case NODE_ID: {
         // TODO: Somehow Neo4j allows exposing of internal type. But I start thinking we shouldn't.
         return convertValueToPyObject((uint8_t*)(&value.val.nodeID), dataType);
     }
@@ -128,7 +128,7 @@ py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& d
         }
         return move(list);
     }
-    case NODE: {
+    case NODE_ID: {
         auto nodeVal = *(nodeID_t*)val;
         return py::cast(make_pair(nodeVal.label, nodeVal.offset));
     }

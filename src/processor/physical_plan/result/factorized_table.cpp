@@ -391,7 +391,7 @@ void FlatTupleIterator::readValueBufferToFlatTuple(
     case STRING: {
         iteratorFlatTuple->getValue(flatTupleValIdx)->val.strVal = *((gf_string_t*)valueBuffer);
     } break;
-    case NODE: {
+    case NODE_ID: {
         iteratorFlatTuple->getValue(flatTupleValIdx)->val.nodeID = *((nodeID_t*)valueBuffer);
     } break;
     case UNSTRUCTURED: {

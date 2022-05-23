@@ -14,7 +14,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
-    auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
+    auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
     dataChunk->insert(0, nodeVector);
     auto nodeData = (nodeID_t*)nodeVector->values;
 
@@ -48,7 +48,7 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
-    auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
+    auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
     for (auto i = 0u; i < 1000; i++) {
         ((nodeID_t*)nodeVector->values)[i].label = 100;
         ((nodeID_t*)nodeVector->values)[i].offset = 10 + i;

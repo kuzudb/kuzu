@@ -102,7 +102,7 @@ class AdjLists : public Lists {
 public:
     AdjLists(const string& fName, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme, bool isInMemory)
-        : Lists{fName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(),
+        : Lists{fName, DataType(NODE_ID), nodeIDCompressionScheme.getNumTotalBytes(),
               make_shared<ListHeaders>(fName), bufferManager, false, isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 

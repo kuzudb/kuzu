@@ -147,7 +147,6 @@ expression_vector QueryBinder::rewriteProjectionExpressions(const expression_vec
 
 expression_vector QueryBinder::rewriteNodeAsAllProperties(
     const shared_ptr<Expression>& expression) {
-    assert(expression->dataType.typeID == NODE);
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getAllNodeProperties(node.getLabel())) {
@@ -160,7 +159,6 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
 }
 
 expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
-    assert(expression->dataType.typeID == REL);
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getRelProperties(rel.getLabel())) {

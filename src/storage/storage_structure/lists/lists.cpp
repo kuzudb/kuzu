@@ -44,7 +44,7 @@ void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& 
 /**
  * Note: This function is called for property lists other than STRINGS. This is called by
  * readValues, which is the main function for reading all lists except UNSTRUCTURED
- * and NODE.
+ * and NODE_ID.
  */
 void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {

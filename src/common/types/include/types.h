@@ -25,25 +25,32 @@ struct overflow_value_t {
 };
 
 enum DataTypeID : uint8_t {
+    // NOTE: Not all data types can be used in processor. For example, ANY should be resolved during
+    // query compilation. Similarly logical data types should also only be used in compilation.
+    // Some use cases are as follows.
+    //    - differentiate whether is a variable refers to node table or rel table
+    //    - bind (static evaluate) functions work on node/rel table.
+    //      E.g. ID(a "datatype:NODE") -> node ID property "datatype:NODE_ID"
+
+    // logical  types
     ANY = 0,
+    NODE = 10,
+    REL = 11,
 
-    REL = 1,
-    NODE = 2,
-    LABEL = 3,
-    BOOL = 4,
-    INT64 = 5,
-    DOUBLE = 6,
-    STRING = 7,
-    NODE_ID = 8,
-    UNSTRUCTURED = 9,
-    DATE = 10,
-    TIMESTAMP = 11,
-    INTERVAL = 12,
-    LIST = 13,
+    // physical fixed size types
+    LABEL = 20,
+    NODE_ID = 21,
+    BOOL = 22,
+    INT64 = 23,
+    DOUBLE = 24,
+    DATE = 25,
+    TIMESTAMP = 26,
+    INTERVAL = 27,
+
+    STRING = 50,
+    UNSTRUCTURED = 51,
+    LIST = 52,
 };
-
-const string DataTypeIdNames[] = {"ANY", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
-    "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL", "LIST"};
 
 class DataType {
 public:
@@ -66,8 +73,8 @@ public:
         return vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
     }
     static inline vector<DataTypeID> getAllValidTypeIDs() {
-        return vector<DataTypeID>{REL, NODE, LABEL, BOOL, INT64, DOUBLE, STRING, NODE_ID,
-            UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL, LIST};
+        return vector<DataTypeID>{LABEL, NODE_ID, BOOL, INT64, DOUBLE, STRING, UNSTRUCTURED, DATE,
+            TIMESTAMP, INTERVAL, LIST};
     }
 
     DataType& operator=(const DataType& other);

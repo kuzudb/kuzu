@@ -98,7 +98,7 @@ class AdjColumn : public Column {
 public:
     AdjColumn(const StorageStructureIDAndFName structureIDAndFName, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory, WAL* wal)
-        : Column{structureIDAndFName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(),
+        : Column{structureIDAndFName, DataType(NODE_ID), nodeIDCompressionScheme.getNumTotalBytes(),
               bufferManager, isInMemory, wal},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 

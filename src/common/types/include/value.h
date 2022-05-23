@@ -27,7 +27,7 @@ public:
 
     explicit Value(const string& value) : dataType(STRING) { this->val.strVal.set(value); }
 
-    explicit Value(nodeID_t value) : dataType(NODE) { this->val.nodeID = value; }
+    explicit Value(nodeID_t value) : dataType(NODE_ID) { this->val.nodeID = value; }
 
     explicit Value(date_t value) : dataType(DATE) { this->val.dateVal = value; }
 
