@@ -70,6 +70,9 @@ public:
         return ((nodeID_t*)values)[pos].offset;
     }
 
+    inline void setSequential() { _isSequential = true; }
+    inline bool isSequential() const { return _isSequential; }
+
     inline OverflowBuffer& getOverflowBuffer() const { return *overflowBuffer; }
 
     inline void resetOverflowBuffer() const {
@@ -90,6 +93,7 @@ public:
     shared_ptr<DataChunkState> state;
 
 private:
+    bool _isSequential = false;
     unique_ptr<OverflowBuffer> overflowBuffer;
     unique_ptr<uint8_t[]> valueBuffer;
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result

@@ -36,6 +36,7 @@ bool ScanNodeID::getNextTuples() {
         nodeIDValues[i].offset = startOffset + i;
         nodeIDValues[i].label = nodeLabel;
     }
+    outValueVector->setSequential();
     outDataChunk->state->initOriginalAndSelectedSize(size);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(size);

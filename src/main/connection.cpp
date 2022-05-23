@@ -69,6 +69,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
         preparedStatement->parameterMap = binder.getParameterMap();
         // planning
         auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
+        auto s = logicalPlan->getLastOperator()->toString();
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
         auto mapper = PlanMapper(*database->catalog, *database->storageManager);

@@ -3,12 +3,20 @@
 namespace graphflow {
 namespace storage {
 
+// TODO: rename to result vector
 void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector) {
     assert(nodeIDVector->dataType.typeID == NODE_ID);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
+    } else if (nodeIDVector->isSequential() && nodeIDVector->state->isUnfiltered()) {
+        auto sizeToRead = nodeIDVector->state->originalSize * elementSize;
+        auto startOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[0]);
+        auto pageCursor = PageUtils::getPageElementCursorForOffset(startOffset, numElementsPerPage);
+        readSequential(valueVector, sizeToRead, pageCursor, [](uint32_t i) {
+            return i;
+        } /*no logical-physical page mapping is required for columns*/);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
             auto pos = nodeIDVector->state->selectedPositions[i];

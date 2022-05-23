@@ -25,7 +25,8 @@ public:
     void readAndAssertNodeProperty(
         Connection* conn, uint64_t nodeOffset, string propertyName, vector<string> groundTruth) {
         auto readQuery =
-            "MATCH (a:person) WHERE a.ID=" + to_string(nodeOffset) + " RETURN a." + propertyName;
+            "MATCH (a:person)-[:knows]->(p:person) WHERE p.ID=5 AND a.ID=" + to_string(nodeOffset) +
+            " RETURN a." + propertyName;
         auto result = conn->query(readQuery);
         auto resultStr = TestHelper::convertResultToString(*result);
         checkResult(resultStr, groundTruth);
