@@ -3,15 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-pair<uint64_t, uint64_t> OrderByScan::getNextFactorizedTableIdxAndTupleIdxPair() {
-    auto tupleInfoBuffer =
-        sharedState->sortedKeyBlocks->front()->getTuple(nextTupleIdxToReadInMemBlock) +
-        sharedState->sortedKeyBlocks->front()->getNumBytesPerTuple() - sizeof(uint64_t);
-    uint16_t factorizedTableIdx = OrderByKeyEncoder::getEncodedFactorizedTableIdx(tupleInfoBuffer);
-    uint64_t tupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(tupleInfoBuffer);
-    return make_pair(factorizedTableIdx, tupleIdx);
-}
-
 shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
     PhysicalOperator::init(context);
     resultSet = populateResultSet();
@@ -24,14 +15,23 @@ shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
         vectorsToRead.emplace_back(valueVector);
     }
     scanSingleTuple = sharedState->factorizedTables[0]->hasUnflatCol();
+
+    mergedKeyBlock = sharedState->sortedKeyBlocks->front();
+    tupleIdxAndFactorizedTableIdxOffset = mergedKeyBlock->getNumBytesPerTuple() - sizeof(uint64_t);
+    colsToScan = vector<uint64_t>(vectorsToRead.size());
+    iota(colsToScan.begin(), colsToScan.end(), 0);
+    if (!scanSingleTuple) {
+        tuplesToRead = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
+    }
+    blockPtrInfo = make_unique<BlockPtrInfo>(
+        0 /* startTupleIdx */, mergedKeyBlock->getNumTuples(), mergedKeyBlock);
     return resultSet;
 }
 
 bool OrderByScan::getNextTuples() {
     metrics->executionTime.start();
-    auto numTuplesInMemBlock = sharedState->sortedKeyBlocks->front()->getNumTuples();
     // If there is no more tuples to read, just return false.
-    if (nextTupleIdxToReadInMemBlock >= numTuplesInMemBlock) {
+    if (nextTupleIdxToReadInMergedKeyBlock >= mergedKeyBlock->getNumTuples()) {
         metrics->executionTime.stop();
         return false;
     } else {
@@ -39,22 +39,43 @@ bool OrderByScan::getNextTuples() {
         // tuple at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
         // numTuplesRemainingInMemBlock) tuples.
         if (scanSingleTuple) {
-            auto factorizedTableIdxAndTupleIdxPair = getNextFactorizedTableIdxAndTupleIdxPair();
+            auto factorizedTableIdxAndTupleIdxPair =
+                OrderByKeyEncoder::getEncodedFactorizedTableIdxAndTupleIdx(
+                    blockPtrInfo->curTuplePtr + tupleIdxAndFactorizedTableIdxOffset);
             sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]->scan(
                 vectorsToRead, factorizedTableIdxAndTupleIdxPair.second, 1 /* numTuples */);
-            nextTupleIdxToReadInMemBlock++;
+            blockPtrInfo->curTuplePtr += mergedKeyBlock->getNumBytesPerTuple();
+            blockPtrInfo->updateTuplePtrIfNecessary();
+            nextTupleIdxToReadInMergedKeyBlock++;
             metrics->numOutputTuple.increase(1);
         } else {
-            auto numTuplesToRead =
-                min(DEFAULT_VECTOR_CAPACITY, numTuplesInMemBlock - nextTupleIdxToReadInMemBlock);
-            for (auto i = 0u; i < numTuplesToRead; i++) {
-                auto factorizedTableIdxAndTupleIdxPair = getNextFactorizedTableIdxAndTupleIdxPair();
-                sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]
-                    ->scanTupleToVectorPos(
-                        vectorsToRead, factorizedTableIdxAndTupleIdxPair.second, i);
-                nextTupleIdxToReadInMemBlock++;
-                metrics->numOutputTuple.increase(1);
+            auto numTuplesToRead = min(DEFAULT_VECTOR_CAPACITY,
+                mergedKeyBlock->getNumTuples() - nextTupleIdxToReadInMergedKeyBlock);
+            auto numTuplesRead = 0;
+            while (numTuplesRead < numTuplesToRead) {
+                auto numTuplesToReadInCurBlock = min(
+                    numTuplesToRead - numTuplesRead, blockPtrInfo->getNumTuplesLeftInCurBlock());
+                for (auto i = 0u; i < numTuplesToReadInCurBlock; i++) {
+                    auto factorizedTableIdxAndTupleIdxPair =
+                        OrderByKeyEncoder::getEncodedFactorizedTableIdxAndTupleIdx(
+                            blockPtrInfo->curTuplePtr + tupleIdxAndFactorizedTableIdxOffset);
+                    tuplesToRead[numTuplesRead + i] =
+                        sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]
+                            ->getTuple(factorizedTableIdxAndTupleIdxPair.second);
+                    blockPtrInfo->curTuplePtr += mergedKeyBlock->getNumBytesPerTuple();
+                }
+                blockPtrInfo->updateTuplePtrIfNecessary();
+                numTuplesRead += numTuplesToReadInCurBlock;
             }
+            // TODO(Ziyi): This is a hacky way of using factorizedTable::lookup function,
+            // since the tuples in tuplesToRead may not belong to factorizedTable0. The
+            // lookup function doesn't perform a check on whether it holds all the tuples in
+            // tuplesToRead. We should optimize this lookup function in the orderByScan
+            // optimization PR.
+            sharedState->factorizedTables[0]->lookup(
+                vectorsToRead, colsToScan, tuplesToRead.get(), 0, numTuplesToRead);
+            metrics->numOutputTuple.increase(numTuplesToRead);
+            nextTupleIdxToReadInMergedKeyBlock += numTuplesToRead;
         }
         metrics->executionTime.stop();
         return true;

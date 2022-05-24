@@ -28,7 +28,7 @@ namespace processor {
 OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
     vector<bool>& isAscOrder, MemoryManager* memoryManager, uint16_t factorizedTableIdx)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
-      nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx} {
+      nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx}, swapBytes{isLittleEndian()} {
     keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
     numBytesPerTuple = 0;
     for (auto& orderByVector : orderByVectors) {
@@ -44,18 +44,18 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
     }
 }
 
-uint64_t OrderByKeyEncoder::getEncodedTupleIdx(const uint8_t* tupleInfoBuffer) {
+uint64_t OrderByKeyEncoder::getEncodedTupleIdx(const uint8_t* tupleInfoPtr) {
     uint64_t encodedTupleIdx = 0;
     // Only the lower 6 bytes are used for localTupleIdx.
-    memcpy(&encodedTupleIdx, tupleInfoBuffer, getEncodedTupleIdxSizeInBytes());
+    memcpy(&encodedTupleIdx, tupleInfoPtr, getEncodedTupleIdxSizeInBytes());
     return encodedTupleIdx;
 }
 
-uint64_t OrderByKeyEncoder::getEncodedFactorizedTableIdx(const uint8_t* tupleInfoBuffer) {
+uint64_t OrderByKeyEncoder::getEncodedFactorizedTableIdx(const uint8_t* tupleInfoPtr) {
     uint16_t encodedFactorizedTableIdx = 0;
     // The lower 6 bytes are used for localTupleIdx, only the higher two bytes are used for
     // factorizedTableIdx.
-    memcpy(&encodedFactorizedTableIdx, tupleInfoBuffer + getEncodedTupleIdxSizeInBytes(),
+    memcpy(&encodedFactorizedTableIdx, tupleInfoPtr + getEncodedTupleIdxSizeInBytes(),
         sizeof(encodedFactorizedTableIdx));
     return encodedFactorizedTableIdx;
 }
@@ -71,7 +71,7 @@ bool OrderByKeyEncoder::isLittleEndian() {
 }
 
 void OrderByKeyEncoder::encodeInt32(int32_t data, uint8_t* resultPtr) {
-    if (isLittleEndian()) {
+    if (swapBytes) {
         data = BSWAP32(data);
     }
     memcpy(resultPtr, (void*)&data, sizeof(data));
@@ -79,7 +79,7 @@ void OrderByKeyEncoder::encodeInt32(int32_t data, uint8_t* resultPtr) {
 }
 
 void OrderByKeyEncoder::encodeInt64(int64_t data, uint8_t* resultPtr) {
-    if (isLittleEndian()) {
+    if (swapBytes) {
         data = BSWAP64(data);
     }
     memcpy(resultPtr, (void*)&data, sizeof(data));
@@ -94,7 +94,7 @@ void OrderByKeyEncoder::encodeBool(bool data, uint8_t* resultPtr) {
 void OrderByKeyEncoder::encodeDouble(double data, uint8_t* resultPtr) {
     memcpy(resultPtr, &data, sizeof(data));
     uint64_t* dataBytes = (uint64_t*)resultPtr;
-    if (isLittleEndian()) {
+    if (swapBytes) {
         *dataBytes = BSWAP64(*dataBytes);
     }
     if (data < (double)0) {
@@ -148,6 +148,14 @@ uint64_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
     default:
         return 1 + Types::getDataTypeSize(dataType);
     }
+}
+
+pair<uint64_t, uint64_t> OrderByKeyEncoder::getEncodedFactorizedTableIdxAndTupleIdx(
+    uint8_t* encodedTupleInfoPtr) {
+    auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(encodedTupleInfoPtr);
+    auto encodedFactorizedTableIdx =
+        OrderByKeyEncoder::getEncodedFactorizedTableIdx(encodedTupleInfoPtr);
+    return make_pair(encodedFactorizedTableIdx, encodedTupleIdx);
 }
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {

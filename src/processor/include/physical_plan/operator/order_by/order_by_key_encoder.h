@@ -47,15 +47,18 @@ public:
         return sizeof(nextLocalTupleIdx) - sizeof(factorizedTableIdx);
     }
 
-    static uint64_t getEncodedTupleIdx(const uint8_t* tupleInfoBuffer);
+    static uint64_t getEncodedTupleIdx(const uint8_t* tupleInfoPtr);
 
-    static uint64_t getEncodedFactorizedTableIdx(const uint8_t* tupleInfoBuffer);
+    static uint64_t getEncodedFactorizedTableIdx(const uint8_t* tupleInfoPtr);
 
     static uint64_t getEncodingSize(const DataType& dataType);
 
-    static inline bool isNullVal(const uint8_t* nullBuffer, bool isAscOrder) {
-        return *(nullBuffer) == (isAscOrder ? UINT8_MAX : 0);
+    static inline bool isNullVal(const uint8_t* nullBytePtr, bool isAscOrder) {
+        return *(nullBytePtr) == (isAscOrder ? UINT8_MAX : 0);
     }
+
+    static pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
+        uint8_t* encodedTupleInfoPtr);
 
 private:
     uint8_t flipSign(uint8_t key_byte);
@@ -98,6 +101,7 @@ private:
     const uint64_t MAX_LOCAL_TUPLE_IDX = (1ull << 48) - 1;
     uint64_t nextLocalTupleIdx;
     uint16_t factorizedTableIdx;
+    bool swapBytes;
 };
 
 } // namespace processor

@@ -32,7 +32,7 @@ struct StringAndUnstructuredKeyColInfo {
     bool isStrCol;
 };
 
-struct MergedKeyBlocks {
+class MergedKeyBlocks {
 public:
     MergedKeyBlocks(uint64_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager);
 
@@ -41,18 +41,60 @@ public:
 
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
         assert(tupleIdx < numTuples);
-        return keyBlocks[tupleIdx / (LARGE_PAGE_SIZE / numBytesPerTuple)]->getData() +
-               numBytesPerTuple * (tupleIdx % (LARGE_PAGE_SIZE / numBytesPerTuple));
+        return keyBlocks[tupleIdx / numTuplesPerBlock]->getData() +
+               numBytesPerTuple * (tupleIdx % numTuplesPerBlock);
     }
 
     inline uint64_t getNumTuples() const { return numTuples; }
 
     inline uint64_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
+    inline uint64_t getNumTuplesPerBlock() const { return numTuplesPerBlock; }
+
+    inline uint8_t* getKeyBlockBuffer(uint64_t idx) const {
+        assert(idx < keyBlocks.size());
+        return keyBlocks[idx]->getData();
+    }
+
+    uint8_t* getBlockEndTuplePtr(
+        uint64_t blockIdx, uint64_t endTupleIdx, uint64_t endTupleBlockIdx) const;
+
 private:
     uint64_t numBytesPerTuple;
+    uint64_t numTuplesPerBlock;
     uint64_t numTuples;
     vector<shared_ptr<DataBlock>> keyBlocks;
+    uint64_t endTupleOffset;
+};
+
+struct BlockPtrInfo {
+    inline BlockPtrInfo(
+        uint64_t startTupleIdx, uint64_t endTupleIdx, shared_ptr<MergedKeyBlocks>& keyBlocks)
+        : keyBlocks{keyBlocks}, curTuplePtr{keyBlocks->getTuple(startTupleIdx)},
+          curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
+          endBlockIdx{endTupleIdx == 0 ? 0 : (endTupleIdx - 1) / keyBlocks->getNumTuplesPerBlock()},
+          curBlockEndTuplePtr{
+              keyBlocks->getBlockEndTuplePtr(curBlockIdx, endTupleIdx, endBlockIdx)},
+          endTuplePtr{keyBlocks->getBlockEndTuplePtr(endBlockIdx, endTupleIdx, endBlockIdx)},
+          endTupleIdx{endTupleIdx} {}
+
+    inline bool hasMoreTuplesToRead() const { return curTuplePtr != endTuplePtr; }
+
+    inline uint64_t getNumBytesLeftInCurBlock() const { return curBlockEndTuplePtr - curTuplePtr; }
+
+    inline uint64_t getNumTuplesLeftInCurBlock() const {
+        return getNumBytesLeftInCurBlock() / keyBlocks->getNumBytesPerTuple();
+    }
+
+    void updateTuplePtrIfNecessary();
+
+    shared_ptr<MergedKeyBlocks>& keyBlocks;
+    uint8_t* curTuplePtr;
+    uint64_t curBlockIdx;
+    uint64_t endBlockIdx;
+    uint8_t* curBlockEndTuplePtr;
+    uint8_t* endTuplePtr;
+    uint64_t endTupleIdx;
 };
 
 class KeyBlockMerger {
@@ -61,16 +103,24 @@ public:
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
         uint64_t numBytesPerTuple)
         : factorizedTables{factorizedTables},
-          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo}, numBytesPerTuple{
-                                                                                numBytesPerTuple} {}
+          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
+          numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple -
+                                                                sizeof(uint64_t)},
+          hasStringAndUnstructuredCol{!stringAndUnstructuredKeyColInfo.empty()} {}
 
     void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) const;
 
-    bool compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer) const;
+    inline bool compareTuplePtr(uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const {
+        return hasStringAndUnstructuredCol ?
+                   compareTuplePtrWithStringAndUnstructuredCol(leftTuplePtr, rightTuplePtr) :
+                   memcmp(leftTuplePtr, rightTuplePtr, numBytesToCompare) > 0;
+    }
+
+    bool compareTuplePtrWithStringAndUnstructuredCol(
+        uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const;
 
 private:
-    pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
-        uint8_t* encodedTupleBuffer) const;
+    void copyRemainingBlockDataToResult(BlockPtrInfo& blockToCopy, BlockPtrInfo& resultBlock) const;
 
 private:
     // FactorizedTables[i] stores all orderBy columns encoded and sorted by the ith thread.
@@ -82,6 +132,8 @@ private:
     // sort.
     vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
     uint64_t numBytesPerTuple;
+    uint64_t numBytesToCompare;
+    bool hasStringAndUnstructuredCol;
 };
 
 class KeyBlockMergeTask {
@@ -102,10 +154,10 @@ public:
     }
 
 private:
-    uint64_t findRightKeyBlockIdx(uint8_t* leftEndTupleBuffer);
+    uint64_t findRightKeyBlockIdx(uint8_t* leftEndTuplePtr);
 
 public:
-    static const uint64_t batch_size = 100;
+    static const uint64_t batch_size = 10000;
 
     shared_ptr<MergedKeyBlocks> leftKeyBlock;
     shared_ptr<MergedKeyBlocks> rightKeyBlock;

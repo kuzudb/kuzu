@@ -35,7 +35,10 @@ public:
         : tmpSortingResultBlock{make_unique<DataBlock>(memoryManager)},
           tmpTuplePtrSortingBlock{make_unique<DataBlock>(memoryManager)},
           orderByKeyEncoder{orderByKeyEncoder}, factorizedTable{factorizedTable},
-          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo} {}
+          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
+          numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
+                                                                         numBytesPerTuple -
+                                                                         sizeof(uint64_t)} {}
 
     void sortSingleKeyBlock(const DataBlock& keyBlock);
 
@@ -66,6 +69,8 @@ private:
     // unstructured columns when resolving ties.
     FactorizedTable& factorizedTable;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+    uint64_t numBytesPerTuple;
+    uint64_t numBytesToRadixSort;
 };
 
 } // namespace processor

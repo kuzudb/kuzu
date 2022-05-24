@@ -16,10 +16,9 @@ public:
         const vector<DataPos>& outDataPoses,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, SourceOperator{move(
-                                                               resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
-                                                                          0} {}
+        : PhysicalOperator{move(child), id, paramsString},
+          SourceOperator{move(resultSetDescriptor)}, outDataPoses{outDataPoses},
+          sharedState{move(sharedState)}, nextTupleIdxToReadInMergedKeyBlock{0} {}
 
     // This constructor is used for cloning only.
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
@@ -27,8 +26,8 @@ public:
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id,
         const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
-                                                                          0} {}
+          outDataPoses{outDataPoses}, sharedState{move(sharedState)},
+          nextTupleIdxToReadInMergedKeyBlock{0} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_SCAN; }
 
@@ -46,13 +45,16 @@ public:
     }
 
 private:
-    pair<uint64_t, uint64_t> getNextFactorizedTableIdxAndTupleIdxPair();
-
     bool scanSingleTuple;
     vector<DataPos> outDataPoses;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
     vector<shared_ptr<ValueVector>> vectorsToRead;
-    uint64_t nextTupleIdxToReadInMemBlock;
+    uint64_t nextTupleIdxToReadInMergedKeyBlock;
+    shared_ptr<MergedKeyBlocks> mergedKeyBlock;
+    uint64_t tupleIdxAndFactorizedTableIdxOffset;
+    vector<uint64_t> colsToScan;
+    unique_ptr<uint8_t*[]> tuplesToRead;
+    unique_ptr<BlockPtrInfo> blockPtrInfo;
 };
 
 } // namespace processor
