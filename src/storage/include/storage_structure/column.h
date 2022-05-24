@@ -48,11 +48,11 @@ protected:
     virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
 
-    // TODO(Semih): add transaction
-    virtual inline void readSequential(const shared_ptr<ValueVector>& resultVector,
-        uint64_t sizeToRead, PageElementCursor& cursor,
+    virtual inline void readSequential(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, uint64_t sizeToRead, PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
-        readBySequentialCopy(resultVector, sizeToRead, cursor, logicalToPhysicalPageMapper);
+        readBySequentialCopy(
+            transaction, resultVector, sizeToRead, cursor, logicalToPhysicalPageMapper);
     }
 
     virtual void readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
@@ -110,8 +110,8 @@ public:
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:
-    inline void readSequential(const shared_ptr<ValueVector>& resultVector, uint64_t sizeToRead,
-        PageElementCursor& cursor,
+    inline void readSequential(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, uint64_t sizeToRead, PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) override {
         readNodeIDsFromSequentialPages(resultVector, cursor, logicalToPhysicalPageMapper,
             nodeIDCompressionScheme, false /*isAdjLists*/);

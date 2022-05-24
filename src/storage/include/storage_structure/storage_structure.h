@@ -39,8 +39,9 @@ public:
         }
     }
 
+    // TODO: should we name as physical page index?
     pair<FileHandle*, uint64_t> getFileHandleAndPageIdxToPin(
-        Transaction* transaction, PageElementCursor pageCursor);
+        Transaction* transaction, uint64_t pageIdx);
 
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
@@ -98,8 +99,9 @@ protected:
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
     }
-    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
-        PageElementCursor& cursor,
+
+    void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& valueVector,
+        uint64_t sizeLeftToCopy, PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     void readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,

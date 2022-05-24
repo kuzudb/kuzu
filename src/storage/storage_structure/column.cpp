@@ -14,7 +14,7 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
         auto sizeToRead = nodeIDVector->state->originalSize * elementSize;
         auto startOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[0]);
         auto pageCursor = PageUtils::getPageElementCursorForOffset(startOffset, numElementsPerPage);
-        readSequential(valueVector, sizeToRead, pageCursor, [](uint32_t i) {
+        readSequential(transaction, valueVector, sizeToRead, pageCursor, [](uint32_t i) {
             return i;
         } /*no logical-physical page mapping is required for columns*/);
     } else {
@@ -99,10 +99,9 @@ void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, pageCursor);
+    auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, pageCursor.pageIdx);
     auto frame =
         bufferManager.pin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
-
     memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);

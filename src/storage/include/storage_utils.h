@@ -42,6 +42,7 @@ struct PageElementCursor {
     PageElementCursor(uint64_t idx, uint16_t pos) : pageIdx{idx}, pos{pos} {};
     PageElementCursor() : PageElementCursor{-1ul, (uint16_t)-1} {};
 
+    // TODO: is this physical or logical
     uint64_t pageIdx;
     uint16_t pos;
 };

@@ -52,12 +52,16 @@ void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
     auto sizeLeftToCopy = elementSize * valueVector->state->originalSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, info.mapper);
+    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    readBySequentialCopy(
+        tmpTransaction.get(), valueVector, sizeLeftToCopy, pageCursor, info.mapper);
 }
 
 void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
     auto sizeLeftToCopy = valueVector->state->originalSize * elementSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, info.cursor, info.mapper);
+    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    readBySequentialCopy(
+        tmpTransaction.get(), valueVector, sizeLeftToCopy, info.cursor, info.mapper);
 }
 
 void StringPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,

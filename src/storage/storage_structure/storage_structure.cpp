@@ -6,13 +6,11 @@ namespace graphflow {
 namespace storage {
 
 pair<FileHandle*, uint64_t> StorageStructure::getFileHandleAndPageIdxToPin(
-    Transaction* transaction, PageElementCursor pageCursor) {
-    if (transaction->isReadOnly() ||
-        !fileHandle.hasUpdatedWALPageVersionNoLock(pageCursor.pageIdx)) {
-        return make_pair(&fileHandle, pageCursor.pageIdx);
+    Transaction* transaction, uint64_t pageIdx) {
+    if (transaction->isReadOnly() || !fileHandle.hasUpdatedWALPageVersionNoLock(pageIdx)) {
+        return make_pair(&fileHandle, pageIdx);
     } else {
-        return make_pair(
-            wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(pageCursor.pageIdx));
+        return make_pair(wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(pageIdx));
     }
 }
 
@@ -63,8 +61,8 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName storageStruc
                              PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
 }
 
-void BaseColumnOrList::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    uint64_t sizeLeftToCopy, PageElementCursor& cursor,
+void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
+    const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy, PageElementCursor& cursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
     auto values = valueVector->values;
     auto offsetInVector = 0;
@@ -73,10 +71,12 @@ void BaseColumnOrList::readBySequentialCopy(const shared_ptr<ValueVector>& value
         auto sizeToCopyInPage =
             min((uint64_t)(numElementsPerPage - cursor.pos) * elementSize, sizeLeftToCopy);
         auto numValuesToCopyInPage = sizeToCopyInPage / elementSize;
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, physicalPageIdx);
+        auto frame =
+            bufferManager.pin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
         memcpy(values, frame + mapElementPosToByteOffset(cursor.pos), sizeToCopyInPage);
         setNULLBitsForRange(valueVector, frame, cursor.pos, offsetInVector, numValuesToCopyInPage);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        bufferManager.unpin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
         values += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
         offsetInVector += numValuesToCopyInPage;
