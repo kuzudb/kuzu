@@ -8,21 +8,18 @@ InMemColumn::InMemColumn(
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
     assert(dataType.typeID != UNSTRUCTURED);
     numElementsInAPage = PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement);
-    auto numPages = numElements / numElementsInAPage;
-    if (0 != numElements % numElementsInAPage) {
-        numPages++;
-    }
-    pages =
-        make_unique<InMemPages>(this->fName, numBytesForElement, true /* hasNULLBytes */, numPages);
+    auto numPages = ceil((double)numElements / (double)numElementsInAPage);
+    inMemFile =
+        make_unique<InMemFile>(this->fName, numBytesForElement, true /* hasNULLBytes */, numPages);
 };
 
 void InMemColumn::saveToFile() {
-    pages->saveToFile();
+    inMemFile->flush();
 }
 
 void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto cursor = getPageElementCursorForOffset(offset);
-    pages->pages[cursor.pageIdx]->write(
+    inMemFile->pages[cursor.pageIdx]->write(
         cursor.pos * numBytesForElement, cursor.pos, val, numBytesForElement);
 }
 
@@ -30,21 +27,20 @@ InMemColumnWithOverflow::InMemColumnWithOverflow(
     string fName, DataType dataType, uint64_t numElements)
     : InMemColumn{move(fName), move(dataType), Types::getDataTypeSize(dataType), numElements} {
     assert(dataType.typeID == STRING || dataType.typeID == LIST);
-    overflowPages =
-        make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(this->fName));
+    inMemOverflowFile =
+        make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
 }
 
 void InMemColumnWithOverflow::saveToFile() {
-    overflowPages->saveToFile();
+    inMemOverflowFile->flush();
     InMemColumn::saveToFile();
 }
 
 void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
-    auto node = *(nodeID_t*)val;
+    auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
-    pages->pages[cursor.pageIdx]->write(cursor.pos * numBytesForElement, cursor.pos,
-        (uint8_t*)(&node.label), compressionScheme.getNumBytesForLabel(), (uint8_t*)(&node.offset),
-        compressionScheme.getNumBytesForOffset());
+    inMemFile->pages[cursor.pageIdx]->write(
+        node, cursor.pos * numBytesForElement, cursor.pos, compressionScheme);
 }
 
 unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(

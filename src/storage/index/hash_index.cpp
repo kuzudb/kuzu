@@ -58,7 +58,7 @@ void HashIndex::initializeHeaderAndPages(const DataType& keyDataType) {
         }
         inMemStringOvfPages =
             indexHeader->keyDataTypeID == STRING ?
-                make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(fName)) :
+                make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(fName)) :
                 nullptr;
     } else {
         // Read the index header from file.
@@ -330,7 +330,7 @@ void HashIndex::flush() {
     isFlushed = true;
     // Flush string overflow pages if necessary, and flush page mappings to the end of the file.
     if (indexHeader->keyDataTypeID == STRING) {
-        inMemStringOvfPages->saveToFile();
+        inMemStringOvfPages->flush();
     }
     writeLogicalToPhysicalPageMappings();
 }

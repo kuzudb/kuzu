@@ -20,7 +20,7 @@ namespace storage {
 class OverflowPages : public StorageStructure {
 
 public:
-    explicit OverflowPages(const StorageStructureIDAndFName storageStructureIDAndFNameOfMainDBFile,
+    explicit OverflowPages(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
@@ -29,8 +29,8 @@ public:
     }
 
     // TODO(Semih/Guodong): This overloaded constructor exists for storage structures that hold
-    // overflow pages but is not yet updateable, such as hash index or rel property lists storing
-    // strings. Currently, it creates a dummy StorageStrutureID. This should be removed when we
+    // overflow pages but is not yet updatable, such as hash index or rel property lists storing
+    // strings. Currently, it creates a dummy StorageStructureID. This should be removed when we
     // support updates for those structures too.
     explicit OverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
         : OverflowPages(
@@ -44,8 +44,8 @@ public:
         }
     }
 
-    StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
-        StorageStructureIDAndFName storageStructureIDAndFNameForMainDBFile) {
+    static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
+        const StorageStructureIDAndFName& storageStructureIDAndFNameForMainDBFile) {
         StorageStructureID newOverflowStorageStructureID =
             storageStructureIDAndFNameForMainDBFile.storageStructureID;
         newOverflowStorageStructureID.isOverflow = true;
@@ -64,7 +64,7 @@ public:
     string readString(const gf_string_t& str);
     vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);
     void writeStringOverflowAndUpdateOverflowPtr(
-        gf_string_t& stringToWriteTo, gf_string_t& strToWriteFrom);
+        gf_string_t& strToWriteTo, gf_string_t& strToWriteFrom);
 
 private:
     void insertNewOverflowPageIfNecessaryWithoutLock(gf_string_t& strToWriteFrom);

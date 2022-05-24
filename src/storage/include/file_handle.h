@@ -3,12 +3,12 @@
 #include <atomic>
 #include <memory>
 #include <shared_mutex>
+#include <vector>
 
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
 
-using namespace std;
 using namespace graphflow::common;
 using lock_t = unique_lock<mutex>;
 
@@ -27,9 +27,9 @@ class BufferPool;
 // in which that Column/Lists/Index is stored.
 // Warning: FileHandle is *NOT* thread-safe. That is multiple parallel threads can access its
 // functions that are used by query processor, such as getFrameIdx, swizzle, unswizzle,
-// acquirePageLock, and releaePageLock. Similarly, functions that change the internal data
+// acquirePageLock, and releasePageLock. Similarly, functions that change the internal data
 // structures, such as addPage and resetToZeroPagesAndPageCapacity can be accessed concurrently.
-// However the query processor functions and those that change the internal structures *CANNOT* be
+// However, the query processor functions and those that change the internal structures *CANNOT* be
 // called concurrently. The caller needs to synchronize these calls.
 class FileHandle {
     friend class BufferPool;
@@ -44,9 +44,9 @@ public:
     constexpr static uint8_t O_DefaultPagedExistingDBFileCreateIfNotExists{0b0000'0100};
     constexpr static uint8_t O_LargePagedInMemoryTmpFile{0b0000'0011};
 
-    explicit FileHandle(const string& path, uint8_t flags);
+    FileHandle(const string& path, uint8_t flags);
 
-    ~FileHandle();
+    virtual ~FileHandle();
 
     // This function is intended to be used after a fileInfo is created and we want the file
     // to have not pages and page locks. Should be called after ensuring that the buffer manager
@@ -120,12 +120,12 @@ protected:
     shared_ptr<spdlog::logger> logger;
     uint8_t flags;
     unique_ptr<FileInfo> fileInfo;
-    unique_ptr<atomic<uint64_t>>* pageIdxToFrameMap;
-    unique_ptr<atomic_flag>* pageLocks;
+    vector<unique_ptr<atomic_flag>> pageLocks;
+    vector<unique_ptr<atomic<uint64_t>>> pageIdxToFrameMap;
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
-    // Intended to be used to cooredinate calls to functions that change in the internal data
+    // Intended to be used to coordinate calls to functions that change in the internal data
     // structures of the file handle.
     mutex fhMutex;
 };

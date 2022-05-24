@@ -22,7 +22,7 @@ constexpr uint8_t bitMasksWithSingle0s[8] = {
 
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
-        : storageStructureID{storageStructureID}, fName{fName} {};
+        : storageStructureID{storageStructureID}, fName{move(fName)} {};
 
     StorageStructureID storageStructureID;
     string fName;
@@ -136,15 +136,15 @@ public:
     }
 
     inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& direction) {
-        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, direction);
+        const label_t& nodeLabel, const RelDirection& relDirection) {
+        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, relDirection);
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
     inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const string& propertyName) {
-        auto fName =
-            StringUtils::string_format("r-%d-%d-%s", relLabel, nodeLabel, propertyName.data());
+        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName) {
+        auto fName = StringUtils::string_format(
+            "r-%d-%d-%d-%s", relLabel, nodeLabel, relDirection, propertyName.data());
         return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
     // TODO(Semih): Warning: We currently do not support updates on adj columns or their
@@ -153,16 +153,17 @@ public:
     // is correct.
     inline static StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const string& directory, const label_t& relLabel, const label_t& nodeLabel,
-        const string& propertyName) {
-        auto fName = getRelPropertyColumnFName(directory, relLabel, nodeLabel, propertyName);
+        const RelDirection& relDirection, const string& propertyName) {
+        auto fName =
+            getRelPropertyColumnFName(directory, relLabel, nodeLabel, relDirection, propertyName);
         return StorageStructureIDAndFName(
             StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, -1), fName);
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& direction, const string& propertyName) {
+        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName) {
         auto fName = StringUtils::string_format(
-            "r-%d-%d-%d-%s", relLabel, nodeLabel, direction, propertyName.data());
+            "r-%d-%d-%d-%s", relLabel, nodeLabel, relDirection, propertyName.data());
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 

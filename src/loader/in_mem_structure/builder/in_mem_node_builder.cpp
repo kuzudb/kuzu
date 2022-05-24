@@ -2,7 +2,7 @@
 
 #include "spdlog/spdlog.h"
 
-#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/loader/include/loader_task.h"
 #include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
 
@@ -15,7 +15,7 @@ InMemNodeBuilder::InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription&
     : InMemStructuresBuilder{nodeLabel, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
-      IDType{fileDescription.IDType}, bufferManager{bufferManager} {}
+      IDType{fileDescription.IDType}, bm{bufferManager} {}
 
 unique_ptr<HashIndex> InMemNodeBuilder::load() {
     logger->info("Loading node {} with label {}.", labelName, label);
@@ -100,7 +100,7 @@ unique_ptr<HashIndex> InMemNodeBuilder::populateColumnsAndCountUnstrPropertyList
     logger->info("Populating structured properties and Counting unstructured properties.");
     auto IDIndex =
         make_unique<HashIndex>(StorageUtils::getNodeIndexFName(this->outputDirectory, label),
-            IDType, bufferManager, false /* isInMemoryForLookup */);
+            IDType, bm, false /* isInMemoryForLookup */);
     IDIndex->bulkReserve(numNodes);
     uint32_t IDColumnIdx = UINT32_MAX;
     auto properties = catalog.getStructuredNodeProperties(label);

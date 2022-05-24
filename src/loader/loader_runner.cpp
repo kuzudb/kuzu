@@ -49,8 +49,9 @@ int main(int argc, char* argv[]) {
     }
     spdlog::set_level(verbosity ? args::get(verbosity) : verbosityMap["info"]);
     auto numThreads = threads ? args::get(threads) : thread::hardware_concurrency();
-    auto bufferPoolSizeInBytes = bufferPoolSizeInMB ? args::get(bufferPoolSizeInMB) * 1024 * 1024 :
-                                                      StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
+    auto bufferPoolSizeInBytes = bufferPoolSizeInMB ?
+                                     (uint64_t)args::get(bufferPoolSizeInMB) * 1024 * 1024 :
+                                     StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
     try {
         GraphLoader graphLoader(args::get(inputDir), args::get(outputDir), numThreads,
             bufferPoolSizeInBytes * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,

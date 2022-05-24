@@ -45,12 +45,12 @@ cc_library(
 cc_library(
     name = "in_mem_pages",
     srcs = [
+        "in_mem_structure/in_mem_file.cpp",
         "in_mem_structure/in_mem_page.cpp",
-        "in_mem_structure/in_mem_pages.cpp",
     ],
     hdrs = [
+        "include/in_mem_structure/in_mem_file.h",
         "include/in_mem_structure/in_mem_page.h",
-        "include/in_mem_structure/in_mem_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

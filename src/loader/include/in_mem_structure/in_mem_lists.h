@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/storage/include/storage_structure/lists/list_headers.h"
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
 #include "src/storage/include/storage_structure/overflow_pages.h"
@@ -40,10 +40,10 @@ public:
 
     virtual void saveToFile();
     virtual void setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val);
-    virtual inline InMemOverflowPages* getOverflowPages() { return nullptr; }
+    virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
     inline ListsMetadata* getListsMetadata() { return listsMetadata.get(); }
     inline uint8_t* getMemPtrToLoc(uint64_t pageIdx, uint16_t posInPage) {
-        return pages->pages[pageIdx]->data + (posInPage * numBytesForElement);
+        return inMemFile->pages[pageIdx]->data + (posInPage * numBytesForElement);
     }
 
     void init();
@@ -53,7 +53,7 @@ protected:
     DataType dataType;
     uint64_t numBytesForElement;
     unique_ptr<ListsMetadata> listsMetadata;
-    unique_ptr<InMemPages> pages;
+    unique_ptr<InMemFile> inMemFile;
 };
 
 class InMemListsWithOverflow : public InMemLists {
@@ -63,11 +63,11 @@ protected:
 
     ~InMemListsWithOverflow() override = default;
 
-    InMemOverflowPages* getOverflowPages() override { return overflowPages.get(); }
+    InMemOverflowFile* getOverflowPages() override { return overflowInMemFile.get(); }
     void saveToFile() override;
 
 protected:
-    unique_ptr<InMemOverflowPages> overflowPages;
+    unique_ptr<InMemOverflowFile> overflowInMemFile;
 };
 
 class InMemAdjLists : public InMemLists {

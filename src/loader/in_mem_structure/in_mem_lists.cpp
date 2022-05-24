@@ -33,20 +33,20 @@ InMemLists::InMemLists(string fName, DataType dataType, uint64_t numBytesForElem
 }
 
 void InMemLists::init() {
-    pages = make_unique<InMemPages>(fName, numBytesForElement,
+    inMemFile = make_unique<InMemFile>(fName, numBytesForElement,
         this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED,
         listsMetadata->getNumPages());
 }
 
 void InMemLists::saveToFile() {
     listsMetadata->saveToDisk(fName);
-    pages->saveToFile();
+    inMemFile->flush();
 }
 
 void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, true /* hasNULLBytes */);
-    pages->pages[cursor.pageIdx]->write(
+    inMemFile->pages[cursor.pageIdx]->write(
         cursor.pos * numBytesForElement, cursor.pos, val, numBytesForElement);
 }
 
@@ -54,10 +54,9 @@ void InMemAdjLists::setElement(
     uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, false /* hasNULLBytes */);
-    auto node = *(nodeID_t*)val;
-    pages->pages[cursor.pageIdx]->write(cursor.pos * compressionScheme.getNumTotalBytes(),
-        cursor.pos, (uint8_t*)&node.label, compressionScheme.getNumBytesForLabel(),
-        (uint8_t*)&node.offset, compressionScheme.getNumBytesForOffset());
+    auto node = (nodeID_t*)val;
+    inMemFile->pages[cursor.pageIdx]->write(
+        node, cursor.pos * compressionScheme.getNumTotalBytes(), cursor.pos, compressionScheme);
 }
 
 void InMemAdjLists::saveToFile() {
@@ -68,13 +67,13 @@ void InMemAdjLists::saveToFile() {
 InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType)
     : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType)} {
     assert(dataType.typeID == STRING || dataType.typeID == LIST || dataType.typeID == UNSTRUCTURED);
-    overflowPages =
-        make_unique<InMemOverflowPages>(StorageUtils::getOverflowPagesFName(this->fName));
+    overflowInMemFile =
+        make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
 }
 
 void InMemListsWithOverflow::saveToFile() {
     InMemLists::saveToFile();
-    overflowPages->saveToFile();
+    overflowInMemFile->flush();
 }
 
 void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey,
@@ -92,12 +91,12 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case STRING: {
-        auto gfString = overflowPages->addString((const char*)val, *overflowCursor);
+        auto gfString = overflowInMemFile->addString((const char*)val, *overflowCursor);
         val = (uint8_t*)(&gfString);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case LIST: {
-        auto gfList = overflowPages->addList(*(Literal*)val, *overflowCursor);
+        auto gfList = overflowInMemFile->addList(*(Literal*)val, *overflowCursor);
         val = (uint8_t*)(&gfList);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
@@ -109,16 +108,16 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
 void InMemUnstructuredLists::setComponentOfUnstrProperty(
     PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
     if (DEFAULT_PAGE_SIZE - localCursor.offset >= len) {
-        memcpy(pages->pages[localCursor.idx]->data + localCursor.offset, val, len);
+        memcpy(inMemFile->pages[localCursor.idx]->data + localCursor.offset, val, len);
         localCursor.offset += len;
     } else {
         auto diff = DEFAULT_PAGE_SIZE - localCursor.offset;
-        auto writeOffset = pages->pages[localCursor.idx]->data + localCursor.offset;
+        auto writeOffset = inMemFile->pages[localCursor.idx]->data + localCursor.offset;
         memcpy(writeOffset, val, diff);
         auto left = len - diff;
         localCursor.idx++;
         localCursor.offset = 0;
-        writeOffset = pages->pages[localCursor.idx]->data + localCursor.offset;
+        writeOffset = inMemFile->pages[localCursor.idx]->data + localCursor.offset;
         memcpy(writeOffset, val + diff, left);
         localCursor.offset = left;
     }
