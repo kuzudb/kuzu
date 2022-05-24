@@ -20,9 +20,10 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
 void Database::resizeBufferManager(uint64_t newSize) {
     // Currently we are resizing both buffer pools to the same size. If needed we can
     // extend this functionality.
-    systemConfig.defaultPageBufferPoolSize = newSize;
-    systemConfig.largePageBufferPoolSize = newSize;
-    bufferManager->resize(newSize, newSize);
+    systemConfig.defaultPageBufferPoolSize = newSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO;
+    systemConfig.largePageBufferPoolSize = newSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
+    bufferManager->resize(
+        systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
 }
 
 } // namespace main

@@ -18,7 +18,8 @@ namespace loader {
 class GraphLoader {
 
 public:
-    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads);
+    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads,
+        uint64_t defaultPageBufferPoolSize, uint64_t largePageBufferPoolSize);
     ~GraphLoader();
 
     void loadGraph();

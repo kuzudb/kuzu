@@ -14,12 +14,13 @@ using namespace std::chrono;
 namespace graphflow {
 namespace loader {
 
-GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
+GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads,
+    uint64_t defaultPageBufferPoolSize, uint64_t largePageBufferPoolSize)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
       inputDirectory{std::move(inputDirectory)}, outputDirectory{std::move(outputDirectory)} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
     catalog = make_unique<Catalog>();
-    bufferManager = make_unique<BufferManager>();
+    bufferManager = make_unique<BufferManager>(defaultPageBufferPoolSize, largePageBufferPoolSize);
 }
 
 GraphLoader::~GraphLoader() {
