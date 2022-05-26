@@ -30,25 +30,27 @@ struct StorageStructureIDAndFName {
 
 struct PageByteCursor {
 
-    PageByteCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
-    PageByteCursor() : PageByteCursor{UINT64_MAX, UINT16_MAX} {};
+    PageByteCursor(page_idx_t pageIdx, uint16_t offsetInPage)
+        : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
+    PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
 
-    uint64_t idx;
-    uint16_t offset;
+    page_idx_t pageIdx;
+    uint16_t offsetInPage;
 };
 
 struct PageElementCursor {
 
-    PageElementCursor(uint64_t idx, uint16_t pos) : pageIdx{idx}, pos{pos} {};
-    PageElementCursor() : PageElementCursor{-1ul, (uint16_t)-1} {};
+    PageElementCursor(page_idx_t pageIdx, uint16_t posInPage)
+        : pageIdx{pageIdx}, posInPage{posInPage} {};
+    PageElementCursor() : PageElementCursor{-1u, (uint16_t)-1} {};
 
     inline void nextPage() {
         pageIdx++;
-        pos = 0;
+        posInPage = 0;
     }
 
-    uint64_t pageIdx; // physical page index
-    uint16_t pos;
+    page_idx_t pageIdx;
+    uint16_t posInPage;
 };
 
 struct PageUtils {
@@ -82,8 +84,9 @@ struct PageUtils {
     // the element in the page as the offset.
     static PageElementCursor getPageElementCursorForOffset(
         const uint64_t& elementOffset, const uint32_t numElementsPerPage) {
-        return PageElementCursor{
-            elementOffset / numElementsPerPage, (uint16_t)(elementOffset % numElementsPerPage)};
+        assert((elementOffset / numElementsPerPage) < UINT32_MAX);
+        return PageElementCursor{(page_idx_t)(elementOffset / numElementsPerPage),
+            (uint16_t)(elementOffset % numElementsPerPage)};
     }
 };
 

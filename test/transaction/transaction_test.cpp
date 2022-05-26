@@ -151,7 +151,7 @@ public:
             // We commit but do not checkpoint.
             database->getTransactionManager()->commitButKeepActiveWriteTransaction(writeTrx.get());
         }
-        database->getStorageManager()->getWAL().flushAllPages(database->getBufferManager());
+        database->getStorageManager()->getWAL().flushAllPages();
         // We next destroy and reconstruct the database to start up the system.
         // initWithoutLoadingGraph will construct a completely new databse, writeTrx, readTrx,
         // and personAgeColumn, and personEyeSightColumn classes. We could use completely

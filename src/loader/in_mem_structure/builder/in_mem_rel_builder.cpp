@@ -527,11 +527,11 @@ static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
     if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
-        TypeUtils::decodeOverflowPtr(
-            gfStr->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
+        TypeUtils::decodeOverflowPtr(gfStr->overflowPtr, unorderedOverflowCursor.pageIdx,
+            unorderedOverflowCursor.offsetInPage);
         orderedOverflowPages->copyStringOverflow(orderedOverflowCursor,
-            unorderedOverflowPages->pages[unorderedOverflowCursor.idx]->data +
-                unorderedOverflowCursor.offset,
+            unorderedOverflowPages->pages[unorderedOverflowCursor.pageIdx]->data +
+                unorderedOverflowCursor.offsetInPage,
             gfStr);
     }
 }
@@ -540,7 +540,7 @@ static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
     TypeUtils::decodeOverflowPtr(
-        gfList->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
+        gfList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
     orderedOverflowPages->copyListOverflow(unorderedOverflowPages, unorderedOverflowCursor,
         orderedOverflowCursor, gfList, dataType.childType.get());
 }
@@ -584,12 +584,12 @@ void InMemRelBuilder::sortOverflowValuesOfPropertyListsTask(const DataType& data
                 true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
                 auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.pos));
+                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
                 copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
             } else if (dataType.typeID == LIST) {
                 auto gfList = reinterpret_cast<gf_list_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.pos));
+                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
                 copyListOverflowFromUnorderedToOrderedPages(gfList, dataType,
                     unorderedOverflowCursor, orderedOverflowCursor, unorderedOverflowPages,
                     orderedOverflowPages);

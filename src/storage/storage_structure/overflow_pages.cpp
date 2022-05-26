@@ -48,12 +48,12 @@ void OverflowPages::readStringToVector(
     Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
     PageElementCursor cursor;
     if (!gf_string_t::isShortString(gfStr.len)) {
-        TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.pageIdx, cursor.pos);
+        TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.pageIdx, cursor.posInPage);
         auto [fileHandleToPin, pageIdxToPin] =
             getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
         auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
         OverflowBufferUtils::copyString(
-            (char*)(frame + cursor.pos), gfStr.len, gfStr, overflowBuffer);
+            (char*)(frame + cursor.posInPage), gfStr.len, gfStr, overflowBuffer);
         bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     }
 }
@@ -61,11 +61,11 @@ void OverflowPages::readStringToVector(
 void OverflowPages::readListToVector(
     gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer) {
     PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.idx, cursor.offset);
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     OverflowBufferUtils::copyListNonRecursive(
-        frame + cursor.offset, gfList, dataType, overflowBuffer);
-    bufferManager.unpin(fileHandle, cursor.idx);
+        frame + cursor.offsetInPage, gfList, dataType, overflowBuffer);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     if (dataType.childType->typeID == STRING) {
         auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
         for (auto i = 0u; i < gfList.size; i++) {
@@ -85,10 +85,10 @@ string OverflowPages::readString(const gf_string_t& str) {
         return str.getAsShortString();
     } else {
         PageByteCursor cursor;
-        TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.idx, cursor.offset);
-        auto frame = bufferManager.pin(fileHandle, cursor.idx);
-        auto retVal = string((char*)(frame + cursor.offset), str.len);
-        bufferManager.unpin(fileHandle, cursor.idx);
+        TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+        auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+        auto retVal = string((char*)(frame + cursor.offsetInPage), str.len);
+        bufferManager.unpin(fileHandle, cursor.pageIdx);
         return retVal;
     }
 }
@@ -96,7 +96,8 @@ string OverflowPages::readString(const gf_string_t& str) {
 void OverflowPages::insertNewOverflowPageIfNecessaryWithoutLock(gf_string_t& strToWriteFrom) {
     PageElementCursor byteCursor =
         PageUtils::getPageElementCursorForOffset(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
-    if ((byteCursor.pos == 0) || ((byteCursor.pos + strToWriteFrom.len - 1) > DEFAULT_PAGE_SIZE)) {
+    if ((byteCursor.posInPage == 0) ||
+        ((byteCursor.posInPage + strToWriteFrom.len - 1) > DEFAULT_PAGE_SIZE)) {
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
         nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);
@@ -127,41 +128,41 @@ void OverflowPages::writeStringOverflowAndUpdateOverflowPtr(
         getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
             nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
     memcpy(updatedPageInfoAndWALPageFrame.frame +
-               updatedPageInfoAndWALPageFrame.originalPageCursor.pos,
+               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
         reinterpret_cast<char*>(strToWriteFrom.overflowPtr), strToWriteFrom.len);
     TypeUtils::encodeOverflowPtr(strToWriteTo.overflowPtr,
         updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.pos);
+        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
     nextBytePosToWriteTo += strToWriteFrom.len;
     finishUpdatingPage(updatedPageInfoAndWALPageFrame);
 }
 
 vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType& dataType) {
     PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.idx, cursor.offset);
-    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
     vector<Literal> retLiterals;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
-            auto gfListVal = *(gf_string_t*)(frame + cursor.offset);
+            auto gfListVal = *(gf_string_t*)(frame + cursor.offsetInPage);
             retLiterals.emplace_back(readString(gfListVal));
-            cursor.offset += numBytesOfSingleValue;
+            cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else if (dataType.childType->typeID == LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
-            auto gfListVal = *(gf_list_t*)(frame + cursor.offset);
+            auto gfListVal = *(gf_list_t*)(frame + cursor.offsetInPage);
             retLiterals.emplace_back(readList(gfListVal, *dataType.childType), *dataType.childType);
-            cursor.offset += numBytesOfSingleValue;
+            cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else {
         for (auto i = 0u; i < numValuesInList; i++) {
-            retLiterals.emplace_back(frame + cursor.offset, *dataType.childType);
-            cursor.offset += numBytesOfSingleValue;
+            retLiterals.emplace_back(frame + cursor.offsetInPage, *dataType.childType);
+            cursor.offsetInPage += numBytesOfSingleValue;
         }
     }
-    bufferManager.unpin(fileHandle, cursor.idx);
+    bufferManager.unpin(fileHandle, cursor.pageIdx);
     return retLiterals;
 }
 

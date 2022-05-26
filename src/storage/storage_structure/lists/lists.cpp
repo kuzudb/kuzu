@@ -106,7 +106,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.pageIdx);
-    readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId, info.cursor.pos,
+    readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId, info.cursor.posInPage,
         numValuesToCopy, nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 
@@ -131,14 +131,15 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     auto bufferPtr = buffer.get();
     while (sizeLeftToCopy) {
         auto physicalPageIdx = info.mapper(info.cursor.pageIdx);
-        auto sizeToCopyInPage =
-            min(((uint64_t)(numElementsPerPage - info.cursor.pos) * elementSize), sizeLeftToCopy);
+        auto sizeToCopyInPage = min(
+            ((uint64_t)(numElementsPerPage - info.cursor.posInPage) * elementSize), sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(bufferPtr, frame + mapElementPosToByteOffset(info.cursor.pos), sizeToCopyInPage);
+        memcpy(
+            bufferPtr, frame + mapElementPosToByteOffset(info.cursor.posInPage), sizeToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        info.cursor.pos = 0;
+        info.cursor.posInPage = 0;
         info.cursor.pageIdx++;
     }
 

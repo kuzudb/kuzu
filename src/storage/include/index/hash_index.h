@@ -187,7 +187,7 @@ private:
     }
 
     void allocateAndCachePageWithoutLock(bool isPrimary);
-    inline void setDirtyAndUnPinPage(uint32_t physicalPageIdx) {
+    inline void setDirtyAndUnPinPage(page_idx_t physicalPageIdx) {
         bm.setPinnedPageDirty(*fh, physicalPageIdx);
         bm.unpin(*fh, physicalPageIdx);
     }
@@ -215,8 +215,8 @@ private:
     vector<unique_ptr<mutex>> primarySlotMutexes;
     vector<unique_ptr<mutex>> ovfSlotMutexes;
     shared_mutex sharedLockForSlotMutexes;
-    vector<uint32_t> primaryLogicalToPhysicalPagesMapping;
-    vector<uint32_t> ovfLogicalToPhysicalPagesMapping;
+    vector<page_idx_t> primaryLogicalToPhysicalPagesMapping;
+    vector<page_idx_t> ovfLogicalToPhysicalPagesMapping;
     vector<uint8_t*> primaryPinnedFrames;
     vector<uint8_t*> ovfPinnedFrames;
 

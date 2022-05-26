@@ -16,12 +16,12 @@ namespace storage {
 struct MemoryBlock {
 
 public:
-    explicit MemoryBlock(uint32_t pageIdx, uint8_t* data)
+    explicit MemoryBlock(page_idx_t pageIdx, uint8_t* data)
         : size(LARGE_PAGE_SIZE), pageIdx(pageIdx), data(data) {}
 
 public:
     uint64_t size;
-    uint32_t pageIdx;
+    page_idx_t pageIdx;
     uint8_t* data;
 };
 
@@ -39,12 +39,12 @@ public:
 
     unique_ptr<MemoryBlock> allocateBlock(bool initializeToZero = false);
 
-    void freeBlock(uint32_t pageIdx);
+    void freeBlock(page_idx_t pageIdx);
 
 private:
     shared_ptr<FileHandle> fh;
     BufferManager* bm;
-    stack<uint32_t> freePages;
+    stack<page_idx_t> freePages;
     mutex memMgrLock;
 };
 } // namespace storage

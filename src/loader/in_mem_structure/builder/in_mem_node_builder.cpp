@@ -376,7 +376,7 @@ void InMemNodeBuilder::putUnstrPropsOfALineToLists(CSVReader& reader, node_offse
         PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
             unstrPropertyLists->getListHeaders()->getHeader(nodeOffset), reversePos, 1, nodeOffset,
             *unstrPropertyLists->getListsMetadata(), false /*hasNULLBytes*/);
-        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.pos};
+        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType.typeID) {
         case INT64: {

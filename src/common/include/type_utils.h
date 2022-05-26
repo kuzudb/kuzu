@@ -31,15 +31,15 @@ public:
     static string toString(const Value& val);
 
     static inline void encodeOverflowPtr(
-        uint64_t& overflowPtr, uint64_t pageIdx, uint16_t pageOffset) {
-        memcpy(&overflowPtr, &pageIdx, 6);
-        memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
+        uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
+        memcpy(&overflowPtr, &pageIdx, 4);
+        memcpy(((uint8_t*)&overflowPtr) + 4, &pageOffset, 2);
     }
     static inline void decodeOverflowPtr(
-        uint64_t overflowPtr, uint64_t& pageIdx, uint16_t& pageOffset) {
+        uint64_t overflowPtr, page_idx_t& pageIdx, uint16_t& pageOffset) {
         pageIdx = 0;
-        memcpy(&pageIdx, &overflowPtr, 6);
-        memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
+        memcpy(&pageIdx, &overflowPtr, 4);
+        memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 4, 2);
     }
 
     template<typename T>

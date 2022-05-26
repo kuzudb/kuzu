@@ -21,58 +21,46 @@ public:
         const StorageStructureIDAndFName& storageStructureIDAndFName, uint8_t flags);
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
-    inline bool hasUpdatedWALPageVersionNoLock(uint64_t originalPageIdx) {
+    inline bool hasUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
         auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
         // There is an updated wal page if the PageVersionAndLockInfo for the page group exists
-        // and the page version for the page is not null (which is UINT64_MAX).
+        // and the page version for the page is not null (which is UINT32_MAX).
         auto retVal =
             !pageVersions[pageGroupIdxAndPosInGroup.pageIdx].empty() &&
-            (pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.pos] !=
-                UINT64_MAX);
+            (pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage] !=
+                UINT32_MAX);
         return retVal;
     }
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
-    inline uint64_t getUpdatedWALPageVersionNoLock(uint64_t originalPageIdx) {
+    inline page_idx_t getUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
         auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
-        return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.pos];
+        return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage];
     }
 
-    void createPageVersionGroupIfNecessary(uint64_t pageIdx);
-    void clearUpdatedWALPageVersion(uint64_t pageIdx);
+    void createPageVersionGroupIfNecessary(page_idx_t pageIdx);
+    void clearUpdatedWALPageVersion(page_idx_t pageIdx);
 
-    void setUpdatedWALPageVersionNoLock(uint64_t originalPageIdx, uint64_t pageIdxInWAL);
+    void setUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL);
 
-    uint32_t addNewPage();
-    void removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove);
+    page_idx_t addNewPage() override;
+    void removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) override;
     inline StorageStructureID& getStorageStructureIDIDForWALRecord() {
         return storageStructureIDForWALRecord;
     }
 
 private:
-    uint64_t getNumPageGroups() {
+    uint32_t getNumPageGroups() {
         return ceil((double)numPages / MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
     }
 
-    void resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock() {
-        auto numPageGroups = getNumPageGroups();
-        if (pageGroupLocks.size() == numPageGroups) {
-            return;
-        } else if (pageGroupLocks.size() < numPageGroups) {
-            for (int i = pageGroupLocks.size(); i < getNumPageGroups(); ++i) {
-                pageGroupLocks.push_back(make_unique<atomic_flag>());
-            }
-        } else {
-            pageGroupLocks.resize(numPageGroups);
-        }
-        pageVersions.resize(getNumPageGroups());
-    }
+    void resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
 
 private:
     StorageStructureID storageStructureIDForWALRecord;
-    vector<vector<uint64_t>> pageVersions;
+    vector<vector<page_idx_t>> pageVersions;
     vector<unique_ptr<atomic_flag>> pageGroupLocks;
 };
 

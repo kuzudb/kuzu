@@ -20,7 +20,7 @@ void InMemColumn::saveToFile() {
 void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->pages[cursor.pageIdx]->write(
-        cursor.pos * numBytesForElement, cursor.pos, val, numBytesForElement);
+        cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
 }
 
 InMemColumnWithOverflow::InMemColumnWithOverflow(
@@ -40,7 +40,7 @@ void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->pages[cursor.pageIdx]->write(
-        node, cursor.pos * numBytesForElement, cursor.pos, compressionScheme);
+        node, cursor.posInPage * numBytesForElement, cursor.posInPage, compressionScheme);
 }
 
 unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(

@@ -10,7 +10,7 @@ VersionedFileHandle::VersionedFileHandle(
     resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
 }
 
-void VersionedFileHandle::createPageVersionGroupIfNecessary(uint64_t pageIdx) {
+void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
     // Although getPageElementCursorForOffset is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
     // any chunked data structure.
@@ -24,35 +24,50 @@ void VersionedFileHandle::createPageVersionGroupIfNecessary(uint64_t pageIdx) {
     }
     if (pageVersions[pageGroupIdxAndPosInGroup.pageIdx].empty()) {
         pageVersions[pageGroupIdxAndPosInGroup.pageIdx].resize(
-            MULTI_VERSION_FILE_PAGE_GROUP_SIZE, UINT64_MAX);
+            MULTI_VERSION_FILE_PAGE_GROUP_SIZE, UINT32_MAX);
     }
     pageGroupLocks[pageGroupIdxAndPosInGroup.pageIdx]->clear();
 }
 
 void VersionedFileHandle::setUpdatedWALPageVersionNoLock(
-    uint64_t originalPageIdx, uint64_t pageIdxInWAL) {
+    page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
     auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
         originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
-    pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.pos] = pageIdxInWAL;
+    pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage] =
+        pageIdxInWAL;
 }
 
-void VersionedFileHandle::clearUpdatedWALPageVersion(uint64_t pageIdx) {
+void VersionedFileHandle::clearUpdatedWALPageVersion(page_idx_t pageIdx) {
     createPageVersionGroupIfNecessary(pageIdx);
-    setUpdatedWALPageVersionNoLock(pageIdx, UINT64_MAX);
+    setUpdatedWALPageVersionNoLock(pageIdx, UINT32_MAX);
     releasePageLock(pageIdx);
 }
 
-uint32_t VersionedFileHandle::addNewPage() {
+page_idx_t VersionedFileHandle::addNewPage() {
     lock_t lock(fhMutex);
     auto retVal = FileHandle::addNewPageWithoutLock();
     resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
     return retVal;
 }
 
-void VersionedFileHandle::removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove) {
+void VersionedFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) {
     lock_t lock(fhMutex);
     FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
     resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
+}
+
+void VersionedFileHandle::resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock() {
+    auto numPageGroups = getNumPageGroups();
+    if (pageGroupLocks.size() == numPageGroups) {
+        return;
+    } else if (pageGroupLocks.size() < numPageGroups) {
+        for (int i = pageGroupLocks.size(); i < getNumPageGroups(); ++i) {
+            pageGroupLocks.push_back(make_unique<atomic_flag>());
+        }
+    } else {
+        pageGroupLocks.resize(numPageGroups);
+    }
+    pageVersions.resize(getNumPageGroups());
 }
 
 } // namespace storage

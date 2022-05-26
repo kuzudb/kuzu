@@ -287,22 +287,22 @@ void HashIndex::readLogicalToPhysicalPageMappings() {
         (indexHeader->numPrimaryPages + indexHeader->numOvfPages + 1) * DEFAULT_PAGE_SIZE;
     primaryLogicalToPhysicalPagesMapping.resize(indexHeader->numPrimaryPages);
     FileUtils::readFromFile(fh->getFileInfo(), &primaryLogicalToPhysicalPagesMapping[0],
-        indexHeader->numPrimaryPages * sizeof(uint32_t), readOffset);
-    readOffset += indexHeader->numPrimaryPages * sizeof(uint32_t);
+        indexHeader->numPrimaryPages * sizeof(page_idx_t), readOffset);
+    readOffset += indexHeader->numPrimaryPages * sizeof(page_idx_t);
     ovfLogicalToPhysicalPagesMapping.resize(indexHeader->numOvfPages);
     FileUtils::readFromFile(fh->getFileInfo(), &ovfLogicalToPhysicalPagesMapping[0],
-        indexHeader->numOvfPages * sizeof(uint32_t), readOffset);
+        indexHeader->numOvfPages * sizeof(page_idx_t), readOffset);
 }
 
 void HashIndex::writeLogicalToPhysicalPageMappings() {
     // Append mappings of both primary and ovf pages to the end of the file.
     auto writeOffset = fh->getNumPages() * DEFAULT_PAGE_SIZE;
-    auto numBytesForPrimaryPages = primaryLogicalToPhysicalPagesMapping.size() * sizeof(uint32_t);
+    auto numBytesForPrimaryPages = primaryLogicalToPhysicalPagesMapping.size() * sizeof(page_idx_t);
     FileUtils::writeToFile(fh->getFileInfo(), (uint8_t*)&primaryLogicalToPhysicalPagesMapping[0],
         numBytesForPrimaryPages, writeOffset);
     writeOffset += numBytesForPrimaryPages;
     FileUtils::writeToFile(fh->getFileInfo(), (uint8_t*)&ovfLogicalToPhysicalPagesMapping[0],
-        ovfLogicalToPhysicalPagesMapping.size() * sizeof(uint32_t), writeOffset);
+        ovfLogicalToPhysicalPagesMapping.size() * sizeof(page_idx_t), writeOffset);
 }
 
 void HashIndex::flush() {

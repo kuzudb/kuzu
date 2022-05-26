@@ -15,7 +15,7 @@ namespace storage {
 using lock_t = unique_lock<mutex>;
 constexpr uint64_t WAL_HEADER_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 constexpr uint64_t WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE = sizeof(uint64_t);
-constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(uint64_t);
+constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(page_idx_t);
 constexpr uint64_t WAL_HEADER_PAGE_PREFIX_FIELD_SIZES =
     WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE + WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE;
 
@@ -26,33 +26,35 @@ class BaseWALAndWALIterator {
 protected:
     BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
-    BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle)
-        : fileHandle(fileHandle), offsetInCurrentHeaderPage{INT64_MAX}, currentHeaderPageIdx{
-                                                                            INT64_MAX} {
+    explicit BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle)
+        : fileHandle{move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX}, currentHeaderPageIdx{
+                                                                                  INT32_MAX} {
         currentHeaderPageBuffer = make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
     }
 
 protected:
-    inline uint64_t getNumRecordsInCurrentHeaderPage() {
+    inline uint64_t getNumRecordsInCurrentHeaderPage() const {
         return ((uint64_t*)currentHeaderPageBuffer.get())[0];
     }
 
-    inline void incrementNumRecordsInCurrentHeaderPage() {
+    inline void incrementNumRecordsInCurrentHeaderPage() const {
         ((uint64_t*)currentHeaderPageBuffer.get())[0]++;
     }
 
-    inline uint64_t getNextHeaderPageOfCurrentHeaderPage() {
-        return ((uint64_t*)currentHeaderPageBuffer.get())[1];
+    inline page_idx_t getNextHeaderPageOfCurrentHeaderPage() const {
+        return *(
+            page_idx_t*)(currentHeaderPageBuffer.get() + WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE);
     }
 
-    inline void setNextHeaderPageOfCurrentHeaderPage(uint64_t nextHeaderPageIdx) {
-        ((uint64_t*)currentHeaderPageBuffer.get())[1] = nextHeaderPageIdx;
+    inline void setNextHeaderPageOfCurrentHeaderPage(page_idx_t nextHeaderPageIdx) const {
+        ((page_idx_t*)(currentHeaderPageBuffer.get() + WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE))[0] =
+            nextHeaderPageIdx;
     }
 
     inline void resetCurrentHeaderPagePrefix() {
         ((uint64_t*)currentHeaderPageBuffer.get())[0] = 0;
         setNextHeaderPageOfCurrentHeaderPage(
-            UINT64_MAX); // set next page pageIdx to UINT64_MAX as null
+            UINT32_MAX); // set next page pageIdx to UINT32_MAX as null
         offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
     }
 
@@ -61,7 +63,7 @@ public:
     // Used by WAL as the next offset to write and by WALIterator as the next offset to read
     uint64_t offsetInCurrentHeaderPage;
     // First header page of the WAL, if it exists, is always located at page 0 of the WAL.
-    uint64_t currentHeaderPageIdx;
+    page_idx_t currentHeaderPageIdx;
     unique_ptr<uint8_t[]> currentHeaderPageBuffer;
 };
 
@@ -87,11 +89,11 @@ public:
         return make_unique<WALIterator>(fileHandle, mtx);
     }
 
-    uint32_t logPageUpdateRecord(
-        StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile);
+    page_idx_t logPageUpdateRecord(
+        StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile);
 
-    uint32_t logPageInsertRecord(
-        StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile);
+    page_idx_t logPageInsertRecord(
+        StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
     // Removes the contents of WAL file.
@@ -104,7 +106,7 @@ public:
         return isLastLoggedRecordCommit_;
     }
 
-    void flushAllPages(BufferManager* bufferManager);
+    void flushAllPages();
 
     inline bool isEmptyWAL() {
         return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
