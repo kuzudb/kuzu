@@ -4,15 +4,28 @@ namespace graphflow {
 namespace storage {
 
 void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector) {
+    const shared_ptr<ValueVector>& resultVector) {
     assert(nodeIDVector->dataType.typeID == NODE_ID);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
+        readForSingleNodeIDPosition(transaction, pos, nodeIDVector, resultVector);
+    } else if (nodeIDVector->isSequential()) {
+        // In sequential read, we fetch start offset regardless of selected position.
+        auto startOffset = nodeIDVector->readNodeOffset(0);
+        auto pageCursor = PageUtils::getPageElementCursorForOffset(startOffset, numElementsPerPage);
+        // no logical-physical page mapping is required for columns
+        auto logicalToPhysicalPageMapper = [](uint32_t i) { return i; };
+        if (nodeIDVector->state->isUnfiltered()) {
+            readValuesSequential(
+                transaction, resultVector, pageCursor, logicalToPhysicalPageMapper);
+        } else {
+            readValuesSequentialWithSelState(
+                transaction, resultVector, pageCursor, logicalToPhysicalPageMapper);
+        }
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
             auto pos = nodeIDVector->state->selectedPositions[i];
-            readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
+            readForSingleNodeIDPosition(transaction, pos, nodeIDVector, resultVector);
         }
     }
 }
@@ -91,14 +104,13 @@ void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    auto fileHandleAndPageIdxToPin = getFileHandleAndPageIdxToPin(transaction, pageCursor);
-    auto frame =
-        bufferManager.pin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
-
+    auto [fileHandleToPin, pageIdxToPin] =
+        getFileHandleAndPhysicalPageIdxToPin(transaction, pageCursor.pageIdx);
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);
-    bufferManager.unpin(*fileHandleAndPageIdxToPin.first, fileHandleAndPageIdxToPin.second);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
 void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
@@ -163,7 +175,7 @@ void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t p
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    readNodeIDsFromAPage(resultVector, pos, pageCursor.pageIdx, pageCursor.pos,
+    readNodeIDsFromAPageBySequentialCopy(resultVector, pos, pageCursor.pageIdx, pageCursor.pos,
         1 /* numValuesToCopy */, nodeIDCompressionScheme, false /*isAdjLists*/);
 }
 

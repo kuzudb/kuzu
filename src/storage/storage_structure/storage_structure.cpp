@@ -5,14 +5,18 @@
 namespace graphflow {
 namespace storage {
 
-pair<FileHandle*, uint64_t> StorageStructure::getFileHandleAndPageIdxToPin(
-    Transaction* transaction, PageElementCursor pageCursor) {
-    if (transaction->isReadOnly() ||
-        !fileHandle.hasUpdatedWALPageVersionNoLock(pageCursor.pageIdx)) {
-        return make_pair(&fileHandle, pageCursor.pageIdx);
+// check if val is in range [start, end)
+static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
+    return val >= start && val < end;
+}
+
+pair<FileHandle*, uint32_t> StorageStructure::getFileHandleAndPhysicalPageIdxToPin(
+    Transaction* transaction, uint32_t physicalPageIdx) {
+    if (transaction->isReadOnly() || !fileHandle.hasUpdatedWALPageVersionNoLock(physicalPageIdx)) {
+        return make_pair(&fileHandle, physicalPageIdx);
     } else {
         return make_pair(
-            wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(pageCursor.pageIdx));
+            wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(physicalPageIdx));
     }
 }
 
@@ -63,82 +67,113 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName storageStruc
                              PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
 }
 
-void BaseColumnOrList::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    uint64_t sizeLeftToCopy, PageElementCursor& cursor,
-    const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
-    auto values = valueVector->values;
-    auto offsetInVector = 0;
-    while (sizeLeftToCopy) {
+void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
+    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+    uint64_t numValuesToRead = vector->state->originalSize;
+    uint64_t vectorPos = 0;
+    while (vectorPos != numValuesToRead) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-        auto sizeToCopyInPage =
-            min((uint64_t)(numElementsPerPage - cursor.pos) * elementSize, sizeLeftToCopy);
-        auto numValuesToCopyInPage = sizeToCopyInPage / elementSize;
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(values, frame + mapElementPosToByteOffset(cursor.pos), sizeToCopyInPage);
-        setNULLBitsForRange(valueVector, frame, cursor.pos, offsetInVector, numValuesToCopyInPage);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-        values += sizeToCopyInPage;
-        sizeLeftToCopy -= sizeToCopyInPage;
-        offsetInVector += numValuesToCopyInPage;
-        cursor.pos = 0;
-        cursor.pageIdx++;
+        readAPageBySequentialCopy(
+            transaction, vector, vectorPos, physicalPageIdx, cursor.pos, numValuesToReadInPage);
+        vectorPos += numValuesToReadInPage;
+        cursor.nextPage();
     }
 }
 
-void BaseColumnOrList::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction,
+    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+    auto selectedState = vector->state;
+    auto numValuesToRead = vector->state->originalSize;
+    uint64_t selectedStatePos = 0;
+    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.pos;
+    uint64_t vectorPos = getNumValuesToSkipInSequentialCopy(
+        selectedState->selectedPositions[selectedStatePos], numValuesInFirstPage);
+    while (selectedStatePos < selectedState->selectedSize) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
+        auto vectorPosAfterRead = vectorPos + numValuesToReadInPage;
+        if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
+                vectorPosAfterRead)) {
+            auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
+            readAPageBySequentialCopyWithSelState(transaction, vector, selectedStatePos,
+                physicalPageIdx, cursor.pos, vectorPos, vectorPosAfterRead);
+        }
+        vectorPos += numValuesToReadInPage;
+        cursor.nextPage();
+    }
+}
+
+void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     PageElementCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
-    auto numValuesToCopy = valueVector->state->originalSize;
-    auto posInVector = 0;
-    while (numValuesToCopy > 0) {
-        auto numValuesToCopyInPage =
-            min(numValuesToCopy, (uint64_t)(numElementsPerPage - cursor.pos));
+    uint64_t numValuesToRead = valueVector->state->originalSize;
+    uint64_t vectorPos = 0;
+    while (vectorPos != numValuesToRead) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readNodeIDsFromAPage(valueVector, posInVector, physicalPageId, cursor.pos,
-            numValuesToCopyInPage, compressionScheme, isAdjLists);
-        cursor.pageIdx++;
-        cursor.pos = 0;
-        numValuesToCopy -= numValuesToCopyInPage;
-        posInVector += numValuesToCopyInPage;
+        readNodeIDsFromAPageBySequentialCopy(valueVector, vectorPos, physicalPageId, cursor.pos,
+            numValuesToReadInPage, compressionScheme, isAdjLists);
+        vectorPos += numValuesToReadInPage;
+        cursor.nextPage();
     }
 }
 
-void BaseColumnOrList::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
-    uint32_t posInVector, uint32_t physicalPageId, uint32_t elementPos, uint64_t numValuesToCopy,
-    NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
-    auto nodeValues = (nodeID_t*)valueVector->values;
+void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
+    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    NodeIDCompressionScheme compressionScheme) {
+    auto selectedState = vector->state;
+    uint64_t numValuesToRead = vector->state->originalSize;
+    uint64_t selectedStatePos = 0;
+    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.pos;
+    uint64_t vectorPos = getNumValuesToSkipInSequentialCopy(
+        selectedState->selectedPositions[selectedStatePos], numValuesInFirstPage);
+    while (vectorPos != numValuesToRead && selectedStatePos < selectedState->selectedSize) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
+        auto vectorPosAfterRead = vectorPos + numValuesToReadInPage;
+        if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
+                vectorPosAfterRead)) {
+            auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
+            readNodeIDsFromAPageBySequentialCopyWithSelState(vector, selectedStatePos,
+                physicalPageIdx, cursor.pos, vectorPos, vectorPosAfterRead, compressionScheme);
+        }
+        vectorPos += numValuesToReadInPage;
+        cursor.nextPage();
+    }
+}
+
+void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
+    uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+    uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
+    auto nodeValues = (nodeID_t*)vector->values;
     auto labelSize = compressionScheme.getNumBytesForLabel();
     auto offsetSize = compressionScheme.getNumBytesForOffset();
-    auto frame = bufferManager.pin(fileHandle, physicalPageId);
+    auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
     if (isAdjLists) {
-        valueVector->setRangeNonNull(posInVector, numValuesToCopy);
+        vector->setRangeNonNull(vectorStartPos, numValuesToRead);
     } else {
-        setNULLBitsForRange(valueVector, frame, elementPos, posInVector, numValuesToCopy);
+        setNULLBitsForRange(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     }
-    frame += mapElementPosToByteOffset(elementPos);
-    for (auto i = 0u; i < numValuesToCopy; i++) {
+    auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
+    for (auto i = 0u; i < numValuesToRead; i++) {
         nodeID_t nodeID{0, 0};
-        memcpy(&nodeID.label, frame, labelSize);
-        memcpy(&nodeID.offset, frame + labelSize, offsetSize);
-        nodeID.label = labelSize == 0 ? compressionScheme.getCommonLabel() : nodeID.label;
-        nodeValues[posInVector + i] = nodeID;
-        frame += (labelSize + offsetSize);
+        if (labelSize == 0) {
+            nodeID.label = compressionScheme.getCommonLabel();
+        } else {
+            memcpy(&nodeID.label, currentFrameHead, labelSize);
+            currentFrameHead += labelSize;
+        }
+        memcpy(&nodeID.offset, currentFrameHead, offsetSize);
+        currentFrameHead += offsetSize;
+        nodeValues[vectorStartPos + i] = nodeID;
     }
-    bufferManager.unpin(fileHandle, physicalPageId);
-}
-
-void BaseColumnOrList::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
-    uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
-    while (num) {
-        auto numInCurrentByte = min(num, 8 - (elementPos % 8));
-        auto NULLByteAndByteLevelOffset =
-            PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPos);
-        setNULLBitsFromANULLByte(
-            valueVector, NULLByteAndByteLevelOffset, numInCurrentByte, offsetInVector);
-        elementPos += numInCurrentByte;
-        offsetInVector += numInCurrentByte;
-        num -= numInCurrentByte;
-    }
+    bufferManager.unpin(fileHandle, physicalPageIdx);
 }
 
 void BaseColumnOrList::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
@@ -154,6 +189,114 @@ void BaseColumnOrList::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& v
     auto startPos = NULLByteAndByteLevelStartOffset.second;
     while (num--) {
         valueVector->setNull(offsetInVector++, isNullFromNULLByte(NULLByte, startPos++));
+    }
+}
+
+uint64_t BaseColumnOrList::getNumValuesToSkipInSequentialCopy(
+    uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage) {
+    uint64_t result = 0;
+    if (numValuesTryToSkip >= numValuesInFirstPage) {
+        result += numValuesInFirstPage;
+        uint64_t numCompletePageToSkip =
+            (numValuesTryToSkip - numValuesInFirstPage) / numElementsPerPage;
+        result += numCompletePageToSkip * numElementsPerPage;
+    }
+    assert(result <= numValuesTryToSkip);
+    return result;
+}
+
+void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
+    const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, uint32_t physicalPageIdx,
+    uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
+    auto [fileHandleToPin, pageIdxToPin] =
+        getFileHandleAndPhysicalPageIdxToPin(transaction, physicalPageIdx);
+    auto vectorBytesOffset = vectorStartPos * elementSize;
+    auto frameBytesOffset = pagePosOfFirstElement * elementSize;
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
+    memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset,
+        numValuesToRead * elementSize);
+    setNULLBitsForRange(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+}
+
+/**
+ * This function tries to read 1 or many elements from the page (starting from
+ * pagePosOfFirstElement) based on selected positions. The position of these elements in vector
+ * falls in the range of [vectorPosOfFirstUnselElement, vectorPosOfLastUnselElement)
+ *
+ * @param pagePosOfFirstElement
+ *    Element pos in the page of the first unselected element.
+ * @param vectorPosOfFirstUnselElement
+ *    Position of first element in vector, ignoring any selected position, whose value falls in this
+ *    page. The element stored in vector[vectorPosOfFirstUnselElement] is called as "first unselect
+ *    element"
+ * @param vectorPosOfLastUnselElement
+ *    Position of last element in vector, ignoring any selected position, whose value falls in this
+ *    page. The element stored in vector[vectorPosOfFirstUnselElement] is called as "last unselect
+ *    element"
+ */
+void BaseColumnOrList::readAPageBySequentialCopyWithSelState(Transaction* transaction,
+    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
+    uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
+    uint64_t vectorPosOfLastUnselElement) {
+    auto selectedState = vector->state;
+    auto [fileHandleToPin, pageIdxToPin] =
+        getFileHandleAndPhysicalPageIdxToPin(transaction, physicalPageIdx);
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
+    while (selectedState->selectedPositions[nextSelectedPos] < vectorPosOfLastUnselElement &&
+           nextSelectedPos < selectedState->selectedSize) {
+        auto vectorPos = selectedState->selectedPositions[nextSelectedPos];
+        auto vectorBytesOffset = vectorPos * elementSize;
+        auto pagePos = pagePosOfFirstElement + vectorPos - vectorPosOfFirstUnselElement;
+        auto frameBytesOffset = pagePos * elementSize;
+        memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset, elementSize);
+        setNULLBitsForAPos(vector, frame, pagePos, vectorPos);
+        nextSelectedPos++;
+    }
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+}
+
+// see BaseColumnOrList::readAPageBySequentialCopyWithSelState for descriptions
+void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopyWithSelState(
+    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
+    uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
+    uint64_t vectorPosOfLastUnselElement, NodeIDCompressionScheme& compressionScheme) {
+    auto selectedState = vector->state;
+    auto nodeValues = (nodeID_t*)vector->values;
+    auto labelSize = compressionScheme.getNumBytesForLabel();
+    auto offsetSize = compressionScheme.getNumBytesForOffset();
+    auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+    while (selectedState->selectedPositions[nextSelectedPos] < vectorPosOfLastUnselElement &&
+           nextSelectedPos < selectedState->selectedSize) {
+        auto vectorPos = selectedState->selectedPositions[nextSelectedPos];
+        auto framePos = pagePosOfFirstElement + vectorPos - vectorPosOfFirstUnselElement;
+        auto frameBytesOffset = framePos * elementSize;
+        nodeID_t nodeID{0, 0};
+        if (labelSize == 0) {
+            nodeID.label = compressionScheme.getCommonLabel();
+        } else {
+            memcpy(&nodeID.label, frame + frameBytesOffset, labelSize);
+            frameBytesOffset += labelSize;
+        }
+        memcpy(&nodeID.offset, frame + frameBytesOffset, offsetSize);
+        nodeValues[vectorPos] = nodeID;
+        setNULLBitsForAPos(vector, frame, framePos, vectorPos);
+        nextSelectedPos++;
+    }
+    bufferManager.unpin(fileHandle, physicalPageIdx);
+}
+
+void BaseColumnOrList::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
+    uint8_t* frame, uint64_t elementPosInPage, uint64_t posInVector, uint64_t num) {
+    while (num) {
+        auto numInCurrentByte = min(num, 8 - (elementPosInPage % 8));
+        auto NULLByteAndByteLevelOffset =
+            PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPosInPage);
+        setNULLBitsFromANULLByte(
+            valueVector, NULLByteAndByteLevelOffset, numInCurrentByte, posInVector);
+        elementPosInPage += numInCurrentByte;
+        posInVector += numInCurrentByte;
+        num -= numInCurrentByte;
     }
 }
 

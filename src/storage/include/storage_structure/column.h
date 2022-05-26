@@ -26,7 +26,7 @@ public:
               isInMemory, wal){};
 
     virtual void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector);
+        const shared_ptr<ValueVector>& resultVector);
 
     virtual void writeValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& vectorToWriteFrom);
@@ -47,6 +47,19 @@ protected:
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+
+    virtual inline void readValuesSequential(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+        readBySequentialCopy(transaction, resultVector, cursor, logicalToPhysicalPageMapper);
+    }
+
+    virtual inline void readValuesSequentialWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+        readBySequentialCopyWithSelState(
+            transaction, resultVector, cursor, logicalToPhysicalPageMapper);
+    }
 
     virtual void readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
         const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector);
@@ -103,6 +116,20 @@ public:
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:
+    inline void readValuesSequential(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) override {
+        readNodeIDsBySequentialCopy(resultVector, cursor, logicalToPhysicalPageMapper,
+            nodeIDCompressionScheme, false /*isAdjLists*/);
+    }
+
+    void readValuesSequentialWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) override {
+        readNodeIDsBySequentialCopyWithSelState(
+            resultVector, cursor, logicalToPhysicalPageMapper, nodeIDCompressionScheme);
+    }
+
     void readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
         const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector) override;
