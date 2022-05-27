@@ -34,13 +34,13 @@ void StorageManager::checkpointOrRollbackAndClearWAL(bool isCheckpoint) {
     lock_t lck{checkpointMtx};
     logger->info(
         "Starting " +
-        (isCheckpoint ? string(" checkpointing") : string(" rolling back the wal contents")) +
+        (isCheckpoint ? string("checkpointing") : string("rolling back the wal contents")) +
         " in the storage manager.");
     WALReplayer walReplayer(*this, bufferManager, isCheckpoint);
     walReplayer.replay();
     logger->info(
         "Finished " +
-        (isCheckpoint ? string(" checkpointing") : string(" rolling back the wal contents")) +
+        (isCheckpoint ? string("checkpointing") : string("rolling back the wal contents")) +
         " in the storage manager.");
     wal->clearWAL();
 }

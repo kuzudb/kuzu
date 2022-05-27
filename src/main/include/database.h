@@ -84,7 +84,7 @@ public:
             // Note: committing and stopping new transactions can be done in any order. This order
             // allows us to throw exceptions if we have to wait a lot to stop.
             transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
-            storageManager->getWAL().flushAllPages(bufferManager.get());
+            storageManager->getWAL().flushAllPages();
             storageManager->checkpointAndClearWAL();
         } else {
             storageManager->rollbackAndClearWAL();

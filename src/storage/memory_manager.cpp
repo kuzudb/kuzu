@@ -7,7 +7,7 @@ namespace storage {
 
 unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
     lock_guard<mutex> lock(memMgrLock);
-    uint32_t pageIdx;
+    page_idx_t pageIdx;
     uint8_t* data;
     if (freePages.empty()) {
         pageIdx = fh->addNewPage();
@@ -25,7 +25,7 @@ unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
     return blockHandle;
 }
 
-void MemoryManager::freeBlock(uint32_t pageIdx) {
+void MemoryManager::freeBlock(page_idx_t pageIdx) {
     lock_guard<mutex> lock(memMgrLock);
     bm->unpin(*fh, pageIdx);
     freePages.push(pageIdx);

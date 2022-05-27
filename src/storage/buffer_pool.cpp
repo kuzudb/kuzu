@@ -43,7 +43,7 @@ bool Frame::acquireFrameLock(bool block) {
 
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
     : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
-      numFrames((uint32_t)(ceil((double)maxSize / (double)pageSize))) {
+      numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
     for (auto i = 0u; i < numFrames; ++i) {
         bufferCache.emplace_back(make_unique<Frame>(pageSize));
@@ -58,7 +58,8 @@ void BufferPool::resize(uint64_t newSize) {
     if ((numFrames * pageSize) > newSize) {
         throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported!");
     }
-    auto newNumFrames = (uint32_t)(ceil((double)newSize / (double)pageSize));
+    auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
+    assert(newNumFrames < UINT32_MAX);
     for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
         bufferCache.emplace_back(make_unique<Frame>(pageSize));
     }
@@ -68,22 +69,22 @@ void BufferPool::resize(uint64_t newSize) {
     logger->info("Done resizing buffer pool.");
 }
 
-uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx) {
+uint8_t* BufferPool::pin(FileHandle& fileHandle, page_idx_t pageIdx) {
     return pin(fileHandle, pageIdx, false /* read page from file */);
 }
 
-uint8_t* BufferPool::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx) {
+uint8_t* BufferPool::pinWithoutReadingFromFile(FileHandle& fileHandle, page_idx_t pageIdx) {
     return pin(fileHandle, pageIdx, true /* do not read page from file */);
 }
 
 void BufferPool::removeFilePagesFromFrames(FileHandle& fileHandle) {
-    for (int pageIdx = 0; pageIdx < fileHandle.numPages; ++pageIdx) {
+    for (auto pageIdx = 0u; pageIdx < fileHandle.numPages; ++pageIdx) {
         removePageFromFrameOrFlushIfDirty(fileHandle, pageIdx, true /* is removing */);
     }
 }
 
 void BufferPool::removePageFromFrameOrFlushIfDirty(
-    FileHandle& fileHandle, uint64_t pageIdx, bool isRemoving) {
+    FileHandle& fileHandle, page_idx_t pageIdx, bool isRemoving) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
@@ -101,20 +102,20 @@ void BufferPool::removePageFromFrameOrFlushIfDirty(
 }
 
 void BufferPool::flushAllDirtyPagesInFrames(FileHandle& fileHandle) {
-    for (int pageIdx = 0; pageIdx < fileHandle.numPages; ++pageIdx) {
+    for (auto pageIdx = 0u; pageIdx < fileHandle.numPages; ++pageIdx) {
         removePageFromFrameOrFlushIfDirty(fileHandle, pageIdx, false /* is flushing */);
     }
 }
 
 void BufferPool::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-    FileHandle& fileHandle, uint8_t* newPage, uint64_t pageIdx) {
+    FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
         memcpy(bufferCache[frameIdx]->buffer.get(), newPage, DEFAULT_PAGE_SIZE);
     }
 }
 
-uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+uint8_t* BufferPool::pin(FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto retVal = pinWithoutAcquiringPageLock(fileHandle, pageIdx, doNotReadFromFile);
     fileHandle.releasePageLock(pageIdx);
@@ -122,7 +123,7 @@ uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotRea
 }
 
 uint8_t* BufferPool::pinWithoutAcquiringPageLock(
-    FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+    FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
         auto& frame = bufferCache[frameIdx];
@@ -140,7 +141,7 @@ uint8_t* BufferPool::pinWithoutAcquiringPageLock(
     return bufferCache[fileHandle.getFrameIdx(pageIdx)]->buffer.get();
 }
 
-void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
+void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (!FileHandle::isAFrame((frameIdx)) || (bufferCache[frameIdx]->pinCount.load() < 1)) {
@@ -154,7 +155,8 @@ void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.releasePageLock(pageIdx);
 }
 
-uint32_t BufferPool::claimAFrame(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+page_idx_t BufferPool::claimAFrame(
+    FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     auto localClockHand = clockHand.load();
     auto startFrame = localClockHand % numFrames;
     for (auto i = 0u; i < 2 * numFrames; ++i) {
@@ -172,7 +174,7 @@ uint32_t BufferPool::claimAFrame(FileHandle& fileHandle, uint32_t pageIdx, bool 
 }
 
 bool BufferPool::fillEmptyFrame(
-    uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+    page_idx_t frameIdx, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     auto& frame = bufferCache[frameIdx];
     if (!frame->acquireFrameLock(false)) {
         return false;
@@ -187,7 +189,7 @@ bool BufferPool::fillEmptyFrame(
 }
 
 bool BufferPool::tryEvict(
-    uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+    page_idx_t frameIdx, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     auto& frame = bufferCache[frameIdx];
     if (frame->recentlyAccessed) {
         frame->recentlyAccessed = false;
@@ -233,7 +235,7 @@ void BufferPool::flushIfDirtyWithoutPageOrFrameLock(const unique_ptr<Frame>& fra
 }
 
 void BufferPool::readNewPageIntoFrame(
-    Frame& frame, FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
+    Frame& frame, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
     frame.pinCount.store(1);
     frame.recentlyAccessed = true;
     frame.isDirty = false;
@@ -256,13 +258,13 @@ void BufferPool::moveClockHand(uint64_t newClockHand) {
     } while (true);
 }
 
-void BufferPool::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
+void BufferPool::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
     fileHandle.releasePageLock(pageIdx);
 }
 
-void BufferPool::unpinWithoutAcquiringPageLock(FileHandle& fileHandle, uint32_t pageIdx) {
+void BufferPool::unpinWithoutAcquiringPageLock(FileHandle& fileHandle, page_idx_t pageIdx) {
     auto& frame = bufferCache[fileHandle.getFrameIdx(pageIdx)];
     // `count` is the value of `pinCount` before sub.
     auto count = frame->pinCount.fetch_sub(1);

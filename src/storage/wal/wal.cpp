@@ -14,20 +14,20 @@ WAL::WAL(const string& path, BufferManager& bufferManager)
     initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
 }
 
-uint32_t WAL::logPageUpdateRecord(
-    StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageUpdateRecord(
+    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
-    uint32_t pageIdxInWAL = fileHandle->addNewPage();
+    auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
         WALRecord::newPageUpdateRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordWithoutLock(walRecord);
     return pageIdxInWAL;
 }
 
-uint32_t WAL::logPageInsertRecord(
-    StorageStructureID storageStructureID, uint32_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageInsertRecord(
+    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
-    uint32_t pageIdxInWAL = fileHandle->addNewPage();
+    auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
         WALRecord::newPageInsertRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordWithoutLock(walRecord);
@@ -46,10 +46,10 @@ void WAL::clearWAL() {
     initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
 }
 
-void WAL::flushAllPages(BufferManager* bufferManager) {
+void WAL::flushAllPages() {
     if (!isEmptyWAL()) {
         flushHeaderPages();
-        bufferManager->flushAllDirtyPagesInFrames(*fileHandle);
+        bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
     }
 }
 
@@ -120,8 +120,8 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
         retVal, currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
     numRecordsReadInCurrentHeaderPage++;
     if ((numRecordsReadInCurrentHeaderPage == getNumRecordsInCurrentHeaderPage()) &&
-        (getNextHeaderPageOfCurrentHeaderPage() != UINT64_MAX)) {
-        uint64_t nextHeaderPageIdx = getNextHeaderPageOfCurrentHeaderPage();
+        (getNextHeaderPageOfCurrentHeaderPage() != UINT32_MAX)) {
+        page_idx_t nextHeaderPageIdx = getNextHeaderPageOfCurrentHeaderPage();
         fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
         offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
         numRecordsReadInCurrentHeaderPage = 0;

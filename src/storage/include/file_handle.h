@@ -8,6 +8,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/types/include/types.h"
 
 using namespace graphflow::common;
 using lock_t = unique_lock<mutex>;
@@ -53,9 +54,13 @@ public:
     // does not hold any of the pages of the file.
     void resetToZeroPagesAndPageCapacity();
 
-    void readPage(uint8_t* frame, uint64_t pageIdx) const;
+    inline void readPage(uint8_t* frame, page_idx_t pageIdx) const {
+        FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
+    }
 
-    void writePage(uint8_t* buffer, uint64_t pageIdx) const;
+    inline void writePage(uint8_t* buffer, page_idx_t pageIdx) const {
+        FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
+    }
 
     // Warning: Adding a new page does not write a new page directly to a file. Instead, it only
     // creates a pageLock and a spot in the pageIdxToFrameMap. This may have dangerous consequences
@@ -74,27 +79,27 @@ public:
     // addNewPage should be written to ensure that once T_W calls addNewPage, it should be followed
     // by a BufferManager::pinNewPage call and the code should ensure that no other thread can try
     // to pin the newly added page in between these calls.
-    virtual uint32_t addNewPage();
-    virtual void removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove);
+    virtual page_idx_t addNewPage();
+    virtual void removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove);
 
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
 
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
-    inline uint32_t getNumPages() const { return numPages; }
-    static inline bool isAFrame(uint64_t mappedFrameIdx) { return UINT64_MAX != mappedFrameIdx; }
+    inline page_idx_t getNumPages() const { return numPages; }
+    static inline bool isAFrame(page_idx_t mappedFrameIdx) { return UINT32_MAX != mappedFrameIdx; }
     inline FileInfo* getFileInfo() const { return fileInfo.get(); }
 
-    inline uint64_t getFrameIdx(uint32_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
+    inline page_idx_t getFrameIdx(page_idx_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
 
-    bool acquirePageLock(uint32_t pageIdx, bool block);
+    bool acquirePageLock(page_idx_t pageIdx, bool block);
 
-    void releasePageLock(uint32_t pageIdx) { pageLocks[pageIdx]->clear(); }
+    void releasePageLock(page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
 protected:
-    uint32_t addNewPageWithoutLock();
+    page_idx_t addNewPageWithoutLock();
 
-    void removePageIdxAndTruncateIfNecessaryWithoutLock(uint64_t pageIdxToRemove);
+    void removePageIdxAndTruncateIfNecessaryWithoutLock(page_idx_t pageIdxToRemove);
 
     void initPageIdxToFrameMapAndLocks();
 
@@ -102,26 +107,29 @@ protected:
 
     void constructNewFileHandle(const string& path);
 
-    bool acquire(uint32_t pageIdx);
+    bool acquire(page_idx_t pageIdx);
 
-    inline void swizzle(uint32_t pageIdx, uint64_t swizzledVal) {
+    inline void swizzle(page_idx_t pageIdx, page_idx_t swizzledVal) {
         pageIdxToFrameMap[pageIdx]->store(swizzledVal);
     }
 
-    inline void unswizzle(uint32_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT64_MAX); }
+    inline void unswizzle(page_idx_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT32_MAX); }
 
     inline uint64_t getPageSize() const {
         return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
     }
 
-    inline void addNewPageLockAndFramePtrWithoutLock(uint64_t i);
+    inline void addNewPageLockAndFramePtrWithoutLock(page_idx_t pageIdx) {
+        pageLocks[pageIdx] = make_unique<atomic_flag>();
+        pageIdxToFrameMap[pageIdx] = make_unique<atomic<page_idx_t>>(UINT32_MAX);
+    }
 
 protected:
     shared_ptr<spdlog::logger> logger;
     uint8_t flags;
     unique_ptr<FileInfo> fileInfo;
     vector<unique_ptr<atomic_flag>> pageLocks;
-    vector<unique_ptr<atomic<uint64_t>>> pageIdxToFrameMap;
+    vector<unique_ptr<atomic<page_idx_t>>> pageIdxToFrameMap;
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;

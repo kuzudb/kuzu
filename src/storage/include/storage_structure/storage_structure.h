@@ -18,17 +18,17 @@ namespace storage {
 
 struct UpdatedPageInfoAndWALPageFrame {
     UpdatedPageInfoAndWALPageFrame(
-        PageElementCursor originalPageCursor, uint64_t pageIdxInWAL, uint8_t* frame)
+        PageElementCursor originalPageCursor, page_idx_t pageIdxInWAL, uint8_t* frame)
         : originalPageCursor{originalPageCursor}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
 
     PageElementCursor originalPageCursor;
-    uint64_t pageIdxInWAL;
+    page_idx_t pageIdxInWAL;
     uint8_t* frame;
 };
 
 class StorageStructure {
 public:
-    StorageStructure(const StorageStructureIDAndFName storageStructureIDAndFName,
+    StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
           fileHandle{
@@ -39,8 +39,8 @@ public:
         }
     }
 
-    pair<FileHandle*, uint32_t> getFileHandleAndPhysicalPageIdxToPin(
-        Transaction* transaction, uint32_t physicalPageIdx);
+    pair<FileHandle*, page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
+        Transaction* transaction, page_idx_t physicalPageIdx);
 
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
@@ -82,7 +82,7 @@ public:
     }
 
 protected:
-    BaseColumnOrList(const StorageStructureIDAndFName storageStructureIDAndFName,
+    BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal);
 
@@ -102,24 +102,24 @@ protected:
 
     void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         PageElementCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
     void readBySequentialCopyWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
     void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme compressionScheme, bool isAdjLists);
 
     void readNodeIDsBySequentialCopyWithSelState(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme compressionScheme);
 
     void readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
-        uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
         uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
 
     static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
@@ -136,16 +136,16 @@ private:
         uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage);
 
     void readAPageBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
-        uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
         uint64_t numValuesToRead);
 
     void readAPageBySequentialCopyWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
-        uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
-        uint64_t vectorPosOfLastUnselElement);
+        const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos,
+        page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement);
 
     void readNodeIDsFromAPageBySequentialCopyWithSelState(const shared_ptr<ValueVector>& vector,
-        uint64_t& nextSelectedPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+        uint64_t& nextSelectedPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
         uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement,
         NodeIDCompressionScheme& compressionScheme);
 

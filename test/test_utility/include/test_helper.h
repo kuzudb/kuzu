@@ -45,10 +45,7 @@ public:
         loadGraph();
     }
 
-    void TearDown() override {
-        FileUtils::removeDir(TestHelper::TEMP_TEST_DIR);
-        auto fullFilePath = TestHelper::TEMP_TEST_DIR + string(".wal");
-    }
+    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
     virtual string getInputCSVDir() = 0;
 

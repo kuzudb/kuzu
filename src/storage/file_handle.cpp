@@ -59,7 +59,7 @@ void FileHandle::initPageIdxToFrameMapAndLocks() {
     }
 }
 
-bool FileHandle::acquirePageLock(uint32_t pageIdx, bool block) {
+bool FileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
     if (block) {
         while (!acquire(pageIdx)) {} // spinning
         return true;
@@ -67,52 +67,32 @@ bool FileHandle::acquirePageLock(uint32_t pageIdx, bool block) {
     return acquire(pageIdx);
 }
 
-bool FileHandle::acquire(uint32_t pageIdx) {
+bool FileHandle::acquire(page_idx_t pageIdx) {
     auto retVal = !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
     return retVal;
 }
 
-void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) const {
-    FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
-}
-
-void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
-    FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
-}
-
-void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t pageIdx) {
-    pageLocks[pageIdx] = make_unique<atomic_flag>();
-    pageIdxToFrameMap[pageIdx] = make_unique<atomic<uint64_t>>(UINT64_MAX);
-}
-
-uint32_t FileHandle::addNewPage() {
+page_idx_t FileHandle::addNewPage() {
     lock_t lock(fhMutex);
     return addNewPageWithoutLock();
 }
 
-uint32_t FileHandle::addNewPageWithoutLock() {
+page_idx_t FileHandle::addNewPageWithoutLock() {
     if (numPages == pageCapacity) {
-        auto oldCapacity = pageCapacity;
         pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));
-        vector<unique_ptr<atomic<uint64_t>>> newPageIdxToFrameMap(pageCapacity);
-        vector<unique_ptr<atomic_flag>> newPageLocks(pageCapacity);
-        for (auto i = 0ull; i < oldCapacity; i++) {
-            newPageLocks[i] = move(pageLocks[i]);
-            newPageIdxToFrameMap[i] = move(pageIdxToFrameMap[i]);
-        }
-        pageIdxToFrameMap = move(newPageIdxToFrameMap);
-        pageLocks = move(newPageLocks);
+        pageIdxToFrameMap.resize(pageCapacity);
+        pageLocks.resize(pageCapacity);
     }
     addNewPageLockAndFramePtrWithoutLock(numPages);
     return numPages++;
 }
 
-void FileHandle::removePageIdxAndTruncateIfNecessary(uint64_t pageIdxToRemove) {
+void FileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) {
     lock_t lock(fhMutex);
     removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
 }
 
-void FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(uint64_t pageIdxToRemove) {
+void FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(page_idx_t pageIdxToRemove) {
     if (numPages <= pageIdxToRemove) {
         return;
     }

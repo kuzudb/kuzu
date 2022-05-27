@@ -10,8 +10,8 @@ static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
     return val >= start && val < end;
 }
 
-pair<FileHandle*, uint32_t> StorageStructure::getFileHandleAndPhysicalPageIdxToPin(
-    Transaction* transaction, uint32_t physicalPageIdx) {
+pair<FileHandle*, page_idx_t> StorageStructure::getFileHandleAndPhysicalPageIdxToPin(
+    Transaction* transaction, page_idx_t physicalPageIdx) {
     if (transaction->isReadOnly() || !fileHandle.hasUpdatedWALPageVersionNoLock(physicalPageIdx)) {
         return make_pair(&fileHandle, physicalPageIdx);
     } else {
@@ -27,7 +27,7 @@ StorageStructure::getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessar
         PageUtils::getPageElementCursorForOffset(elementOffset, numElementsPerPage);
     fileHandle.createPageVersionGroupIfNecessary(originalPageCursor.pageIdx);
     fileHandle.acquirePageLock(originalPageCursor.pageIdx, true /* block */);
-    uint32_t pageIdxInWAL;
+    page_idx_t pageIdxInWAL;
     uint8_t* frame;
     if (fileHandle.hasUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx)) {
         pageIdxInWAL = fileHandle.getUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx);
@@ -57,7 +57,7 @@ void StorageStructure::finishUpdatingPage(
     fileHandle.releasePageLock(updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx);
 }
 
-BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName storageStructureIDAndFName,
+BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
     const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
     bool hasNULLBytes, bool isInMemory, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, isInMemory, wal),
@@ -69,15 +69,15 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName storageStruc
 
 void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
     const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
-    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     uint64_t numValuesToRead = vector->state->originalSize;
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readAPageBySequentialCopy(
-            transaction, vector, vectorPos, physicalPageIdx, cursor.pos, numValuesToReadInPage);
+        readAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx, cursor.posInPage,
+            numValuesToReadInPage);
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
     }
@@ -85,22 +85,22 @@ void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
 
 void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction,
     const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
-    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
+    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     auto selectedState = vector->state;
     auto numValuesToRead = vector->state->originalSize;
     uint64_t selectedStatePos = 0;
-    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.pos;
+    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.posInPage;
     uint64_t vectorPos = getNumValuesToSkipInSequentialCopy(
         selectedState->selectedPositions[selectedStatePos], numValuesInFirstPage);
     while (selectedStatePos < selectedState->selectedSize) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto vectorPosAfterRead = vectorPos + numValuesToReadInPage;
         if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
                 vectorPosAfterRead)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
             readAPageBySequentialCopyWithSelState(transaction, vector, selectedStatePos,
-                physicalPageIdx, cursor.pos, vectorPos, vectorPosAfterRead);
+                physicalPageIdx, cursor.posInPage, vectorPos, vectorPosAfterRead);
         }
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
@@ -108,16 +108,17 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
 }
 
 void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    PageElementCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    PageElementCursor& cursor,
+    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
     uint64_t numValuesToRead = valueVector->state->originalSize;
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readNodeIDsFromAPageBySequentialCopy(valueVector, vectorPos, physicalPageId, cursor.pos,
-            numValuesToReadInPage, compressionScheme, isAdjLists);
+        readNodeIDsFromAPageBySequentialCopy(valueVector, vectorPos, physicalPageId,
+            cursor.posInPage, numValuesToReadInPage, compressionScheme, isAdjLists);
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
     }
@@ -125,23 +126,24 @@ void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>
 
 void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
     const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
-    const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme) {
     auto selectedState = vector->state;
     uint64_t numValuesToRead = vector->state->originalSize;
     uint64_t selectedStatePos = 0;
-    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.pos;
+    uint64_t numValuesInFirstPage = numElementsPerPage - cursor.posInPage;
     uint64_t vectorPos = getNumValuesToSkipInSequentialCopy(
         selectedState->selectedPositions[selectedStatePos], numValuesInFirstPage);
     while (vectorPos != numValuesToRead && selectedStatePos < selectedState->selectedSize) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.pos;
+        uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto vectorPosAfterRead = vectorPos + numValuesToReadInPage;
         if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
                 vectorPosAfterRead)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
             readNodeIDsFromAPageBySequentialCopyWithSelState(vector, selectedStatePos,
-                physicalPageIdx, cursor.pos, vectorPos, vectorPosAfterRead, compressionScheme);
+                physicalPageIdx, cursor.posInPage, vectorPos, vectorPosAfterRead,
+                compressionScheme);
         }
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
@@ -149,7 +151,7 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
 }
 
 void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
-    uint64_t vectorStartPos, uint32_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+    uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
     uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)vector->values;
     auto labelSize = compressionScheme.getNumBytesForLabel();
@@ -206,7 +208,7 @@ uint64_t BaseColumnOrList::getNumValuesToSkipInSequentialCopy(
 }
 
 void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
-    const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, uint32_t physicalPageIdx,
+    const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
         getFileHandleAndPhysicalPageIdxToPin(transaction, physicalPageIdx);
@@ -236,7 +238,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
  *    element"
  */
 void BaseColumnOrList::readAPageBySequentialCopyWithSelState(Transaction* transaction,
-    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
+    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
     uint64_t vectorPosOfLastUnselElement) {
     auto selectedState = vector->state;
@@ -258,7 +260,7 @@ void BaseColumnOrList::readAPageBySequentialCopyWithSelState(Transaction* transa
 
 // see BaseColumnOrList::readAPageBySequentialCopyWithSelState for descriptions
 void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopyWithSelState(
-    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, uint32_t physicalPageIdx,
+    const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t vectorPosOfFirstUnselElement,
     uint64_t vectorPosOfLastUnselElement, NodeIDCompressionScheme& compressionScheme) {
     auto selectedState = vector->state;

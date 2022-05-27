@@ -28,7 +28,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
     }
     unordered_set<uint32_t> propertyKeysFound;
     auto info = getListInfo(nodeIDVector->readNodeOffset(pos));
-    PageByteCursor cursor{info.cursor.pageIdx, info.cursor.pos};
+    PageByteCursor cursor{info.cursor.pageIdx, info.cursor.posInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < info.listLen) {
@@ -66,7 +66,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     node_offset_t nodeOffset) {
     auto info = getListInfo(nodeOffset);
     auto retVal = make_unique<map<uint32_t /*unstructuredProperty pageIdx*/, Literal>>();
-    PageByteCursor byteCursor{info.cursor.pageIdx, info.cursor.pos};
+    PageByteCursor byteCursor{info.cursor.pageIdx, info.cursor.posInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < info.listLen) {
@@ -93,14 +93,14 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
 void UnstructuredPropertyLists::readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType,
     PageByteCursor& cursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
     auto totalNumBytesRead = 0u;
-    auto bytesInCurrentPage = DEFAULT_PAGE_SIZE - cursor.offset;
+    auto bytesInCurrentPage = DEFAULT_PAGE_SIZE - cursor.offsetInPage;
     auto bytesToReadInCurrentPage = min((uint64_t)UNSTR_PROP_HEADER_LEN, bytesInCurrentPage);
     readFromAPage(
         propertyKeyDataType, bytesToReadInCurrentPage, cursor, logicalToPhysicalPageMapper);
     totalNumBytesRead += bytesToReadInCurrentPage;
     if (UNSTR_PROP_HEADER_LEN > totalNumBytesRead) { // move to next page
-        cursor.idx++;
-        cursor.offset = 0;
+        cursor.pageIdx++;
+        cursor.offsetInPage = 0;
         auto bytesToReadInNextPage = UNSTR_PROP_HEADER_LEN - totalNumBytesRead;
         // IMPORTANT NOTE: Pranjal used to use bytesInCurrentPage instead of totalNumBytesRead
         // in the following function. Xiyang think this is a bug and modify it.
@@ -112,14 +112,14 @@ void UnstructuredPropertyLists::readPropertyKeyAndDatatype(uint8_t* propertyKeyD
 void UnstructuredPropertyLists::readPropertyValue(Value* propertyValue, uint64_t dataTypeSize,
     PageByteCursor& cursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
     auto totalNumBytesRead = 0u;
-    auto bytesInCurrentPage = DEFAULT_PAGE_SIZE - cursor.offset;
+    auto bytesInCurrentPage = DEFAULT_PAGE_SIZE - cursor.offsetInPage;
     auto bytesToReadInCurrentPage = min(dataTypeSize, bytesInCurrentPage);
     readFromAPage(((uint8_t*)&propertyValue->val), bytesToReadInCurrentPage, cursor,
         logicalToPhysicalPageMapper);
     totalNumBytesRead += bytesToReadInCurrentPage;
     if (dataTypeSize > totalNumBytesRead) { // move to next page
-        cursor.idx++;
-        cursor.offset = 0;
+        cursor.pageIdx++;
+        cursor.offsetInPage = 0;
         auto bytesToReadInNextPage = dataTypeSize - totalNumBytesRead;
         // See line 107
         readFromAPage(((uint8_t*)&propertyValue->val) + totalNumBytesRead, bytesToReadInNextPage,
@@ -128,21 +128,21 @@ void UnstructuredPropertyLists::readPropertyValue(Value* propertyValue, uint64_t
 }
 
 void UnstructuredPropertyLists::skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor) {
-    auto bytesToReadInCurrentPage = min(dataTypeSize, DEFAULT_PAGE_SIZE - cursor.offset);
-    cursor.offset += bytesToReadInCurrentPage;
+    auto bytesToReadInCurrentPage = min(dataTypeSize, DEFAULT_PAGE_SIZE - cursor.offsetInPage);
+    cursor.offsetInPage += bytesToReadInCurrentPage;
     if (dataTypeSize > bytesToReadInCurrentPage) {
-        cursor.idx++;
-        cursor.offset = dataTypeSize - bytesToReadInCurrentPage;
+        cursor.pageIdx++;
+        cursor.offsetInPage = dataTypeSize - bytesToReadInCurrentPage;
     }
 }
 
 void UnstructuredPropertyLists::readFromAPage(uint8_t* value, uint64_t bytesToRead,
     PageByteCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
-    uint64_t physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
+    uint64_t physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
     auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-    memcpy(value, frame + cursor.offset, bytesToRead);
+    memcpy(value, frame + cursor.offsetInPage, bytesToRead);
     bufferManager.unpin(fileHandle, physicalPageIdx);
-    cursor.offset += bytesToRead;
+    cursor.offsetInPage += bytesToRead;
 }
 
 } // namespace storage

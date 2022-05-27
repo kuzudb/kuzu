@@ -20,7 +20,7 @@ public:
     virtual void setElement(node_offset_t offset, const uint8_t* val);
     inline uint8_t* getElement(node_offset_t offset) {
         auto cursor = getPageElementCursorForOffset(offset);
-        return inMemFile->pages[cursor.pageIdx]->data + (cursor.pos * numBytesForElement);
+        return inMemFile->pages[cursor.pageIdx]->data + (cursor.posInPage * numBytesForElement);
     }
 
     virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
@@ -30,7 +30,7 @@ public:
 protected:
     inline PageElementCursor getPageElementCursorForOffset(node_offset_t offset) const {
         return PageElementCursor{
-            offset / numElementsInAPage, (uint16_t)(offset % numElementsInAPage)};
+            (page_idx_t)(offset / numElementsInAPage), (uint16_t)(offset % numElementsInAPage)};
     }
 
 protected:

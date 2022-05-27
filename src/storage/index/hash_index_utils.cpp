@@ -54,8 +54,9 @@ bool HashIndexUtils::equalsFuncInWriteModeForString(
     } else {
         // For long strings, read overflow values and check if they are true.
         PageByteCursor cursor;
-        TypeUtils::decodeOverflowPtr(gfStringInEntry->overflowPtr, cursor.idx, cursor.offset);
-        return memcmp(keyToLookup, overflowPages->pages[cursor.idx]->data + cursor.offset,
+        TypeUtils::decodeOverflowPtr(
+            gfStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+        return memcmp(keyToLookup, overflowPages->pages[cursor.pageIdx]->data + cursor.offsetInPage,
                    gfStringInEntry->len) == 0;
     }
 }
