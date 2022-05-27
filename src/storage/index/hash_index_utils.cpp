@@ -37,8 +37,8 @@ bool HashIndexUtils::isStringPrefixAndLenEquals(
     return false;
 }
 
-bool HashIndexUtils::equalsFuncInWriteModeForString(const uint8_t* keyToLookup,
-    const uint8_t* keyInEntry, const InMemOverflowPages* overflowPages) {
+bool HashIndexUtils::equalsFuncInWriteModeForString(
+    const uint8_t* keyToLookup, const uint8_t* keyInEntry, const InMemOverflowFile* overflowPages) {
     auto gfStringInEntry = (gf_string_t*)keyInEntry;
     // Checks if prefix and len matches first.
     if (!isStringPrefixAndLenEquals(keyToLookup, gfStringInEntry)) {

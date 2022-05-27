@@ -7,7 +7,7 @@
 #include "src/common/include/file_utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/function/hash/operations/include/hash_operations.h"
-#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/index/hash_index_utils.h"
 #include "src/storage/include/memory_manager.h"
@@ -221,7 +221,7 @@ private:
     vector<uint8_t*> ovfPinnedFrames;
 
     // Used when writing to the index.
-    unique_ptr<InMemOverflowPages> inMemStringOvfPages;
+    unique_ptr<InMemOverflowFile> inMemStringOvfPages;
     PageByteCursor stringOvfPageCursor;
     // Used when reading from the index.
     unique_ptr<OverflowPages> stringOvfPages;

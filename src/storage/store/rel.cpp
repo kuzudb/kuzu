@@ -74,7 +74,7 @@ void Rel::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& d
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                directory, relLabel, nodeLabel, property.name);
+                directory, relLabel, nodeLabel, relDirection, property.name);
             logger->debug(
                 "DIR {} nodeLabelForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
                 relDirection, nodeLabel, property.propertyID, property.dataType.typeID,

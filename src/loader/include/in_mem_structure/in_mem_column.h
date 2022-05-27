@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/storage/include/compression_scheme.h"
 #include "src/storage/include/storage_structure/overflow_pages.h"
 
@@ -20,10 +20,10 @@ public:
     virtual void setElement(node_offset_t offset, const uint8_t* val);
     inline uint8_t* getElement(node_offset_t offset) {
         auto cursor = getPageElementCursorForOffset(offset);
-        return pages->pages[cursor.pageIdx]->data + (cursor.pos * numBytesForElement);
+        return inMemFile->pages[cursor.pageIdx]->data + (cursor.pos * numBytesForElement);
     }
 
-    virtual inline InMemOverflowPages* getOverflowPages() { return nullptr; }
+    virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
 
     inline DataType getDataType() { return dataType; }
 
@@ -38,7 +38,7 @@ protected:
     DataType dataType;
     uint64_t numBytesForElement;
     uint64_t numElementsInAPage;
-    unique_ptr<InMemPages> pages;
+    unique_ptr<InMemFile> inMemFile;
 };
 
 class InMemColumnWithOverflow : public InMemColumn {
@@ -50,10 +50,10 @@ protected:
 
     void saveToFile() override;
 
-    inline InMemOverflowPages* getOverflowPages() override { return overflowPages.get(); }
+    inline InMemOverflowFile* getOverflowPages() override { return inMemOverflowFile.get(); }
 
 protected:
-    unique_ptr<InMemOverflowPages> overflowPages;
+    unique_ptr<InMemOverflowFile> inMemOverflowFile;
 };
 
 class InMemAdjColumn : public InMemColumn {

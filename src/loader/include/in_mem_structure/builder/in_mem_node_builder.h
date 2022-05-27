@@ -57,7 +57,7 @@ private:
     vector<uint64_t> numLinesPerBlock;
     DataType IDType;
 
-    BufferManager& bufferManager;
+    BufferManager& bm;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;
 };

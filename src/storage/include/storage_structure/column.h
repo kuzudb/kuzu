@@ -15,12 +15,12 @@ namespace storage {
 class Column : public BaseColumnOrList {
 
 public:
-    Column(const StorageStructureIDAndFName structureIDAndFName, const DataType& dataType,
+    Column(const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
         size_t elementSize, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : BaseColumnOrList{structureIDAndFName, dataType, elementSize, bufferManager,
               true /*hasNULLBytes*/, isInMemory, wal} {};
 
-    Column(const StorageStructureIDAndFName structureIDAndFName, const DataType& dataType,
+    Column(const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column(structureIDAndFName, dataType, Types::getDataTypeSize(dataType), bufferManager,
               isInMemory, wal){};
@@ -68,7 +68,7 @@ protected:
 class StringPropertyColumn : public Column {
 
 public:
-    StringPropertyColumn(const StorageStructureIDAndFName structureIDAndFNameOfMainColumn,
+    StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
           stringOverflowPages{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
@@ -77,7 +77,7 @@ public:
         const shared_ptr<ValueVector>& valueVector) override;
 
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
-        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
     // Currently, used only in Loader tests.
     Literal readValue(node_offset_t offset) override;
@@ -93,7 +93,7 @@ private:
 class ListPropertyColumn : public Column {
 
 public:
-    ListPropertyColumn(const StorageStructureIDAndFName structureIDAndFNameOfMainColumn,
+    ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
           listOverflowPages{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
@@ -109,7 +109,7 @@ private:
 class AdjColumn : public Column {
 
 public:
-    AdjColumn(const StorageStructureIDAndFName structureIDAndFName, BufferManager& bufferManager,
+    AdjColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory, WAL* wal)
         : Column{structureIDAndFName, DataType(NODE_ID), nodeIDCompressionScheme.getNumTotalBytes(),
               bufferManager, isInMemory, wal},
@@ -141,7 +141,7 @@ private:
 class ColumnFactory {
 
 public:
-    static unique_ptr<Column> getColumn(const StorageStructureIDAndFName structureIDAndFName,
+    static unique_ptr<Column> getColumn(const StorageStructureIDAndFName& structureIDAndFName,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal) {
         switch (dataType.typeID) {
         case INT64:

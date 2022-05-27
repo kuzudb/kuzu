@@ -1,41 +1,40 @@
-#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/in_mem_file.h"
 
-#include <fcntl.h>
-
-#include "src/common/include/file_utils.h"
 #include "src/common/include/type_utils.h"
-
 namespace graphflow {
 namespace loader {
 
-InMemPages::InMemPages(
-    string fName, uint16_t numBytesForElement, bool hasNULLBytes, uint64_t numPages)
-    : fName{move(fName)} {
-    auto numElementsInAPage =
-        hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
-                       PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
-    data = make_unique<uint8_t[]>(numPages * DEFAULT_PAGE_SIZE);
-    pages.resize(numPages);
+InMemFile::InMemFile(
+    string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages)
+    : filePath{move(filePath)}, numUsedPages{0}, hasNullMask{hasNullMask} {
+    numElementsInAPage = hasNullMask ?
+                             PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
+                             PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
     for (auto i = 0u; i < numPages; i++) {
-        pages[i] = make_unique<InMemPage>(
-            numElementsInAPage, data.get() + (i * DEFAULT_PAGE_SIZE), hasNULLBytes);
+        addANewPage();
     }
 };
 
-void InMemPages::saveToFile() {
-    if (0 == fName.length()) {
+uint32_t InMemFile::addANewPage() {
+    auto newPageIdx = pages.size();
+    pages.push_back(make_unique<InMemPage>(numElementsInAPage, hasNullMask));
+    return newPageIdx;
+}
+
+void InMemFile::flush() {
+    if (filePath.empty()) {
         throw LoaderException("InMemPages: Empty filename");
     }
-    for (auto& page : pages) {
-        page->encodeNULLBytes();
+    auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
+    for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
+        pages[pageIdx]->encodeNullBits();
+        FileUtils::writeToFile(
+            fileInfo.get(), pages[pageIdx]->data, DEFAULT_PAGE_SIZE, pageIdx * DEFAULT_PAGE_SIZE);
     }
-    auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    uint64_t byteSize = pages.size() * DEFAULT_PAGE_SIZE;
-    FileUtils::writeToFile(fileInfo.get(), data.get(), byteSize, 0);
     FileUtils::closeFile(fileInfo->fd);
 }
 
-gf_string_t InMemOverflowPages::addString(const char* rawString, PageByteCursor& overflowCursor) {
+gf_string_t InMemOverflowFile::addString(const char* rawString, PageByteCursor& overflowCursor) {
     gf_string_t gfString;
     gfString.len = strlen(rawString);
     memcpy(&gfString.prefix, rawString, min(gfString.len, 4u));
@@ -50,7 +49,7 @@ gf_string_t InMemOverflowPages::addString(const char* rawString, PageByteCursor&
     return gfString;
 }
 
-void InMemOverflowPages::copyFixedSizedValuesToPages(
+void InMemOverflowFile::copyFixedSizedValuesToPages(
     const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     shared_lock lck(lock);
     for (auto& literal : listVal.listVal) {
@@ -61,7 +60,7 @@ void InMemOverflowPages::copyFixedSizedValuesToPages(
 }
 
 template<DataTypeID DT>
-void InMemOverflowPages::copyVarSizedValuesToPages(gf_list_t& resultGFList,
+void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
     const Literal& listLiteral, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     assert(DT == STRING || DT == LIST);
     auto overflowPageOffset = overflowCursor.offset;
@@ -96,7 +95,7 @@ void InMemOverflowPages::copyVarSizedValuesToPages(gf_list_t& resultGFList,
     }
 }
 
-gf_list_t InMemOverflowPages::addList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
+gf_list_t InMemOverflowFile::addList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
     assert(listLiteral.dataType.typeID == LIST && !listLiteral.listVal.empty());
     gf_list_t resultGFList;
     auto childDataTypeID = listLiteral.listVal[0].dataType.typeID;
@@ -134,7 +133,7 @@ gf_list_t InMemOverflowPages::addList(const Literal& listLiteral, PageByteCursor
     return resultGFList;
 }
 
-void InMemOverflowPages::copyStringOverflow(
+void InMemOverflowFile::copyStringOverflow(
     PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString) {
     // Allocate a new page if necessary.
     if (overflowCursor.offset + dstGFString->len >= DEFAULT_PAGE_SIZE ||
@@ -150,7 +149,7 @@ void InMemOverflowPages::copyStringOverflow(
     overflowCursor.offset += dstGFString->len;
 }
 
-void InMemOverflowPages::copyListOverflow(InMemOverflowPages* srcOverflowPages,
+void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
     const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
     gf_list_t* dstGFList, DataType* listChildDataType) {
     auto numBytesOfListElement = Types::getDataTypeSize(*listChildDataType);
@@ -192,40 +191,12 @@ void InMemOverflowPages::copyListOverflow(InMemOverflowPages* srcOverflowPages,
     }
 }
 
-uint32_t InMemOverflowPages::getNewOverflowPageIdx() {
+uint32_t InMemOverflowFile::getNewOverflowPageIdx() {
+    assert(numUsedPages < UINT32_MAX);
     unique_lock lck(lock);
-    auto page = numUsedPages++;
-    if (numUsedPages < pages.size()) {
-        return page;
-    }
-    auto newNumPages = (uint32_t)(1.5 * pages.size());
-    auto newData = new uint8_t[newNumPages * DEFAULT_PAGE_SIZE];
-    memcpy(newData, data.get(), pages.size() * DEFAULT_PAGE_SIZE);
-    data.reset(newData);
-    auto oldNumPages = pages.size();
-    pages.resize(newNumPages);
-    for (auto i = 0; i < oldNumPages; i++) {
-        pages[i]->data = data.get() + (i * DEFAULT_PAGE_SIZE);
-    }
-    auto numElementsInPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(1);
-    for (auto i = oldNumPages; i < newNumPages; i++) {
-        pages[i] = make_unique<InMemPage>(
-            numElementsInPage, data.get() + (i * DEFAULT_PAGE_SIZE), false /*hasNULLBytes*/);
-    }
-    return page;
-}
-
-void InMemOverflowPages::saveToFile() {
-    if (0 == fName.length()) {
-        throw LoaderException("InMemPages: Empty filename");
-    }
-    for (auto& page : pages) {
-        page->encodeNULLBytes();
-    }
-    auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto bytesToWrite = numUsedPages * DEFAULT_PAGE_SIZE;
-    FileUtils::writeToFile(fileInfo.get(), data.get(), bytesToWrite, 0);
-    FileUtils::closeFile(fileInfo->fd);
+    auto newPageIdx = pages.size();
+    addANewPage();
+    return newPageIdx;
 }
 
 } // namespace loader

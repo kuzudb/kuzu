@@ -24,8 +24,6 @@ FileHandle::~FileHandle() {
     if (!isNewTmpFile()) {
         FileUtils::closeFile(fileInfo->fd);
     }
-    delete[] pageLocks;
-    delete[] pageIdxToFrameMap;
 }
 
 void FileHandle::constructExistingFileHandle(const string& path) {
@@ -54,8 +52,8 @@ void FileHandle::resetToZeroPagesAndPageCapacity() {
 }
 
 void FileHandle::initPageIdxToFrameMapAndLocks() {
-    pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[pageCapacity];
-    pageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+    pageIdxToFrameMap.resize(pageCapacity);
+    pageLocks.resize(pageCapacity);
     for (auto i = 0ull; i < numPages; i++) {
         addNewPageLockAndFramePtrWithoutLock(i);
     }
@@ -82,9 +80,9 @@ void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
     FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
 }
 
-void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t i) {
-    pageLocks[i] = make_unique<atomic_flag>();
-    pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
+void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t pageIdx) {
+    pageLocks[pageIdx] = make_unique<atomic_flag>();
+    pageIdxToFrameMap[pageIdx] = make_unique<atomic<uint64_t>>(UINT64_MAX);
 }
 
 uint32_t FileHandle::addNewPage() {
@@ -96,9 +94,8 @@ uint32_t FileHandle::addNewPageWithoutLock() {
     if (numPages == pageCapacity) {
         auto oldCapacity = pageCapacity;
         pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));
-        unique_ptr<atomic<uint64_t>>* newPageIdxToFrameMap =
-            new unique_ptr<atomic<uint64_t>>[pageCapacity];
-        unique_ptr<atomic_flag>* newPageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+        vector<unique_ptr<atomic<uint64_t>>> newPageIdxToFrameMap(pageCapacity);
+        vector<unique_ptr<atomic_flag>> newPageLocks(pageCapacity);
         for (auto i = 0ull; i < oldCapacity; i++) {
             newPageLocks[i] = move(pageLocks[i]);
             newPageIdxToFrameMap[i] = move(pageIdxToFrameMap[i]);

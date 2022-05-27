@@ -55,12 +55,12 @@ void InMemRelBuilder::initializeColumnsAndLists() {
         }
     }
     auto properties = catalog.getRelProperties(label);
-    propertyListsOverflowPages.resize(properties.size());
-    propertyColumnsOverflowPages.resize(properties.size());
+    propertyListsOverflowFiles.resize(properties.size());
+    propertyColumnsOverflowFiles.resize(properties.size());
     for (auto& property : properties) {
         if (property.dataType.typeID == LIST || property.dataType.typeID == STRING) {
-            propertyListsOverflowPages[property.propertyID] = make_unique<InMemOverflowPages>();
-            propertyColumnsOverflowPages[property.propertyID] = make_unique<InMemOverflowPages>();
+            propertyListsOverflowFiles[property.propertyID] = make_unique<InMemOverflowFile>();
+            propertyColumnsOverflowFiles[property.propertyID] = make_unique<InMemOverflowFile>();
         }
     }
 }
@@ -77,7 +77,7 @@ void InMemRelBuilder::initializeColumns(RelDirection relDirection) {
         vector<unique_ptr<InMemColumn>> propertyColumns(properties.size());
         for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
             auto fName = StorageUtils::getRelPropertyColumnFName(
-                outputDirectory, label, nodeLabel, properties[propertyIdx].name);
+                outputDirectory, label, nodeLabel, relDirection, properties[propertyIdx].name);
             propertyColumns[propertyIdx] = InMemColumnFactory::getInMemPropertyColumn(
                 fName, properties[propertyIdx].dataType, numNodes);
         }
@@ -160,7 +160,7 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
         }
         putPropsOfLineIntoColumns(builder->directionLabelPropertyColumns,
             builder->catalog.getRelProperties(builder->label),
-            builder->propertyColumnsOverflowPages, overflowPagesCursors, reader, nodeIDs);
+            builder->propertyColumnsOverflowFiles, overflowPagesCursors, reader, nodeIDs);
     }
     builder->logger->debug("End: path=`{0}` blkIdx={1}", builder->inputFilePath, blockId);
     builder->progressBar->incrementTaskFinished();
@@ -182,7 +182,7 @@ static void putValueIntoColumns(uint64_t propertyIdx,
 
 void InMemRelBuilder::putPropsOfLineIntoColumns(
     vector<label_property_columns_map_t>& directionLabelPropertyColumns,
-    const vector<Property>& properties, vector<unique_ptr<InMemOverflowPages>>& overflowPages,
+    const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
     vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs) {
     for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
         reader.hasNextToken();
@@ -310,7 +310,7 @@ static void putValueIntoLists(uint64_t propertyIdx,
 void InMemRelBuilder::putPropsOfLineIntoLists(
     vector<label_property_lists_map_t>& directionLabelPropertyLists,
     vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
-    vector<unique_ptr<InMemOverflowPages>>& overflowPages, vector<PageByteCursor>& overflowCursors,
+    vector<unique_ptr<InMemOverflowFile>>& overflowPages, vector<PageByteCursor>& overflowCursors,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
@@ -515,7 +515,7 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
         if (!builder->catalog.getRelProperties(builder->label).empty()) {
             putPropsOfLineIntoLists(builder->directionLabelPropertyLists,
                 builder->directionLabelAdjLists, builder->catalog.getRelProperties(builder->label),
-                builder->propertyListsOverflowPages, overflowPagesCursors, reader, nodeIDs,
+                builder->propertyListsOverflowFiles, overflowPagesCursors, reader, nodeIDs,
                 reversePos);
         }
     }
@@ -525,7 +525,7 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
 
 static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-    InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages) {
+    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
     if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
         TypeUtils::decodeOverflowPtr(
             gfStr->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
@@ -538,7 +538,7 @@ static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
 
 static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const DataType& dataType,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-    InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages) {
+    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
     TypeUtils::decodeOverflowPtr(
         gfList->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
     orderedOverflowPages->copyListOverflow(unorderedOverflowPages, unorderedOverflowCursor,
@@ -547,7 +547,7 @@ static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const
 
 void InMemRelBuilder::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
-    InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages,
+    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages,
     LoaderProgressBar* progressBar) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -568,8 +568,8 @@ void InMemRelBuilder::sortOverflowValuesOfPropertyColumnTask(const DataType& dat
 
 void InMemRelBuilder::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
-    InMemLists* propertyLists, InMemOverflowPages* unorderedOverflowPages,
-    InMemOverflowPages* orderedOverflowPages, LoaderProgressBar* progressBar) {
+    InMemLists* propertyLists, InMemOverflowFile* unorderedOverflowPages,
+    InMemOverflowFile* orderedOverflowPages, LoaderProgressBar* progressBar) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -611,7 +611,7 @@ void InMemRelBuilder::sortOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    assert(propertyListsOverflowPages[property.propertyID]);
+                    assert(propertyListsOverflowFiles[property.propertyID]);
                     progressBar->addAndStartNewJob(
                         "Sorting overflow buckets for property: " + labelName + "." + property.name,
                         numBuckets);
@@ -625,7 +625,7 @@ void InMemRelBuilder::sortOverflowValues() {
                         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             sortOverflowValuesOfPropertyListsTask, property.dataType, offsetStart,
                             offsetEnd, adjList.get(), propertyList,
-                            propertyListsOverflowPages[property.propertyID].get(),
+                            propertyListsOverflowFiles[property.propertyID].get(),
                             propertyList->getOverflowPages(), progressBar));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();
@@ -633,7 +633,7 @@ void InMemRelBuilder::sortOverflowValues() {
             }
         }
     }
-    propertyListsOverflowPages.clear();
+    propertyListsOverflowFiles.clear();
     // Sort overflow values of property columns.
     for (auto relDirection : REL_DIRECTIONS) {
         for (auto& [nodeLabel, column] : directionLabelPropertyColumns[relDirection]) {
@@ -642,7 +642,7 @@ void InMemRelBuilder::sortOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    assert(propertyColumnsOverflowPages[property.propertyID]);
+                    assert(propertyColumnsOverflowFiles[property.propertyID]);
                     progressBar->addAndStartNewJob(
                         "Sorting overflow buckets for property: " + labelName + "." + property.name,
                         numBuckets);
@@ -656,7 +656,7 @@ void InMemRelBuilder::sortOverflowValues() {
                         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             sortOverflowValuesOfPropertyColumnTask, property.dataType, offsetStart,
                             offsetEnd, propertyColumn,
-                            propertyColumnsOverflowPages[property.propertyID].get(),
+                            propertyColumnsOverflowFiles[property.propertyID].get(),
                             propertyColumn->getOverflowPages(), progressBar));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();
@@ -664,7 +664,7 @@ void InMemRelBuilder::sortOverflowValues() {
             }
         }
     }
-    propertyColumnsOverflowPages.clear();
+    propertyColumnsOverflowFiles.clear();
 }
 
 void InMemRelBuilder::saveToFile() {

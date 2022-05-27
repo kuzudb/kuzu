@@ -37,13 +37,13 @@ private:
         const Catalog& catalog, vector<bool>& requireToReadLabels);
     static void putPropsOfLineIntoColumns(
         vector<label_property_columns_map_t>& directionLabelPropertyColumns,
-        const vector<Property>& properties, vector<unique_ptr<InMemOverflowPages>>& overflowPages,
+        const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs);
     static void putPropsOfLineIntoLists(
         vector<label_property_lists_map_t>& directionLabelPropertyLists,
         vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
-        vector<unique_ptr<InMemOverflowPages>>& overflowPages,
+        vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
         const vector<uint64_t>& reversePos);
 
@@ -53,12 +53,12 @@ private:
     static void populateAdjAndPropertyListsTask(uint64_t blockId, InMemRelBuilder* builder);
     static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
-        InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages,
+        InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages,
         LoaderProgressBar* progressBar);
     static void sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
-        InMemLists* propertyLists, InMemOverflowPages* unorderedStringOverflowPages,
-        InMemOverflowPages* orderedStringOverflowPages, LoaderProgressBar* progressBar);
+        InMemLists* propertyLists, InMemOverflowFile* unorderedStringOverflowPages,
+        InMemOverflowFile* orderedStringOverflowPages, LoaderProgressBar* progressBar);
 
 private:
     RelMultiplicity relMultiplicity;
@@ -73,8 +73,8 @@ private:
     vector<label_property_columns_map_t> directionLabelPropertyColumns{2};
     vector<label_adj_lists_map_t> directionLabelAdjLists{2};
     vector<label_property_lists_map_t> directionLabelPropertyLists{2};
-    vector<unique_ptr<InMemOverflowPages>> propertyColumnsOverflowPages;
-    vector<unique_ptr<InMemOverflowPages>> propertyListsOverflowPages;
+    vector<unique_ptr<InMemOverflowFile>> propertyColumnsOverflowFiles;
+    vector<unique_ptr<InMemOverflowFile>> propertyListsOverflowFiles;
 };
 
 } // namespace loader

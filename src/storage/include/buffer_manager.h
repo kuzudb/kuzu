@@ -53,9 +53,9 @@ namespace storage {
  * pin/unpin calls of the users of BM.
  *
  * BufferManager supports a special pin function called pinWithoutReadingFromFile. A caller can
- * call the uint32_t newPageIdx = fh::addNewPage() function on the FileHandle fh they have, and then
- * call bm::pinWithoutReadingFromFile(fh, newPageIdx), and the BM will not try to read this page
- * from the file (because the page has not yet been written).
+ * call the uint32_t newPageIdx = fh::addNewPage() function on the FileHandle fh they have, and
+ * then call bm::pinWithoutReadingFromFile(fh, newPageIdx), and the BM will not try to read this
+ * page from the file (because the page has not yet been written).
  */
 class BufferManager {
 
