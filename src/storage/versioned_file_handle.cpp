@@ -11,11 +11,11 @@ VersionedFileHandle::VersionedFileHandle(
 }
 
 void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
-    // Although getPageElementCursorForOffset is written to get offsets of elements
+    // Although getPageElementCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
     // any chunked data structure.
     auto pageGroupIdxAndPosInGroup =
-        PageUtils::getPageElementCursorForOffset(pageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
+        PageUtils::getPageElementCursorForPos(pageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
     // If we have not created a vector of locks and pageVersion array for each page in this
     // group, first create them.
     bool pageGroupLockAcquired = false;
@@ -31,8 +31,8 @@ void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) 
 
 void VersionedFileHandle::setUpdatedWALPageVersionNoLock(
     page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
-    auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
-        originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
+    auto pageGroupIdxAndPosInGroup =
+        PageUtils::getPageElementCursorForPos(originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
     pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage] =
         pageIdxInWAL;
 }

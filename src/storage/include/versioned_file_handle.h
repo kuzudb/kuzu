@@ -22,7 +22,7 @@ public:
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
     inline bool hasUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
-        auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
+        auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForPos(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
         // There is an updated wal page if the PageVersionAndLockInfo for the page group exists
         // and the page version for the page is not null (which is UINT32_MAX).
@@ -35,7 +35,7 @@ public:
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
     inline page_idx_t getUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
-        auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
+        auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForPos(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
         return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage];
     }

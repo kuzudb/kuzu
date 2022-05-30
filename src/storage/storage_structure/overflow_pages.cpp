@@ -93,50 +93,6 @@ string OverflowPages::readString(const gf_string_t& str) {
     }
 }
 
-void OverflowPages::insertNewOverflowPageIfNecessaryWithoutLock(gf_string_t& strToWriteFrom) {
-    PageElementCursor byteCursor =
-        PageUtils::getPageElementCursorForOffset(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
-    if ((byteCursor.posInPage == 0) ||
-        ((byteCursor.posInPage + strToWriteFrom.len - 1) > DEFAULT_PAGE_SIZE)) {
-        // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
-        // where it is.
-        nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);
-        auto pageIdxInOriginalFile = fileHandle.addNewPage();
-        auto pageIdxInWAL = wal->logPageInsertRecord(
-            fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
-        bufferManager.pinWithoutAcquiringPageLock(
-            *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
-        fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
-        fileHandle.setUpdatedWALPageVersionNoLock(pageIdxInOriginalFile, pageIdxInWAL);
-        bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
-        bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
-    }
-}
-
-void OverflowPages::writeStringOverflowAndUpdateOverflowPtr(
-    gf_string_t& strToWriteTo, gf_string_t& strToWriteFrom) {
-    // Note: Currently we are completely serializing threads that want to write to the overflow
-    // pages. We can relax this by releasing the lock after each thread 'reserves' their spot
-    // to write to in an overflow page by getting a nextBytePosToWriteTo and updating the
-    // nextBytePosToWriteTo field. Then they can coordinate by acquiring the page lock of
-    // the page that this location corresponds to. However it is still likely that concurrent
-    // threads will still try to write to the same page and block each other because we
-    // give nextBytePosToWriteTo consecutively.
-    lock_t lck{mtx};
-    insertNewOverflowPageIfNecessaryWithoutLock(strToWriteFrom);
-    auto updatedPageInfoAndWALPageFrame =
-        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
-            nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
-    memcpy(updatedPageInfoAndWALPageFrame.frame +
-               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
-        reinterpret_cast<char*>(strToWriteFrom.overflowPtr), strToWriteFrom.len);
-    TypeUtils::encodeOverflowPtr(strToWriteTo.overflowPtr,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
-    nextBytePosToWriteTo += strToWriteFrom.len;
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
-}
-
 vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType& dataType) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
@@ -164,6 +120,108 @@ vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType
     }
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return retLiterals;
+}
+
+void OverflowPages::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
+    PageElementCursor byteCursor =
+        PageUtils::getPageElementCursorForPos(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
+    if ((byteCursor.posInPage == 0) ||
+        ((byteCursor.posInPage + numBytesToAppend - 1) > DEFAULT_PAGE_SIZE)) {
+        // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
+        // where it is.
+        nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);
+        auto pageIdxInOriginalFile = fileHandle.addNewPage();
+        auto pageIdxInWAL = wal->logPageInsertRecord(
+            fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
+        bufferManager.pinWithoutAcquiringPageLock(
+            *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
+        fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
+        fileHandle.setUpdatedWALPageVersionNoLock(pageIdxInOriginalFile, pageIdxInWAL);
+        bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+        bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
+    }
+}
+
+void OverflowPages::setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst) {
+    if (src.len < gf_string_t::SHORT_STR_LENGTH) {
+        return;
+    } else if (src.len > DEFAULT_PAGE_SIZE) {
+        throw RuntimeException(
+            StringUtils::getLongStringErrorMessage(src.getAsString().c_str(), DEFAULT_PAGE_SIZE));
+    }
+    addNewPageIfNecessaryWithoutLock(src.len);
+    auto updatedPageInfoAndWALPageFrame =
+        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+            nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
+    memcpy(updatedPageInfoAndWALPageFrame.frame +
+               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
+        reinterpret_cast<char*>(src.overflowPtr), src.len);
+    TypeUtils::encodeOverflowPtr(dst.overflowPtr,
+        updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
+        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+    nextBytePosToWriteTo += src.len;
+    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+}
+
+void OverflowPages::writeStringOverflowAndUpdateOverflowPtr(
+    const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo) {
+    // Note: Currently we are completely serializing threads that want to write to the overflow
+    // pages. We can relax this by releasing the lock after each thread 'reserves' their spot
+    // to write to in an overflow page by getting a nextBytePosToWriteTo and updating the
+    // nextBytePosToWriteTo field. Then they can coordinate by acquiring the page lock of
+    // the page that this location corresponds to. However it is still likely that concurrent
+    // threads will still try to write to the same page and block each other because we
+    // give nextBytePosToWriteTo consecutively.
+    lock_t lck{mtx};
+    setStringOverflowWithoutLock(strToWriteFrom, strToWriteTo);
+}
+
+void OverflowPages::setListRecursiveIfNestedWithoutLock(
+    const gf_list_t& src, gf_list_t& dst, const DataType& dataType) {
+    auto elementSize = Types::getDataTypeSize(*dataType.childType);
+    if (src.size * elementSize > DEFAULT_PAGE_SIZE) {
+        throw RuntimeException(StringUtils::string_format(
+            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
+            src.size * elementSize));
+    }
+    addNewPageIfNecessaryWithoutLock(src.size * elementSize);
+    auto updatedPageInfoAndWALPageFrame =
+        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+            nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
+    dst.size = src.size;
+    // Copy non-overflow part for elements in the list.
+    memcpy(updatedPageInfoAndWALPageFrame.frame +
+               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
+        (uint8_t*)src.overflowPtr, src.size * elementSize);
+    nextBytePosToWriteTo += src.size * elementSize;
+    TypeUtils::encodeOverflowPtr(dst.overflowPtr,
+        updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
+        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    if (dataType.childType->typeID == STRING) {
+        // Copy overflow for string elements in the list.
+        auto dstListElements =
+            (gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
+                           updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+        for (auto i = 0u; i < dst.size; i++) {
+            setStringOverflowWithoutLock(((gf_string_t*)src.overflowPtr)[i], dstListElements[i]);
+        }
+    } else if (dataType.childType->typeID == LIST) {
+        // Recursively copy overflow for list elements in the list.
+        auto dstListElements =
+            (gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
+                         updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+        for (auto i = 0u; i < dst.size; i++) {
+            setListRecursiveIfNestedWithoutLock(
+                ((gf_list_t*)src.overflowPtr)[i], dstListElements[i], *dataType.childType);
+        }
+    }
+}
+
+void OverflowPages::writeListOverflowAndUpdateOverflowPtr(
+    const gf_list_t& listToWriteFrom, gf_list_t& listToWriteTo, const DataType& dataType) {
+    lock_t lck{mtx};
+    setListRecursiveIfNestedWithoutLock(listToWriteFrom, listToWriteTo, dataType);
 }
 
 } // namespace storage

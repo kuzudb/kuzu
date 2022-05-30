@@ -13,14 +13,14 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
     if (ListHeaders::isALargeList(header)) {
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
         auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
-        cursor = PageUtils::getPageElementCursorForOffset(pos, numElementsInAPage);
+        cursor = PageUtils::getPageElementCursorForPos(pos, numElementsInAPage);
         cursor.pageIdx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
     } else {
         auto chunkId = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto listLen = ListHeaders::getSmallListLen(header);
         auto pos = listLen - reversePos;
-        cursor = PageUtils::getPageElementCursorForOffset(csrOffset + pos, numElementsInAPage);
+        cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
         cursor.pageIdx =
             metadata.getPageMapperForChunkIdx(chunkId)((csrOffset + pos) / numElementsInAPage);
     }

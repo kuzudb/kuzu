@@ -12,7 +12,7 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
     } else if (nodeIDVector->isSequential()) {
         // In sequential read, we fetch start offset regardless of selected position.
         auto startOffset = nodeIDVector->readNodeOffset(0);
-        auto pageCursor = PageUtils::getPageElementCursorForOffset(startOffset, numElementsPerPage);
+        auto pageCursor = PageUtils::getPageElementCursorForPos(startOffset, numElementsPerPage);
         // no logical-physical page mapping is required for columns
         auto logicalToPhysicalPageMapper = [](uint32_t i) { return i; };
         if (nodeIDVector->state->isUnfiltered()) {
@@ -31,7 +31,7 @@ void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>&
 }
 
 Literal Column::readValue(node_offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.posInPage), dataType);
     bufferManager.unpin(fileHandle, cursor.pageIdx);
@@ -40,7 +40,7 @@ Literal Column::readValue(node_offset_t offset) {
 
 // Note this is only used for tests
 bool Column::isNull(node_offset_t nodeOffset) {
-    auto cursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
+    auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto NULLByteAndByteLevelOffset =
         PageUtils::getNULLByteAndByteLevelOffsetPair(frame, cursor.posInPage);
@@ -103,7 +103,7 @@ void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
         resultVector->setNull(pos, true);
         return;
     }
-    auto pageCursor = PageUtils::getPageElementCursorForOffset(
+    auto pageCursor = PageUtils::getPageElementCursorForPos(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
     auto [fileHandleToPin, pageIdxToPin] =
         getFileHandleAndPhysicalPageIdxToPin(transaction, pageCursor.pageIdx);
@@ -119,20 +119,16 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        auto stringToWriteToPtr =
+        auto stringToWriteTo =
             ((gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
                             mapElementPosToByteOffset(
                                 updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage)));
         auto stringToWriteFrom = ((gf_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
-        if (stringToWriteFrom.len > DEFAULT_PAGE_SIZE) {
-            throw RuntimeException(StringUtils::getLongStringErrorMessage(
-                stringToWriteFrom.getAsString().c_str(), DEFAULT_PAGE_SIZE));
-        }
-        // If the string we write is a long string, it's overflowptr is current pointing to the
+        // If the string we write is a long string, it's overflowPtr is currently pointing to the
         // overflow buffer of vectorToWriteFrom. We need to move it to storage.
         if (!gf_string_t::isShortString(stringToWriteFrom.len)) {
             stringOverflowPages.writeStringOverflowAndUpdateOverflowPtr(
-                *stringToWriteToPtr, stringToWriteFrom);
+                stringToWriteFrom, *stringToWriteTo);
         }
     }
     finishUpdatingPage(updatedPageInfoAndWALPageFrame);
@@ -144,14 +140,8 @@ void StringPropertyColumn::readValues(Transaction* transaction,
     stringOverflowPages.readStringsToVector(transaction, *valueVector);
 }
 
-void ListPropertyColumn::readValues(Transaction* transaction,
-    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
-    Column::readValues(transaction, nodeIDVector, valueVector);
-    listOverflowPages.readListsToVector(*valueVector);
-}
-
 Literal StringPropertyColumn::readValue(node_offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     gf_string_t gfString;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.posInPage), sizeof(gf_string_t));
@@ -159,13 +149,36 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     return Literal(stringOverflowPages.readString(gfString));
 }
 
+void ListPropertyColumn::readValues(Transaction* transaction,
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
+    Column::readValues(transaction, nodeIDVector, valueVector);
+    listOverflowPages.readListsToVector(*valueVector);
+}
+
 Literal ListPropertyColumn::readValue(node_offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     gf_list_t gfList;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.posInPage), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(listOverflowPages.readList(gfList, dataType), dataType);
+}
+
+void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    assert(vectorToWriteFrom->dataType.typeID == LIST);
+    auto updatedPageInfoAndWALPageFrame =
+        beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
+        auto gfListToWriteTo =
+            ((gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
+                          mapElementPosToByteOffset(
+                              updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage)));
+        auto gfListToWriteFrom = ((gf_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        listOverflowPages.writeListOverflowAndUpdateOverflowPtr(
+            gfListToWriteFrom, *gfListToWriteTo, vectorToWriteFrom->dataType);
+    }
+    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
 }
 
 void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
@@ -174,7 +187,7 @@ void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t p
         resultVector->setNull(pos, true);
         return;
     }
-    auto pageCursor = PageUtils::getPageElementCursorForOffset(
+    auto pageCursor = PageUtils::getPageElementCursorForPos(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
     readNodeIDsFromAPageBySequentialCopy(resultVector, pos, pageCursor.pageIdx,
         pageCursor.posInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,

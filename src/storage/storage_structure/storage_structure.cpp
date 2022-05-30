@@ -24,7 +24,7 @@ UpdatedPageInfoAndWALPageFrame
 StorageStructure::getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
     uint64_t elementOffset, uint64_t numElementsPerPage) {
     auto originalPageCursor =
-        PageUtils::getPageElementCursorForOffset(elementOffset, numElementsPerPage);
+        PageUtils::getPageElementCursorForPos(elementOffset, numElementsPerPage);
     fileHandle.createPageVersionGroupIfNecessary(originalPageCursor.pageIdx);
     fileHandle.acquirePageLock(originalPageCursor.pageIdx, true /* block */);
     page_idx_t pageIdxInWAL;

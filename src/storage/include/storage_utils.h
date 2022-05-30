@@ -82,11 +82,11 @@ struct PageUtils {
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
-    static PageElementCursor getPageElementCursorForOffset(
-        const uint64_t& elementOffset, const uint32_t numElementsPerPage) {
-        assert((elementOffset / numElementsPerPage) < UINT32_MAX);
-        return PageElementCursor{(page_idx_t)(elementOffset / numElementsPerPage),
-            (uint16_t)(elementOffset % numElementsPerPage)};
+    static PageElementCursor getPageElementCursorForPos(
+        const uint64_t& elementPos, const uint32_t numElementsPerPage) {
+        assert((elementPos / numElementsPerPage) < UINT32_MAX);
+        return PageElementCursor{(page_idx_t)(elementPos / numElementsPerPage),
+            (uint16_t)(elementPos % numElementsPerPage)};
     }
 };
 
