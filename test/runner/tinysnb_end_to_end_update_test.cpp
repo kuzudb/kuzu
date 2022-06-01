@@ -114,6 +114,48 @@ TEST_F(TinySnbUpdateTest, SetManyNodeLongStringPropRollbackTest) {
     ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
 }
 
+TEST_F(TinySnbUpdateTest, SetOneNodeListOfIntPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.workedHours=[10,20]");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours");
+    auto value = result->getNext()->getValue(0);
+    ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType), "[10,20]");
+}
+
+TEST_F(TinySnbUpdateTest, SetOneNodeListOfShortStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['intel','microsoft']");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames");
+    auto value = result->getNext()->getValue(0);
+    ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType), "[intel,microsoft]");
+}
+
+TEST_F(TinySnbUpdateTest, SetOneNodeListOfLongStringPropTest) {
+    conn->query(
+        "MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames");
+    auto value = result->getNext()->getValue(0);
+    ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType),
+        "[abcndwjbwesdsd,microsofthbbjuwgedsd]");
+}
+
+TEST_F(TinySnbUpdateTest, SetManyNodeListPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=8 SET a.courseScoresPerTerm=[[10,20],[0,0,0]]");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm");
+    auto value = result->getNext()->getValue(0);
+    ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType), "[[10,20],[0,0,0]]");
+}
+
+TEST_F(TinySnbUpdateTest, SetVeryLongListErrorsTest) {
+    conn->beginWriteTransaction();
+    string veryLongList = "[";
+    for (int i = 0; i < 599; ++i) {
+        veryLongList += to_string(i);
+        veryLongList += ",";
+    }
+    veryLongList += "599]";
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=" + veryLongList);
+    ASSERT_FALSE(result->isSuccess());
+}
+
 TEST_F(TinySnbUpdateTest, SetNodeIntervalPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.lastJobDuration=interval('1 years 1 days')");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration");

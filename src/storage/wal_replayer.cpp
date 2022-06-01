@@ -47,8 +47,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         }
         if (!isCheckpoint && walRecord.pageInsertOrUpdateRecord.isInsert) {
             // Note: We can directly call removePageIdxAndTruncateIfNecessary here because we assume
-            // there is asingle write transaction in the system at any point in time. Suppose page 5
-            // and page 6 were added to a file during a transaction, which is now rolling back. As
+            // there is a single write transaction in the system at any point in time. Suppose page
+            // 5 and page 6 were added to a file during a transaction, which is now rolling back. As
             // we replay the log to rollback, we see page 5's insertion first. However, we can
             // directly truncate the file to 5 (even if later we will see a page 6 insertion),
             // because we assume that if there were further new page additions to the same file,
@@ -61,7 +61,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             fileHandle->clearUpdatedWALPageVersion(
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         }
-    }
+    } break;
     case COMMIT_RECORD: {
         break;
     }

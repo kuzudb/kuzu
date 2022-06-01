@@ -11,13 +11,13 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
     if (ListHeaders::isALargeList(header)) {
         info.isLargeList = true;
         auto largeListIdx = ListHeaders::getLargeListIdx(header);
-        info.cursor = PageUtils::getPageElementCursorForOffset(0, numElementsPerPage);
+        info.cursor = PageUtils::getPageElementCursorForPos(0, numElementsPerPage);
         info.mapper = metadata.getPageMapperForLargeListIdx(largeListIdx);
         info.listLen = metadata.getNumElementsInLargeLists(largeListIdx);
     } else {
         info.isLargeList = false;
         auto chunkIdx = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
-        info.cursor = PageUtils::getPageElementCursorForOffset(
+        info.cursor = PageUtils::getPageElementCursorForPos(
             ListHeaders::getSmallListCSROffset(header), numElementsPerPage);
         info.mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
         info.listLen = ListHeaders::getSmallListLen(header);
@@ -49,7 +49,7 @@ void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& 
 void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
     // assumes that the associated adjList has already updated the syncState.
-    auto pageCursor = PageUtils::getPageElementCursorForOffset(
+    auto pageCursor = PageUtils::getPageElementCursorForPos(
         largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
     auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     readBySequentialCopy(tmpTransaction.get(), valueVector, pageCursor, info.mapper);
@@ -93,7 +93,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         csrOffset = 0;
     } else {
         csrOffset = listSyncState->getEndIdx();
-        info.cursor = PageUtils::getPageElementCursorForOffset(csrOffset, numElementsPerPage);
+        info.cursor = PageUtils::getPageElementCursorForPos(csrOffset, numElementsPerPage);
     }
     // The number of edges to read is the minimum of: (i) how may edges are left to read
     // (info.listLen - csrOffset); and (ii) how many elements are left in the current page that's

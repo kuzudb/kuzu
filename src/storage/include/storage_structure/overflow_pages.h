@@ -64,12 +64,17 @@ public:
     string readString(const gf_string_t& str);
     vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);
     void writeStringOverflowAndUpdateOverflowPtr(
-        gf_string_t& strToWriteTo, gf_string_t& strToWriteFrom);
+        const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo);
+    void writeListOverflowAndUpdateOverflowPtr(const gf_list_t& listToWriteFrom,
+        gf_list_t& listToWriteTo, const DataType& elementDataType);
 
 private:
-    void insertNewOverflowPageIfNecessaryWithoutLock(gf_string_t& strToWriteFrom);
+    void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void readListToVector(
         gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer);
+    void setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst);
+    void setListRecursiveIfNestedWithoutLock(
+        const gf_list_t& src, gf_list_t& dst, const DataType& dataType);
 
 private:
     // This is the index of the last free byte to which we can write.

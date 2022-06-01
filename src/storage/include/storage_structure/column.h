@@ -28,7 +28,7 @@ public:
     virtual void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector);
 
-    virtual void writeValues(const shared_ptr<ValueVector>& nodeIDVector,
+    void writeValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& vectorToWriteFrom);
 
     // Currently, used only in Loader tests.
@@ -97,6 +97,9 @@ public:
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
           listOverflowPages{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
+
+    void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
     void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector) override;
