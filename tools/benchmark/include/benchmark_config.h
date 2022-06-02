@@ -22,6 +22,8 @@ struct BenchmarkConfig {
     string outputPath;
     // in-memory mode
     bool isInMemoryMode = false;
+    uint64_t defaultBufferPoolSize = 1 << 22;
+    uint64_t largeBufferPoolSize = 1 << 22;
 };
 
 } // namespace benchmark
