@@ -7,9 +7,7 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
     uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadata& metadata,
     bool hasNULLBytes) {
     PageElementCursor cursor;
-    auto numElementsInAPage =
-        hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesPerElement) :
-                       PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesPerElement);
+    auto numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerElement, hasNULLBytes);
     if (ListHeaders::isALargeList(header)) {
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
         auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;

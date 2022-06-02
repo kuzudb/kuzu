@@ -88,7 +88,7 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
     atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
     const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->trace("Start: ListHeaders={0:p}", (void*)listHeaders);
-    auto numElementsPerPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+    auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
     auto numChunks = numNodes >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
@@ -140,8 +140,7 @@ void InMemStructuresBuilder::calculateListsMetadataTask(uint64_t numNodes, uint3
     listsMetadata->initLargeListPageLists(largeListIdx);
     nodeOffset = 0u;
     largeListIdx = 0u;
-    auto numPerPage = hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
-                                     PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+    auto numPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);

@@ -33,8 +33,8 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
         tableSchema.appendColumn({!isVectorFlat, dataChunkPos,
-            (isVectorFlat ? Types::getDataTypeSize(vector->dataType) :
-                            (uint32_t)sizeof(overflow_value_t))});
+            isVectorFlat ? Types::getDataTypeSize(vector->dataType) :
+                           (uint32_t)sizeof(overflow_value_t)});
         vectorsToAppend.push_back(vector);
         sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }

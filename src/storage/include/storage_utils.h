@@ -7,6 +7,7 @@
 #include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/include/null_mask.h"
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
 
@@ -14,11 +15,6 @@ using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
-
-constexpr uint8_t bitMasksWithSingle1s[8] = {
-    0b10000000, 0b01000000, 0b00100000, 0b00010000, 0b00001000, 0b00000100, 0b00000010, 0b00000001};
-constexpr uint8_t bitMasksWithSingle0s[8] = {
-    0b01111111, 0b10111111, 0b11011111, 0b11101111, 0b11110111, 0b11111011, 0b11111101, 0b11111110};
 
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
@@ -55,29 +51,14 @@ struct PageElementCursor {
 
 struct PageUtils {
 
-    // The first is the NULLByte, and the second is the byteLevelOffset of the element, whose
-    // elementPos (which is the position/offset within a page) is given.
-    static inline pair<uint8_t, uint8_t> getNULLByteAndByteLevelOffsetPair(
-        uint8_t* frame, uint16_t elementPos) {
-        pair<uint8_t*, uint8_t> NULLBytePtrAndByteLevelOffset =
-            getNULLBytePtrAndByteLevelOffsetPair(frame, elementPos);
-        // Test if this makes a difference: frame + (DEFAULT_PAGE_SIZE - 1 - (elementPos >> 3)),
-        // elementPos % 8
-        return pair(*NULLBytePtrAndByteLevelOffset.first, NULLBytePtrAndByteLevelOffset.second);
-    }
-
-    static inline pair<uint8_t*, uint8_t> getNULLBytePtrAndByteLevelOffsetPair(
-        uint8_t* frame, uint16_t elementPos) {
-        return pair(frame + (DEFAULT_PAGE_SIZE - 1 - (elementPos >> 3)), elementPos % 8);
-    }
-
-    static uint32_t getNumElementsInAPageWithNULLBytes(uint32_t elementSize) {
-        auto numNULLBytes = (uint32_t)ceil((double)DEFAULT_PAGE_SIZE / ((elementSize << 3) + 1));
-        return (DEFAULT_PAGE_SIZE - numNULLBytes) / elementSize;
-    }
-
-    static uint32_t getNumElementsInAPageWithoutNULLBytes(uint32_t elementSize) {
-        return DEFAULT_PAGE_SIZE / elementSize;
+    static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+        auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
+        auto numNullEntries =
+            hasNull ? (uint32_t)ceil((double)DEFAULT_PAGE_SIZE /
+                                     ((elementSize << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
+                                         numBytesPerNullEntry)) :
+                      0;
+        return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
     }
 
     // This function returns the page pageIdx of the page where element will be found and the pos of

@@ -83,7 +83,7 @@ public:
 
 protected:
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
+        DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal);
 
     BaseColumnOrList(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -122,18 +122,14 @@ protected:
         uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
         uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
 
-    static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
-        uint64_t elementPos, uint64_t offsetInVector);
+    void readSingleNullBit(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
+        uint64_t elementPos, uint64_t offsetInVector) const;
 
-    static void setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull);
-
-    static inline bool isNullFromNULLByte(uint8_t NULLByte, uint8_t byteLevelPos) {
-        return (NULLByte & bitMasksWithSingle1s[byteLevelPos]) > 0;
-    }
+    void setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) const;
 
 private:
     uint64_t getNumValuesToSkipInSequentialCopy(
-        uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage);
+        uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage) const;
 
     void readAPageBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
@@ -149,12 +145,8 @@ private:
         uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement,
         NodeIDCompressionScheme& compressionScheme);
 
-    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
-        uint64_t posInPage, uint64_t posInVector, uint64_t num);
-
-    static void setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
-        pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num,
-        uint64_t offsetInVector);
+    void readNullBitsFromAPage(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
+        uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
 
 public:
     DataType dataType;

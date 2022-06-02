@@ -6,10 +6,9 @@ namespace loader {
 
 InMemFile::InMemFile(
     string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages)
-    : filePath{move(filePath)}, numUsedPages{0}, hasNullMask{hasNullMask} {
-    numElementsInAPage = hasNullMask ?
-                             PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
-                             PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
+    : filePath{move(filePath)}, numBytesForElement{numBytesForElement}, numUsedPages{0},
+      hasNullMask{hasNullMask} {
+    numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, hasNullMask);
     for (auto i = 0u; i < numPages; i++) {
         addANewPage();
     }
@@ -17,7 +16,7 @@ InMemFile::InMemFile(
 
 uint32_t InMemFile::addANewPage() {
     auto newPageIdx = pages.size();
-    pages.push_back(make_unique<InMemPage>(numElementsInAPage, hasNullMask));
+    pages.push_back(make_unique<InMemPage>(numElementsInAPage, numBytesForElement, hasNullMask));
     return newPageIdx;
 }
 
@@ -27,7 +26,6 @@ void InMemFile::flush() {
     }
     auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
     for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
-        pages[pageIdx]->encodeNullBits();
         FileUtils::writeToFile(
             fileInfo.get(), pages[pageIdx]->data, DEFAULT_PAGE_SIZE, pageIdx * DEFAULT_PAGE_SIZE);
     }

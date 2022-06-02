@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/gf_string.h"
 
 using namespace std;

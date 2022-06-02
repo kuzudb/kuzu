@@ -32,6 +32,7 @@ protected:
 
 public:
     string filePath;
+    uint16_t numBytesForElement;
     uint64_t numElementsInAPage;
     uint32_t numUsedPages;
     bool hasNullMask;

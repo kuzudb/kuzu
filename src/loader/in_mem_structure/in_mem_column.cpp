@@ -1,5 +1,6 @@
 #include "src/loader/include/in_mem_structure/in_mem_column.h"
 
+#include <iostream>
 namespace graphflow {
 namespace loader {
 
@@ -7,7 +8,7 @@ InMemColumn::InMemColumn(
     std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
     assert(dataType.typeID != UNSTRUCTURED);
-    numElementsInAPage = PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement);
+    numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
     auto numPages = ceil((double)numElements / (double)numElementsInAPage);
     inMemFile =
         make_unique<InMemFile>(this->fName, numBytesForElement, true /* hasNULLBytes */, numPages);

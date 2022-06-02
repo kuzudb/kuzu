@@ -65,10 +65,10 @@ Literal Column::readValue(node_offset_t offset) {
 bool Column::isNull(node_offset_t nodeOffset) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    auto NULLByteAndByteLevelOffset =
-        PageUtils::getNULLByteAndByteLevelOffsetPair(frame, cursor.posInPage);
+    auto nullEntries = (uint64_t*)(frame + (elementSize * numElementsPerPage));
+    auto isNull = NullMask::isNull(nullEntries, cursor.posInPage);
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return isNullFromNULLByte(NULLByteAndByteLevelOffset.first, NULLByteAndByteLevelOffset.second);
+    return isNull;
 }
 
 void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
@@ -90,7 +90,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     auto vectorBytesOffset = vectorPos * elementSize;
     auto frameBytesOffset = cursor.posInPage * elementSize;
     memcpy(resultVector->values + vectorBytesOffset, frame + frameBytesOffset, elementSize);
-    setNULLBitsForAPos(resultVector, frame, cursor.posInPage, vectorPos);
+    readSingleNullBit(resultVector, frame, cursor.posInPage, vectorPos);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
