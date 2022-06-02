@@ -26,7 +26,7 @@ bool AdjColumnExtend::getNextTuples() {
         }
         saveDataChunkSelectorState(inputNodeIDDataChunk);
         outputVector->setAllNull();
-        nodeIDColumn->readValues(transaction, inputNodeIDVector, outputVector);
+        nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
         hasAtLeastOneNonNullValue = discardNullNodesInVector(*outputVector);
     } while (!hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
