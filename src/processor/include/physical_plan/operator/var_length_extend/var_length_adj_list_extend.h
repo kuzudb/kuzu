@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/var_length_extend/var_length_extend.h"
-#include "src/storage/include/storage_structure/lists/lists.h"
+#include "src/storage/storage_structure/include/lists/lists.h"
 
 using namespace std;
 using namespace graphflow::common;

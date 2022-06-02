@@ -2,7 +2,7 @@
 
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/storage/include/storage_structure/lists/lists.h"
+#include "src/storage/storage_structure/include/lists/lists.h"
 
 using namespace std;
 using namespace graphflow::common;

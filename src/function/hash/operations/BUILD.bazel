@@ -9,6 +9,7 @@ cc_library(
     visibility = [
         "//src/processor:__pkg__",
         "//src/storage:__pkg__",
+        "//src/storage/index:__pkg__",
         "//test/common:__pkg__",
     ],
     deps = [

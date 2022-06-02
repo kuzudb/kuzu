@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/wal/wal_record.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "src/storage/wal/include/wal_record.h"
 
 namespace graphflow {
 namespace storage {

@@ -7,7 +7,7 @@
 #include "transaction.h"
 
 #include "src/common/include/utils.h"
-#include "src/storage/include/wal/wal.h"
+#include "src/storage/wal/include/wal.h"
 
 using namespace std;
 using lock_t = unique_lock<mutex>;

@@ -2,14 +2,13 @@
 
 #include <string>
 
-#include "wal/wal_record.h"
-
 #include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/null_mask.h"
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
+#include "src/storage/wal/include/wal_record.h"
 
 using namespace graphflow::common;
 
@@ -51,19 +50,11 @@ struct PageElementCursor {
 
 struct PageUtils {
 
-    static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
-        auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
-        auto numNullEntries =
-            hasNull ? (uint32_t)ceil((double)DEFAULT_PAGE_SIZE /
-                                     ((elementSize << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
-                                         numBytesPerNullEntry)) :
-                      0;
-        return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
-    }
+    static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull);
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
-    static PageElementCursor getPageElementCursorForPos(
+    static inline PageElementCursor getPageElementCursorForPos(
         const uint64_t& elementPos, const uint32_t numElementsPerPage) {
         assert((elementPos / numElementsPerPage) < UINT32_MAX);
         return PageElementCursor{(page_idx_t)(elementPos / numElementsPerPage),

@@ -1,4 +1,4 @@
-#include "src/storage/include/index/hash_index_utils.h"
+#include "include/hash_index_utils.h"
 
 namespace graphflow {
 namespace storage {

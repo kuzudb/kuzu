@@ -1,4 +1,4 @@
-#include "src/storage/include/storage_structure/column.h"
+#include "src/storage/storage_structure/include/column.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
 

@@ -11,7 +11,7 @@ cc_test(
     ],
     deps = [
         "//src/transaction:transaction",
-        "//src/storage:wal",
+        "//src/storage/wal:wal",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

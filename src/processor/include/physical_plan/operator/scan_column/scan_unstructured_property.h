@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
-#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
+#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 using namespace graphflow::storage;
 
@@ -21,7 +21,7 @@ public:
               paramsString},
           propertyKeys{move(propertyKeys)}, unstructuredPropertyLists{unstructuredPropertyLists} {}
 
-    ~ScanUnstructuredProperty() = default;
+    ~ScanUnstructuredProperty() override = default;
 
     PhysicalOperatorType getOperatorType() override { return SCAN_UNSTRUCTURED_PROPERTY; }
 

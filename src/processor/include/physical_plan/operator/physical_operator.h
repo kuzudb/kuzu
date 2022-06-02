@@ -3,7 +3,7 @@
 #include "src/processor/include/execution_context.h"
 #include "src/processor/include/physical_plan/data_pos.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/storage/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
 
 using namespace std;
 

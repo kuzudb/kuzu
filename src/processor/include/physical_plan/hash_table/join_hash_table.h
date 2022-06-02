@@ -3,7 +3,7 @@
 #include "src/common/include/utils.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/hash_table/base_hash_table.h"
-#include "src/storage/include/memory_manager.h"
+#include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
 using namespace graphflow::function::operation;

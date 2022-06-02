@@ -1,6 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/storage/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
 
 using namespace graphflow::testing;
 

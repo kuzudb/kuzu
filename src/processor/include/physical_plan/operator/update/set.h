@@ -2,7 +2,7 @@
 
 #include "src/expression_evaluator/include/base_evaluator.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/storage/include/storage_structure/column.h"
+#include "src/storage/storage_structure/include/column.h"
 
 using namespace graphflow::evaluator;
 

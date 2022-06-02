@@ -1,57 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "file_handle",
-    srcs = [
-        "file_handle.cpp",
-        "versioned_file_handle.cpp",
-    ],
-    hdrs = [
-        "include/file_handle.h",
-        "include/versioned_file_handle.h",
-    ],
-    visibility = ["//visibility:private"],
-    deps = [
-        "storage_utils",
-        "wal_record",
-        "//src/common:configs",
-        "@gabime_spdlog",
-    ],
-)
-
-cc_library(
-    name = "buffer_manager",
-    srcs = [
-        "buffer_manager.cpp",
-        "buffer_pool.cpp",
-    ],
-    hdrs = [
-        "include/buffer_manager.h",
-        "include/buffer_pool.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "file_handle",
-        "//src/common:profiler",
-        "@nlohmann_json",
-    ],
-)
-
-cc_library(
-    name = "memory_manager",
-    srcs = [
-        "memory_manager.cpp",
-    ],
-    hdrs = [
-        "include/memory_manager.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "buffer_manager",
-    ],
-)
-
-cc_library(
     name = "compression_scheme",
     srcs = [
         "compression_scheme.cpp",
@@ -66,18 +15,6 @@ cc_library(
 )
 
 cc_library(
-    name = "storage_structure_utils",
-    srcs = [],
-    hdrs = [
-        "include/storage_structure_utils.h",
-    ],
-    deps = [
-        "buffer_manager",
-        "file_handle",
-    ],
-)
-
-cc_library(
     name = "storage_utils",
     srcs = [
         "storage_utils.cpp",
@@ -85,133 +22,17 @@ cc_library(
     hdrs = [
         "include/storage_utils.h",
     ],
+    visibility = [
+        "//src/storage/storage_structure:__pkg__",
+        "//src/storage/buffer_manager:__pkg__",
+    ],
     deps = [
-        "wal_record",
+        "//src/storage/wal:wal_record",
         "//src/catalog:catalog_structs",
         "//src/common:configs",
         "//src/common:null_mask",
         "//src/common:utils",
         "//src/common/types",
-    ],
-)
-
-cc_library(
-    name = "storage_structure",
-    srcs = [
-        "storage_structure/overflow_pages.cpp",
-        "storage_structure/storage_structure.cpp",
-    ],
-    hdrs = [
-        "include/storage_structure/overflow_pages.h",
-        "include/storage_structure/storage_structure.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "buffer_manager",
-        "compression_scheme",
-        "storage_structure_utils",
-        "storage_utils",
-        "wal",
-        "//src/common:profiler",
-        "//src/common:vector",
-        "//src/transaction",
-    ],
-)
-
-cc_library(
-    name = "lists",
-    srcs = [
-        "storage_structure/lists/list_headers.cpp",
-        "storage_structure/lists/list_sync_state.cpp",
-        "storage_structure/lists/lists.cpp",
-        "storage_structure/lists/lists_metadata.cpp",
-        "storage_structure/lists/unstructured_property_lists.cpp",
-    ],
-    hdrs = [
-        "include/storage_structure/lists/large_list_handle.h",
-        "include/storage_structure/lists/list_headers.h",
-        "include/storage_structure/lists/list_sync_state.h",
-        "include/storage_structure/lists/lists.h",
-        "include/storage_structure/lists/lists_metadata.h",
-        "include/storage_structure/lists/unstructured_property_lists.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "storage_structure",
-    ],
-)
-
-cc_library(
-    name = "column",
-    srcs = [
-        "storage_structure/column.cpp",
-    ],
-    hdrs = [
-        "include/storage_structure/column.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "storage_structure",
-        "//src/catalog",
-    ],
-)
-
-cc_library(
-    name = "store",
-    srcs = [
-        "store/node.cpp",
-        "store/nodes_store.cpp",
-        "store/rel.cpp",
-        "store/rels_store.cpp",
-    ],
-    hdrs = [
-        "include/store/node.h",
-        "include/store/nodes_store.h",
-        "include/store/rel.h",
-        "include/store/rels_store.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "column",
-        "hash_index",
-        "lists",
-        "//src/catalog",
-    ],
-)
-
-cc_library(
-    name = "wal_record",
-    srcs = [
-        "wal/wal_record.cpp",
-    ],
-    hdrs = [
-        "include/wal/wal_record.h",
-    ],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "//src/common:type_utils",
-        "//src/common:utils",
-    ],
-)
-
-cc_library(
-    name = "wal",
-    srcs = [
-        "wal/wal.cpp",
-    ],
-    hdrs = [
-        "include/wal/wal.h",
-    ],
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        "buffer_manager",
-        "wal_record",
-        "//src/common:type_utils",
-        "//src/common:utils",
     ],
 )
 
@@ -227,27 +48,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "store",
-        "wal",
-    ],
-)
-
-cc_library(
-    name = "hash_index",
-    srcs = [
-        "index/hash_index.cpp",
-        "index/hash_index_utils.cpp",
-    ],
-    hdrs = [
-        "include/index/hash_index.h",
-        "include/index/hash_index_utils.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "memory_manager",
-        "//src/common:vector",
-        "//src/common/types",
-        "//src/function/hash/operations:hash_operations",
-        "//src/loader:in_mem_pages",
+        "//src/storage/store:store",
+        "//src/storage/wal:wal",
     ],
 )

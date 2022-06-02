@@ -4,7 +4,7 @@
 
 #include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/loader/include/loader_task.h"
-#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
+#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 namespace graphflow {
 namespace loader {

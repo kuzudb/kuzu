@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/file_handle.h"
-#include "src/storage/include/memory_manager.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/file_handle.h"
+#include "src/storage/buffer_manager/include/memory_manager.h"
 
 namespace graphflow {
 namespace common {

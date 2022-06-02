@@ -1,4 +1,4 @@
-#include "src/storage/include/storage_structure/lists/lists.h"
+#include "src/storage/storage_structure/include/lists/lists.h"
 
 using namespace graphflow::common;
 
