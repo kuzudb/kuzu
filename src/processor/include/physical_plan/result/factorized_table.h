@@ -188,9 +188,9 @@ private:
 
     uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
 
-    void assertTupleIdxColIdxAndValueIsFlat(uint64_t tupleIdx, uint64_t colIdx) const;
-
-    uint8_t* getCell(uint64_t tupleIdx, uint64_t colIdx) const;
+    inline uint8_t* getCell(uint64_t tupleIdx, uint64_t colIdx) const {
+        return getTuple(tupleIdx) + tableSchema.getColOffset(colIdx);
+    }
 
     inline pair<uint64_t, uint64_t> getBlockIdxAndTupleIdxInBlock(uint64_t tupleIdx) const {
         return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);

@@ -274,7 +274,7 @@ TEST_F(RadixSortTest, singleOrderByColUnstrSameDataTypeTest) {
     vector<Value> sortingData = {Value(4.7), Value(-0.5), Value(10.52), Value(double(0)) /* NULL */,
         Value(double(0)) /* NULL */};
     vector<bool> nullMasks = {false, false, false, true, true};
-    vector<uint64_t> expectedTupleIdxOrder = {1, 0, 2, 3, 4};
+    vector<uint64_t> expectedTupleIdxOrder = {1, 0, 2, 4, 3};
     singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
         true /* isAsc */, false /* hasPayLoadCol */);
 }

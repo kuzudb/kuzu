@@ -203,17 +203,6 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
     return numTuplesToAppend;
 }
 
-void FactorizedTable::assertTupleIdxColIdxAndValueIsFlat(uint64_t tupleIdx, uint64_t colIdx) const {
-    assert(tupleIdx < numTuples);
-    assert(colIdx < tableSchema.getNumColumns());
-    assert(!tableSchema.getColumn(colIdx).getIsUnflat());
-}
-
-uint8_t* FactorizedTable::getCell(uint64_t tupleIdx, uint64_t colIdx) const {
-    assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
-    return getTuple(tupleIdx) + tableSchema.getColOffset(colIdx);
-}
-
 vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numTuplesToAppend) {
     auto numBytesPerTuple = tableSchema.getNumBytesPerTuple();
     assert(numBytesPerTuple < LARGE_PAGE_SIZE);
