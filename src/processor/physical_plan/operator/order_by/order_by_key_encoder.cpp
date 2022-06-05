@@ -26,15 +26,19 @@ namespace graphflow {
 namespace processor {
 
 OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
-    vector<bool>& isAscOrder, MemoryManager* memoryManager, uint16_t factorizedTableIdx)
+    vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
+    uint32_t numTuplesPerBlockInFT)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
-      nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx}, swapBytes{isLittleEndian()} {
+      ftIdx{ftIdx}, numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
+    if (numTuplesPerBlockInFT > MAX_FT_BLOCK_OFFSET) {
+        throw RuntimeException(
+            "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
+    }
     keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
     numBytesPerTuple = 0;
     for (auto& orderByVector : orderByVectors) {
         numBytesPerTuple += getEncodingSize(orderByVector->dataType);
     }
-    // 6 bytes for tupleIdx and 2 bytes for factorizedTableIdx
     numBytesPerTuple += 8;
     maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
@@ -44,28 +48,67 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
     }
 }
 
-uint64_t OrderByKeyEncoder::getEncodedTupleIdx(const uint8_t* tupleInfoPtr) {
-    uint64_t encodedTupleIdx = 0;
-    // Only the lower 6 bytes are used for localTupleIdx.
-    memcpy(&encodedTupleIdx, tupleInfoPtr, getEncodedTupleIdxSizeInBytes());
-    return encodedTupleIdx;
+uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
+    // Add one more byte for null flag.
+    switch (dataType.typeID) {
+    case UNSTRUCTURED:
+        // 1 byte for null flag + 1 byte for unstr data
+        return 2;
+    case STRING:
+        // 1 byte for null flag + 1 byte to indicate long/short string + 12 bytes for string prefix
+        return 2 + gf_string_t::SHORT_STR_LENGTH;
+    default:
+        return 1 + Types::getDataTypeSize(dataType);
+    }
 }
 
-uint64_t OrderByKeyEncoder::getEncodedFactorizedTableIdx(const uint8_t* tupleInfoPtr) {
-    uint16_t encodedFactorizedTableIdx = 0;
-    // The lower 6 bytes are used for localTupleIdx, only the higher two bytes are used for
-    // factorizedTableIdx.
-    memcpy(&encodedFactorizedTableIdx, tupleInfoPtr + getEncodedTupleIdxSizeInBytes(),
-        sizeof(encodedFactorizedTableIdx));
-    return encodedFactorizedTableIdx;
-}
-
-uint8_t OrderByKeyEncoder::flipSign(uint8_t key_byte) {
-    return key_byte ^ 128;
+void OrderByKeyEncoder::encodeKeys() {
+    uint32_t numEntries =
+        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selectedSize;
+    uint32_t encodedTuples = 0;
+    while (numEntries > 0) {
+        allocateMemoryIfFull();
+        uint32_t numEntriesToEncode =
+            min(numEntries, maxNumTuplesPerBlock - getNumTuplesInCurBlock());
+        auto tuplePtr =
+            keyBlocks.back()->getData() + keyBlocks.back()->numTuples * numBytesPerTuple;
+        uint32_t numEntriesEncoded = 0;
+        while (numEntriesEncoded < numEntriesToEncode) {
+            auto nextBatchOfEntriesToEncode =
+                min(numEntriesToEncode - numEntriesEncoded, numTuplesPerBlockInFT - ftBlockOffset);
+            for (auto i = 0u; i < nextBatchOfEntriesToEncode; i++) {
+                uint32_t tuplePtrOffset = 0;
+                for (auto keyColIdx = 0u; keyColIdx < orderByVectors.size(); keyColIdx++) {
+                    auto const keyBlockPtr = tuplePtr + tuplePtrOffset;
+                    uint32_t idxInOrderByVector =
+                        orderByVectors[0]->state->isFlat() ?
+                            orderByVectors[keyColIdx]->state->getPositionOfCurrIdx() :
+                            orderByVectors[keyColIdx]->state->selectedPositions[encodedTuples];
+                    encodeData(
+                        orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
+                    tuplePtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
+                }
+                auto tupleInfoPtr = tuplePtr + tuplePtrOffset;
+                *(uint32_t*)tupleInfoPtr = ftBlockIdx;
+                *(uint32_t*)(tupleInfoPtr + 4) = ftBlockOffset;
+                *(uint8_t*)(tupleInfoPtr + 7) = ftIdx;
+                encodedTuples++;
+                tuplePtr += numBytesPerTuple;
+                ftBlockOffset++;
+            }
+            if (ftBlockOffset == numTuplesPerBlockInFT) {
+                ftBlockIdx++;
+                ftBlockOffset = 0;
+            }
+            numEntriesEncoded += nextBatchOfEntriesToEncode;
+        }
+        keyBlocks.back()->numTuples += numEntriesToEncode;
+        numEntries -= numEntriesToEncode;
+    }
 }
 
 bool OrderByKeyEncoder::isLittleEndian() {
-    // little endian arch stores the least significant value in the lower bytes
+    // Little endian arch stores the least significant value in the lower bytes.
     int testNumber = 1;
     return *(uint8_t*)&testNumber == 1;
 }
@@ -126,8 +169,10 @@ void OrderByKeyEncoder::encodeString(gf_string_t data, uint8_t* resultPtr) {
     // Only encode the prefix of gf_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
         min((uint32_t)gf_string_t::SHORT_STR_LENGTH, data.len));
-    if (data.len < (uint32_t)gf_string_t::SHORT_STR_LENGTH) {
-        memset(resultPtr + data.len, '\0', gf_string_t::SHORT_STR_LENGTH - data.len);
+    if (gf_string_t::isShortString(data.len)) {
+        memset(resultPtr + data.len, '\0', gf_string_t::SHORT_STR_LENGTH + 1 - data.len);
+    } else {
+        resultPtr[12] = UINT8_MAX;
     }
 }
 
@@ -137,27 +182,6 @@ void OrderByKeyEncoder::encodeUnstr(uint8_t* resultPtr) {
     memcpy(resultPtr, &encodeVal, sizeof(encodeVal));
 }
 
-uint64_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
-    // Add one more byte for null flag.
-    switch (dataType.typeID) {
-    case UNSTRUCTURED:
-        // 1 byte for null flag + 1 byte for unstr data
-        return 2;
-    case STRING:
-        return 1 + gf_string_t::SHORT_STR_LENGTH;
-    default:
-        return 1 + Types::getDataTypeSize(dataType);
-    }
-}
-
-pair<uint64_t, uint64_t> OrderByKeyEncoder::getEncodedFactorizedTableIdxAndTupleIdx(
-    uint8_t* encodedTupleInfoPtr) {
-    auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(encodedTupleInfoPtr);
-    auto encodedFactorizedTableIdx =
-        OrderByKeyEncoder::getEncodedFactorizedTableIdx(encodedTupleInfoPtr);
-    return make_pair(encodedFactorizedTableIdx, encodedTupleIdx);
-}
-
 void OrderByKeyEncoder::allocateMemoryIfFull() {
     if (getNumTuplesInCurBlock() == maxNumTuplesPerBlock) {
         keyBlocks.emplace_back(make_shared<DataBlock>(memoryManager));
@@ -165,10 +189,10 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
 }
 
 void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
-    uint64_t idxInOrderByVector, uint8_t* keyBlockPtr, uint64_t keyColIdx) {
+    uint32_t idxInOrderByVector, uint8_t* keyBlockPtr, uint32_t keyColIdx) {
     if (orderByVector->isNull(idxInOrderByVector)) {
         // Set all bits to 1 if this is a null value.
-        for (uint64_t i = 0; i < getEncodingSize(orderByVector->dataType); i++) {
+        for (auto i = 0u; i < getEncodingSize(orderByVector->dataType); i++) {
             *(keyBlockPtr + i) = UINT8_MAX;
         }
     } else {
@@ -213,50 +237,9 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
     }
     if (!isAscOrder[keyColIdx]) {
         // If the current column is in desc order, flip all bytes.
-        for (uint64_t byte = 0; byte < getEncodingSize(orderByVector->dataType); ++byte) {
+        for (auto byte = 0u; byte < getEncodingSize(orderByVector->dataType); ++byte) {
             *(keyBlockPtr + byte) = ~*(keyBlockPtr + byte);
         }
-    }
-}
-
-void OrderByKeyEncoder::encodeKeys() {
-    auto numEntries =
-        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selectedSize;
-    // Check whether the nextLocalTupleIdx overflows.
-    if (nextLocalTupleIdx + numEntries - 1 > MAX_LOCAL_TUPLE_IDX) {
-        throw RuntimeException("Attempting to order too many tuples. The orderByKeyEncoder has "
-                               "achieved its maximum number of tuples!");
-    }
-    uint64_t encodedTuples = 0;
-    while (numEntries > 0) {
-        allocateMemoryIfFull();
-        uint64_t numEntriesToEncode =
-            min(numEntries, maxNumTuplesPerBlock - getNumTuplesInCurBlock());
-        for (uint64_t i = 0; i < numEntriesToEncode; i++) {
-            uint64_t keyBlockPtrOffset = 0;
-            const auto basePtr =
-                keyBlocks.back()->getData() + keyBlocks.back()->numTuples * numBytesPerTuple;
-            for (uint64_t keyColIdx = 0; keyColIdx < orderByVectors.size(); keyColIdx++) {
-                auto const keyBlockPtr = basePtr + keyBlockPtrOffset;
-                uint64_t idxInOrderByVector =
-                    orderByVectors[0]->state->isFlat() ?
-                        orderByVectors[keyColIdx]->state->getPositionOfCurrIdx() :
-                        orderByVectors[keyColIdx]->state->selectedPositions[encodedTuples];
-                encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
-                keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
-            }
-            // Since only the lower 6 bytes of nextLocalTupleIdx is actually used, we only need
-            // to encode the lower 6 bytes.
-            memcpy(
-                basePtr + keyBlockPtrOffset, &nextLocalTupleIdx, getEncodedTupleIdxSizeInBytes());
-            // 2 bytes encoding for factorizedTableIdx
-            memcpy(basePtr + keyBlockPtrOffset + getEncodedTupleIdxSizeInBytes(),
-                &factorizedTableIdx, sizeof(factorizedTableIdx));
-            encodedTuples++;
-            keyBlocks.back()->numTuples++;
-            nextLocalTupleIdx++;
-        }
-        numEntries -= numEntriesToEncode;
     }
 }
 

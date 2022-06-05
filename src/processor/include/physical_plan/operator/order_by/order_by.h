@@ -25,13 +25,13 @@ public:
         : nextFactorizedTableIdx{0}, sortedKeyBlocks{
                                          make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
 
-    uint16_t getNextFactorizedTableIdx() {
+    uint8_t getNextFactorizedTableIdx() {
         lock_guard<mutex> lck{orderBySharedStateMutex};
         return nextFactorizedTableIdx++;
     }
 
     void appendFactorizedTable(
-        uint16_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
+        uint8_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
         // If the factorizedTables is full, resize the factorizedTables and
         // insert the factorizedTable to the set.
@@ -46,7 +46,7 @@ public:
         sortedKeyBlocks->emplace(mergedDataBlocks);
     }
 
-    void setNumBytesPerTuple(uint64_t numBytesPerTuple) {
+    void setNumBytesPerTuple(uint32_t numBytesPerTuple) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
         this->numBytesPerTuple = numBytesPerTuple;
     }
@@ -69,10 +69,10 @@ private:
 
 public:
     vector<shared_ptr<FactorizedTable>> factorizedTables;
-    uint16_t nextFactorizedTableIdx;
+    uint8_t nextFactorizedTableIdx;
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
 
-    uint64_t numBytesPerTuple;
+    uint32_t numBytesPerTuple;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
     vector<DataType> dataTypes;
 };
@@ -117,7 +117,7 @@ public:
     }
 
 private:
-    uint16_t factorizedTableIdx;
+    uint8_t factorizedTableIdx;
     OrderByDataInfo orderByDataInfo;
     unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
     unique_ptr<RadixSort> radixSorter;

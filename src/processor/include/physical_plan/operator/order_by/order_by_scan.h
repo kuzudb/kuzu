@@ -49,10 +49,10 @@ private:
     vector<DataPos> outDataPoses;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
     vector<shared_ptr<ValueVector>> vectorsToRead;
-    uint64_t nextTupleIdxToReadInMergedKeyBlock;
+    uint32_t nextTupleIdxToReadInMergedKeyBlock;
     shared_ptr<MergedKeyBlocks> mergedKeyBlock;
-    uint64_t tupleIdxAndFactorizedTableIdxOffset;
-    vector<uint64_t> colsToScan;
+    uint32_t tupleIdxAndFactorizedTableIdxOffset;
+    vector<uint32_t> colsToScan;
     unique_ptr<uint8_t*[]> tuplesToRead;
     unique_ptr<BlockPtrInfo> blockPtrInfo;
 };

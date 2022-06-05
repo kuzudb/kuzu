@@ -14,10 +14,10 @@ namespace processor {
 
 struct TieRange {
 public:
-    uint64_t startingTupleIdx;
-    uint64_t endingTupleIdx;
-    inline uint64_t getNumTuples() { return endingTupleIdx - startingTupleIdx + 1; }
-    explicit TieRange(uint64_t startingTupleIdx, uint64_t endingTupleIdx)
+    uint32_t startingTupleIdx;
+    uint32_t endingTupleIdx;
+    inline uint32_t getNumTuples() { return endingTupleIdx - startingTupleIdx + 1; }
+    explicit TieRange(uint32_t startingTupleIdx, uint32_t endingTupleIdx)
         : startingTupleIdx{startingTupleIdx}, endingTupleIdx{endingTupleIdx} {}
 };
 
@@ -37,20 +37,28 @@ public:
           orderByKeyEncoder{orderByKeyEncoder}, factorizedTable{factorizedTable},
           stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
           numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
-                                                                         numBytesPerTuple -
-                                                                         sizeof(uint64_t)} {}
+                                                                         numBytesPerTuple - 8} {}
 
     void sortSingleKeyBlock(const DataBlock& keyBlock);
 
 private:
+    void radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32_t numBytesSorted,
+        uint32_t numBytesToSort);
+
+    vector<TieRange> findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
+        uint32_t numBytesToSort, uint32_t baseTupleIdx);
+
+    void fillTmpTuplePtrSortingBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr);
+
+    void reOrderKeyBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr);
+
+    // Some ties can't be solved in quicksort, just add them to ties.
+    template<typename TYPE>
+    void findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
+        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo);
+
     void solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
-        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& stringAndUnstructuredKeyColInfo);
-
-    vector<TieRange> findTies(uint8_t* keyBlockPtr, uint64_t numTuplesToFindTies,
-        uint64_t numBytesToSort, uint64_t baseTupleIdx);
-
-    void radixSort(uint8_t* keyBlockPtr, uint64_t numTuplesToSort, uint64_t numBytesSorted,
-        uint64_t numBytesToSort);
+        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo);
 
 private:
     unique_ptr<DataBlock> tmpSortingResultBlock;
@@ -69,8 +77,8 @@ private:
     // unstructured columns when resolving ties.
     FactorizedTable& factorizedTable;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
-    uint64_t numBytesPerTuple;
-    uint64_t numBytesToRadixSort;
+    uint32_t numBytesPerTuple;
+    uint32_t numBytesToRadixSort;
 };
 
 } // namespace processor
