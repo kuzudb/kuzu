@@ -18,6 +18,7 @@ namespace graphflow {
 namespace storage {
 
 class OverflowPages : public StorageStructure {
+    friend class StringPropertyColumn;
 
 public:
     explicit OverflowPages(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
@@ -55,11 +56,27 @@ public:
     }
 
     // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
-    void readStringsToVector(ValueVector& valueVector);
-    void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
+    inline void readStringsToVector(ValueVector& valueVector) {
+        Transaction tmpTransaction(READ_ONLY, -1);
+        readStringsToVector(&tmpTransaction, valueVector);
+    }
+    inline void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
+        Transaction tmpTransaction(READ_ONLY, -1);
+        readStringToVector(&tmpTransaction, gfStr, overflowBuffer);
+    }
+
     void readStringsToVector(Transaction* transaction, ValueVector& valueVector);
     void readStringToVector(
         Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
+
+    inline void scanSingleStringOverflow(
+        Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
+        assert(vector.dataType.typeID == STRING && !vector.isNull(vectorPos));
+        auto& gfString = ((gf_string_t*)vector.values)[vectorPos];
+        readStringToVector(transaction, gfString, vector.getOverflowBuffer());
+    }
+    void scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector);
+
     void readListsToVector(ValueVector& valueVector);
     string readString(const gf_string_t& str);
     vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);

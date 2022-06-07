@@ -50,7 +50,7 @@ public:
     void readAndAssertAgePropertyNode(
         uint64_t nodeOffset, Transaction* trx, int64_t expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
-        personAgeColumn->readValues(trx, nodeVector, agePropertyVectorToReadDataInto);
+        personAgeColumn->read(trx, nodeVector, agePropertyVectorToReadDataInto);
         if (isNull) {
             ASSERT_TRUE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -63,7 +63,7 @@ public:
     void readAndAssertEyeSightPropertyNode(
         uint64_t nodeOffset, Transaction* trx, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
-        personEyeSightColumn->readValues(trx, nodeVector, eyeSightVectorToReadDataInto);
+        personEyeSightColumn->read(trx, nodeVector, eyeSightVectorToReadDataInto);
         if (isNull) {
             ASSERT_TRUE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {

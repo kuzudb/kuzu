@@ -8,19 +8,70 @@ using lock_t = unique_lock<mutex>;
 namespace graphflow {
 namespace storage {
 
-void OverflowPages::readStringsToVector(ValueVector& valueVector) {
-    Transaction tmpTransaction(READ_ONLY, -1);
-    readStringsToVector(&tmpTransaction, valueVector);
-}
-
 void OverflowPages::readStringsToVector(Transaction* transaction, ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
-        if (!valueVector.isNull(pos)) {
-            readStringToVector(transaction, ((gf_string_t*)valueVector.values)[pos],
-                valueVector.getOverflowBuffer());
+        if (valueVector.isNull(pos)) {
+            continue;
         }
+        readStringToVector(
+            transaction, ((gf_string_t*)valueVector.values)[pos], valueVector.getOverflowBuffer());
+    }
+}
+
+void OverflowPages::readStringToVector(
+    Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
+    if (gf_string_t::isShortString(gfStr.len)) {
+        return;
+    }
+    page_idx_t pageIdx = UINT32_MAX;
+    uint16_t pagePos = UINT16_MAX;
+    TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, pageIdx, pagePos);
+    auto [fileHandleToPin, pageIdxToPin] =
+        getFileHandleAndPhysicalPageIdxToPin(transaction, pageIdx);
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
+    OverflowBufferUtils::copyString((char*)(frame + pagePos), gfStr.len, gfStr, overflowBuffer);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+}
+
+void OverflowPages::scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector) {
+    FileHandle* cachedFileHandle = nullptr;
+    page_idx_t cachedPageIdx = UINT32_MAX;
+    uint8_t* cachedFrame = nullptr;
+    for (auto i = 0u; i < vector.state->selectedSize; ++i) {
+        auto pos = vector.state->selectedPositions[i];
+        if (vector.isNull(pos)) {
+            continue;
+        }
+        auto& gfString = ((gf_string_t*)vector.values)[pos];
+        if (gf_string_t::isShortString(gfString.len)) {
+            continue;
+        }
+        page_idx_t pageIdx = UINT32_MAX;
+        uint16_t pagePos = UINT16_MAX;
+        TypeUtils::decodeOverflowPtr(gfString.overflowPtr, pageIdx, pagePos);
+        auto [fileHandleToPin, pageIdxToPin] =
+            getFileHandleAndPhysicalPageIdxToPin(transaction, pageIdx);
+        if (pageIdxToPin == cachedPageIdx) { // cache hit
+            OverflowBufferUtils::copyString(
+                (char*)(cachedFrame + pagePos), gfString.len, gfString, vector.getOverflowBuffer());
+            continue;
+        }
+        // cache miss
+        if (cachedPageIdx != UINT32_MAX) { // unpin cached frame
+            bufferManager.unpin(*cachedFileHandle, cachedPageIdx);
+        }
+        // pin new frame and update cache
+        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
+        OverflowBufferUtils::copyString(
+            (char*)(frame + pagePos), gfString.len, gfString, vector.getOverflowBuffer());
+        cachedFileHandle = fileHandleToPin;
+        cachedPageIdx = pageIdxToPin;
+        cachedFrame = frame;
+    }
+    if (cachedPageIdx != UINT32_MAX) {
+        bufferManager.unpin(*cachedFileHandle, cachedPageIdx);
     }
 }
 
@@ -32,29 +83,6 @@ void OverflowPages::readListsToVector(ValueVector& valueVector) {
             readListToVector(((gf_list_t*)valueVector.values)[pos], valueVector.dataType,
                 valueVector.getOverflowBuffer());
         }
-    }
-}
-
-// TODO(Semih/Guodong): This overloaded function is used by Lists, which do not yet support
-// updates, and so do not take transactions. To reuse the same readStringToVector function
-// with columns, we pass in a readOnly transactions. Later when Lists support updates, this
-// function should be removed.
-void OverflowPages::readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
-    Transaction tmpTransaction(READ_ONLY, -1);
-    readStringToVector(&tmpTransaction, gfStr, overflowBuffer);
-}
-
-void OverflowPages::readStringToVector(
-    Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
-    PageElementCursor cursor;
-    if (!gf_string_t::isShortString(gfStr.len)) {
-        TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.pageIdx, cursor.posInPage);
-        auto [fileHandleToPin, pageIdxToPin] =
-            getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
-        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-        OverflowBufferUtils::copyString(
-            (char*)(frame + cursor.posInPage), gfStr.len, gfStr, overflowBuffer);
-        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     }
 }
 
