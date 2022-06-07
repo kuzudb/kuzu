@@ -11,7 +11,8 @@ const string BENCHMARK_SUFFIX = ".benchmark";
 
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
     : config{move(config)} {
-    database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode));
+    database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode),
+        SystemConfig(this->config->defaultBufferPoolSize, this->config->largeBufferPoolSize));
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {
@@ -39,7 +40,7 @@ void BenchmarkRunner::registerBenchmark(const string& path) {
 }
 
 double BenchmarkRunner::computeAverageOfLastRuns(
-    double* runTimes, const int& len, const int& lastRunsToAverage) {
+    const double* runTimes, const int& len, const int& lastRunsToAverage) {
     double sum = 0;
     for (int i = len - lastRunsToAverage; i < len; ++i) {
         sum += runTimes[i];
@@ -47,7 +48,7 @@ double BenchmarkRunner::computeAverageOfLastRuns(
     return sum / lastRunsToAverage;
 }
 
-void BenchmarkRunner::runBenchmark(Benchmark* benchmark) {
+void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
     spdlog::info("Running benchmark {} with {} thread", benchmark->name, config->numThreads);
     for (auto i = 0u; i < config->numWarmups; ++i) {
         spdlog::info("Warm up");
@@ -59,9 +60,9 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) {
         benchmark->log(i + 1, *queryResult);
         runTimes[i] = queryResult->getQuerySummary()->getExecutionTime();
     }
-    spdlog::info("Time Taken (Average of Last 3 runs) (ms): " +
+    spdlog::info("Time Taken (Average of Last " + to_string(config->numRuns) + " runs) (ms): " +
                  to_string(computeAverageOfLastRuns(
-                     runTimes, config->numRuns, (int)3 /* numRunsToAverage */)));
+                     runTimes, config->numRuns, config->numRuns /* numRunsToAverage */)));
 }
 
 } // namespace benchmark

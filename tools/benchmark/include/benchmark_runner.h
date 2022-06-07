@@ -15,12 +15,12 @@ public:
 
     void runAllBenchmarks();
     static double computeAverageOfLastRuns(
-        double* runTimes, const int& len, const int& lastRunsToAverage);
+        const double* runTimes, const int& len, const int& lastRunsToAverage);
 
 private:
     void registerBenchmark(const string& path);
 
-    void runBenchmark(Benchmark* benchmark);
+    void runBenchmark(Benchmark* benchmark) const;
 
 public:
     unique_ptr<BenchmarkConfig> config;
