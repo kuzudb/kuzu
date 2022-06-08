@@ -27,7 +27,8 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
         }
         bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
         tableSchema.appendColumn({isUnflat, dataChunkPos,
-            isUnflat ? sizeof(overflow_value_t) : vector->getNumBytesPerValue()});
+            isUnflat ? (uint32_t)sizeof(overflow_value_t) :
+                       (uint32_t)vector->getNumBytesPerValue()});
         dataTypes.push_back(vector->dataType);
         vectorsToAppend.push_back(vector);
     }
@@ -55,16 +56,17 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
                     factorizedTableColIdx = j;
                 }
             }
-            stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(factorizedTableColIdx, encodedKeyBlockColOffset,
-                    orderByDataInfo.isAscOrder[i], STRING == vector->dataType.typeID));
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                localFactorizedTable->getTableSchema().getColOffset(factorizedTableColIdx),
+                encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i],
+                STRING == vector->dataType.typeID));
         }
         encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(vector->dataType);
     }
 
     // Prepare the orderByEncoder, and radix sorter
-    orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
-        keyVectors, orderByDataInfo.isAscOrder, context->memoryManager, factorizedTableIdx);
+    orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
+        context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock());
     radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 

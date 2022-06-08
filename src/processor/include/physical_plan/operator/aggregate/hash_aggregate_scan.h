@@ -45,7 +45,7 @@ private:
     vector<DataType> groupByKeyVectorDataTypes;
     vector<shared_ptr<ValueVector>> groupByKeyVectors;
     shared_ptr<HashAggregateSharedState> sharedState;
-    vector<uint64_t> groupByKeyVectorsColIdxes;
+    vector<uint32_t> groupByKeyVectorsColIdxes;
 };
 
 } // namespace processor

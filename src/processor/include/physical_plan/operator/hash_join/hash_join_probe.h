@@ -75,7 +75,7 @@ private:
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<shared_ptr<ValueVector>> vectorsToRead;
-    vector<uint64_t> columnsToRead;
+    vector<uint32_t> columnsToRead;
     shared_ptr<ValueVector> probeSideKeyVector;
     unique_ptr<ProbeState> probeState;
 

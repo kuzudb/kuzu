@@ -15,29 +15,28 @@ struct KeyBlockMergeMorsel;
 // This struct stores the string and unstructured key column information. We can utilize the
 // pre-computed indexes and offsets to expedite the tuple comparison in merge sort.
 struct StringAndUnstructuredKeyColInfo {
-    StringAndUnstructuredKeyColInfo(uint64_t colIdxInFactorizedTable,
-        uint64_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
-        : colIdxInFactorizedTable{colIdxInFactorizedTable},
-          colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock},
+    StringAndUnstructuredKeyColInfo(
+        uint32_t colOffsetInFT, uint32_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
+        : colOffsetInFT{colOffsetInFT}, colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock},
           isAscOrder{isAscOrder}, isStrCol{isStrCol} {}
 
-    inline uint64_t getEncodingSize() const {
+    inline uint32_t getEncodingSize() const {
         return isStrCol ? OrderByKeyEncoder::getEncodingSize(DataType(STRING)) :
                           OrderByKeyEncoder::getEncodingSize(DataType(UNSTRUCTURED));
     }
 
-    uint64_t colIdxInFactorizedTable;
-    uint64_t colOffsetInEncodedKeyBlock;
+    uint32_t colOffsetInFT;
+    uint32_t colOffsetInEncodedKeyBlock;
     bool isAscOrder;
     bool isStrCol;
 };
 
 class MergedKeyBlocks {
 public:
-    MergedKeyBlocks(uint64_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager);
+    MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager);
 
     // This constructor is used to convert a dataBlock to a MergedKeyBlocks.
-    MergedKeyBlocks(uint64_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock);
+    MergedKeyBlocks(uint32_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock);
 
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
         assert(tupleIdx < numTuples);
@@ -47,24 +46,24 @@ public:
 
     inline uint64_t getNumTuples() const { return numTuples; }
 
-    inline uint64_t getNumBytesPerTuple() const { return numBytesPerTuple; }
+    inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
-    inline uint64_t getNumTuplesPerBlock() const { return numTuplesPerBlock; }
+    inline uint32_t getNumTuplesPerBlock() const { return numTuplesPerBlock; }
 
-    inline uint8_t* getKeyBlockBuffer(uint64_t idx) const {
+    inline uint8_t* getKeyBlockBuffer(uint32_t idx) const {
         assert(idx < keyBlocks.size());
         return keyBlocks[idx]->getData();
     }
 
     uint8_t* getBlockEndTuplePtr(
-        uint64_t blockIdx, uint64_t endTupleIdx, uint64_t endTupleBlockIdx) const;
+        uint32_t blockIdx, uint64_t endTupleIdx, uint32_t endTupleBlockIdx) const;
 
 private:
-    uint64_t numBytesPerTuple;
-    uint64_t numTuplesPerBlock;
+    uint32_t numBytesPerTuple;
+    uint32_t numTuplesPerBlock;
     uint64_t numTuples;
     vector<shared_ptr<DataBlock>> keyBlocks;
-    uint64_t endTupleOffset;
+    uint32_t endTupleOffset;
 };
 
 struct BlockPtrInfo {
@@ -101,11 +100,10 @@ class KeyBlockMerger {
 public:
     explicit KeyBlockMerger(vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
-        uint64_t numBytesPerTuple)
+        uint32_t numBytesPerTuple)
         : factorizedTables{factorizedTables},
           stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
-          numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple -
-                                                                sizeof(uint64_t)},
+          numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple - 8},
           hasStringAndUnstructuredCol{!stringAndUnstructuredKeyColInfo.empty()} {}
 
     void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) const;
@@ -131,8 +129,8 @@ private:
     // for each string and unstructured column. So, we don't need to compute them again during merge
     // sort.
     vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
-    uint64_t numBytesPerTuple;
-    uint64_t numBytesToCompare;
+    uint32_t numBytesPerTuple;
+    uint32_t numBytesToCompare;
     bool hasStringAndUnstructuredCol;
 };
 
@@ -157,7 +155,7 @@ private:
     uint64_t findRightKeyBlockIdx(uint8_t* leftEndTuplePtr);
 
 public:
-    static const uint64_t batch_size = 10000;
+    static const uint32_t batch_size = 10000;
 
     shared_ptr<MergedKeyBlocks> leftKeyBlock;
     shared_ptr<MergedKeyBlocks> rightKeyBlock;

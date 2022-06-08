@@ -31,42 +31,46 @@ class OrderByKeyEncoder {
 
 public:
     OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors, vector<bool>& isAscOrder,
-        MemoryManager* memoryManager, uint16_t factorizedTableIdx);
-
-    void encodeKeys();
+        MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT);
 
     inline vector<shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
 
-    inline uint64_t getNumBytesPerTuple() const { return numBytesPerTuple; }
+    inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
-    inline uint64_t getMaxNumTuplesPerBlock() const { return maxNumTuplesPerBlock; }
+    inline uint32_t getMaxNumTuplesPerBlock() const { return maxNumTuplesPerBlock; }
 
-    inline uint64_t getNumTuplesInCurBlock() const { return keyBlocks.back()->numTuples; }
+    inline uint32_t getNumTuplesInCurBlock() const { return keyBlocks.back()->numTuples; }
 
-    static inline uint64_t getEncodedTupleIdxSizeInBytes() {
-        return sizeof(nextLocalTupleIdx) - sizeof(factorizedTableIdx);
+    static inline uint32_t getEncodedFTBlockIdx(const uint8_t* tupleInfoPtr) {
+        return *(uint32_t*)tupleInfoPtr;
     }
 
-    static uint64_t getEncodedTupleIdx(const uint8_t* tupleInfoPtr);
+    // Note: We only encode 3 bytes for ftBlockOffset, but we are reading 4 bytes from tupleInfoPtr.
+    // We need to do a bit mask to set the most significant byte to 0x00.
+    static inline uint32_t getEncodedFTBlockOffset(const uint8_t* tupleInfoPtr) {
+        return (*(uint32_t*)(tupleInfoPtr + 4) & 0x00FFFFFF);
+    }
 
-    static uint64_t getEncodedFactorizedTableIdx(const uint8_t* tupleInfoPtr);
-
-    static uint64_t getEncodingSize(const DataType& dataType);
+    static inline uint8_t getEncodedFTIdx(const uint8_t* tupleInfoPtr) {
+        return *(tupleInfoPtr + 7);
+    }
 
     static inline bool isNullVal(const uint8_t* nullBytePtr, bool isAscOrder) {
         return *(nullBytePtr) == (isAscOrder ? UINT8_MAX : 0);
     }
 
-    static pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
-        uint8_t* encodedTupleInfoPtr);
+    static inline bool isLongStr(const uint8_t* strBuffer, bool isAsc) {
+        return *(strBuffer + 13) == (isAsc ? UINT8_MAX : 0);
+    }
+
+    static uint32_t getEncodingSize(const DataType& dataType);
+
+    void encodeKeys();
 
 private:
-    uint8_t flipSign(uint8_t key_byte);
+    static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }
 
-    bool isLittleEndian();
-
-    void encodeData(shared_ptr<ValueVector>& orderByVector, uint64_t idxInOrderByVector,
-        uint8_t* keyBlockPtr, uint64_t keyColIdx);
+    static bool isLittleEndian();
 
     void encodeInt32(int32_t data, uint8_t* resultPtr);
 
@@ -88,19 +92,25 @@ private:
 
     void allocateMemoryIfFull();
 
+    void encodeData(shared_ptr<ValueVector>& orderByVector, uint32_t idxInOrderByVector,
+        uint8_t* keyBlockPtr, uint32_t keyColIdx);
+
 private:
     MemoryManager* memoryManager;
     vector<shared_ptr<DataBlock>> keyBlocks;
     vector<shared_ptr<ValueVector>>& orderByVectors;
     vector<bool> isAscOrder;
-    uint64_t numBytesPerTuple;
-    uint64_t maxNumTuplesPerBlock;
-    // We only use 6 bytes to represent the nextLocalTupleIdx, and 2 bytes to represent the
-    // factorizedTableIdx. Only the lower 6 bytes of nextLocalTupleIdx are actually used, so the
-    // MAX_LOCAL_TUPLE_IDX is 2^48-1.
-    const uint64_t MAX_LOCAL_TUPLE_IDX = (1ull << 48) - 1;
-    uint64_t nextLocalTupleIdx;
-    uint16_t factorizedTableIdx;
+    uint32_t numBytesPerTuple;
+    uint32_t maxNumTuplesPerBlock;
+    uint32_t ftBlockIdx = 0;
+    // Since we encode 3 bytes for ftBlockOffset, the maxFTBlockOffset is 2^24 - 1.
+    static const uint32_t MAX_FT_BLOCK_OFFSET = (1ul << 24) - 1;
+    uint32_t ftBlockOffset = 0;
+    // We only encode 1 byte for ftIndex, this limits the maximum number of threads of our system to
+    // 256.
+    uint8_t ftIdx;
+    uint32_t numTuplesPerBlockInFT;
+    // We need to swap the encoded binary strings if we are using little endian hardware.
     bool swapBytes;
 };
 
