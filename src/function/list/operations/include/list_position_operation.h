@@ -16,9 +16,8 @@ struct ListPosition {
     // Note: this function takes in a 1-based pos (The index of the first element in the list
     // is 1).
     template<typename T>
-    static inline void operation(gf_list_t& list, T& pos, int64_t& result, bool isListNull,
-        bool isPosNull, const DataType& leftDataType, const DataType& rightDataType) {
-        assert(!isListNull && !isPosNull);
+    static inline void operation(gf_list_t& list, T& pos, int64_t& result,
+        const DataType& leftDataType, const DataType& rightDataType) {
         if (*leftDataType.childType != rightDataType) {
             result = 0;
             return;

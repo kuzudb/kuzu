@@ -196,7 +196,7 @@ void RadixSort::findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* ke
                     OrderByKeyEncoder::getEncodedFTBlockIdx(jTupleInfoPtr),
                     OrderByKeyEncoder::getEncodedFTBlockOffset(jTupleInfoPtr),
                     keyColInfo.colOffsetInFT),
-                result, false /* isLeftNull */, false /* isRightNull */);
+                result);
             if (result) {
                 break;
             }
@@ -275,7 +275,7 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
                                                       leftBlockOffset, keyColInfo.colOffsetInFT),
                     factorizedTable.getData<Value>(
                         rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT),
-                    result, false, false);
+                    result);
                 return keyColInfo.isAscOrder == result;
             }
         });

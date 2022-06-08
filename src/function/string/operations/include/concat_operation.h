@@ -14,8 +14,9 @@ namespace operation {
 
 struct Concat {
     template<class A, class B, class R>
-    static inline void operation(
-        A& left, B& right, R& result, bool isLeftNull, bool isRightNull, ValueVector& valueVector);
+    static inline void operation(A& left, B& right, R& result, ValueVector& valueVector) {
+        assert(false);
+    }
 
     static void concat(const char* left, uint32_t leftLen, const char* right, uint32_t rightLen,
         gf_string_t& result, ValueVector& resultValueVector) {
@@ -36,17 +37,15 @@ struct Concat {
 };
 
 template<>
-inline void Concat::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result,
-    bool isLeftNull, bool isRightNull, ValueVector& resultValueVector) {
-    assert(!isLeftNull && !isRightNull);
+inline void Concat::operation(
+    gf_string_t& left, gf_string_t& right, gf_string_t& result, ValueVector& resultValueVector) {
     concat((const char*)left.getData(), left.len, (const char*)right.getData(), right.len, result,
         resultValueVector);
 }
 
 template<>
-inline void Concat::operation(string& left, string& right, gf_string_t& result, bool isLeftNull,
-    bool isRightNull, ValueVector& resultValueVector) {
-    assert(!isLeftNull && !isRightNull);
+inline void Concat::operation(
+    string& left, string& right, gf_string_t& result, ValueVector& resultValueVector) {
     concat(left.c_str(), left.length(), right.c_str(), right.length(), result, resultValueVector);
 }
 

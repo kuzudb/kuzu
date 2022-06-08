@@ -11,21 +11,12 @@ namespace function {
 namespace operation {
 
 struct StartsWith {
-    template<class A, class B>
-    static inline void operation(
-        A& left, B& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
-        assert(false);
+    static inline void operation(gf_string_t& left, gf_string_t& right, uint8_t& result) {
+        auto lStr = left.getAsString();
+        auto rStr = right.getAsString();
+        result = lStr.starts_with(rStr);
     }
 };
-
-template<>
-void StartsWith::operation(
-    gf_string_t& left, gf_string_t& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    auto lStr = left.getAsString();
-    auto rStr = right.getAsString();
-    result = lStr.starts_with(rStr);
-}
 
 } // namespace operation
 } // namespace function

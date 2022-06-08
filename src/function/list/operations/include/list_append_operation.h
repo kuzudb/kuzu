@@ -15,9 +15,8 @@ namespace operation {
 
 struct ListAppend {
     template<typename T>
-    static inline void operation(gf_list_t& list, T& element, gf_list_t& result, bool isListNull,
-        bool isElementNull, ValueVector& resultValueVector) {
-        assert(!isListNull && !isElementNull);
+    static inline void operation(
+        gf_list_t& list, T& element, gf_list_t& result, ValueVector& resultValueVector) {
         auto elementSize = Types::getDataTypeSize(*resultValueVector.dataType.childType);
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace((list.size + 1) * elementSize));

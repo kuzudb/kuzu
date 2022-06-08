@@ -56,8 +56,7 @@ struct AvgFunction {
                 state->sum = inputValues[pos];
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, inputValues[pos], state->sum, false /* isLeftNull */,
-                    false /* isRightNull */);
+                Add::operation(state->sum, inputValues[pos], state->sum);
             }
         }
         state->count += multiplicity;
@@ -73,8 +72,7 @@ struct AvgFunction {
             state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation(state->sum, otherState->sum, state->sum, false /* isLeftNull */,
-                false /* isRightNull */);
+            Add::operation(state->sum, otherState->sum, state->sum);
         }
         state->count = state->count + otherState->count;
     }
@@ -92,8 +90,7 @@ inline void AvgFunction<Value>::finalize(uint8_t* state_) {
     assert(!state->isNull);
     auto unstrCount = Value((double_t)state->count);
     auto result = Value();
-    Divide::operation(
-        state->sum, unstrCount, result, false /* isLeftNull */, false /* isRightNull */);
+    Divide::operation(state->sum, unstrCount, result);
     state->avg = result.val.doubleVal;
 }
 

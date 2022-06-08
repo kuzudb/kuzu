@@ -14,9 +14,8 @@ namespace operation {
 
 struct Repeat {
 public:
-    static inline void operation(gf_string_t& left, int64_t& right, gf_string_t& result,
-        bool isLeftNull, bool isRightNull, ValueVector& resultValueVector) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(
+        gf_string_t& left, int64_t& right, gf_string_t& result, ValueVector& resultValueVector) {
         result.len = left.len * right;
         if (result.len <= gf_string_t::SHORT_STR_LENGTH) {
             repeatStr((char*)result.prefix, left.getAsString(), right);

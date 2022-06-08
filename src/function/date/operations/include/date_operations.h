@@ -16,57 +16,43 @@ struct DayName {
     }
 };
 
+template<>
+inline void DayName::operation(date_t& input, bool isNull, gf_string_t& result) {
+    assert(!isNull);
+    string dayName = Date::getDayName(input);
+    result.set(dayName);
+}
+
+template<>
+inline void DayName::operation(timestamp_t& input, bool isNull, gf_string_t& result) {
+    assert(!isNull);
+    dtime_t time;
+    date_t date;
+    Timestamp::Convert(input, date, time);
+    string dayName = Date::getDayName(date);
+    result.set(dayName);
+}
+
+template<>
+inline void DayName::operation(Value& input, bool isNull, gf_string_t& result) {
+    assert(!isNull);
+    switch (input.dataType.typeID) {
+    case DATE: {
+        DayName::operation(input.val.dateVal, isNull, result);
+    } break;
+    case TIMESTAMP: {
+        DayName::operation(input.val.timestampVal, isNull, result);
+    } break;
+    default:
+        throw RuntimeException(
+            "Cannot call dayname on type: " + Types::dataTypeToString(input.dataType.typeID));
+    }
+}
+
 struct MonthName {
     template<class T>
     static inline void operation(T& input, bool isNull, gf_string_t& result) {
         assert(false);
-    }
-};
-
-struct LastDay {
-    template<class T>
-    static inline void operation(T& input, bool isNull, date_t& result) {
-        assert(false);
-    }
-};
-
-struct DatePart {
-    template<class LEFT_TYPE, class RIGHT_TYPE>
-    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, int64_t& result,
-        bool isLeftNull, bool isRightNull) {
-        assert(false);
-    }
-};
-
-struct DateTrunc {
-    template<class LEFT_TYPE, class RIGHT_TYPE>
-    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, RIGHT_TYPE& result,
-        bool isLeftNull, bool isRightNull) {
-        assert(false);
-    }
-};
-
-struct Greatest {
-    template<class T>
-    static inline void operation(T& left, T& right, T& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
-        result = left > right ? left : right;
-    }
-};
-
-struct Least {
-    template<class T>
-    static inline void operation(T& left, T& right, T& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
-        result = left > right ? right : left;
-    }
-};
-
-struct MakeDate {
-    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result,
-        bool isYearNull, bool isMonthNull, bool isDayNull) {
-        assert(!isYearNull && !isMonthNull && !isDayNull);
-        result = Date::FromDate(year, month, day);
     }
 };
 
@@ -103,38 +89,12 @@ inline void MonthName::operation(Value& input, bool isNull, gf_string_t& result)
     }
 }
 
-template<>
-inline void DayName::operation(date_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
-    string dayName = Date::getDayName(input);
-    result.set(dayName);
-}
-
-template<>
-inline void DayName::operation(timestamp_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
-    dtime_t time;
-    date_t date;
-    Timestamp::Convert(input, date, time);
-    string dayName = Date::getDayName(date);
-    result.set(dayName);
-}
-
-template<>
-inline void DayName::operation(Value& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
-    switch (input.dataType.typeID) {
-    case DATE: {
-        DayName::operation(input.val.dateVal, isNull, result);
-    } break;
-    case TIMESTAMP: {
-        DayName::operation(input.val.timestampVal, isNull, result);
-    } break;
-    default:
-        throw RuntimeException(
-            "Cannot call dayname on type: " + Types::dataTypeToString(input.dataType.typeID));
+struct LastDay {
+    template<class T>
+    static inline void operation(T& input, bool isNull, date_t& result) {
+        assert(false);
     }
-}
+};
 
 template<>
 inline void LastDay::operation(date_t& input, bool isNull, date_t& result) {
@@ -167,51 +127,47 @@ inline void LastDay::operation(Value& input, bool isNull, date_t& result) {
     }
 }
 
+struct DatePart {
+    template<class LEFT_TYPE, class RIGHT_TYPE>
+    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, int64_t& result) {
+        assert(false);
+    }
+};
+
 template<>
-inline void DatePart::operation(
-    gf_string_t& partSpecifier, date_t& input, int64_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DatePart::operation(gf_string_t& partSpecifier, date_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Date::getDatePart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(gf_string_t& partSpecifier, timestamp_t& input, int64_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DatePart::operation(gf_string_t& partSpecifier, timestamp_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Timestamp::getTimestampPart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(gf_string_t& partSpecifier, interval_t& input, int64_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DatePart::operation(gf_string_t& partSpecifier, interval_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Interval::getIntervalPart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(
-    Value& partSpecifier, Value& input, int64_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DatePart::operation(Value& partSpecifier, Value& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.val.strVal.getAsString(), specifier);
     switch (input.dataType.typeID) {
     case DATE: {
-        DatePart::operation(
-            partSpecifier.val.strVal, input.val.dateVal, result, isLeftNull, isRightNull);
+        DatePart::operation(partSpecifier.val.strVal, input.val.dateVal, result);
     } break;
     case TIMESTAMP: {
-        DatePart::operation(
-            partSpecifier.val.strVal, input.val.timestampVal, result, isLeftNull, isRightNull);
+        DatePart::operation(partSpecifier.val.strVal, input.val.timestampVal, result);
     } break;
     case INTERVAL: {
-        DatePart::operation(
-            partSpecifier.val.strVal, input.val.intervalVal, result, isLeftNull, isRightNull);
+        DatePart::operation(partSpecifier.val.strVal, input.val.intervalVal, result);
     } break;
     default:
         throw RuntimeException(
@@ -219,40 +175,41 @@ inline void DatePart::operation(
     }
 }
 
+struct DateTrunc {
+    template<class LEFT_TYPE, class RIGHT_TYPE>
+    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, RIGHT_TYPE& result) {
+        assert(false);
+    }
+};
+
 template<>
-inline void DateTrunc::operation(
-    gf_string_t& partSpecifier, date_t& input, date_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DateTrunc::operation(gf_string_t& partSpecifier, date_t& input, date_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Date::trunc(specifier, input);
 }
 
 template<>
-inline void DateTrunc::operation(gf_string_t& partSpecifier, timestamp_t& input,
-    timestamp_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DateTrunc::operation(
+    gf_string_t& partSpecifier, timestamp_t& input, timestamp_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Timestamp::trunc(specifier, input);
 }
 
 template<>
-inline void DateTrunc::operation(
-    Value& partSpecifier, Value& input, Value& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void DateTrunc::operation(Value& partSpecifier, Value& input, Value& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.val.strVal.getAsString(), specifier);
     switch (input.dataType.typeID) {
     case DATE: {
         result.dataType.typeID = DATE;
-        DateTrunc::operation(partSpecifier.val.strVal, input.val.dateVal, result.val.dateVal,
-            isLeftNull, isRightNull);
+        DateTrunc::operation(partSpecifier.val.strVal, input.val.dateVal, result.val.dateVal);
     } break;
     case TIMESTAMP: {
         result.dataType.typeID = TIMESTAMP;
-        DateTrunc::operation(partSpecifier.val.strVal, input.val.timestampVal,
-            result.val.timestampVal, isLeftNull, isRightNull);
+        DateTrunc::operation(
+            partSpecifier.val.strVal, input.val.timestampVal, result.val.timestampVal);
     } break;
     default:
         throw RuntimeException(
@@ -260,20 +217,23 @@ inline void DateTrunc::operation(
     }
 }
 
+struct Greatest {
+    template<class T>
+    static inline void operation(T& left, T& right, T& result) {
+        result = left > right ? left : right;
+    }
+};
+
 template<>
-inline void Greatest::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void Greatest::operation(Value& left, Value& right, Value& result) {
     assert(left.dataType.typeID == right.dataType.typeID);
     result.dataType.typeID = left.dataType.typeID;
     switch (left.dataType.typeID) {
     case DATE: {
-        Greatest::operation(
-            left.val.dateVal, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        Greatest::operation(left.val.dateVal, right.val.dateVal, result.val.dateVal);
     } break;
     case TIMESTAMP: {
-        Greatest::operation(left.val.timestampVal, right.val.timestampVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        Greatest::operation(left.val.timestampVal, right.val.timestampVal, result.val.timestampVal);
     } break;
     default:
         throw RuntimeException(
@@ -282,21 +242,24 @@ inline void Greatest::operation(
     }
 }
 
+struct Least {
+    template<class T>
+    static inline void operation(T& left, T& right, T& result) {
+        result = left > right ? right : left;
+    }
+};
+
 template<>
-inline void Least::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void Least::operation(Value& left, Value& right, Value& result) {
     assert(left.dataType.typeID == right.dataType.typeID);
     result.dataType.typeID = left.dataType.typeID;
     switch (left.dataType.typeID) {
     case DATE: {
-        Least::operation(
-            left.val.dateVal, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        Least::operation(left.val.dateVal, right.val.dateVal, result.val.dateVal);
     } break;
 
     case TIMESTAMP: {
-        Least::operation(left.val.timestampVal, right.val.timestampVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        Least::operation(left.val.timestampVal, right.val.timestampVal, result.val.timestampVal);
     } break;
     default:
         throw RuntimeException(
@@ -304,6 +267,14 @@ inline void Least::operation(
             " with type: " + Types::dataTypeToString(right.dataType.typeID));
     }
 }
+
+struct MakeDate {
+    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result,
+        bool isYearNull, bool isMonthNull, bool isDayNull) {
+        assert(!isYearNull && !isMonthNull && !isDayNull);
+        result = Date::FromDate(year, month, day);
+    }
+};
 
 } // namespace operation
 } // namespace function

@@ -88,8 +88,11 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
         uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        BinaryOperationExecutor::executeOnValue<bool, bool, uint8_t, FUNC, BinaryOperationWrapper>(
-            left, right, result, lPos, rPos, resPos);
+        auto lValues = (uint8_t*)left.values;
+        auto rValues = (uint8_t*)right.values;
+        auto resValues = (uint8_t*)result.values;
+        FUNC::operation(
+            lValues[lPos], rValues[rPos], resValues[resPos], left.isNull(lPos), right.isNull(rPos));
         result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
     }
 
@@ -126,13 +129,12 @@ struct BinaryBooleanOperationExecutor {
         uint64_t numSelectedValues = 0;
         if (right.state->isUnfiltered()) {
             for (auto i = 0u; i < right.state->selectedSize; ++i) {
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
-                    left, right, lPos, i, i, numSelectedValues, selectedPositions);
+                selectOnValue<FUNC>(left, right, lPos, i, i, numSelectedValues, selectedPositions);
             }
         } else {
             for (auto i = 0u; i < right.state->selectedSize; ++i) {
                 auto rPos = right.state->selectedPositions[i];
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
+                selectOnValue<FUNC>(
                     left, right, lPos, rPos, rPos, numSelectedValues, selectedPositions);
             }
         }
@@ -146,13 +148,12 @@ struct BinaryBooleanOperationExecutor {
         uint64_t numSelectedValues = 0;
         if (left.state->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
-                    left, right, i, rPos, i, numSelectedValues, selectedPositions);
+                selectOnValue<FUNC>(left, right, i, rPos, i, numSelectedValues, selectedPositions);
             }
         } else {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
                 auto lPos = left.state->selectedPositions[i];
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
+                selectOnValue<FUNC>(
                     left, right, lPos, rPos, lPos, numSelectedValues, selectedPositions);
             }
         }
@@ -165,17 +166,28 @@ struct BinaryBooleanOperationExecutor {
         uint64_t numSelectedValues = 0;
         if (left.state->isUnfiltered()) {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
-                    left, right, i, i, i, numSelectedValues, selectedPositions);
+                selectOnValue<FUNC>(left, right, i, i, i, numSelectedValues, selectedPositions);
             }
         } else {
             for (auto i = 0u; i < left.state->selectedSize; ++i) {
                 auto pos = left.state->selectedPositions[i];
-                BinaryOperationExecutor::selectOnValue<bool, bool, FUNC>(
+                selectOnValue<FUNC>(
                     left, right, pos, pos, pos, numSelectedValues, selectedPositions);
             }
         }
         return numSelectedValues;
+    }
+
+    template<class FUNC>
+    static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
+        uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositions) {
+        auto lValues = (uint8_t*)left.values;
+        auto rValues = (uint8_t*)right.values;
+        uint8_t resultValue = 0;
+        FUNC::operation(
+            lValues[lPos], rValues[rPos], resultValue, left.isNull(lPos), right.isNull(rPos));
+        selectedPositions[numSelectedValues] = resPos;
+        numSelectedValues += (resultValue == true);
     }
 };
 

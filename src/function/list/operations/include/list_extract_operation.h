@@ -22,16 +22,16 @@ public:
     // Note: this function takes in a 1-based position (The index of the first element in the list
     // is 1).
     template<typename T>
-    static inline void operation(gf_list_t& list, int64_t pos, T& result, bool isListNull,
-        bool isPosNull, ValueVector& resultValueVector) {
-        assert(!isListNull && !isPosNull);
-        if (list.size < pos) {
+    static inline void operation(
+        gf_list_t& list, int64_t pos, T& result, ValueVector& resultValueVector) {
+        auto uint64Pos = (uint64_t)pos;
+        if (list.size < uint64Pos) {
             throw RuntimeException("list_extract(list, index): index=" + TypeUtils::toString(pos) +
                                    " is out of range.");
         }
         auto values = reinterpret_cast<T*>(list.overflowPtr);
-        result = values[pos - 1];
-        setValue(values[pos - 1], result, resultValueVector);
+        result = values[uint64Pos - 1];
+        setValue(values[uint64Pos - 1], result, resultValueVector);
     }
 };
 
