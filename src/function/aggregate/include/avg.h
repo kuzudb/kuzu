@@ -14,7 +14,7 @@ template<typename T>
 struct AvgFunction {
 
     struct AvgState : public AggregateState {
-        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint32_t getStateSize() const override { return sizeof(*this); }
         inline uint8_t* getResult() const override { return (uint8_t*)&avg; }
 
         T sum;

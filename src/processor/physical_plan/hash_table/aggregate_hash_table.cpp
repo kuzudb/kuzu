@@ -318,6 +318,9 @@ void AggregateHashTable::resize(uint64_t newSize) {
     maxNumHashSlots = newSize;
     bitMask = maxNumHashSlots - 1;
     addDataBlocksIfNecessary(maxNumHashSlots);
+    for (auto& block : hashSlotsBlocks) {
+        block->resetToZero();
+    }
     for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
         uint8_t* tuple = tupleBlock->getData();
         for (auto i = 0u; i < tupleBlock->numTuples; i++) {

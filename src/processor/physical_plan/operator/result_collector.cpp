@@ -29,7 +29,8 @@ shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
         vectorsToCollect.push_back(vector);
         tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
-            vectorToCollectInfo.second ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)});
+            vectorToCollectInfo.second ? vector->getNumBytesPerValue() :
+                                         (uint32_t)sizeof(overflow_value_t)});
     }
     localTable = make_unique<FactorizedTable>(context->memoryManager, tableSchema);
     sharedState->initTableIfNecessary(context->memoryManager, tableSchema);

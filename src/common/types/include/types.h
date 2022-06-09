@@ -100,13 +100,15 @@ private:
 
 class Types {
 public:
-    static size_t getDataTypeSize(const DataType& dataType);
-    static size_t getDataTypeSize(DataTypeID dataTypeID);
     static string dataTypeToString(const DataType& dataType);
     static string dataTypeToString(DataTypeID dataTypeID);
     static string dataTypesToString(const vector<DataType>& dataTypes);
     static string dataTypesToString(const vector<DataTypeID>& dataTypeIDs);
     static DataType dataTypeFromString(const string& dataTypeString);
+    static uint32_t getDataTypeSize(DataTypeID dataTypeID);
+    static inline uint32_t getDataTypeSize(const DataType& dataType) {
+        return getDataTypeSize(dataType.typeID);
+    }
 
 private:
     static DataTypeID dataTypeIDFromString(const string& dataTypeIDString);

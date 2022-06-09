@@ -68,8 +68,8 @@ public:
             valueVector}; // all columns including orderBy and payload columns
 
         TableSchema tableSchema;
-        tableSchema.appendColumn({false /* isUnflat */, 0 /* dataChunkPos */,
-            (uint32_t)Types::getDataTypeSize(dataTypeID)});
+        tableSchema.appendColumn(
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -81,7 +81,7 @@ public:
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
             tableSchema.appendColumn(
-                {false, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(dataTypeID)});
+                {false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
         }
 
         auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
@@ -210,15 +210,14 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        TableSchema tableSchema({{false /* isUnflat */, 0 /* dataChunkPos */,
-                                     (uint32_t)Types::getDataTypeSize(INT64)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(DOUBLE)},
-            {false /* isUnflat */, 0 /* dataChunkPos */,
-                (uint32_t)Types::getDataTypeSize(TIMESTAMP)}});
+        TableSchema tableSchema(
+            {{false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)},
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)},
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)}});
 
         if (hasStrCol) {
-            tableSchema.appendColumn({false /* isUnflat */, 0 /* dataChunkPos */,
-                (uint32_t)Types::getDataTypeSize(STRING)});
+            tableSchema.appendColumn(
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)});
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);

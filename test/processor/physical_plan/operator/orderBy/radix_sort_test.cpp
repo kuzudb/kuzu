@@ -82,8 +82,8 @@ public:
         vector<bool> isAscOrder{isAsc};
 
         TableSchema tupleSchema;
-        tupleSchema.appendColumn({false /* isUnflat */, 0 /* dataChunkPos */,
-            (uint32_t)Types::getDataTypeSize(dataTypeID)});
+        tupleSchema.appendColumn(
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -96,8 +96,8 @@ public:
             // To test whether the orderByCol -> ftIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendColumn({false /* isUnflat */, 0 /* dataChunkPos */,
-                (uint32_t)Types::getDataTypeSize(dataTypeID)});
+            tupleSchema.appendColumn(
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
                 tupleSchema.getColOffset(1) /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */,
                 isAsc, is_same<T, string>::value /* isStrCol */));
@@ -422,12 +422,12 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    TableSchema tableSchema({{false /* isUnflat */, 0 /* dataChunkPos */,
-                                 (uint32_t)Types::getDataTypeSize(INT64)},
-        {false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(DOUBLE)},
-        {false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(STRING)},
-        {false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(TIMESTAMP)},
-        {false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)Types::getDataTypeSize(DATE)}});
+    TableSchema tableSchema(
+        {{false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DATE)}});
     FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(16 /* colOffsetInFT */,

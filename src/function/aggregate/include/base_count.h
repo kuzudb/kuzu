@@ -8,7 +8,7 @@ namespace function {
 struct BaseCountFunction {
 
     struct CountState : public AggregateState {
-        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint32_t getStateSize() const override { return sizeof(*this); }
         inline uint8_t* getResult() const override { return (uint8_t*)&count; }
 
         uint64_t count = 0;

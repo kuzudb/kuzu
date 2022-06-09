@@ -145,7 +145,7 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
     return result;
 }
 
-size_t Types::getDataTypeSize(DataTypeID dataTypeID) {
+uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case LABEL:
         return sizeof(label_t);
@@ -173,10 +173,6 @@ size_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         throw Exception(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
     }
-}
-
-size_t Types::getDataTypeSize(const DataType& dataType) {
-    return getDataTypeSize(dataType.typeID);
 }
 
 RelDirection operator!(RelDirection& direction) {

@@ -13,7 +13,7 @@ template<typename T>
 struct SumFunction {
 
     struct SumState : public AggregateState {
-        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint32_t getStateSize() const override { return sizeof(*this); }
         inline uint8_t* getResult() const override { return (uint8_t*)&sum; }
 
         T sum;
