@@ -25,7 +25,7 @@ struct AggregateFunctionDefinition : public FunctionDefinition {
 };
 
 struct AggregateState {
-    virtual inline uint64_t getStateSize() const = 0;
+    virtual inline uint32_t getStateSize() const = 0;
     virtual uint8_t* getResult() const = 0;
     virtual ~AggregateState() = default;
 
@@ -51,7 +51,7 @@ public:
         initialNullAggregateState = createInitialNullAggregateState();
     }
 
-    inline uint64_t getAggregateStateSize() { return initialNullAggregateState->getStateSize(); }
+    inline uint32_t getAggregateStateSize() { return initialNullAggregateState->getStateSize(); }
 
     inline AggregateState* getInitialNullAggregateState() {
         return initialNullAggregateState.get();

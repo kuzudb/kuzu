@@ -36,6 +36,8 @@ public:
 
     uint8_t* getData() const { return block->data; }
 
+    void resetToZero() { memset(block->data, 0, LARGE_PAGE_SIZE); }
+
 public:
     uint64_t freeSize;
     uint32_t numTuples;

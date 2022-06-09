@@ -63,7 +63,7 @@ public:
 
     inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
 
-    inline uint64_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
+    inline uint32_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType.typeID == NODE_ID);

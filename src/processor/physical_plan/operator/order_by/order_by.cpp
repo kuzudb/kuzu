@@ -27,8 +27,7 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
         }
         bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
         tableSchema.appendColumn({isUnflat, dataChunkPos,
-            isUnflat ? (uint32_t)sizeof(overflow_value_t) :
-                       (uint32_t)vector->getNumBytesPerValue()});
+            isUnflat ? (uint32_t)sizeof(overflow_value_t) : vector->getNumBytesPerValue()});
         dataTypes.push_back(vector->dataType);
         vectorsToAppend.push_back(vector);
     }
