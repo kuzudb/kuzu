@@ -11,6 +11,7 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 public:
     InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
         string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerNodeLabel,
         const vector<unique_ptr<HashIndex>>& IDIndexes, LoaderProgressBar* progressBar);
 
     ~InMemRelBuilder() override = default;
@@ -65,6 +66,7 @@ private:
     vector<string> srcNodeLabelNames;
     vector<string> dstNodeLabelNames;
 
+    const vector<uint64_t>& maxNodeOffsetsPerNodeLabel;
     const vector<unique_ptr<HashIndex>>& IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};
     vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerLabel{2};

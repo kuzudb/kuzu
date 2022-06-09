@@ -28,7 +28,8 @@ private:
     void readAndParseMetadata(DatasetMetadata& metadata);
 
     vector<unique_ptr<HashIndex>> loadNodes();
-    void loadRels(const vector<unique_ptr<HashIndex>>& IDIndexes);
+    void loadRels(const vector<node_offset_t>& maxNodeOffsetsPerNodeLabel,
+        const vector<unique_ptr<HashIndex>>& IDIndexes);
 
     void cleanup();
 
@@ -40,6 +41,7 @@ private:
     unique_ptr<Catalog> catalog;
     unique_ptr<BufferManager> bufferManager;
     DatasetMetadata datasetMetadata;
+    vector<node_offset_t> maxNodeOffsetsPerNodeLabel;
     unique_ptr<LoaderProgressBar> progressBar;
 };
 

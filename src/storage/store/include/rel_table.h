@@ -16,7 +16,8 @@ using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<AdjLists>>;
 class RelTable {
 
 public:
-    explicit RelTable(const catalog::Catalog& catalog, label_t relLabel, const string& directory,
+    explicit RelTable(const catalog::Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
 public:
@@ -33,9 +34,34 @@ public:
     inline AdjLists* getAdjLists(RelDirection relDirection, label_t nodeLabel) {
         return adjLists[relDirection].at(nodeLabel).get();
     }
+    inline vector<AdjLists*> getAdjListsForNodeLabel(label_t nodeLabel) {
+        vector<AdjLists*> retVal;
+        auto it = adjLists[0].find(nodeLabel);
+        if (it != adjLists[0].end()) {
+            retVal.push_back(it->second.get());
+        }
+        it = adjLists[1].find(nodeLabel);
+        if (it != adjLists[1].end()) {
+            retVal.push_back(it->second.get());
+        }
+        return retVal;
+    }
+    inline vector<AdjColumn*> getAdjColumnsForNodeLabel(label_t nodeLabel) {
+        vector<AdjColumn*> retVal;
+        auto it = adjColumns[0].find(nodeLabel);
+        if (it != adjColumns[0].end()) {
+            retVal.push_back(it->second.get());
+        }
+        it = adjColumns[1].find(nodeLabel);
+        if (it != adjColumns[1].end()) {
+            retVal.push_back(it->second.get());
+        }
+        return retVal;
+    }
 
 private:
-    void initAdjColumnOrLists(const catalog::Catalog& catalog, const string& directory,
+    void initAdjColumnOrLists(const catalog::Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
     void initPropertyListsAndColumns(const catalog::Catalog& catalog, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);

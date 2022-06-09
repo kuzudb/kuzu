@@ -56,7 +56,7 @@ public:
 
     void addNodeLabel(string labelName, const DataType& IDType,
         vector<PropertyNameDataType> colHeaderDefinitions,
-        const vector<string>& unstructuredPropertyNames, uint64_t numNodes);
+        const vector<string>& unstructuredPropertyNames);
 
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyNameDataType> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
@@ -126,8 +126,6 @@ public:
 
     virtual bool isSingleMultiplicityInDirection(label_t relLabel, RelDirection direction) const;
 
-    vector<uint64_t> getNumNodesPerLabel() const;
-    virtual uint64_t getNumNodes(label_t label) const;
     virtual uint64_t getNumRelsForDirectionBoundLabel(
         label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const;
 

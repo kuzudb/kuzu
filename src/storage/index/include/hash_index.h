@@ -160,6 +160,14 @@ public:
         return lookupInternal(reinterpret_cast<const uint8_t*>(key), result);
     }
 
+    void deleteKey(const int64_t key) {
+        // TODO(Guodong): Implement
+    }
+
+    void deleteKey(const char* key) {
+        // TODO(Guodong): Implement
+    }
+
     // Note: This function is NOT thread-safe.
     void flush();
 

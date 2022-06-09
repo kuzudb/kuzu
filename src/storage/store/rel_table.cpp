@@ -7,14 +7,17 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace storage {
 
-RelTable::RelTable(const Catalog& catalog, label_t relLabel, const string& directory,
-    BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
+RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
+    label_t relLabel, const string& directory, BufferManager& bufferManager, bool isInMemoryMode,
+    WAL* wal)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, relLabel{relLabel} {
-    initAdjColumnOrLists(catalog, directory, bufferManager, isInMemoryMode, wal);
+    initAdjColumnOrLists(
+        catalog, maxNodeOffsetsPerLabel, directory, bufferManager, isInMemoryMode, wal);
     initPropertyListsAndColumns(catalog, directory, bufferManager, isInMemoryMode, wal);
 }
 
-void RelTable::initAdjColumnOrLists(const Catalog& catalog, const string& directory,
+void RelTable::initAdjColumnOrLists(const Catalog& catalog,
+    const vector<uint64_t>& maxNodeOffsetsPerLabel, const string& directory,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", relLabel);
     for (auto relDirection : REL_DIRECTIONS) {
@@ -22,8 +25,7 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog, const string& direct
         const auto& nbrNodeLabels =
             catalog.getNodeLabelsForRelLabelDirection(relLabel, !relDirection);
         for (auto nodeLabel : nodeLabels) {
-            NodeIDCompressionScheme nodeIDCompressionScheme(
-                nbrNodeLabels, catalog.getNumNodesPerLabel(), catalog.getNumNodeLabels());
+            NodeIDCompressionScheme nodeIDCompressionScheme(nbrNodeLabels, maxNodeOffsetsPerLabel);
             logger->debug("DIRECTION {} nodeLabelForAdjColumnAndProperties {} relLabel {} "
                           "compressionScheme {},{},{}",
                 relDirection, nodeLabel, relLabel, nodeIDCompressionScheme.getNumBytesForLabel(),

@@ -73,6 +73,19 @@ public:
     // cleared.
     inline void commitAndCheckpointOrRollback(
         transaction::Transaction* writeTransaction, bool isCommit) {
+        // Irrespective of whether we are checkpointing or rolling back we add a nodes_metadata
+        // record if there has been udpates to NodesMetadata. This is because we need to
+        // commit or rollback the in-memory state of NodesMetadata, which is done during wal
+        // replaying and committing/rollingback each record.
+        if (storageManager->getNodesStore().getNodesMetadata().hasUpdates()) {
+            storageManager->getWAL().logNodeMetadataRecord();
+
+            // If we are committing, we also need to write the WAL file for NodesMetadata.
+            if (isCommit) {
+                storageManager->getNodesStore().getNodesMetadata().writeNodesMetadataWALFile(
+                    storageManager->getDBDirectory());
+            }
+        }
         if (isCommit) {
             // Note: It is enough to stop and wait transactions to leave the system instead of for
             // example checking on the query processor's task scheduler. This is because the first

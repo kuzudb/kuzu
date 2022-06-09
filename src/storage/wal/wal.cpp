@@ -3,15 +3,17 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/utils.h"
+#include "src/storage/include/storage_utils.h"
 
 namespace graphflow {
 namespace storage {
 
-WAL::WAL(const string& path, BufferManager& bufferManager)
-    : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, bufferManager{bufferManager},
-      isLastLoggedRecordCommit_{false} {
-    createFileHandle(path);
-    initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
+WAL::WAL(const string& directory, BufferManager& bufferManager)
+    : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, directory{directory},
+      bufferManager{bufferManager}, isLastLoggedRecordCommit_{false}, containsNodesMetadataRecord_{
+                                                                          false} {
+    createFileHandle(FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)));
+    initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields();
 }
 
 page_idx_t WAL::logPageUpdateRecord(
@@ -40,10 +42,18 @@ void WAL::logCommit(uint64_t transactionID) {
     addNewWALRecordWithoutLock(walRecord);
 }
 
+void WAL::logNodeMetadataRecord() {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newNodeMetadataRecord();
+    addNewWALRecordWithoutLock(walRecord);
+}
+
 void WAL::clearWAL() {
+    // We remove the nodeMetadata back up file if necessary
+    StorageUtils::removeNodesMetadataFileForWALIfExists(directory);
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
-    initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
+    initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields();
 }
 
 void WAL::flushAllPages() {
@@ -53,15 +63,17 @@ void WAL::flushAllPages() {
     }
 }
 
-void WAL::initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary() {
+void WAL::initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields() {
     currentHeaderPageIdx = 0;
+    isLastLoggedRecordCommit_ = false;
+    containsNodesMetadataRecord_ = false;
     if (fileHandle->getNumPages() == 0) {
         fileHandle->addNewPage();
         resetCurrentHeaderPagePrefix();
     } else {
         // If the file existed, read the first page into the currentHeaderPageBuffer.
         fileHandle->readPage(currentHeaderPageBuffer.get(), 0);
-        setIsLastRecordCommitToTrueIfNecessary();
+        setIsLastRecordCommitAndContainsNodesMetadataFields();
     }
 }
 
@@ -82,9 +94,10 @@ void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
     incrementNumRecordsInCurrentHeaderPage();
     walRecord.writeWALRecordToBytes(currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
     isLastLoggedRecordCommit_ = (COMMIT_RECORD == walRecord.recordType);
+    containsNodesMetadataRecord_ = (NODES_METADATA_RECORD == walRecord.recordType);
 }
 
-void WAL::setIsLastRecordCommitToTrueIfNecessary() {
+void WAL::setIsLastRecordCommitAndContainsNodesMetadataFields() {
     WALIterator walIterator(fileHandle, mtx);
     WALRecord walRecord;
     if (!walIterator.hasNextRecord()) {
@@ -95,6 +108,9 @@ void WAL::setIsLastRecordCommitToTrueIfNecessary() {
     }
     while (walIterator.hasNextRecord()) {
         walIterator.getNextRecord(walRecord);
+        if (NODES_METADATA_RECORD == walRecord.recordType) {
+            containsNodesMetadataRecord_ = true;
+        }
     }
     if (COMMIT_RECORD == walRecord.recordType) {
         isLastLoggedRecordCommit_ = true;

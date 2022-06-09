@@ -82,10 +82,9 @@ public:
 };
 
 struct NodeLabel : Label {
-    NodeLabel() : Label{"", 0}, primaryPropertyId{0}, numNodes{0} {}
+    NodeLabel() : Label{"", 0}, primaryPropertyId{0} {}
     NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
-        vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames,
-        uint64_t numNodes);
+        vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames);
 
     uint64_t primaryPropertyId;
     vector<Property> structuredProperties, unstructuredProperties;
@@ -94,8 +93,6 @@ struct NodeLabel : Label {
     // This map is maintained as a cache for unstructured properties. It is not serialized to the
     // catalog file, but is re-constructed when reading from the catalog file.
     unordered_map<string, uint64_t> unstrPropertiesNameToIdMap;
-    // Cardinality information
-    uint64_t numNodes;
 };
 
 struct RelLabel : Label {

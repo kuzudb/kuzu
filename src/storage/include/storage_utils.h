@@ -145,6 +145,27 @@ public:
     inline static string getOverflowPagesFName(const string& fName) {
         return fName + StorageConfig::OVERFLOW_FILE_SUFFIX;
     }
+
+    static void removeNodesMetadataFileForWALIfExists(const string& directory) {
+        FileUtils::removeFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */));
+    }
+
+    static void overwriteNodesMetadataFileWithVersionFromWAL(const string& directory) {
+        FileUtils::overwriteFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */),
+            getNodesMetadataFilePath(directory, false /* original nodes metadata file */));
+    }
+
+    static inline string getNodesMetadataFilePath(const string& directory, bool isForWALRecord) {
+        return FileUtils::joinPath(
+            directory, isForWALRecord ? common::StorageConfig::NODES_METADATA_FILE_NAME_FOR_WAL :
+                                        common::StorageConfig::NODES_METADATA_FILE_NAME);
+    }
+
+    // Note: This is a relatively slow function because of division and mod and making pair. It is
+    // not meant to be used in performance critical code path.
+    inline static pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {
+        return make_pair(i / divisor, i % divisor);
+    }
 };
 
 } // namespace storage

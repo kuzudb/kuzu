@@ -7,6 +7,7 @@
 #include "src/loader/include/in_mem_structure/in_mem_lists.h"
 #include "src/loader/include/loader_progress_bar.h"
 #include "src/loader/include/node_id_map.h"
+#include "src/storage/store/include/nodes_metadata.h"
 
 namespace graphflow {
 namespace loader {

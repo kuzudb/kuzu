@@ -48,6 +48,8 @@ struct StorageConfig {
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
+    static constexpr char NODES_METADATA_FILE_NAME[] = "nodes-metadata.bin";
+    static constexpr char NODES_METADATA_FILE_NAME_FOR_WAL[] = "nodes-metadata.bin.wal";
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;

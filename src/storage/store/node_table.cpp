@@ -3,8 +3,9 @@
 namespace graphflow {
 namespace storage {
 
-NodeTable::NodeTable(label_t labelID, BufferManager& bufferManager, bool isInMemory,
-    const vector<catalog::Property>& properties, const string& directory, WAL* wal) {
+NodeTable::NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, bool isInMemory,
+    const vector<catalog::Property>& properties, const string& directory, WAL* wal)
+    : nodeMetadata{nodeMetadata} {
     bool hasUnstructuredProperties = false;
     auto IDPropertyIdx = UINT32_MAX;
     for (const auto& property : properties) {
@@ -22,10 +23,11 @@ NodeTable::NodeTable(label_t labelID, BufferManager& bufferManager, bool isInMem
     }
     if (hasUnstructuredProperties) {
         unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
-            StorageUtils::getNodeUnstrPropertyListsFName(directory, labelID), bufferManager,
-            isInMemory);
+            StorageUtils::getNodeUnstrPropertyListsFName(directory, nodeMetadata->getLabelID()),
+            bufferManager, isInMemory);
     }
-    IDIndex = make_unique<HashIndex>(StorageUtils::getNodeIndexFName(directory, labelID),
+    IDIndex = make_unique<HashIndex>(
+        StorageUtils::getNodeIndexFName(directory, nodeMetadata->getLabelID()),
         properties[IDPropertyIdx].dataType, bufferManager, isInMemory);
 }
 

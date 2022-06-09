@@ -45,7 +45,10 @@ public:
         loadGraph();
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::TEMP_TEST_DIR);
+        cout << "Called TearDown succesfully." << endl;
+    }
 
     virtual string getInputCSVDir() = 0;
 

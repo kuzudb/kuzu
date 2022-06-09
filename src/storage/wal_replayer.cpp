@@ -62,9 +62,22 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         }
     } break;
+    case NODES_METADATA_RECORD: {
+        cout << "Starting to replay NODES_METADATA_RECORD. isCheckpoint: "
+             << (isCheckpoint ? " true" : " false") << endl;
+        if (isCheckpoint) {
+            StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(
+                storageManager.getDBDirectory());
+            cout << "Called overwriteNodesMetadataFileWithVersionFromWAL()." << endl;
+            storageManager.getNodesStore().getNodesMetadata().commitIfNecessary();
+            cout << "Called .getNodesMetadata().commitIfNecessary()." << endl;
+        } else {
+            StorageUtils::removeNodesMetadataFileForWALIfExists(storageManager.getDBDirectory());
+            storageManager.getNodesStore().getNodesMetadata().rollbackIfNecessary();
+        }
+    } break;
     case COMMIT_RECORD: {
-        break;
-    }
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +

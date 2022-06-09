@@ -6,6 +6,7 @@
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/storage/include/storage_manager.h"
+#include "src/storage/store/include/nodes_metadata.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::planner;
@@ -17,9 +18,9 @@ class PlanMapper {
 
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(const catalog::Catalog& catalog, const StorageManager& storageManager)
-        : catalog{catalog}, storageManager{storageManager}, outerMapperContext{nullptr},
-          expressionMapper{}, physicalOperatorID{0} {}
+    PlanMapper(const StorageManager& storageManager)
+        : storageManager{storageManager}, outerMapperContext{nullptr}, expressionMapper{},
+          physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
@@ -94,7 +95,6 @@ private:
         MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext);
 
 public:
-    const catalog::Catalog& catalog;
     const StorageManager& storageManager;
     const MapperContext* outerMapperContext;
     ExpressionMapper expressionMapper;

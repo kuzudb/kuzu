@@ -26,8 +26,12 @@ Connection::Connection(Database* database) {
 }
 
 Connection::~Connection() {
+    cout << "Deconstructing connection " << endl;
+
     if (activeTransaction) {
+        cout << "Rolling back activeTransaction" << endl;
         database->transactionManager->rollback(activeTransaction.get());
+        cout << "Rolled back activeTransaction" << endl;
     }
 }
 
@@ -68,10 +72,11 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
         auto boundQuery = binder.bind(*parsedQuery);
         preparedStatement->parameterMap = binder.getParameterMap();
         // planning
-        auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
+        auto logicalPlan = Planner::getBestPlan(*database->catalog,
+            database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
-        auto mapper = PlanMapper(*database->catalog, *database->storageManager);
+        auto mapper = PlanMapper(*database->storageManager);
         physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     } catch (Exception& exception) {
         preparedStatement->success = false;
@@ -161,14 +166,15 @@ vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string
     lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
-    return Planner::getAllPlans(*database->catalog, *boundQuery);
+    return Planner::getAllPlans(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    auto mapper = PlanMapper(*database->catalog, *database->storageManager);
+    auto mapper = PlanMapper(*database->storageManager);
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     preparedStatement->physicalPlan = move(physicalPlan);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
@@ -225,6 +231,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                 // If the caller didn't explicitly start a transaction, we do so now and commit or
                 // rollback here if necessary, i.e., if the given prepared statement has write
                 // operations.
+                cout << "Beginning AUTO_COMMIT transaction." << endl;
                 beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
             }
             if (!activeTransaction) {

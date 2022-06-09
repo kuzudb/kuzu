@@ -38,6 +38,9 @@ public:
     void initOriginalAndSelectedSize(uint64_t size) {
         originalSize = size;
         selectedSize = size;
+        // TODO(Reviewer): Is this safe to do? I see several places calling this. Tests pass but
+        // might be good for someone who knows this better to check.
+        resetSelectorToUnselected();
     }
 
     inline bool isFlat() const { return currIdx != -1; }

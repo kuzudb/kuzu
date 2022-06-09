@@ -15,13 +15,22 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
       bufferManager{bufferManager}, directory{move(directory)} {
     logger->info("Initializing StorageManager from directory: " + this->directory);
-    wal = make_unique<storage::WAL>(
-        FileUtils::joinPath(this->directory, string(StorageConfig::WAL_FILE_SUFFIX)),
-        bufferManager);
+    wal = make_unique<storage::WAL>(this->directory, bufferManager);
+    // We do part of the recovery first to make sure that the NodesMetadata file's disk contents
+    // are accurate. We achieve atomicity for NodesMetadata file by writing it to a backup file,
+    // and don't have a mechanism to refresh it (we could construct and reconstruct it but
+    // we do not currently do that).
+    if (wal->isLastLoggedRecordCommit() && wal->containsNodesMetadataRecord()) {
+        StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(directory);
+    }
     nodesStore =
         make_unique<NodesStore>(catalog, bufferManager, this->directory, isInMemoryMode, wal.get());
-    relsStore =
-        make_unique<RelsStore>(catalog, bufferManager, this->directory, isInMemoryMode, wal.get());
+    // We keep a reference here and pass to relsStore.
+    vector<uint64_t> maxNodeOffsetPerLabel =
+        nodesStore->getNodesMetadata().getMaxNodeOffsetPerLabel();
+    relsStore = make_unique<RelsStore>(
+        catalog, maxNodeOffsetPerLabel, bufferManager, this->directory, isInMemoryMode, wal.get());
+    nodesStore->getNodesMetadata().setAdjListsAndColumns(relsStore.get());
     recoverIfNecessary();
     logger->info("Done.");
 }

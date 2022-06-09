@@ -158,6 +158,8 @@ void OverflowPages::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) 
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
         nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);
+        // TODO(Semih): The creation of a new page, when there is not enough free pages should look
+        // like this. Maybe this can be refactored.
         auto pageIdxInOriginalFile = fileHandle.addNewPage();
         auto pageIdxInWAL = wal->logPageInsertRecord(
             fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
