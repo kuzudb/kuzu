@@ -14,9 +14,8 @@ namespace operation {
 
 struct BaseStrOperation {
 public:
-    static inline void operation(gf_string_t& input, bool isNull, gf_string_t& result,
+    static inline void operation(gf_string_t& input, gf_string_t& result,
         ValueVector& resultValueVector, uint32_t (*strOperation)(char* data, uint32_t len)) {
-        assert(!isNull);
         if (input.len <= gf_string_t::SHORT_STR_LENGTH) {
             memcpy(result.prefix, input.prefix, input.len);
             result.len = strOperation((char*)result.prefix, input.len);

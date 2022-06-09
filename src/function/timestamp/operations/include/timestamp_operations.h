@@ -10,22 +10,19 @@ namespace function {
 namespace operation {
 
 struct Century {
-    static inline void operation(timestamp_t& timestamp, bool isNull, int64_t& result) {
-        assert(!isNull);
+    static inline void operation(timestamp_t& timestamp, int64_t& result) {
         result = Timestamp::getTimestampPart(DatePartSpecifier::CENTURY, timestamp);
     }
 };
 
 struct EpochMs {
-    static inline void operation(int64_t& ms, bool isNull, timestamp_t& result) {
-        assert(!isNull);
+    static inline void operation(int64_t& ms, timestamp_t& result) {
         result = Timestamp::FromEpochMs(ms);
     }
 };
 
 struct ToTimestamp {
-    static inline void operation(int64_t& sec, bool isNull, timestamp_t& result) {
-        assert(!isNull);
+    static inline void operation(int64_t& sec, timestamp_t& result) {
         result = Timestamp::FromEpochSec(sec);
     }
 };

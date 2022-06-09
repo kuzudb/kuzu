@@ -72,7 +72,7 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
-        return UnaryExecFunction<bool, uint8_t, operation::Not>;
+        return UnaryBooleanExecFunction<operation::Not>;
     }
     default:
         assert(false);
@@ -84,7 +84,7 @@ scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
-        return UnarySelectFunction<bool, operation::Not>;
+        return UnaryBooleanSelectFunction<operation::Not>;
     }
     default:
         assert(false);

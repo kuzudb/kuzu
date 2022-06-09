@@ -15,10 +15,8 @@ namespace operation {
 struct PadOperation {
 public:
     static inline void operation(gf_string_t& src, int64_t count, gf_string_t& characterToPad,
-        gf_string_t& result, bool isSrcNull, bool isCountNull, bool isCharacterToPadNull,
-        ValueVector& resultValueVector,
+        gf_string_t& result, ValueVector& resultValueVector,
         void (*padOperation)(gf_string_t& result, gf_string_t& src, gf_string_t& characterToPad)) {
-        assert(!isSrcNull && !isCountNull && !isCharacterToPadNull);
         assert(characterToPad.len == 1);
         result.len = count;
         if (!gf_string_t::isShortString(result.len)) {

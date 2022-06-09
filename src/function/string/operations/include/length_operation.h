@@ -13,10 +13,7 @@ namespace function {
 namespace operation {
 
 struct Length {
-    static inline void operation(gf_string_t& input, bool isNull, int64_t& result) {
-        assert(!isNull);
-        result = input.len;
-    }
+    static inline void operation(gf_string_t& input, int64_t& result) { result = input.len; }
 };
 
 } // namespace operation

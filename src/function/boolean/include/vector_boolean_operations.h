@@ -32,6 +32,20 @@ private:
             *params[0], *params[1], selectedPositions);
     }
 
+    template<typename FUNC>
+    static void UnaryBooleanExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryBooleanOperationExecutor::execute<FUNC>(*params[0], result);
+    }
+
+    template<typename FUNC>
+    static uint64_t UnaryBooleanSelectFunction(
+        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
+        assert(params.size() == 1);
+        return UnaryBooleanOperationExecutor::select<FUNC>(*params[0], selectedPositions);
+    }
+
     static scalar_exec_func bindBinaryExecFunction(
         ExpressionType expressionType, const expression_vector& children);
 

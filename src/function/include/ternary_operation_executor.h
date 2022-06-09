@@ -11,17 +11,17 @@ namespace function {
 
 struct TernaryOperationWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, bool isANull, bool isBNull,
-        bool isCNull, RESULT_TYPE& result, void* dataptr) {
-        OP::operation(a, b, c, result, isANull, isBNull, isCNull);
+    static inline void operation(
+        A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* dataptr) {
+        OP::operation(a, b, c, result);
     }
 };
 
 struct TernaryStringAndListOperationWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, bool isANull, bool isBNull,
-        bool isCNull, RESULT_TYPE& result, void* dataptr) {
-        OP::operation(a, b, c, result, isANull, isBNull, isCNull, *(ValueVector*)dataptr);
+    static inline void operation(
+        A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* dataptr) {
+        OP::operation(a, b, c, result, *(ValueVector*)dataptr);
     }
 };
 
@@ -34,9 +34,8 @@ struct TernaryOperationExecutor {
         auto bValues = (B_TYPE*)b.values;
         auto cValues = (C_TYPE*)c.values;
         auto resValues = (RESULT_TYPE*)result.values;
-        OP_WRAPPER::template operation<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(aValues[aPos],
-            bValues[bPos], cValues[cPos], (bool)a.isNull(aPos), (bool)b.isNull(bPos),
-            (bool)c.isNull(cPos), resValues[resPos], (void*)&result);
+        OP_WRAPPER::template operation<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            aValues[aPos], bValues[bPos], cValues[cPos], resValues[resPos], (void*)&result);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,

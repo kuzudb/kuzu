@@ -14,18 +14,14 @@ namespace function {
 struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
-    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL &&
-               result.dataType.typeID == BOOL);
-        if (left.state->isFlat() && right.state->isFlat()) {
-            executeBothFlat<FUNC>(left, right, result);
-        } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeFlatUnFlat<FUNC>(left, right, result);
-        } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeUnFlatFlat<FUNC>(left, right, result);
-        } else {
-            executeBothUnFlat<FUNC>(left, right, result);
-        }
+    static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
+        uint64_t lPos, uint64_t rPos, uint64_t resPos) {
+        auto lValues = (uint8_t*)left.values;
+        auto rValues = (uint8_t*)right.values;
+        auto resValues = (uint8_t*)result.values;
+        FUNC::operation(
+            lValues[lPos], rValues[rPos], resValues[resPos], left.isNull(lPos), right.isNull(rPos));
+        result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
     }
 
     template<typename FUNC>
@@ -86,28 +82,30 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
-        uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        auto lValues = (uint8_t*)left.values;
-        auto rValues = (uint8_t*)right.values;
-        auto resValues = (uint8_t*)result.values;
-        FUNC::operation(
-            lValues[lPos], rValues[rPos], resValues[resPos], left.isNull(lPos), right.isNull(rPos));
-        result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
+    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
+        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL &&
+               result.dataType.typeID == BOOL);
+        if (left.state->isFlat() && right.state->isFlat()) {
+            executeBothFlat<FUNC>(left, right, result);
+        } else if (left.state->isFlat() && !right.state->isFlat()) {
+            executeFlatUnFlat<FUNC>(left, right, result);
+        } else if (!left.state->isFlat() && right.state->isFlat()) {
+            executeUnFlatFlat<FUNC>(left, right, result);
+        } else {
+            executeBothUnFlat<FUNC>(left, right, result);
+        }
     }
 
-    template<typename FUNC>
-    static uint64_t select(ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
-        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL);
-        if (left.state->isFlat() && right.state->isFlat()) {
-            return selectBothFlat<FUNC>(left, right);
-        } else if (left.state->isFlat() && !right.state->isFlat()) {
-            return selectFlatUnFlat<FUNC>(left, right, selectedPositions);
-        } else if (!left.state->isFlat() && right.state->isFlat()) {
-            return selectUnFlatFlat<FUNC>(left, right, selectedPositions);
-        } else {
-            return selectBothUnFlat<FUNC>(left, right, selectedPositions);
-        }
+    template<class FUNC>
+    static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
+        uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositions) {
+        auto lValues = (uint8_t*)left.values;
+        auto rValues = (uint8_t*)right.values;
+        uint8_t resultValue = 0;
+        FUNC::operation(
+            lValues[lPos], rValues[rPos], resultValue, left.isNull(lPos), right.isNull(rPos));
+        selectedPositions[numSelectedValues] = resPos;
+        numSelectedValues += (resultValue == true);
     }
 
     template<typename FUNC>
@@ -178,16 +176,89 @@ struct BinaryBooleanOperationExecutor {
         return numSelectedValues;
     }
 
-    template<class FUNC>
-    static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
-        uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositions) {
-        auto lValues = (uint8_t*)left.values;
-        auto rValues = (uint8_t*)right.values;
-        uint8_t resultValue = 0;
+    template<typename FUNC>
+    static uint64_t select(ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
+        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL);
+        if (left.state->isFlat() && right.state->isFlat()) {
+            return selectBothFlat<FUNC>(left, right);
+        } else if (left.state->isFlat() && !right.state->isFlat()) {
+            return selectFlatUnFlat<FUNC>(left, right, selectedPositions);
+        } else if (!left.state->isFlat() && right.state->isFlat()) {
+            return selectUnFlatFlat<FUNC>(left, right, selectedPositions);
+        } else {
+            return selectBothUnFlat<FUNC>(left, right, selectedPositions);
+        }
+    }
+};
+
+struct UnaryBooleanOperationExecutor {
+
+    template<typename FUNC>
+    static void executeOnValue(ValueVector& operand, uint64_t operandPos, ValueVector& result) {
+        auto operandValues = (uint8_t*)operand.values;
+        auto resultValues = (uint8_t*)result.values;
         FUNC::operation(
-            lValues[lPos], rValues[rPos], resultValue, left.isNull(lPos), right.isNull(rPos));
-        selectedPositions[numSelectedValues] = resPos;
-        numSelectedValues += (resultValue == true);
+            operandValues[operandPos], operand.isNull(operandPos), resultValues[operandPos]);
+        result.setNull(operandPos, result.values[operandPos] == operation::NULL_BOOL);
+    }
+
+    template<typename FUNC>
+    static void executeSwitch(ValueVector& operand, ValueVector& result) {
+        result.resetOverflowBuffer();
+        result.state = operand.state;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getPositionOfCurrIdx();
+            executeOnValue<FUNC>(operand, pos, result);
+        } else {
+            if (operand.state->isUnfiltered()) {
+                for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                    executeOnValue<FUNC>(operand, i, result);
+                }
+            } else {
+                for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    executeOnValue<FUNC>(operand, pos, result);
+                }
+            }
+        }
+    }
+
+    template<typename FUNC>
+    static void execute(ValueVector& operand, ValueVector& result) {
+        executeSwitch<FUNC>(operand, result);
+    }
+
+    template<typename FUNC>
+    static void selectOnValue(ValueVector& operand, uint64_t operandPos,
+        uint64_t& numSelectedValues, sel_t* selectedPositions) {
+        uint8_t resultValue = 0;
+        auto operandValues = (uint8_t*)operand.values;
+        FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
+        selectedPositions[numSelectedValues] = operandPos;
+        numSelectedValues += resultValue == true;
+    }
+
+    template<typename FUNC>
+    static uint64_t select(ValueVector& operand, sel_t* selectedPositions) {
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getPositionOfCurrIdx();
+            uint8_t resultValue = 0;
+            FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
+            return resultValue == true;
+        } else {
+            uint64_t numSelectedValues = 0;
+            if (operand.state->isUnfiltered()) {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
+                    selectOnValue<FUNC>(operand, i, numSelectedValues, selectedPositions);
+                }
+            } else {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    selectOnValue<FUNC>(operand, pos, numSelectedValues, selectedPositions);
+                }
+            }
+            return numSelectedValues;
+        }
     }
 };
 
