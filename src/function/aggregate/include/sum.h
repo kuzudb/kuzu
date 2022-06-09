@@ -53,8 +53,7 @@ struct SumFunction {
                 state->sum = inputValues[pos];
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, inputValues[pos], state->sum, false /* isLeftNull */,
-                    false /* isRightNull */);
+                Add::operation(state->sum, inputValues[pos], state->sum);
             }
         }
     }
@@ -69,8 +68,7 @@ struct SumFunction {
             state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation(state->sum, otherState->sum, state->sum, false /* isLeftNull */,
-                false /* isRightNull */);
+            Add::operation(state->sum, otherState->sum, state->sum);
         }
     }
 

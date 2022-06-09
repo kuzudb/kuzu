@@ -21,7 +21,7 @@ int64_t Find::unalignedNeedleSizeFind(const uint8_t* haystack, uint32_t haystack
     UNSIGNED haystackEntry = 0;
     const UNSIGNED start = (sizeof(UNSIGNED) * 8) - 8;
     const UNSIGNED shift = (sizeof(UNSIGNED) - needleLen) * 8;
-    for (int i = 0; i < needleLen; i++) {
+    for (auto i = 0u; i < needleLen; i++) {
         needleEntry |= UNSIGNED(needle[i]) << UNSIGNED(start - i * 8);
         haystackEntry |= UNSIGNED(haystack[i]) << UNSIGNED(start - i * 8);
     }

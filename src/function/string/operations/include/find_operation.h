@@ -15,9 +15,7 @@ namespace operation {
 // https://github.com/duckdb/duckdb/blob/master/src/function/scalar/string/contains.cpp
 
 struct Find {
-    static inline void operation(
-        gf_string_t& left, gf_string_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(gf_string_t& left, gf_string_t& right, int64_t& result) {
         if (right.len == 0) {
             result = 1;
         } else if (right.len > left.len) {

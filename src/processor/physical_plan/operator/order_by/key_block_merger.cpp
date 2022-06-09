@@ -241,8 +241,7 @@ bool KeyBlockMerger::compareTuplePtrWithStringAndUnstructuredCol(
                     leftBlockIdx, leftBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
                 auto rightUnstr = rightFactorizedTable->getData<Value>(
                     rightBlockIdx, rightBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                Equals::operation<Value, Value>(
-                    leftUnstr, rightUnstr, result, false /* isLeftNull */, false /* isRightNull */);
+                Equals::operation<Value, Value>(leftUnstr, rightUnstr, result);
                 if (result) {
                     // If the tie can't be solved, we need to check the next string or unstructured
                     // column.
@@ -250,8 +249,7 @@ bool KeyBlockMerger::compareTuplePtrWithStringAndUnstructuredCol(
                                         stringAndUnstructuredKeyInfo.getEncodingSize();
                     continue;
                 }
-                GreaterThan::operation<Value, Value>(
-                    leftUnstr, rightUnstr, result, false /* isLeftNull */, false /* isRightNull */);
+                GreaterThan::operation<Value, Value>(leftUnstr, rightUnstr, result);
             }
             return stringAndUnstructuredKeyInfo.isAscOrder == result;
         }

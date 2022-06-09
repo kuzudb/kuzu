@@ -76,7 +76,7 @@ vector<string> BuiltInVectorOperations::getFunctionNames() {
 VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(
     vector<VectorOperationDefinition*>& functions) {
     assert(functions.size() > 1);
-    VectorOperationDefinition* result;
+    VectorOperationDefinition* result = nullptr;
     auto cost = UINT32_MAX;
     for (auto& function : functions) {
         unordered_set<DataTypeID> distinctParameterTypes;

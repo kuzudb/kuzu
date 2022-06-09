@@ -16,12 +16,10 @@ namespace operation {
 
 struct ListContains {
     template<typename T>
-    static inline void operation(gf_list_t& list, T& element, uint8_t& result, bool isListNull,
-        bool isElementNull, const DataType& leftDataType, const DataType& rightDataType) {
-        assert(!isListNull && !isElementNull);
+    static inline void operation(gf_list_t& list, T& element, uint8_t& result,
+        const DataType& leftDataType, const DataType& rightDataType) {
         int64_t pos;
-        ListPosition::operation(
-            list, element, pos, isListNull, isElementNull, leftDataType, rightDataType);
+        ListPosition::operation(list, element, pos, leftDataType, rightDataType);
         result = (pos != 0);
     }
 };

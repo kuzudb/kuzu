@@ -15,48 +15,47 @@ namespace operation {
 
 struct Add {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = left + right;
     }
 };
 
 struct Subtract {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = left - right;
     }
 };
 
 struct Multiply {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = left * right;
     }
 };
 
 struct Divide {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = left / right;
     }
 };
 
 struct Modulo {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = fmod(left, right);
     }
 };
 
+template<>
+inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
+    result = left % right;
+}
+
 struct Power {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, R& result) {
         result = pow(left, right);
     }
 };
@@ -254,27 +253,21 @@ struct Radians {
 
 struct Atan2 {
     template<class A, class B>
-    static inline void operation(
-        A& left, B& right, double_t& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, double_t& result) {
         result = atan2(left, right);
     }
 };
 
 struct Round {
     template<class A, class B>
-    static inline void operation(
-        A& left, B& right, double_t& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(A& left, B& right, double_t& result) {
         auto multiplier = pow(10, right);
         result = round(left * multiplier) / multiplier;
     }
 };
 
 struct BitwiseXor {
-    static inline void operation(
-        int64_t& left, int64_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(int64_t& left, int64_t& right, int64_t& result) {
         result = left ^ right;
     }
 };
@@ -282,19 +275,6 @@ struct BitwiseXor {
 struct Pi {
     static inline void operation(double_t& result) { result = M_PI; }
 };
-
-/********************************************
- **                                        **
- **   Specialized Modulo implementations   **
- **                                        **
- ********************************************/
-
-template<>
-inline void Modulo::operation(
-    int64_t& left, int64_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left % right;
-}
 
 /**********************************************
  **                                          **
@@ -304,21 +284,19 @@ inline void Modulo::operation(
 
 struct ArithmeticOnValues {
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(
-        Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static void operation(Value& left, Value& right, Value& result) {
         switch (left.dataType.typeID) {
         case INT64:
             switch (right.dataType.typeID) {
             case INT64: {
                 result.dataType.typeID = INT64;
-                FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val,
-                    isLeftNull, isRightNull);
+                FUNC::template operation<int64_t, int64_t, int64_t>(
+                    left.val.int64Val, right.val.int64Val, result.val.int64Val);
             } break;
             case DOUBLE: {
                 result.dataType.typeID = DOUBLE;
-                FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal,
-                    isLeftNull, isRightNull);
+                FUNC::template operation<int64_t, double_t, double_t>(
+                    left.val.int64Val, right.val.doubleVal, result.val.doubleVal);
             } break;
             default:
                 throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
@@ -329,13 +307,13 @@ struct ArithmeticOnValues {
             switch (right.dataType.typeID) {
             case INT64: {
                 result.dataType.typeID = DOUBLE;
-                FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal,
-                    isLeftNull, isRightNull);
+                FUNC::template operation<double_t, int64_t, double_t>(
+                    left.val.doubleVal, right.val.int64Val, result.val.doubleVal);
             } break;
             case DOUBLE: {
                 result.dataType.typeID = DOUBLE;
-                FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal,
-                    isLeftNull, isRightNull);
+                FUNC::template operation<double_t, double_t, double_t>(
+                    left.val.doubleVal, right.val.doubleVal, result.val.doubleVal);
             } break;
             default:
                 throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
@@ -350,19 +328,17 @@ struct ArithmeticOnValues {
     }
 
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(
-        Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
-        assert(!isLeftNull && !isRightNull);
+    static void operation(Value& left, Value& right, double_t& result) {
         switch (left.dataType.typeID) {
         case INT64:
             switch (right.dataType.typeID) {
             case INT64: {
-                FUNC::operation(
-                    left.val.int64Val, right.val.int64Val, result, isLeftNull, isRightNull);
+                FUNC::template operation<int64_t, int64_t>(
+                    left.val.int64Val, right.val.int64Val, result);
             } break;
             case DOUBLE: {
-                FUNC::operation(
-                    left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNull);
+                FUNC::template operation<int64_t, double_t>(
+                    left.val.int64Val, right.val.doubleVal, result);
             } break;
             default:
                 throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
@@ -372,12 +348,12 @@ struct ArithmeticOnValues {
         case DOUBLE:
             switch (right.dataType.typeID) {
             case INT64: {
-                FUNC::operation(
-                    left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNull);
+                FUNC::template operation<double_t, int64_t>(
+                    left.val.doubleVal, right.val.int64Val, result);
             } break;
             case DOUBLE: {
-                FUNC::operation(
-                    left.val.doubleVal, right.val.doubleVal, result, isLeftNull, isRightNull);
+                FUNC::template operation<double_t, double_t>(
+                    left.val.doubleVal, right.val.doubleVal, result);
             } break;
             default:
                 throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
@@ -475,114 +451,92 @@ static const char radiansStr[] = "radians";
 static const char atan2Str[] = "atan2";
 
 template<>
-inline void Add::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+inline void Add::operation(Value& left, Value& right, Value& result) {
     if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = DATE;
-        Add::operation(
-            left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
+        Add::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == DATE) {
         result.dataType.typeID = DATE;
-        Add::operation(
-            left.val.intervalVal, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        Add::operation(left.val.intervalVal, right.val.dateVal, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == DATE && right.dataType.typeID == INT64) {
         result.dataType.typeID = DATE;
-        Add::operation(
-            left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
+        Add::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == INT64 && right.dataType.typeID == DATE) {
         result.dataType.typeID = DATE;
-        Add::operation(
-            left.val.int64Val, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        Add::operation(left.val.int64Val, right.val.dateVal, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = TIMESTAMP;
-        Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
         return;
     } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == TIMESTAMP) {
         result.dataType.typeID = TIMESTAMP;
-        Add::operation(left.val.intervalVal, right.val.timestampVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        Add::operation(left.val.intervalVal, right.val.timestampVal, result.val.timestampVal);
         return;
     } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = INTERVAL;
-        Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
-            isLeftNull, isRightNull);
+        Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
         return;
     }
-    ArithmeticOnValues::operation<Add, addStr>(left, right, result, isLeftNull, isRightNull);
+    ArithmeticOnValues::operation<Add, addStr>(left, right, result);
 }
 
 template<>
-inline void Subtract::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+inline void Subtract::operation(Value& left, Value& right, Value& result) {
     if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = DATE;
-        Subtract::operation(
-            left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
+        Subtract::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == DATE && right.dataType.typeID == INT64) {
         result.dataType.typeID = DATE;
-        Subtract::operation(
-            left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
+        Subtract::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
         return;
     } else if (left.dataType.typeID == DATE && right.dataType.typeID == DATE) {
         result.dataType.typeID = INT64;
-        Subtract::operation(
-            left.val.dateVal, right.val.dateVal, result.val.int64Val, isLeftNull, isRightNull);
+        Subtract::operation(left.val.dateVal, right.val.dateVal, result.val.int64Val);
         return;
     } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = TIMESTAMP;
-        Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
         return;
     } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == TIMESTAMP) {
         result.dataType.typeID = INTERVAL;
-        Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal,
-            isLeftNull, isRightNull);
+        Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal);
         return;
     } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = INTERVAL;
-        Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
-            isLeftNull, isRightNull);
+        Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
         return;
     }
-    ArithmeticOnValues::operation<Subtract, subtractStr>(
-        left, right, result, isLeftNull, isRightNull);
+    ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
 }
 
 template<>
-inline void Multiply::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    ArithmeticOnValues::operation<Multiply, multiplyStr>(
-        left, right, result, isLeftNull, isRightNull);
+inline void Multiply::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Multiply, multiplyStr>(left, right, result);
 }
 
 template<>
-inline void Divide::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+inline void Divide::operation(Value& left, Value& right, Value& result) {
     if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INT64) {
         result.dataType.typeID = INTERVAL;
-        Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal,
-            isLeftNull, isRightNull);
+        Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal);
         return;
     }
-    ArithmeticOnValues::operation<Divide, divideStr>(left, right, result, isLeftNull, isRightNull);
+    ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
 }
 
 template<>
-inline void Modulo::operation(
-    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result, isLeftNull, isRightNull);
+inline void Modulo::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result);
 }
 
 template<>
-inline void Power::operation(
-    Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    ArithmeticOnValues::operation<Power, powerStr>(left, right, result, isLeftNull, isRightNull);
+inline void Power::operation(Value& left, Value& right, double_t& result) {
+    ArithmeticOnValues::operation<Power, powerStr>(left, right, result);
 }
 
 template<>
@@ -696,25 +650,22 @@ inline void Radians::operation(Value& operand, bool isNull, double_t& result) {
 }
 
 template<>
-inline void Atan2::operation(
-    Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    ArithmeticOnValues::operation<Atan2, atan2Str>(left, right, result, isLeftNull, isRightNull);
+inline void Atan2::operation(Value& left, Value& right, double_t& result) {
+    ArithmeticOnValues::operation<Atan2, atan2Str>(left, right, result);
 }
 
 template<>
-inline void Round::operation(
-    Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
+inline void Round::operation(Value& left, Value& right, double_t& result) {
     if (right.dataType.typeID != INT64) {
         throw RuntimeException("Round: Invalid right argument datatype: " +
                                Types::dataTypeToString(right.dataType.typeID));
     }
     switch (left.dataType.typeID) {
     case INT64: {
-        Round::operation(left.val.int64Val, right.val.int64Val, result, isLeftNull, isRightNull);
+        Round::operation(left.val.int64Val, right.val.int64Val, result);
     } break;
     case DOUBLE: {
-        Round::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNull);
+        Round::operation(left.val.doubleVal, right.val.int64Val, result);
     } break;
     default: {
         throw RuntimeException("Round: Invalid left argument datatype: " +

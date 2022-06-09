@@ -54,8 +54,7 @@ struct MinMaxFunction {
             state->isNull = false;
         } else {
             uint8_t compare_result;
-            OP::template operation(inputValues[pos], state->val, compare_result,
-                false /* isLeftNull */, false /* isRightNull */);
+            OP::template operation<T, T>(inputValues[pos], state->val, compare_result);
             state->val = compare_result ? inputValues[pos] : state->val;
         }
     }
@@ -72,8 +71,7 @@ struct MinMaxFunction {
             state->isNull = false;
         } else {
             uint8_t compareResult;
-            OP::template operation(otherState->val, state->val, compareResult,
-                false /* isLeftNull */, false /* isRightNull */);
+            OP::template operation<T, T>(otherState->val, state->val, compareResult);
             state->val = compareResult == 1 ? otherState->val : state->val;
         }
     }

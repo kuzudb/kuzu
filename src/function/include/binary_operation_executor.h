@@ -16,30 +16,26 @@ namespace function {
 
 struct BinaryOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
-        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
-        void* resultValueVector) {
-        OP::operation(left, right, result, isLeftNull, isRightNull);
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        void* leftValueVector, void* rightValueVector, void* resultValueVector) {
+        OP::operation(left, right, result);
     }
 };
 
 struct BinaryStringAndListOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
-        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
-        void* resultValueVector) {
-        OP::operation(
-            left, right, result, isLeftNull, isRightNull, *(ValueVector*)resultValueVector);
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        void* leftValueVector, void* rightValueVector, void* resultValueVector) {
+        OP::operation(left, right, result, *(ValueVector*)resultValueVector);
     }
 };
 
 struct BinaryListPosAndContainsOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
-        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
-        void* resultValueVector) {
-        OP::operation(left, right, result, isLeftNull, isRightNull,
-            ((ValueVector*)leftValueVector)->dataType, ((ValueVector*)rightValueVector)->dataType);
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        void* leftValueVector, void* rightValueVector, void* resultValueVector) {
+        OP::operation(left, right, result, ((ValueVector*)leftValueVector)->dataType,
+            ((ValueVector*)rightValueVector)->dataType);
     }
 };
 
@@ -52,8 +48,8 @@ struct BinaryOperationExecutor {
         auto rValues = (RIGHT_TYPE*)right.values;
         auto resValues = (RESULT_TYPE*)resultValueVector.values;
         OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(lValues[lPos],
-            rValues[rPos], (bool)left.isNull(lPos), (bool)right.isNull(rPos), resValues[resPos],
-            (void*)&left, (void*)&right, (void*)&resultValueVector);
+            rValues[rPos], resValues[resPos], (void*)&left, (void*)&right,
+            (void*)&resultValueVector);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
@@ -240,8 +236,7 @@ struct BinaryOperationExecutor {
         auto lValues = (LEFT_TYPE*)left.values;
         auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
-        FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
-            (bool)right.isNull(rPos));
+        FUNC::operation(lValues[lPos], rValues[rPos], resultValue);
         selectedPositions[numSelectedValues] = resPos;
         numSelectedValues += (resultValue == true);
     }
@@ -254,8 +249,7 @@ struct BinaryOperationExecutor {
         auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
         if (!left.isNull(lPos) && !right.isNull(rPos)) {
-            FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
-                (bool)right.isNull(rPos));
+            FUNC::operation(lValues[lPos], rValues[rPos], resultValue);
         }
         return resultValue == true;
     }

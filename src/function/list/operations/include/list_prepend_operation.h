@@ -14,9 +14,8 @@ namespace operation {
 
 struct ListPrepend {
     template<typename T>
-    static inline void operation(T& list, gf_list_t& element, gf_list_t& result, bool isListNull,
-        bool isElementNull, ValueVector& resultValueVector) {
-        assert(!isListNull && !isElementNull);
+    static inline void operation(
+        T& list, gf_list_t& element, gf_list_t& result, ValueVector& resultValueVector) {
         auto elementSize = Types::getDataTypeSize(resultValueVector.dataType.childType->typeID);
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace((element.size + 1) * elementSize));

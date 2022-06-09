@@ -14,9 +14,8 @@ namespace operation {
 
 struct ListConcat {
 public:
-    static inline void operation(gf_list_t& left, gf_list_t& right, gf_list_t& result,
-        bool isLeftNull, bool isRightNull, ValueVector& resultValueVector) {
-        assert(!isLeftNull && !isRightNull);
+    static inline void operation(
+        gf_list_t& left, gf_list_t& right, gf_list_t& result, ValueVector& resultValueVector) {
         auto elementSize = Types::getDataTypeSize(resultValueVector.dataType.childType->typeID);
         result.overflowPtr =
             reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(
