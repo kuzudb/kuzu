@@ -71,7 +71,7 @@ class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const string& path, BufferManager& bufferManager);
+    WAL(const string& directory, BufferManager& bufferManager);
 
     // Destructing WAL flushes any unwritten header page but not the other pages. The caller
     // which possibly has access to the buffer manager needs to ensure any unwritten pages
@@ -96,6 +96,9 @@ public:
         StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
+
+    void logNodeMetadataRecord();
+
     // Removes the contents of WAL file.
     void clearWAL();
 
@@ -104,6 +107,11 @@ public:
     inline bool isLastLoggedRecordCommit() {
         lock_t lck{mtx};
         return isLastLoggedRecordCommit_;
+    }
+
+    inline bool containsNodesMetadataRecord() {
+        lock_t lck{mtx};
+        return containsNodesMetadataRecord_;
     }
 
     void flushAllPages();
@@ -124,15 +132,17 @@ private:
         }
     }
 
-    void initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
+    void initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields();
     void addNewWALRecordWithoutLock(WALRecord& walRecord);
-    void setIsLastRecordCommitToTrueIfNecessary();
+    void setIsLastRecordCommitAndContainsNodesMetadataFields();
 
 private:
     shared_ptr<spdlog::logger> logger;
+    string directory;
     mutex mtx;
     BufferManager& bufferManager;
     bool isLastLoggedRecordCommit_;
+    bool containsNodesMetadataRecord_;
 };
 
 class WALIterator : public BaseWALAndWALIterator {

@@ -4,12 +4,14 @@ cc_library(
     name = "store",
     srcs = [
         "node_table.cpp",
+        "nodes_metadata.cpp",
         "nodes_store.cpp",
         "rel_table.cpp",
         "rels_store.cpp",
     ],
     hdrs = [
         "include/node_table.h",
+        "include/nodes_metadata.h",
         "include/nodes_store.h",
         "include/rel_table.h",
         "include/rels_store.h",

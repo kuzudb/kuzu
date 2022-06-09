@@ -15,7 +15,7 @@ protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
         bufferManager = make_unique<BufferManager>();
-        wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
+        wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
         transactionManager = make_unique<TransactionManager>(*wal);
     }
 

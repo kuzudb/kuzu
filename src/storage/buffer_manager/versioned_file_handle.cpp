@@ -11,6 +11,8 @@ VersionedFileHandle::VersionedFileHandle(
 }
 
 void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
+    lock_t lock(fhMutex);
+    assert(pageIdx < numPages);
     // Although getPageElementCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
     // any chunked data structure.

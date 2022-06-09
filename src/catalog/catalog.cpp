@@ -136,8 +136,7 @@ uint64_t SerDeser::serializeValue<NodeLabel>(
     offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
-    return SerDeser::serializeValue<uint64_t>(value.numNodes, fileInfo, offset);
+    return SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
 }
 
 template<>
@@ -149,8 +148,7 @@ uint64_t SerDeser::deserializeValue<NodeLabel>(
     offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset = SerDeser::deserializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
-    return SerDeser::deserializeValue<uint64_t>(value.numNodes, fileInfo, offset);
+    return SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
 }
 
 template<>
@@ -199,10 +197,9 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
 }
 
 NodeLabel::NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
-    vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames,
-    uint64_t numNodes)
+    vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames)
     : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
-      structuredProperties{move(structuredProperties)}, numNodes{numNodes} {
+      structuredProperties{move(structuredProperties)} {
     for (auto& unstrPropertyName : unstructuredPropertyNames) {
         auto unstrPropertyId = unstructuredProperties.size();
         unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
@@ -254,7 +251,7 @@ void Catalog::verifyColDefinitionsForNodeLabel(
 
 void Catalog::addNodeLabel(string labelName, const DataType& IDType,
     vector<PropertyNameDataType> colHeaderDefinitions,
-    const vector<string>& unstructuredPropertyNames, uint64_t numNodes) {
+    const vector<string>& unstructuredPropertyNames) {
     label_t labelId = nodeLabels.size();
     uint64_t primaryKeyPropertyId = UINT64_MAX;
     string primaryKeyName;
@@ -276,7 +273,7 @@ void Catalog::addNodeLabel(string labelName, const DataType& IDType,
     verifyColDefinitionsForNodeLabel(primaryKeyName, colHeaderDefinitions);
     nodeLabelNameToIdMap[labelName] = labelId;
     nodeLabels.emplace_back(move(labelName), labelId, primaryKeyPropertyId,
-        move(structuredProperties), unstructuredPropertyNames, numNodes);
+        move(structuredProperties), unstructuredPropertyNames);
 }
 
 void Catalog::verifyColDefinitionsForRelLabel(
@@ -422,21 +419,6 @@ bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, RelDirection dir
     } else {
         return ONE_ONE == relMultiplicity || ONE_MANY == relMultiplicity;
     }
-}
-
-vector<uint64_t> Catalog::getNumNodesPerLabel() const {
-    vector<uint64_t> result(nodeLabels.size());
-    for (auto i = 0u; i < nodeLabels.size(); i++) {
-        result[i] = nodeLabels[i].numNodes;
-    }
-    return result;
-}
-
-uint64_t Catalog::getNumNodes(label_t label) const {
-    if (label >= nodeLabels.size()) {
-        throw CatalogException("Node label " + to_string(label) + " is out of bounds.");
-    }
-    return nodeLabels[label].numNodes;
 }
 
 uint64_t Catalog::getNumRelsForDirectionBoundLabel(

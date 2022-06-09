@@ -9,7 +9,7 @@ protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
         bufferManager = make_unique<BufferManager>();
-        wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
+        wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
     }
 
     void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
@@ -155,7 +155,7 @@ TEST_F(WALTests, TestOpeningExistingWAL) {
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();
-    wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
+    wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
 
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,

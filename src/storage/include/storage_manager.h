@@ -32,6 +32,8 @@ public:
         checkpointOrRollbackAndClearWAL(false /* rolling back updates */);
     }
 
+    inline string getDBDirectory() { return directory; }
+
 private:
     void checkpointOrRollbackAndClearWAL(bool isCheckpoint);
     void recoverIfNecessary();
@@ -41,8 +43,8 @@ private:
     BufferManager& bufferManager;
     string directory;
     unique_ptr<storage::WAL> wal;
-    unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
+    unique_ptr<NodesStore> nodesStore;
     mutex checkpointMtx;
 };
 

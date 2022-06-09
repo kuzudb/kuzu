@@ -48,6 +48,16 @@ void FileUtils::writeToFile(
     }
 }
 
+void FileUtils::overwriteFile(const string& from, const string& to) {
+    if (!fileExists(from) || !fileExists(to))
+        return;
+    error_code errorCode;
+    if (!filesystem::copy_file(from, to, filesystem::copy_options::overwrite_existing, errorCode)) {
+        throw Exception(StringUtils::string_format("Error copying file %s to %s.  ErrorMessage: %s",
+            from.c_str(), to.c_str(), errorCode.message().c_str()));
+    }
+}
+
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
@@ -74,15 +84,18 @@ void FileUtils::removeDir(const string& dir) {
     if (!fileExists(dir))
         return;
     if (!filesystem::remove_all(dir, removeErrorCode)) {
-        throw Exception(StringUtils::string_format("Error removing directory %s.  Error Message: ",
-            dir.c_str(), removeErrorCode.message().c_str()));
+        throw Exception(
+            StringUtils::string_format("Error removing directory %s.  Error Message: %s",
+                dir.c_str(), removeErrorCode.message().c_str()));
     }
 }
 
 void FileUtils::removeFile(const string& path) {
+    if (!fileExists(path))
+        return;
     if (remove(path.c_str()) != 0) {
         throw Exception(StringUtils::string_format(
-            "Error removing directory %s.  Error Message: ", path.c_str()));
+            "Error removing directory or file %s.  Error Message: ", path.c_str()));
     }
 }
 

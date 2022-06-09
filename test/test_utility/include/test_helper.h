@@ -51,7 +51,7 @@ public:
 
     void loadGraph();
 
-    void createConn();
+    void createDBAndConn();
 
 public:
     unique_ptr<SystemConfig> systemConfig;
@@ -65,7 +65,7 @@ class DBLoadedTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        createConn();
+        createDBAndConn();
     }
 };
 
@@ -75,7 +75,7 @@ public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
         databaseConfig->inMemoryMode = true;
-        createConn();
+        createDBAndConn();
     }
 };
 

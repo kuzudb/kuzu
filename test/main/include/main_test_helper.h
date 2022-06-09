@@ -11,7 +11,7 @@ public:
         BaseGraphLoadingTest::SetUp();
         systemConfig->defaultPageBufferPoolSize = (1ull << 26);
         systemConfig->largePageBufferPoolSize = (1ull << 26);
-        createConn();
+        createDBAndConn();
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }

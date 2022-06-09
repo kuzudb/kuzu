@@ -271,7 +271,8 @@ void JoinOrderEnumerator::appendScanNodeID(NodeExpression& queryNode, LogicalPla
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.getLabel());
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(queryNode.getNodeIDPropertyExpression(), groupPos);
-    schema->getGroup(groupPos)->setEstimatedCardinality(catalog.getNumNodes(queryNode.getLabel()));
+    schema->getGroup(groupPos)->setEstimatedCardinality(
+        nodesMetadata.getNodeMetadata(queryNode.getLabel())->getMaxNodeOffset() + 1);
     plan.appendOperator(move(scan));
 }
 
@@ -374,7 +375,8 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 uint64_t JoinOrderEnumerator::getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, RelDirection relDirection) {
     auto numRels = catalog.getNumRelsForDirectionBoundLabel(relLabel, relDirection, boundNodeLabel);
-    return ceil((double)numRels / catalog.getNumNodes(boundNodeLabel));
+    return ceil(
+        (double)numRels / nodesMetadata.getNodeMetadata(boundNodeLabel)->getMaxNodeOffset() + 1);
 }
 
 expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,

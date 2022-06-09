@@ -158,15 +158,7 @@ void OverflowPages::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) 
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
         nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);
-        auto pageIdxInOriginalFile = fileHandle.addNewPage();
-        auto pageIdxInWAL = wal->logPageInsertRecord(
-            fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
-        bufferManager.pinWithoutAcquiringPageLock(
-            *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
-        fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
-        fileHandle.setUpdatedWALPageVersionNoLock(pageIdxInOriginalFile, pageIdxInWAL);
-        bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
-        bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
+        addNewPageToFileHandle();
     }
 }
 

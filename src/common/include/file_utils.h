@@ -27,7 +27,8 @@ public:
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
         FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset);
-
+    // This function is a no-op if either file, from or to, does not exist.
+    static void overwriteFile(const string& from, const string& to);
     static void createDir(const string& dir);
     static void removeDir(const string& dir);
 

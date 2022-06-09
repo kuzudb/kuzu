@@ -15,7 +15,7 @@ class NodeIDCompressionScheme {
 
 public:
     NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
-        const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels);
+        const vector<node_offset_t>& maxNodeOffsetsPerLabel);
     NodeIDCompressionScheme() : NodeIDCompressionScheme(0, 8){};
 
 private:

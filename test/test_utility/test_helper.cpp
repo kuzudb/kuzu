@@ -122,7 +122,7 @@ void BaseGraphLoadingTest::loadGraph() {
     graphLoader.loadGraph();
 }
 
-void BaseGraphLoadingTest::createConn() {
+void BaseGraphLoadingTest::createDBAndConn() {
     database = make_unique<Database>(*databaseConfig, *systemConfig);
     conn = make_unique<Connection>(database.get());
 }

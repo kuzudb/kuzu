@@ -16,6 +16,8 @@ struct ListInfo {
     uint64_t listLen{-1u};
     std::function<uint32_t(uint32_t)> mapper;
     PageElementCursor cursor;
+
+    inline bool isEmpty() { return listLen <= 0; }
 };
 
 /**

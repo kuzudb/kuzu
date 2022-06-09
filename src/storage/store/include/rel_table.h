@@ -16,7 +16,8 @@ using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<AdjLists>>;
 class RelTable {
 
 public:
-    explicit RelTable(const catalog::Catalog& catalog, label_t relLabel, const string& directory,
+    explicit RelTable(const catalog::Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
 public:
@@ -34,8 +35,12 @@ public:
         return adjLists[relDirection].at(nodeLabel).get();
     }
 
+    vector<AdjLists*> getAdjListsForNodeLabel(label_t nodeLabel);
+    vector<AdjColumn*> getAdjColumnsForNodeLabel(label_t nodeLabel);
+
 private:
-    void initAdjColumnOrLists(const catalog::Catalog& catalog, const string& directory,
+    void initAdjColumnOrLists(const catalog::Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
     void initPropertyListsAndColumns(const catalog::Catalog& catalog, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);

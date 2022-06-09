@@ -17,7 +17,7 @@ public:
         systemConfig->largePageBufferPoolSize = (1ull << 22);
         // Note we do not actually use the connection field in these tests. We only need the
         // database.
-        createConn();
+        createDBAndConn();
         writeTrx = database->getTransactionManager()->beginWriteTransaction();
         readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
 
@@ -146,12 +146,10 @@ public:
 
     void testRecovery(bool committingTransaction) {
         assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
-
-        if (committingTransaction) {
-            // We commit but do not checkpoint.
-            database->getTransactionManager()->commitButKeepActiveWriteTransaction(writeTrx.get());
-        }
-        database->getStorageManager()->getWAL().flushAllPages();
+        database->getTransactionManager()->commit(readTrx.get());
+        database->commitAndCheckpointOrRollback(
+            writeTrx.get(), committingTransaction, true /* skip checkpointing */);
+        readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
         // We next destroy and reconstruct the database to start up the system.
         // initWithoutLoadingGraph will construct a completely new databse, writeTrx, readTrx,
         // and personAgeColumn, and personEyeSightColumn classes. We could use completely

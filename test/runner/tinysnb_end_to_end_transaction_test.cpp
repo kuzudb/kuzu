@@ -11,7 +11,7 @@ public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 22);
-        createConn();
+        createDBAndConn();
         readConn = make_unique<Connection>(database.get());
     }
 

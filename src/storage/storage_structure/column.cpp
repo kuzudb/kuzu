@@ -96,6 +96,11 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
 
 UpdatedPageInfoAndWALPageFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto originalPageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
+    if (originalPageCursor.pageIdx >= fileHandle.getNumPages()) {
+        assert(originalPageCursor.pageIdx == fileHandle.getNumPages());
+        addNewPageToFileHandle();
+    }
     auto updatedPageInfoAndWALPageFrame =
         getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
             nodeOffset, numElementsPerPage);

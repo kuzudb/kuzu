@@ -59,11 +59,24 @@ public:
         beginTransactionNoLock(WRITE);
     }
 
+    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
+    // this otherwise.
+    inline void commitButSkipCheckpointingForTestingRecovery() {
+        lock_t lck{mtx};
+        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
+    }
+
     inline void commit() {
         lock_t lck{mtx};
         commitOrRollbackNoLock(true /* isCommit */);
     }
 
+    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
+    // this otherwise.
+    inline void rollbackButSkipCheckpointingForTestingRecovery() {
+        lock_t lck{mtx};
+        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
+    }
     inline void rollback() {
         lock_t lck{mtx};
         commitOrRollbackNoLock(false /* is rollback */);
@@ -113,6 +126,13 @@ public:
         return clientContext->numThreadsForExecution;
     }
 
+    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
+    // this otherwise.
+    inline Transaction* getActiveTransaction() {
+        lock_t lck{mtx};
+        return activeTransaction.get();
+    }
+
     inline uint64_t getActiveTransactionID() {
         lock_t lck{mtx};
         return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
@@ -136,7 +156,7 @@ private:
     void beginTransactionNoLock(TransactionType type);
     inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
     inline void rollbackNoLock() { commitOrRollbackNoLock(false /* is rollback */); }
-    void commitOrRollbackNoLock(bool isCommit);
+    void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 
