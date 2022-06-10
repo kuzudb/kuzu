@@ -11,37 +11,34 @@ namespace operation {
 
 struct DayName {
     template<class T>
-    static inline void operation(T& input, bool isNull, gf_string_t& result) {
+    static inline void operation(T& input, gf_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void DayName::operation(date_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
+inline void DayName::operation(date_t& input, gf_string_t& result) {
     string dayName = Date::getDayName(input);
     result.set(dayName);
 }
 
 template<>
-inline void DayName::operation(timestamp_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
-    dtime_t time;
-    date_t date;
+inline void DayName::operation(timestamp_t& input, gf_string_t& result) {
+    dtime_t time{};
+    date_t date{};
     Timestamp::Convert(input, date, time);
     string dayName = Date::getDayName(date);
     result.set(dayName);
 }
 
 template<>
-inline void DayName::operation(Value& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
+inline void DayName::operation(Value& input, gf_string_t& result) {
     switch (input.dataType.typeID) {
     case DATE: {
-        DayName::operation(input.val.dateVal, isNull, result);
+        DayName::operation(input.val.dateVal, result);
     } break;
     case TIMESTAMP: {
-        DayName::operation(input.val.timestampVal, isNull, result);
+        DayName::operation(input.val.timestampVal, result);
     } break;
     default:
         throw RuntimeException(
@@ -51,37 +48,34 @@ inline void DayName::operation(Value& input, bool isNull, gf_string_t& result) {
 
 struct MonthName {
     template<class T>
-    static inline void operation(T& input, bool isNull, gf_string_t& result) {
+    static inline void operation(T& input, gf_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void MonthName::operation(date_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
+inline void MonthName::operation(date_t& input, gf_string_t& result) {
     string monthName = Date::getMonthName(input);
     result.set(monthName);
 }
 
 template<>
-inline void MonthName::operation(timestamp_t& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
-    dtime_t time;
-    date_t date;
+inline void MonthName::operation(timestamp_t& input, gf_string_t& result) {
+    dtime_t time{};
+    date_t date{};
     Timestamp::Convert(input, date, time);
     string monthName = Date::getMonthName(date);
     result.set(monthName);
 }
 
 template<>
-inline void MonthName::operation(Value& input, bool isNull, gf_string_t& result) {
-    assert(!isNull);
+inline void MonthName::operation(Value& input, gf_string_t& result) {
     switch (input.dataType.typeID) {
     case DATE: {
-        MonthName::operation(input.val.dateVal, isNull, result);
+        MonthName::operation(input.val.dateVal, result);
     } break;
     case TIMESTAMP: {
-        MonthName::operation(input.val.timestampVal, isNull, result);
+        MonthName::operation(input.val.timestampVal, result);
     } break;
     default:
         throw RuntimeException(
@@ -91,35 +85,32 @@ inline void MonthName::operation(Value& input, bool isNull, gf_string_t& result)
 
 struct LastDay {
     template<class T>
-    static inline void operation(T& input, bool isNull, date_t& result) {
+    static inline void operation(T& input, date_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void LastDay::operation(date_t& input, bool isNull, date_t& result) {
-    assert(!isNull);
+inline void LastDay::operation(date_t& input, date_t& result) {
     result = Date::getLastDay(input);
 }
 
 template<>
-inline void LastDay::operation(timestamp_t& input, bool isNull, date_t& result) {
-    assert(!isNull);
-    date_t date;
-    dtime_t time;
+inline void LastDay::operation(timestamp_t& input, date_t& result) {
+    date_t date{};
+    dtime_t time{};
     Timestamp::Convert(input, date, time);
     result = Date::getLastDay(date);
 }
 
 template<>
-inline void LastDay::operation(Value& input, bool isNull, date_t& result) {
-    assert(!isNull);
+inline void LastDay::operation(Value& input, date_t& result) {
     switch (input.dataType.typeID) {
     case DATE: {
-        LastDay::operation(input.val.dateVal, isNull, result);
+        LastDay::operation(input.val.dateVal, result);
     } break;
     case TIMESTAMP: {
-        LastDay::operation(input.val.timestampVal, isNull, result);
+        LastDay::operation(input.val.timestampVal, result);
     } break;
     default:
         throw RuntimeException(
@@ -269,9 +260,7 @@ inline void Least::operation(Value& left, Value& right, Value& result) {
 }
 
 struct MakeDate {
-    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result,
-        bool isYearNull, bool isMonthNull, bool isDayNull) {
-        assert(!isYearNull && !isMonthNull && !isDayNull);
+    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result) {
         result = Date::FromDate(year, month, day);
     }
 };

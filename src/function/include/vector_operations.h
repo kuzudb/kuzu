@@ -91,13 +91,6 @@ public:
         assert(params.size() == 0);
         ConstOperationExecutor::execute<RESULT_TYPE, FUNC>(result);
     }
-
-    template<typename OPERAND_TYPE, typename FUNC>
-    static uint64_t UnarySelectFunction(
-        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
-        assert(params.size() == 1);
-        return UnaryOperationExecutor::select<OPERAND_TYPE, FUNC>(*params[0], selectedPositions);
-    }
 };
 
 } // namespace function

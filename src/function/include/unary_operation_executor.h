@@ -13,26 +13,26 @@ namespace function {
  */
 
 struct UnaryOperationWrapper {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result,
-        void* dataptr, const DataType& inputType) {
-        OP::operation(input, isNull, result);
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static inline void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr, const DataType& inputType) {
+        FUNC::operation(input, result);
     }
 };
 
 struct UnaryStringOperationWrapper {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
-    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr,
-        const DataType& inputType) {
-        OP::operation(input, isNull, result, *(ValueVector*)dataptr);
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr, const DataType& inputType) {
+        FUNC::operation(input, result, *(ValueVector*)dataptr);
     }
 };
 
 struct UnaryCastOperationWrapper {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
-    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr,
-        const DataType& inputType) {
-        OP::operation(input, isNull, result, *(ValueVector*)dataptr, inputType);
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr, const DataType& inputType) {
+        FUNC::operation(input, result, *(ValueVector*)dataptr, inputType);
     }
 };
 
@@ -41,9 +41,8 @@ struct UnaryOperationExecutor {
     static void executeOnValue(ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue,
         ValueVector& resultValueVector) {
         auto operandValues = (OPERAND_TYPE*)operand.values;
-        OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(operandValues[operandPos],
-            (bool)operand.isNull(operandPos), resultValue, (void*)&resultValueVector,
-            operand.dataType);
+        OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+            operandValues[operandPos], resultValue, (void*)&resultValueVector, operand.dataType);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
@@ -109,39 +108,6 @@ struct UnaryOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeCast(ValueVector& operand, ValueVector& result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastOperationWrapper>(operand, result);
-    }
-
-    template<typename OPERAND_TYPE, typename FUNC>
-    static void selectOnValue(ValueVector& operand, uint64_t operandPos,
-        uint64_t& numSelectedValues, sel_t* selectedPositions) {
-        uint8_t resultValue = 0;
-        auto operandValues = (OPERAND_TYPE*)operand.values;
-        FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
-        selectedPositions[numSelectedValues] = operandPos;
-        numSelectedValues += resultValue == true;
-    }
-
-    // NOT
-    template<typename OPERAND_TYPE, typename FUNC>
-    static uint64_t select(ValueVector& operand, sel_t* selectedPositions) {
-        if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
-            uint8_t resultValue = 0;
-            if (!operand.isNull(pos)) {
-                FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
-            }
-            return resultValue == true;
-        } else {
-            uint64_t numSelectedValues = 0;
-            for (auto i = 0ul; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                if (!operand.isNull(pos)) {
-                    selectOnValue<OPERAND_TYPE, FUNC>(
-                        operand, pos, numSelectedValues, selectedPositions);
-                }
-            }
-            return numSelectedValues;
-        }
     }
 };
 

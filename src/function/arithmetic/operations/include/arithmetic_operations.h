@@ -62,98 +62,86 @@ struct Power {
 
 struct Negate {
     template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
-        assert(!isNull);
+    static inline void operation(T& input, T& result) {
         result = -input;
     }
 };
 
 struct Abs {
     template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
-        assert(!isNull);
+    static inline void operation(T& input, T& result) {
         result = abs(input);
     }
 };
 
 struct Floor {
     template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
-        assert(!isNull);
+    static inline void operation(T& input, T& result) {
         result = floor(input);
     }
 };
 
 struct Ceil {
     template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
-        assert(!isNull);
+    static inline void operation(T& input, T& result) {
         result = ceil(input);
     }
 };
 
 struct Sin {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = sin(input);
     }
 };
 
 struct Cos {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = cos(input);
     }
 };
 
 struct Tan {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = tan(input);
     }
 };
 
 struct Cot {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         double tanValue;
-        Tan::operation(input, isNull, tanValue);
+        Tan::operation(input, tanValue);
         result = 1 / tanValue;
     }
 };
 
 struct Asin {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = asin(input);
     }
 };
 
 struct Acos {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = acos(input);
     }
 };
 
 struct Atan {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = atan(input);
     }
 };
 
 struct Even {
     template<class T>
-    static inline void operation(T& input, bool isNull, int64_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, int64_t& result) {
         result = input >= 0 ? ceil(input) : floor(input);
         if (result % 2) {
             result += (input >= 0 ? 1 : -1);
@@ -162,8 +150,7 @@ struct Even {
 };
 
 struct Factorial {
-    static inline void operation(int64_t& input, bool isNull, int64_t& result) {
-        assert(!isNull);
+    static inline void operation(int64_t& input, int64_t& result) {
         result = 1;
         for (int64_t i = 2; i <= input; i++) {
             result *= i;
@@ -173,80 +160,70 @@ struct Factorial {
 
 struct Sign {
     template<class T>
-    static inline void operation(T& input, bool isNull, int64_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, int64_t& result) {
         result = (input > 0) - (input < 0);
     }
 };
 
 struct Sqrt {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = sqrt(input);
     }
 };
 
 struct Cbrt {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = cbrt(input);
     }
 };
 
 struct Gamma {
     template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
-        assert(!isNull);
+    static inline void operation(T& input, T& result) {
         result = tgamma(input);
     }
 };
 
 struct Lgamma {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = lgamma(input);
     }
 };
 
 struct Ln {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = log(input);
     }
 };
 
 struct Log {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = log10(input);
     }
 };
 
 struct Log2 {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = log2(input);
     }
 };
 
 struct Degrees {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = input * 180 / M_PI;
     }
 };
 
 struct Radians {
     template<class T>
-    static inline void operation(T& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static inline void operation(T& input, double_t& result) {
         result = input * M_PI / 180;
     }
 };
@@ -368,17 +345,15 @@ struct ArithmeticOnValues {
     }
 
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(Value& input, bool isNull, Value& result) {
-        assert(!isNull);
-
+    static void operation(Value& input, Value& result) {
         switch (input.dataType.typeID) {
         case INT64: {
             result.dataType.typeID = INT64;
-            FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
+            FUNC::operation(input.val.int64Val, result.val.int64Val);
         } break;
         case DOUBLE: {
             result.dataType.typeID = DOUBLE;
-            FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
+            FUNC::operation(input.val.doubleVal, result.val.doubleVal);
         } break;
         default:
             throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
@@ -387,14 +362,13 @@ struct ArithmeticOnValues {
     }
 
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(Value& input, bool isNull, double_t& result) {
-        assert(!isNull);
+    static void operation(Value& input, double_t& result) {
         switch (input.dataType.typeID) {
         case INT64: {
-            FUNC::operation(input.val.int64Val, isNull, result);
+            FUNC::operation(input.val.int64Val, result);
         } break;
         case DOUBLE: {
-            FUNC::operation(input.val.doubleVal, isNull, result);
+            FUNC::operation(input.val.doubleVal, result);
         } break;
         default:
             throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
@@ -403,14 +377,13 @@ struct ArithmeticOnValues {
     }
 
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(Value& input, bool isNull, int64_t& result) {
-        assert(!isNull);
+    static void operation(Value& input, int64_t& result) {
         switch (input.dataType.typeID) {
         case INT64: {
-            FUNC::operation(input.val.int64Val, isNull, result);
+            FUNC::operation(input.val.int64Val, result);
         } break;
         case DOUBLE: {
-            FUNC::operation(input.val.doubleVal, isNull, result);
+            FUNC::operation(input.val.doubleVal, result);
         } break;
         default:
             throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
@@ -540,113 +513,113 @@ inline void Power::operation(Value& left, Value& right, double_t& result) {
 }
 
 template<>
-inline void Negate::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Negate, negateStr>(operand, isNull, result);
+inline void Negate::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Negate, negateStr>(operand, result);
 }
 
 template<>
-inline void Abs::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Abs, absStr>(operand, isNull, result);
+inline void Abs::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Abs, absStr>(operand, result);
 }
 
 template<>
-inline void Floor::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Floor, floorStr>(operand, isNull, result);
+inline void Floor::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Floor, floorStr>(operand, result);
 }
 
 template<>
-inline void Ceil::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Ceil, ceilStr>(operand, isNull, result);
+inline void Ceil::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Ceil, ceilStr>(operand, result);
 }
 
 template<>
-inline void Sin::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Sin, sinStr>(operand, isNull, result);
+inline void Sin::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Sin, sinStr>(operand, result);
 }
 
 template<>
-inline void Cos::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Cos, cosStr>(operand, isNull, result);
+inline void Cos::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Cos, cosStr>(operand, result);
 }
 
 template<>
-inline void Tan::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Tan, tanStr>(operand, isNull, result);
+inline void Tan::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Tan, tanStr>(operand, result);
 }
 
 template<>
-inline void Cot::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Cot, cotStr>(operand, isNull, result);
+inline void Cot::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Cot, cotStr>(operand, result);
 }
 
 template<>
-inline void Asin::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Asin, asinStr>(operand, isNull, result);
+inline void Asin::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Asin, asinStr>(operand, result);
 }
 
 template<>
-inline void Acos::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Acos, acosStr>(operand, isNull, result);
+inline void Acos::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Acos, acosStr>(operand, result);
 }
 
 template<>
-inline void Atan::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Atan, atanStr>(operand, isNull, result);
+inline void Atan::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Atan, atanStr>(operand, result);
 }
 
 template<>
-inline void Even::operation(Value& operand, bool isNull, int64_t& result) {
-    ArithmeticOnValues::operation<Even, evenStr>(operand, isNull, result);
+inline void Even::operation(Value& operand, int64_t& result) {
+    ArithmeticOnValues::operation<Even, evenStr>(operand, result);
 }
 
 template<>
-inline void Sign::operation(Value& operand, bool isNull, int64_t& result) {
-    ArithmeticOnValues::operation<Sign, signStr>(operand, isNull, result);
+inline void Sign::operation(Value& operand, int64_t& result) {
+    ArithmeticOnValues::operation<Sign, signStr>(operand, result);
 }
 
 template<>
-inline void Sqrt::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Sqrt, sqrtStr>(operand, isNull, result);
+inline void Sqrt::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Sqrt, sqrtStr>(operand, result);
 }
 
 template<>
-inline void Cbrt::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Cbrt, cbrtStr>(operand, isNull, result);
+inline void Cbrt::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Cbrt, cbrtStr>(operand, result);
 }
 
 template<>
-inline void Gamma::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Gamma, gammaStr>(operand, isNull, result);
+inline void Gamma::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Gamma, gammaStr>(operand, result);
 }
 
 template<>
-inline void Lgamma::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Lgamma, lgammaStr>(operand, isNull, result);
+inline void Lgamma::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Lgamma, lgammaStr>(operand, result);
 }
 
 template<>
-inline void Ln::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Ln, lnStr>(operand, isNull, result);
+inline void Ln::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Ln, lnStr>(operand, result);
 }
 
 template<>
-inline void Log::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Log, logStr>(operand, isNull, result);
+inline void Log::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Log, logStr>(operand, result);
 }
 
 template<>
-inline void Log2::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Log2, log2Str>(operand, isNull, result);
+inline void Log2::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Log2, log2Str>(operand, result);
 }
 
 template<>
-inline void Degrees::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Degrees, degreesStr>(operand, isNull, result);
+inline void Degrees::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Degrees, degreesStr>(operand, result);
 }
 
 template<>
-inline void Radians::operation(Value& operand, bool isNull, double_t& result) {
-    ArithmeticOnValues::operation<Radians, radiansStr>(operand, isNull, result);
+inline void Radians::operation(Value& operand, double_t& result) {
+    ArithmeticOnValues::operation<Radians, radiansStr>(operand, result);
 }
 
 template<>

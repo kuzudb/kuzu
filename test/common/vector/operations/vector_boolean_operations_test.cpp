@@ -122,7 +122,7 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatNoNulls) {
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return i % 4 == 1 || i % 4 == 2; }, NUM_TUPLES);
 
-    UnaryOperationExecutor::execute<bool, uint8_t, operation::Not>(*vector1, *result);
+    UnaryBooleanOperationExecutor::execute<operation::Not>(*vector1, *result);
 
     // Value at positions {1, 3, 5, 7 ...} are expected to be true
     checkResultVectorNoNulls(
@@ -162,7 +162,7 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatWithNulls) {
     BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {1, 2}, {0, 3}, NUM_TUPLES);
 
-    UnaryOperationExecutor::execute<bool, uint8_t, operation::Not>(*vector1, *result);
+    UnaryBooleanOperationExecutor::execute<operation::Not>(*vector1, *result);
     checkResultVectorWithNulls(result, {1, 3, 9, 11}, {0, 2, 8, 10}, NUM_TUPLES);
 }
 
@@ -253,7 +253,7 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatNoNulls
         NUM_TUPLES);
 
     numSelectedPos =
-        UnaryOperationExecutor::select<bool, operation::Not>(*vector1, selectedPosBuffer);
+        UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, selectedPosBuffer);
     // selected positions are all odd positions {1, 3, 5 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 2 == 1; }, NUM_TUPLES);
@@ -290,7 +290,7 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatWithNul
         NUM_TUPLES);
 
     numSelectedPos =
-        UnaryOperationExecutor::select<bool, operation::Not>(*vector1, selectedPosBuffer);
+        UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, selectedPosBuffer);
     // selected positions are union of {1, 9, 17 ...} and {3, 11, 19 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 8 == 1 || i % 8 == 3; },

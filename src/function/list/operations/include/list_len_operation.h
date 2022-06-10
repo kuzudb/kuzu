@@ -14,10 +14,7 @@ namespace operation {
 
 struct ListLen {
 public:
-    static inline void operation(gf_list_t& input, bool isNull, int64_t& result) {
-        assert(!isNull);
-        result = input.size;
-    }
+    static inline void operation(gf_list_t& input, int64_t& result) { result = input.size; }
 };
 
 } // namespace operation

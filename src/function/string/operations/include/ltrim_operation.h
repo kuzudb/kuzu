@@ -16,8 +16,8 @@ namespace operation {
 
 struct Ltrim {
     static inline void operation(
-        gf_string_t& input, bool isNull, gf_string_t& result, ValueVector& resultValueVector) {
-        BaseStrOperation::operation(input, isNull, result, resultValueVector, ltrim);
+        gf_string_t& input, gf_string_t& result, ValueVector& resultValueVector) {
+        BaseStrOperation::operation(input, result, resultValueVector, ltrim);
     }
 
     static uint32_t ltrim(char* data, uint32_t len) {

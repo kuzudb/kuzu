@@ -15,8 +15,7 @@ namespace operation {
 struct SubStr {
 public:
     static inline void operation(gf_string_t& src, int64_t start, int64_t len, gf_string_t& result,
-        bool isSrcNull, bool isStartNull, bool isLenNull, ValueVector& resultValueVector) {
-        assert(!isSrcNull && !isStartNull && !isLenNull);
+        ValueVector& resultValueVector) {
         result.len = min(len, src.len - start + 1);
         if (!gf_string_t::isShortString(result.len)) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
