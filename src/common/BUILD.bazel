@@ -53,7 +53,21 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "overflow_buffer",
-        "type_utils"
+        "type_utils",
+    ],
+)
+
+cc_library(
+    name = "null_mask",
+    srcs = [
+        "null_mask.cpp",
+    ],
+    hdrs = [
+        "include/null_mask.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "configs",
     ],
 )
 
@@ -72,8 +86,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "expression_type",
-        "type_utils",
+        "null_mask",
         "overflow_buffer_utils",
+        "type_utils",
         "//src/common/types",
         "//src/storage:memory_manager",
     ],

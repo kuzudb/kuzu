@@ -58,13 +58,11 @@ void StorageStructure::finishUpdatingPage(
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    const DataType& dataType, const size_t& elementSize, BufferManager& bufferManager,
-    bool hasNULLBytes, bool isInMemory, WAL* wal)
+    DataType dataType, const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes,
+    bool isInMemory, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, isInMemory, wal),
-      dataType{dataType}, elementSize{elementSize} {
-    numElementsPerPage = hasNULLBytes ?
-                             PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
-                             PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+      dataType{move(dataType)}, elementSize{elementSize} {
+    numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
 }
 
 void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
@@ -160,7 +158,8 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
     } else {
-        setNULLBitsForRange(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
+        readNullBitsFromAPage(
+            vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     }
     auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
     for (auto i = 0u; i < numValuesToRead; i++) {
@@ -178,24 +177,15 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
     bufferManager.unpin(fileHandle, physicalPageIdx);
 }
 
-void BaseColumnOrList::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
-    uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
-    auto NULLByteAndByteLevelOffset =
-        PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPos);
-    setNULLBitsFromANULLByte(valueVector, NULLByteAndByteLevelOffset, 1, offsetInVector);
-}
-
-void BaseColumnOrList::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
-    pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num, uint64_t offsetInVector) {
-    auto NULLByte = NULLByteAndByteLevelStartOffset.first;
-    auto startPos = NULLByteAndByteLevelStartOffset.second;
-    while (num--) {
-        valueVector->setNull(offsetInVector++, isNullFromNULLByte(NULLByte, startPos++));
-    }
+void BaseColumnOrList::readSingleNullBit(const shared_ptr<ValueVector>& valueVector,
+    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) const {
+    auto inputNullEntries = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    bool isNull = NullMask::isNull(inputNullEntries, elementPos);
+    valueVector->setNull(offsetInVector, isNull);
 }
 
 uint64_t BaseColumnOrList::getNumValuesToSkipInSequentialCopy(
-    uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage) {
+    uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage) const {
     uint64_t result = 0;
     if (numValuesTryToSkip >= numValuesInFirstPage) {
         result += numValuesInFirstPage;
@@ -217,7 +207,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset,
         numValuesToRead * elementSize);
-    setNULLBitsForRange(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
+    readNullBitsFromAPage(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
@@ -252,7 +242,7 @@ void BaseColumnOrList::readAPageBySequentialCopyWithSelState(Transaction* transa
         auto pagePos = pagePosOfFirstElement + vectorPos - vectorPosOfFirstUnselElement;
         auto frameBytesOffset = pagePos * elementSize;
         memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset, elementSize);
-        setNULLBitsForAPos(vector, frame, pagePos, vectorPos);
+        readSingleNullBit(vector, frame, pagePos, vectorPos);
         nextSelectedPos++;
     }
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
@@ -282,36 +272,95 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopyWithSelState(
         }
         memcpy(&nodeID.offset, frame + frameBytesOffset, offsetSize);
         nodeValues[vectorPos] = nodeID;
-        setNULLBitsForAPos(vector, frame, framePos, vectorPos);
+        readSingleNullBit(vector, frame, framePos, vectorPos);
         nextSelectedPos++;
     }
     bufferManager.unpin(fileHandle, physicalPageIdx);
 }
 
-void BaseColumnOrList::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
-    uint8_t* frame, uint64_t elementPosInPage, uint64_t posInVector, uint64_t num) {
-    while (num) {
-        auto numInCurrentByte = min(num, 8 - (elementPosInPage % 8));
-        auto NULLByteAndByteLevelOffset =
-            PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPosInPage);
-        setNULLBitsFromANULLByte(
-            valueVector, NULLByteAndByteLevelOffset, numInCurrentByte, posInVector);
-        elementPosInPage += numInCurrentByte;
-        posInVector += numInCurrentByte;
-        num -= numInCurrentByte;
+void BaseColumnOrList::readNullBitsFromAPage(const shared_ptr<ValueVector>& valueVector,
+    const uint8_t* frame, uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
+    auto nullEntryPosInPage = posInPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
+    auto nullBitPosInPageEntry =
+        posInPage - (nullEntryPosInPage << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+    auto nullEntryPosInVector = posInVector >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
+    auto nullBitPosInVectorEntry =
+        posInVector - (nullEntryPosInVector << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+    auto nullEntriesInPage = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    uint64_t bitPos = 0;
+    while (bitPos < numBitsToRead) {
+        auto currentNullEntryPosInVector = nullEntryPosInVector;
+        auto currentNullBitPosInVectorEntry = nullBitPosInVectorEntry;
+        uint64_t numBitsToReadInCurrentEntry = 0;
+        uint64_t nullMaskEntry = nullEntriesInPage[nullEntryPosInPage];
+        if (nullBitPosInVectorEntry < nullBitPosInPageEntry) {
+            numBitsToReadInCurrentEntry =
+                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInPageEntry, numBitsToRead);
+            // Shift right to align the bit in the page entry and vector entry.
+            auto numBitsToShift = nullBitPosInPageEntry - nullBitPosInVectorEntry;
+            nullMaskEntry = nullMaskEntry >> numBitsToShift;
+            // Mask lower bits out of current read range to 0.
+            nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInVectorEntry];
+            // Mask higher bits out of current read range to 0.
+            nullMaskEntry &=
+                ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                 (nullBitPosInPageEntry + numBitsToReadInCurrentEntry)];
+            // Move to the next null entry in page.
+            nullEntryPosInPage++;
+            nullBitPosInPageEntry = 0;
+            nullBitPosInVectorEntry += numBitsToReadInCurrentEntry;
+        } else if (nullBitPosInVectorEntry > nullBitPosInPageEntry) {
+            numBitsToReadInCurrentEntry =
+                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry, numBitsToRead);
+            auto numBitsToShift = nullBitPosInVectorEntry - nullBitPosInPageEntry;
+            // Mask lower bits out of current read range to 0.
+            nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInPageEntry];
+            // Shift left to align the bit in the page entry and vector entry.
+            nullMaskEntry = nullMaskEntry << numBitsToShift;
+            // Mask higher bits out of current read range to 0.
+            nullMaskEntry &=
+                ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                 (nullBitPosInVectorEntry + numBitsToReadInCurrentEntry)];
+            // Move to the next null entry in vector.
+            nullEntryPosInVector++;
+            nullBitPosInVectorEntry = 0;
+            nullBitPosInPageEntry += numBitsToReadInCurrentEntry;
+        } else {
+            numBitsToReadInCurrentEntry =
+                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry, numBitsToRead);
+            // Mask lower bits out of current read range to 0.
+            nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInPageEntry];
+            // Mask higher bits out of current read range to 0.
+            nullMaskEntry &=
+                ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                 (nullBitPosInVectorEntry + numBitsToReadInCurrentEntry)];
+            // The input entry and the result entry are already aligned.
+            nullEntryPosInVector++;
+            nullEntryPosInPage++;
+            nullBitPosInVectorEntry = nullBitPosInPageEntry = 0;
+        }
+        bitPos += numBitsToReadInCurrentEntry;
+        // Mask all bits to set in vector to 0.
+        auto resultNullEntries = valueVector->getNullMaskData();
+        resultNullEntries[currentNullEntryPosInVector] &=
+            ~(NULL_LOWER_MASKS[numBitsToReadInCurrentEntry] << currentNullBitPosInVectorEntry);
+        if (nullMaskEntry != 0) {
+            resultNullEntries[currentNullEntryPosInVector] |= nullMaskEntry;
+            valueVector->setMayContainNulls();
+        }
     }
 }
 
-void BaseColumnOrList::setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) {
-    auto NULLBytePtrAndByteLevelOffset =
-        PageUtils::getNULLBytePtrAndByteLevelOffsetPair(frame, elementPos);
-    uint8_t NULLByte = *NULLBytePtrAndByteLevelOffset.first;
+void BaseColumnOrList::setNullBitOfAPosInFrame(
+    uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
+    auto nullMask = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    auto nullEntryPos = elementPosInPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
+    auto bitOffsetInEntry =
+        elementPosInPage - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     if (isNull) {
-        *NULLBytePtrAndByteLevelOffset.first =
-            NULLByte | bitMasksWithSingle1s[NULLBytePtrAndByteLevelOffset.second];
+        nullMask[nullEntryPos] |= NULL_BITMASKS_WITH_SINGLE_ONE[bitOffsetInEntry];
     } else {
-        *NULLBytePtrAndByteLevelOffset.first =
-            NULLByte & bitMasksWithSingle0s[NULLBytePtrAndByteLevelOffset.second];
+        nullMask[nullEntryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitOffsetInEntry];
     }
 }
 

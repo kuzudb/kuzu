@@ -4,19 +4,30 @@
 #include <cmath>
 #include <cstring>
 
-#include "src/storage/include/storage_utils.h"
-
 namespace graphflow {
 namespace loader {
 
-InMemPage::InMemPage(uint32_t maxNumElements, bool hasNULLBytes) : maxNumElements{maxNumElements} {
+InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
+    : nullEntries{nullptr} {
     buffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
     data = buffer.get();
-    if (hasNULLBytes) {
-        // By default, we consider all elements in the page to be NULL. When a new element comes in
-        // to be put at a pos, its respective NULL bit is reset to denote a non-NULL value.
-        nullMask = std::make_unique<vector<bool>>(maxNumElements, true);
+    if (hasNullEntries) {
+        // In a page, null entries are stored right after the element data. Each null entry contains
+        // 64 bits, and one bit indicates an element with corresponding position in this page is
+        // null or not. By default, we consider all elements in the page to be NULL. When a new
+        // element comes in to be put at a pos, its respective NULL bit is reset to denote a
+        // non-NULL value.
+        nullEntries = (uint64_t*)(data + (numBytesForElement * maxNumElements));
+        auto numNullEntries = (maxNumElements + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) /
+                              NullMask::NUM_BITS_PER_NULL_ENTRY;
+        fill(nullEntries, nullEntries + numNullEntries, NullMask::ALL_NULL_ENTRY);
     }
+}
+
+void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
+    auto entryPos = pos >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
+    auto bitPosInEntry = pos - (entryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+    nullEntries[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
 }
 
 uint8_t* InMemPage::write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
@@ -24,8 +35,8 @@ uint8_t* InMemPage::write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t 
     memcpy(data + byteOffsetInPage, &nodeID->label, compressionScheme.getNumBytesForLabel());
     memcpy(data + byteOffsetInPage + compressionScheme.getNumBytesForLabel(), &nodeID->offset,
         compressionScheme.getNumBytesForOffset());
-    if (nullMask) {
-        nullMask->operator[](elemPosInPage) = false;
+    if (nullEntries) {
+        setElementAtPosToNonNull(elemPosInPage);
     }
     return data + byteOffsetInPage;
 }
@@ -33,31 +44,10 @@ uint8_t* InMemPage::write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t 
 uint8_t* InMemPage::write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
     uint32_t numBytesForElem) {
     memcpy(data + byteOffsetInPage, elem, numBytesForElem);
-    if (nullMask) {
-        nullMask->operator[](elemPosInPage) = false;
+    if (nullEntries) {
+        setElementAtPosToNonNull(elemPosInPage);
     }
     return data + byteOffsetInPage;
-}
-
-// We hold isNULL value of each element in in_mem_pages in a boolean array. This is packed together
-// as bits and the collection of NULLBytes (1 byte has isNULL value of 8 elements) is written to
-// the end of the page when writing the page to the disk.
-void InMemPage::encodeNullBits() {
-    if (!nullMask) {
-        return;
-    }
-    auto pos = 0;
-    auto numNULLBytes = ceil((double)maxNumElements / 8);
-    for (auto i = 0; i < numNULLBytes; i++) {
-        uint8_t NULLByte = 0b0000000;
-        for (auto j = 0; j < 8; j++) {
-            if (nullMask->operator[](pos)) {
-                NULLByte = NULLByte | storage::bitMasksWithSingle1s[pos % 8];
-            }
-            pos++;
-        }
-        data[DEFAULT_PAGE_SIZE - 1 - i] = NULLByte;
-    }
 }
 
 } // namespace loader

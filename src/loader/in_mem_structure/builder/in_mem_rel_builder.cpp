@@ -538,10 +538,10 @@ static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
 
 static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const DataType& dataType,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
+    InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile) {
     TypeUtils::decodeOverflowPtr(
         gfList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
-    orderedOverflowPages->copyListOverflow(unorderedOverflowPages, unorderedOverflowCursor,
+    orderedOverflowFile->copyListOverflow(unorderedOverflowFile, unorderedOverflowCursor,
         orderedOverflowCursor, gfList, dataType.childType.get());
 }
 

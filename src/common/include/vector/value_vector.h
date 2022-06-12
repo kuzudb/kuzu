@@ -3,22 +3,12 @@
 #include <cassert>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
+#include "src/common/include/null_mask.h"
 #include "src/common/include/overflow_buffer.h"
 #include "src/common/types/include/literal.h"
 
 namespace graphflow {
 namespace common {
-
-class NullMask {
-    friend class ValueVector;
-
-public:
-    NullMask();
-
-private:
-    unique_ptr<bool[]> mask;
-    bool mayContainNulls;
-};
 
 //! A Vector represents values of the same data type.
 //! The capacity of a ValueVector is either 1 (sequence) or DEFAULT_VECTOR_CAPACITY.
@@ -36,18 +26,18 @@ public:
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
 
-    inline void setAllNull() {
-        std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
-        nullMask->mayContainNulls = true;
-    }
+    inline void setAllNull() { nullMask->setAllNull(); }
 
+    inline void setAllNonNull() { nullMask->setAllNonNull(); }
+
+    inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
     // Note that if this function returns true, there are no null. However if it returns false, it
     // doesn't mean there are nulls, i.e., there may or may not be nulls.
     inline bool hasNoNullsGuarantee() {
         // This function should not be used for flat values. For flat values, the null value
         // of the value should be checked directly.
         assert(!state->isFlat());
-        return !nullMask->mayContainNulls;
+        return nullMask->hasNoNullsGuarantee();
     }
 
     inline void setRangeNonNull(uint64_t startPos, uint64_t len) {
@@ -56,12 +46,11 @@ public:
         }
     }
 
-    inline void setNull(uint64_t pos, bool isNull) {
-        nullMask->mask[pos] = isNull;
-        nullMask->mayContainNulls |= isNull;
-    }
+    inline uint64_t* getNullMaskData() { return nullMask->getData(); }
 
-    inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
+    inline void setNull(uint64_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
+
+    inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
 
     inline uint32_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
 

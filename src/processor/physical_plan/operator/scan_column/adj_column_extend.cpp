@@ -49,7 +49,7 @@ bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
         } else {
             for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
                 auto pos = valueVector.state->selectedPositions[i];
-                valueVector.state->selectedPositions[selectedPos] = i;
+                valueVector.state->selectedPositions[selectedPos] = pos;
                 selectedPos += !valueVector.isNull(pos);
             }
         }

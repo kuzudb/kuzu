@@ -1,16 +1,10 @@
 #include "src/common/include/vector/value_vector.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
-#include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {
-
-NullMask::NullMask() : mayContainNulls{false} {
-    mask = make_unique<bool[]>(DEFAULT_VECTOR_CAPACITY);
-    fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
-}
 
 ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
     : dataType{move(dataType)} {

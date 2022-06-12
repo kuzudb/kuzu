@@ -19,7 +19,6 @@ cc_library(
     ],
 )
 
-
 cc_library(
     name = "buffer_manager",
     srcs = [
@@ -68,13 +67,13 @@ cc_library(
 
 cc_library(
     name = "storage_structure_utils",
-    srcs = [    ],
+    srcs = [],
     hdrs = [
         "include/storage_structure_utils.h",
     ],
     deps = [
         "buffer_manager",
-        "file_handle"
+        "file_handle",
     ],
 )
 
@@ -90,8 +89,9 @@ cc_library(
         "wal_record",
         "//src/catalog:catalog_structs",
         "//src/common:configs",
-        "//src/common/types:types",
+        "//src/common:null_mask",
         "//src/common:utils",
+        "//src/common/types",
     ],
 )
 
@@ -112,9 +112,9 @@ cc_library(
         "storage_structure_utils",
         "storage_utils",
         "wal",
-                "//src/transaction",
         "//src/common:profiler",
         "//src/common:vector",
+        "//src/transaction",
     ],
 )
 
@@ -152,7 +152,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "storage_structure",
-        "//src/catalog:catalog",
+        "//src/catalog",
     ],
 )
 
@@ -175,7 +175,7 @@ cc_library(
         "column",
         "hash_index",
         "lists",
-        "//src/catalog:catalog",
+        "//src/catalog",
     ],
 )
 
@@ -183,10 +183,10 @@ cc_library(
     name = "wal_record",
     srcs = [
         "wal/wal_record.cpp",
-        ],
+    ],
     hdrs = [
         "include/wal/wal_record.h",
-        ],
+    ],
     visibility = [
         "//visibility:public",
     ],
@@ -200,10 +200,10 @@ cc_library(
     name = "wal",
     srcs = [
         "wal/wal.cpp",
-        ],
+    ],
     hdrs = [
         "include/wal/wal.h",
-        ],
+    ],
     visibility = [
         "//visibility:public",
     ],
