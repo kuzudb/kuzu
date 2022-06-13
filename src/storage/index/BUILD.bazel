@@ -1,0 +1,21 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "hash_index",
+    srcs = [
+        "hash_index.cpp",
+        "hash_index_utils.cpp",
+    ],
+    hdrs = [
+        "include/hash_index.h",
+        "include/hash_index_utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:vector",
+        "//src/common/types",
+        "//src/function/hash/operations:hash_operations",
+        "//src/loader:in_mem_pages",
+        "//src/storage/buffer_manager:memory_manager",
+    ],
+)

@@ -4,7 +4,7 @@
 
 #include "spdlog/spdlog.h"
 
-#include "src/storage/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/include/wal_replayer.h"
 
 namespace graphflow {

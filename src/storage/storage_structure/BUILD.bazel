@@ -1,0 +1,61 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "storage_structure",
+    srcs = [
+        "overflow_pages.cpp",
+        "storage_structure.cpp",
+    ],
+    hdrs = [
+        "include/overflow_pages.h",
+        "include/storage_structure.h",
+        "include/storage_structure_utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:vector",
+        "//src/storage:compression_scheme",
+        "//src/storage:storage_utils",
+        "//src/storage/buffer_manager:buffer_manager",
+        "//src/storage/wal:wal",
+        "//src/transaction",
+    ],
+)
+
+cc_library(
+    name = "lists",
+    srcs = [
+        "lists/list_headers.cpp",
+        "lists/list_sync_state.cpp",
+        "lists/lists.cpp",
+        "lists/lists_metadata.cpp",
+        "lists/unstructured_property_lists.cpp",
+    ],
+    hdrs = [
+        "include/lists/large_list_handle.h",
+        "include/lists/list_headers.h",
+        "include/lists/list_sync_state.h",
+        "include/lists/lists.h",
+        "include/lists/lists_metadata.h",
+        "include/lists/unstructured_property_lists.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "storage_structure",
+    ],
+)
+
+cc_library(
+    name = "column",
+    srcs = [
+        "column.cpp",
+    ],
+    hdrs = [
+        "include/column.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "storage_structure",
+        "//src/catalog",
+    ],
+)

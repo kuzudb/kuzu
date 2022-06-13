@@ -1,4 +1,4 @@
-#include "src/storage/include/wal/wal_record.h"
+#include "src/storage/wal/include/wal_record.h"
 
 namespace graphflow {
 namespace storage {

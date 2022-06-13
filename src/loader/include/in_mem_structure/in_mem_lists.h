@@ -1,9 +1,9 @@
 #pragma once
 
 #include "src/loader/include/in_mem_structure/in_mem_file.h"
-#include "src/storage/include/storage_structure/lists/list_headers.h"
-#include "src/storage/include/storage_structure/lists/lists_metadata.h"
-#include "src/storage/include/storage_structure/overflow_pages.h"
+#include "src/storage/storage_structure/include/lists/list_headers.h"
+#include "src/storage/storage_structure/include/lists/lists_metadata.h"
+#include "src/storage/storage_structure/include/overflow_pages.h"
 
 namespace graphflow {
 namespace loader {

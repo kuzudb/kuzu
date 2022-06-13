@@ -6,7 +6,7 @@
 #include "src/common/include/overflow_buffer.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/storage/include/memory_manager.h"
+#include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
 

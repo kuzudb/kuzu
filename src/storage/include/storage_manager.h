@@ -2,9 +2,9 @@
 
 #include <mutex>
 
-#include "src/storage/include/store/nodes_store.h"
-#include "src/storage/include/store/rels_store.h"
-#include "src/storage/include/wal/wal.h"
+#include "src/storage/store/include/nodes_store.h"
+#include "src/storage/store/include/rels_store.h"
+#include "src/storage/wal/include/wal.h"
 
 namespace spdlog {
 class logger;

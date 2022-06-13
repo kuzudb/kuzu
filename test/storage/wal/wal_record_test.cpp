@@ -1,7 +1,7 @@
 #include "include/gtest/gtest.h"
 
 #include "src/common/include/exception.h"
-#include "src/storage/include/wal/wal_record.h"
+#include "src/storage/wal/include/wal_record.h"
 
 using namespace graphflow::common;
 using namespace graphflow::storage;

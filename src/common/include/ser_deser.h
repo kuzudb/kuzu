@@ -7,8 +7,6 @@
 
 #include "src/common/include/file_utils.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace common {
 

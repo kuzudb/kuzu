@@ -1,4 +1,4 @@
-#include "src/storage/include/index/hash_index.h"
+#include "src/storage/index/include/hash_index.h"
 
 using namespace std;
 

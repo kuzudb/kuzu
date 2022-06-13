@@ -2,7 +2,7 @@
 #include "include/gtest/gtest.h"
 
 #include "src/common/include/vector/value_vector.h"
-#include "src/storage/include/memory_manager.h"
+#include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
 using namespace std;

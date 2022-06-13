@@ -1,6 +1,5 @@
 #include "src/loader/include/in_mem_structure/in_mem_column.h"
 
-#include <iostream>
 namespace graphflow {
 namespace loader {
 

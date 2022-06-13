@@ -22,7 +22,7 @@ cc_library(
         "//src/common:data_chunk",
         "//src/common:type_utils",
         "//src/planner/logical_plan",
-        "//src/storage:lists",
+        "//src/storage/storage_structure:lists",
     ],
 )
 
@@ -137,7 +137,7 @@ cc_library(
     deps = [
         "base_operator",
         "result",
-        "//src/storage:column",
+        "//src/storage/storage_structure:column",
     ],
 )
 
@@ -167,7 +167,7 @@ cc_library(
     deps = [
         "base_operator",
         "filtering_operator",
-        "//src/storage:column",
+        "//src/storage/storage_structure:column",
     ],
 )
 
@@ -182,7 +182,7 @@ cc_library(
     deps = [
         "base_table_scan_operator",
         "//src/expression_evaluator:base_expression_evaluator",
-        "//src/storage:column",
+        "//src/storage/storage_structure:column",
     ],
 )
 

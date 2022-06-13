@@ -1,4 +1,4 @@
-#include "src/storage/include/storage_structure/storage_structure.h"
+#include "src/storage/storage_structure/include/storage_structure.h"
 
 #include "src/common/include/utils.h"
 

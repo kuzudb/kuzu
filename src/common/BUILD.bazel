@@ -24,7 +24,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
-        "//src/storage:memory_manager",
+        "//src/storage/buffer_manager:memory_manager",
     ],
 )
 
@@ -90,7 +90,7 @@ cc_library(
         "overflow_buffer_utils",
         "type_utils",
         "//src/common/types",
-        "//src/storage:memory_manager",
+        "//src/storage/buffer_manager:memory_manager",
     ],
 )
 

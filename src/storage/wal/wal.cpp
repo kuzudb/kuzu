@@ -1,4 +1,4 @@
-#include "src/storage/include/wal/wal.h"
+#include "src/storage/wal/include/wal.h"
 
 #include "spdlog/spdlog.h"
 

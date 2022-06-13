@@ -3,8 +3,8 @@
 // TODO: Consider using forward declaration
 #include "src/common/include/configs.h"
 #include "src/processor/include/processor.h"
-#include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/memory_manager.h"
+#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/memory_manager.h"
 #include "src/storage/include/storage_manager.h"
 #include "src/transaction/include/transaction.h"
 #include "src/transaction/include/transaction_manager.h"

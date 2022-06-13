@@ -26,7 +26,7 @@ cc_test(
     ],
     deps = [
         "//src/common:csv_reader",
-        "//src/storage:hash_index",
+        "//src/storage/index:hash_index",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

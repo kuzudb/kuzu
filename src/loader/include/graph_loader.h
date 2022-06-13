@@ -7,7 +7,7 @@
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/loader_progress_bar.h"
-#include "src/storage/include/index/hash_index.h"
+#include "src/storage/index/include/hash_index.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::catalog;

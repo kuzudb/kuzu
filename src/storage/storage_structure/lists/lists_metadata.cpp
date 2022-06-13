@@ -1,4 +1,4 @@
-#include "src/storage/include/storage_structure/lists/lists_metadata.h"
+#include "src/storage/storage_structure/include/lists/lists_metadata.h"
 
 #include "spdlog/spdlog.h"
 

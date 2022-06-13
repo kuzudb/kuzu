@@ -3,6 +3,17 @@
 namespace graphflow {
 namespace storage {
 
+uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+    auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
+    auto numNullEntries =
+        hasNull ? (uint32_t)ceil(
+                      (double)DEFAULT_PAGE_SIZE /
+                      (double)(((uint64_t)elementSize << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
+                               numBytesPerNullEntry)) :
+                  0;
+    return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
+}
+
 void StorageUtils::saveListOfIntsToFile(const string& fName, uint8_t* data, uint32_t listSize) {
     assert(data);
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);

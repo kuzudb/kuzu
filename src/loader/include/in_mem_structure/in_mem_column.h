@@ -2,7 +2,7 @@
 
 #include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/storage/include/compression_scheme.h"
-#include "src/storage/include/storage_structure/overflow_pages.h"
+#include "src/storage/storage_structure/include/overflow_pages.h"
 
 namespace graphflow {
 namespace loader {

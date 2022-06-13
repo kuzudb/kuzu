@@ -1,0 +1,24 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "store",
+    srcs = [
+        "node_table.cpp",
+        "nodes_store.cpp",
+        "rel_table.cpp",
+        "rels_store.cpp",
+    ],
+    hdrs = [
+        "include/node_table.h",
+        "include/nodes_store.h",
+        "include/rel_table.h",
+        "include/rels_store.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/catalog",
+        "//src/storage/storage_structure:column",
+        "//src/storage/storage_structure:lists",
+        "//src/storage/index:hash_index",
+    ],
+)
