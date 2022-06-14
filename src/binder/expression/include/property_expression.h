@@ -24,7 +24,5 @@ private:
     uint32_t propertyKey;
 };
 
-using property_vector = vector<shared_ptr<PropertyExpression>>;
-
 } // namespace binder
 } // namespace graphflow

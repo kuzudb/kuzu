@@ -36,17 +36,27 @@ private:
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(expression_vector expressionsToScan);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
-    // join order enumeration functions
-    void enumerateResultScan();
-    void enumerateSingleNode();
-    void enumerateHashJoin();
-    void enumerateSingleRel();
+    void planResultScan();
+
+    void planNodeScan();
+    void planFiltersAfterNodeScan(
+        expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
+    void planPropertyScansAfterNodeScan(NodeExpression& node, LogicalPlan& plan);
+
+    void planExtend();
+    void planExtendFiltersAndScanProperties(RelExpression& queryRel, RelDirection direction,
+        expression_vector& predicates, LogicalPlan& plan);
+    void planFilterAfterExtend(expression_vector& predicates, RelExpression& rel,
+        NodeExpression& nbrNode, LogicalPlan& plan);
+    void planPropertyScansAfterExtend(
+        RelExpression& rel, NodeExpression& nbrNode, LogicalPlan& plan);
+
+    void planHashJoin();
 
     // append logical operator functions
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
-    void appendExtendFiltersAndScanProperties(const RelExpression& queryRel, RelDirection direction,
-        const expression_vector& expressionsToFilter, LogicalPlan& plan);
+
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
     void appendLogicalHashJoin(
         const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
@@ -54,6 +64,7 @@ private:
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 
     // helper functions
+    expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(label_t boundNodeLabel, label_t relLabel, RelDirection relDirection);
 
 private:
