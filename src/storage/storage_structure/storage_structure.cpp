@@ -294,24 +294,25 @@ void BaseColumnOrList::readNullBitsFromAPage(const shared_ptr<ValueVector>& valu
         uint64_t numBitsToReadInCurrentEntry = 0;
         uint64_t nullMaskEntry = nullEntriesInPage[nullEntryPosInPage];
         if (nullBitPosInVectorEntry < nullBitPosInPageEntry) {
-            numBitsToReadInCurrentEntry =
-                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInPageEntry, numBitsToRead);
+            numBitsToReadInCurrentEntry = min(
+                NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInPageEntry, numBitsToRead - bitPos);
+            // Mask higher bits out of current read range to 0.
+            nullMaskEntry &=
+                ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                 (nullBitPosInPageEntry + numBitsToReadInCurrentEntry)];
             // Shift right to align the bit in the page entry and vector entry.
             auto numBitsToShift = nullBitPosInPageEntry - nullBitPosInVectorEntry;
             nullMaskEntry = nullMaskEntry >> numBitsToShift;
             // Mask lower bits out of current read range to 0.
             nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInVectorEntry];
-            // Mask higher bits out of current read range to 0.
-            nullMaskEntry &=
-                ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
-                                 (nullBitPosInPageEntry + numBitsToReadInCurrentEntry)];
             // Move to the next null entry in page.
             nullEntryPosInPage++;
             nullBitPosInPageEntry = 0;
             nullBitPosInVectorEntry += numBitsToReadInCurrentEntry;
         } else if (nullBitPosInVectorEntry > nullBitPosInPageEntry) {
             numBitsToReadInCurrentEntry =
-                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry, numBitsToRead);
+                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry,
+                    numBitsToRead - bitPos);
             auto numBitsToShift = nullBitPosInVectorEntry - nullBitPosInPageEntry;
             // Mask lower bits out of current read range to 0.
             nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInPageEntry];
@@ -327,7 +328,8 @@ void BaseColumnOrList::readNullBitsFromAPage(const shared_ptr<ValueVector>& valu
             nullBitPosInPageEntry += numBitsToReadInCurrentEntry;
         } else {
             numBitsToReadInCurrentEntry =
-                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry, numBitsToRead);
+                min(NullMask::NUM_BITS_PER_NULL_ENTRY - nullBitPosInVectorEntry,
+                    numBitsToRead - bitPos);
             // Mask lower bits out of current read range to 0.
             nullMaskEntry &= ~NULL_LOWER_MASKS[nullBitPosInPageEntry];
             // Mask higher bits out of current read range to 0.
