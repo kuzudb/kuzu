@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/in_mem_lists.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_lists.h"
 
 namespace graphflow {
 namespace loader {
@@ -44,8 +44,8 @@ void InMemLists::saveToFile() {
 void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, true /* hasNULLBytes */);
-    inMemFile->pages[cursor.pageIdx]->write(
-        cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
+    inMemFile->getPage(cursor.pageIdx)
+        ->write(cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
 }
 
 void InMemAdjLists::setElement(
@@ -53,9 +53,9 @@ void InMemAdjLists::setElement(
     auto cursor = InMemListsUtils::calcPageElementCursor(
         header, pos, numBytesForElement, nodeOffset, *listsMetadata, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
-    inMemFile->pages[cursor.pageIdx]->write(node,
-        cursor.posInPage * compressionScheme.getNumTotalBytes(), cursor.posInPage,
-        compressionScheme);
+    inMemFile->getPage(cursor.pageIdx)
+        ->write(node, cursor.posInPage * compressionScheme.getNumTotalBytes(), cursor.posInPage,
+            compressionScheme);
 }
 
 void InMemAdjLists::saveToFile() {
@@ -65,7 +65,8 @@ void InMemAdjLists::saveToFile() {
 
 InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType)
     : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType)} {
-    assert(dataType.typeID == STRING || dataType.typeID == LIST || dataType.typeID == UNSTRUCTURED);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST ||
+           this->dataType.typeID == UNSTRUCTURED);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
 }
@@ -90,12 +91,12 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case STRING: {
-        auto gfString = overflowInMemFile->addString((const char*)val, *overflowCursor);
+        auto gfString = overflowInMemFile->copyString((const char*)val, *overflowCursor);
         val = (uint8_t*)(&gfString);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case LIST: {
-        auto gfList = overflowInMemFile->addList(*(Literal*)val, *overflowCursor);
+        auto gfList = overflowInMemFile->copyList(*(Literal*)val, *overflowCursor);
         val = (uint8_t*)(&gfList);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
@@ -107,16 +108,16 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
 void InMemUnstructuredLists::setComponentOfUnstrProperty(
     PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
     if (DEFAULT_PAGE_SIZE - localCursor.offsetInPage >= len) {
-        memcpy(inMemFile->pages[localCursor.pageIdx]->data + localCursor.offsetInPage, val, len);
+        memcpy(inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage, val, len);
         localCursor.offsetInPage += len;
     } else {
         auto diff = DEFAULT_PAGE_SIZE - localCursor.offsetInPage;
-        auto writeOffset = inMemFile->pages[localCursor.pageIdx]->data + localCursor.offsetInPage;
+        auto writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
         memcpy(writeOffset, val, diff);
         auto left = len - diff;
         localCursor.pageIdx++;
         localCursor.offsetInPage = 0;
-        writeOffset = inMemFile->pages[localCursor.pageIdx]->data + localCursor.offsetInPage;
+        writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
         memcpy(writeOffset, val + diff, left);
         localCursor.offsetInPage = left;
     }

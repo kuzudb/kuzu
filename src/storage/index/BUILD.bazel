@@ -15,7 +15,7 @@ cc_library(
         "//src/common:vector",
         "//src/common/types",
         "//src/function/hash/operations:hash_operations",
-        "//src/loader:in_mem_pages",
-        "//src/storage/buffer_manager:memory_manager",
+        "//src/storage/buffer_manager",
+        "//src/storage/storage_structure",
     ],
 )

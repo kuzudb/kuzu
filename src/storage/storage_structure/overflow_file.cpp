@@ -1,4 +1,4 @@
-#include "src/storage/storage_structure/include/overflow_pages.h"
+#include "src/storage/storage_structure/include/overflow_file.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
 #include "src/common/include/type_utils.h"
@@ -8,7 +8,7 @@ using lock_t = unique_lock<mutex>;
 namespace graphflow {
 namespace storage {
 
-void OverflowPages::readStringsToVector(Transaction* transaction, ValueVector& valueVector) {
+void OverflowFile::readStringsToVector(Transaction* transaction, ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
@@ -20,7 +20,7 @@ void OverflowPages::readStringsToVector(Transaction* transaction, ValueVector& v
     }
 }
 
-void OverflowPages::readStringToVector(
+void OverflowFile::readStringToVector(
     Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
     if (gf_string_t::isShortString(gfStr.len)) {
         return;
@@ -35,7 +35,7 @@ void OverflowPages::readStringToVector(
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-void OverflowPages::scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector) {
+void OverflowFile::scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector) {
     FileHandle* cachedFileHandle = nullptr;
     page_idx_t cachedPageIdx = UINT32_MAX;
     uint8_t* cachedFrame = nullptr;
@@ -75,7 +75,7 @@ void OverflowPages::scanSequentialStringOverflow(Transaction* transaction, Value
     }
 }
 
-void OverflowPages::readListsToVector(ValueVector& valueVector) {
+void OverflowFile::readListsToVector(ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
@@ -86,7 +86,7 @@ void OverflowPages::readListsToVector(ValueVector& valueVector) {
     }
 }
 
-void OverflowPages::readListToVector(
+void OverflowFile::readListToVector(
     gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
@@ -108,7 +108,7 @@ void OverflowPages::readListToVector(
     }
 }
 
-string OverflowPages::readString(const gf_string_t& str) {
+string OverflowFile::readString(const gf_string_t& str) {
     if (gf_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
@@ -121,7 +121,7 @@ string OverflowPages::readString(const gf_string_t& str) {
     }
 }
 
-vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType& dataType) {
+vector<Literal> OverflowFile::readList(const gf_list_t& listVal, const DataType& dataType) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
@@ -150,7 +150,7 @@ vector<Literal> OverflowPages::readList(const gf_list_t& listVal, const DataType
     return retLiterals;
 }
 
-void OverflowPages::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
+void OverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
     PageElementCursor byteCursor =
         PageUtils::getPageElementCursorForPos(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
     if ((byteCursor.posInPage == 0) ||
@@ -162,7 +162,7 @@ void OverflowPages::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) 
     }
 }
 
-void OverflowPages::setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst) {
+void OverflowFile::setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst) {
     if (src.len < gf_string_t::SHORT_STR_LENGTH) {
         return;
     } else if (src.len > DEFAULT_PAGE_SIZE) {
@@ -183,7 +183,7 @@ void OverflowPages::setStringOverflowWithoutLock(const gf_string_t& src, gf_stri
     finishUpdatingPage(updatedPageInfoAndWALPageFrame);
 }
 
-void OverflowPages::writeStringOverflowAndUpdateOverflowPtr(
+void OverflowFile::writeStringOverflowAndUpdateOverflowPtr(
     const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo) {
     // Note: Currently we are completely serializing threads that want to write to the overflow
     // pages. We can relax this by releasing the lock after each thread 'reserves' their spot
@@ -196,7 +196,7 @@ void OverflowPages::writeStringOverflowAndUpdateOverflowPtr(
     setStringOverflowWithoutLock(strToWriteFrom, strToWriteTo);
 }
 
-void OverflowPages::setListRecursiveIfNestedWithoutLock(
+void OverflowFile::setListRecursiveIfNestedWithoutLock(
     const gf_list_t& src, gf_list_t& dst, const DataType& dataType) {
     auto elementSize = Types::getDataTypeSize(*dataType.childType);
     if (src.size * elementSize > DEFAULT_PAGE_SIZE) {
@@ -238,7 +238,7 @@ void OverflowPages::setListRecursiveIfNestedWithoutLock(
     }
 }
 
-void OverflowPages::writeListOverflowAndUpdateOverflowPtr(
+void OverflowFile::writeListOverflowAndUpdateOverflowPtr(
     const gf_list_t& listToWriteFrom, gf_list_t& listToWriteTo, const DataType& dataType) {
     lock_t lck{mtx};
     setListRecursiveIfNestedWithoutLock(listToWriteFrom, listToWriteTo, dataType);

@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/builder/in_mem_rel_builder.h"
+#include "src/loader/in_mem_builder/include/in_mem_rel_builder.h"
 
 #include "spdlog/spdlog.h"
 
@@ -9,15 +9,30 @@ namespace loader {
 
 InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    const vector<uint64_t> maxNodeOffsetsPerNodeLabel,
-    const vector<unique_ptr<HashIndex>>& IDIndexes, LoaderProgressBar* progressBar)
+    const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, BufferManager& bufferManager,
+    LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{label, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
       relMultiplicity{getRelMultiplicityFromString(fileDescription.relMultiplicity)},
       srcNodeLabelNames{fileDescription.srcNodeLabelNames},
       dstNodeLabelNames{fileDescription.dstNodeLabelNames},
-      maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel}, IDIndexes{IDIndexes} {}
+      maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel}, bm{bufferManager} {
+    IDIndexes.resize(catalog.getNumNodeLabels());
+    unordered_set<string> labelNames;
+    labelNames.insert(
+        fileDescription.srcNodeLabelNames.begin(), fileDescription.srcNodeLabelNames.end());
+    labelNames.insert(
+        fileDescription.dstNodeLabelNames.begin(), fileDescription.dstNodeLabelNames.end());
+    for (auto& labelName : labelNames) {
+        auto nodeLabel = catalog.getNodeLabelFromName(labelName);
+        assert(IDIndexes[nodeLabel] == nullptr);
+        IDIndexes[nodeLabel] = make_unique<HashIndex>(
+            StorageUtils::getNodeIndexFName(this->outputDirectory, nodeLabel),
+            catalog.getNodeProperty(nodeLabel, LoaderConfig::ID_FIELD).dataType, bm,
+            true /* isInMemory */);
+    }
+}
 
 void InMemRelBuilder::load() {
     logger->info("Loading rel {} with label {}.", labelName, label);
@@ -235,7 +250,7 @@ void InMemRelBuilder::putPropsOfLineIntoColumns(
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
                 auto gfStr =
-                    overflowPages[propertyIdx]->addString(strVal, overflowCursors[propertyIdx]);
+                    overflowPages[propertyIdx]->copyString(strVal, overflowCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionLabelPropertyColumns, nodeIDs,
                     reinterpret_cast<uint8_t*>(&gfStr));
             }
@@ -244,7 +259,7 @@ void InMemRelBuilder::putPropsOfLineIntoColumns(
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
                 auto gfList =
-                    overflowPages[propertyIdx]->addList(listVal, overflowCursors[propertyIdx]);
+                    overflowPages[propertyIdx]->copyList(listVal, overflowCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionLabelPropertyColumns, nodeIDs,
                     reinterpret_cast<uint8_t*>(&gfList));
             }
@@ -363,7 +378,7 @@ void InMemRelBuilder::putPropsOfLineIntoLists(
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
                 auto gfStr =
-                    overflowPages[propertyIdx]->addString(strVal, overflowCursors[propertyIdx]);
+                    overflowPages[propertyIdx]->copyString(strVal, overflowCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionLabelPropertyLists, directionLabelAdjLists,
                     nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfStr));
             }
@@ -372,7 +387,7 @@ void InMemRelBuilder::putPropsOfLineIntoLists(
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
                 auto gfList =
-                    overflowPages[propertyIdx]->addList(listVal, overflowCursors[propertyIdx]);
+                    overflowPages[propertyIdx]->copyList(listVal, overflowCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionLabelPropertyLists, directionLabelAdjLists,
                     nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfList));
             }
@@ -525,7 +540,7 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
     builder->progressBar->incrementTaskFinished();
 }
 
-static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
+void InMemRelBuilder::copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
     if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
@@ -538,9 +553,10 @@ static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     }
 }
 
-static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const DataType& dataType,
-    PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-    InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile) {
+void InMemRelBuilder::copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
+    const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
+    PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
+    InMemOverflowFile* orderedOverflowFile) {
     TypeUtils::decodeOverflowPtr(
         gfList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
     orderedOverflowFile->copyListOverflow(unorderedOverflowFile, unorderedOverflowCursor,

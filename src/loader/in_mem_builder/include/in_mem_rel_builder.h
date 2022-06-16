@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
+#include "src/loader/in_mem_builder/include/in_mem_structures_builder.h"
 #include "src/storage/index/include/hash_index.h"
 
 namespace graphflow {
@@ -11,8 +11,8 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 public:
     InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
         string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-        const vector<uint64_t> maxNodeOffsetsPerNodeLabel,
-        const vector<unique_ptr<HashIndex>>& IDIndexes, LoaderProgressBar* progressBar);
+        const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, BufferManager& bufferManager,
+        LoaderProgressBar* progressBar);
 
     ~InMemRelBuilder() override = default;
 
@@ -47,6 +47,13 @@ private:
         vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
         const vector<uint64_t>& reversePos);
+    static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
+        PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
+        InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages);
+    static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
+        const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
+        PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
+        InMemOverflowFile* orderedOverflowFile);
 
     // Concurrent tasks.
     static void populateAdjColumnsAndCountRelsInAdjListsTask(
@@ -65,9 +72,10 @@ private:
     RelMultiplicity relMultiplicity;
     vector<string> srcNodeLabelNames;
     vector<string> dstNodeLabelNames;
-
     const vector<uint64_t> maxNodeOffsetsPerNodeLabel;
-    const vector<unique_ptr<HashIndex>>& IDIndexes;
+
+    BufferManager& bm;
+    vector<unique_ptr<HashIndex>> IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};
     vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerLabel{2};
     vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};

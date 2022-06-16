@@ -17,11 +17,11 @@ using namespace graphflow::transaction;
 namespace graphflow {
 namespace storage {
 
-class OverflowPages : public StorageStructure {
+class OverflowFile : public StorageStructure {
     friend class StringPropertyColumn;
 
 public:
-    explicit OverflowPages(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
+    OverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
@@ -33,13 +33,13 @@ public:
     // overflow pages but is not yet updatable, such as hash index or rel property lists storing
     // strings. Currently, it creates a dummy StorageStructureID. This should be removed when we
     // support updates for those structures too.
-    explicit OverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : OverflowPages(
+    OverflowFile(const string& fName, BufferManager& bufferManager, bool isInMemory)
+        : OverflowFile(
               StorageStructureIDAndFName(
                   StorageStructureID::newStructuredNodePropertyMainColumnID(-1, -1), fName),
               bufferManager, isInMemory, nullptr /* wal is null */) {}
 
-    ~OverflowPages() {
+    ~OverflowFile() {
         if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }

@@ -5,9 +5,8 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
-#include "src/loader/include/in_mem_structure/builder/in_mem_node_builder.h"
-#include "src/loader/include/in_mem_structure/builder/in_mem_rel_builder.h"
-#include "src/loader/include/loader_task.h"
+#include "src/loader/in_mem_builder/include/in_mem_node_builder.h"
+#include "src/loader/in_mem_builder/include/in_mem_rel_builder.h"
 #include "src/storage/store/include/nodes_metadata.h"
 
 using namespace std::chrono;
@@ -36,8 +35,8 @@ void GraphLoader::loadGraph() {
         logger->info("Starting GraphLoader.");
         readAndParseMetadata(datasetMetadata);
         progressBar = make_unique<LoaderProgressBar>();
-        auto IDIndexes = loadNodes();
-        loadRels(maxNodeOffsetsPerNodeLabel, IDIndexes);
+        loadNodes();
+        loadRels();
         progressBar->addAndStartNewJob("Saving Catalog to file.", 1);
         catalog->saveToFile(outputDirectory);
         progressBar->incrementTaskFinished();
@@ -81,29 +80,26 @@ void GraphLoader::readAndParseMetadata(DatasetMetadata& metadata) {
     logger->info("Done reading and parsing metadata from metadata.json.");
 }
 
-vector<unique_ptr<HashIndex>> GraphLoader::loadNodes() {
+void GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
     auto numNodeLabels = datasetMetadata.getNumNodeFiles();
-    vector<unique_ptr<HashIndex>> IDIndexes(numNodeLabels);
     for (auto nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
         auto nodeBuilder = make_unique<InMemNodeBuilder>(nodeLabel,
             datasetMetadata.getNodeFileDescription(nodeLabel), outputDirectory, *taskScheduler,
-            *catalog, *bufferManager, progressBar.get());
-        IDIndexes[nodeLabel] = nodeBuilder->load();
+            *catalog, progressBar.get());
+        nodeBuilder->load();
         maxNodeOffsetsPerNodeLabel.push_back(nodeBuilder->getNumNodes() - 1);
     }
     logger->info("Done loading nodes.");
-    return IDIndexes;
 }
 
-void GraphLoader::loadRels(const vector<node_offset_t>& maxNodeOffsetsPerNodeLabel,
-    const vector<unique_ptr<HashIndex>>& IDIndexes) {
+void GraphLoader::loadRels() {
     logger->info("Starting to load rels.");
     auto numRelLabels = datasetMetadata.getNumRelFiles();
     for (auto relLabel = 0u; relLabel < numRelLabels; relLabel++) {
         auto relBuilder = make_unique<InMemRelBuilder>(relLabel,
             datasetMetadata.getRelFileDescription(relLabel), outputDirectory, *taskScheduler,
-            *catalog, maxNodeOffsetsPerNodeLabel, IDIndexes, progressBar.get());
+            *catalog, maxNodeOffsetsPerNodeLabel, *bufferManager, progressBar.get());
         relBuilder->load();
     }
     logger->info("Done loading rels.");

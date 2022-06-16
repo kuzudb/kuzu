@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/in_mem_page.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_page.h"
 
 #include <algorithm>
 #include <cmath>

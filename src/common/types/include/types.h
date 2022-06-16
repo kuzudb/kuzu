@@ -105,8 +105,8 @@ public:
     static string dataTypesToString(const vector<DataType>& dataTypes);
     static string dataTypesToString(const vector<DataTypeID>& dataTypeIDs);
     static DataType dataTypeFromString(const string& dataTypeString);
-    static uint32_t getDataTypeSize(DataTypeID dataTypeID);
-    static inline uint32_t getDataTypeSize(const DataType& dataType) {
+    static const uint32_t getDataTypeSize(DataTypeID dataTypeID);
+    static inline const uint32_t getDataTypeSize(const DataType& dataType) {
         return getDataTypeSize(dataType.typeID);
     }
 

@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
+#include "src/loader/in_mem_builder/include/in_mem_structures_builder.h"
 
 #include "spdlog/spdlog.h"
 

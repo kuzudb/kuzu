@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/in_mem_column.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_column.h"
 
 namespace graphflow {
 namespace loader {
@@ -6,12 +6,12 @@ namespace loader {
 InMemColumn::InMemColumn(
     std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
-    assert(dataType.typeID != UNSTRUCTURED);
+    assert(this->dataType.typeID != UNSTRUCTURED);
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
     auto numPages = ceil((double)numElements / (double)numElementsInAPage);
     inMemFile =
         make_unique<InMemFile>(this->fName, numBytesForElement, true /* hasNULLBytes */, numPages);
-};
+}
 
 void InMemColumn::saveToFile() {
     inMemFile->flush();
@@ -19,14 +19,14 @@ void InMemColumn::saveToFile() {
 
 void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto cursor = getPageElementCursorForOffset(offset);
-    inMemFile->pages[cursor.pageIdx]->write(
-        cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
+    inMemFile->getPage(cursor.pageIdx)
+        ->write(cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
 }
 
 InMemColumnWithOverflow::InMemColumnWithOverflow(
     string fName, DataType dataType, uint64_t numElements)
     : InMemColumn{move(fName), move(dataType), Types::getDataTypeSize(dataType), numElements} {
-    assert(dataType.typeID == STRING || dataType.typeID == LIST);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
     inMemOverflowFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
 }
@@ -39,8 +39,8 @@ void InMemColumnWithOverflow::saveToFile() {
 void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
-    inMemFile->pages[cursor.pageIdx]->write(
-        node, cursor.posInPage * numBytesForElement, cursor.posInPage, compressionScheme);
+    inMemFile->getPage(cursor.pageIdx)
+        ->write(node, cursor.posInPage * numBytesForElement, cursor.posInPage, compressionScheme);
 }
 
 unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
