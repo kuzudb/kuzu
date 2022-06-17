@@ -61,26 +61,28 @@ private:
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    void appendScanNodeProperty(const NodeExpression& node, LogicalPlan& plan);
+    // switch structured and unstructured node property scan
+    void appendScanNodePropIfNecessarySwitch(
+        expression_vector& properties, NodeExpression& node, LogicalPlan& plan);
+    void appendScanNodePropIfNecessary(
+        expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured);
 
-    void appendScanNodeProperty(
-        const property_vector& properties, const NodeExpression& node, LogicalPlan& plan);
-
-    void appendScanRelProperty(const RelExpression& rel, LogicalPlan& plan);
-
-    void appendScanRelProperty(const shared_ptr<PropertyExpression>& property,
-        const RelExpression& rel, LogicalPlan& plan);
+    inline void appendScanRelPropsIfNecessary(
+        expression_vector& properties, RelExpression& rel, LogicalPlan& plan) {
+        for (auto& property : properties) {
+            appendScanRelPropIfNecessary(property, rel, plan);
+        }
+    }
+    void appendScanRelPropIfNecessary(
+        shared_ptr<Expression>& expression, RelExpression& rel, LogicalPlan& plan);
 
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
     static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
 
-    static property_vector getPropertiesForNode(
-        const property_vector& propertiesToScan, const NodeExpression& node, bool isStructured);
-
-    static property_vector getPropertiesForRel(
-        const property_vector& propertiesToScan, const RelExpression& rel);
+    expression_vector getPropertiesForNode(NodeExpression& node);
+    expression_vector getPropertiesForRel(RelExpression& rel);
 
     static unordered_set<uint32_t> getDependentGroupsPos(
         const shared_ptr<Expression>& expression, const Schema& schema);
@@ -111,7 +113,7 @@ private:
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
 
 private:
-    property_vector propertiesToScan;
+    expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionEnumerator projectionEnumerator;
 };

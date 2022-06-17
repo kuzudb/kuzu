@@ -88,7 +88,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
     propertiesToScan.clear();
     for (auto& expression : singleQuery.getPropertiesToRead()) {
         assert(expression->expressionType == PROPERTY);
-        propertiesToScan.push_back(static_pointer_cast<PropertyExpression>(expression));
+        propertiesToScan.push_back(expression);
     }
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
@@ -275,50 +275,54 @@ void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalP
     plan.appendOperator(move(filter));
 }
 
-void Enumerator::appendScanNodeProperty(const NodeExpression& node, LogicalPlan& plan) {
-    auto structuredProperties = getPropertiesForNode(propertiesToScan, node, true);
-    if (!structuredProperties.empty()) {
-        appendScanNodeProperty(structuredProperties, node, plan);
+void Enumerator::appendScanNodePropIfNecessarySwitch(
+    expression_vector& properties, NodeExpression& node, LogicalPlan& plan) {
+    expression_vector structuredProperties;
+    expression_vector unstructuredProperties;
+    for (auto& property : properties) {
+        if (property->dataType.typeID == UNSTRUCTURED) {
+            unstructuredProperties.push_back(property);
+        } else {
+            structuredProperties.push_back(property);
+        }
     }
-    auto unstructuredProperties = getPropertiesForNode(propertiesToScan, node, false);
-    if (!unstructuredProperties.empty()) {
-        appendScanNodeProperty(unstructuredProperties, node, plan);
-    }
+    appendScanNodePropIfNecessary(structuredProperties, node, plan, true /* isStructured */);
+    appendScanNodePropIfNecessary(unstructuredProperties, node, plan, false /* isUnstructured */);
 }
 
-void Enumerator::appendScanNodeProperty(
-    const property_vector& properties, const NodeExpression& node, LogicalPlan& plan) {
+void Enumerator::appendScanNodePropIfNecessary(
+    expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured) {
     auto schema = plan.getSchema();
     vector<string> propertyNames;
     vector<uint32_t> propertyKeys;
     auto groupPos = schema->getGroupPos(node.getIDProperty());
-    for (auto& property : properties) {
-        if (schema->isExpressionInScope(*property)) {
+    for (auto& expression : properties) {
+        if (schema->isExpressionInScope(*expression)) {
             continue;
         }
+        assert(expression->expressionType == PROPERTY);
+        auto property = static_pointer_cast<PropertyExpression>(expression);
         propertyNames.push_back(property->getUniqueName());
         propertyKeys.push_back(property->getPropertyKey());
         schema->insertToGroupAndScope(property, groupPos);
     }
-    assert(!properties.empty());
-    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(node.getIDProperty(),
-        node.getLabel(), move(propertyNames), move(propertyKeys),
-        properties[0]->dataType.typeID == UNSTRUCTURED, plan.getLastOperator());
+    if (propertyNames.empty()) { // all properties have been scanned before
+        return;
+    }
+    auto scanNodeProperty =
+        make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getLabel(),
+            move(propertyNames), move(propertyKeys), !isStructured, plan.getLastOperator());
     plan.appendOperator(move(scanNodeProperty));
 }
 
-void Enumerator::appendScanRelProperty(const RelExpression& rel, LogicalPlan& plan) {
-    for (auto& property : getPropertiesForRel(propertiesToScan, rel)) {
-        if (plan.getSchema()->isExpressionInScope(*property)) {
-            continue;
-        }
-        appendScanRelProperty(property, rel, plan);
-    }
-}
-
-void Enumerator::appendScanRelProperty(
-    const shared_ptr<PropertyExpression>& property, const RelExpression& rel, LogicalPlan& plan) {
+void Enumerator::appendScanRelPropIfNecessary(
+    shared_ptr<Expression>& expression, RelExpression& rel, LogicalPlan& plan) {
     auto schema = plan.getSchema();
+    if (schema->isExpressionInScope(*expression)) {
+        return;
+    }
+    assert(expression->expressionType == PROPERTY);
+    auto property = static_pointer_cast<PropertyExpression>(expression);
     auto extend = schema->getExistingLogicalExtend(rel.getUniqueName());
     auto scanProperty =
         make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
@@ -374,23 +378,19 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getInitialEmptyPlans() {
     return plans;
 }
 
-property_vector Enumerator::getPropertiesForNode(
-    const property_vector& propertiesToScan, const NodeExpression& node, bool isStructured) {
-    property_vector result;
+expression_vector Enumerator::getPropertiesForNode(NodeExpression& node) {
+    expression_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == node.getUniqueName()) {
             assert(property->getChild(0)->dataType.typeID == NODE);
-            if (isStructured == (property->dataType.typeID != UNSTRUCTURED)) {
-                result.push_back(property);
-            }
+            result.push_back(property);
         }
     }
     return result;
 }
 
-property_vector Enumerator::getPropertiesForRel(
-    const property_vector& propertiesToScan, const RelExpression& rel) {
-    property_vector result;
+expression_vector Enumerator::getPropertiesForRel(RelExpression& rel) {
+    expression_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == rel.getUniqueName()) {
             assert(property->getChild(0)->dataType.typeID == REL);

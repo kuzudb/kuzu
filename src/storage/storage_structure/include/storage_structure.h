@@ -128,22 +128,9 @@ protected:
     void setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) const;
 
 private:
-    uint64_t getNumValuesToSkipInSequentialCopy(
-        uint64_t numValuesTryToSkip, uint64_t numValuesInFirstPage) const;
-
     void readAPageBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
         uint64_t numValuesToRead);
-
-    void readAPageBySequentialCopyWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& vector, uint64_t& nextSelectedPos,
-        page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement);
-
-    void readNodeIDsFromAPageBySequentialCopyWithSelState(const shared_ptr<ValueVector>& vector,
-        uint64_t& nextSelectedPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t vectorPosOfFirstUnselElement, uint64_t vectorPosOfLastUnselElement,
-        NodeIDCompressionScheme& compressionScheme);
 
     void readNullBitsFromAPage(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
         uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
