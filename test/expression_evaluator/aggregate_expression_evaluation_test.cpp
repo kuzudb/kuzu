@@ -63,7 +63,7 @@ TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
     auto countFunction = AggregateFunctionUtil::getCountStarFunction();
     auto countStarState = static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
         countFunction->createInitialNullAggregateState());
-    countFunction->updateState((uint8_t*)countStarState.get(), nullptr,
+    countFunction->updateAllState((uint8_t*)countStarState.get(), nullptr,
         resultSet->getNumTuples(unordered_set<uint32_t>{0}));
     auto otherCountStarState =
         static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
@@ -80,7 +80,7 @@ TEST_F(AggrExpressionEvaluatorTest, CountTest) {
 
     auto countState = static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
         countFunction->createInitialNullAggregateState());
-    countFunction->updateState(
+    countFunction->updateAllState(
         (uint8_t*)countState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherCountState =
         static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
@@ -95,7 +95,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
     auto sumFunction = AggregateFunctionUtil::getSumFunction(DataType(INT64), false);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<int64_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
-    sumFunction->updateState(
+    sumFunction->updateAllState(
         (uint8_t*)sumState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherSumState = static_unique_pointer_cast<AggregateState, SumFunction<int64_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
@@ -116,7 +116,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
     auto sumFunction = AggregateFunctionUtil::getSumFunction(DataType(DOUBLE), false);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<double_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
-    sumFunction->updateState(
+    sumFunction->updateAllState(
         (uint8_t*)sumState.get(), doubleValueVector.get(), 1 /* multiplicity */);
     auto otherSumState =
         static_unique_pointer_cast<AggregateState, SumFunction<double_t>::SumState>(
@@ -138,7 +138,7 @@ TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
     auto sumFunction = AggregateFunctionUtil::getSumFunction(DataType(UNSTRUCTURED), false);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
         sumFunction->createInitialNullAggregateState());
-    sumFunction->updateState(
+    sumFunction->updateAllState(
         (uint8_t*)sumState.get(), unStrValueVector.get(), 1 /* multiplicity */);
     auto otherSumState = static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
         sumFunction->createInitialNullAggregateState());
@@ -159,7 +159,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
     auto avgFunction = AggregateFunctionUtil::getAvgFunction(DataType(INT64), false);
     auto avgState = static_unique_pointer_cast<AggregateState, AvgFunction<int64_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
-    avgFunction->updateState(
+    avgFunction->updateAllState(
         (uint8_t*)avgState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherAvgState = static_unique_pointer_cast<AggregateState, AvgFunction<int64_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
@@ -181,7 +181,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
     auto avgFunction = AggregateFunctionUtil::getAvgFunction(DataType(DOUBLE), false);
     auto avgState = static_unique_pointer_cast<AggregateState, AvgFunction<double_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
-    avgFunction->updateState(
+    avgFunction->updateAllState(
         (uint8_t*)avgState.get(), doubleValueVector.get(), 1 /* multiplicity */);
     auto otherAvgState =
         static_unique_pointer_cast<AggregateState, AvgFunction<double_t>::AvgState>(
@@ -205,7 +205,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64MaxTest) {
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
-    maxFunction->updateState(
+    maxFunction->updateAllState(
         (uint8_t*)maxState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherMaxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(
@@ -222,7 +222,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEMaxTest) {
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<double_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
-    maxFunction->updateState(
+    maxFunction->updateAllState(
         (uint8_t*)maxState.get(), doubleValueVector.get(), 1 /* multiplicity */);
     auto otherMaxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<double_t>::MinMaxState>(
@@ -239,7 +239,7 @@ TEST_F(AggrExpressionEvaluatorTest, STRINGMaxTest) {
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<gf_string_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
-    maxFunction->updateState(
+    maxFunction->updateAllState(
         (uint8_t*)maxState.get(), stringValueVector.get(), 1 /* multiplicity */);
     auto otherMaxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<gf_string_t>::MinMaxState>(
@@ -257,7 +257,7 @@ TEST_F(AggrExpressionEvaluatorTest, UNSTRMaxTest) {
     auto maxFunction = AggregateFunctionUtil::getMaxFunction(DataType(UNSTRUCTURED), false);
     auto maxState = static_unique_pointer_cast<AggregateState, MinMaxFunction<Value>::MinMaxState>(
         maxFunction->createInitialNullAggregateState());
-    maxFunction->updateState(
+    maxFunction->updateAllState(
         (uint8_t*)maxState.get(), unStrValueVector.get(), 1 /* multiplicity */);
     auto otherMaxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<Value>::MinMaxState>(
@@ -274,7 +274,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64MinTest) {
     auto minState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(
             minFunction->createInitialNullAggregateState());
-    minFunction->updateState(
+    minFunction->updateAllState(
         (uint8_t*)minState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherMinState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(

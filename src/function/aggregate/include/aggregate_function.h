@@ -33,19 +33,22 @@ struct AggregateState {
 };
 
 using aggr_initialize_function_t = std::function<unique_ptr<AggregateState>()>;
-using aggr_update_function_t =
+using aggr_update_all_function_t =
     std::function<void(uint8_t* state, ValueVector* input, uint64_t multiplicity)>;
+using aggr_update_pos_function_t =
+    std::function<void(uint8_t* state, ValueVector* input, uint64_t multiplicity, uint32_t pos)>;
 using aggr_combine_function_t = std::function<void(uint8_t* state, uint8_t* otherState)>;
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 class AggregateFunction {
 
 public:
-    AggregateFunction(aggr_initialize_function_t initializeFunc, aggr_update_function_t updateFunc,
+    AggregateFunction(aggr_initialize_function_t initializeFunc,
+        aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc,
         DataType inputDataType, bool isDistinct = false)
-        : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)}, combineFunc{move(
-                                                                                  combineFunc)},
+        : initializeFunc{move(initializeFunc)}, updateAllFunc{move(updateAllFunc)},
+          updatePosFunc{move(updatePosFunc)}, combineFunc{move(combineFunc)},
           finalizeFunc{move(finalizeFunc)}, inputDataType{move(inputDataType)}, isDistinct{
                                                                                     isDistinct} {
         initialNullAggregateState = createInitialNullAggregateState();
@@ -59,8 +62,13 @@ public:
 
     inline unique_ptr<AggregateState> createInitialNullAggregateState() { return initializeFunc(); }
 
-    inline void updateState(uint8_t* state, ValueVector* input, uint64_t multiplicity) {
-        return updateFunc(state, input, multiplicity);
+    inline void updateAllState(uint8_t* state, ValueVector* input, uint64_t multiplicity) {
+        return updateAllFunc(state, input, multiplicity);
+    }
+
+    inline void updatePosState(
+        uint8_t* state, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+        return updatePosFunc(state, input, multiplicity, pos);
     }
 
     inline void combineState(uint8_t* state, uint8_t* otherState) {
@@ -74,13 +82,14 @@ public:
     inline bool isFunctionDistinct() const { return isDistinct; }
 
     unique_ptr<AggregateFunction> clone() {
-        return make_unique<AggregateFunction>(
-            initializeFunc, updateFunc, combineFunc, finalizeFunc, inputDataType, isDistinct);
+        return make_unique<AggregateFunction>(initializeFunc, updateAllFunc, updatePosFunc,
+            combineFunc, finalizeFunc, inputDataType, isDistinct);
     }
 
 private:
     aggr_initialize_function_t initializeFunc;
-    aggr_update_function_t updateFunc;
+    aggr_update_all_function_t updateAllFunc;
+    aggr_update_pos_function_t updatePosFunc;
     aggr_combine_function_t combineFunc;
     aggr_finalize_function_t finalizeFunc;
 

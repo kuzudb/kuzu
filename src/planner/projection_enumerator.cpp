@@ -122,18 +122,44 @@ void ProjectionEnumerator::appendDistinct(
 void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    for (auto& expressionToGroupBy : expressionsToGroupBy) {
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
-        enumerator->appendFlattens(dependentGroupsPos, plan);
-    }
+    bool hasDistinctFunc = false;
     for (auto& expressionToAggregate : expressionsToAggregate) {
-        assert(isExpressionAggregate(expressionToAggregate->expressionType));
         auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
         if (functionExpression.isDistinct()) {
+            hasDistinctFunc = true;
+        }
+    }
+    if (hasDistinctFunc) {
+        for (auto& expressionToGroupBy : expressionsToGroupBy) {
             auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+                Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
             enumerator->appendFlattens(dependentGroupsPos, plan);
         }
+        for (auto& expressionToAggregate : expressionsToAggregate) {
+            assert(isExpressionAggregate(expressionToAggregate->expressionType));
+            auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
+            if (functionExpression.isDistinct()) {
+                auto dependentGroupsPos =
+                    Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+                enumerator->appendFlattens(dependentGroupsPos, plan);
+            }
+        }
+    } else {
+        unordered_set<uint32_t> groupByPoses;
+        for (auto& expressionToGroupBy : expressionsToGroupBy) {
+            auto dependentGroupsPos =
+                Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
+            groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
+        }
+        Enumerator::appendFlattensButOne(groupByPoses, plan);
+
+        unordered_set<uint32_t> aggPoses;
+        for (auto& expressionToAggregate : expressionsToAggregate) {
+            auto dependentGroupsPos =
+                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+            aggPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
+        }
+        Enumerator::appendFlattensButOne(aggPoses, plan);
     }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, schema->copy(), plan.getLastOperator());

@@ -58,13 +58,16 @@ public:
         return groupByNonHashKeysDataTypes;
     }
 
-    inline void append(const vector<ValueVector*>& groupByHashKeyVectors,
+    inline void append(const vector<ValueVector*>& groupByFlatKeyVectors,
+        const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
-        append(groupByHashKeyVectors, vector<ValueVector*>(), aggregateVectors, multiplicity);
+        append(groupByFlatKeyVectors, groupByUnFlatHashKeyVectors, vector<ValueVector*>(),
+            aggregateVectors, multiplicity);
     }
 
     //! update aggregate states for an input
-    void append(const vector<ValueVector*>& groupByKeyVectors,
+    void append(const vector<ValueVector*>& groupByFlatKeyVectors,
+        const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
         const vector<ValueVector*>& groupByNonHashKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity);
 
@@ -76,40 +79,48 @@ public:
 
     void finalizeAggregateStates();
 
-    uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
+    inline uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
-    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
+    inline FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
 
 private:
-    uint8_t* findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
-
     uint8_t* findEntry(uint8_t* entryBuffer, hash_t hash);
 
-    uint8_t* createEntry(const vector<ValueVector*>& groupByKeyVectors,
-        const vector<ValueVector*>& groupByNonKeyVectors, hash_t hash);
+    uint8_t* findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
+
+    uint8_t* createEntry(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByUnflatHashKeyVectors,
+        const vector<ValueVector*>& groupByNonKeyVectors, hash_t hash, uint32_t unflatVectorIdx);
 
     uint8_t* createEntry(uint8_t* groupByKeys, hash_t hash);
 
-    inline uint64_t getNumBytesForHash() const { return sizeof(hash_t); }
+    uint8_t* createEntry(const vector<ValueVector*>& groupByHashKeyVectors, hash_t hash);
+
+    static inline uint64_t getNumBytesForHash() { return sizeof(hash_t); }
 
     uint64_t getNumBytesForGroupByHashKeys() const;
 
     uint64_t getNumBytesForGroupByNonHashKeys() const;
 
-    inline uint64_t getGroupByKeysOffsetInEntry() const { return getNumBytesForHash(); }
+    inline uint64_t getGroupByKeysOffsetInFT() const { return getNumBytesForHash(); }
 
-    inline uint64_t getAggregateStatesOffsetInEntry() const {
-        return getGroupByKeysOffsetInEntry() + getNumBytesForGroupByHashKeys() +
+    inline uint64_t getAggregateStatesOffsetInFT() const {
+        return getGroupByKeysOffsetInFT() + getNumBytesForGroupByHashKeys() +
                getNumBytesForGroupByNonHashKeys();
     }
 
     void increaseSlotOffset(uint64_t& slotOffset) const;
 
-    //! compute hash for multiple flat key vectors
-    hash_t computeHash(const vector<ValueVector*>& keyVectors);
+    void findHashSlots(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByNonHashKeyVectors);
 
-    //! compute hash for single flat key vector
-    hash_t computeHash(ValueVector* keyVector);
+    static hash_t computeHash(ValueVector* keyVector, uint32_t pos);
+    static hash_t computeFlatVecHash(const vector<ValueVector*>& groupByFlatHashKeyVectors);
+    void computeUnflatVecHash(const vector<ValueVector*>& groupByUnflatHashKeyVectors,
+        uint32_t startVecIdx, hash_t initHashVal);
+    void computeVectorHashes(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByUnflatHashKeyVectors);
 
     //! compute hash for multiple keys
     hash_t computeHash(uint8_t* keys);
@@ -117,8 +128,17 @@ private:
     //! compute hash for single key value
     hash_t computeHash(const DataType& keyDataType, uint8_t* keyValue, uint64_t colIdx);
 
-    //! check if flat key vectors are the same as keys stored in entry
+    void updateAggStates(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
+        const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity);
+
     bool matchGroupByKeys(const vector<ValueVector*>& keyVectors, uint8_t* entry);
+
+    bool matchGroupByKey(ValueVector* keyVector, uint8_t* entry, uint32_t pos, uint32_t colIdx);
+
+    bool matchGroupByKeys(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+        const vector<ValueVector*>& groupByUnflatHashKeyVectors, uint8_t* entry,
+        uint32_t unflatVectorIdx);
 
     //! check if keys are the same as keys stored in entryBufferToMatch.
     bool matchGroupByKeys(uint8_t* keys, uint8_t* entryBufferToMatch);
@@ -148,8 +168,10 @@ private:
             factorizedTable->getTableSchema().getNumBytesForNullMap());
     }
 
-    bool compareEntryWithKeys(
-        uint8_t* keyBuffer, uint8_t* tupleBuffer, bool isStrCol, uint64_t numBytesToCompare);
+    static bool compareEntryWithKeys(
+        bool isStrColumn, uint8_t* keyValue, uint8_t* entry, uint32_t numBytesToCompare);
+
+    void resizeHashTableIfNecessary();
 
 private:
     vector<DataType> groupByHashKeysDataTypes;
@@ -160,6 +182,10 @@ private:
     vector<unique_ptr<AggregateHashTable>> distinctHashTables;
 
     bool hasStrCol = false;
+    hash_t hashValues[DEFAULT_VECTOR_CAPACITY];
+    hash_t tmpHashValues[DEFAULT_VECTOR_CAPACITY];
+    HashSlot* hashSlots[DEFAULT_VECTOR_CAPACITY];
+    uint32_t aggStateOffsetInFT;
 };
 
 class AggregateHashTableUtils {

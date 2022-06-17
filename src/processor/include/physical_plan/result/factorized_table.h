@@ -164,11 +164,12 @@ public:
 
     uint8_t* getTuple(uint64_t tupleIdx) const;
 
-    inline void updateFlatCell(uint64_t tupleIdx, uint32_t colIdx, void* dataBuf) {
-        memcpy(getCell(tupleIdx, colIdx), dataBuf, tableSchema.getColumn(colIdx).getNumBytes());
-    }
+    void updateFlatCell(uint8_t* tuplePtr, uint32_t colIdx, ValueVector* valueVector, uint32_t pos);
 
-    void updateFlatCell(uint64_t tupleIdx, uint32_t colIdx, ValueVector* valueVector);
+    inline void updateFlatCell(uint8_t* ftTuplePtr, uint32_t colIdx, void* dataBuf) {
+        memcpy(ftTuplePtr + tableSchema.getColOffset(colIdx), dataBuf,
+            tableSchema.getColumn(colIdx).getNumBytes());
+    }
 
     static bool isNull(const uint8_t* nullMapBuffer, uint32_t colIdx);
 
