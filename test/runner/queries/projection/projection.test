@@ -266,11 +266,6 @@ Dan|Carol
 95
 95
 
--NAME KnowsFourHopTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person)-[:knows]->(e:person) WITH e.ID as dummy RETURN COUNT(*)
----- 1
-324
-
 -NAME StudyAtPropertyProjectionTest
 -QUERY MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year
 ---- 3

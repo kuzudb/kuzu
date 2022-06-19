@@ -34,14 +34,16 @@ public:
 
     vector<unique_ptr<LogicalPlan>>& getSubgraphPlans(const SubqueryGraph& subqueryGraph);
 
-    SubqueryGraphPlansMap& getSubqueryGraphPlansMap(uint32_t level) { return subPlans[level]; }
+    SubqueryGraphPlansMap* getSubqueryGraphPlansMap(uint32_t level) {
+        return subPlans[level].get();
+    }
 
     void addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
 
     void clear();
 
 private:
-    vector<SubqueryGraphPlansMap> subPlans;
+    vector<unique_ptr<SubqueryGraphPlansMap>> subPlans;
 };
 
 } // namespace planner

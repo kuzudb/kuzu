@@ -5,7 +5,7 @@
 
 class PropertyScanPushDownTest : public PlannerTest {};
 
-// Assume optimizer picks QVO: b, a
+// Assume optimizer picks QVO: a, b
 TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = b.age RETURN COUNT(*)";
     auto plan = getBestPlan(query);
@@ -20,7 +20,7 @@ TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
                   .get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;
-    ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_a." + INTERNAL_ID_SUFFIX));
 }
 
 // Assume optimizer picks QVO: b, a
@@ -30,7 +30,7 @@ TEST_F(PropertyScanPushDownTest, ProjectionPropertyPushDownTest) {
     auto op = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;
-    ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_a." + INTERNAL_ID_SUFFIX));
 }
 
 // This test is to capture the bug where operator is not cloned (might lead to a bug where change of

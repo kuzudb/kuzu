@@ -8,6 +8,7 @@ namespace graphflow {
 namespace planner {
 
 class JoinOrderEnumeratorContext {
+    friend class JoinOrderEnumerator;
 
 public:
     JoinOrderEnumeratorContext()
@@ -19,11 +20,7 @@ public:
 
     inline expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
-    inline bool hasNextLevel() const { return currentLevel < mergedQueryGraph->getNumQueryRels(); }
-    inline uint32_t getCurrentLevel() const { return currentLevel; }
-    inline void incrementCurrentLevel() { currentLevel++; }
-
-    inline SubqueryGraphPlansMap& getSubqueryGraphPlansMap(uint32_t level) const {
+    inline SubqueryGraphPlansMap* getSubqueryGraphPlansMap(uint32_t level) const {
         return subPlansTable->getSubqueryGraphPlansMap(level);
     }
     inline bool containPlans(const SubqueryGraph& subqueryGraph) const {
@@ -66,6 +63,8 @@ private:
     expression_vector whereExpressionsSplitOnAND;
 
     uint32_t currentLevel;
+    uint32_t maxLevel;
+
     unique_ptr<SubPlansTable> subPlansTable;
     unique_ptr<QueryGraph> mergedQueryGraph;
     // We keep track of query nodes and rels matched in previous query graph so that new query part

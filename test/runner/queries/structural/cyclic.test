@@ -20,11 +20,6 @@
 ---- 1
 17
 
--NAME FiveHopKnowsCyclicTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d), (b)-[:knows]->(d) RETURN COUNT(*)
----- 1
-48
-
 -NAME NodeAggTest
 -QUERY MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person) RETURN a, COUNT(*)
 ---- 4
