@@ -52,7 +52,7 @@ public:
 
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
 
-    inline uint32_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
+    inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType.typeID == NODE_ID);
@@ -88,6 +88,7 @@ private:
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result
     // ValueVectors of unary expressions, point to the nullMasks of operands.
     shared_ptr<NullMask> nullMask;
+    uint32_t numBytesPerValue;
 };
 
 } // namespace common

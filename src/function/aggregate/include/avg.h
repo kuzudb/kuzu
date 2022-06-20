@@ -42,12 +42,9 @@ struct AvgFunction {
         }
     }
 
-    static void updatePos(
+    static inline void updatePos(
         uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
-        auto state = reinterpret_cast<AvgState*>(state_);
-        if ((!input->state->isFlat() && input->hasNoNullsGuarantee()) || !input->isNull(pos)) {
-            updateSingleValue(state, input, pos, multiplicity);
-        }
+        updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 
     static void updateSingleValue(

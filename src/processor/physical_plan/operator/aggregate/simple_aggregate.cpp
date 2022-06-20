@@ -61,23 +61,28 @@ void SimpleAggregate::execute(ExecutionContext* context) {
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
+            auto aggVector = aggregateVectors[i];
             if (aggregateFunction->isFunctionDistinct()) {
                 auto distinctHT = distinctHashTables[i].get();
                 assert(distinctHT != nullptr);
                 if (distinctHT->isAggregateValueDistinctForGroupByKeys(
-                        vector<ValueVector*>{}, aggregateVectors[i])) {
-                    aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
-                        aggregateVectors[i], resultSet->multiplicity,
-                        aggregateVectors[i]->state->getPositionOfCurrIdx());
+                        vector<ValueVector*>{}, aggVector)) {
+                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                        aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
+                            aggVector, resultSet->multiplicity,
+                            aggVector->state->getPositionOfCurrIdx());
+                    }
                 }
             } else {
-                if (aggregateVectors[i] && aggregateVectors[i]->state->isFlat()) {
-                    aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
-                        aggregateVectors[i], resultSet->multiplicity,
-                        aggregateVectors[i]->state->getPositionOfCurrIdx());
+                if (aggVector && aggVector->state->isFlat()) {
+                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                        aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
+                            aggVector, resultSet->multiplicity,
+                            aggVector->state->getPositionOfCurrIdx());
+                    }
                 } else {
                     aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),
-                        aggregateVectors[i], resultSet->multiplicity);
+                        aggVector, resultSet->multiplicity);
                 }
             }
         }

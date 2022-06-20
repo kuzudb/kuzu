@@ -16,6 +16,7 @@ ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
         overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
     }
     nullMask = make_shared<NullMask>();
+    numBytesPerValue = Types::getDataTypeSize(dataType);
 }
 
 void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
