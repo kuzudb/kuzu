@@ -81,12 +81,10 @@ public:
         while (numGroupScanned < ht->getNumEntries()) {
             auto entry = ht->getEntry(numGroupScanned);
             assert(entry != nullptr);
-            auto countAggrState =
-                (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
+            auto countAggrState = (BaseCountFunction::CountState*)(entry + groupsSize);
             ASSERT_EQ(*(uint64_t*)countAggrState->getResult(), 25);
-            auto sumAggrState =
-                (SumFunction<int64_t>::SumState*)(entry + sizeof(hash_t) + groupsSize +
-                                                  countAggrState->getStateSize());
+            auto sumAggrState = (SumFunction<int64_t>::SumState*)(entry + groupsSize +
+                                                                  countAggrState->getStateSize());
             ASSERT_EQ(*(int64_t*)sumAggrState->getResult(), 2400 + numGroupScanned * 50);
             ++numGroupScanned;
         }
@@ -142,16 +140,14 @@ public:
         while (numGroupScanned < ht->getNumEntries()) {
             auto entry = ht->getEntry(numGroupScanned);
             assert(entry != nullptr);
-            auto countAggrState =
-                (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
+            auto countAggrState = (BaseCountFunction::CountState*)(entry + groupsSize);
             if (isFirstGroupByKeyFlat == isSecondGroupByKeyFlat) {
                 ASSERT_EQ(*(uint64_t*)countAggrState->getResult(), 1);
             } else {
                 ASSERT_EQ(*(uint64_t*)countAggrState->getResult(), 25);
             }
-            auto avgAggrState =
-                (AvgFunction<int64_t>::AvgState*)(entry + sizeof(hash_t) + groupsSize +
-                                                  countAggrState->getStateSize());
+            auto avgAggrState = (AvgFunction<int64_t>::AvgState*)(entry + groupsSize +
+                                                                  countAggrState->getStateSize());
             if (isFirstGroupByKeyFlat == isSecondGroupByKeyFlat) {
                 ASSERT_EQ(avgAggrState->avg, numGroupScanned * 2);
             } else {

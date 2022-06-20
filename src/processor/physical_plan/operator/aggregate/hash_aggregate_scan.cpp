@@ -13,7 +13,7 @@ shared_ptr<ResultSet> HashAggregateScan::init(ExecutionContext* context) {
         groupByKeyVectors.push_back(valueVector);
     }
     groupByKeyVectorsColIdxes.resize(groupByKeyVectors.size());
-    iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 1);
+    iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 0);
     return result;
 }
 
@@ -30,7 +30,7 @@ bool HashAggregateScan::getNextTuples() {
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);
         auto offset = sharedState->getFactorizedTable()->getTableSchema().getColOffset(
-            1 + groupByKeyVectors.size());
+            groupByKeyVectors.size());
         for (auto& vector : aggregateVectors) {
             auto aggState = (AggregateState*)(entry + offset);
             writeAggregateResultToVector(*vector, pos, aggState);

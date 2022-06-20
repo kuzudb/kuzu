@@ -12,9 +12,9 @@ namespace processor {
 constexpr uint16_t HASH_PREFIX_SHIFT = (sizeof(hash_t) - sizeof(uint16_t)) * 8;
 
 struct HashSlot {
-    uint16_t hashPrefix;     // 16 high bits of the hash value for fast comparison.
-    uint8_t* groupByKeysPtr; // pointer to the tuple buffer which stores [hash, groupKey1, ...
-                             // groupKeyN, aggregateState1, ..., aggregateStateN]
+    hash_t hash;    // 16 high bits of the hash value for fast comparison.
+    uint8_t* entry; // pointer to the tuple buffer which stores [hash, groupKey1, ...
+                    // groupKeyN, aggregateState1, ..., aggregateStateN]
 };
 
 /**
@@ -26,10 +26,10 @@ struct HashSlot {
  *
  * 2. Hash slot
  * Layout : see HashSlot struct
- * If the groupByKeysPtr is a nullptr, then the current hashSlot is unused.
+ * If the entry is a nullptr, then the current hashSlot is unused.
  *
  * 3. Collision handling
- * Linear probing. When collision happens, we find the next hash slot whose groupByKeysPtr is a
+ * Linear probing. When collision happens, we find the next hash slot whose entry is a
  * nullptr.
  *
  */
@@ -86,27 +86,25 @@ public:
 private:
     uint8_t* findEntry(uint8_t* entryBuffer, hash_t hash);
 
+    // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
+    // are flat.
     uint8_t* findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
 
     uint8_t* createEntry(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnflatHashKeyVectors,
-        const vector<ValueVector*>& groupByNonKeyVectors, hash_t hash, uint32_t unflatVectorIdx);
+        const vector<ValueVector*>& groupByNonKeyVectors, hash_t hash, uint32_t unflatVectorIdx,
+        HashSlot* slot);
 
     uint8_t* createEntry(uint8_t* groupByKeys, hash_t hash);
 
     uint8_t* createEntry(const vector<ValueVector*>& groupByHashKeyVectors, hash_t hash);
 
-    static inline uint64_t getNumBytesForHash() { return sizeof(hash_t); }
-
     uint64_t getNumBytesForGroupByHashKeys() const;
 
     uint64_t getNumBytesForGroupByNonHashKeys() const;
 
-    inline uint64_t getGroupByKeysOffsetInFT() const { return getNumBytesForHash(); }
-
     inline uint64_t getAggregateStatesOffsetInFT() const {
-        return getGroupByKeysOffsetInFT() + getNumBytesForGroupByHashKeys() +
-               getNumBytesForGroupByNonHashKeys();
+        return getNumBytesForGroupByHashKeys() + getNumBytesForGroupByNonHashKeys();
     }
 
     void increaseSlotOffset(uint64_t& slotOffset) const;
@@ -132,7 +130,9 @@ private:
         const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity);
 
-    bool matchGroupByKeys(const vector<ValueVector*>& keyVectors, uint8_t* entry);
+    // ! This function will only be used by distinct aggregate, which assumes that all keyVectors
+    // are flat.
+    bool matchFlatGroupByKeys(const vector<ValueVector*>& keyVectors, uint8_t* entry);
 
     bool matchGroupByKey(ValueVector* keyVector, uint8_t* entry, uint32_t pos, uint32_t colIdx);
 
@@ -143,14 +143,14 @@ private:
     //! check if keys are the same as keys stored in entryBufferToMatch.
     bool matchGroupByKeys(uint8_t* keys, uint8_t* entryBufferToMatch);
 
-    void fillTupleWithInitialNullAggregateState();
+    void fillTupleWithInitialNullAggregateState(uint8_t* tuple);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
     void fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
 
     void resize(uint64_t newSize);
 
-    HashSlot* getHashSlot(uint64_t slotIdx) {
+    inline HashSlot* getHashSlot(uint64_t slotIdx) {
         assert(slotIdx < maxNumHashSlots);
         return (HashSlot*)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->getData() +
                            slotIdx % numHashSlotsPerBlock * sizeof(HashSlot));
@@ -182,10 +182,11 @@ private:
     vector<unique_ptr<AggregateHashTable>> distinctHashTables;
 
     bool hasStrCol = false;
-    hash_t hashValues[DEFAULT_VECTOR_CAPACITY];
-    hash_t tmpHashValues[DEFAULT_VECTOR_CAPACITY];
-    HashSlot* hashSlots[DEFAULT_VECTOR_CAPACITY];
-    uint32_t aggStateOffsetInFT;
+    unique_ptr<hash_t[]> hashValues;
+    unique_ptr<hash_t[]> tmpHashValues;
+    unique_ptr<HashSlot*[]> hashSlots;
+    uint32_t aggStateColOffsetInFT;
+    uint32_t aggStateColIdxInFT;
 };
 
 class AggregateHashTableUtils {
