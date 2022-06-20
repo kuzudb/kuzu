@@ -167,12 +167,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
-    auto sharedState = make_shared<ScanNodeIDSharedState>(catalog.getNumNodes(logicalScan.label));
+    auto sharedState = make_shared<ScanNodeIDSharedState>(
+        storageManager.getNodesStore().getNodesMetadata().getNodeMetadata(logicalScan.label));
     auto dataPos = mapperContext.getDataPos(logicalScan.nodeID);
     mapperContext.addComputedExpressions(logicalScan.nodeID);
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        logicalScan.label, dataPos, sharedState, getOperatorID(),
-        logicalScan.getExpressionsForPrinting());
+        storageManager.getNodesStore().getNode(logicalScan.label), dataPos, sharedState,
+        getOperatorID(), logicalScan.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(

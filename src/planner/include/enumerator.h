@@ -18,8 +18,8 @@ class Enumerator {
     friend class UpdatePlanner;
 
 public:
-    explicit Enumerator(const Catalog& catalog)
-        : joinOrderEnumerator{catalog, this}, projectionEnumerator{catalog, this} {}
+    explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
+        : joinOrderEnumerator{catalog, nodesMetadata, this}, projectionEnumerator{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
 

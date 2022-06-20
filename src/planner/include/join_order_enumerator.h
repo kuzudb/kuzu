@@ -3,6 +3,7 @@
 #include "src/binder/query/include/normalized_single_query.h"
 #include "src/catalog/include/catalog.h"
 #include "src/planner/include/join_order_enumerator_context.h"
+#include "src/storage/store/include/nodes_metadata.h"
 
 using namespace graphflow::catalog;
 
@@ -22,9 +23,10 @@ class JoinOrderEnumerator {
     friend class Enumerator;
 
 public:
-    JoinOrderEnumerator(const Catalog& catalog, Enumerator* enumerator)
-        : catalog{catalog},
-          enumerator{enumerator}, context{make_unique<JoinOrderEnumeratorContext>()} {};
+    JoinOrderEnumerator(
+        const Catalog& catalog, const NodesMetadata& nodesMetadata, Enumerator* enumerator)
+        : catalog{catalog}, enumerator{enumerator},
+          nodesMetadata{nodesMetadata}, context{make_unique<JoinOrderEnumeratorContext>()} {};
 
     vector<unique_ptr<LogicalPlan>> enumerateJoinOrder(const QueryGraph& queryGraph,
         const shared_ptr<Expression>& queryGraphPredicate,
@@ -69,6 +71,7 @@ private:
 
 private:
     const catalog::Catalog& catalog;
+    const storage::NodesMetadata& nodesMetadata;
     Enumerator* enumerator;
     unique_ptr<JoinOrderEnumeratorContext> context;
 };

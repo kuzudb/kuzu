@@ -88,7 +88,8 @@ private:
 
 enum WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 0,
-    COMMIT_RECORD = 1,
+    NODES_METADATA_RECORD = 1,
+    COMMIT_RECORD = 2,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -150,6 +151,10 @@ struct WALRecord {
         case COMMIT_RECORD: {
             return commitRecord == rhs.commitRecord;
         }
+        case NODES_METADATA_RECORD: {
+            // NodesMetadataRecords are empty so are always equal
+            return true;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
@@ -165,6 +170,9 @@ struct WALRecord {
         case COMMIT_RECORD: {
             return 1 + commitRecord.numBytesToWrite();
         }
+        case NODES_METADATA_RECORD: {
+            return 1;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside numBytesToWrite(). recordType: " +
@@ -178,6 +186,7 @@ struct WALRecord {
     static WALRecord newPageInsertRecord(StorageStructureID storageStructureID_,
         uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
+    static WALRecord newNodeMetadataRecord();
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

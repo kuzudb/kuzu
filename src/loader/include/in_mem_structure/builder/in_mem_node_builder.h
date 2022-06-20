@@ -16,6 +16,7 @@ public:
     ~InMemNodeBuilder() override = default;
 
     unique_ptr<HashIndex> load();
+    inline uint64_t getNumNodes() { return numNodes; }
 
     void saveToFile() override;
 
@@ -56,7 +57,7 @@ private:
 private:
     vector<uint64_t> numLinesPerBlock;
     DataType IDType;
-
+    uint64_t numNodes;
     BufferManager& bm;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;

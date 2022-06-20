@@ -20,6 +20,18 @@ pair<FileHandle*, page_idx_t> StorageStructure::getFileHandleAndPhysicalPageIdxT
     }
 }
 
+void StorageStructure::addNewPageToFileHandle() {
+    auto pageIdxInOriginalFile = fileHandle.addNewPage();
+    auto pageIdxInWAL = wal->logPageInsertRecord(
+        fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
+    bufferManager.pinWithoutAcquiringPageLock(
+        *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
+    fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
+    fileHandle.setUpdatedWALPageVersionNoLock(pageIdxInOriginalFile, pageIdxInWAL);
+    bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+    bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
+}
+
 UpdatedPageInfoAndWALPageFrame
 StorageStructure::getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
     uint64_t elementOffset, uint64_t numElementsPerPage) {

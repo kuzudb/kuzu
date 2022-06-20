@@ -9,10 +9,10 @@ class Planner {
 
 public:
     static unique_ptr<LogicalPlan> getBestPlan(
-        const Catalog& catalog, const BoundRegularQuery& query);
+        const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundRegularQuery& query);
 
     static vector<unique_ptr<LogicalPlan>> getAllPlans(
-        const Catalog& catalog, const BoundRegularQuery& query);
+        const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundRegularQuery& query);
 
 private:
     static unique_ptr<LogicalPlan> optimize(unique_ptr<LogicalPlan> plan);

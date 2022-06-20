@@ -1,14 +1,15 @@
 filegroup(
     name = "dataset",
     srcs = glob([
-        "tinysnb/**",
-        "tinysnb-variant/**",
+        "hash-index-test/**",
         "loader-fault-tests/**",
         "loader-node-property-test/**",
         "loader-special-char-test/**",
-        "read-list-tests/**",
-        "hash-index-test/**",
+        "node-insertion-deletion-tests/**",
         "order-by-tests/**",
+        "read-list-tests/**",
+        "tinysnb/**",
+        "tinysnb-variant/**",
     ]),
     visibility = ["//visibility:public"],
 )

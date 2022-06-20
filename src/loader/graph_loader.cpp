@@ -8,6 +8,7 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_node_builder.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_rel_builder.h"
 #include "src/loader/include/loader_task.h"
+#include "src/storage/store/include/nodes_metadata.h"
 
 using namespace std::chrono;
 
@@ -36,10 +37,15 @@ void GraphLoader::loadGraph() {
         readAndParseMetadata(datasetMetadata);
         progressBar = make_unique<LoaderProgressBar>();
         auto IDIndexes = loadNodes();
-        loadRels(IDIndexes);
+        loadRels(maxNodeOffsetsPerNodeLabel, IDIndexes);
         progressBar->addAndStartNewJob("Saving Catalog to file.", 1);
         catalog->saveToFile(outputDirectory);
         progressBar->incrementTaskFinished();
+
+        progressBar->addAndStartNewJob("Saving NodesMetadata to file.", 1);
+        NodesMetadata::saveToFile(outputDirectory, maxNodeOffsetsPerNodeLabel, logger);
+        progressBar->incrementTaskFinished();
+
         timer.stop();
         progressBar->clearLastFinishedLine();
         logger->info("Done GraphLoader.");
@@ -84,18 +90,20 @@ vector<unique_ptr<HashIndex>> GraphLoader::loadNodes() {
             datasetMetadata.getNodeFileDescription(nodeLabel), outputDirectory, *taskScheduler,
             *catalog, *bufferManager, progressBar.get());
         IDIndexes[nodeLabel] = nodeBuilder->load();
+        maxNodeOffsetsPerNodeLabel.push_back(nodeBuilder->getNumNodes() - 1);
     }
     logger->info("Done loading nodes.");
     return IDIndexes;
 }
 
-void GraphLoader::loadRels(const vector<unique_ptr<HashIndex>>& IDIndexes) {
+void GraphLoader::loadRels(const vector<node_offset_t>& maxNodeOffsetsPerNodeLabel,
+    const vector<unique_ptr<HashIndex>>& IDIndexes) {
     logger->info("Starting to load rels.");
     auto numRelLabels = datasetMetadata.getNumRelFiles();
     for (auto relLabel = 0u; relLabel < numRelLabels; relLabel++) {
-        auto relBuilder =
-            make_unique<InMemRelBuilder>(relLabel, datasetMetadata.getRelFileDescription(relLabel),
-                outputDirectory, *taskScheduler, *catalog, IDIndexes, progressBar.get());
+        auto relBuilder = make_unique<InMemRelBuilder>(relLabel,
+            datasetMetadata.getRelFileDescription(relLabel), outputDirectory, *taskScheduler,
+            *catalog, maxNodeOffsetsPerNodeLabel, IDIndexes, progressBar.get());
         relBuilder->load();
     }
     logger->info("Done loading rels.");

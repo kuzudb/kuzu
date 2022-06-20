@@ -5,7 +5,12 @@
 #include "src/storage/storage_structure/include/column.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
+#include "src/storage/store/include/nodes_metadata.h"
 #include "src/storage/wal/include/wal.h"
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace storage {
@@ -13,7 +18,7 @@ namespace storage {
 class NodeTable {
 
 public:
-    NodeTable(label_t labelID, BufferManager& bufferManager, bool isInMemory,
+    NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, bool isInMemory,
         const vector<catalog::Property>& properties, const string& directory, WAL* wal);
 
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
@@ -23,6 +28,9 @@ public:
         return unstrPropertyLists.get();
     }
     inline HashIndex* getIDIndex() const { return IDIndex.get(); }
+
+public:
+    NodeMetadata* nodeMetadata;
 
 private:
     // This is for structured properties.

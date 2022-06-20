@@ -4,6 +4,7 @@
 
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/source_operator.h"
+#include "src/storage/store/include/node_table.h"
 
 namespace graphflow {
 namespace processor {
@@ -11,27 +12,32 @@ namespace processor {
 class ScanNodeIDSharedState {
 
 public:
-    explicit ScanNodeIDSharedState(uint64_t maxNumNodes)
-        : maxNumNodes{maxNumNodes}, currentNodeOffset{0} {}
+    explicit ScanNodeIDSharedState(NodeMetadata* nodeMetadata)
+        : nodeMetadata{nodeMetadata}, maxNodeOffset{UINT64_MAX}, currentNodeOffset{0} {}
 
     inline unique_lock<mutex> acquireLock() { return unique_lock<mutex>{mtx}; }
+
+    inline void initMaxNodeOffset(Transaction* transaction) {
+        maxNodeOffset = nodeMetadata->getMaxNodeOffset(transaction);
+    }
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
 private:
     mutex mtx;
-    uint64_t maxNumNodes;
+    NodeMetadata* nodeMetadata;
+    uint64_t maxNodeOffset;
     uint64_t currentNodeOffset;
 };
 
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, label_t nodeLabel,
+    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
         const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
         string paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          nodeLabel{nodeLabel}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
+          nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -41,7 +47,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeLabel, outDataPos, sharedState, id, paramsString);
+            resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -49,7 +55,7 @@ public:
     }
 
 private:
-    label_t nodeLabel;
+    NodeTable* nodeTable;
     DataPos outDataPos;
     shared_ptr<ScanNodeIDSharedState> sharedState;
 

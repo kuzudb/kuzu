@@ -6,21 +6,22 @@ namespace graphflow {
 namespace common {
 
 NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
-    const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels)
+    const vector<node_offset_t>& maxNodeOffsetsPerLabel)
     : commonLabel(0) {
-    uint64_t maxNodeOffsetToFit = 0;
+    uint64_t maxNumNodeOffsetToFit = 0;
     for (auto nodeLabel : nbrNodeLabels) {
-        if (numNodesPerLabel[nodeLabel] > maxNodeOffsetToFit) {
-            maxNodeOffsetToFit = numNodesPerLabel[nodeLabel];
+        if (maxNodeOffsetsPerLabel[nodeLabel] + 1 > maxNumNodeOffsetToFit) {
+            maxNumNodeOffsetToFit = maxNodeOffsetsPerLabel[nodeLabel] + 1;
         }
     }
     if (nbrNodeLabels.size() == 1) {
         numBytesForLabel = 0;
         commonLabel = *nbrNodeLabels.begin();
     } else {
-        numBytesForLabel = getNumBytesForEncoding(numNodeLabels - 1, 1 /* min num bytes */);
+        numBytesForLabel =
+            getNumBytesForEncoding(maxNodeOffsetsPerLabel.size() - 1, 1 /* min num bytes */);
     }
-    numBytesForOffset = getNumBytesForEncoding(maxNodeOffsetToFit, 2 /*min num bytes*/);
+    numBytesForOffset = getNumBytesForEncoding(maxNumNodeOffsetToFit, 2 /*min num bytes*/);
 }
 
 uint32_t NodeIDCompressionScheme::getNumBytesForEncoding(

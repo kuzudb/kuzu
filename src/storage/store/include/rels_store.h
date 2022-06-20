@@ -14,8 +14,8 @@ namespace storage {
 class RelsStore {
 
 public:
-    RelsStore(const Catalog& catalog, BufferManager& bufferManager, const string& directory,
-        bool isInMemoryMode, WAL* wal);
+    RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
+        BufferManager& bufferManager, const string& directory, bool isInMemoryMode, WAL* wal);
 
     inline Column* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) const {
@@ -33,6 +33,9 @@ public:
         const RelDirection& relDirection, const label_t& nodeLabel, const label_t& relLabel) const {
         return relTables[relLabel]->getAdjLists(relDirection, nodeLabel);
     }
+
+    pair<vector<AdjLists*>, vector<AdjColumn*>> getAdjListsAndColumns(
+        const label_t nodeLabel) const;
 
 private:
     vector<unique_ptr<RelTable>> relTables;

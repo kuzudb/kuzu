@@ -25,6 +25,9 @@ static const uint32_t DESCRIPTION_PROPERTY_KEY_ID = 0;
 static const char* KNOWSDATE_PROPERTY_KEY_STR = "knowsdate";
 static const uint32_t KNOWSDATE_PROPERTY_KEY_ID = 1;
 
+static const uint64_t NUM_PERSON_NODES = 10000;
+static const uint64_t NUM_ORGANISATION_NODES = 100;
+
 using ::testing::_;
 using ::testing::Return;
 using ::testing::ReturnRef;
@@ -72,8 +75,6 @@ public:
         setSrcNodeLabelToRelLabels();
         setDstNodeLabelToRelLabels();
         setProperties();
-        numPersonNodes = 10000;
-        numOrganisationNodes = 100;
 
         setActionForContainNodeProperty();
         setActionForContainRelProperty();
@@ -87,7 +88,6 @@ public:
         setActionForGetRelLabelFromString();
         setActionForGetNodeLabelName();
         setActionForGetRelLabelName();
-        setActionForGetNumNodes();
         setActionForgetNumRelsForDirectionBoundLabel();
     }
 
@@ -228,28 +228,19 @@ private:
             knowsDatePropertyDefinition, KNOWSDATE_PROPERTY_KEY_ID, KNOWS_LABEL_ID);
     }
 
-    void setActionForGetNumNodes() {
-        ON_CALL(*this, getNumNodes(_))
-            .WillByDefault(Throw(invalid_argument("Should never happen.")));
-        ON_CALL(*this, getNumNodes(0)).WillByDefault(Return(numPersonNodes));
-        ON_CALL(*this, getNumNodes(1)).WillByDefault(Return(numOrganisationNodes));
-    }
-
     void setActionForgetNumRelsForDirectionBoundLabel() {
         ON_CALL(*this, getNumRelsForDirectionBoundLabel(_, _, _))
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
         ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, FWD, 0))
-            .WillByDefault(Return(10 * numPersonNodes));
+            .WillByDefault(Return(10 * NUM_PERSON_NODES));
         ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, BWD, 0))
-            .WillByDefault(Return(20 * numPersonNodes));
+            .WillByDefault(Return(20 * NUM_PERSON_NODES));
         ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, FWD, 1))
-            .WillByDefault(Return(1 * numPersonNodes));
+            .WillByDefault(Return(1 * NUM_PERSON_NODES));
         ON_CALL(*this, getNumRelsForDirectionBoundLabel(1, BWD, 1))
-            .WillByDefault(Return(100 * numOrganisationNodes));
+            .WillByDefault(Return(100 * NUM_ORGANISATION_NODES));
     }
 
-    uint64_t numPersonNodes;
-    uint64_t numOrganisationNodes;
     vector<unordered_set<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;
     Property ageProperty, nameProperty, descriptionProperty, birthDateProperty,
         registerTimeProperty, knowsDateProperty;

@@ -39,6 +39,12 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         if (isCheckpoint) {
             walFileHandle->readPage(
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
+            if (walRecord.pageInsertOrUpdateRecord.isInsert) {
+                // TODO(Semih/Guodong): Here we assume that the order of added pages in a file
+                // need to be consecutive. This assumption for now holds. We should change this
+                // logic later if this assumption no longer holds.
+                fileHandle->addNewPage();
+            }
             fileHandle->writePage(
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
             // Update the page in buffer manager if it is in a frame
@@ -62,9 +68,18 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         }
     } break;
+    case NODES_METADATA_RECORD: {
+        if (isCheckpoint) {
+            StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(
+                storageManager.getDBDirectory());
+            storageManager.getNodesStore().getNodesMetadata().commitIfNecessary();
+        } else {
+            StorageUtils::removeNodesMetadataFileForWALIfExists(storageManager.getDBDirectory());
+            storageManager.getNodesStore().getNodesMetadata().rollbackIfNecessary();
+        }
+    } break;
     case COMMIT_RECORD: {
-        break;
-    }
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +

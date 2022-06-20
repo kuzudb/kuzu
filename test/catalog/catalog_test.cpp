@@ -35,7 +35,7 @@ public:
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         vector<string> unstrPropertyNames{"unstrIntProp"};
         catalog->addNodeLabel(
-            "person", DataType(INT64), move(personProperties), unstrPropertyNames, 1);
+            "person", DataType(INT64), move(personProperties), unstrPropertyNames);
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_LABEL", STRING);

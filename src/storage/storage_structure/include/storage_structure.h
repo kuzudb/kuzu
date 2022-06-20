@@ -45,6 +45,8 @@ public:
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
 protected:
+    void addNewPageToFileHandle();
+
     // If necessary creates a second version (backed by the WAL) of a page that contains the value
     // that will be written to. The position of the value, which determines the original page to
     // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains
