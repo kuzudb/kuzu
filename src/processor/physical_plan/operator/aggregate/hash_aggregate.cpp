@@ -44,10 +44,15 @@ pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 shared_ptr<ResultSet> HashAggregate::init(ExecutionContext* context) {
     resultSet = BaseAggregate::init(context);
     vector<DataType> groupByHashKeysDataTypes;
-    for (auto& dataPos : groupByHashKeyVectorsPos) {
+    for (auto i = 0u; i < groupByHashKeyVectorsPos.size(); i++) {
+        auto dataPos = groupByHashKeyVectorsPos[i];
         auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
         auto vector = dataChunk->valueVectors[dataPos.valueVectorPos].get();
-        groupByHashKeyVectors.push_back(vector);
+        if (isGroupByHashKeyVectorFlat[i]) {
+            groupByFlatHashKeyVectors.push_back(vector);
+        } else {
+            groupByUnflatHashKeyVectors.push_back(vector);
+        }
         groupByHashKeysDataTypes.push_back(vector->dataType);
     }
     vector<DataType> groupByNonHashKeysDataTypes;
@@ -66,8 +71,8 @@ void HashAggregate::execute(ExecutionContext* context) {
     init(context);
     metrics->executionTime.start();
     while (children[0]->getNextTuples()) {
-        localAggregateHashTable->append(groupByHashKeyVectors, groupByNonHashKeyVectors,
-            aggregateVectors, resultSet->multiplicity);
+        localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
+            groupByNonHashKeyVectors, aggregateVectors, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(move(localAggregateHashTable));
     metrics->executionTime.stop();
@@ -84,8 +89,8 @@ unique_ptr<PhysicalOperator> HashAggregate::clone() {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
     return make_unique<HashAggregate>(sharedState, groupByHashKeyVectorsPos,
-        groupByNonHashKeyVectorsPos, aggregateVectorsPos, move(clonedAggregateFunctions),
-        children[0]->clone(), id, paramsString);
+        groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat, aggregateVectorsPos,
+        move(clonedAggregateFunctions), children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

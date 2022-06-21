@@ -142,13 +142,13 @@ uint64_t FactorizedTable::getNumFlatTuples(uint64_t tupleIdx) const {
     return numFlatTuples;
 }
 
-void FactorizedTable::updateFlatCell(uint64_t tupleIdx, uint32_t colIdx, ValueVector* valueVector) {
-    auto pos = valueVector->state->getPositionOfCurrIdx();
+void FactorizedTable::updateFlatCell(
+    uint8_t* tuplePtr, uint32_t colIdx, ValueVector* valueVector, uint32_t pos) {
     if (valueVector->isNull(pos)) {
-        setNull(getTuple(tupleIdx) + tableSchema.getNullMapOffset(), colIdx);
+        setNull(tuplePtr + tableSchema.getNullMapOffset(), colIdx);
     } else {
-        ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*valueVector,
-            valueVector->state->getPositionOfCurrIdx(), getCell(tupleIdx, colIdx), *overflowBuffer);
+        ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+            *valueVector, pos, tuplePtr + tableSchema.getColOffset(colIdx), *overflowBuffer);
     }
 }
 

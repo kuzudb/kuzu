@@ -86,8 +86,9 @@ private:
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         vector<DataPos> inputAggVectorsPos, vector<DataPos> outputAggVectorsPos,
         vector<DataType> outputAggVectorsDataType, const expression_vector& groupByExpressions,
-        unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContextBeforeAggregate,
-        MapperContext& mapperContext, const string& paramsString);
+        Schema* schema, unique_ptr<PhysicalOperator> prevOperator,
+        MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext,
+        const string& paramsString);
 
     void appendGroupByExpressions(const expression_vector& groupByExpressions,
         vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,

@@ -66,12 +66,19 @@ void SimpleAggregate::execute(ExecutionContext* context) {
                 assert(distinctHT != nullptr);
                 if (distinctHT->isAggregateValueDistinctForGroupByKeys(
                         vector<ValueVector*>{}, aggregateVectors[i])) {
-                    aggregateFunction->updateState((uint8_t*)localAggregateStates[i].get(),
-                        aggregateVectors[i], resultSet->multiplicity);
+                    aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
+                        aggregateVectors[i], resultSet->multiplicity,
+                        aggregateVectors[i]->state->getPositionOfCurrIdx());
                 }
             } else {
-                aggregateFunction->updateState((uint8_t*)localAggregateStates[i].get(),
-                    aggregateVectors[i], resultSet->multiplicity);
+                if (aggregateVectors[i] && aggregateVectors[i]->state->isFlat()) {
+                    aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
+                        aggregateVectors[i], resultSet->multiplicity,
+                        aggregateVectors[i]->state->getPositionOfCurrIdx());
+                } else {
+                    aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),
+                        aggregateVectors[i], resultSet->multiplicity);
+                }
             }
         }
     }

@@ -22,27 +22,30 @@ struct MinMaxFunction {
     static unique_ptr<AggregateState> initialize() { return make_unique<MinMaxState>(); }
 
     template<class OP>
-    static void update(uint8_t* state_, ValueVector* input, uint64_t count) {
+    static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
+        assert(!input->state->isFlat());
         auto state = reinterpret_cast<MinMaxState*>(state_);
-        if (input->state->isFlat()) {
-            auto pos = input->state->getPositionOfCurrIdx();
-            if (!input->isNull(pos)) {
+        if (input->hasNoNullsGuarantee()) {
+            for (auto i = 0u; i < input->state->selectedSize; ++i) {
+                auto pos = input->state->selectedPositions[i];
                 updateSingleValue<OP>(state, input, pos);
             }
         } else {
-            if (input->hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                    auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selectedSize; ++i) {
+                auto pos = input->state->selectedPositions[i];
+                if (!input->isNull(pos)) {
                     updateSingleValue<OP>(state, input, pos);
                 }
-            } else {
-                for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                    auto pos = input->state->selectedPositions[i];
-                    if (!input->isNull(pos)) {
-                        updateSingleValue<OP>(state, input, pos);
-                    }
-                }
             }
+        }
+    }
+
+    template<class OP>
+    static void updatePos(
+        uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+        auto state = reinterpret_cast<MinMaxState*>(state_);
+        if ((!input->state->isFlat() && input->hasNoNullsGuarantee()) || !input->isNull(pos)) {
+            updateSingleValue<OP>(state, input, pos);
         }
     }
 

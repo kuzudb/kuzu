@@ -35,14 +35,16 @@ class HashAggregate : public BaseAggregate {
 public:
     HashAggregate(shared_ptr<HashAggregateSharedState> sharedState,
         vector<DataPos> inputGroupByHashKeyVectorsPos,
-        vector<DataPos> inputGroupByNonHashKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
+        vector<DataPos> inputGroupByNonHashKeyVectorsPos,
+        vector<bool> isInputGroupByHashKeyVectorFlat, vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id,
               paramsString},
           groupByHashKeyVectorsPos{move(inputGroupByHashKeyVectorsPos)},
-          groupByNonHashKeyVectorsPos{move(inputGroupByNonHashKeyVectorsPos)}, sharedState{move(
-                                                                                   sharedState)} {}
+          groupByNonHashKeyVectorsPos{move(inputGroupByNonHashKeyVectorsPos)},
+          isGroupByHashKeyVectorFlat{move(isInputGroupByHashKeyVectorFlat)}, sharedState{move(
+                                                                                 sharedState)} {}
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
@@ -55,7 +57,9 @@ public:
 private:
     vector<DataPos> groupByHashKeyVectorsPos;
     vector<DataPos> groupByNonHashKeyVectorsPos;
-    vector<ValueVector*> groupByHashKeyVectors;
+    vector<bool> isGroupByHashKeyVectorFlat;
+    vector<ValueVector*> groupByFlatHashKeyVectors;
+    vector<ValueVector*> groupByUnflatHashKeyVectors;
     vector<ValueVector*> groupByNonHashKeyVectors;
 
     shared_ptr<HashAggregateSharedState> sharedState;
