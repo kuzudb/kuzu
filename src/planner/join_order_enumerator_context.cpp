@@ -5,7 +5,6 @@ namespace planner {
 
 void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
     const shared_ptr<Expression>& queryGraphPredicate, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    // split where expression
     whereExpressionsSplitOnAND =
         queryGraphPredicate ? queryGraphPredicate->splitOnAND() : expression_vector();
     // merge new query graph
@@ -15,14 +14,15 @@ void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
     mergeQueryGraph(queryGraph);
     // clear and resize subPlansTable
     subPlansTable->clear();
-    subPlansTable->resize(mergedQueryGraph->getNumQueryRels());
+    maxLevel = mergedQueryGraph->getNumQueryNodes() + mergedQueryGraph->getNumQueryRels() + 1;
+    subPlansTable->resize(maxLevel);
     // add plans from previous query part into subPlanTable
     for (auto& prevPlan : prevPlans) {
         subPlansTable->addPlan(fullyMatchedSubqueryGraph, move(prevPlan));
     }
-    // Restart from level 0 for new query part so that we get hashJoin based plans
-    // that uses subplans coming from previous query part.See example in enumerateExtend().
-    currentLevel = 0;
+    // Restart from level 1 for new query part so that we get hashJoin based plans
+    // that uses subplans coming from previous query part.See example in planRelIndexJoin().
+    currentLevel = 1;
 }
 
 SubqueryGraph JoinOrderEnumeratorContext::getFullyMatchedSubqueryGraph() const {
@@ -37,7 +37,6 @@ SubqueryGraph JoinOrderEnumeratorContext::getFullyMatchedSubqueryGraph() const {
 }
 
 void JoinOrderEnumeratorContext::resetState() {
-    currentLevel = 0;
     subPlansTable = make_unique<SubPlansTable>();
     mergedQueryGraph = make_unique<QueryGraph>();
 }

@@ -37,8 +37,3 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
 ---- 1
 324
-
--NAME MultiQueryFiveHopKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH b, c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person), (b)-[:knows]->(f:person) RETURN COUNT(*)
----- 1
-972

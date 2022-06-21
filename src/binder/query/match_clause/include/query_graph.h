@@ -13,9 +13,12 @@ class QueryGraph;
 const label_t ANY_LABEL = numeric_limits<uint32_t>::max();
 const uint8_t MAX_NUM_VARIABLES = 64;
 
-class SubqueryGraph {
+struct SubqueryGraph {
 
-public:
+    const QueryGraph& queryGraph;
+    bitset<MAX_NUM_VARIABLES> queryNodesSelector;
+    bitset<MAX_NUM_VARIABLES> queryRelsSelector;
+
     explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
 
     SubqueryGraph(const SubqueryGraph& other)
@@ -25,22 +28,30 @@ public:
     ~SubqueryGraph() = default;
 
     inline void addQueryNode(uint32_t nodePos) { queryNodesSelector[nodePos] = true; }
+    inline void addQueryRel(uint32_t relPos) { queryRelsSelector[relPos] = true; }
+    inline void addSubqueryGraph(const SubqueryGraph& other) {
+        queryRelsSelector |= other.queryRelsSelector;
+        queryNodesSelector |= other.queryNodesSelector;
+    }
 
-    void addQueryRel(uint32_t relPos);
-
-    void addSubqueryGraph(const SubqueryGraph& other);
+    inline uint32_t getTotalNumVariables() const {
+        return queryNodesSelector.count() + queryRelsSelector.count();
+    }
 
     bool containAllVariables(unordered_set<string>& variables) const;
+
+    unordered_set<uint32_t> getNodeNbrPositions() const;
+    unordered_set<uint32_t> getRelNbrPositions() const;
+
+    bool isSrcConnected(uint32_t relPos) const;
+    bool isDstConnected(uint32_t relPos) const;
+
+    bool isClosingRel(uint32_t relPos) const;
 
     bool operator==(const SubqueryGraph& other) const {
         return queryRelsSelector == other.queryRelsSelector &&
                queryNodesSelector == other.queryNodesSelector;
     }
-
-public:
-    const QueryGraph& queryGraph;
-    bitset<MAX_NUM_VARIABLES> queryNodesSelector;
-    bitset<MAX_NUM_VARIABLES> queryRelsSelector;
 };
 
 struct SubqueryGraphJoinNodePairHasher {
@@ -67,14 +78,17 @@ public:
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
 
-    inline NodeExpression* getQueryNode(const string& queryNodeName) const {
-        return queryNodes.at(queryNodeNameToPosMap.at(queryNodeName)).get();
+    inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
+        return queryNodes[getQueryNodePos(queryNodeName)];
     }
 
-    inline NodeExpression* getQueryNode(uint32_t nodePos) const {
-        return queryNodes[nodePos].get();
+    inline shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
+        return queryNodes[nodePos];
     }
 
+    inline uint32_t getQueryNodePos(NodeExpression& node) const {
+        return getQueryNodePos(node.getUniqueName());
+    }
     inline uint32_t getQueryNodePos(const string& queryNodeName) const {
         return queryNodeNameToPosMap.at(queryNodeName);
     }
@@ -98,9 +112,6 @@ public:
     }
 
     void addQueryRel(shared_ptr<RelExpression> queryRel);
-
-    vector<tuple<uint32_t, bool, bool>> getConnectedQueryRelsWithDirection(
-        const SubqueryGraph& subqueryGraph) const;
 
     unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
     getSingleNodeJoiningSubgraph(

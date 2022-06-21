@@ -11,6 +11,7 @@ namespace graphflow {
 namespace planner {
 
 class Enumerator;
+class JoinOrderEnumeratorContext;
 
 const double PREDICATE_SELECTIVITY = 0.2;
 
@@ -18,6 +19,7 @@ const double PREDICATE_SELECTIVITY = 0.2;
  * JoinOrderEnumerator is currently responsible for
  *      join order enumeration
  *      filter push down
+ *      property push down
  */
 class JoinOrderEnumerator {
     friend class Enumerator;
@@ -40,32 +42,39 @@ private:
 
     void planResultScan();
 
+    // Initial internal ID scan for node table.
     void planNodeScan();
-    void planFiltersAfterNodeScan(
-        expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
-    void planPropertyScansAfterNodeScan(NodeExpression& node, LogicalPlan& plan);
+    // Filter push down for node table.
+    void planFiltersForNode(expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
+    // Property push down for node table.
+    void planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan);
 
-    void planExtend();
-    void planExtendFiltersAndScanProperties(RelExpression& queryRel, RelDirection direction,
-        expression_vector& predicates, LogicalPlan& plan);
-    void planFilterAfterExtend(expression_vector& predicates, RelExpression& rel,
-        NodeExpression& nbrNode, LogicalPlan& plan);
-    void planPropertyScansAfterExtend(
-        RelExpression& rel, NodeExpression& nbrNode, LogicalPlan& plan);
+    void planCurrentLevel();
+
+    // Plan index nested loop join.
+    void planINPJoin();
+    // Node table index nested loop join (random access).
+    void planNodeINPJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
+        vector<unique_ptr<LogicalPlan>>& prevPlans);
+    // Edge table index nested join.
+    void planRelINPJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
+        vector<unique_ptr<LogicalPlan>>& prevPlans);
+    // Filter push down for rel table.
+    void planFiltersForRel(expression_vector& predicates, RelExpression& rel, LogicalPlan& plan);
+    // Property push down for rel table.
+    void planPropertyScansForRel(RelExpression& rel, LogicalPlan& plan);
 
     void planHashJoin();
 
-    // append logical operator functions
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
 
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
     void appendLogicalHashJoin(
         const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
-    // appendIntersect return false if a nodeID is flat in which case we should use filter
+    // AppendIntersect return false if a nodeID is flat in which case we should use filter.
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 
-    // helper functions
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(label_t boundNodeLabel, label_t relLabel, RelDirection relDirection);
 

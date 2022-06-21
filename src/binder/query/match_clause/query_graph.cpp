@@ -3,19 +3,6 @@
 namespace graphflow {
 namespace binder {
 
-void SubqueryGraph::addQueryRel(uint32_t relPos) {
-    queryRelsSelector[relPos] = true;
-    queryNodesSelector[queryGraph.getQueryNodePos(
-        queryGraph.getQueryRel(relPos)->getSrcNodeName())] = true;
-    queryNodesSelector[queryGraph.getQueryNodePos(
-        queryGraph.getQueryRel(relPos)->getDstNodeName())] = true;
-}
-
-void SubqueryGraph::addSubqueryGraph(const SubqueryGraph& other) {
-    queryRelsSelector |= other.queryRelsSelector;
-    queryNodesSelector |= other.queryNodesSelector;
-}
-
 bool SubqueryGraph::containAllVariables(unordered_set<string>& variables) const {
     for (auto& var : variables) {
         if (queryGraph.containsQueryNode(var) &&
@@ -28,6 +15,71 @@ bool SubqueryGraph::containAllVariables(unordered_set<string>& variables) const 
         }
     }
     return true;
+}
+
+unordered_set<uint32_t> SubqueryGraph::getNodeNbrPositions() const {
+    unordered_set<uint32_t> result;
+    for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
+        if (!queryRelsSelector[relPos]) { // rel not in subgraph, no need to check
+            continue;
+        }
+        auto rel = queryGraph.getQueryRel(relPos);
+        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+        if (!queryNodesSelector[srcNodePos]) {
+            result.insert(srcNodePos);
+        }
+        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        if (!queryNodesSelector[dstNodePos]) {
+            result.insert(dstNodePos);
+        }
+    }
+    return result;
+}
+
+unordered_set<uint32_t> SubqueryGraph::getRelNbrPositions() const {
+    unordered_set<uint32_t> result;
+    for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
+        if (queryRelsSelector[relPos]) { // rel already in subgraph, cannot be rel neighbour
+            continue;
+        }
+        auto rel = queryGraph.getQueryRel(relPos);
+        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        if (queryNodesSelector[srcNodePos] || queryNodesSelector[dstNodePos]) {
+            result.insert(relPos);
+        }
+    }
+    return result;
+}
+
+bool SubqueryGraph::isSrcConnected(uint32_t relPos) const {
+    assert(!queryRelsSelector[relPos]);
+    auto srcNodePos = queryGraph.getQueryNodePos(*queryGraph.getQueryRel(relPos)->getSrcNode());
+    return queryNodesSelector[srcNodePos];
+}
+
+bool SubqueryGraph::isDstConnected(uint32_t relPos) const {
+    assert(!queryRelsSelector[relPos]);
+    auto dstNodePos = queryGraph.getQueryNodePos(*queryGraph.getQueryRel(relPos)->getDstNode());
+    return queryNodesSelector[dstNodePos];
+}
+
+bool SubqueryGraph::isClosingRel(uint32_t relPos) const {
+    unordered_set<uint32_t> matchedNodePositions;
+    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+        if (!queryRelsSelector[i]) {
+            continue;
+        }
+        auto matchedRel = queryGraph.getQueryRel(i);
+        auto srcNodePos = queryGraph.getQueryNodePos(*matchedRel->getSrcNode());
+        auto dstNodePos = queryGraph.getQueryNodePos(*matchedRel->getDstNode());
+        matchedNodePositions.insert(srcNodePos);
+        matchedNodePositions.insert(dstNodePos);
+    }
+    auto rel = queryGraph.getQueryRel(relPos);
+    auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+    auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+    return matchedNodePositions.contains(srcNodePos) && matchedNodePositions.contains(dstNodePos);
 }
 
 void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
@@ -45,24 +97,6 @@ void QueryGraph::addQueryRel(shared_ptr<RelExpression> queryRel) {
     assert(!containsQueryRel(queryRel->getUniqueName()));
     queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
     queryRels.push_back(queryRel);
-}
-
-vector<tuple<uint32_t, bool, bool>> QueryGraph::getConnectedQueryRelsWithDirection(
-    const SubqueryGraph& subqueryGraph) const {
-    vector<tuple<uint32_t, bool, bool>> result;
-    for (auto relPos = 0u; relPos < queryRels.size(); ++relPos) {
-        if (subqueryGraph.queryRelsSelector[relPos]) {
-            continue;
-        }
-        auto srcNodePos = queryNodeNameToPosMap.at(queryRels.at(relPos)->getSrcNodeName());
-        auto dstNodePos = queryNodeNameToPosMap.at(queryRels.at(relPos)->getDstNodeName());
-        if (subqueryGraph.queryNodesSelector[srcNodePos] ||
-            subqueryGraph.queryNodesSelector[dstNodePos]) {
-            result.emplace_back(make_tuple(relPos, subqueryGraph.queryNodesSelector[srcNodePos],
-                subqueryGraph.queryNodesSelector[dstNodePos]));
-        }
-    }
-    return result;
 }
 
 unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>

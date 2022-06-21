@@ -29,13 +29,10 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     vector<unique_ptr<LogicalPlan>> prevPlans) {
     context->init(queryGraph, queryGraphPredicate, move(prevPlans));
     context->hasExpressionsToScanFromOuter() ? planResultScan() : planNodeScan();
-    while (context->hasNextLevel()) {
-        context->incrementCurrentLevel();
-        planExtend();
-        // TODO: remove currentLevel constraint for Hash Join enumeration
-        if (context->getCurrentLevel() >= 4) {
-            planHashJoin();
-        }
+    context->currentLevel++;
+    while (context->currentLevel < context->maxLevel) {
+        planCurrentLevel();
+        context->currentLevel++;
     }
     return move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
@@ -84,17 +81,17 @@ void JoinOrderEnumerator::planNodeScan() {
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
-        auto& node = *queryGraph->getQueryNode(nodePos);
-        appendScanNodeID(node, *plan);
+        auto node = queryGraph->getQueryNode(nodePos);
+        appendScanNodeID(*node, *plan);
         auto predicates =
             getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions());
-        planFiltersAfterNodeScan(predicates, node, *plan);
-        planPropertyScansAfterNodeScan(node, *plan);
+        planFiltersForNode(predicates, *node, *plan);
+        planPropertyScansForNode(*node, *plan);
         context->addPlan(newSubgraph, move(plan));
     }
 }
 
-void JoinOrderEnumerator::planFiltersAfterNodeScan(
+void JoinOrderEnumerator::planFiltersForNode(
     expression_vector& predicates, NodeExpression& node, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
         auto propertiesToScan = getPropertiesForVariable(*predicate, node);
@@ -103,110 +100,131 @@ void JoinOrderEnumerator::planFiltersAfterNodeScan(
     }
 }
 
-void JoinOrderEnumerator::planPropertyScansAfterNodeScan(NodeExpression& node, LogicalPlan& plan) {
+void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan) {
     auto properties = enumerator->getPropertiesForNode(node);
     enumerator->appendScanNodePropIfNecessarySwitch(properties, node, plan);
 }
 
-void JoinOrderEnumerator::planExtend() {
-    auto queryGraph = context->getQueryGraph();
-    auto& subgraphPlansMap = context->getSubqueryGraphPlansMap(context->getCurrentLevel() - 1);
-    for (auto& [prevSubgraph, prevPlans] : subgraphPlansMap) {
-        auto connectedQueryRelsWithDirection =
-            queryGraph->getConnectedQueryRelsWithDirection(prevSubgraph);
-        for (auto& [relPos, isSrcMatched, isDstMatched] : connectedQueryRelsWithDirection) {
-            // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
-            // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
-            // First MATCH is enumerated normally. When enumerating second MATCH,
-            // we first merge graph as (a)-[r1]->(b)-[r2]->(c)-[r3]->(d)->[r4]->(e)-[r5]->(f) and
-            // enumerate from level 0 again. If we hit a query rel that has been previously matched
-            // i.e. r1 & r2 & r3, we skip the plan. This guarantees DP only enumerate query rels in
-            // the second MATCH. Note this is different from fully merged, since we don't generate
-            // plans like build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
-            if (context->getMatchedQueryRels()[relPos]) {
-                continue;
-            }
-            auto newSubgraph = prevSubgraph;
-            newSubgraph.addQueryRel(relPos);
-            auto predicates =
-                getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-            auto& queryRel = *queryGraph->getQueryRel(relPos);
-            if (isSrcMatched && isDstMatched) {
-                // TODO: refactor cyclic logic as a separate function
-                for (auto& prevPlan : prevPlans) {
-                    for (auto direction : REL_DIRECTIONS) {
-                        auto isCloseOnDst = direction == FWD;
-                        // Break cycle by creating a temporary rel with a different name (concat rel
-                        // and node name) on closing node.
-                        auto tmpRel = rewriteQueryRel(queryRel, isCloseOnDst);
-                        auto nodeToIntersect =
-                            isCloseOnDst ? queryRel.getDstNode() : queryRel.getSrcNode();
-                        auto tmpNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
+void JoinOrderEnumerator::planCurrentLevel() {
+    assert(context->currentLevel > 1);
+    planINPJoin();
+    // TODO(Xiyang): plan HashJoin
+}
 
-                        auto planWithFilter = prevPlan->shallowCopy();
-                        planExtendFiltersAndScanProperties(
-                            *tmpRel, direction, predicates, *planWithFilter);
-                        auto nodeIDFilter =
-                            createNodeIDComparison(nodeToIntersect->getNodeIDPropertyExpression(),
-                                tmpNode->getNodeIDPropertyExpression(),
-                                catalog.getBuiltInScalarFunctions());
-                        enumerator->appendFilter(nodeIDFilter, *planWithFilter);
-                        context->addPlan(newSubgraph, move(planWithFilter));
-
-                        auto planWithIntersect = prevPlan->shallowCopy();
-                        planExtendFiltersAndScanProperties(
-                            *tmpRel, direction, predicates, *planWithIntersect);
-                        if (appendIntersect(nodeToIntersect->getIDProperty(),
-                                tmpNode->getIDProperty(), *planWithIntersect)) {
-                            context->addPlan(newSubgraph, move(planWithIntersect));
-                        }
-                    }
-                }
-            } else {
-                for (auto& prevPlan : prevPlans) {
-                    auto plan = prevPlan->shallowCopy();
-                    planExtendFiltersAndScanProperties(
-                        queryRel, isSrcMatched ? FWD : BWD, predicates, *plan);
-                    context->addPlan(newSubgraph, move(plan));
-                }
-            }
+void JoinOrderEnumerator::planINPJoin() {
+    auto prevLevel = context->currentLevel - 1;
+    for (auto& [subgraph, plans] : *context->subPlansTable->getSubqueryGraphPlansMap(prevLevel)) {
+        auto nodeNbrPositions = subgraph.getNodeNbrPositions();
+        for (auto& nodePos : nodeNbrPositions) {
+            planNodeINPJoin(subgraph, nodePos, plans);
+        }
+        auto relNbrPositions = subgraph.getRelNbrPositions();
+        for (auto& relPos : relNbrPositions) {
+            planRelINPJoin(subgraph, relPos, plans);
         }
     }
 }
 
-void JoinOrderEnumerator::planExtendFiltersAndScanProperties(RelExpression& queryRel,
-    RelDirection direction, expression_vector& predicates, LogicalPlan& plan) {
-    appendExtend(queryRel, direction, plan);
-    auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
-    planFilterAfterExtend(predicates, queryRel, *nbrNode, plan);
-    planPropertyScansAfterExtend(queryRel, *nbrNode, plan);
+void JoinOrderEnumerator::planNodeINPJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
+    vector<unique_ptr<LogicalPlan>>& prevPlans) {
+    auto newSubgraph = prevSubgraph;
+    newSubgraph.addQueryNode(nodePos);
+    auto node = context->mergedQueryGraph->getQueryNode(nodePos);
+    auto predicates =
+        getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
+    for (auto& prevPlan : prevPlans) {
+        auto plan = prevPlan->shallowCopy();
+        planFiltersForNode(predicates, *node, *plan);
+        planPropertyScansForNode(*node, *plan);
+        context->addPlan(newSubgraph, move(plan));
+    }
 }
 
-void JoinOrderEnumerator::planFilterAfterExtend(
-    expression_vector& predicates, RelExpression& rel, NodeExpression& nbrNode, LogicalPlan& plan) {
+void JoinOrderEnumerator::planRelINPJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
+    vector<unique_ptr<LogicalPlan>>& prevPlans) {
+    // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
+    // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
+    // First MATCH is enumerated normally. When enumerating second MATCH,
+    // we first merge graph as (a)-[r1]->(b)-[r2]->(c)-[r3]->(d)->[r4]->(e)-[r5]->(f) and
+    // enumerate from level 0 again. If we hit a query rel that has been previously matched
+    // i.e. r1 & r2 & r3, we skip the plan. This guarantees DP only enumerate query rels in
+    // the second MATCH. Note this is different from fully merged, since we don't generate
+    // plans like build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
+    if (context->matchedQueryRels[relPos]) {
+        return;
+    }
+    auto newSubgraph = prevSubgraph;
+    newSubgraph.addQueryRel(relPos);
+    auto rel = context->mergedQueryGraph->getQueryRel(relPos);
+    auto predicates =
+        getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
+    // Note isClosingRel check is different from checking src&dst connectivity.
+    // Consider triangle query example (a)-[e1]->(b)-[e2]->(c), a-[e3]->(c), and prevSubgraph 'sg'
+    // is a-e1-b-e2, a rel neighbour for 'sg' is e3. e3 is connected to 'sg' on node 'a' but not
+    // node 'c' since 'c' is not part of 'sg'. However, we need to treat e3 as a closing edge. So
+    // isClosingRel checks only for rel and ignoring whether a node has been matched or not.
+    if (prevSubgraph.isClosingRel(relPos)) {
+        for (auto direction : REL_DIRECTIONS) { // closing direction
+            auto isCloseOnDst = direction == FWD;
+            auto tmpRel = rewriteQueryRel(*rel, isCloseOnDst); // break cycle
+            auto closeNode = isCloseOnDst ? rel->getDstNode() : rel->getSrcNode();
+            auto tmpCloseNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
+            for (auto& prevPlan : prevPlans) { // filter-based solution
+                auto plan = prevPlan->shallowCopy();
+                appendExtend(*tmpRel, direction, *plan);
+                auto idComparison = createNodeIDComparison(closeNode->getNodeIDPropertyExpression(),
+                    tmpCloseNode->getNodeIDPropertyExpression(),
+                    catalog.getBuiltInScalarFunctions());
+                enumerator->appendFilter(idComparison, *plan);
+                planFiltersForRel(predicates, *tmpRel, *plan);
+                planPropertyScansForRel(*tmpRel, *plan);
+                context->addPlan(newSubgraph, move(plan));
+            }
+            for (auto& prevPlan : prevPlans) { // intersect-based solution
+                auto plan = prevPlan->shallowCopy();
+                appendExtend(*tmpRel, direction, *plan);
+                planFiltersForRel(predicates, *tmpRel, *plan);
+                planPropertyScansForRel(*tmpRel, *plan);
+                if (appendIntersect(
+                        closeNode->getIDProperty(), tmpCloseNode->getIDProperty(), *plan)) {
+                    context->addPlan(newSubgraph, move(plan));
+                }
+            }
+        }
+    } else {
+        auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
+        auto isDstConnected = prevSubgraph.isDstConnected(relPos);
+        assert(isSrcConnected || isDstConnected);
+        for (auto& prevPlan : prevPlans) {
+            auto plan = prevPlan->shallowCopy();
+            appendExtend(*rel, isSrcConnected ? FWD : BWD, *plan);
+            planFiltersForRel(predicates, *rel, *plan);
+            planPropertyScansForRel(*rel, *plan);
+            context->addPlan(newSubgraph, move(plan));
+        }
+    }
+}
+
+void JoinOrderEnumerator::planFiltersForRel(
+    expression_vector& predicates, RelExpression& rel, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
-        auto nodePropertiesToScan = getPropertiesForVariable(*predicate, nbrNode);
-        enumerator->appendScanNodePropIfNecessarySwitch(nodePropertiesToScan, nbrNode, plan);
         auto relPropertiesToScan = getPropertiesForVariable(*predicate, rel);
         enumerator->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, plan);
         enumerator->appendFilter(predicate, plan);
     }
 }
 
-void JoinOrderEnumerator::planPropertyScansAfterExtend(
-    RelExpression& rel, NodeExpression& nbrNode, LogicalPlan& plan) {
-    auto nodeProperties = enumerator->getPropertiesForNode(nbrNode);
-    enumerator->appendScanNodePropIfNecessarySwitch(nodeProperties, nbrNode, plan);
+void JoinOrderEnumerator::planPropertyScansForRel(RelExpression& rel, LogicalPlan& plan) {
     auto relProperties = enumerator->getPropertiesForRel(rel);
     enumerator->appendScanRelPropsIfNecessary(relProperties, rel, plan);
 }
 
 void JoinOrderEnumerator::planHashJoin() {
-    auto currentLevel = context->getCurrentLevel();
+    auto currentLevel = context->currentLevel;
     auto queryGraph = context->getQueryGraph();
     for (auto leftSize = currentLevel - 2; leftSize >= ceil(currentLevel / 2.0); --leftSize) {
-        auto& subgraphPlansMap = context->getSubqueryGraphPlansMap(leftSize);
-        for (auto& [leftSubgraph, leftPlans] : subgraphPlansMap) {
+        auto subgraphPlansMap = context->getSubqueryGraphPlansMap(leftSize);
+        for (auto& [leftSubgraph, leftPlans] : *subgraphPlansMap) {
             auto rightSubgraphAndJoinNodePairs =
                 queryGraph->getSingleNodeJoiningSubgraph(leftSubgraph, currentLevel - leftSize);
             for (auto& [rightSubgraph, joinNodePos] : rightSubgraphAndJoinNodePairs) {
