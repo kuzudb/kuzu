@@ -117,20 +117,20 @@ uint8_t* AggregateHashTable::findEntry(uint8_t* entryBuffer, hash_t hash) {
         } else if ((slot->hash == hash) && matchGroupByKeys(entryBuffer, slot->entry)) {
             return slot->entry;
         }
-        increaseSlotOffset(slotIdx);
+        increaseSlotIdx(slotIdx);
     }
 }
 
 uint8_t* AggregateHashTable::findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash) {
-    auto slotOffset = hash & bitMask;
+    auto slotIdx = hash & bitMask;
     while (true) {
-        auto slot = (HashSlot*)getHashSlot(slotOffset);
+        auto slot = (HashSlot*)getHashSlot(slotIdx);
         if (slot->entry == nullptr) {
             return nullptr;
         } else if ((slot->hash == hash) && matchFlatGroupByKeys(groupByKeyVectors, slot->entry)) {
             return slot->entry;
         }
-        increaseSlotOffset(slotOffset);
+        increaseSlotIdx(slotIdx);
     }
 }
 
@@ -202,10 +202,10 @@ uint64_t AggregateHashTable::getNumBytesForGroupByNonHashKeys() const {
     return result;
 }
 
-void AggregateHashTable::increaseSlotOffset(uint64_t& slotOffset) const {
-    slotOffset++;
-    if (slotOffset >= maxNumHashSlots) {
-        slotOffset = 0;
+void AggregateHashTable::increaseSlotIdx(uint64_t& slotIdx) const {
+    slotIdx++;
+    if (slotIdx >= maxNumHashSlots) {
+        slotIdx = 0;
     }
 }
 
@@ -217,12 +217,12 @@ void AggregateHashTable::findHashSlots(const vector<ValueVector*>& groupByFlatHa
                     groupByUnFlatHashKeyVectors[0]->state->selectedSize;
     for (auto i = 0u; i < size; i++) {
         auto hash = hashValues[i];
-        auto slotOffset = hash & bitMask;
+        auto slotIdx = hash & bitMask;
         auto selectedPos = groupByUnFlatHashKeyVectors.empty() ?
                                0 :
                                groupByUnFlatHashKeyVectors[0]->state->selectedPositions[i];
         while (true) {
-            auto slot = getHashSlot(slotOffset);
+            auto slot = getHashSlot(slotIdx);
             if (slot->entry == nullptr) {
                 createEntry(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors,
                     groupByNonHashKeyVectors, hash, selectedPos, slot);
@@ -234,7 +234,7 @@ void AggregateHashTable::findHashSlots(const vector<ValueVector*>& groupByFlatHa
                 hashSlots[i] = slot;
                 break;
             }
-            increaseSlotOffset(slotOffset);
+            increaseSlotIdx(slotIdx);
         }
     }
 }
@@ -449,7 +449,7 @@ void AggregateHashTable::fillTupleWithInitialNullAggregateState(uint8_t* tuple) 
 void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer) {
     auto slotIdx = hash & bitMask;
     while (getHashSlot(slotIdx)->entry) {
-        increaseSlotOffset(slotIdx);
+        increaseSlotIdx(slotIdx);
     }
     auto slot = getHashSlot(slotIdx);
     slot->hash = hash;

@@ -49,3 +49,29 @@ good||1
 |excellent|1
 |good|1
 ||2
+
+-NAME OneHopAggFlatUnflatVecTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
+---- 9
+0|1|45
+0|2|50
+2|1|80
+2|2|20
+3|1|35
+3|2|50
+5|1|80
+5|2|30
+7|2|65
+
+-NAME OneHopAggFlatUnflatVecWithNonHashKeyTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, a.gender, b.gender, sum(b.age)
+---- 9
+0|1|1|45
+0|1|2|50
+2|2|1|80
+2|2|2|20
+3|1|1|35
+3|1|2|50
+5|2|1|80
+5|2|2|30
+7|1|2|65

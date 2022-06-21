@@ -93,7 +93,8 @@ private:
     void appendGroupByExpressions(const expression_vector& groupByExpressions,
         vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
         vector<DataType>& outputGroupByKeyVectorsDataTypes,
-        MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext);
+        MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext, Schema* schema,
+        vector<bool>& isInputGroupByHashKeyVectorFlat);
 
 public:
     const StorageManager& storageManager;
