@@ -67,7 +67,7 @@ static unique_ptr<PhysicalOperator> createHashAggregate(
 static void appendGroupByExpressions(const expression_vector& groupByExpressions,
     vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
     vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext);
+    MapperContext& mapperContext, Schema* schema, vector<bool>& isInputGroupByHashKeyVectorFlat);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->getSchema()));
@@ -590,15 +590,13 @@ unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
         } else {
             groupByHashExpressions.push_back(expressionToGroupBy);
         }
-        isInputGroupByHashKeyVectorFlat.push_back(
-            schema->getGroup(expressionToGroupBy->getUniqueName())->getIsFlat());
     }
     appendGroupByExpressions(groupByHashExpressions, inputGroupByHashKeyVectorsPos,
         outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, mapperContextBeforeAggregate,
-        mapperContext);
+        mapperContext, schema, isInputGroupByHashKeyVectorFlat);
     appendGroupByExpressions(groupByNonHashExpressions, inputGroupByNonHashKeyVectorsPos,
         outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, mapperContextBeforeAggregate,
-        mapperContext);
+        mapperContext, schema, isInputGroupByHashKeyVectorFlat);
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
     auto aggregate = make_unique<HashAggregate>(sharedState, inputGroupByHashKeyVectorsPos,
         inputGroupByNonHashKeyVectorsPos, isInputGroupByHashKeyVectorFlat, move(inputAggVectorsPos),
@@ -613,13 +611,29 @@ unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
 void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpressions,
     vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
     vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext) {
+    MapperContext& mapperContext, Schema* schema, vector<bool>& isInputGroupByHashKeyVectorFlat) {
     for (auto& expression : groupByExpressions) {
-        inputGroupByHashKeyVectorsPos.push_back(
-            mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
-        outputGroupByKeyVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outputGroupByKeyVectorsDataTypes.push_back(expression->dataType);
-        mapperContext.addComputedExpressions(expression->getUniqueName());
+        if (schema->getGroup(expression->getUniqueName())->getIsFlat()) {
+            inputGroupByHashKeyVectorsPos.push_back(
+                mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
+            outputGroupByKeyVectorsPos.push_back(
+                mapperContext.getDataPos(expression->getUniqueName()));
+            outputGroupByKeyVectorsDataTypes.push_back(expression->dataType);
+            mapperContext.addComputedExpressions(expression->getUniqueName());
+            isInputGroupByHashKeyVectorFlat.push_back(true);
+        }
+    }
+
+    for (auto& expression : groupByExpressions) {
+        if (!schema->getGroup(expression->getUniqueName())->getIsFlat()) {
+            inputGroupByHashKeyVectorsPos.push_back(
+                mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
+            outputGroupByKeyVectorsPos.push_back(
+                mapperContext.getDataPos(expression->getUniqueName()));
+            outputGroupByKeyVectorsDataTypes.push_back(expression->dataType);
+            mapperContext.addComputedExpressions(expression->getUniqueName());
+            isInputGroupByHashKeyVectorFlat.push_back(false);
+        }
     }
 }
 

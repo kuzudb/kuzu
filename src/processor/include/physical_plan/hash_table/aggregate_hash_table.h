@@ -9,19 +9,17 @@ using namespace graphflow::function;
 namespace graphflow {
 namespace processor {
 
-constexpr uint16_t HASH_PREFIX_SHIFT = (sizeof(hash_t) - sizeof(uint16_t)) * 8;
-
 struct HashSlot {
-    hash_t hash;    // 16 high bits of the hash value for fast comparison.
-    uint8_t* entry; // pointer to the tuple buffer which stores [hash, groupKey1, ...
-                    // groupKeyN, aggregateState1, ..., aggregateStateN]
+    hash_t hash;    // 8 bytes for hashValues.
+    uint8_t* entry; // pointer to the tuple buffer which stores [groupKey1, ...
+                    // groupKeyN, aggregateState1, ..., aggregateStateN].
 };
 
 /**
  * AggregateHashTable Design
  *
  * 1. Payload
- * Entry layout: [hash, groupKey1, ... groupKeyN, aggregateState1, ..., aggregateStateN]
+ * Entry layout: [groupKey1, ... groupKeyN, aggregateState1, ..., aggregateStateN]
  * Payload is stored in the factorizedTable.
  *
  * 2. Hash slot
@@ -107,7 +105,7 @@ private:
         return getNumBytesForGroupByHashKeys() + getNumBytesForGroupByNonHashKeys();
     }
 
-    void increaseSlotOffset(uint64_t& slotOffset) const;
+    void increaseSlotIdx(uint64_t& slotIdx) const;
 
     void findHashSlots(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
