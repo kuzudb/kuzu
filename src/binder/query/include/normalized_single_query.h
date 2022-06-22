@@ -20,9 +20,6 @@ public:
     }
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
     inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
-    inline NormalizedQueryPart* getLastQueryPart() const {
-        return queryParts[queryParts.size() - 1].get();
-    }
 
     inline expression_vector getExpressionsToReturn() const {
         assert(!queryParts.empty());

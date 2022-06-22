@@ -19,8 +19,8 @@ expression_vector NormalizedQueryPart::getPropertiesToRead() const {
             }
         }
     }
-    for (auto& setClause : setClauses) {
-        for (auto& property : setClause->getPropertiesToRead()) {
+    for (auto& updatingClause : updatingClauses) {
+        for (auto& property : updatingClause->getPropertiesToRead()) {
             result.push_back(property);
         }
     }

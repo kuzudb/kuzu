@@ -285,9 +285,22 @@ TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, ReadAfterUpdate) {
+TEST_F(BinderErrorTest, ReadAfterUpdate1) {
     string expectedException = "Binder exception: Read after update is not supported.";
     auto input =
         "MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, ReadAfterUpdate2) {
+    string expectedException = "Binder exception: Read after update is not supported.";
+    auto input = "MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) "
+                 "RETURN a.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, DeleteNodeProperty) {
+    string expectedException = "Binder exception: Delete PROPERTY is not supported.";
+    auto input = "MATCH (a:person) DELETE a.age";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

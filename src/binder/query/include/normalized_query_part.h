@@ -2,7 +2,7 @@
 
 #include "src/binder/query/match_clause/include/query_graph.h"
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
-#include "src/binder/query/set_clause/include/bound_set_clause.h"
+#include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 
 namespace graphflow {
 namespace binder {
@@ -27,12 +27,14 @@ public:
 
     inline bool isQueryGraphOptional(uint32_t idx) const { return isOptional[idx]; }
 
-    inline void addSetClause(unique_ptr<BoundSetClause> boundSetClause) {
-        setClauses.push_back(move(boundSetClause));
+    inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
+        updatingClauses.push_back(move(boundUpdatingClause));
     }
-    inline bool hasSetClause() const { return !setClauses.empty(); }
-    inline uint32_t getNumSetClause() const { return setClauses.size(); }
-    inline BoundSetClause* getSetClause(uint32_t idx) const { return setClauses[idx].get(); }
+    inline bool hasUpdatingClause() const { return !updatingClauses.empty(); }
+    inline uint32_t getNumUpdatingClause() const { return updatingClauses.size(); }
+    inline BoundUpdatingClause* getUpdatingClause(uint32_t idx) const {
+        return updatingClauses[idx].get();
+    }
 
     inline void setProjectionBody(unique_ptr<BoundProjectionBody> boundProjectionBody) {
         projectionBody = move(boundProjectionBody);
@@ -56,8 +58,7 @@ private:
     expression_vector queryGraphPredicates;
     vector<bool> isOptional;
 
-    // update
-    vector<unique_ptr<BoundSetClause>> setClauses;
+    vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
 
     unique_ptr<BoundProjectionBody> projectionBody;
     shared_ptr<Expression> projectionBodyPredicate;

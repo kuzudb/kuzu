@@ -4,7 +4,7 @@
 
 #include "src/parser/query/match_clause/include/match_clause.h"
 #include "src/parser/query/return_with_clause/include/with_clause.h"
-#include "src/parser/query/set_clause/include/set_clause.h"
+#include "src/parser/query/updating_clause/include/updating_clause.h"
 
 namespace graphflow {
 namespace parser {
@@ -20,11 +20,13 @@ public:
     inline uint32_t getNumMatchClauses() const { return matchClauses.size(); }
     inline MatchClause* getMatchClause(uint32_t idx) const { return matchClauses[idx].get(); }
 
-    inline void addSetClause(unique_ptr<SetClause> setClause) {
-        setClauses.push_back(move(setClause));
+    inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
+    inline UpdatingClause* getUpdatingClause(uint32_t idx) const {
+        return updatingClauses[idx].get();
     }
-    inline uint32_t getNumSetClauses() const { return setClauses.size(); }
-    inline SetClause* getSetClause(uint32_t idx) const { return setClauses[idx].get(); }
+    inline void addUpdatingClause(unique_ptr<UpdatingClause> updatingClause) {
+        updatingClauses.push_back(move(updatingClause));
+    }
 
     inline WithClause* getWithClause() const { return withClause.get(); }
 
@@ -34,7 +36,7 @@ public:
 
 private:
     vector<unique_ptr<MatchClause>> matchClauses;
-    vector<unique_ptr<SetClause>> setClauses;
+    vector<unique_ptr<UpdatingClause>> updatingClauses;
     unique_ptr<WithClause> withClause;
 };
 

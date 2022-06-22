@@ -152,17 +152,13 @@ const string ID_FUNC_NAME = "ID";
 
 enum ExpressionType : uint8_t {
 
-    /**
-     * Boolean Connection Expressions
-     **/
+    // Boolean Connection Expressions
     OR = 0,
     XOR = 1,
     AND = 2,
     NOT = 3,
 
-    /**
-     * Comparison Expressions
-     **/
+    // Comparison Expressions
     EQUALS = 10,
     NOT_EQUALS = 11,
     GREATER_THAN = 12,
@@ -170,15 +166,10 @@ enum ExpressionType : uint8_t {
     LESS_THAN = 14,
     LESS_THAN_EQUALS = 15,
 
-    /**
-     * Null Operator Expressions
-     **/
+    // Null Operator Expressions
     IS_NULL = 50,
     IS_NOT_NULL = 51,
 
-    /**
-     * Property Expression
-     **/
     PROPERTY = 60,
 
     LITERAL = 70,

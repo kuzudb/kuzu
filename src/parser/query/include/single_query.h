@@ -23,11 +23,13 @@ public:
     inline uint32_t getNumMatchClauses() const { return matchClauses.size(); }
     inline MatchClause* getMatchClause(uint32_t idx) const { return matchClauses[idx].get(); }
 
-    inline void addSetClause(unique_ptr<SetClause> setClause) {
-        setClauses.push_back(move(setClause));
+    inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
+    inline UpdatingClause* getUpdatingClause(uint32_t idx) const {
+        return updatingClauses[idx].get();
     }
-    inline uint32_t getNumSetClauses() const { return setClauses.size(); }
-    inline SetClause* getSetClause(uint32_t idx) const { return setClauses[idx].get(); }
+    inline void addUpdatingClause(unique_ptr<UpdatingClause> updatingClause) {
+        updatingClauses.push_back(move(updatingClause));
+    }
 
     inline void setReturnClause(unique_ptr<ReturnClause> returnClause) {
         this->returnClause = move(returnClause);
@@ -42,7 +44,7 @@ public:
 private:
     vector<unique_ptr<QueryPart>> queryParts;
     vector<unique_ptr<MatchClause>> matchClauses;
-    vector<unique_ptr<SetClause>> setClauses;
+    vector<unique_ptr<UpdatingClause>> updatingClauses;
     unique_ptr<ReturnClause> returnClause;
 };
 
