@@ -67,7 +67,9 @@ gF_QueryPart
     : (oC_ReadingClause SP? )* ( oC_UpdatingClause SP? )* oC_With ;
 
 oC_UpdatingClause
-    : oC_Set ;
+    : oC_Set
+        | oC_Delete
+        ;
 
 oC_ReadingClause 
     : oC_Match ;
@@ -86,6 +88,11 @@ SET : ( 'S' | 's' ) ( 'E' | 'e' ) ( 'T' | 't' )  ;
 
 oC_SetItem
     : ( oC_PropertyExpression SP? '=' SP? oC_Expression ) ;
+
+oC_Delete
+    : DELETE SP? oC_Expression ( SP? ',' SP? oC_Expression )*;
+
+DELETE : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 oC_With
     : WITH oC_ProjectionBody ( SP? oC_Where )? ;

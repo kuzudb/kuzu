@@ -1,5 +1,5 @@
 cc_library(
-    name = "set_clause",
+    name = "updating_clause",
     srcs = glob([
         "*.cpp",
     ]),
@@ -9,5 +9,7 @@ cc_library(
     visibility = [
         "//src/parser/query:__pkg__",
     ],
-    deps = [],
+    deps = [
+        "//src/common:clause_type",
+    ],
 )

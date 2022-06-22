@@ -1,6 +1,7 @@
 #pragma once
 
-#include "src/binder/query/set_clause/include/bound_set_clause.h"
+#include "src/binder/query/updating_clause/include/bound_set_clause.h"
+#include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
 namespace graphflow {
@@ -11,6 +12,8 @@ class Enumerator;
 class UpdatePlanner {
 
 public:
+    static void planUpdatingClause(
+        BoundUpdatingClause& updatingClause, vector<unique_ptr<LogicalPlan>>& plans);
     static void planSetClause(BoundSetClause& setClause, vector<unique_ptr<LogicalPlan>>& plans);
 
 private:

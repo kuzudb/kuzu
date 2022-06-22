@@ -1,7 +1,11 @@
 #include "src/binder/include/query_binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/query/updating_clause/include/bound_delete_clause.h"
+#include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/common/include/type_utils.h"
+#include "src/parser/query/updating_clause/include/delete_clause.h"
+#include "src/parser/query/updating_clause/include/set_clause.h"
 
 namespace graphflow {
 namespace binder {
@@ -34,8 +38,8 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
     for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
         boundSingleQuery->addMatchClause(bindMatchClause(*singleQuery.getMatchClause(i)));
     }
-    for (auto i = 0u; i < singleQuery.getNumSetClauses(); ++i) {
-        boundSingleQuery->addSetClause(bindSetClause(*singleQuery.getSetClause(i)));
+    for (auto i = 0u; i < singleQuery.getNumUpdatingClauses(); ++i) {
+        boundSingleQuery->addUpdatingClause(bindUpdatingClause(*singleQuery.getUpdatingClause(i)));
     }
     if (singleQuery.hasReturnClause()) {
         boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
@@ -48,8 +52,8 @@ unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart
     for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
         boundQueryPart->addMatchClause(bindMatchClause(*queryPart.getMatchClause(i)));
     }
-    for (auto i = 0u; i < queryPart.getNumSetClauses(); ++i) {
-        boundQueryPart->addSetClause(bindSetClause(*queryPart.getSetClause(i)));
+    for (auto i = 0u; i < queryPart.getNumUpdatingClauses(); ++i) {
+        boundQueryPart->addUpdatingClause(bindUpdatingClause(*queryPart.getUpdatingClause(i)));
     }
     boundQueryPart->setWithClause(bindWithClause(*queryPart.getWithClause()));
     return boundQueryPart;
@@ -67,17 +71,50 @@ unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& mat
     return boundMatchClause;
 }
 
-unique_ptr<BoundSetClause> QueryBinder::bindSetClause(const SetClause& setClause) {
+unique_ptr<BoundUpdatingClause> QueryBinder::bindUpdatingClause(
+    const UpdatingClause& updatingClause) {
+    switch (updatingClause.getClauseType()) {
+    case ClauseType::SET: {
+        return bindSetClause(updatingClause);
+    }
+    case ClauseType::DELETE: {
+        return bindDeleteClause(updatingClause);
+    }
+    default:
+        assert(false);
+    }
+}
+
+unique_ptr<BoundUpdatingClause> QueryBinder::bindSetClause(const UpdatingClause& updatingClause) {
+    auto& setClause = (SetClause&)updatingClause;
     auto boundSetClause = make_unique<BoundSetClause>();
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
         auto boundOrigin = expressionBinder.bindExpression(*setItem->origin);
+        // Do not throw exception because this should be guaranteed by grammar.
+        assert(boundOrigin->expressionType == PROPERTY);
         auto boundTarget = expressionBinder.bindExpression(*setItem->target);
         ExpressionBinder::implicitCastIfNecessary(boundTarget, boundOrigin->dataType.typeID);
         auto boundSetItem = make_unique<BoundSetItem>(move(boundOrigin), move(boundTarget));
         boundSetClause->addSetItem(move(boundSetItem));
     }
     return boundSetClause;
+}
+
+unique_ptr<BoundUpdatingClause> QueryBinder::bindDeleteClause(
+    const UpdatingClause& updatingClause) {
+    auto& deleteClause = (DeleteClause&)updatingClause;
+    auto boundDeleteClause = make_unique<BoundDeleteClause>();
+    for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
+        auto boundExpression = expressionBinder.bindExpression(*deleteClause.getExpression(i));
+        if (boundExpression->dataType.typeID != NODE) {
+            throw BinderException("Delete " +
+                                  expressionTypeToString(boundExpression->expressionType) +
+                                  " is not supported.");
+        }
+        boundDeleteClause->addExpression(move(boundExpression));
+    }
+    return boundDeleteClause;
 }
 
 unique_ptr<BoundWithClause> QueryBinder::bindWithClause(const WithClause& withClause) {
@@ -456,7 +493,7 @@ void QueryBinder::validateReadNotFollowUpdate(const NormalizedSingleQuery& norma
         if (hasSeenUpdateClause && normalizedQueryPart->getNumQueryGraph() != 0) {
             throw BinderException("Read after update is not supported.");
         }
-        hasSeenUpdateClause |= normalizedQueryPart->hasSetClause();
+        hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();
     }
 }
 

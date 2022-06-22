@@ -22,9 +22,8 @@ unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQuer
     for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
         queryPart->addMatchClause(singleQuery.getMatchClause(i)->copy());
     }
-    for (auto i = 0u; i < singleQuery.getNumSetClauses(); ++i) {
-        auto setClause = singleQuery.getSetClause(i);
-        queryPart->addSetClause(make_unique<BoundSetClause>(*setClause));
+    for (auto i = 0u; i < singleQuery.getNumUpdatingClauses(); ++i) {
+        queryPart->addUpdatingClause(singleQuery.getUpdatingClause(i)->copy());
     }
     if (singleQuery.hasReturnClause()) {
         queryPart->setWithClause(make_unique<BoundWithClause>(
@@ -42,9 +41,8 @@ unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
             matchClause->hasWhereExpression() ? matchClause->getWhereExpression() : nullptr,
             matchClause->getIsOptional());
     }
-    for (auto i = 0u; i < queryPart.getNumSetClauses(); ++i) {
-        auto setClause = queryPart.getSetClause(i);
-        normalizedQueryPart->addSetClause(make_unique<BoundSetClause>(*setClause));
+    for (auto i = 0u; i < queryPart.getNumUpdatingClauses(); ++i) {
+        normalizedQueryPart->addUpdatingClause(queryPart.getUpdatingClause(i)->copy());
     }
     if (queryPart.hasWithClause()) {
         auto withClause = queryPart.getWithClause();

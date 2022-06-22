@@ -15,6 +15,6 @@ cc_library(
     deps = [
         "//src/parser/query/match_clause",
         "//src/parser/query/return_with_clause",
-        "//src/parser/query/set_clause",
+        "//src/parser/query/updating_clause",
     ],
 )

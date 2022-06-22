@@ -27,8 +27,8 @@ class JoinOrderEnumerator {
 public:
     JoinOrderEnumerator(
         const Catalog& catalog, const NodesMetadata& nodesMetadata, Enumerator* enumerator)
-        : catalog{catalog}, enumerator{enumerator},
-          nodesMetadata{nodesMetadata}, context{make_unique<JoinOrderEnumeratorContext>()} {};
+        : catalog{catalog}, nodesMetadata{nodesMetadata},
+          enumerator{enumerator}, context{make_unique<JoinOrderEnumeratorContext>()} {};
 
     vector<unique_ptr<LogicalPlan>> enumerateJoinOrder(const QueryGraph& queryGraph,
         const shared_ptr<Expression>& queryGraphPredicate,

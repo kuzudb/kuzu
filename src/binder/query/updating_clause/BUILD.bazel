@@ -1,5 +1,5 @@
 cc_library(
-    name = "bound_set_clause",
+    name = "bound_updating_clause",
     srcs = glob([
         "*.cpp",
     ]),
@@ -11,5 +11,6 @@ cc_library(
     ],
     deps = [
         "//src/binder/expression:base_expression",
+        "//src/common:clause_type",
     ],
 )

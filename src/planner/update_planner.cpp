@@ -8,6 +8,21 @@
 namespace graphflow {
 namespace planner {
 
+void UpdatePlanner::planUpdatingClause(
+    BoundUpdatingClause& updatingClause, vector<unique_ptr<LogicalPlan>>& plans) {
+    switch (updatingClause.getClauseType()) {
+    case ClauseType::SET: {
+        planSetClause((BoundSetClause&)updatingClause, plans);
+        return;
+    }
+    case ClauseType::DELETE: {
+        assert(false);
+    }
+    default:
+        assert(false);
+    }
+}
+
 void UpdatePlanner::planSetClause(
     BoundSetClause& setClause, vector<unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {

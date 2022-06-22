@@ -60,7 +60,7 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
         singleQuery->addMatchClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
-        singleQuery->addSetClause(transformUpdatingClause(*updatingClause));
+        singleQuery->addUpdatingClause(transformUpdatingClause(*updatingClause));
     }
     if (ctx.oC_Return()) {
         singleQuery->setReturnClause(transformReturn(*ctx.oC_Return()));
@@ -74,14 +74,19 @@ unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPart
         queryPart->addMatchClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
-        queryPart->addSetClause(transformUpdatingClause(*updatingClause));
+        queryPart->addUpdatingClause(transformUpdatingClause(*updatingClause));
     }
     return queryPart;
 }
 
-unique_ptr<SetClause> Transformer::transformUpdatingClause(
+unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
     CypherParser::OC_UpdatingClauseContext& ctx) {
-    return transformSet(*ctx.oC_Set());
+    if (ctx.oC_Set()) {
+        return transformSet(*ctx.oC_Set());
+    } else if (ctx.oC_Delete()) {
+        return transformDelete(*ctx.oC_Delete());
+    }
+    assert(false);
 }
 
 unique_ptr<MatchClause> Transformer::transformReadingClause(
@@ -109,6 +114,14 @@ unique_ptr<SetClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx
 unique_ptr<SetItem> Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
     return make_unique<SetItem>(
         transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
+}
+
+unique_ptr<DeleteClause> Transformer::transformDelete(CypherParser::OC_DeleteContext& ctx) {
+    auto deleteClause = make_unique<DeleteClause>();
+    for (auto& expression : ctx.oC_Expression()) {
+        deleteClause->addExpression(transformExpression(*expression));
+    }
+    return deleteClause;
 }
 
 unique_ptr<WithClause> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
