@@ -2,32 +2,26 @@
 
 #include "include/enumerator.h"
 
+#include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_sink.h"
 
 namespace graphflow {
 namespace planner {
 
-void UpdatePlanner::planUpdatingClause(
-    BoundUpdatingClause& updatingClause, vector<unique_ptr<LogicalPlan>>& plans) {
+void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+    appendSink(plan);
     switch (updatingClause.getClauseType()) {
     case ClauseType::SET: {
-        planSetClause((BoundSetClause&)updatingClause, plans);
+        appendSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
-        assert(false);
+        appendDelete((BoundDeleteClause&)updatingClause, plan);
+        return;
     }
     default:
         assert(false);
-    }
-}
-
-void UpdatePlanner::planSetClause(
-    BoundSetClause& setClause, vector<unique_ptr<LogicalPlan>>& plans) {
-    for (auto& plan : plans) {
-        appendSink(*plan);
-        appendSet(setClause, *plan);
     }
 }
 
@@ -69,6 +63,25 @@ void UpdatePlanner::appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
     }
     auto set = make_shared<LogicalSet>(move(setItems), plan.getLastOperator());
     plan.appendOperator(set);
+}
+
+void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan) {
+    expression_vector nodeExpressions;
+    expression_vector primaryKeyExpressions;
+    for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
+        auto expression = deleteClause.getExpression(i);
+        assert(expression->dataType.typeID == NODE);
+        auto& nodeExpression = (NodeExpression&)*expression;
+        auto pk = catalog.getNodePrimaryKeyProperty(nodeExpression.getLabel());
+        auto pkExpression =
+            make_shared<PropertyExpression>(pk.dataType, pk.name, pk.propertyID, expression);
+        enumerator->appendScanNodePropIfNecessarySwitch(pkExpression, nodeExpression, plan);
+        nodeExpressions.push_back(expression);
+        primaryKeyExpressions.push_back(pkExpression);
+    }
+    auto deleteOperator =
+        make_shared<LogicalDelete>(nodeExpressions, primaryKeyExpressions, plan.getLastOperator());
+    plan.appendOperator(deleteOperator);
 }
 
 } // namespace planner

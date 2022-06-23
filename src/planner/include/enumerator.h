@@ -19,7 +19,8 @@ class Enumerator {
 
 public:
     explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
-        : joinOrderEnumerator{catalog, nodesMetadata, this}, projectionEnumerator{catalog, this} {}
+        : joinOrderEnumerator{catalog, nodesMetadata, this}, projectionEnumerator{catalog, this},
+          updatePlanner{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
 
@@ -62,6 +63,11 @@ private:
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
     // switch structured and unstructured node property scan
+    inline void appendScanNodePropIfNecessarySwitch(
+        shared_ptr<Expression> property, NodeExpression& node, LogicalPlan& plan) {
+        expression_vector properties{move(property)};
+        appendScanNodePropIfNecessarySwitch(properties, node, plan);
+    }
     void appendScanNodePropIfNecessarySwitch(
         expression_vector& properties, NodeExpression& node, LogicalPlan& plan);
     void appendScanNodePropIfNecessary(
@@ -116,6 +122,7 @@ private:
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionEnumerator projectionEnumerator;
+    UpdatePlanner updatePlanner;
 };
 
 } // namespace planner

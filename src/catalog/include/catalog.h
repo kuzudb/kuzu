@@ -91,7 +91,6 @@ public:
     /**
      * Node and Rel property functions.
      */
-
     virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
     virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
 
@@ -99,6 +98,8 @@ public:
     // (containNodeProperty and containRelProperty).
     virtual const Property& getNodeProperty(label_t labelId, const string& propertyName) const;
     virtual const Property& getRelProperty(label_t labelId, const string& propertyName) const;
+
+    const Property& getNodePrimaryKeyProperty(label_t nodeLabel) const;
 
     vector<Property> getAllNodeProperties(label_t nodeLabel) const;
     inline const vector<Property>& getStructuredNodeProperties(label_t nodeLabel) const {

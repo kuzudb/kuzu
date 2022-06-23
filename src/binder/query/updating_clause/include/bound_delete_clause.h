@@ -6,7 +6,6 @@ namespace graphflow {
 namespace binder {
 
 class BoundDeleteClause : public BoundUpdatingClause {
-
 public:
     BoundDeleteClause() : BoundUpdatingClause{ClauseType::DELETE} {};
     ~BoundDeleteClause() override = default;
@@ -14,6 +13,8 @@ public:
     inline void addExpression(shared_ptr<Expression> expression) {
         expressions.push_back(move(expression));
     }
+    inline uint32_t getNumExpressions() const { return expressions.size(); }
+    inline shared_ptr<Expression> getExpression(uint32_t idx) const { return expressions[idx]; }
 
     inline expression_vector getPropertiesToRead() const override {
         expression_vector result;

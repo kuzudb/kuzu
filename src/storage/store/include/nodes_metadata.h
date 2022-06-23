@@ -129,7 +129,7 @@ public:
 
     // Should be used ony by tests;
     NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLabel_) {
-        for (int i = 0; i < nodeMetadataPerLabel_.size(); ++i) {
+        for (auto i = 0u; i < nodeMetadataPerLabel_.size(); ++i) {
             nodeMetadataPerLabel.push_back(move(nodeMetadataPerLabel_[i]));
         }
     }

@@ -28,6 +28,7 @@ public:
 
     inline NodesMetadata& getNodesMetadata() { return nodesMetadata; }
 
+    // TODO: rename to getNodeTable
     inline NodeTable* getNode(label_t nodeLabel) const { return nodeTables[nodeLabel].get(); }
 
 private:

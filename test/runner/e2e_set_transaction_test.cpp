@@ -1,0 +1,177 @@
+#include "test/test_utility/include/test_helper.h"
+
+using namespace graphflow::testing;
+
+// Test manual transaction. Auto transaction is tested in update test.
+class SetTransactionTest : public BaseGraphLoadingTest {
+
+public:
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        createDBAndConn();
+        readConn = make_unique<Connection>(database.get());
+    }
+
+    void checkResult(vector<string>& result, vector<string>& groundTruth) {
+        ASSERT_EQ(result.size(), groundTruth.size());
+        for (auto i = 0u; i < result.size(); ++i) {
+            ASSERT_STREQ(result[i].c_str(), groundTruth[i].c_str());
+        }
+    }
+
+    void readAndAssertNodeProperty(
+        Connection* conn, uint64_t nodeOffset, string propertyName, vector<string> groundTruth) {
+        auto readQuery =
+            "MATCH (a:person) WHERE a.ID=" + to_string(nodeOffset) + " RETURN a." + propertyName;
+        auto result = conn->query(readQuery);
+        auto resultStr = TestHelper::convertResultToString(*result);
+        checkResult(resultStr, groundTruth);
+    }
+
+    void insertLongStrings1000TimesAndVerify(Connection* connection) {
+        int numWriteQueries = 1000;
+        for (int i = 0; i < numWriteQueries; ++i) {
+            connection->query("MATCH (a:person) WHERE a.ID < 100 SET a.fName = "
+                              "concat('abcdefghijklmnopqrstuvwxyz', string(a.ID+" +
+                              to_string(numWriteQueries) + "))");
+        }
+        auto result = connection->query("MATCH (a:person) WHERE a.ID=2 RETURN a.fName");
+        ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+            "abcdefghijklmnopqrstuvwxyz" + to_string(numWriteQueries + 2));
+    }
+
+public:
+    unique_ptr<Connection> readConn;
+};
+
+TEST_F(
+    SetTransactionTest, SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNonNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
+}
+
+TEST_F(SetTransactionTest, SingleTransactionReadWriteToStringStructuredNodePropertyNonNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz';");
+    readAndAssertNodeProperty(
+        conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+}
+
+TEST_F(SetTransactionTest, SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = a.unstrNumericProp;");
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{""});
+}
+
+TEST_F(SetTransactionTest, SingleTransactionReadWriteToStringStructuredNodePropertyNullTest) {
+    conn->beginWriteTransaction();
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = a.label3;");
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{""});
+}
+
+TEST_F(SetTransactionTest, Concurrent1Write1ReadTransactionInTheMiddleOfTransaction) {
+    conn->beginWriteTransaction();
+    readConn->beginReadOnlyTransaction();
+    // read before update
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    readAndAssertNodeProperty(readConn.get(), 0 /* nodeoffset */, "fName", vector<string>{"Alice"});
+    // update
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz'");
+    // read after update but before commit
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
+    readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(
+        conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+    readAndAssertNodeProperty(
+        readConn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+}
+
+TEST_F(SetTransactionTest, Concurrent1Write1ReadTransactionCommitAndCheckpoint) {
+    conn->beginWriteTransaction();
+    readConn->beginReadOnlyTransaction();
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz'");
+    readConn->commit();
+    conn->commit();
+    // read after commit
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"70"});
+    readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"70"});
+    readAndAssertNodeProperty(
+        conn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+    readAndAssertNodeProperty(
+        readConn.get(), 0 /* node offset */, "fName", vector<string>{"abcdefghijklmnopqrstuvwxyz"});
+}
+
+TEST_F(SetTransactionTest, Concurrent1Write1ReadTransactionRollback) {
+    conn->beginWriteTransaction();
+    readConn->beginReadOnlyTransaction();
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = 'abcdefghijklmnopqrstuvwxyz'");
+    readConn->commit();
+    conn->rollback();
+    // read after rollback
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+    readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+    readAndAssertNodeProperty(
+        readConn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
+}
+
+TEST_F(SetTransactionTest, OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
+    database->getTransactionManager()->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+        10000 /* 10ms */);
+    readConn->beginReadOnlyTransaction();
+    conn->beginWriteTransaction();
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
+    try {
+        conn->commit();
+        FAIL();
+    } catch (TransactionManagerException& e) {
+    } catch (Exception& e) { FAIL(); }
+    readAndAssertNodeProperty(readConn.get(), 0 /* node offset */, "age", vector<string>{"35"});
+}
+
+TEST_F(SetTransactionTest, SetNodeLongStringPropRollbackTest) {
+    conn->beginWriteTransaction();
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
+    conn->rollback();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
+}
+
+TEST_F(SetTransactionTest, SetVeryLongStringErrorsTest) {
+    conn->beginWriteTransaction();
+    string veryLongStr = "";
+    for (int i = 0; i < DEFAULT_PAGE_SIZE + 1; ++i) {
+        veryLongStr += "a";
+    }
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='" + veryLongStr + "'");
+    ASSERT_FALSE(result->isSuccess());
+}
+
+TEST_F(SetTransactionTest, SetManyNodeLongStringPropCommitTest) {
+    conn->beginWriteTransaction();
+    insertLongStrings1000TimesAndVerify(conn.get());
+    conn->commit();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+        "abcdefghijklmnopqrstuvwxyz" + to_string(1000));
+}
+
+TEST_F(SetTransactionTest, SetManyNodeLongStringPropRollbackTest) {
+    conn->beginWriteTransaction();
+    insertLongStrings1000TimesAndVerify(conn.get());
+    conn->rollback();
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
+}

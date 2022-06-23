@@ -31,5 +31,25 @@ NodeTable::NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, b
         properties[IDPropertyIdx].dataType, bufferManager, isInMemory);
 }
 
+void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
+    assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
+           primaryKeyVector->hasNoNullsGuarantee());
+    if (nodeIDVector->state->isFlat()) {
+        auto pos = nodeIDVector->state->getPositionOfCurrIdx();
+        deleteNode(nodeIDVector, primaryKeyVector, pos);
+    } else {
+        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selectedPositions[i];
+            deleteNode(nodeIDVector, primaryKeyVector, pos);
+        }
+    }
+}
+
+void NodeTable::deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) {
+    auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+    nodeMetadata->deleteNode(nodeOffset);
+    // TODO(Guodong): delete primary key index
+}
+
 } // namespace storage
 } // namespace graphflow

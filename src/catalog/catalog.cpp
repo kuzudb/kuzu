@@ -383,6 +383,11 @@ const Property& Catalog::getRelProperty(label_t labelId, const string& propertyN
     assert(false);
 }
 
+const Property& Catalog::getNodePrimaryKeyProperty(label_t nodeLabel) const {
+    auto primaryKeyId = nodeLabels[nodeLabel].primaryPropertyId;
+    return nodeLabels[nodeLabel].structuredProperties[primaryKeyId];
+}
+
 vector<Property> Catalog::getAllNodeProperties(label_t nodeLabel) const {
     auto allProperties = nodeLabels[nodeLabel].structuredProperties;
     allProperties.insert(allProperties.end(), nodeLabels[nodeLabel].unstructuredProperties.begin(),

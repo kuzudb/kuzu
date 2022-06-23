@@ -49,6 +49,7 @@ public:
         idColumn->writeValues(nodeIDVector, idVector);
         return nodeOffset;
     }
+
     void checkNodeWithIDExists(Connection* connection, uint64_t nodeID) {
         auto result =
             connection->query("MATCH (a:person) WHERE a.ID=" + to_string(nodeID) + " RETURN a.ID");
