@@ -11,7 +11,8 @@ class SubqueryTest : public ::testing::Test {
 
 public:
     static unique_ptr<MatchClause> makeEmptyMatchClause() {
-        auto expectNode = make_unique<NodePattern>(string(), string());
+        auto expectNode = make_unique<NodePattern>(
+            string(), string(), vector<pair<string, unique_ptr<ParsedExpression>>>{});
         auto expectPElements = vector<unique_ptr<PatternElement>>();
         expectPElements.emplace_back(make_unique<PatternElement>(move(expectNode)));
         return make_unique<MatchClause>(move(expectPElements));

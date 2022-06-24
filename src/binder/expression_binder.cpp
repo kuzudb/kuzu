@@ -123,15 +123,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
     auto& catalog = queryBinder->catalog;
     if (NODE == child->dataType.typeID) {
-        auto node = static_pointer_cast<NodeExpression>(child);
-        if (catalog.containNodeProperty(node->getLabel(), propertyName)) {
-            auto& property = catalog.getNodeProperty(node->getLabel(), propertyName);
-            return make_shared<PropertyExpression>(
-                property.dataType, propertyName, property.propertyID, move(child));
-        } else {
-            throw BinderException(
-                "Node " + node->getRawName() + " does not have property " + propertyName + ".");
-        }
+        return bindNodePropertyExpression(child, propertyName);
     } else if (REL == child->dataType.typeID) {
         auto rel = static_pointer_cast<RelExpression>(child);
         if (catalog.containRelProperty(rel->getLabel(), propertyName)) {
@@ -144,6 +136,20 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         }
     }
     assert(false);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
+    shared_ptr<Expression> node, const string& propertyName) {
+    auto& catalog = queryBinder->catalog;
+    auto nodeExpression = static_pointer_cast<NodeExpression>(node);
+    if (catalog.containNodeProperty(nodeExpression->getLabel(), propertyName)) {
+        auto& property = catalog.getNodeProperty(nodeExpression->getLabel(), propertyName);
+        return make_shared<PropertyExpression>(
+            property.dataType, propertyName, property.propertyID, move(node));
+    } else {
+        throw BinderException("Node " + nodeExpression->getRawName() + " does not have property " +
+                              propertyName + ".");
+    }
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(

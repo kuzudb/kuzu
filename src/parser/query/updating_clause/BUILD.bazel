@@ -11,5 +11,6 @@ cc_library(
     ],
     deps = [
         "//src/common:clause_type",
+        "//src/parser/query/match_clause:node_pattern",
     ],
 )

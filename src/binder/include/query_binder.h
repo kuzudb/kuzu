@@ -33,6 +33,7 @@ private:
     unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
 
     unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
+    unique_ptr<BoundUpdatingClause> bindCreateClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindSetClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindDeleteClause(const UpdatingClause& updatingClause);
 
@@ -69,6 +70,7 @@ private:
 
     shared_ptr<NodeExpression> bindQueryNode(
         const NodePattern& nodePattern, QueryGraph& queryGraph);
+    shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
 
     label_t bindRelLabel(const string& parsed_label);
 

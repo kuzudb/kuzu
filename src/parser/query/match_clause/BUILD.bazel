@@ -15,3 +15,16 @@ cc_library(
         "//src/parser/expression:parsed_expression",
     ],
 )
+
+cc_library(
+    name = "node_pattern",
+    hdrs = [
+        "include/node_pattern.h",
+    ],
+    visibility = [
+        "//src/parser/query/updating_clause:__pkg__",
+    ],
+    deps = [
+        "//src/parser/expression:parsed_expression",
+    ],
+)

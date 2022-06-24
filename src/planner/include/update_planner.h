@@ -25,6 +25,8 @@ public:
 
 private:
     void planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planPropertyUpdateInfo(
+        shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan);
 
     void appendSink(LogicalPlan& plan);
     void appendSet(BoundSetClause& setClause, LogicalPlan& plan);

@@ -81,7 +81,9 @@ unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPart
 
 unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
     CypherParser::OC_UpdatingClauseContext& ctx) {
-    if (ctx.oC_Set()) {
+    if (ctx.oC_Create()) {
+        return transformCreate(*ctx.oC_Create());
+    } else if (ctx.oC_Set()) {
         return transformSet(*ctx.oC_Set());
     } else if (ctx.oC_Delete()) {
         return transformDelete(*ctx.oC_Delete());
@@ -101,6 +103,14 @@ unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContex
         matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
     return matchClause;
+}
+
+unique_ptr<CreateClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
+    auto createClause = make_unique<CreateClause>();
+    for (auto& nodePattern : ctx.oC_NodePattern()) {
+        createClause->addNodePattern(transformNodePattern(*nodePattern));
+    }
+    return createClause;
 }
 
 unique_ptr<SetClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
@@ -217,9 +227,11 @@ unique_ptr<PatternElement> Transformer::transformPatternElement(
 
 unique_ptr<NodePattern> Transformer::transformNodePattern(
     CypherParser::OC_NodePatternContext& ctx) {
-    return make_unique<NodePattern>(
-        ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string(),
-        ctx.oC_NodeLabel() ? transformNodeLabel(*ctx.oC_NodeLabel()) : string());
+    auto variable = ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string();
+    auto nodeLabel = ctx.oC_NodeLabel() ? transformNodeLabel(*ctx.oC_NodeLabel()) : string();
+    auto properties = ctx.gF_Properties() ? transformProperties(*ctx.gF_Properties()) :
+                                            vector<pair<string, unique_ptr<ParsedExpression>>>{};
+    return make_unique<NodePattern>(move(variable), move(nodeLabel), move(properties));
 }
 
 unique_ptr<PatternElementChain> Transformer::transformPatternElementChain(
@@ -243,6 +255,18 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
         relDetail->oC_RelTypeName() ? transformRelTypeName(*relDetail->oC_RelTypeName()) : string(),
         lowerBound, upperBound,
         ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT);
+}
+
+vector<pair<string, unique_ptr<ParsedExpression>>> Transformer::transformProperties(
+    CypherParser::GF_PropertiesContext& ctx) {
+    vector<pair<string, unique_ptr<ParsedExpression>>> result;
+    assert(ctx.oC_PropertyKeyName().size() == ctx.oC_Expression().size());
+    for (auto i = 0u; i < ctx.oC_PropertyKeyName().size(); ++i) {
+        auto propertyKeyName = transformPropertyKeyName(*ctx.oC_PropertyKeyName(i));
+        auto expression = transformExpression(*ctx.oC_Expression(i));
+        result.emplace_back(propertyKeyName, move(expression));
+    }
+    return result;
 }
 
 string Transformer::transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx) {

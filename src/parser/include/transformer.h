@@ -2,6 +2,7 @@
 
 #include "src/antlr4/CypherParser.h"
 #include "src/parser/query/include/regular_query.h"
+#include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
 
@@ -33,6 +34,8 @@ private:
     unique_ptr<MatchClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
     unique_ptr<MatchClause> transformMatch(CypherParser::OC_MatchContext& ctx);
+
+    unique_ptr<CreateClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 
     unique_ptr<SetClause> transformSet(CypherParser::OC_SetContext& ctx);
 
@@ -70,6 +73,9 @@ private:
 
     unique_ptr<RelPattern> transformRelationshipPattern(
         CypherParser::OC_RelationshipPatternContext& ctx);
+
+    vector<pair<string, unique_ptr<ParsedExpression>>> transformProperties(
+        CypherParser::GF_PropertiesContext& ctx);
 
     string transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx);
 

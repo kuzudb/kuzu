@@ -30,6 +30,8 @@ private:
     shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindNodePropertyExpression(
+        shared_ptr<Expression> node, const string& propertyName);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindScalarFunctionExpression(

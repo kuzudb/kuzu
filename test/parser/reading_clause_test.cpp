@@ -12,10 +12,14 @@ public:
         return make_unique<RelPattern>(
             name, type, "1" /*lowerBound*/, "1" /*upperBound*/, direction);
     }
+
+    vector<pair<string, unique_ptr<ParsedExpression>>> getDummyProperties() {
+        return vector<pair<string, unique_ptr<ParsedExpression>>>{};
+    }
 };
 
 TEST_F(ReadingClauseTest, EmptyMatchTest) {
-    auto expectNode = make_unique<NodePattern>(string(), string());
+    auto expectNode = make_unique<NodePattern>(string(), string(), getDummyProperties());
     auto expectPElements = vector<unique_ptr<PatternElement>>();
     expectPElements.emplace_back(make_unique<PatternElement>(move(expectNode)));
     auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
@@ -27,8 +31,8 @@ TEST_F(ReadingClauseTest, EmptyMatchTest) {
 }
 
 TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
-    auto expectNodeA = make_unique<NodePattern>("a", "Person");
-    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectNodeA = make_unique<NodePattern>("a", "Person", getDummyProperties());
+    auto expectNodeB = make_unique<NodePattern>("b", "Student", getDummyProperties());
     auto expectRel = makeRelPattern("e1", "knows", RIGHT);
     auto expectPElementChain = make_unique<PatternElementChain>(move(expectRel), move(expectNodeB));
     auto expectPElement = make_unique<PatternElement>(move(expectNodeA));
@@ -44,12 +48,12 @@ TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
-    auto expectNodeA = make_unique<NodePattern>("a", "Person");
-    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectNodeA = make_unique<NodePattern>("a", "Person", getDummyProperties());
+    auto expectNodeB = make_unique<NodePattern>("b", "Student", getDummyProperties());
     auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
     auto expectedPElementChain1 =
         make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
-    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectNodeC = make_unique<NodePattern>("c", "Student", getDummyProperties());
     auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
@@ -67,16 +71,16 @@ TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
-    auto expectNodeA = make_unique<NodePattern>("a", "Person");
-    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectNodeA = make_unique<NodePattern>("a", "Person", getDummyProperties());
+    auto expectNodeB = make_unique<NodePattern>("b", "Student", getDummyProperties());
     auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
     auto expectedPElementChain1 =
         make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
     auto expectPElement1 = make_unique<PatternElement>(move(expectNodeA));
     expectPElement1->addPatternElementChain(move(expectedPElementChain1));
 
-    auto expectNodeB2 = make_unique<NodePattern>("b", string());
-    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectNodeB2 = make_unique<NodePattern>("b", string(), getDummyProperties());
+    auto expectNodeC = make_unique<NodePattern>("c", "Student", getDummyProperties());
     auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
@@ -95,8 +99,8 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
 }
 
 TEST_F(ReadingClauseTest, MultiMatchTest) {
-    auto expectNodeA = make_unique<NodePattern>("a", "Person");
-    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectNodeA = make_unique<NodePattern>("a", "Person", getDummyProperties());
+    auto expectNodeB = make_unique<NodePattern>("b", "Student", getDummyProperties());
     auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
     auto expectedPElementChain1 =
         make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
@@ -106,8 +110,8 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
     expectPElements1.emplace_back(move(expectPElement1));
     auto expectedMatch1 = make_unique<MatchClause>(move(expectPElements1));
 
-    auto expectNodeB2 = make_unique<NodePattern>("b", string());
-    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectNodeB2 = make_unique<NodePattern>("b", string(), getDummyProperties());
+    auto expectNodeC = make_unique<NodePattern>("c", "Student", getDummyProperties());
     auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
