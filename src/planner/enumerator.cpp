@@ -119,7 +119,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     }
     // plan update
     for (auto i = 0u; i < queryPart.getNumUpdatingClause(); ++i) {
-        UpdatePlanner::planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
+        updatePlanner.planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
     }
     if (queryPart.hasProjectionBody()) {
         projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(), plans);

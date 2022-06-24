@@ -9,30 +9,7 @@ public:
 
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        systemConfig->largePageBufferPoolSize = (1ull << 22);
         createDBAndConn();
-    }
-
-    void beginWriteTrxInsertLongStringToNode0AndVerify() {
-        conn->beginWriteTransaction();
-        auto result =
-            conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
-        result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-        ASSERT_EQ(
-            result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdefghijklmnopqrstuvwxyz");
-    }
-
-    void beginWriteTrxAndInsertLongStrings1000TimesAndVerify() {
-        conn->beginWriteTransaction();
-        int numWriteQueries = 1000;
-        for (int i = 0; i < numWriteQueries; ++i) {
-            conn->query("MATCH (a:person) WHERE a.ID < 100 SET a.fName = "
-                        "concat('abcdefghijklmnopqrstuvwxyz', string(a.ID+" +
-                        to_string(numWriteQueries) + "))");
-        }
-        auto result = conn->query("MATCH (a:person) WHERE a.ID=2 RETURN a.fName");
-        ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
-            "abcdefghijklmnopqrstuvwxyz" + to_string(numWriteQueries + 2));
     }
 };
 
@@ -74,61 +51,28 @@ TEST_F(TinySnbUpdateTest, SetNodeShortStringPropTest) {
     ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdef");
 }
 
-TEST_F(TinySnbUpdateTest, SetOneNodeLongStringPropCommitTest) {
-    beginWriteTrxInsertLongStringToNode0AndVerify();
-    conn->commit();
+TEST_F(TinySnbUpdateTest, SetNodeLongStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
     ASSERT_EQ(
         result->getNext()->getValue(0)->val.strVal.getAsString(), "abcdefghijklmnopqrstuvwxyz");
 }
 
-TEST_F(TinySnbUpdateTest, SetOneNodeLongStringPropRollbackTest) {
-    beginWriteTrxInsertLongStringToNode0AndVerify();
-    conn->rollback();
-    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
-}
-
-TEST_F(TinySnbUpdateTest, SetVeryLongStringErrorsTest) {
-    conn->beginWriteTransaction();
-    string veryLongStr = "";
-    for (int i = 0; i < DEFAULT_PAGE_SIZE + 1; ++i) {
-        veryLongStr += "a";
-    }
-    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='" + veryLongStr + "'");
-    ASSERT_FALSE(result->isSuccess());
-}
-
-TEST_F(TinySnbUpdateTest, SetManyNodeLongStringPropCommitTest) {
-    beginWriteTrxAndInsertLongStrings1000TimesAndVerify();
-    conn->commit();
-    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
-        "abcdefghijklmnopqrstuvwxyz" + to_string(1000));
-}
-
-TEST_F(TinySnbUpdateTest, SetManyNodeLongStringPropRollbackTest) {
-    beginWriteTrxAndInsertLongStrings1000TimesAndVerify();
-    conn->rollback();
-    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
-}
-
-TEST_F(TinySnbUpdateTest, SetOneNodeListOfIntPropTest) {
+TEST_F(TinySnbUpdateTest, SetNodeListOfIntPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.workedHours=[10,20]");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours");
     auto value = result->getNext()->getValue(0);
     ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType), "[10,20]");
 }
 
-TEST_F(TinySnbUpdateTest, SetOneNodeListOfShortStringPropTest) {
+TEST_F(TinySnbUpdateTest, SetNodeListOfShortStringPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['intel','microsoft']");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames");
     auto value = result->getNext()->getValue(0);
     ASSERT_EQ(TypeUtils::toString(value->val.listVal, value->dataType), "[intel,microsoft]");
 }
 
-TEST_F(TinySnbUpdateTest, SetOneNodeListOfLongStringPropTest) {
+TEST_F(TinySnbUpdateTest, SetNodeListOfLongStringPropTest) {
     conn->query(
         "MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames");
@@ -137,7 +81,7 @@ TEST_F(TinySnbUpdateTest, SetOneNodeListOfLongStringPropTest) {
         "[abcndwjbwesdsd,microsofthbbjuwgedsd]");
 }
 
-TEST_F(TinySnbUpdateTest, SetManyNodeListPropTest) {
+TEST_F(TinySnbUpdateTest, SetNodeListofListPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=8 SET a.courseScoresPerTerm=[[10,20],[0,0,0]]");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm");
     auto value = result->getNext()->getValue(0);
@@ -213,4 +157,9 @@ TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
     auto result = conn->query("MATCH (a:person) RETURN a.ID, a.age");
     auto groundTruth = vector<string>{"0|", "10|83", "2|", "3|", "5|", "7|20", "8|25", "9|40"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 10 DELETE a;");
+    ASSERT_FALSE(result->isSuccess());
 }

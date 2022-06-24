@@ -18,8 +18,7 @@ shared_ptr<ResultSet> SetNodeStructuredProperty::init(ExecutionContext* context)
 
 bool SetNodeStructuredProperty::getNextTuples() {
     metrics->executionTime.start();
-    auto hasTuple = children[0]->getNextTuples();
-    if (!hasTuple) {
+    if (!children[0]->getNextTuples()) {
         metrics->executionTime.stop();
         return false;
     }

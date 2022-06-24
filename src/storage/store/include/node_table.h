@@ -29,6 +29,11 @@ public:
     }
     inline HashIndex* getIDIndex() const { return IDIndex.get(); }
 
+    void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
+
+private:
+    void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos);
+
 public:
     NodeMetadata* nodeMetadata;
 

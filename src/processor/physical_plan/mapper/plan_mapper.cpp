@@ -159,6 +159,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_SET: {
         physicalOperator = mapLogicalSetToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_DELETE: {
+        physicalOperator = mapLogicalDeleteToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     default:
         assert(false);
     }

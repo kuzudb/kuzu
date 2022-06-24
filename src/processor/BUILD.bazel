@@ -183,6 +183,7 @@ cc_library(
         "base_table_scan_operator",
         "//src/expression_evaluator:base_expression_evaluator",
         "//src/storage/storage_structure:column",
+        "//src/storage/store",
     ],
 )
 
@@ -247,9 +248,9 @@ cc_library(
         "scan_column",
         "update",
         "var_length_extend",
-        "//src/storage/store:store",
         "//src/common:csv_reader",
         "//src/expression_evaluator:base_expression_evaluator",
+        "//src/storage/store",
     ],
 )
 
