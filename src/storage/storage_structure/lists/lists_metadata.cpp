@@ -73,13 +73,13 @@ void ListsMetadata::readFromDisk(const string& fName) {
 }
 
 uint64_t ListsMetadata::getPageIdxFromAPageList(
-    uint32_t* pageLists, uint32_t pageListHeadIdx, uint32_t pageIdx) {
+    uint32_t* pageLists, uint32_t pageListHeadIdx, uint32_t logicalPageIdx) {
     auto pageListGroupHeadIdx = pageListHeadIdx;
-    while (PAGE_LIST_GROUP_SIZE <= pageIdx) {
+    while (PAGE_LIST_GROUP_SIZE <= logicalPageIdx) {
         pageListGroupHeadIdx = pageLists[pageListGroupHeadIdx + PAGE_LIST_GROUP_SIZE];
-        pageIdx -= PAGE_LIST_GROUP_SIZE;
+        logicalPageIdx -= PAGE_LIST_GROUP_SIZE;
     }
-    return pageLists[pageListGroupHeadIdx + pageIdx];
+    return pageLists[pageListGroupHeadIdx + logicalPageIdx];
 }
 
 void ListsMetadata::initChunkPageLists(uint32_t numChunks_) {

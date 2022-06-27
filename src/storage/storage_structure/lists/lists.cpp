@@ -30,7 +30,7 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
 // a largeList, then the input to this function can be nodeOffset: 5 and largeListHandle containing
 // information about the last portion of v7's large list. Similarly, if nodeOffset is v3 and v3
 // has a small list then largeListHandle does not contain anything specific to v3 (it would likely
-// be containing information about the last portion of the last large list that was read.
+// be containing information about the last portion of the last large list that was read).
 void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<LargeListHandle>& largeListHandle) {
     auto info = getListInfo(nodeOffset);

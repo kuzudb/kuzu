@@ -16,6 +16,8 @@ namespace common {
 typedef uint16_t sel_t;
 typedef uint64_t hash_t;
 typedef uint32_t page_idx_t;
+constexpr page_idx_t PAGE_IDX_MAX = UINT32_MAX;
+typedef uint32_t list_header_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

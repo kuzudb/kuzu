@@ -31,5 +31,9 @@ uint32_t StorageUtils::readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, cons
     return listSize;
 }
 
+uint64_t StorageUtils::all1sMaskForLeastSignificantBits(uint64_t numBits) {
+    assert(numBits <= 64);
+    return numBits == 64 ? UINT64_MAX : (1l << numBits) - 1;
+}
 } // namespace storage
 } // namespace graphflow

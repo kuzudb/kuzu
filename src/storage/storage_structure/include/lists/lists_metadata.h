@@ -36,13 +36,13 @@ public:
     // pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
         return getLogicalToPhysicalPageMapper(
-            chunkPageLists.get(), chunkToPageListHeadIdxMap[chunkIdx], chunkIdx);
+            chunkPageLists.get(), chunkToPageListHeadIdxMap[chunkIdx]);
     }
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
-        return getLogicalToPhysicalPageMapper(largeListPageLists.get(),
-            largeListIdxToPageListHeadIdxMap[2 * largeListIdx], largeListIdx);
+        return getLogicalToPhysicalPageMapper(
+            largeListPageLists.get(), largeListIdxToPageListHeadIdxMap[2 * largeListIdx]);
     }
 
     void initChunkPageLists(uint32_t numChunks);
@@ -62,12 +62,12 @@ private:
     void readFromDisk(const string& fName);
 
     inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
-        uint32_t* pageLists, uint32_t pageListsHead, uint32_t pageIdx) {
+        uint32_t* pageLists, uint32_t pageListsHead) {
         return bind(getPageIdxFromAPageList, pageLists, pageListsHead, placeholders::_1);
     }
 
     static uint64_t getPageIdxFromAPageList(
-        uint32_t* pageLists, uint32_t pageListHead, uint32_t pageIdx);
+        uint32_t* pageLists, uint32_t pageListHead, uint32_t logicalPageIdx);
 
     // Below functions are to be used only in the loader to create the ListsMetadata object
     // initially.

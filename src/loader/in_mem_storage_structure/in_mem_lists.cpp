@@ -59,7 +59,7 @@ void InMemAdjLists::setElement(
 }
 
 void InMemAdjLists::saveToFile() {
-    listHeaders->saveToDisk(fName);
+    listHeaders->saveToDisk();
     InMemLists::saveToFile();
 }
 
@@ -124,7 +124,7 @@ void InMemUnstructuredLists::setComponentOfUnstrProperty(
 }
 
 void InMemUnstructuredLists::saveToFile() {
-    listHeaders->saveToDisk(fName);
+    listHeaders->saveToDisk();
     InMemListsWithOverflow::saveToFile();
 }
 

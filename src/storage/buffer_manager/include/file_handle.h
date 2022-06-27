@@ -96,6 +96,10 @@ public:
 
     void releasePageLock(page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
+    inline uint64_t getPageSize() const {
+        return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
+    }
+
 protected:
     page_idx_t addNewPageWithoutLock();
 
@@ -114,10 +118,6 @@ protected:
     }
 
     inline void unswizzle(page_idx_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT32_MAX); }
-
-    inline uint64_t getPageSize() const {
-        return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
-    }
 
     inline void addNewPageLockAndFramePtrWithoutLock(page_idx_t pageIdx) {
         pageLocks[pageIdx] = make_unique<atomic_flag>();
