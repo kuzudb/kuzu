@@ -39,7 +39,7 @@ cc_test(
 cc_test(
     name = "e2e_transaction_test",
     srcs = [
-        "e2e_delete_transaction_test.cpp",
+        "e2e_delete_create_transaction_test.cpp",
         "e2e_set_transaction_test.cpp",
     ],
     copts = [

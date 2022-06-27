@@ -16,6 +16,7 @@ namespace binder {
 
 class Expression;
 using expression_vector = vector<shared_ptr<Expression>>;
+using expression_pair = pair<shared_ptr<Expression>, shared_ptr<Expression>>;
 
 class Expression : public enable_shared_from_this<Expression> {
 

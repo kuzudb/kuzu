@@ -38,8 +38,13 @@ public:
         }
     }
 
+    inline shared_ptr<Expression> getNodeExpression() const { return node; }
     inline void addPropertyUpdateInfo(unique_ptr<PropertyUpdateInfo> propertyUpdateInfo) {
         propertyUpdateInfos.push_back(move(propertyUpdateInfo));
+    }
+    inline uint32_t getNumPropertyUpdateInfo() const { return propertyUpdateInfos.size(); }
+    inline PropertyUpdateInfo* getPropertyUpdateInfo(uint32_t idx) const {
+        return propertyUpdateInfos[idx].get();
     }
 
     inline expression_vector getPropertiesToRead() const {

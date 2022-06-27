@@ -4,6 +4,9 @@
 #include "query_normalizer.h"
 
 #include "src/binder/query/include/bound_regular_query.h"
+#include "src/binder/query/updating_clause/include/bound_create_clause.h"
+#include "src/binder/query/updating_clause/include/bound_delete_clause.h"
+#include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
@@ -105,6 +108,9 @@ private:
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
+
+    static void validateNodeCreateHasPrimaryKeyInput(
+        const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty);
 
     /******* helpers *********/
 

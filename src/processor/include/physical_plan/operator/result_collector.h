@@ -17,7 +17,6 @@ struct FTableScanMorsel {
 };
 
 class FTableSharedState {
-
 public:
     void initTableIfNecessary(MemoryManager* memoryManager, const TableSchema& tableSchema);
 

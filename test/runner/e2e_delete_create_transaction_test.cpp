@@ -2,7 +2,7 @@
 
 using namespace graphflow::testing;
 
-class DeleteTransactionTest : public BaseGraphLoadingTest {
+class DeleteCreateTransactionTest : public BaseGraphLoadingTest {
 
 public:
     string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
@@ -40,11 +40,19 @@ public:
         return result->getNext()->getValue(0)->val.int64Val;
     }
 
+    void add100Nodes(Connection* connection) {
+        for (auto i = 0u; i < 100; ++i) {
+            auto id = 10000 + i;
+            auto result = conn->query("CREATE (a:person {ID: " + to_string(id) + "})");
+            assert(result->isSuccess());
+        }
+    }
+
 public:
     unique_ptr<Connection> readConn;
 };
 
-TEST_F(DeleteTransactionTest, ReadBeforeCommit) {
+TEST_F(DeleteCreateTransactionTest, ReadBeforeCommit) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(conn.get(), nodeIDsToDelete);
@@ -54,7 +62,7 @@ TEST_F(DeleteTransactionTest, ReadBeforeCommit) {
     }
 }
 
-TEST_F(DeleteTransactionTest, ReadAfterCommit) {
+TEST_F(DeleteCreateTransactionTest, ReadAfterCommit) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(conn.get(), nodeIDsToDelete);
@@ -65,7 +73,7 @@ TEST_F(DeleteTransactionTest, ReadAfterCommit) {
     }
 }
 
-TEST_F(DeleteTransactionTest, ReadAfterRollback) {
+TEST_F(DeleteCreateTransactionTest, ReadAfterRollback) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(conn.get(), nodeIDsToDelete);
@@ -76,7 +84,7 @@ TEST_F(DeleteTransactionTest, ReadAfterRollback) {
     }
 }
 
-TEST_F(DeleteTransactionTest, DeleteSameNodeErrorTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteSameNodeErrorTest) {
     auto nodeIDsToDelete = vector<uint64_t>{3};
     deleteNodes(conn.get(), nodeIDsToDelete);
     auto result =
@@ -86,7 +94,7 @@ TEST_F(DeleteTransactionTest, DeleteSameNodeErrorTest) {
         "Runtime exception: Node with offset 3 is already deleted.");
 }
 
-TEST_F(DeleteTransactionTest, DeleteEntireMorselTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteEntireMorselTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) WHERE a.ID < 4096 DELETE a");
     auto query = "MATCH (a:person) WHERE a.ID < 4096 RETURN count(*)";
@@ -97,7 +105,7 @@ TEST_F(DeleteTransactionTest, DeleteEntireMorselTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
 }
 
-TEST_F(DeleteTransactionTest, DeleteAllNodesCommitTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     auto query = "MATCH (a:person) RETURN count(DISTINCT a.ID)";
@@ -108,7 +116,7 @@ TEST_F(DeleteTransactionTest, DeleteAllNodesCommitTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
 }
 
-TEST_F(DeleteTransactionTest, DeleteAllNodesCommitRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitRecoveryTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -118,7 +126,7 @@ TEST_F(DeleteTransactionTest, DeleteAllNodesCommitRecoveryTest) {
     ASSERT_EQ(getCountStarVal(conn.get(), query), 0);
 }
 
-TEST_F(DeleteTransactionTest, DeleteAllNodesRollbackTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->rollback();
@@ -127,7 +135,7 @@ TEST_F(DeleteTransactionTest, DeleteAllNodesRollbackTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
 }
 
-TEST_F(DeleteTransactionTest, DeleteAllNodesRollbackRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackRecoveryTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -136,3 +144,68 @@ TEST_F(DeleteTransactionTest, DeleteAllNodesRollbackRecoveryTest) {
     auto query = "MATCH (a:person) RETURN count(DISTINCT a.ID)";
     ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
 }
+
+TEST_F(DeleteCreateTransactionTest, SimpleAddCommitTest) {
+    conn->beginWriteTransaction();
+    add100Nodes(conn.get());
+    string query = "MATCH (a:person) RETURN count(*)";
+    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
+    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
+    conn->commit();
+    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
+    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
+}
+
+TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecoveryTest) {
+    conn->beginWriteTransaction();
+    add100Nodes(conn.get());
+    conn->commitButSkipCheckpointingForTestingRecovery();
+    // This should run the recovery algorithm
+    createDBAndConn();
+    string query = "MATCH (a:person) RETURN count(*)";
+    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
+}
+
+TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackTest) {
+    conn->beginWriteTransaction();
+    add100Nodes(conn.get());
+    conn->rollback();
+    string query = "MATCH (a:person) RETURN count(*)";
+    ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
+    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
+}
+
+TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackRecoveryTest) {
+    conn->beginWriteTransaction();
+    add100Nodes(conn.get());
+    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    // This should run the recovery algorithm
+    createDBAndConn();
+    string query = "MATCH (a:person) RETURN count(*)";
+    ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
+}
+
+// TODO(Guodong/Xiyang): Fix this test once we support properties in CREATE clause
+// TEST_F(DeleteCreateTransactionTest, DeleteAddMixedTest)  {
+//    conn->beginWriteTransaction();
+//    conn->query("MATCH (a:person) WHERE a.ID >= 1000 AND a.ID < 1100 DELETE a");
+//    add100Nodes(conn.get());
+//    add100Nodes(conn.get());
+//    string query = "MATCH (a:person) RETURN count(*)";
+//    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
+//    conn->commit();
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
+//    conn->beginWriteTransaction();
+//    conn->query("MATCH (a:person) DELETE a");
+//    ASSERT_EQ(getCountStarVal(conn.get(), query), 0);
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
+//    conn->commit();
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
+//    conn->beginWriteTransaction();
+//    add100Nodes(conn.get());
+//    ASSERT_EQ(getCountStarVal(conn.get(), query), 100);
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
+//    conn->commit();
+//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 100);
+//}

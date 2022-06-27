@@ -19,11 +19,11 @@ public:
                                                                nodeIDVectorPositions)},
           columns{move(columns)}, expressionEvaluators{move(expressionEvaluators)} {}
 
+    inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::SET; }
+
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
-
-    PhysicalOperatorType getOperatorType() override { return SET; }
 
     unique_ptr<PhysicalOperator> clone() override;
 

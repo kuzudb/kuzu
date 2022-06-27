@@ -152,7 +152,7 @@ TEST_F(SetTransactionTest, SetNodeLongStringPropRollbackTest) {
 TEST_F(SetTransactionTest, SetVeryLongStringErrorsTest) {
     conn->beginWriteTransaction();
     string veryLongStr = "";
-    for (int i = 0; i < DEFAULT_PAGE_SIZE + 1; ++i) {
+    for (auto i = 0u; i < DEFAULT_PAGE_SIZE + 1; ++i) {
         veryLongStr += "a";
     }
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='" + veryLongStr + "'");
