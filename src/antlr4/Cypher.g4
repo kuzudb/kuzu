@@ -67,7 +67,8 @@ gF_QueryPart
     : (oC_ReadingClause SP? )* ( oC_UpdatingClause SP? )* oC_With ;
 
 oC_UpdatingClause
-    : oC_Set
+    : oC_Create
+        | oC_Set
         | oC_Delete
         ;
 
@@ -80,6 +81,11 @@ oC_Match
 OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
+
+oC_Create
+    : CREATE SP? oC_NodePattern ( SP? ',' SP? oC_NodePattern )*;
+
+CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 oC_Set
     : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;
@@ -171,8 +177,8 @@ oC_PatternElement
         ;
 
 oC_NodePattern
-    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ')'
-        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
+    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( gF_Properties SP? )? ')'
+        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( gF_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
         ;
 
 oC_PatternElementChain
@@ -185,6 +191,12 @@ oC_RelationshipPattern
 
 oC_RelationshipDetail
     : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ']' ;
+
+// The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
+// We choose to not support parameter as properties which will be the decision for a long time.
+// We then substitute with oC_MapLiteral definition. We create oC_MapLiteral only when we decide to add MAP type.
+gF_Properties
+    : '{' SP? ( oC_PropertyKeyName SP? ':' SP? oC_Expression SP? ( ',' SP? oC_PropertyKeyName SP? ':' SP? oC_Expression SP? )* )? '}';
 
 oC_NodeLabel
     : ':' SP? oC_LabelName ;

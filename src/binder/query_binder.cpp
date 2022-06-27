@@ -1,9 +1,11 @@
 #include "src/binder/include/query_binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/query/updating_clause/include/bound_create_clause.h"
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
 #include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/common/include/type_utils.h"
+#include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
 
@@ -74,6 +76,9 @@ unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& mat
 unique_ptr<BoundUpdatingClause> QueryBinder::bindUpdatingClause(
     const UpdatingClause& updatingClause) {
     switch (updatingClause.getClauseType()) {
+    case ClauseType::CREATE: {
+        return bindCreateClause(updatingClause);
+    }
     case ClauseType::SET: {
         return bindSetClause(updatingClause);
     }
@@ -85,18 +90,39 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindUpdatingClause(
     }
 }
 
+unique_ptr<BoundUpdatingClause> QueryBinder::bindCreateClause(
+    const UpdatingClause& updatingClause) {
+    auto& createClause = (CreateClause&)updatingClause;
+    auto boundCreateClause = make_unique<BoundCreateClause>();
+    for (auto i = 0u; i < createClause.getNumNodePatterns(); ++i) {
+        auto nodePattern = createClause.getNodePattern(i);
+        auto node = createQueryNode(*nodePattern);
+        auto nodeUpdateInfo = make_unique<NodeUpdateInfo>(node);
+        for (auto j = 0u; j < nodePattern->getNumProperties(); ++j) {
+            auto [propertyName, target] = nodePattern->getProperty(j);
+            auto boundProperty = expressionBinder.bindNodePropertyExpression(node, propertyName);
+            auto boundTarget = expressionBinder.bindExpression(*target);
+            boundTarget = ExpressionBinder::implicitCastIfNecessary(
+                boundTarget, boundProperty->dataType.typeID);
+            nodeUpdateInfo->addPropertyUpdateInfo(
+                make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
+        }
+        boundCreateClause->addNodeUpdateInfo(move(nodeUpdateInfo));
+    }
+    return boundCreateClause;
+}
+
 unique_ptr<BoundUpdatingClause> QueryBinder::bindSetClause(const UpdatingClause& updatingClause) {
     auto& setClause = (SetClause&)updatingClause;
     auto boundSetClause = make_unique<BoundSetClause>();
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
-        auto boundOrigin = expressionBinder.bindExpression(*setItem->origin);
-        // Do not throw exception because this should be guaranteed by grammar.
-        assert(boundOrigin->expressionType == PROPERTY);
+        auto boundProperty = expressionBinder.bindExpression(*setItem->origin);
         auto boundTarget = expressionBinder.bindExpression(*setItem->target);
-        ExpressionBinder::implicitCastIfNecessary(boundTarget, boundOrigin->dataType.typeID);
-        auto boundSetItem = make_unique<BoundSetItem>(move(boundOrigin), move(boundTarget));
-        boundSetClause->addSetItem(move(boundSetItem));
+        boundTarget =
+            ExpressionBinder::implicitCastIfNecessary(boundTarget, boundProperty->dataType.typeID);
+        boundSetClause->addUpdateInfo(
+            make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
     }
     return boundSetClause;
 }
@@ -322,6 +348,10 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
 
 shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph) {
+    if (nodePattern.getNumProperties() > 0) {
+        // E.g. MATCH (a:person {p1:v1}) is not supported.
+        throw BinderException("Node pattern with properties in MATCH clause is not supported.");
+    }
     auto parsedName = nodePattern.getName();
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
@@ -334,20 +364,26 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
             throw BinderException(
                 "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
-    } else { // create new node
-        auto nodeLabel = bindNodeLabel(nodePattern.getLabel());
-        queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
-        queryNode->setAlias(parsedName);
-        queryNode->setRawName(parsedName);
-        if (ANY_LABEL == nodeLabel) {
-            throw BinderException(
-                "Any-label is not supported. " + parsedName + " does not have a label.");
-        }
-        if (!parsedName.empty()) {
-            variablesInScope.insert({parsedName, queryNode});
-        }
+    } else {
+        queryNode = createQueryNode(nodePattern);
     }
     queryGraph.addQueryNode(queryNode);
+    return queryNode;
+}
+
+shared_ptr<NodeExpression> QueryBinder::createQueryNode(const NodePattern& nodePattern) {
+    auto parsedName = nodePattern.getName();
+    auto nodeLabel = bindNodeLabel(nodePattern.getLabel());
+    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
+    queryNode->setAlias(parsedName);
+    queryNode->setRawName(parsedName);
+    if (ANY_LABEL == nodeLabel) {
+        throw BinderException(
+            "Any-label is not supported. " + parsedName + " does not have a label.");
+    }
+    if (!parsedName.empty()) {
+        variablesInScope.insert({parsedName, queryNode});
+    }
     return queryNode;
 }
 

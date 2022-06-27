@@ -117,6 +117,12 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
+TEST_F(BinderErrorTest, BindPropertyNotExist2) {
+    string expectedException = "Binder exception: Node a does not have property foo.";
+    auto input = "Create (a:person {foo:'x'});";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
 TEST_F(BinderErrorTest, BindIDArithmetic) {
     string expectedException =
         "Binder exception: Cannot match a built-in function for given function +(NODE_ID,INT64). "

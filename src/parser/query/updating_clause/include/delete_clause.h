@@ -8,7 +8,6 @@ namespace graphflow {
 namespace parser {
 
 class DeleteClause : public UpdatingClause {
-
 public:
     DeleteClause() : UpdatingClause{ClauseType::DELETE} {};
     ~DeleteClause() override = default;

@@ -25,6 +25,23 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
     }
 }
 
+void UpdatePlanner::planPropertyUpdateInfo(
+    shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto dependentGroupsPos = Enumerator::getDependentGroupsPos(target, *schema);
+    auto targetPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
+    // TODO: xiyang solve together with issue #325
+    auto isTargetFlat = targetPos == UINT32_MAX || schema->getGroup(targetPos)->getIsFlat();
+    assert(property->getChild(0)->dataType.typeID == NODE);
+    auto nodeExpression = static_pointer_cast<NodeExpression>(property->getChild(0));
+    auto originGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
+    auto isOriginFlat = schema->getGroup(originGroupPos)->getIsFlat();
+    // If both are unflat and from different groups, we flatten origin.
+    if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
+        Enumerator::appendFlattenIfNecessary(originGroupPos, plan);
+    }
+}
+
 void UpdatePlanner::appendSink(LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
@@ -43,23 +60,13 @@ void UpdatePlanner::appendSink(LogicalPlan& plan) {
 }
 
 void UpdatePlanner::appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     vector<pair<shared_ptr<Expression>, shared_ptr<Expression>>> setItems;
-    for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
-        auto setItem = setClause.getSetItem(i);
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(setItem->target, *schema);
-        auto targetPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
-        // TODO: xiyang solve together with issue #325
-        auto isTargetFlat = targetPos == UINT32_MAX || schema->getGroup(targetPos)->getIsFlat();
-        assert(setItem->origin->getChild(0)->dataType.typeID == NODE);
-        auto nodeExpression = static_pointer_cast<NodeExpression>(setItem->origin->getChild(0));
-        auto originGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
-        auto isOriginFlat = schema->getGroup(originGroupPos)->getIsFlat();
-        // If both are unflat and from different groups, we flatten target.
-        if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
-            Enumerator::appendFlattenIfNecessary(targetPos, plan);
-        }
-        setItems.emplace_back(setItem->origin, setItem->target);
+    for (auto i = 0u; i < setClause.getNumPropertyUpdateInfos(); ++i) {
+        auto propertyUpdateInfo = setClause.getPropertyUpdateInfo(i);
+        auto property = propertyUpdateInfo->getProperty();
+        auto target = propertyUpdateInfo->getTarget();
+        planPropertyUpdateInfo(property, target, plan);
+        setItems.emplace_back(property, target);
     }
     auto set = make_shared<LogicalSet>(move(setItems), plan.getLastOperator());
     plan.appendOperator(set);
