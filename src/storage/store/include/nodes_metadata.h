@@ -9,8 +9,6 @@
 #include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/store/include/rels_store.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace storage {
 

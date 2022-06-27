@@ -57,7 +57,8 @@ struct StorageConfig {
 
 // Hash Index Configurations
 struct HashIndexConfig {
-    static constexpr uint64_t SLOT_CAPACITY = 4;
+    static constexpr uint8_t SLOT_CAPACITY_LOG_2 = 2;
+    static constexpr uint8_t SLOT_CAPACITY = (uint64_t)1 << SLOT_CAPACITY_LOG_2;
 };
 
 struct LoaderConfig {

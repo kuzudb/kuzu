@@ -1,8 +1,7 @@
 #pragma once
 
-#include "src/loader/include/in_mem_structure/in_mem_file.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 #include "src/storage/include/compression_scheme.h"
-#include "src/storage/storage_structure/include/overflow_pages.h"
 
 namespace graphflow {
 namespace loader {
@@ -20,7 +19,7 @@ public:
     virtual void setElement(node_offset_t offset, const uint8_t* val);
     inline uint8_t* getElement(node_offset_t offset) {
         auto cursor = getPageElementCursorForOffset(offset);
-        return inMemFile->pages[cursor.pageIdx]->data + (cursor.posInPage * numBytesForElement);
+        return inMemFile->getPage(cursor.pageIdx)->data + (cursor.posInPage * numBytesForElement);
     }
 
     virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }

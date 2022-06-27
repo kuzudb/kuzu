@@ -145,7 +145,7 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
     return result;
 }
 
-uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
+const uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case LABEL:
         return sizeof(label_t);

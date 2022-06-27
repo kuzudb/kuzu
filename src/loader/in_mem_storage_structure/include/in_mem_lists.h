@@ -1,9 +1,8 @@
 #pragma once
 
-#include "src/loader/include/in_mem_structure/in_mem_file.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 #include "src/storage/storage_structure/include/lists/list_headers.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
-#include "src/storage/storage_structure/include/overflow_pages.h"
 
 namespace graphflow {
 namespace loader {
@@ -43,7 +42,7 @@ public:
     virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
     inline ListsMetadata* getListsMetadata() { return listsMetadata.get(); }
     inline uint8_t* getMemPtrToLoc(uint64_t pageIdx, uint16_t posInPage) {
-        return inMemFile->pages[pageIdx]->data + (posInPage * numBytesForElement);
+        return inMemFile->getPage(pageIdx)->data + (posInPage * numBytesForElement);
     }
 
     void init();

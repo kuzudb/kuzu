@@ -23,16 +23,17 @@ cc_library(
         "include/storage_utils.h",
     ],
     visibility = [
-        "//src/storage/storage_structure:__pkg__",
+        "//src/loader/in_mem_storage_structure:__pkg__",
         "//src/storage/buffer_manager:__pkg__",
+        "//src/storage/storage_structure:__pkg__",
     ],
     deps = [
-        "//src/storage/wal:wal_record",
         "//src/catalog:catalog_structs",
         "//src/common:configs",
         "//src/common:null_mask",
         "//src/common:utils",
         "//src/common/types",
+        "//src/storage/wal:wal_record",
     ],
 )
 
@@ -48,7 +49,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/storage/store:store",
-        "//src/storage/wal:wal",
+        "//src/storage/store",
+        "//src/storage/wal",
     ],
 )

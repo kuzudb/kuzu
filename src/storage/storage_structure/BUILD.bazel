@@ -3,11 +3,11 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "storage_structure",
     srcs = [
-        "overflow_pages.cpp",
+        "overflow_file.cpp",
         "storage_structure.cpp",
     ],
     hdrs = [
-        "include/overflow_pages.h",
+        "include/overflow_file.h",
         "include/storage_structure.h",
         "include/storage_structure_utils.h",
     ],

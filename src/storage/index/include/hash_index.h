@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <climits>
+#include <iostream>
 
 #include "hash_index_utils.h"
 
@@ -9,18 +10,17 @@
 #include "src/common/include/file_utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/function/hash/operations/include/hash_operations.h"
-#include "src/loader/include/in_mem_structure/in_mem_file.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
-#include "src/storage/storage_structure/include/overflow_pages.h"
+#include "src/storage/storage_structure/include/overflow_file.h"
 
 using namespace graphflow::common;
-using namespace graphflow::loader;
 
 namespace graphflow {
 namespace storage {
 
-// TODO(Guodong): Concurrent writes for string overflows; Merge InMemOverflowFile and OverflowPages.
+using slot_id_t = uint64_t;
+
 /**
  * Each index is stored in a single file that has 3 components in it.
  *
@@ -88,149 +88,89 @@ namespace storage {
  *
  *  */
 
-struct SlotHeader {
-public:
-    SlotHeader() : numEntries{0}, nextOvfSlotId{0} {}
-
-    void reset() {
-        numEntries = 0;
-        nextOvfSlotId = 0;
-    }
-
-public:
-    uint16_t numEntries;
-    uint64_t nextOvfSlotId;
-};
-
-struct HashIndexHeader {
-    friend class HashIndex;
-
-public:
-    explicit HashIndexHeader(DataTypeID keyDataType);
-    HashIndexHeader(const HashIndexHeader& other) = default;
-
-    inline void incrementLevel();
-
-private:
-    uint32_t numBytesPerEntry{0};
-    uint32_t numBytesPerSlot{0};
-    uint32_t numSlotsPerPage{0};
-    uint32_t numPrimaryPages{0};
-    uint32_t numOvfPages{0};
-    uint64_t numEntries{0};
-    uint64_t currentLevel{1};
-    uint64_t levelHashMask{1};
-    uint64_t higherLevelHashMask{3};
-    uint64_t nextSplitSlotId{0};
-    DataTypeID keyDataTypeID;
-};
-
-struct SlotInfo {
-    uint32_t slotId;
-    bool isPrimary;
-};
-
-constexpr uint64_t INDEX_HEADER_PAGE_ID = 0;
-
 class HashIndex {
 
-    enum IndexMode { READ_ONLY, WRITE };
+    static constexpr bool DELETE_FLAG = true;
+    static constexpr bool LOOKUP_FLAG = false;
 
 public:
-    HashIndex(string fName, const DataType& keyDataType, BufferManager& bufferManager,
-        bool isInMemoryForLookup);
+    HashIndex(
+        string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
 
     ~HashIndex();
 
 public:
-    // Reserves space for at least the specified number of elements.
-    // Note: This function is NOT thread-safe.
-    void bulkReserve(uint32_t numEntries);
-
-    inline bool insert(int64_t key, node_offset_t value) {
-        return insertInternal(reinterpret_cast<uint8_t*>(&key), value);
-    }
-    inline bool insert(const char* key, node_offset_t value) {
-        return insertInternal(reinterpret_cast<const uint8_t*>(key), value);
-    }
     inline bool lookup(int64_t key, node_offset_t& result) {
-        return lookupInternal(reinterpret_cast<uint8_t*>(&key), result);
+        return lookupOrDeleteInternal<LOOKUP_FLAG>(reinterpret_cast<uint8_t*>(&key), &result);
     }
     inline bool lookup(const char* key, node_offset_t& result) {
-        return lookupInternal(reinterpret_cast<const uint8_t*>(key), result);
+        return lookupOrDeleteInternal<LOOKUP_FLAG>(reinterpret_cast<const uint8_t*>(key), &result);
+    }
+    inline bool deleteKey(int64_t key) {
+        return lookupOrDeleteInternal<DELETE_FLAG>(reinterpret_cast<uint8_t*>(&key));
+    }
+    inline bool deleteKey(const char* key) {
+        return lookupOrDeleteInternal<DELETE_FLAG>(reinterpret_cast<const uint8_t*>(key));
     }
 
     // Note: This function is NOT thread-safe.
     void flush();
 
 private:
-    void initializeHeaderAndPages(const DataType& keyDataType);
-    bool insertInternal(const uint8_t* key, node_offset_t value);
-    bool lookupInternal(const uint8_t* key, node_offset_t& result);
+    void initializeFileAndHeader(const DataType& keyDataType);
 
-    bool existsInSlot(uint8_t* slot, const uint8_t* key);
-    void insertToSlot(uint8_t* slot, const uint8_t* key, node_offset_t value);
-    uint64_t reserveOvfSlot();
-    bool lookupInSlot(const uint8_t* slot, const uint8_t* key, node_offset_t& result) const;
-    inline uint64_t calculateSlotIdForHash(hash_t hash);
-    inline uint64_t getPageIdForSlot(uint64_t slotId) const {
-        return slotId / indexHeader->numSlotsPerPage;
+    uint8_t* pinSlot(slot_id_t slotId);
+    void unpinSlot(slot_id_t slotId);
+
+    inline void lockSlot(uint64_t slotId) {
+        assert(slotId < slotMutexes.size());
+        shared_lock lck{sharedLockForSlotMutexes};
+        slotMutexes[slotId]->lock();
+    }
+    inline void unlockSlot(uint64_t slotId) {
+        assert(slotId < slotMutexes.size());
+        shared_lock lck{sharedLockForSlotMutexes};
+        slotMutexes[slotId]->unlock();
+    }
+
+    inline uint64_t calculateSlotIdForHash(hash_t hash) {
+        auto slotId = hash & indexHeader->levelHashMask;
+        slotId = slotId >= indexHeader->nextSplitSlotId ? slotId :
+                                                          (hash & indexHeader->higherLevelHashMask);
+        return slotId;
+    }
+    inline uint64_t getPhysicalPageIdForSlot(uint64_t slotId) const {
+        return (slotId / indexHeader->numSlotsPerPage) + 1; // Skip the header page.
     }
     inline uint64_t getSlotIdInPageForSlot(uint64_t slotId) const {
         return slotId % indexHeader->numSlotsPerPage;
-    }
-    uint8_t* getSlotFromPages(const SlotInfo& slotInfo);
-    uint8_t* getSlotInPage(uint8_t* page, uint32_t slotIdInPage) const {
-        return page + (slotIdInPage * indexHeader->numBytesPerSlot);
     }
     inline uint8_t* getEntryInSlot(uint8_t* slot, uint32_t entryId) const {
         return slot + sizeof(SlotHeader) + (entryId * indexHeader->numBytesPerEntry);
     }
 
-    void allocateAndCachePageWithoutLock(bool isPrimary);
-    inline void setDirtyAndUnPinPage(page_idx_t physicalPageIdx) {
-        bm.setPinnedPageDirty(*fh, physicalPageIdx);
-        bm.unpin(*fh, physicalPageIdx);
-    }
-
-    void lockSlot(const SlotInfo& slotInfo);
-    void unLockSlot(const SlotInfo& slotInfo);
-
-    void readLogicalToPhysicalPageMappings();
-    void writeLogicalToPhysicalPageMappings();
+    template<bool IS_DELETE>
+    bool lookupOrDeleteInternal(const uint8_t* key, node_offset_t* result = nullptr);
+    template<bool IS_DELETE>
+    bool lookupOrDeleteInSlot(
+        uint8_t* slot, const uint8_t* key, node_offset_t* result = nullptr) const;
 
 private:
     string fName;
-    bool isInMemoryForLookup;
-    bool isFlushed;
-    IndexMode indexMode;
+    bool isInMemory;
     unique_ptr<FileHandle> fh;
     BufferManager& bm;
     unique_ptr<HashIndexHeader> indexHeader;
 
     hash_function_t keyHashFunc;
-    insert_function_t insertKeyToEntryFunc;
-    equals_in_write_function_t equalsFuncInWrite;
-    equals_in_read_function_t equalsFuncInRead;
+    equals_function_t keyEqualsFunc;
 
-    vector<unique_ptr<mutex>> primarySlotMutexes;
-    vector<unique_ptr<mutex>> ovfSlotMutexes;
     shared_mutex sharedLockForSlotMutexes;
-    vector<page_idx_t> primaryLogicalToPhysicalPagesMapping;
-    vector<page_idx_t> ovfLogicalToPhysicalPagesMapping;
-    vector<uint8_t*> primaryPinnedFrames;
-    vector<uint8_t*> ovfPinnedFrames;
-
-    // Used when writing to the index.
-    unique_ptr<InMemOverflowFile> inMemStringOvfPages;
-    PageByteCursor stringOvfPageCursor;
-    // Used when reading from the index.
-    unique_ptr<OverflowPages> stringOvfPages;
-
-    atomic<uint64_t> numEntries{0};
-    uint64_t numOvfSlots{1};
-    uint64_t ovfSlotsCapacity{0};
+    vector<unique_ptr<mutex>> slotMutexes;
     mutex lockForReservingOvfSlot;
+
+    unique_ptr<OverflowFile> overflowFile;
+    atomic<uint64_t> numEntries{0};
 };
 
 } // namespace storage

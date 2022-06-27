@@ -2,11 +2,10 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/common/include/task_system/task_scheduler.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_column.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_lists.h"
 #include "src/loader/include/dataset_metadata.h"
-#include "src/loader/include/in_mem_structure/in_mem_column.h"
-#include "src/loader/include/in_mem_structure/in_mem_lists.h"
 #include "src/loader/include/loader_progress_bar.h"
-#include "src/loader/include/node_id_map.h"
 
 namespace graphflow {
 namespace loader {

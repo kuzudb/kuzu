@@ -2,7 +2,7 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/common/types/include/literal.h"
-#include "src/storage/storage_structure/include/overflow_pages.h"
+#include "src/storage/storage_structure/include/overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace graphflow::common;
@@ -105,7 +105,7 @@ private:
     }
 
 private:
-    OverflowPages stringOverflowPages;
+    OverflowFile stringOverflowPages;
 };
 
 class ListPropertyColumn : public Column {
@@ -139,7 +139,7 @@ private:
     }
 
 private:
-    OverflowPages listOverflowPages;
+    OverflowFile listOverflowPages;
 };
 
 class AdjColumn : public Column {

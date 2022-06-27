@@ -1,8 +1,8 @@
-#include "src/loader/include/in_mem_structure/builder/in_mem_node_builder.h"
+#include "src/loader/in_mem_builder/include/in_mem_node_builder.h"
 
 #include "spdlog/spdlog.h"
 
-#include "src/loader/include/in_mem_structure/in_mem_file.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 #include "src/loader/include/loader_task.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
@@ -11,25 +11,24 @@ namespace loader {
 
 InMemNodeBuilder::InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    BufferManager& bufferManager, LoaderProgressBar* progressBar)
+    LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{nodeLabel, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
-      IDType{fileDescription.IDType}, numNodes{UINT64_MAX}, bm{bufferManager} {}
+      IDType{fileDescription.IDType}, numNodes{UINT64_MAX} {}
 
-unique_ptr<HashIndex> InMemNodeBuilder::load() {
+void InMemNodeBuilder::load() {
     logger->info("Loading node {} with label {}.", labelName, label);
     numNodes = addLabelToCatalogAndCountLines();
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured lists.
-    auto IDIndex = populateColumnsAndCountUnstrPropertyListSizes(numNodes);
+    populateColumnsAndCountUnstrPropertyListSizes(numNodes);
     if (unstrPropertyLists) {
         calcUnstrListsHeadersAndMetadata();
         populateUnstrPropertyLists();
     }
     saveToFile();
     logger->info("Done loading node {} with label {}.", labelName, label);
-    return IDIndex;
 }
 
 uint64_t InMemNodeBuilder::addLabelToCatalogAndCountLines() {
@@ -93,12 +92,10 @@ vector<unordered_set<string>> InMemNodeBuilder::countLinesPerBlockAndParseUnstrP
     return blockUnstrPropertyNames;
 }
 
-unique_ptr<HashIndex> InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(
-    uint64_t numNodes) {
+void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes) {
     logger->info("Populating structured properties and Counting unstructured properties.");
-    auto IDIndex =
-        make_unique<HashIndex>(StorageUtils::getNodeIndexFName(this->outputDirectory, label),
-            IDType, bm, false /* isInMemoryForLookup */);
+    auto IDIndex = make_unique<InMemHashIndexBuilder>(
+        StorageUtils::getNodeIndexFName(this->outputDirectory, label), IDType);
     IDIndex->bulkReserve(numNodes);
     uint32_t IDColumnIdx = UINT32_MAX;
     auto properties = catalog.getStructuredNodeProperties(label);
@@ -120,24 +117,23 @@ unique_ptr<HashIndex> InMemNodeBuilder::populateColumnsAndCountUnstrPropertyList
     taskScheduler.waitAllTasksToCompleteOrError();
     IDIndex->flush();
     logger->info("Done populating structured properties and counting unstructured properties.");
-    return IDIndex;
 }
 
 template<DataTypeID DT>
-void InMemNodeBuilder::addIDsToIndex(
-    InMemColumn* column, HashIndex* hashIndex, node_offset_t startOffset, uint64_t numValues) {
+void InMemNodeBuilder::addIDsToIndex(InMemColumn* column, InMemHashIndexBuilder* hashIndex,
+    node_offset_t startOffset, uint64_t numValues) {
     assert(DT == INT64 || DT == STRING);
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         if constexpr (DT == INT64) {
             auto key = *(int64_t*)column->getElement(offset);
-            if (!hashIndex->insert(key, offset)) {
+            if (!hashIndex->append(key, offset)) {
                 throw LoaderException("ID value " + to_string(key) +
                                       " violates the uniqueness constraint for the ID property.");
             }
         } else {
             auto key = ((gf_string_t*)column->getElement(offset))->getAsString();
-            if (!hashIndex->insert(key.c_str(), offset)) {
+            if (!hashIndex->append(key.c_str(), offset)) {
                 throw LoaderException("ID value  " + key +
                                       " violates the uniqueness constraint for the ID property.");
             }
@@ -145,8 +141,8 @@ void InMemNodeBuilder::addIDsToIndex(
     }
 }
 
-void InMemNodeBuilder::populateIDIndex(
-    InMemColumn* column, HashIndex* IDIndex, node_offset_t startOffset, uint64_t numValues) {
+void InMemNodeBuilder::populateIDIndex(InMemColumn* column, InMemHashIndexBuilder* IDIndex,
+    node_offset_t startOffset, uint64_t numValues) {
     switch (column->getDataType().typeID) {
     case INT64: {
         addIDsToIndex<INT64>(column, IDIndex, startOffset, numValues);
@@ -162,7 +158,8 @@ void InMemNodeBuilder::populateIDIndex(
 }
 
 void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-    uint64_t blockId, uint64_t startOffset, HashIndex* IDIndex, InMemNodeBuilder* builder) {
+    uint64_t blockId, uint64_t startOffset, InMemHashIndexBuilder* IDIndex,
+    InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
     auto structuredProperties = builder->catalog.getStructuredNodeProperties(builder->label);
     vector<PageByteCursor> overflowCursors(structuredProperties.size());
@@ -335,7 +332,7 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
                 auto gfStr =
-                    column->getOverflowPages()->addString(strVal, overflowCursors[columnIdx]);
+                    column->getOverflowPages()->copyString(strVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfStr));
             }
         } break;
@@ -343,7 +340,7 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*column->getDataType().childType);
                 auto gfList =
-                    column->getOverflowPages()->addList(listVal, overflowCursors[columnIdx]);
+                    column->getOverflowPages()->copyList(listVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfList));
             }
         } break;

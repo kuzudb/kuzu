@@ -5,7 +5,7 @@
 #include "src/storage/storage_structure/include/lists/large_list_handle.h"
 #include "src/storage/storage_structure/include/lists/list_headers.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
-#include "src/storage/storage_structure/include/overflow_pages.h"
+#include "src/storage/storage_structure/include/overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 namespace graphflow {
@@ -78,7 +78,7 @@ private:
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
 private:
-    OverflowPages stringOverflowPages;
+    OverflowFile stringOverflowPages;
 };
 
 class ListPropertyLists : public Lists {
@@ -96,7 +96,7 @@ private:
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
 private:
-    OverflowPages listOverflowPages;
+    OverflowFile listOverflowPages;
 };
 
 class AdjLists : public Lists {

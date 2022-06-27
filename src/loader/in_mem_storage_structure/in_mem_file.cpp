@@ -1,4 +1,4 @@
-#include "src/loader/include/in_mem_structure/in_mem_file.h"
+#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 
 #include "src/common/include/type_utils.h"
 namespace graphflow {
@@ -6,17 +6,19 @@ namespace loader {
 
 InMemFile::InMemFile(
     string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages)
-    : filePath{move(filePath)}, numBytesForElement{numBytesForElement}, numUsedPages{0},
-      hasNullMask{hasNullMask} {
+    : filePath{move(filePath)}, numBytesForElement{numBytesForElement}, hasNullMask{hasNullMask} {
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, hasNullMask);
     for (auto i = 0u; i < numPages; i++) {
         addANewPage();
     }
-};
+}
 
-uint32_t InMemFile::addANewPage() {
+uint32_t InMemFile::addANewPage(bool setToZero) {
     auto newPageIdx = pages.size();
     pages.push_back(make_unique<InMemPage>(numElementsInAPage, numBytesForElement, hasNullMask));
+    if (setToZero) {
+        memset(pages[newPageIdx]->data, 0, DEFAULT_PAGE_SIZE);
+    }
     return newPageIdx;
 }
 
@@ -32,18 +34,40 @@ void InMemFile::flush() {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-gf_string_t InMemOverflowFile::addString(const char* rawString, PageByteCursor& overflowCursor) {
+gf_string_t InMemOverflowFile::appendString(const char* rawString) {
+    gf_string_t result;
+    auto length = strlen(rawString);
+    result.len = length;
+    if (length <= gf_string_t::SHORT_STR_LENGTH) {
+        memcpy(result.prefix, rawString, length);
+    } else {
+        memcpy(&result.prefix, rawString, gf_string_t::PREFIX_LENGTH);
+        unique_lock lck{lock};
+        // Allocate a new page if necessary.
+        if (nextOffsetInPageToAppend + length >= DEFAULT_PAGE_SIZE) {
+            addANewPage();
+            nextOffsetInPageToAppend = 0;
+            nextPageIdxToAppend++;
+        }
+        pages[nextPageIdxToAppend]->write(
+            nextOffsetInPageToAppend, nextOffsetInPageToAppend, (uint8_t*)rawString, length);
+        TypeUtils::encodeOverflowPtr(
+            result.overflowPtr, nextPageIdxToAppend, nextOffsetInPageToAppend);
+        nextOffsetInPageToAppend += length;
+    }
+    return result;
+}
+
+gf_string_t InMemOverflowFile::copyString(const char* rawString, PageByteCursor& overflowCursor) {
     gf_string_t gfString;
     gfString.len = strlen(rawString);
-    memcpy(&gfString.prefix, rawString, min(gfString.len, 4u));
-    if (gfString.len <= 4) {
+    if (gfString.len <= gf_string_t::SHORT_STR_LENGTH) {
+        memcpy(gfString.prefix, rawString, gfString.len);
         return gfString;
+    } else {
+        memcpy(&gfString.prefix, rawString, gf_string_t::PREFIX_LENGTH);
+        copyStringOverflow(overflowCursor, (uint8_t*)rawString, &gfString);
     }
-    if (gfString.len > 4 && gfString.len <= 12) {
-        memcpy(&gfString.data, rawString + 4, gfString.len - 4);
-        return gfString;
-    }
-    copyStringOverflow(overflowCursor, (uint8_t*)rawString, &gfString);
     return gfString;
 }
 
@@ -68,7 +92,7 @@ void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
         vector<gf_string_t> gfStrings(listLiteral.listVal.size());
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             assert(listLiteral.listVal[i].dataType.typeID == STRING);
-            gfStrings[i] = addString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
+            gfStrings[i] = copyString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
@@ -80,7 +104,7 @@ void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
         vector<gf_list_t> gfLists(listLiteral.listVal.size());
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             assert(listLiteral.listVal[i].dataType.typeID == LIST);
-            gfLists[i] = addList(listLiteral.listVal[i], overflowCursor);
+            gfLists[i] = copyList(listLiteral.listVal[i], overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
@@ -93,7 +117,7 @@ void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
     }
 }
 
-gf_list_t InMemOverflowFile::addList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
+gf_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
     assert(listLiteral.dataType.typeID == LIST && !listLiteral.listVal.empty());
     gf_list_t resultGFList;
     auto childDataTypeID = listLiteral.listVal[0].dataType.typeID;
@@ -104,7 +128,7 @@ gf_list_t InMemOverflowFile::addList(const Literal& listLiteral, PageByteCursor&
             DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
-        overflowCursor.pageIdx = getNewOverflowPageIdx();
+        overflowCursor.pageIdx = addANewOverflowPage();
     }
     TypeUtils::encodeOverflowPtr(
         resultGFList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
@@ -138,7 +162,7 @@ void InMemOverflowFile::copyStringOverflow(
     if (overflowCursor.offsetInPage + dstGFString->len >= DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
-        overflowCursor.pageIdx = getNewOverflowPageIdx();
+        overflowCursor.pageIdx = addANewOverflowPage();
     }
     TypeUtils::encodeOverflowPtr(
         dstGFString->overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
@@ -157,7 +181,7 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
             DEFAULT_PAGE_SIZE ||
         dstOverflowCursor.pageIdx == UINT32_MAX) {
         dstOverflowCursor.offsetInPage = 0;
-        dstOverflowCursor.pageIdx = getNewOverflowPageIdx();
+        dstOverflowCursor.pageIdx = addANewOverflowPage();
     }
     shared_lock lck(lock);
     TypeUtils::encodeOverflowPtr(
@@ -192,8 +216,7 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
     }
 }
 
-uint32_t InMemOverflowFile::getNewOverflowPageIdx() {
-    assert(numUsedPages < UINT32_MAX);
+uint32_t InMemOverflowFile::addANewOverflowPage() {
     unique_lock lck(lock);
     auto newPageIdx = pages.size();
     addANewPage();
