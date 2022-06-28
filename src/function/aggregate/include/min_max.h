@@ -41,12 +41,9 @@ struct MinMaxFunction {
     }
 
     template<class OP>
-    static void updatePos(
+    static inline void updatePos(
         uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
-        auto state = reinterpret_cast<MinMaxState*>(state_);
-        if ((!input->state->isFlat() && input->hasNoNullsGuarantee()) || !input->isNull(pos)) {
-            updateSingleValue<OP>(state, input, pos);
-        }
+        updateSingleValue<OP>(reinterpret_cast<MinMaxState*>(state_), input, pos);
     }
 
     template<class OP>

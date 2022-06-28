@@ -226,7 +226,8 @@ cc_library(
     deps = [
         "result",
         "//src/function/aggregate:aggregate_function",
-        "//src/function/hash/operations:hash_operations",
+        "//src/function/hash:vector_hash_operations",
+
     ],
 )
 

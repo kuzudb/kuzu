@@ -1,0 +1,17 @@
+cc_library(
+    name = "vector_hash_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/function:__pkg__",
+        "//src/processor:__pkg__",
+    ],
+    deps = [
+        "//src/function",
+        "//src/function/hash/operations:hash_operations",
+    ],
+)

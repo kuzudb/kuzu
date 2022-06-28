@@ -42,13 +42,11 @@ struct BinaryListPosAndContainsOperationWrapper {
 struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeOnValue(ValueVector& left, ValueVector& right,
+    static inline void executeOnValue(ValueVector& left, ValueVector& right,
         ValueVector& resultValueVector, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        auto lValues = (LEFT_TYPE*)left.values;
-        auto rValues = (RIGHT_TYPE*)right.values;
-        auto resValues = (RESULT_TYPE*)resultValueVector.values;
-        OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(lValues[lPos],
-            rValues[rPos], resValues[resPos], (void*)&left, (void*)&right,
+        OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            ((LEFT_TYPE*)left.values)[lPos], ((RIGHT_TYPE*)right.values)[rPos],
+            ((RESULT_TYPE*)resultValueVector.values)[resPos], (void*)&left, (void*)&right,
             (void*)&resultValueVector);
     }
 

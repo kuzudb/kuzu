@@ -41,15 +41,8 @@ struct Hash {
 };
 
 struct CombineHash {
-    template<class T>
-    static inline void operation(const T& key, bool isNull, hash_t& result) {
-        uint64_t otherHash;
-        if (isNull) {
-            otherHash = NULL_HASH;
-        } else {
-            Hash::operation(key, isNull, otherHash);
-        }
-        result = combineHashScalar(result, otherHash);
+    static inline void operation(hash_t& left, hash_t& right, hash_t& result) {
+        result = combineHashScalar(left, right);
     }
 };
 
@@ -122,42 +115,47 @@ inline void Hash::operation(const unordered_set<string>& key, hash_t& result) {
  **                                          **
  **********************************************/
 
+template<>
+inline void Hash::operation(const Value& key, hash_t& result) {
+    switch (key.dataType.typeID) {
+    case NODE_ID: {
+        Hash::operation<nodeID_t>(key.val.nodeID, result);
+    } break;
+    case BOOL: {
+        Hash::operation<bool>(key.val.booleanVal, result);
+    } break;
+    case INT64: {
+        Hash::operation<int64_t>(key.val.int64Val, result);
+    } break;
+    case DOUBLE: {
+        Hash::operation<double_t>(key.val.doubleVal, result);
+    } break;
+    case STRING: {
+        Hash::operation<gf_string_t>(key.val.strVal, result);
+    } break;
+    case DATE: {
+        Hash::operation<date_t>(key.val.dateVal, result);
+    } break;
+    case TIMESTAMP: {
+        Hash::operation<timestamp_t>(key.val.timestampVal, result);
+    } break;
+    case INTERVAL: {
+        Hash::operation<interval_t>(key.val.intervalVal, result);
+    } break;
+    default: {
+        throw RuntimeException(
+            "Cannot hash data type " + Types::dataTypeToString(key.dataType.typeID));
+    }
+    }
+}
+
 struct HashOnValue {
     static void operation(Value& key, bool isNull, hash_t& result) {
         if (isNull) {
             result = NULL_HASH;
             return;
         }
-        switch (key.dataType.typeID) {
-        case NODE_ID: {
-            Hash::operation<nodeID_t>(key.val.nodeID, isNull, result);
-        } break;
-        case BOOL: {
-            Hash::operation<bool>(key.val.booleanVal, isNull, result);
-        } break;
-        case INT64: {
-            Hash::operation<int64_t>(key.val.int64Val, isNull, result);
-        } break;
-        case DOUBLE: {
-            Hash::operation<double_t>(key.val.doubleVal, isNull, result);
-        } break;
-        case STRING: {
-            Hash::operation<gf_string_t>(key.val.strVal, isNull, result);
-        } break;
-        case DATE: {
-            Hash::operation<date_t>(key.val.dateVal, isNull, result);
-        } break;
-        case TIMESTAMP: {
-            Hash::operation<timestamp_t>(key.val.timestampVal, isNull, result);
-        } break;
-        case INTERVAL: {
-            Hash::operation<interval_t>(key.val.intervalVal, isNull, result);
-        } break;
-        default: {
-            throw RuntimeException(
-                "Cannot hash data type " + Types::dataTypeToString(key.dataType.typeID));
-        }
-        }
+        Hash::operation(key, result);
     }
 };
 

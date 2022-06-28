@@ -23,12 +23,9 @@ struct CountFunction : public BaseCountFunction {
         }
     }
 
-    static void updatePos(
+    static inline void updatePos(
         uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
-        auto state = reinterpret_cast<CountState*>(state_);
-        if ((!input->state->isFlat() && input->hasNoNullsGuarantee()) || !input->isNull(pos)) {
-            state->count += multiplicity;
-        }
+        reinterpret_cast<CountState*>(state_)->count += multiplicity;
     }
 };
 
