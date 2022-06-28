@@ -287,9 +287,9 @@ void AggregateHashTable::findHashSlots(const vector<ValueVector*>& groupByFlatHa
                                          1 :
                                          groupByUnflatHashKeyVectors[0]->state->selectedSize;
     while (numEntriesToFindHashSlots > 0) {
-        auto numFTEntriesToUpdate = 0ul;
-        auto numMayMatches = 0ul;
-        auto numNoMatches = 0ul;
+        uint64_t numFTEntriesToUpdate = 0;
+        uint64_t numMayMatches = 0;
+        uint64_t numNoMatches = 0;
         for (auto i = 0u; i < numEntriesToFindHashSlots; i++) {
             auto idx = tmpValueIdxes[i];
             auto hash = ((hash_t*)hashVector->values)[idx];
@@ -306,7 +306,7 @@ void AggregateHashTable::findHashSlots(const vector<ValueVector*>& groupByFlatHa
         }
         initializeFTEntries(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
             groupByNonHashKeyVectors, numFTEntriesToUpdate);
-        matchFTEntries(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
+        numNoMatches = matchFTEntries(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
             groupByNonHashKeyVectors, numMayMatches, numNoMatches);
         increaseHashSlotIdxes(numNoMatches);
         numEntriesToFindHashSlots = numNoMatches;
@@ -449,7 +449,7 @@ uint64_t AggregateHashTable::matchUnflatVecWithFTColumn(
     ValueVector* vector, uint64_t numMayMatches, uint64_t& numNoMatches, uint32_t colIdx) {
     assert(!vector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema().getColOffset(colIdx);
-    auto mayMatchIdx = 0ul;
+    uint64_t mayMatchIdx = 0;
     if (vector->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < numMayMatches; i++) {
             auto idx = mayMatchIdxes[i];
@@ -499,7 +499,7 @@ uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
     ValueVector* vector, uint64_t numMayMatches, uint64_t& numNoMatches, uint32_t colIdx) {
     assert(vector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema().getColOffset(colIdx);
-    auto mayMatchIdx = 0ul;
+    uint64_t mayMatchIdx = 0;
     auto pos = vector->state->currIdx;
     auto isVectorNull = vector->isNull(pos);
     auto value = vector->values + pos * vector->getNumBytesPerValue();
@@ -525,10 +525,10 @@ uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
     return mayMatchIdx;
 }
 
-void AggregateHashTable::matchFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+uint64_t AggregateHashTable::matchFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
     const vector<ValueVector*>& groupByUnflatHashKeyVectors,
     const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numMayMatches,
-    uint64_t& numNoMatches) {
+    uint64_t numNoMatches) {
     auto colIdx = 0u;
     for (auto& groupByFlatHashKeyVector : groupByFlatHashKeyVectors) {
         numMayMatches = matchFlatVecWithFTColumn(
@@ -549,6 +549,7 @@ void AggregateHashTable::matchFTEntries(const vector<ValueVector*>& groupByFlatH
                 groupByNonHashKeyVector, numMayMatches, numNoMatches, colIdx++);
         }
     }
+    return numNoMatches;
 }
 
 bool AggregateHashTable::matchGroupByKeys(uint8_t* entryBuffer, uint8_t* entryBufferToMatch) {

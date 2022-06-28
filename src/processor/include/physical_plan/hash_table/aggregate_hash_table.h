@@ -167,10 +167,10 @@ private:
     uint64_t matchFlatVecWithFTColumn(
         ValueVector* vector, uint64_t numMayMatches, uint64_t& numNoMatches, uint32_t colIdx);
 
-    void matchFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
+    uint64_t matchFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnflatHashKeyVectors,
         const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numMayMatches,
-        uint64_t& numNoMatches);
+        uint64_t numNoMatches);
 
     //! check if keys are the same as keys stored in entryBufferToMatch.
     bool matchGroupByKeys(uint8_t* keys, uint8_t* entryBufferToMatch);
