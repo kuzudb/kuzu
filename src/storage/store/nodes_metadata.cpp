@@ -206,7 +206,7 @@ void NodeMetadata::commitIfNecessary() {
     if (!hasUpdates()) {
         return;
     }
-    nodeOffsetsInfoForReadOnlyTrx = make_unique<NodeOffsetsInfo>(*nodeOffsetsInfoForWriteTrx);
+    nodeOffsetsInfoForReadOnlyTrx = move(nodeOffsetsInfoForWriteTrx);
 }
 
 NodesMetadata::NodesMetadata(const string& directory) {

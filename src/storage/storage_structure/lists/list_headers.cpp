@@ -3,28 +3,31 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/utils.h"
-#include "src/storage/include/storage_utils.h"
 
 namespace graphflow {
 namespace storage {
 
-ListHeaders::ListHeaders(uint32_t size) : size{size} {
+ListHeaders::ListHeaders(const string& fName, uint64_t numElements) {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    headers = make_unique<uint32_t[]>(size);
+    auto fileHandle = make_shared<FileHandle>(
+        fName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    // DiskArray assumes that its header page already exists. To ensure that we need to add a page
+    // to the fileHandle. Currently the header page is at page 0, so we add one page here.
+    fileHandle->addNewPage();
+    headers = make_unique<InMemDiskArray<list_header_t>>(
+        fileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements);
 }
 
-ListHeaders::ListHeaders(const string& listBaseFName) : ListHeaders(0) {
-    readFromDisk(listBaseFName);
-    logger->trace("AdjListHeaders: #Headers {}", sizeof(headers.get()));
+ListHeaders::ListHeaders(const string& listBaseFName) {
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    auto fileHandle = make_shared<FileHandle>(
+        listBaseFName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    headers = make_unique<InMemDiskArray<list_header_t>>(fileHandle, LIST_HEADERS_HEADER_PAGE_IDX);
+    logger->trace("ListHeaders: #numNodeOffsets {}", headers->header.numElements);
 };
 
-void ListHeaders::saveToDisk(const string& fName) {
-    StorageUtils::saveListOfIntsToFile(fName + ".headers", (uint8_t*)headers.get(), size);
-}
-
-void ListHeaders::readFromDisk(const string& fName) {
-    auto listSize = StorageUtils::readListOfIntsFromFile(headers, fName + ".headers");
-    this->size = listSize;
+void ListHeaders::saveToDisk() {
+    headers->saveToDisk();
 }
 
 } // namespace storage

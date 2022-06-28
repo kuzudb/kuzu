@@ -75,7 +75,7 @@ public:
     InMemAdjLists(string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numNodes)
         : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes()},
           compressionScheme{compressionScheme} {
-        listHeaders = make_unique<ListHeaders>(numNodes);
+        listHeaders = make_unique<ListHeaders>(this->fName, numNodes);
     };
 
     ~InMemAdjLists() override = default;
@@ -111,7 +111,7 @@ public:
     InMemUnstructuredLists(string fName, uint64_t numNodes)
         : InMemListsWithOverflow{move(fName), DataType(UNSTRUCTURED)} {
         listSizes = make_unique<atomic_uint64_vec_t>(numNodes);
-        listHeaders = make_unique<ListHeaders>(numNodes);
+        listHeaders = make_unique<ListHeaders>(this->fName, numNodes);
     };
 
     inline ListHeaders* getListHeaders() { return listHeaders.get(); }

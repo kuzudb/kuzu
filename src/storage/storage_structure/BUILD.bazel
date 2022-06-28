@@ -1,4 +1,17 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+cc_library(
+    name = "disk_array",
+    srcs = [
+        "disk_array.cpp",
+    ],
+    hdrs = [
+        "include/disk_array.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/storage/buffer_manager:file_handle",
+    ],
+)
 
 cc_library(
     name = "storage_structure",
@@ -13,6 +26,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "disk_array",
         "//src/common:vector",
         "//src/storage:compression_scheme",
         "//src/storage:storage_utils",

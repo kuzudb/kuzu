@@ -71,6 +71,7 @@ struct StorageStructureID {
         label_t nodeLabel, uint32_t propertyID) {
         return newStructuredNodePropertyColumnID(nodeLabel, propertyID, false /* is main file */);
     }
+
     inline static StorageStructureID newStructuredNodePropertyColumnOverflowPagesID(
         label_t nodeLabel, uint32_t propertyID) {
         return newStructuredNodePropertyColumnID(
