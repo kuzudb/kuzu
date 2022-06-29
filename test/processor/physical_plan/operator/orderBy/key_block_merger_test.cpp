@@ -67,9 +67,9 @@ public:
         vector<shared_ptr<ValueVector>> allVectors{
             valueVector}; // all columns including orderBy and payload columns
 
-        TableSchema tableSchema;
-        tableSchema.appendColumn(
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -80,11 +80,11 @@ public:
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tableSchema.appendColumn(
-                {false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
+            tableSchema->appendColumn(make_unique<ColumnSchema>(
+                false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
         }
 
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
         factorizedTable->append(allVectors);
 
         vector<bool> isAscOrder = {isAsc};
@@ -144,7 +144,7 @@ public:
 
     OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t factorizedTableIdx,
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk,
-        TableSchema& tableSchema) {
+        unique_ptr<TableSchema> tableSchema) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
             orderByVectors.emplace_back(dataChunk->getValueVector(i));
@@ -154,7 +154,7 @@ public:
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
             factorizedTableIdx, numTuplesPerBlockInFT);
 
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
@@ -210,14 +210,17 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        TableSchema tableSchema(
-            {{false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)},
-                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)},
-                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)}});
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)));
 
         if (hasStrCol) {
-            tableSchema.appendColumn(
-                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)});
+            tableSchema->appendColumn(make_unique<ColumnSchema>(
+                false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);
@@ -235,13 +238,13 @@ public:
 
         vector<shared_ptr<FactorizedTable>> factorizedTables;
         for (auto i = 0; i < 4; i++) {
-            factorizedTables.emplace_back(
-                make_unique<FactorizedTable>(memoryManager.get(), tableSchema));
+            factorizedTables.emplace_back(make_unique<FactorizedTable>(
+                memoryManager.get(), make_unique<TableSchema>(*tableSchema)));
         }
         auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
-            4 /* ftIdx */, factorizedTables, dataChunk2, tableSchema);
+            4 /* ftIdx */, factorizedTables, dataChunk2, make_unique<TableSchema>(*tableSchema));
         auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(
-            5 /* ftIdx */, factorizedTables, dataChunk1, tableSchema);
+            5 /* ftIdx */, factorizedTables, dataChunk1, make_unique<TableSchema>(*tableSchema));
 
         vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
         vector<uint64_t> expectedFactorizedTableIdxOrder = {4, 5, 5, 4, 5, 4, 4};
@@ -249,7 +252,7 @@ public:
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         if (hasStrCol) {
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                tableSchema.getColOffset(3 /* colIdx */) /* colOffsetInFT */,
+                tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
                 Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
                     Types::getDataTypeSize(TIMESTAMP) + 3,
                 true /* isAscOrder */, true /* isStrCol */));
@@ -297,10 +300,16 @@ public:
             dataChunk->getValueVector(1), dataChunk->getValueVector(2),
             dataChunk->getValueVector(3)};
 
-        TableSchema tableSchema(
-            vector<ColumnSchema>(4, ColumnSchema(false /* isUnflat */, 0 /* dataChunkPos */,
-                                        Types::getDataTypeSize(STRING))));
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
@@ -360,8 +369,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumTuplesTest) {
     vector<uint64_t> expectedFactorizedTableIdxOrder(
         leftSortingData.size() + rightSortingData.size());
     // Each memory block can hold a maximum of 240 tuples (4096 / (8 + 9)).
-    // We fill the leftSortingData with the even numbers of 0-480 and the rightSortingData with the
-    // odd numbers of 0-480 so that each of them takes up exactly one memoryBlock.
+    // We fill the leftSortingData with the even numbers of 0-480 and the rightSortingData with
+    // the odd numbers of 0-480 so that each of them takes up exactly one memoryBlock.
     for (auto i = 0u; i < 480; i++) {
         if (i % 2) {
             expectedBlockOffsetOrder.emplace_back(rightSortingData.size());
@@ -472,14 +481,14 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
 
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema().getColOffset(0 /* colIdx */),
+            factorizedTables[0]->getTableSchema()->getColOffset(0 /* colIdx */),
             0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */, true /* isStrCol */),
         StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema().getColOffset(1 /* colIdx */),
+            factorizedTables[0]->getTableSchema()->getColOffset(1 /* colIdx */),
             orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */,
             true /* isStrCol */),
         StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema().getColOffset(3 /* colIdx */),
+            factorizedTables[0]->getTableSchema()->getColOffset(3 /* colIdx */),
             orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */,
             true /* isStrCol */)};
 

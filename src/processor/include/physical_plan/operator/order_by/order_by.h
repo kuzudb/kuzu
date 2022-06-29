@@ -25,6 +25,8 @@ public:
         : nextFactorizedTableIdx{0}, sortedKeyBlocks{
                                          make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
 
+    inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
+
     uint8_t getNextFactorizedTableIdx() {
         lock_guard<mutex> lck{orderBySharedStateMutex};
         return nextFactorizedTableIdx++;
@@ -51,18 +53,22 @@ public:
         this->numBytesPerTuple = numBytesPerTuple;
     }
 
-    void setStringAndUnstructuredKeyColInfo(
-        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
-    }
-
     void setDataTypes(vector<DataType> dataTypes) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
         this->dataTypes = move(dataTypes);
     }
 
-    inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
+    void combineFTHasNoNullGuarantee() {
+        for (auto i = 1u; i < factorizedTables.size(); i++) {
+            factorizedTables[0]->mergeMayContainNulls(*factorizedTables[i]);
+        }
+    }
+
+    void setStringAndUnstructuredKeyColInfo(
+        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
+        lock_guard<mutex> lck{orderBySharedStateMutex};
+        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
+    }
 
 private:
     mutex orderBySharedStateMutex;
@@ -110,6 +116,14 @@ public:
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void execute(ExecutionContext* context) override;
+
+    void finalize(ExecutionContext* context) {
+        // TODO(Ziyi): we always call lookup function on the first factorizedTable in sharedState
+        // and that lookup function may read tuples in other factorizedTable, So we need to combine
+        // hasNoNullGuarantee with other factorizedTables. This is not a good way to solve this
+        // problem, and should be changed later.
+        sharedState->combineFTHasNoNullGuarantee();
+    }
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderBy>(

@@ -33,7 +33,7 @@ public:
     inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
     // Note that if this function returns true, there are no null. However if it returns false, it
     // doesn't mean there are nulls, i.e., there may or may not be nulls.
-    inline bool hasNoNullsGuarantee() {
+    inline bool hasNoNullsGuarantee() const {
         // This function should not be used for flat values. For flat values, the null value
         // of the value should be checked directly.
         assert(!state->isFlat());

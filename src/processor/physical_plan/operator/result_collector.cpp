@@ -4,11 +4,11 @@ namespace graphflow {
 namespace processor {
 
 void FTableSharedState::initTableIfNecessary(
-    MemoryManager* memoryManager, const TableSchema& tableSchema) {
+    MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema) {
     lock_guard<mutex> lck{mtx};
     if (table == nullptr) {
         nextTupleIdxToScan = 0u;
-        table = make_unique<FactorizedTable>(memoryManager, tableSchema);
+        table = make_unique<FactorizedTable>(memoryManager, move(tableSchema));
     }
 }
 
@@ -22,18 +22,20 @@ unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize
 
 shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    TableSchema tableSchema;
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
     for (auto& vectorToCollectInfo : vectorsToCollectInfo) {
         auto dataPos = vectorToCollectInfo.first;
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
         vectorsToCollect.push_back(vector);
-        tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
-            vectorToCollectInfo.second ? vector->getNumBytesPerValue() :
-                                         (uint32_t)sizeof(overflow_value_t)});
+        tableSchema->appendColumn(
+            make_unique<ColumnSchema>(!vectorToCollectInfo.second, dataPos.dataChunkPos,
+                vectorToCollectInfo.second ? vector->getNumBytesPerValue() :
+                                             (uint32_t)sizeof(overflow_value_t)));
     }
-    localTable = make_unique<FactorizedTable>(context->memoryManager, tableSchema);
-    sharedState->initTableIfNecessary(context->memoryManager, tableSchema);
+    localTable = make_unique<FactorizedTable>(
+        context->memoryManager, make_unique<TableSchema>(*tableSchema));
+    sharedState->initTableIfNecessary(context->memoryManager, move(tableSchema));
     return resultSet;
 }
 

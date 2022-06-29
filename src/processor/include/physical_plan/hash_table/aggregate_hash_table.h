@@ -92,7 +92,7 @@ private:
 
     inline void fillEntryWithNullMap(uint8_t* entryNullBuffer, uint8_t* groupByKeyNullBuffer) {
         memcpy(entryNullBuffer, groupByKeyNullBuffer,
-            factorizedTable->getTableSchema().getNumBytesForNullMap());
+            factorizedTable->getTableSchema()->getNumBytesForNullMap());
     }
 
     void initializeFT(const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);

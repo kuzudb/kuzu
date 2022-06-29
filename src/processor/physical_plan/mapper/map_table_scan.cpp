@@ -12,19 +12,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalTableScanToPhysical(
     auto& logicalTableScan = (LogicalStaticTableScan&)*logicalOperator;
     auto sharedState = make_shared<FTableSharedState>();
     // populate static table
-    vector<ColumnSchema> columnSchemas;
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
     vector<shared_ptr<ValueVector>> vectors;
     for (auto& expression : logicalTableScan.getExpressions()) {
-        columnSchemas.push_back(
-            ColumnSchema(false, mapperContext.getDataPos(expression->getUniqueName()).dataChunkPos,
-                Types::getDataTypeSize(expression->dataType)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(false,
+            mapperContext.getDataPos(expression->getUniqueName()).dataChunkPos,
+            Types::getDataTypeSize(expression->dataType)));
         auto expressionEvaluator = expressionMapper.mapExpression(expression, mapperContext);
         // expression can be evaluated statically and does not require an actual resultset to init
         expressionEvaluator->init(ResultSet(0) /* dummy resultset */, memoryManager);
         expressionEvaluator->evaluate();
         vectors.push_back(expressionEvaluator->resultVector);
     }
-    sharedState->initTableIfNecessary(memoryManager, TableSchema(columnSchemas));
+    sharedState->initTableIfNecessary(memoryManager, move(tableSchema));
     auto table = sharedState->getTable();
     table->append(vectors);
     // map factorized table scan

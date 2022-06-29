@@ -6,10 +6,10 @@ namespace graphflow {
 namespace processor {
 
 void HashJoinSharedState::initEmptyHashTableIfNecessary(
-    MemoryManager& memoryManager, TableSchema& tableSchema) {
+    MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema) {
     lock_guard<mutex> lck(hashJoinSharedStateMutex);
     if (hashTable == nullptr) {
-        hashTable = make_unique<JoinHashTable>(memoryManager, 0 /* numTuples */, tableSchema);
+        hashTable = make_unique<JoinHashTable>(memoryManager, 0 /* numTuples */, move(tableSchema));
     }
 }
 
@@ -20,11 +20,11 @@ void HashJoinSharedState::mergeLocalFactorizedTable(FactorizedTable& factorizedT
 
 shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    TableSchema tableSchema;
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    tableSchema.appendColumn({false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos(),
-        Types::getDataTypeSize(keyVector->dataType)});
+    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* isUnflat */,
+        buildDataInfo.getKeyIDDataChunkPos(), Types::getDataTypeSize(keyVector->dataType)));
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
@@ -32,18 +32,19 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
-        tableSchema.appendColumn({!isVectorFlat, dataChunkPos,
+        tableSchema->appendColumn(make_unique<ColumnSchema>(!isVectorFlat, dataChunkPos,
             isVectorFlat ? Types::getDataTypeSize(vector->dataType) :
-                           (uint32_t)sizeof(overflow_value_t)});
+                           (uint32_t)sizeof(overflow_value_t)));
         vectorsToAppend.push_back(vector);
         sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }
     // The prev pointer column.
-    tableSchema.appendColumn(
-        {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
-            Types::getDataTypeSize(INT64)});
-    factorizedTable = make_unique<FactorizedTable>(context->memoryManager, tableSchema);
-    sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, tableSchema);
+    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* isUnflat */,
+        UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
+        Types::getDataTypeSize(INT64)));
+    factorizedTable = make_unique<FactorizedTable>(
+        context->memoryManager, make_unique<TableSchema>(*tableSchema));
+    sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, move(tableSchema));
     return resultSet;
 }
 
@@ -51,14 +52,14 @@ void HashJoinBuild::finalize(ExecutionContext* context) {
     auto hashTable = sharedState->getHashTable();
     auto factorizedTable = hashTable->getFactorizedTable();
     hashTable->allocateHashSlots(factorizedTable->getNumTuples());
-    auto& tableSchema = factorizedTable->getTableSchema();
+    auto tableSchema = factorizedTable->getTableSchema();
     for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
         uint8_t* tuple = tupleBlock->getData();
         for (auto i = 0u; i < tupleBlock->numTuples; i++) {
             auto lastSlotEntryInHT = hashTable->insertEntry<nodeID_t>(tuple);
-            auto prevPtr = (uint8_t**)(tuple + tableSchema.getNullMapOffset() - sizeof(uint8_t*));
+            auto prevPtr = (uint8_t**)(tuple + tableSchema->getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));
-            tuple += tableSchema.getNumBytesPerTuple();
+            tuple += tableSchema->getNumBytesPerTuple();
         }
     }
 }

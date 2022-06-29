@@ -81,9 +81,9 @@ public:
             valueVector}; // all columns including orderBy and payload columns
         vector<bool> isAscOrder{isAsc};
 
-        TableSchema tupleSchema;
-        tupleSchema.appendColumn(
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -96,20 +96,22 @@ public:
             // To test whether the orderByCol -> ftIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendColumn(
-                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                tupleSchema.getColOffset(1) /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */,
-                isAsc, is_same<T, string>::value /* isStrCol */));
+            tableSchema->appendColumn(make_unique<ColumnSchema>(
+                false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(tableSchema->getColOffset(1) /* colOffsetInFT */,
+                    0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                    is_same<T, string>::value /* isStrCol */));
         } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
             // If this is a string or unstructured column and has no payload column, then the
             // factorizedTable offset is just 0.
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                tupleSchema.getColOffset(0) /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */,
-                isAsc, is_same<T, string>::value /* isStrCol */));
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(tableSchema->getColOffset(0) /* colOffsetInFT */,
+                    0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                    is_same<T, string>::value /* isStrCol */));
         }
 
-        FactorizedTable factorizedTable(memoryManager.get(), tupleSchema);
+        FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
         factorizedTable.append(allVectors);
 
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
@@ -129,14 +131,14 @@ public:
         vector<shared_ptr<ValueVector>> orderByVectors;
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
-        TableSchema tableSchema;
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            tableSchema.appendColumn(
-                {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)});
+            tableSchema->appendColumn(make_unique<ColumnSchema>(
+                false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
             stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
-                tableSchema.getColOffset(stringAndUnstructuredKeyColInfo.size()),
+                tableSchema->getColOffset(stringAndUnstructuredKeyColInfo.size()),
                 stringAndUnstructuredKeyColInfo.size() *
                     OrderByKeyEncoder::getEncodingSize(stringValueVector->dataType),
                 isAscOrder[i], true /* isStrCol */));
@@ -147,7 +149,7 @@ public:
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
+        FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
 
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
             factorizedTableIdx, numTuplesPerBlockInFT);
@@ -422,13 +424,19 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    TableSchema tableSchema(
-        {{false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DATE)}});
-    FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)));
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)));
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)));
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DATE)));
+
+    FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(16 /* colOffsetInFT */,
             OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
