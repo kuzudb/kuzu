@@ -27,17 +27,13 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
 
 InMemLists::InMemLists(string fName, DataType dataType, uint64_t numBytesForElement)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
-    listsMetadata = make_unique<ListsMetadata>();
-}
-
-void InMemLists::init() {
-    inMemFile = make_unique<InMemFile>(fName, numBytesForElement,
-        this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED,
-        listsMetadata->getNumPages());
+    listsMetadata = make_unique<ListsMetadata>(this->fName, true /* is for building */);
+    inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement,
+        this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED);
 }
 
 void InMemLists::saveToFile() {
-    listsMetadata->saveToDisk(fName);
+    listsMetadata->saveToDisk();
     inMemFile->flush();
 }
 

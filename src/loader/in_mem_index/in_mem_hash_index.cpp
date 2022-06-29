@@ -38,9 +38,7 @@ void InMemHashIndexBuilder::bulkReserve(uint32_t numEntries_) {
         requiredNumPages++;
     }
     // Pre-allocate all pages. The first page has already been allocated and page 0 is reserved.
-    for (auto i = 0; i < requiredNumPages; i++) {
-        inMemFile->addANewPage(true /* setToZero */);
-    }
+    inMemFile->addNewPages(requiredNumPages, true /* setToZero */);
     auto previousNumSlots = slotMutexes.size();
     numSlots += requiredNumSlots;
     slotsCapacity += requiredNumPages * indexHeader->numSlotsPerPage;

@@ -45,14 +45,14 @@ public:
         return inMemFile->getPage(pageIdx)->data + (posInPage * numBytesForElement);
     }
 
-    void init();
+public:
+    unique_ptr<InMemFile> inMemFile;
 
 protected:
     string fName;
     DataType dataType;
     uint64_t numBytesForElement;
     unique_ptr<ListsMetadata> listsMetadata;
-    unique_ptr<InMemFile> inMemFile;
 };
 
 class InMemListsWithOverflow : public InMemLists {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/storage/storage_structure/include/disk_array.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace std;
@@ -8,6 +9,12 @@ using namespace graphflow::common;
 namespace spdlog {
 class logger;
 }
+
+namespace graphflow {
+namespace loader {
+class LoaderEmptyListsTest;
+} // namespace loader
+} // namespace graphflow
 
 namespace graphflow {
 namespace storage {
@@ -21,28 +28,30 @@ namespace storage {
  * location of the list to the actual physical location in disk pages.
  */
 class ListsMetadata {
+    friend class graphflow::loader::LoaderEmptyListsTest;
+
+    static constexpr uint64_t CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX = 0;
+    static constexpr uint64_t LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX = 1;
+    static constexpr uint64_t CHUNK_PAGE_LIST_HEADER_PAGE_IDX = 2;
 
 public:
-    ListsMetadata();
-    explicit ListsMetadata(const string& listBaseFName);
+    explicit ListsMetadata(const string& listBaseFName, bool isForBuilding);
 
-    inline uint32_t getNumPages() const { return numPages; }
-    inline void setNumPages(uint32_t numPages_) { numPages = numPages_; }
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
-        return largeListIdxToPageListHeadIdxMap[(2 * largeListIdx) + 1];
+        return (*largeListIdxToPageListHeadIdxMap)[(2 * largeListIdx) + 1];
     };
 
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
         return getLogicalToPhysicalPageMapper(
-            chunkPageLists.get(), chunkToPageListHeadIdxMap[chunkIdx]);
+            pageLists.get(), (*chunkToPageListHeadIdxMap)[chunkIdx]);
     }
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
         return getLogicalToPhysicalPageMapper(
-            largeListPageLists.get(), largeListIdxToPageListHeadIdxMap[2 * largeListIdx]);
+            pageLists.get(), (*largeListIdxToPageListHeadIdxMap)[2 * largeListIdx]);
     }
 
     void initChunkPageLists(uint32_t numChunks);
@@ -56,30 +65,25 @@ public:
     void populateLargeListPageList(
         uint32_t largeListIdx, uint32_t numPages, uint32_t numElements, uint32_t startPageId);
 
-    void saveToDisk(const string& fName);
+    void saveToDisk();
 
 private:
     void readFromDisk(const string& fName);
 
     inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
-        uint32_t* pageLists, uint32_t pageListsHead) {
+        InMemDiskArray<page_idx_t>* pageLists, uint32_t pageListsHead) {
         return bind(getPageIdxFromAPageList, pageLists, pageListsHead, placeholders::_1);
     }
 
     static uint64_t getPageIdxFromAPageList(
-        uint32_t* pageLists, uint32_t pageListHead, uint32_t logicalPageIdx);
+        InMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t logicalPageIdx);
 
     // Below functions are to be used only in the loader to create the ListsMetadata object
     // initially.
 
     // Creates a new pageList (in pageListGroups of size 3) by enumerating the pageIds sequentially
     // in the list, starting from `startPageId` till `startPageId + numPages - 1`.
-    static uint32_t enumeratePageIdsInAPageList(unique_ptr<uint32_t[]>& pageLists,
-        uint64_t& pageListsCapacity, uint32_t pageListHead, uint32_t numPages,
-        uint32_t startPageId);
-
-    static void increasePageListsCapacityIfNeeded(
-        unique_ptr<uint32_t[]>& pageLists, uint64_t& pageListsCapacity, uint32_t requiredCapacity);
+    void populatePageIdsInAPageList(uint32_t numPages, uint32_t startPageId);
 
 public:
     // All pageLists (defined later) are broken in pieces (called a pageListGroups) of size
@@ -87,49 +91,27 @@ public:
     // PAGE_LIST_GROUP_SIZE elements of that list and the offset to the next pageListGroups in the
     // blob that contains all pageListGroups of all lists.
     static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 3;
-
-    // Metadata file suffixes
-    static constexpr char CHUNK_PAGE_LIST_HEAD_IDX_MAP_SUFFIX[] = ".chunks.f1";
-    static constexpr char CHUNK_PAGE_LISTS_SUFFIX[] = ".chunks.f2";
-    static constexpr char LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX[] = ".largeLists.f1";
-    static constexpr char LARGE_LISTS_PAGE_LISTS_SUFFIX[] = ".largeLists.f2";
+    static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
 
 private:
     shared_ptr<spdlog::logger> logger;
-
-    // A chunk's pageList is a list of indexes of physical pages on disk allocated for that chunk.
-    // The physical pages in the chunk holds lists of nodes in that chunk. Pages may not be
-    // contiguous on disk.
-    uint32_t numChunks;
+    unique_ptr<FileHandle> metadataFileHandle;
     // chunkToPageListHeadIdxMap holds pointers to the head of pageList of each chunk. For instance,
-    // chunkToPageListHeadIdxMap[3] is a pointer in `chunkPageLists` from where the pageList of
+    // chunkToPageListHeadIdxMap[3] is a pointer in `pageLists` from where the pageList of
     // chunk 3 begins.
-    unique_ptr<uint32_t[]> chunkToPageListHeadIdxMap;
-    // chunkPageLists is a blob that contains the pageList of each chunk. Each pageList is broken
-    // into smaller list group of size PAGE_LIST_GROUP_SIZE and chained together. List group may
-    // not be contiguous and requires pointer chasing to read the required physical pageId from the
-    // list.
-    unique_ptr<uint32_t[]> chunkPageLists;
-    // chunkPageListsCapacity holds the total space available to chunkPageLists, irrespective of the
-    // space in actual use.
-    uint64_t chunkPageListsCapacity;
-
-    // A largeList's pageList is a list of IDs of physical pages on disk allocated for storing data
-    // of that large list.
-    uint32_t numLargeLists;
+    unique_ptr<InMemDiskArray<uint32_t>> chunkToPageListHeadIdxMap;
     // largeListIdxToPageListHeadIdxMap is similar to chunkToPageListHeadIdxMap in the sense that it
     // too holds pointers to the head of pageList of each large list. Along with the pointer, this
     // also stores the size of the large list adjacent to the pointer. For instance, the pointer of
     // the head of pageList for largeList 3 is at largeListIdxToPageListHeadIdxMap[2
     // * 3] and the size is at largeListIdxToPageListHeadIdxMap[(2 * 3) + 1].
-    unique_ptr<uint32_t[]> largeListIdxToPageListHeadIdxMap;
-    // largeListPageLists has use and organization identical to chunkPageLists.
-    unique_ptr<uint32_t[]> largeListPageLists;
-    uint64_t largeListPageListsCapacity;
-
-    // Total number of pages that is used to store the Lists data. This is the sum of number of
-    // pages used by all chunks and large lists.
-    uint32_t numPages;
+    unique_ptr<InMemDiskArray<uint32_t>> largeListIdxToPageListHeadIdxMap;
+    // pageLists is a blob that contains the pageList of each chunk. Each pageList is broken
+    // into smaller list group of size PAGE_LIST_GROUP_SIZE and chained together. List group may
+    // not be contiguous and requires pointer chasing to read the required physical pageId from the
+    // list. pageLists is used both to store the list of pages for large lists as well as small
+    // lists of each chunk.
+    unique_ptr<InMemDiskArray<page_idx_t>> pageLists;
 };
 
 } // namespace storage

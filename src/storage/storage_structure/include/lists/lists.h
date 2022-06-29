@@ -9,6 +9,12 @@
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 namespace graphflow {
+namespace loader {
+class LoaderEmptyListsTest;
+} // namespace loader
+} // namespace graphflow
+
+namespace graphflow {
 namespace storage {
 
 struct ListInfo {
@@ -33,6 +39,7 @@ struct ListInfo {
  * actual physical location in the Lists file on disk.
  * */
 class Lists : public BaseColumnOrList {
+    friend class graphflow::loader::LoaderEmptyListsTest;
 
 public:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -50,7 +57,7 @@ protected:
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
         bool isInMemory)
         : BaseColumnOrList{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
-          metadata{fName}, headers(move(headers)){};
+          metadata{fName, false /* is not for building */}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
