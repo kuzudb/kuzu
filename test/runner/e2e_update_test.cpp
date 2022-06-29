@@ -163,3 +163,25 @@ TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
     auto result = conn->query("MATCH (a:person) WHERE a.ID = 10 DELETE a;");
     ASSERT_FALSE(result->isSuccess());
 }
+
+// NOTE: this query should error once we enforce primary key to be unique
+TEST_F(TinySnbUpdateTest, InsertNodeTest) {
+    conn->beginWriteTransaction(); // TODO(Semih): check why auto-commit doesn't work
+    unique_ptr<QueryResult> result;
+    result = conn->query("MATCH (:person) CREATE (:person {ID:100});");
+    assert(result->isSuccess());
+    result = conn->query("MATCH (:person) RETURN COUNT(*)");
+    auto groundTruth = vector<string>{"16"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+// NOTE: this query should error once we enforce primary key to be unique
+TEST_F(TinySnbUpdateTest, InsertNodeTest2) {
+    conn->beginWriteTransaction(); // TODO(Semih): check why auto-commit doesn't work
+    unique_ptr<QueryResult> result;
+    result = conn->query("MATCH (:person)-[:knows]->(:person) CREATE (:person {ID:100});");
+    assert(result->isSuccess());
+    result = conn->query("MATCH (:person) RETURN COUNT(*)");
+    auto groundTruth = vector<string>{"22"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}

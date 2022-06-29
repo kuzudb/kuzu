@@ -14,6 +14,10 @@ public:
     inline void addNodeUpdateInfo(unique_ptr<NodeUpdateInfo> updateInfo) {
         nodeUpdateInfos.push_back(move(updateInfo));
     }
+    inline uint32_t getNumNodeUpdateInfo() const { return nodeUpdateInfos.size(); }
+    inline NodeUpdateInfo* getNodeUpdateInfo(uint32_t idx) const {
+        return nodeUpdateInfos[idx].get();
+    }
 
     inline expression_vector getPropertiesToRead() const override {
         expression_vector result;

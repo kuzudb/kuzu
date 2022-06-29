@@ -15,12 +15,11 @@ namespace graphflow {
 namespace processor {
 
 class PlanMapper {
-
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(const StorageManager& storageManager)
-        : storageManager{storageManager}, outerMapperContext{nullptr}, expressionMapper{},
-          physicalOperatorID{0} {}
+    PlanMapper(const StorageManager& storageManager, MemoryManager* memoryManager)
+        : storageManager{storageManager}, memoryManager{memoryManager}, outerMapperContext{nullptr},
+          expressionMapper{}, physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
@@ -73,6 +72,10 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalSinkToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalTableScanToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalCreateToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalDeleteToPhysical(
@@ -100,6 +103,7 @@ private:
 
 public:
     const StorageManager& storageManager;
+    MemoryManager* memoryManager;
     const MapperContext* outerMapperContext;
     ExpressionMapper expressionMapper;
 

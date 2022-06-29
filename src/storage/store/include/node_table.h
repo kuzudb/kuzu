@@ -29,6 +29,7 @@ public:
     }
     inline HashIndex* getIDIndex() const { return IDIndex.get(); }
 
+    inline void addNode() { nodeMetadata->addNode(); }
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
 private:

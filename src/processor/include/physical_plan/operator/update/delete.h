@@ -16,11 +16,11 @@ public:
           primaryKeyVectorPositions{move(primaryKeyVectorPositions)}, nodeTables{move(nodeTables)} {
     }
 
+    PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::DELETE; }
+
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
-
-    PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::DELETE; }
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<DeleteNodeStructuredProperty>(nodeIDVectorPositions,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/binder/query/updating_clause/include/bound_create_clause.h"
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
 #include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
@@ -29,6 +30,8 @@ private:
         shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan);
 
     void appendSink(LogicalPlan& plan);
+    void appendTableScan(BoundCreateClause& createClause, LogicalPlan& plan);
+    void appendCreate(BoundCreateClause& createClause, LogicalPlan& plan);
     void appendSet(BoundSetClause& setClause, LogicalPlan& plan);
     void appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
 

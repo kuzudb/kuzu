@@ -6,7 +6,6 @@ namespace graphflow {
 namespace processor {
 
 class FactorizedTableScan : public BaseTableScan {
-
 public:
     FactorizedTableScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,

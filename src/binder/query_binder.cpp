@@ -1,9 +1,6 @@
 #include "src/binder/include/query_binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/query/updating_clause/include/bound_create_clause.h"
-#include "src/binder/query/updating_clause/include/bound_delete_clause.h"
-#include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/common/include/type_utils.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
@@ -107,6 +104,8 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindCreateClause(
             nodeUpdateInfo->addPropertyUpdateInfo(
                 make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
         }
+        validateNodeCreateHasPrimaryKeyInput(
+            *nodeUpdateInfo, catalog.getNodePrimaryKeyProperty(node->getLabel()));
         boundCreateClause->addNodeUpdateInfo(move(nodeUpdateInfo));
     }
     return boundCreateClause;
@@ -531,6 +530,19 @@ void QueryBinder::validateReadNotFollowUpdate(const NormalizedSingleQuery& norma
         }
         hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();
     }
+}
+
+void QueryBinder::validateNodeCreateHasPrimaryKeyInput(
+    const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty) {
+    for (auto i = 0u; i < nodeUpdateInfo.getNumPropertyUpdateInfo(); ++i) {
+        auto& property =
+            (PropertyExpression&)*nodeUpdateInfo.getPropertyUpdateInfo(i)->getProperty();
+        if (property.getPropertyKey() == primaryKeyProperty.propertyID) {
+            return;
+        }
+    }
+    throw BinderException("Create node " + nodeUpdateInfo.getNodeExpression()->getRawName() +
+                          " expects primary key input.");
 }
 
 string QueryBinder::getUniqueExpressionName(const string& name) {
