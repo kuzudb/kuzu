@@ -8,7 +8,7 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
 
     // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
-    TableSchema tableSchema;
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
     vector<DataType> dataTypes;
     // Loop through all columns to initialize the factorizedTable.
     // We need to store all columns(including keys and payload) in the factorizedTable.
@@ -26,14 +26,14 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
             flattenAllColumnsInFactorizedTable = true;
         }
         bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
-        tableSchema.appendColumn({isUnflat, dataChunkPos,
-            isUnflat ? (uint32_t)sizeof(overflow_value_t) : vector->getNumBytesPerValue()});
+        tableSchema->appendColumn(make_unique<ColumnSchema>(isUnflat, dataChunkPos,
+            isUnflat ? (uint32_t)sizeof(overflow_value_t) : vector->getNumBytesPerValue()));
         dataTypes.push_back(vector->dataType);
         vectorsToAppend.push_back(vector);
     }
 
     // Create a factorizedTable and append it to sharedState.
-    localFactorizedTable = make_shared<FactorizedTable>(context->memoryManager, tableSchema);
+    localFactorizedTable = make_shared<FactorizedTable>(context->memoryManager, move(tableSchema));
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     sharedState->setDataTypes(dataTypes);
@@ -56,7 +56,7 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
                 }
             }
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                localFactorizedTable->getTableSchema().getColOffset(factorizedTableColIdx),
+                localFactorizedTable->getTableSchema()->getColOffset(factorizedTableColIdx),
                 encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i],
                 STRING == vector->dataType.typeID));
         }

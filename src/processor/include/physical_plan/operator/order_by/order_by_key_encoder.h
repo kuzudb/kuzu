@@ -15,6 +15,20 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
+#define BSWAP64(x)                                                                                 \
+    ((uint64_t)((((uint64_t)(x)&0xff00000000000000ull) >> 56) |                                    \
+                (((uint64_t)(x)&0x00ff000000000000ull) >> 40) |                                    \
+                (((uint64_t)(x)&0x0000ff0000000000ull) >> 24) |                                    \
+                (((uint64_t)(x)&0x000000ff00000000ull) >> 8) |                                     \
+                (((uint64_t)(x)&0x00000000ff000000ull) << 8) |                                     \
+                (((uint64_t)(x)&0x0000000000ff0000ull) << 24) |                                    \
+                (((uint64_t)(x)&0x000000000000ff00ull) << 40) |                                    \
+                (((uint64_t)(x)&0x00000000000000ffull) << 56)))
+
+#define BSWAP32(x)                                                                                 \
+    ((uint32_t)((((uint32_t)(x)&0xff000000) >> 24) | (((uint32_t)(x)&0x00ff0000) >> 8) |           \
+                (((uint32_t)(x)&0x0000ff00) << 8) | (((uint32_t)(x)&0x000000ff) << 24)))
+
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
 // hardware, the least-significant byte is stored at the smallest address. To encode the sorting
@@ -26,6 +40,8 @@ namespace processor {
 // and negative numbers. So the final encoding for 73(INT64) and 38(INT64) as an 8-byte binary
 // string is: 73=0x8000000000000049 38=0x8000000000000026. To handle the null in comparison, we
 // add an extra byte(called the NULL flag) to represent whether this value is null or not.
+
+using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 
 class OrderByKeyEncoder {
 
@@ -70,30 +86,34 @@ public:
 private:
     static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }
 
+    template<typename type>
+    static inline void encodeTemplate(const uint8_t* data, uint8_t* resultPtr, bool swapBytes) {
+        encodeData(*(type*)data, resultPtr, swapBytes);
+    }
+
+    template<typename type>
+    static void encodeData(type data, uint8_t* resultPtr, bool swapBytes) {
+        assert(false);
+    }
+
     static bool isLittleEndian();
 
-    void encodeInt32(int32_t data, uint8_t* resultPtr);
+    void flipBytesIfNecessary(
+        uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, DataType& type);
 
-    void encodeInt64(int64_t data, uint8_t* resultPtr);
+    void encodeFlatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx);
 
-    void encodeBool(bool data, uint8_t* resultPtr);
+    void encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
+        uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
-    void encodeDouble(double data, uint8_t* resultPtr);
+    void encodeVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+        uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
-    void encodeDate(date_t data, uint8_t* resultPtr);
-
-    void encodeTimestamp(timestamp_t data, uint8_t* resultPtr);
-
-    void encodeInterval(interval_t data, uint8_t* resultPtr);
-
-    void encodeString(gf_string_t data, uint8_t* resultPtr);
-
-    void encodeUnstr(uint8_t* resultPtr);
+    void encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleInfoPtr);
 
     void allocateMemoryIfFull();
 
-    void encodeData(shared_ptr<ValueVector>& orderByVector, uint32_t idxInOrderByVector,
-        uint8_t* keyBlockPtr, uint32_t keyColIdx);
+    static encode_function_t getEncodingFunction(DataTypeID typeId);
 
 private:
     MemoryManager* memoryManager;
@@ -112,6 +132,7 @@ private:
     uint32_t numTuplesPerBlockInFT;
     // We need to swap the encoded binary strings if we are using little endian hardware.
     bool swapBytes;
+    vector<encode_function_t> encodeFunctions;
 };
 
 } // namespace processor

@@ -29,7 +29,7 @@ bool HashAggregateScan::getNextTuples() {
         groupByKeyVectors, startOffset, numRowsToScan, groupByKeyVectorsColIdxes);
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);
-        auto offset = sharedState->getFactorizedTable()->getTableSchema().getColOffset(
+        auto offset = sharedState->getFactorizedTable()->getTableSchema()->getColOffset(
             groupByKeyVectors.size());
         for (auto& vector : aggregateVectors) {
             auto aggState = (AggregateState*)(entry + offset);

@@ -62,9 +62,12 @@ public:
 
     unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) {
         // Prepare the factorizedTable and unflat vectors (A1, B1).
-        TableSchema tupleSchema({{false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)},
-            {true /* isUnflat */, 1 /* dataChunkPos */, sizeof(overflow_value_t)}});
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
+        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
+        tableSchema->appendColumn(make_unique<ColumnSchema>(
+            true /* isUnflat */, 1 /* dataChunkPos */, sizeof(overflow_value_t)));
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
         vector<shared_ptr<ValueVector>> vectorsToAppend = {
             resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[1]->valueVectors[0]};
         if (isAppendFlatVectorToUnflatCol) {
@@ -113,17 +116,20 @@ public:
 
 TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     // Prepare the factorizedTable and vector B1 (flat), A2(unflat).
-    TableSchema tableSchema({{false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)},
-        {true /* isUnflat */, 0 /* dataChunkPos */, sizeof(overflow_value_t)}});
-    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    tableSchema->appendColumn(
+        make_unique<ColumnSchema>(false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)));
+    tableSchema->appendColumn(make_unique<ColumnSchema>(
+        true /* isUnflat */, 0 /* dataChunkPos */, sizeof(overflow_value_t)));
+    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
     resultSet->dataChunks[1]->state->currIdx = 0;
     vector<shared_ptr<ValueVector>> vectorsToAppend = {
         resultSet->dataChunks[1]->valueVectors[0], resultSet->dataChunks[0]->valueVectors[1]};
 
     // Append B1, A2 to the factorizedTable where B1 is a flat valueVector and A2 is an unflat
     // valueVector. The first column in the factorizedTable stores the values of B1, and the
-    // second column stores the overflow pointer to an overflow buffer which contains the values of
-    // A2.
+    // second column stores the overflow pointer to an overflow buffer which contains the values
+    // of A2.
     for (auto i = 0u; i < 100; i++) {
         factorizedTable->append(vectorsToAppend);
         resultSet->dataChunks[1]->state->currIdx++;
@@ -240,11 +246,12 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     for (auto i = 0u; i < numRowsToAppend; i++) {
         strValueVector->addString(i, to_string(i) + "with long string overflow");
     }
-    TableSchema tupleSchema({
-        {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)},
-    });
-    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
-    auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
+    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    tableSchema->appendColumn(
+        make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
+    auto factorizedTable =
+        make_unique<FactorizedTable>(memoryManager.get(), make_unique<TableSchema>(*tableSchema));
+    auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
 
     // Append same testing data to factorizedTable and factorizedTable1.
     for (auto i = 0u; i < numRowsToAppend; i++) {

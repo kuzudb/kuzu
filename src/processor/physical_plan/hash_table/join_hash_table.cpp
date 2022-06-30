@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 JoinHashTable::JoinHashTable(
-    MemoryManager& memoryManager, uint64_t numTuples, TableSchema& tableSchema)
+    MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema)
     : BaseHashTable{memoryManager} {
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(numTuples * 2);
     bitMask = maxNumHashSlots - 1;
@@ -14,7 +14,7 @@ JoinHashTable::JoinHashTable(
     for (auto i = 0u; i < numBlocks; i++) {
         hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
     }
-    factorizedTable = make_unique<FactorizedTable>(&memoryManager, tableSchema);
+    factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(tableSchema));
 }
 
 void JoinHashTable::allocateHashSlots(uint64_t numTuples) {

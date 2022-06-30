@@ -13,7 +13,8 @@ namespace processor {
 
 class JoinHashTable : public BaseHashTable {
 public:
-    JoinHashTable(MemoryManager& memoryManager, uint64_t numTuples, TableSchema& tableSchema);
+    JoinHashTable(
+        MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema);
 
     template<class T>
     uint8_t** findHashEntry(T value) const {

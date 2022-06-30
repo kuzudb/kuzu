@@ -57,9 +57,10 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             auto nodeID = *(nodeID_t*)probeState->probedTuple;
             probeState->matchedTuples[probeState->numMatchedTuples] = probeState->probedTuple;
             probeState->numMatchedTuples += nodeID == probeState->probeSideKeyNodeID;
-            probeState->probedTuple = *(
-                uint8_t**)(probeState->probedTuple +
-                           factorizedTable->getTableSchema().getNullMapOffset() - sizeof(uint8_t*));
+            probeState->probedTuple =
+                *(uint8_t**)(probeState->probedTuple +
+                             factorizedTable->getTableSchema()->getNullMapOffset() -
+                             sizeof(uint8_t*));
         }
     } while (probeState->numMatchedTuples == 0);
 }

@@ -18,7 +18,7 @@ struct FTableScanMorsel {
 
 class FTableSharedState {
 public:
-    void initTableIfNecessary(MemoryManager* memoryManager, const TableSchema& tableSchema);
+    void initTableIfNecessary(MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema);
 
     inline void mergeLocalTable(FactorizedTable& localTable) {
         lock_guard<mutex> lck{mtx};

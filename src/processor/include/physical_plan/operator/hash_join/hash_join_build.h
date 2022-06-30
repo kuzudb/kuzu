@@ -21,7 +21,8 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, TableSchema& tableSchema);
+    void initEmptyHashTableIfNecessary(
+        MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema);
 
     void mergeLocalFactorizedTable(FactorizedTable& factorizedTable);
 

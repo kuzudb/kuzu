@@ -9,17 +9,24 @@ using namespace std;
 namespace graphflow {
 namespace processor {
 
-TableSchema::TableSchema(const vector<ColumnSchema>& columns) {
-    for (auto& column : columns) {
-        appendColumn(column);
+ColumnSchema::ColumnSchema(const ColumnSchema& other) {
+    isUnflat = other.isUnflat;
+    dataChunkPos = other.dataChunkPos;
+    numBytes = other.numBytes;
+    mayContainNulls = other.mayContainNulls;
+}
+
+TableSchema::TableSchema(const TableSchema& other) {
+    for (auto& column : other.columns) {
+        appendColumn(make_unique<ColumnSchema>(*column));
     }
 }
 
-void TableSchema::appendColumn(const ColumnSchema& column) {
-    columns.push_back(column);
+void TableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
+    numBytesForDataPerTuple += column->getNumBytes();
+    columns.push_back(move(column));
     colOffsets.push_back(
-        colOffsets.empty() ? 0 : colOffsets.back() + getColumn(columns.size() - 2).getNumBytes());
-    numBytesForDataPerTuple += column.getNumBytes();
+        colOffsets.empty() ? 0 : colOffsets.back() + getColumn(columns.size() - 2)->getNumBytes());
     numBytesForNullMapPerTuple = getNumBytesForNullBuffer(getNumColumns());
     numBytesPerTuple = numBytesForDataPerTuple + numBytesForNullMapPerTuple;
 }
@@ -29,7 +36,7 @@ bool TableSchema::operator==(const TableSchema& other) const {
         return false;
     }
     for (auto i = 0u; i < columns.size(); i++) {
-        if (columns[i] != other.columns[i]) {
+        if (*columns[i] != *other.columns[i]) {
             return false;
         }
     }
@@ -37,12 +44,13 @@ bool TableSchema::operator==(const TableSchema& other) const {
            other.numBytesForNullMapPerTuple;
 }
 
-FactorizedTable::FactorizedTable(MemoryManager* memoryManager, const TableSchema& tableSchema)
-    : memoryManager{memoryManager}, tableSchema{tableSchema}, numTuples{0}, numTuplesPerBlock{0} {
-    assert(tableSchema.getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
-    if (!tableSchema.isEmpty()) {
+FactorizedTable::FactorizedTable(MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema)
+    : memoryManager{memoryManager}, tableSchema{move(tableSchema)}, numTuples{0}, numTuplesPerBlock{
+                                                                                      0} {
+    assert(this->tableSchema->getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
+    if (!this->tableSchema->isEmpty()) {
         overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
-        numTuplesPerBlock = LARGE_PAGE_SIZE / tableSchema.getNumBytesPerTuple();
+        numTuplesPerBlock = LARGE_PAGE_SIZE / this->tableSchema->getNumBytesPerTuple();
     }
 }
 
@@ -83,7 +91,7 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     assert(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
         uint64_t colIdx = colIdxesToScan[i];
-        if (tableSchema.getColumn(colIdx).getIsUnflat()) {
+        if (tableSchema->getColumn(colIdx)->getIsUnflat()) {
             // If the caller wants to read an unflat column from factorizedTable, the vector
             // must be unflat and the numTuplesToScan should be 1.
             assert(!vectors[i]->state->isFlat() && numTuplesToRead == 1);
@@ -95,16 +103,25 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     }
 }
 
+void FactorizedTable::mergeMayContainNulls(FactorizedTable& other) {
+    for (auto i = 0u; i < other.tableSchema->getNumColumns(); i++) {
+        if (!other.hasNoNullGuarantee(i)) {
+            tableSchema->setMayContainsNullsToTrue(i);
+        }
+    }
+}
+
 void FactorizedTable::merge(FactorizedTable& other) {
-    assert(tableSchema == other.tableSchema);
+    assert(*tableSchema == *other.tableSchema);
+    mergeMayContainNulls(other);
     move(begin(other.vectorOverflowBlocks), end(other.vectorOverflowBlocks),
         back_inserter(vectorOverflowBlocks));
     auto appendInfos = allocateTupleBlocks(other.numTuples);
     auto otherTupleIdx = 0u;
     for (auto& appendInfo : appendInfos) {
         for (auto i = 0u; i < appendInfo.numTuplesToAppend; i++) {
-            memcpy(appendInfo.data + i * tableSchema.getNumBytesPerTuple(),
-                other.getTuple(otherTupleIdx), tableSchema.getNumBytesPerTuple());
+            memcpy(appendInfo.data + i * tableSchema->getNumBytesPerTuple(),
+                other.getTuple(otherTupleIdx), tableSchema->getNumBytesPerTuple());
             otherTupleIdx++;
         }
     }
@@ -113,7 +130,7 @@ void FactorizedTable::merge(FactorizedTable& other) {
 }
 
 bool FactorizedTable::hasUnflatCol() const {
-    vector<uint32_t> colIdxes(tableSchema.getNumColumns());
+    vector<uint32_t> colIdxes(tableSchema->getNumColumns());
     iota(colIdxes.begin(), colIdxes.end(), 0);
     return hasUnflatCol(colIdxes);
 }
@@ -130,38 +147,72 @@ uint64_t FactorizedTable::getNumFlatTuples(uint64_t tupleIdx) const {
     unordered_map<uint32_t, bool> calculatedDataChunkPoses;
     uint64_t numFlatTuples = 1;
     auto tupleBuffer = getTuple(tupleIdx);
-    for (auto i = 0u; i < tableSchema.getNumColumns(); i++) {
-        auto column = tableSchema.getColumn(i);
-        if (!calculatedDataChunkPoses.contains(column.getDataChunkPos())) {
-            calculatedDataChunkPoses[column.getDataChunkPos()] = true;
+    for (auto i = 0u; i < tableSchema->getNumColumns(); i++) {
+        auto column = tableSchema->getColumn(i);
+        if (!calculatedDataChunkPoses.contains(column->getDataChunkPos())) {
+            calculatedDataChunkPoses[column->getDataChunkPos()] = true;
             numFlatTuples *=
-                (column.getIsUnflat() ? ((overflow_value_t*)tupleBuffer)->numElements : 1);
+                (column->getIsUnflat() ? ((overflow_value_t*)tupleBuffer)->numElements : 1);
         }
-        tupleBuffer += column.getNumBytes();
+        tupleBuffer += column->getNumBytes();
     }
     return numFlatTuples;
+}
+
+uint8_t* FactorizedTable::getTuple(uint64_t tupleIdx) const {
+    assert(tupleIdx < numTuples);
+    auto blockIdxAndTupleIdxInBlock = getBlockIdxAndTupleIdxInBlock(tupleIdx);
+    return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first]->getData() +
+           blockIdxAndTupleIdxInBlock.second * tableSchema->getNumBytesPerTuple();
 }
 
 void FactorizedTable::updateFlatCell(
     uint8_t* tuplePtr, uint32_t colIdx, ValueVector* valueVector, uint32_t pos) {
     if (valueVector->isNull(pos)) {
-        setNull(tuplePtr + tableSchema.getNullMapOffset(), colIdx);
+        setNonOverflowColNull(tuplePtr + tableSchema->getNullMapOffset(), colIdx);
     } else {
         ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
-            *valueVector, pos, tuplePtr + tableSchema.getColOffset(colIdx), *overflowBuffer);
+            *valueVector, pos, tuplePtr + tableSchema->getColOffset(colIdx), *overflowBuffer);
     }
 }
 
-void FactorizedTable::setNull(uint8_t* nullBuffer, uint32_t colIdx) {
-    uint64_t nullMapIdx = colIdx >> 3;
-    uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
+bool FactorizedTable::isOverflowColNull(
+    const uint8_t* nullBuffer, uint32_t tupleIdx, uint32_t colIdx) const {
+    assert(colIdx < tableSchema->getNumColumns());
+    if (tableSchema->getColumn(colIdx)->hasNoNullGuarantee()) {
+        return false;
+    }
+    return isNull(nullBuffer, tupleIdx);
+}
+
+bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const {
+    assert(colIdx < tableSchema->getNumColumns());
+    if (tableSchema->getColumn(colIdx)->hasNoNullGuarantee()) {
+        return false;
+    }
+    return isNull(nullBuffer, colIdx);
+}
+
+bool FactorizedTable::isNull(const uint8_t* nullMapBuffer, uint32_t idx) {
+    uint32_t nullMapIdx = idx >> 3;
+    uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8
+    return nullMapBuffer[nullMapIdx] & nullMapMask;
+}
+
+void FactorizedTable::setNull(uint8_t* nullBuffer, uint32_t idx) {
+    uint64_t nullMapIdx = idx >> 3;
+    uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8
     nullBuffer[nullMapIdx] |= nullMapMask;
 }
 
-bool FactorizedTable::isNull(const uint8_t* nullBuffer, uint32_t colIdx) {
-    uint32_t nullMapIdx = colIdx >> 3;
-    uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
-    return nullBuffer[nullMapIdx] & nullMapMask;
+void FactorizedTable::setOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx, uint32_t tupleIdx) {
+    setNull(nullBuffer, tupleIdx);
+    tableSchema->setMayContainsNullsToTrue(colIdx);
+}
+
+void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx) {
+    setNull(nullBuffer, colIdx);
+    tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
 uint64_t FactorizedTable::computeNumTuplesToAppend(
@@ -172,14 +223,14 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
         // If the caller tries to append an unflat column to a flat column in the factorizedTable,
         // the factorizedTable needs to flatten that vector.
-        if (!tableSchema.getColumn(i).getIsUnflat() && !vectorsToAppend[i]->state->isFlat()) {
+        if (!tableSchema->getColumn(i)->getIsUnflat() && !vectorsToAppend[i]->state->isFlat()) {
             // The caller is not allowed to append multiple unflat columns from different datachunks
             // to multiple flat columns in the factorizedTable.
             if (unflatDataChunkPos != -1 &&
-                tableSchema.getColumn(i).getDataChunkPos() != unflatDataChunkPos) {
+                tableSchema->getColumn(i)->getDataChunkPos() != unflatDataChunkPos) {
                 assert(false);
             }
-            unflatDataChunkPos = tableSchema.getColumn(i).getDataChunkPos();
+            unflatDataChunkPos = tableSchema->getColumn(i)->getDataChunkPos();
             numTuplesToAppend = vectorsToAppend[i]->state->selectedSize;
         }
     }
@@ -187,7 +238,7 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
 }
 
 vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numTuplesToAppend) {
-    auto numBytesPerTuple = tableSchema.getNumBytesPerTuple();
+    auto numBytesPerTuple = tableSchema->getNumBytesPerTuple();
     assert(numBytesPerTuple < LARGE_PAGE_SIZE);
     vector<BlockAppendingInfo> appendingInfos;
     while (numTuplesToAppend > 0) {
@@ -219,48 +270,132 @@ uint8_t* FactorizedTable::allocateOverflowBlocks(uint32_t numBytes) {
     return vectorOverflowBlocks.back()->getData();
 }
 
-void FactorizedTable::copyVectorToDataBlock(const ValueVector& vector,
-    const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, uint32_t colIdx) {
-    auto colOffsetInDataBlock = tableSchema.getColOffset(colIdx);
-    if (tableSchema.getColumn(colIdx).getIsUnflat()) {
-        // For unflat column, we only store a overflow_value_t, which contains a pointer to the
-        // overflow dataBlock, in the factorizedTable. The nullMasks are stored in the overflow
-        // buffer.
-        auto overflowValue = appendUnFlatVectorToOverflowBlocks(vector);
-        auto blockPtr = blockAppendInfo.data + colOffsetInDataBlock;
-        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
-            memcpy(blockPtr, (uint8_t*)&overflowValue, sizeof(overflow_value_t));
-            blockPtr += tableSchema.getNumBytesPerTuple();
-        }
-    } else {
-        // Append a flat/unflat valueVector to a flat column in the factorizedTable.
-        auto dstDataPtr = blockAppendInfo.data;
-        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
-            auto valuePositionInVectorToAppend =
-                vector.state->isFlat() ? vector.state->getPositionOfCurrIdx() :
-                                         vector.state->selectedPositions[numAppendedTuples + i];
+void FactorizedTable::copyFlatVectorToFlatColumn(
+    const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, uint32_t colIdx) {
+    auto valuePositionInVectorToAppend = vector.state->getPositionOfCurrIdx();
+    auto colOffsetInDataBlock = tableSchema->getColOffset(colIdx);
+    auto dstDataPtr = blockAppendInfo.data;
+    for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+        if (vector.isNull(valuePositionInVectorToAppend)) {
+            setNonOverflowColNull(dstDataPtr + tableSchema->getNullMapOffset(), colIdx);
+        } else {
             ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(vector,
                 valuePositionInVectorToAppend, dstDataPtr + colOffsetInDataBlock, *overflowBuffer);
-            if (vector.isNull(valuePositionInVectorToAppend)) {
-                setNull(dstDataPtr + tableSchema.getNullMapOffset(), colIdx);
+        }
+        dstDataPtr += tableSchema->getNumBytesPerTuple();
+    }
+}
+
+void FactorizedTable::copyUnflatVectorToFlatColumn(const ValueVector& vector,
+    const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, uint32_t colIdx) {
+    auto colOffsetInDataBlock = tableSchema->getColOffset(colIdx);
+    auto dstDataPtr = blockAppendInfo.data;
+    if (vector.state->isUnfiltered()) {
+        if (vector.hasNoNullsGuarantee()) {
+            for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+                ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(vector,
+                    numAppendedTuples + i, dstDataPtr + colOffsetInDataBlock, *overflowBuffer);
+                dstDataPtr += tableSchema->getNumBytesPerTuple();
             }
-            dstDataPtr += tableSchema.getNumBytesPerTuple();
+        } else {
+            for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+                if (vector.isNull(numAppendedTuples + i)) {
+                    setNonOverflowColNull(dstDataPtr + tableSchema->getNullMapOffset(), colIdx);
+                } else {
+                    ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(vector,
+                        numAppendedTuples + i, dstDataPtr + colOffsetInDataBlock, *overflowBuffer);
+                }
+                dstDataPtr += tableSchema->getNumBytesPerTuple();
+            }
+        }
+    } else {
+        if (vector.hasNoNullsGuarantee()) {
+            for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+                ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(vector,
+                    vector.state->selectedPositions[numAppendedTuples + i],
+                    dstDataPtr + colOffsetInDataBlock, *overflowBuffer);
+                dstDataPtr += tableSchema->getNumBytesPerTuple();
+            }
+        } else {
+            for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+                auto pos = vector.state->selectedPositions[numAppendedTuples + i];
+                if (vector.isNull(pos)) {
+                    setNonOverflowColNull(dstDataPtr + tableSchema->getNullMapOffset(), colIdx);
+                } else {
+                    ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+                        vector, pos, dstDataPtr + colOffsetInDataBlock, *overflowBuffer);
+                }
+                dstDataPtr += tableSchema->getNumBytesPerTuple();
+            }
         }
     }
 }
 
-overflow_value_t FactorizedTable::appendUnFlatVectorToOverflowBlocks(const ValueVector& vector) {
+void FactorizedTable::copyVectorToDataBlock(const ValueVector& vector,
+    const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, uint32_t colIdx) {
+    auto colOffsetInDataBlock = tableSchema->getColOffset(colIdx);
+    if (tableSchema->getColumn(colIdx)->getIsUnflat()) {
+        // For unflat column, we only store a overflow_value_t, which contains a pointer to the
+        // overflow dataBlock, in the factorizedTable. The nullMasks are stored in the overflow
+        // buffer.
+        auto overflowValue = appendUnFlatVectorToOverflowBlocks(vector, colIdx);
+        auto blockPtr = blockAppendInfo.data + colOffsetInDataBlock;
+        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+            memcpy(blockPtr, (uint8_t*)&overflowValue, sizeof(overflow_value_t));
+            blockPtr += tableSchema->getNumBytesPerTuple();
+        }
+    } else {
+        copyVectorToFlatColumn(vector, blockAppendInfo, numAppendedTuples, colIdx);
+    }
+}
+
+overflow_value_t FactorizedTable::appendUnFlatVectorToOverflowBlocks(
+    const ValueVector& vector, uint32_t colIdx) {
     assert(!vector.state->isFlat());
     auto numFlatTuplesInVector = vector.state->selectedSize;
     auto numBytesForData = vector.getNumBytesPerValue() * numFlatTuplesInVector;
     auto overflowBlockBuffer = allocateOverflowBlocks(
         numBytesForData + TableSchema::getNumBytesForNullBuffer(numFlatTuplesInVector));
-    for (auto i = 0u; i < numFlatTuplesInVector; i++) {
-        auto dstDataBuffer = overflowBlockBuffer + i * vector.getNumBytesPerValue();
-        ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
-            vector, vector.state->selectedPositions[i], dstDataBuffer, *overflowBuffer);
-        if (vector.isNull(vector.state->selectedPositions[i])) {
-            setNull(overflowBlockBuffer + numBytesForData, i);
+    if (vector.state->isUnfiltered()) {
+        if (vector.hasNoNullsGuarantee()) {
+            auto dstDataBuffer = overflowBlockBuffer;
+            for (auto i = 0u; i < numFlatTuplesInVector; i++) {
+                ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+                    vector, i, dstDataBuffer, *overflowBuffer);
+                dstDataBuffer += vector.getNumBytesPerValue();
+            }
+        } else {
+            auto dstDataBuffer = overflowBlockBuffer;
+            for (auto i = 0u; i < numFlatTuplesInVector; i++) {
+                if (vector.isNull(i)) {
+                    setOverflowColNull(overflowBlockBuffer + numBytesForData, colIdx, i);
+                } else {
+                    ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+                        vector, i, dstDataBuffer, *overflowBuffer);
+                }
+                dstDataBuffer += vector.getNumBytesPerValue();
+            }
+        }
+    } else {
+        if (vector.hasNoNullsGuarantee()) {
+            auto dstDataBuffer = overflowBlockBuffer;
+            for (auto i = 0u; i < numFlatTuplesInVector; i++) {
+                ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+                    vector, vector.state->selectedPositions[i], dstDataBuffer, *overflowBuffer);
+                dstDataBuffer += vector.getNumBytesPerValue();
+            }
+        } else {
+            auto dstDataBuffer = overflowBlockBuffer;
+            for (auto i = 0u; i < numFlatTuplesInVector; i++) {
+                auto pos = vector.state->selectedPositions[i];
+                if (vector.isNull(pos)) {
+                    setOverflowColNull(overflowBlockBuffer + numBytesForData, colIdx, i);
+                } else {
+                    ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
+                        vector, pos, dstDataBuffer, *overflowBuffer);
+                }
+                dstDataBuffer += vector.getNumBytesPerValue();
+            }
         }
     }
     return overflow_value_t{numFlatTuplesInVector, overflowBlockBuffer};
@@ -269,45 +404,69 @@ overflow_value_t FactorizedTable::appendUnFlatVectorToOverflowBlocks(const Value
 void FactorizedTable::readUnflatCol(
     uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const {
     auto vectorOverflowValue =
-        *(overflow_value_t*)(tuplesToRead[0] + tableSchema.getColOffset(colIdx));
+        *(overflow_value_t*)(tuplesToRead[0] + tableSchema->getColOffset(colIdx));
     assert(vector.state->isUnfiltered());
-    for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
-        if (isNull(vectorOverflowValue.value +
-                       vectorOverflowValue.numElements * vector.getNumBytesPerValue(),
-                i)) {
-            vector.setNull(i, true);
-        } else {
-            vector.setNull(i, false);
-            ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                vector, i, vectorOverflowValue.value + i * vector.getNumBytesPerValue());
+    if (hasNoNullGuarantee(colIdx)) {
+        vector.setAllNonNull();
+        auto val = vectorOverflowValue.value;
+        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
+            ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(vector, i, val);
+            val += vector.getNumBytesPerValue();
+        }
+    } else {
+        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
+            if (isOverflowColNull(vectorOverflowValue.value + vectorOverflowValue.numElements *
+                                                                  vector.getNumBytesPerValue(),
+                    i, colIdx)) {
+                vector.setNull(i, true);
+            } else {
+                vector.setNull(i, false);
+                ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                    vector, i, vectorOverflowValue.value + i * vector.getNumBytesPerValue());
+            }
         }
     }
     vector.state->selectedSize = vectorOverflowValue.numElements;
 }
 
-void FactorizedTable::readFlatCol(
-    uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector, uint64_t numTuplesToRead) const {
-    for (auto i = 0u; i < numTuplesToRead; i++) {
-        auto positionInVectorToRead = vector.state->isFlat() ?
-                                          vector.state->getPositionOfCurrIdx() :
-                                          vector.state->selectedPositions[i];
-        auto dataBuffer = tuplesToRead[i];
-        if (isNull(dataBuffer + tableSchema.getNullMapOffset(), colIdx)) {
-            vector.setNull(positionInVectorToRead, true);
-        } else {
-            vector.setNull(positionInVectorToRead, false);
-            ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                vector, positionInVectorToRead, dataBuffer + tableSchema.getColOffset(colIdx));
-        }
+void FactorizedTable::readFlatColToFlatVector(
+    uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const {
+    assert(vector.state->isFlat());
+    vector.state->selectedSize = 1;
+    auto pos = vector.state->getPositionOfCurrIdx();
+    if (isNonOverflowColNull(tuplesToRead[0] + tableSchema->getNullMapOffset(), colIdx)) {
+        vector.setNull(pos, true);
+    } else {
+        vector.setNull(pos, false);
+        ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+            vector, pos, tuplesToRead[0] + tableSchema->getColOffset(colIdx));
     }
-    vector.state->selectedSize = vector.state->isFlat() ? 1 : numTuplesToRead;
 }
 
-uint8_t* FactorizedTable::getTuple(uint64_t tupleIdx) const {
-    assert(tupleIdx < numTuples);
-    auto blockIdxAndTupleIdxInBlock = getBlockIdxAndTupleIdxInBlock(tupleIdx);
-    return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first]->getData() +
-           blockIdxAndTupleIdxInBlock.second * tableSchema.getNumBytesPerTuple();
+void FactorizedTable::readFlatColToUnflatVector(
+    uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector, uint64_t numTuplesToRead) const {
+    vector.state->selectedSize = numTuplesToRead;
+    if (hasNoNullGuarantee(colIdx)) {
+        vector.setAllNonNull();
+        for (auto i = 0u; i < numTuplesToRead; i++) {
+            auto positionInVectorToRead = vector.state->selectedPositions[i];
+            auto srcData = tuplesToRead[i] + tableSchema->getColOffset(colIdx);
+            ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                vector, positionInVectorToRead, srcData);
+        }
+    } else {
+        for (auto i = 0u; i < numTuplesToRead; i++) {
+            auto positionInVectorToRead = vector.state->selectedPositions[i];
+            auto dataBuffer = tuplesToRead[i];
+            if (isNonOverflowColNull(dataBuffer + tableSchema->getNullMapOffset(), colIdx)) {
+                vector.setNull(positionInVectorToRead, true);
+            } else {
+                vector.setNull(positionInVectorToRead, false);
+                ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                    vector, positionInVectorToRead, dataBuffer + tableSchema->getColOffset(colIdx));
+            }
+        }
+    }
 }
 
 FlatTupleIterator::FlatTupleIterator(
@@ -323,7 +482,7 @@ FlatTupleIterator::FlatTupleIterator(
     // Note: there is difference between column data types and value types in iteratorFlatTuple.
     // Column data type could be UNSTRUCTURED but value type must be a structured type.
     iteratorFlatTuple = make_shared<FlatTuple>(columnDataTypes);
-    assert(columnDataTypes.size() == factorizedTable.tableSchema.getNumColumns());
+    assert(columnDataTypes.size() == factorizedTable.tableSchema->getNumColumns());
 }
 
 shared_ptr<FlatTuple> FlatTupleIterator::getNextFlatTuple() {
@@ -335,9 +494,9 @@ shared_ptr<FlatTuple> FlatTupleIterator::getNextFlatTuple() {
         updateNumElementsInDataChunk();
         nextTupleIdx++;
     }
-    for (auto i = 0ul; i < factorizedTable.getTableSchema().getNumColumns(); i++) {
-        auto column = factorizedTable.getTableSchema().getColumn(i);
-        if (column.getIsUnflat()) {
+    for (auto i = 0ul; i < factorizedTable.getTableSchema()->getNumColumns(); i++) {
+        auto column = factorizedTable.getTableSchema()->getColumn(i);
+        if (column->getIsUnflat()) {
             readUnflatColToFlatTuple(i, currentTupleBuffer);
         } else {
             readFlatColToFlatTuple(i, currentTupleBuffer);
@@ -389,35 +548,35 @@ void FlatTupleIterator::readValueBufferToFlatTuple(
 
 void FlatTupleIterator::readUnflatColToFlatTuple(uint64_t colIdx, uint8_t* valueBuffer) {
     auto overflowValue =
-        (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
-    auto columnInFactorizedTable = factorizedTable.getTableSchema().getColumn(colIdx);
+        (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
+    auto columnInFactorizedTable = factorizedTable.getTableSchema()->getColumn(colIdx);
     auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(columnDataTypes[colIdx]);
     valueBuffer =
         overflowValue->value +
         tupleSizeInOverflowBuffer *
-            flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first;
-    iteratorFlatTuple->nullMask[colIdx] = FactorizedTable::isNull(
+            flatTuplePositionsInDataChunk[columnInFactorizedTable->getDataChunkPos()].first;
+    iteratorFlatTuple->nullMask[colIdx] = factorizedTable.isOverflowColNull(
         overflowValue->value + tupleSizeInOverflowBuffer * overflowValue->numElements,
-        flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first);
+        flatTuplePositionsInDataChunk[columnInFactorizedTable->getDataChunkPos()].first, colIdx);
     if (!iteratorFlatTuple->nullMask[colIdx]) {
         readValueBufferToFlatTuple(colIdx, valueBuffer);
     }
 }
 
 void FlatTupleIterator::readFlatColToFlatTuple(uint32_t colIdx, uint8_t* valueBuffer) {
-    iteratorFlatTuple->nullMask[colIdx] = FactorizedTable::isNull(
-        valueBuffer + factorizedTable.getTableSchema().getNullMapOffset(), colIdx);
+    iteratorFlatTuple->nullMask[colIdx] = factorizedTable.isNonOverflowColNull(
+        valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx);
     if (!iteratorFlatTuple->nullMask[colIdx]) {
         readValueBufferToFlatTuple(
-            colIdx, valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
+            colIdx, valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     }
 }
 
 void FlatTupleIterator::updateInvalidEntriesInFlatTuplePositionsInDataChunk() {
     for (auto i = 0u; i < flatTuplePositionsInDataChunk.size(); i++) {
         bool isValidEntry = false;
-        for (auto j = 0u; j < factorizedTable.getTableSchema().getNumColumns(); j++) {
-            if (factorizedTable.getTableSchema().getColumn(j).getDataChunkPos() == i) {
+        for (auto j = 0u; j < factorizedTable.getTableSchema()->getNumColumns(); j++) {
+            if (factorizedTable.getTableSchema()->getColumn(j)->getDataChunkPos() == i) {
                 isValidEntry = true;
                 break;
             }
@@ -430,20 +589,20 @@ void FlatTupleIterator::updateInvalidEntriesInFlatTuplePositionsInDataChunk() {
 
 void FlatTupleIterator::updateNumElementsInDataChunk() {
     auto colOffsetInTupleBuffer = 0ul;
-    for (auto i = 0u; i < factorizedTable.getTableSchema().getNumColumns(); i++) {
-        auto column = factorizedTable.getTableSchema().getColumn(i);
+    for (auto i = 0u; i < factorizedTable.getTableSchema()->getNumColumns(); i++) {
+        auto column = factorizedTable.getTableSchema()->getColumn(i);
         // If this is an unflat column, the number of elements is stored in the
         // overflow_value_t struct. Otherwise the number of elements is 1.
         auto numElementsInDataChunk =
-            column.getIsUnflat() ?
+            column->getIsUnflat() ?
                 ((overflow_value_t*)(currentTupleBuffer + colOffsetInTupleBuffer))->numElements :
                 1;
-        if (column.getDataChunkPos() >= flatTuplePositionsInDataChunk.size()) {
-            flatTuplePositionsInDataChunk.resize(column.getDataChunkPos() + 1);
+        if (column->getDataChunkPos() >= flatTuplePositionsInDataChunk.size()) {
+            flatTuplePositionsInDataChunk.resize(column->getDataChunkPos() + 1);
         }
-        flatTuplePositionsInDataChunk[column.getDataChunkPos()] =
+        flatTuplePositionsInDataChunk[column->getDataChunkPos()] =
             make_pair(0 /* nextIdxToReadInDataChunk */, numElementsInDataChunk);
-        colOffsetInTupleBuffer += column.getNumBytes();
+        colOffsetInTupleBuffer += column->getNumBytes();
     }
 }
 
