@@ -3,10 +3,10 @@
 namespace graphflow {
 namespace loader {
 
-PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
+PageCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
     uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
     bool hasNULLBytes) {
-    PageElementCursor cursor;
+    PageCursor cursor;
     auto numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerElement, hasNULLBytes);
     if (ListHeaders::isALargeList(header)) {
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
@@ -72,9 +72,9 @@ void InMemListsWithOverflow::saveToFile() {
     overflowInMemFile->flush();
 }
 
-void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey,
-    DataTypeID dataTypeID, const uint8_t* val, PageByteCursor* overflowCursor) {
-    PageByteCursor localCursor{cursor};
+void InMemUnstructuredLists::setUnstructuredElement(PageCursor& cursor, uint32_t propertyKey,
+    DataTypeID dataTypeID, const uint8_t* val, PageCursor* overflowCursor) {
+    PageCursor localCursor{cursor};
     setComponentOfUnstrProperty(localCursor, 4, reinterpret_cast<uint8_t*>(&propertyKey));
     setComponentOfUnstrProperty(localCursor, 1, reinterpret_cast<uint8_t*>(&dataTypeID));
     switch (dataTypeID) {
@@ -102,20 +102,20 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
 }
 
 void InMemUnstructuredLists::setComponentOfUnstrProperty(
-    PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
-    if (DEFAULT_PAGE_SIZE - localCursor.offsetInPage >= len) {
-        memcpy(inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage, val, len);
-        localCursor.offsetInPage += len;
+    PageCursor& localCursor, uint8_t len, const uint8_t* val) {
+    if (DEFAULT_PAGE_SIZE - localCursor.posInPage >= len) {
+        memcpy(inMemFile->getPage(localCursor.pageIdx)->data + localCursor.posInPage, val, len);
+        localCursor.posInPage += len;
     } else {
-        auto diff = DEFAULT_PAGE_SIZE - localCursor.offsetInPage;
-        auto writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
+        auto diff = DEFAULT_PAGE_SIZE - localCursor.posInPage;
+        auto writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.posInPage;
         memcpy(writeOffset, val, diff);
         auto left = len - diff;
         localCursor.pageIdx++;
-        localCursor.offsetInPage = 0;
-        writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
+        localCursor.posInPage = 0;
+        writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.posInPage;
         memcpy(writeOffset, val + diff, left);
-        localCursor.offsetInPage = left;
+        localCursor.posInPage = left;
     }
 }
 

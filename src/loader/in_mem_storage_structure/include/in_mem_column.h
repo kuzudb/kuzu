@@ -27,8 +27,8 @@ public:
     inline DataType getDataType() { return dataType; }
 
 protected:
-    inline PageElementCursor getPageElementCursorForOffset(node_offset_t offset) const {
-        return PageElementCursor{
+    inline PageCursor getPageElementCursorForOffset(node_offset_t offset) const {
+        return PageCursor{
             (page_idx_t)(offset / numElementsInAPage), (uint16_t)(offset % numElementsInAPage)};
     }
 

@@ -31,13 +31,13 @@ private:
     static void calcLengthOfUnstrPropertyLists(
         CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists);
     static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-        PageByteCursor& stringOvfPagesCursor,
+        PageCursor& stringOvfPagesCursor,
         unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         InMemUnstructuredLists* unstrPropertyLists);
 
     static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
-        const vector<Property>& properties, vector<PageByteCursor>& overflowCursors,
-        CSVReader& reader, uint64_t nodeOffset);
+        const vector<Property>& properties, vector<PageCursor>& overflowCursors, CSVReader& reader,
+        uint64_t nodeOffset);
     template<DataTypeID DT>
     static void addIDsToIndex(InMemColumn* column, InMemHashIndexBuilder* hashIndex,
         node_offset_t startOffset, uint64_t numValues);

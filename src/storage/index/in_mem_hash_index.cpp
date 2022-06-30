@@ -31,13 +31,13 @@ uint64_t SlotArray::allocateSlot() {
     return nextSlotIdToAllocate++;
 }
 
-PageElementCursor SlotArray::getPageCursorForSlot(uint64_t slotId) {
+PageCursor SlotArray::getPageCursorForSlot(uint64_t slotId) {
     shared_lock sLck{sharedGlobalMutex};
     auto [logicalPageIdx, slotIdInPage] =
         StorageUtils::getQuotientRemainder(slotId, numSlotsPerPage);
     assert(logicalPageIdx < pagesLogicalToPhysicalMapper.size());
     auto physicalPageIdx = pagesLogicalToPhysicalMapper[logicalPageIdx];
-    return PageElementCursor{physicalPageIdx, (uint16_t)slotIdInPage};
+    return PageCursor{physicalPageIdx, (uint16_t)slotIdInPage};
 }
 
 void SlotWithMutexArray::addNewPagesWithoutLock(uint64_t numPages) {

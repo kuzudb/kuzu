@@ -88,11 +88,11 @@ void OverflowFile::readListsToVector(ValueVector& valueVector) {
 
 void OverflowFile::readListToVector(
     gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer) {
-    PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    PageCursor cursor;
+    TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.pageIdx, cursor.posInPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     OverflowBufferUtils::copyListNonRecursive(
-        frame + cursor.offsetInPage, gfList, dataType, overflowBuffer);
+        frame + cursor.posInPage, gfList, dataType, overflowBuffer);
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     if (dataType.childType->typeID == STRING) {
         auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
@@ -112,38 +112,38 @@ string OverflowFile::readString(const gf_string_t& str) {
     if (gf_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
-        PageByteCursor cursor;
-        TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+        PageCursor cursor;
+        TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.posInPage);
         auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-        auto retVal = string((char*)(frame + cursor.offsetInPage), str.len);
+        auto retVal = string((char*)(frame + cursor.posInPage), str.len);
         bufferManager.unpin(fileHandle, cursor.pageIdx);
         return retVal;
     }
 }
 
 vector<Literal> OverflowFile::readList(const gf_list_t& listVal, const DataType& dataType) {
-    PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    PageCursor cursor;
+    TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.posInPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
     vector<Literal> retLiterals;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
-            auto gfListVal = *(gf_string_t*)(frame + cursor.offsetInPage);
+            auto gfListVal = *(gf_string_t*)(frame + cursor.posInPage);
             retLiterals.emplace_back(readString(gfListVal));
-            cursor.offsetInPage += numBytesOfSingleValue;
+            cursor.posInPage += numBytesOfSingleValue;
         }
     } else if (dataType.childType->typeID == LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
-            auto gfListVal = *(gf_list_t*)(frame + cursor.offsetInPage);
+            auto gfListVal = *(gf_list_t*)(frame + cursor.posInPage);
             retLiterals.emplace_back(readList(gfListVal, *dataType.childType), *dataType.childType);
-            cursor.offsetInPage += numBytesOfSingleValue;
+            cursor.posInPage += numBytesOfSingleValue;
         }
     } else {
         for (auto i = 0u; i < numValuesInList; i++) {
-            retLiterals.emplace_back(frame + cursor.offsetInPage, *dataType.childType);
-            cursor.offsetInPage += numBytesOfSingleValue;
+            retLiterals.emplace_back(frame + cursor.posInPage, *dataType.childType);
+            cursor.posInPage += numBytesOfSingleValue;
         }
     }
     bufferManager.unpin(fileHandle, cursor.pageIdx);
@@ -151,7 +151,7 @@ vector<Literal> OverflowFile::readList(const gf_list_t& listVal, const DataType&
 }
 
 void OverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
-    PageElementCursor byteCursor =
+    PageCursor byteCursor =
         PageUtils::getPageElementCursorForPos(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
     if ((byteCursor.posInPage == 0) ||
         ((byteCursor.posInPage + numBytesToAppend - 1) > DEFAULT_PAGE_SIZE)) {

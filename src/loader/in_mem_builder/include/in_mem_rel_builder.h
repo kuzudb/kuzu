@@ -39,20 +39,18 @@ private:
     static void putPropsOfLineIntoColumns(
         vector<label_property_columns_map_t>& directionLabelPropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-        vector<PageByteCursor>& overflowCursors, CSVReader& reader,
-        const vector<nodeID_t>& nodeIDs);
+        vector<PageCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs);
     static void putPropsOfLineIntoLists(
         vector<label_property_lists_map_t>& directionLabelPropertyLists,
         vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
-        vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-        vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
-        const vector<uint64_t>& reversePos);
+        vector<unique_ptr<InMemOverflowFile>>& overflowPages, vector<PageCursor>& overflowCursors,
+        CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos);
     static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
-        PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
+        PageCursor& unorderedOverflowCursor, PageCursor& orderedOverflowCursor,
         InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
     static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
-        const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
-        PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
+        const DataType& dataType, PageCursor& unorderedOverflowCursor,
+        PageCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
         InMemOverflowFile* orderedOverflowFile);
 
     // Concurrent tasks.

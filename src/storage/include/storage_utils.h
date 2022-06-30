@@ -26,21 +26,10 @@ struct StorageStructureIDAndFName {
     string fName;
 };
 
-struct PageByteCursor {
+struct PageCursor {
 
-    PageByteCursor(page_idx_t pageIdx, uint16_t offsetInPage)
-        : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
-    PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
-
-    page_idx_t pageIdx;
-    uint16_t offsetInPage;
-};
-
-struct PageElementCursor {
-
-    PageElementCursor(page_idx_t pageIdx, uint16_t posInPage)
-        : pageIdx{pageIdx}, posInPage{posInPage} {};
-    PageElementCursor() : PageElementCursor{UINT32_MAX, UINT16_MAX} {};
+    PageCursor(page_idx_t pageIdx, uint16_t posInPage) : pageIdx{pageIdx}, posInPage{posInPage} {};
+    PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
 
     inline void nextPage() {
         pageIdx++;
@@ -48,7 +37,7 @@ struct PageElementCursor {
     }
 
     page_idx_t pageIdx;
-    uint16_t posInPage;
+    uint16_t posInPage; // Element or byte pos in the page.
 };
 
 struct PageUtils {
@@ -57,10 +46,10 @@ struct PageUtils {
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
-    static inline PageElementCursor getPageElementCursorForPos(
+    static inline PageCursor getPageElementCursorForPos(
         const uint64_t& elementPos, const uint32_t numElementsPerPage) {
         assert((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageElementCursor{(page_idx_t)(elementPos / numElementsPerPage),
+        return PageCursor{(page_idx_t)(elementPos / numElementsPerPage),
             (uint16_t)(elementPos % numElementsPerPage)};
     }
 };

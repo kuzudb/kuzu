@@ -164,7 +164,7 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_
     InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
     auto structuredProperties = builder->catalog.getStructuredNodeProperties(builder->label);
-    vector<PageByteCursor> overflowCursors(structuredProperties.size());
+    vector<PageCursor> overflowCursors(structuredProperties.size());
     CSVReader reader(builder->inputFilePath, builder->csvReaderConfig, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
@@ -268,7 +268,7 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
         if (reader.hasNextLine()) {}
     }
     auto bufferOffset = 0u;
-    PageByteCursor overflowPagesCursor;
+    PageCursor overflowPagesCursor;
     auto numStructuredProperties =
         builder->catalog.getStructuredNodeProperties(builder->label).size();
     auto unstrPropertiesNameToIdMap =
@@ -288,7 +288,7 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
 }
 
 void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& structuredColumns,
-    const vector<Property>& structuredProperties, vector<PageByteCursor>& overflowCursors,
+    const vector<Property>& structuredProperties, vector<PageCursor>& overflowCursors,
     CSVReader& reader, uint64_t nodeOffset) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
         reader.hasNextToken();
@@ -355,8 +355,7 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
 }
 
 void InMemNodeBuilder::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-    PageByteCursor& overflowPagesCursor,
-    unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
+    PageCursor& overflowPagesCursor, unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     InMemUnstructuredLists* unstrPropertyLists) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
@@ -369,10 +368,10 @@ void InMemNodeBuilder::putUnstrPropsOfALineToLists(CSVReader& reader, node_offse
         auto dataTypeSize = Types::getDataTypeSize(dataType);
         auto reversePos = InMemListsUtils::decrementListSize(*unstrPropertyLists->getListSizes(),
             nodeOffset, UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
-        PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
+        PageCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
             unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
             nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);
-        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
+        PageCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType.typeID) {
         case INT64: {

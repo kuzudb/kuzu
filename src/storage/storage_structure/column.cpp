@@ -83,7 +83,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nod
 }
 
 void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-    uint32_t vectorPos, PageElementCursor& cursor) {
+    uint32_t vectorPos, PageCursor& cursor) {
     auto [fileHandleToPin, pageIdxToPin] =
         getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);

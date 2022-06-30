@@ -69,7 +69,7 @@ public:
 
     virtual void addNewPagesWithoutLock(uint64_t numPages);
     uint64_t allocateSlot();
-    PageElementCursor getPageCursorForSlot(uint64_t slotId);
+    PageCursor getPageCursorForSlot(uint64_t slotId);
 
     void setNextSlotIdToAllocate(uint64_t slotId) { nextSlotIdToAllocate = slotId; }
 

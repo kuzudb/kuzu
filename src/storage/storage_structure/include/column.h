@@ -41,13 +41,13 @@ protected:
         const shared_ptr<ValueVector>& resultVector, uint32_t vectorPos);
 
     virtual void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        uint32_t vectorPos, PageElementCursor& cursor);
-    virtual inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        PageElementCursor& cursor) {
+        uint32_t vectorPos, PageCursor& cursor);
+    virtual inline void scan(
+        Transaction* transaction, const shared_ptr<ValueVector>& resultVector, PageCursor& cursor) {
         readBySequentialCopy(transaction, resultVector, cursor, identityMapper);
     }
-    virtual void scanWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) {
+    virtual void scanWithSelState(
+        Transaction* transaction, const shared_ptr<ValueVector>& resultVector, PageCursor& cursor) {
         readBySequentialCopyWithSelState(transaction, resultVector, cursor, identityMapper);
     }
 
@@ -87,19 +87,19 @@ public:
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        uint32_t vectorPos, PageElementCursor& cursor) override {
+        uint32_t vectorPos, PageCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         if (!resultVector->isNull(vectorPos)) {
             stringOverflowPages.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
         }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        PageElementCursor& cursor) override {
+        PageCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
         stringOverflowPages.scanSequentialStringOverflow(transaction, *resultVector);
     }
     void scanWithSelState(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        PageElementCursor& cursor) override {
+        PageCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
         stringOverflowPages.scanSequentialStringOverflow(transaction, *resultVector);
     }
@@ -123,17 +123,17 @@ public:
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        uint32_t vectorPos, PageElementCursor& cursor) override {
+        uint32_t vectorPos, PageCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         listOverflowPages.readListsToVector(*resultVector);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        PageElementCursor& cursor) override {
+        PageCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
         listOverflowPages.readListsToVector(*resultVector);
     }
     inline void scanWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
+        const shared_ptr<ValueVector>& resultVector, PageCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
         listOverflowPages.readListsToVector(*resultVector);
     }
@@ -153,18 +153,18 @@ public:
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        uint32_t vectorPos, PageElementCursor& cursor) override {
+        uint32_t vectorPos, PageCursor& cursor) override {
         readNodeIDsFromAPageBySequentialCopy(resultVector, vectorPos, cursor.pageIdx,
             cursor.posInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
             false /*isAdjLists*/);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-        PageElementCursor& cursor) override {
+        PageCursor& cursor) override {
         readNodeIDsBySequentialCopy(
             resultVector, cursor, identityMapper, nodeIDCompressionScheme, false /*isAdjLists*/);
     }
     inline void scanWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
+        const shared_ptr<ValueVector>& resultVector, PageCursor& cursor) override {
         readNodeIDsBySequentialCopyWithSelState(
             resultVector, cursor, identityMapper, nodeIDCompressionScheme);
     }

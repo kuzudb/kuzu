@@ -25,7 +25,7 @@ public:
 
     // Calculates the page id and offset in page where the data of a particular list has to be put
     // in the in-mem pages.
-    static PageElementCursor calcPageElementCursor(uint32_t header, uint64_t reversePos,
+    static PageCursor calcPageElementCursor(uint32_t header, uint64_t reversePos,
         uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
         bool hasNULLBytes);
 };
@@ -117,13 +117,13 @@ public:
     inline ListHeadersBuilder* getListHeadersBuilder() { return listHeadersBuilder.get(); }
     inline atomic_uint64_vec_t* getListSizes() { return listSizes.get(); }
 
-    void setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey, DataTypeID dataTypeID,
-        const uint8_t* val, PageByteCursor* overflowCursor);
+    void setUnstructuredElement(PageCursor& cursor, uint32_t propertyKey, DataTypeID dataTypeID,
+        const uint8_t* val, PageCursor* overflowCursor);
 
     void saveToFile() override;
 
 private:
-    void setComponentOfUnstrProperty(PageByteCursor& localCursor, uint8_t len, const uint8_t* val);
+    void setComponentOfUnstrProperty(PageCursor& localCursor, uint8_t len, const uint8_t* val);
 
 private:
     unique_ptr<atomic_uint64_vec_t> listSizes;

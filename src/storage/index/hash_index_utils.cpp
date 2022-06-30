@@ -31,11 +31,10 @@ bool InMemHashIndexUtils::equalsFuncForString(
         return memcmp(keyToLookup, gfStringInEntry->prefix, gfStringInEntry->len) == 0;
     } else {
         // For long strings, read overflow values and check if they are true.
-        PageByteCursor cursor;
+        PageCursor cursor;
         TypeUtils::decodeOverflowPtr(
-            gfStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-        return memcmp(keyToLookup,
-                   overflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
+            gfStringInEntry->overflowPtr, cursor.pageIdx, cursor.posInPage);
+        return memcmp(keyToLookup, overflowFile->getPage(cursor.pageIdx)->data + cursor.posInPage,
                    gfStringInEntry->len) == 0;
     }
 }

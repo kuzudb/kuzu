@@ -78,7 +78,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
 }
 
 void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
-    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const shared_ptr<ValueVector>& vector, PageCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     uint64_t numValuesToRead = vector->state->originalSize;
     uint64_t vectorPos = 0;
@@ -94,7 +94,7 @@ void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
 }
 
 void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction,
-    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const shared_ptr<ValueVector>& vector, PageCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     auto selectedState = vector->state;
     auto numValuesToRead = vector->state->originalSize;
@@ -121,8 +121,7 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
 }
 
 void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    PageElementCursor& cursor,
-    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
+    PageCursor& cursor, const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
     uint64_t numValuesToRead = valueVector->state->originalSize;
     uint64_t vectorPos = 0;
@@ -138,7 +137,7 @@ void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>
 }
 
 void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
-    const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    const shared_ptr<ValueVector>& vector, PageCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme) {
     auto selectedState = vector->state;

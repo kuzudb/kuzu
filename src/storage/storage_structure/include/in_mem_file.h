@@ -64,24 +64,26 @@ public:
     // These two functions copies a string/list value to the file according to the cursor. Multiple
     // threads coordinate by that each thread takes the full control of a single page at a time.
     // When the page is not exhausted, each thread can write without an exclusive lock.
-    gf_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
-    gf_list_t copyList(const Literal& listLiteral, PageByteCursor& overflowCursor);
+    gf_string_t copyString(const char* rawString, PageCursor& overflowCursor);
+    gf_list_t copyList(const Literal& listLiteral, PageCursor& overflowCursor);
 
     // Copy overflow data at srcOverflow into dstGFString.
     void copyStringOverflow(
-        PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString);
-    void copyListOverflow(InMemOverflowFile* srcOverflowPages,
-        const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
-        gf_list_t* dstGFList, DataType* listChildDataType);
+        PageCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString);
+    void copyListOverflow(InMemOverflowFile* srcOverflowPages, const PageCursor& srcOverflowCursor,
+        PageCursor& dstOverflowCursor, gf_list_t* dstGFList, DataType* listChildDataType);
+
+private:
+    uint32_t addANewOverflowPage();
 
 private:
     uint32_t addANewOverflowPage();
 
     void copyFixedSizedValuesToPages(
-        const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
+        const Literal& listVal, PageCursor& overflowCursor, uint64_t numBytesOfListElement);
     template<DataTypeID DT>
     void copyVarSizedValuesToPages(gf_list_t& resultGFList, const Literal& listVal,
-        PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
+        PageCursor& overflowCursor, uint64_t numBytesOfListElement);
 
 private:
     // These two fields (currentPageIdxToAppend, currentOffsetInPageToAppend) are used when

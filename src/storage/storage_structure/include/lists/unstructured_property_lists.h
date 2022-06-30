@@ -37,15 +37,15 @@ private:
     void readPropertiesForPosition(ValueVector* nodeIDVector, uint32_t pos,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
-    void readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
+    void readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType, PageCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
-    void readPropertyValue(Value* propertyValue, uint64_t dataTypeSize, PageByteCursor& cursor,
+    void readPropertyValue(Value* propertyValue, uint64_t dataTypeSize, PageCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
-    void skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor);
+    void skipPropertyValue(uint64_t dataTypeSize, PageCursor& cursor);
 
-    void readFromAPage(uint8_t* value, uint64_t bytesToRead, PageByteCursor& cursor,
+    void readFromAPage(uint8_t* value, uint64_t bytesToRead, PageCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
 public:

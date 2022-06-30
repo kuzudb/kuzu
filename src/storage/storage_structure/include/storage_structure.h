@@ -18,10 +18,10 @@ namespace storage {
 
 struct UpdatedPageInfoAndWALPageFrame {
     UpdatedPageInfoAndWALPageFrame(
-        PageElementCursor originalPageCursor, page_idx_t pageIdxInWAL, uint8_t* frame)
+        PageCursor originalPageCursor, page_idx_t pageIdxInWAL, uint8_t* frame)
         : originalPageCursor{originalPageCursor}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
 
-    PageElementCursor originalPageCursor;
+    PageCursor originalPageCursor;
     page_idx_t pageIdxInWAL;
     uint8_t* frame;
 };
@@ -95,20 +95,19 @@ protected:
     }
 
     void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
-        PageElementCursor& cursor,
+        PageCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
     void readBySequentialCopyWithSelState(Transaction* transaction,
-        const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+        const shared_ptr<ValueVector>& vector, PageCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
-    void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-        PageElementCursor& cursor,
+    void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector, PageCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme compressionScheme, bool isAdjLists);
 
     void readNodeIDsBySequentialCopyWithSelState(const shared_ptr<ValueVector>& valueVector,
-        PageElementCursor& cursor,
+        PageCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme compressionScheme);
 
