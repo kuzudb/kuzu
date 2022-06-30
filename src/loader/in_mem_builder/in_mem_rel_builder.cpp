@@ -449,17 +449,16 @@ void InMemRelBuilder::initAdjAndPropertyListsMetadata() {
         for (auto& [nodeLabel, adjList] : directionLabelAdjLists[relDirection]) {
             auto numNodes = maxNodeOffsetsPerNodeLabel[nodeLabel] + 1;
             auto listSizes = directionLabelListSizes[relDirection][nodeLabel].get();
-            taskScheduler.scheduleTask(
-                LoaderTaskFactory::createLoaderTask(calculateListsMetadataTask, numNodes,
-                    directionNodeIDCompressionScheme[relDirection].getNumTotalBytes(), listSizes,
-                    adjList->getListHeaders(), adjList->getListsMetadata(), false /*hasNULLBytes*/,
-                    logger, progressBar));
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
+                directionNodeIDCompressionScheme[relDirection].getNumTotalBytes(), listSizes,
+                adjList->getListHeaders(), adjList.get(), false /*hasNULLBytes*/, logger,
+                progressBar));
             for (auto& property : catalog.getRelProperties(label)) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                    calculateListsMetadataTask, numNodes, Types::getDataTypeSize(property.dataType),
-                    listSizes, adjList->getListHeaders(),
-                    directionLabelPropertyLists[relDirection][nodeLabel][property.propertyID]
-                        ->getListsMetadata(),
+                    calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
+                    Types::getDataTypeSize(property.dataType), listSizes, adjList->getListHeaders(),
+                    directionLabelPropertyLists[relDirection][nodeLabel][property.propertyID].get(),
                     true /*hasNULLBytes*/, logger, progressBar));
             }
         }
@@ -470,16 +469,6 @@ void InMemRelBuilder::initAdjAndPropertyListsMetadata() {
 
 void InMemRelBuilder::populateAdjAndPropertyLists() {
     logger->debug("Populating adjLists and rel property lists for rel {}.", labelName);
-    for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [nodeLabel, adjList] : directionLabelAdjLists[relDirection]) {
-            adjList->init();
-            for (auto& property : catalog.getRelProperties(label)) {
-                directionLabelPropertyLists[relDirection]
-                    .at(nodeLabel)[property.propertyID]
-                    ->init();
-            }
-        }
-    }
     progressBar->addAndStartNewJob(
         "Populating adjacency lists for relationship: " + catalog.getRelLabelName(label),
         numBlocks);

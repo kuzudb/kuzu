@@ -14,13 +14,16 @@ static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
  * Header page of a disk array.
  */
 struct DiskArrayHeader {
-    DiskArrayHeader(){};
+    // This constructor is needed when loading the database from file.
+    DiskArrayHeader() : DiskArrayHeader(1){};
 
-    DiskArrayHeader(uint64_t elementSize, uint64_t numElements, uint64_t firstPIPPageIdx);
+    explicit DiskArrayHeader(uint64_t elementSize);
 
     void saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx);
 
     void readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx);
+
+    inline uint64_t getCapacity() { return numArrayPages << numElementsPerPageLog2; }
 
     // TODO(Semih): This is only for debugging purposes. Will be removed.
     void print();
@@ -29,10 +32,10 @@ struct DiskArrayHeader {
     // save them on disk as they are functions of elementSize and numElements but we
     // nonetheless store them (and save them to disk) for simplicity.
     uint64_t elementSize;
-    uint64_t numElements;
-    uint64_t firstPIPPageIdx;
     uint64_t numElementsPerPageLog2;
     uint64_t elementPageOffsetMask;
+    uint64_t firstPIPPageIdx;
+    uint64_t numElements;
     uint64_t numArrayPages;
 };
 
@@ -47,8 +50,8 @@ struct PIP {
 };
 
 struct PIPWrapper {
-    PIPWrapper(shared_ptr<FileHandle> fileHandle, page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {
-        fileHandle->readPage(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
+    PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {
+        fileHandle.readPage(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
     }
 
     PIPWrapper(page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
@@ -78,12 +81,14 @@ class BaseDiskArray {
 public:
     // Every DiskArray needs to have a pre-allocated header page, so we can know where to start to
     // read the array (its pips and array pages).
-    BaseDiskArray(shared_ptr<FileHandle> fileHandle, page_idx_t headerPageIdx, uint64_t elementSize,
+    BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize,
         uint64_t numElements);
 
-    BaseDiskArray(shared_ptr<FileHandle> fileHandle, page_idx_t headerPageIdx);
+    BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx);
 
     virtual ~BaseDiskArray() {}
+
+    void setNumElementsAndAllocateDiskArrayPagesForBuilding(uint64_t newNumElements);
 
     // This function does division and mod and should not be used in performance critical code
     page_idx_t getArrayFilePageIdx(page_idx_t arrayPageIdx);
@@ -93,11 +98,20 @@ public:
     // TODO(Semih): This is only for debugging purposes. Will be removed.
     void print();
 
+protected:
+    void addNewArrayPageForBuilding();
+
+private:
+    inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) {
+        return (numElements >> header.numElementsPerPageLog2) +
+               ((numElements & header.elementPageOffsetMask) > 0 ? 1 : 0);
+    }
+
 public:
     DiskArrayHeader header;
 
 protected:
-    shared_ptr<FileHandle> fileHandle;
+    FileHandle& fileHandle;
     page_idx_t headerPageIdx;
     vector<PIPWrapper> pips;
 };
@@ -110,19 +124,27 @@ protected:
 template<class U>
 class InMemDiskArray : public BaseDiskArray {
 public:
-    InMemDiskArray(
-        shared_ptr<FileHandle> fileHandle, page_idx_t headerPageIdx, uint64_t numElements);
+    InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements);
 
-    InMemDiskArray(shared_ptr<FileHandle> fileHandle, page_idx_t headerPageIdx);
+    InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx);
 
     // [] operator to be used when building an InMemDiskArray without transactional updates. This
     // changes the contents directly in memory and not on disk (nor on the wal)
     U& operator[](uint64_t idx);
 
     void saveToDisk() override;
+    // This function is designed to be used during building of a disk array, i.e., during loading.
+    // In particular, it changes the needed capacity non-transactionally, i.e., without writing
+    // anything to the wal.
+    void setNewNumElementsAndIncreaseCapacityIfNeeded(uint64_t newNumElements);
 
     // TODO(Semih): This is only for debugging purposes. Will be removed.
     void print();
+
+private:
+    void addInMemoryPage() {
+        dataPages.emplace_back(make_unique<U[]>(1ull << header.numElementsPerPageLog2));
+    }
 
 private:
     vector<unique_ptr<U[]>> dataPages;

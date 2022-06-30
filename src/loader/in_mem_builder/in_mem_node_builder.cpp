@@ -233,9 +233,10 @@ void InMemNodeBuilder::calcUnstrListsHeadersAndMetadata() {
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
     progressBar->addAndStartNewJob("Calculating lists metadata for node: " + labelName, 1);
-    taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(calculateListsMetadataTask,
-        numNodes, 1, unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeaders(),
-        unstrPropertyLists->getListsMetadata(), false /*hasNULLBytes*/, logger, progressBar));
+    taskScheduler.scheduleTask(
+        LoaderTaskFactory::createLoaderTask(calculateListsMetadataAndAllocateInMemListPagesTask,
+            numNodes, 1, unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeaders(),
+            unstrPropertyLists.get(), false /*hasNULLBytes*/, logger, progressBar));
     logger->debug("Done initializing UnstructuredPropertyListsMetadata.");
     taskScheduler.waitAllTasksToCompleteOrError();
 }
@@ -248,7 +249,6 @@ void InMemNodeBuilder::populateUnstrPropertyLists() {
     node_offset_t offsetStart = 0;
     progressBar->addAndStartNewJob(
         "Populating unstructured property lists for node: " + labelName, numBlocks);
-    unstrPropertyLists->init();
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
             populateUnstrPropertyListsTask, offsetStart, blockIdx, this));

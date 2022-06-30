@@ -9,20 +9,21 @@ namespace storage {
 
 ListHeaders::ListHeaders(const string& fName, uint64_t numElements) {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    auto fileHandle = make_shared<FileHandle>(
+    headersFileHandle = make_unique<FileHandle>(
         fName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     // DiskArray assumes that its header page already exists. To ensure that we need to add a page
     // to the fileHandle. Currently the header page is at page 0, so we add one page here.
-    fileHandle->addNewPage();
+    headersFileHandle->addNewPage();
     headers = make_unique<InMemDiskArray<list_header_t>>(
-        fileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements);
+        *headersFileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements);
 }
 
 ListHeaders::ListHeaders(const string& listBaseFName) {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    auto fileHandle = make_shared<FileHandle>(
+    headersFileHandle = make_unique<FileHandle>(
         listBaseFName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
-    headers = make_unique<InMemDiskArray<list_header_t>>(fileHandle, LIST_HEADERS_HEADER_PAGE_IDX);
+    headers = make_unique<InMemDiskArray<list_header_t>>(
+        *headersFileHandle, LIST_HEADERS_HEADER_PAGE_IDX);
     logger->trace("ListHeaders: #numNodeOffsets {}", headers->header.numElements);
 };
 

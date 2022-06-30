@@ -18,17 +18,21 @@ class InMemFile {
 
 public:
     InMemFile(
-        std::string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages);
-    InMemFile(uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages)
+        std::string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0);
+    InMemFile(uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0)
         : InMemFile("", numBytesForElement, hasNullMask, numPages) {}
 
     virtual ~InMemFile() = default;
 
     virtual void flush();
 
+    void addNewPages(uint64_t numNewPagesToAdd, bool setToZero = false);
+
     uint32_t addANewPage(bool setToZero = false);
 
     inline InMemPage* getPage(page_idx_t pageIdx) const { return pages[pageIdx].get(); }
+
+    uint64_t getNumPages() { return pages.size(); }
 
 protected:
     string filePath;

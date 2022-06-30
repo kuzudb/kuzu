@@ -71,6 +71,7 @@ public:
 private:
     shared_ptr<spdlog::logger> logger;
     unique_ptr<InMemDiskArray<list_header_t>> headers;
+    unique_ptr<FileHandle> headersFileHandle;
 };
 
 } // namespace storage

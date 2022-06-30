@@ -42,9 +42,12 @@ protected:
         const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar);
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
     // largeListsPagesMap, using listSizes and listHeaders.
-    static void calculateListsMetadataTask(uint64_t numNodes, uint32_t elementSize,
-        atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders, ListsMetadata* listsMetadata,
-        bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger,
+    // **Note that this file also allocates the in-memory pages of the InMemFile that will actually
+    // stores the data in the lists (e.g., neighbor ids or edge properties or unstructured
+    // properties).
+    static void calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
+        uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
+        InMemLists* inMemList, bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger,
         LoaderProgressBar* progressBar);
 
 private:

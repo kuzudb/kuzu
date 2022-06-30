@@ -1,6 +1,7 @@
 #include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 
 #include "src/common/include/type_utils.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -10,6 +11,12 @@ InMemFile::InMemFile(
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, hasNullMask);
     for (auto i = 0u; i < numPages; i++) {
         addANewPage();
+    }
+}
+
+void InMemFile::addNewPages(uint64_t numNewPagesToAdd, bool setToZero) {
+    for (uint64_t i = 0; i < numNewPagesToAdd; ++i) {
+        addANewPage(setToZero);
     }
 }
 
