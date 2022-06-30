@@ -11,7 +11,7 @@
 using namespace graphflow::common;
 
 namespace graphflow {
-namespace loader {
+namespace storage {
 
 class InMemPage {
 
@@ -39,5 +39,5 @@ private:
     uint32_t maxNumElements;
 };
 
-} // namespace loader
+} // namespace storage
 } // namespace graphflow

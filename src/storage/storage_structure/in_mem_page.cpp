@@ -1,11 +1,11 @@
-#include "src/loader/in_mem_storage_structure/include/in_mem_page.h"
+#include "src/storage/storage_structure/include/in_mem_page.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 
 namespace graphflow {
-namespace loader {
+namespace storage {
 
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
     : nullEntriesInPage{nullptr}, maxNumElements{maxNumElements} {
@@ -63,5 +63,5 @@ void InMemPage::encodeNullBits() {
     }
 }
 
-} // namespace loader
+} // namespace storage
 } // namespace graphflow

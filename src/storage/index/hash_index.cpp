@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace storage {
 
-HashIndex::HashIndex(const StorageStructureIDAndFName storageStructureIDAndFName,
+HashIndex::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
     const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory)
-    : storageStructureIDAndFName{storageStructureIDAndFName},
+    : BaseHashIndex{keyDataType}, storageStructureIDAndFName{storageStructureIDAndFName},
       isInMemory{isInMemory}, bm{bufferManager} {
     assert(keyDataType.typeID == INT64 || keyDataType.typeID == STRING);
     initializeFileAndHeader(keyDataType);
@@ -18,30 +18,47 @@ HashIndex::~HashIndex() {
     if (isInMemory) {
         StorageStructureUtils::unpinEachPageOfFile(*fh, bm);
     }
+    bm.removeFilePagesFromFrames(*fh);
 }
 
 void HashIndex::initializeFileAndHeader(const DataType& keyDataType) {
-    fh = make_unique<FileHandle>(storageStructureIDAndFName.fName,
-        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    fh = make_unique<FileHandle>(
+        storageStructureIDAndFName.fName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate);
     assert(fh->getNumPages() > 0);
     // Read the index header and page mappings from file.
     auto buffer = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
     auto otherIndexHeader = *(HashIndexHeader*)buffer;
     indexHeader = make_unique<HashIndexHeader>(otherIndexHeader);
+    pSlots = make_unique<SlotWithMutexArray>(nullptr, indexHeader->numSlotsPerPage);
+    oSlots = make_unique<SlotArray>(nullptr, indexHeader->numSlotsPerPage);
     bm.unpin(*fh, INDEX_HEADER_PAGE_ID);
-    numEntries.store(indexHeader->numEntries);
     assert(indexHeader->keyDataTypeID == keyDataType.typeID);
-    auto slotsCapacity = fh->getNumPages() * indexHeader->numSlotsPerPage;
-    slotMutexes.resize(slotsCapacity);
-    for (auto i = 0u; i < slotsCapacity; i++) {
-        slotMutexes[i] = make_unique<mutex>();
-    }
+    readPageMapper(pSlots->pagesLogicalToPhysicalMapper, indexHeader->pPagesMapperFirstPageIdx);
+    readPageMapper(oSlots->pagesLogicalToPhysicalMapper, indexHeader->oPagesMapperFirstPageIdx);
+    pSlots->addSlotMutexesForPagesWithoutLock(pSlots->pagesLogicalToPhysicalMapper.size());
     if (isInMemory) {
         StorageStructureUtils::pinEachPageOfFile(*fh, bm);
     }
     if (indexHeader->keyDataTypeID == STRING) {
         overflowFile = make_unique<OverflowFile>(
             storageStructureIDAndFName, bm, isInMemory, nullptr /* no wal for now */);
+    }
+}
+
+void HashIndex::readPageMapper(vector<page_idx_t>& mapper, page_idx_t mapperFirstPageIdx) {
+    auto currentPageIdx = mapperFirstPageIdx;
+    uint64_t elementPosInMapperToCopy = 0;
+    while (currentPageIdx != UINT32_MAX) {
+        auto frame = bm.pin(*fh, currentPageIdx);
+        auto pageElements = (page_idx_t*)frame;
+        auto numElementsInPage = pageElements[0];
+        mapper.resize(elementPosInMapperToCopy + numElementsInPage);
+        memcpy((uint8_t*)&mapper[elementPosInMapperToCopy], (uint8_t*)&pageElements[2],
+            sizeof(page_idx_t) * numElementsInPage);
+        auto nextPageIdx = pageElements[1];
+        bm.unpin(*fh, currentPageIdx);
+        elementPosInMapperToCopy += numElementsInPage;
+        currentPageIdx = nextPageIdx;
     }
 }
 
@@ -74,27 +91,29 @@ bool HashIndex::lookupOrDeleteInSlot(
 // locks, while deletions require locks in the context of multi-threads.
 template<bool IS_DELETE>
 bool HashIndex::lookupOrDeleteInternal(const uint8_t* key, node_offset_t* result) {
-    auto slotId = UINT64_MAX;
-    auto nextSlotId = calculateSlotIdForHash(keyHashFunc(key));
-    while (slotId == UINT64_MAX || nextSlotId != 0) {
-        slotId = nextSlotId;
-        if constexpr (IS_DELETE) {
-            lockSlot(slotId);
-        }
-        auto slot = pinSlot(slotId);
-        if (lookupOrDeleteInSlot<IS_DELETE>(slot, key, result)) {
-            unpinSlot(slotId);
+    SlotInfo prevSlotInfo{UINT64_MAX, true};
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(key), true};
+    SlotInfo currentSlotInfo = pSlotInfo;
+    if constexpr (IS_DELETE) {
+        lockSlot(pSlotInfo);
+    }
+    uint8_t* currentSlot = nullptr;
+    while (currentSlotInfo.isPSlot || currentSlotInfo.slotId > 0) {
+        currentSlot = pinSlot(currentSlotInfo);
+        if (lookupOrDeleteInSlot<IS_DELETE>(currentSlot, key, result)) {
+            unpinSlot(currentSlotInfo);
             if constexpr (IS_DELETE) {
-                unlockSlot(slotId);
+                unlockSlot(pSlotInfo);
             }
             return true;
         }
-        auto slotHeader = reinterpret_cast<SlotHeader*>(const_cast<uint8_t*>(slot));
-        nextSlotId = slotHeader->nextOvfSlotId;
-        unpinSlot(slotId);
-        if constexpr (IS_DELETE) {
-            unlockSlot(slotId);
-        }
+        prevSlotInfo = currentSlotInfo;
+        currentSlotInfo.slotId = reinterpret_cast<SlotHeader*>(currentSlot)->nextOvfSlotId;
+        currentSlotInfo.isPSlot = false;
+        unpinSlot(prevSlotInfo);
+    }
+    if constexpr (IS_DELETE) {
+        unlockSlot(pSlotInfo);
     }
     return false;
 }
@@ -107,21 +126,20 @@ template bool HashIndex::lookupOrDeleteInSlot<false>(
 template bool HashIndex::lookupOrDeleteInternal<true>(const uint8_t* key, node_offset_t* result);
 template bool HashIndex::lookupOrDeleteInternal<false>(const uint8_t* key, node_offset_t* result);
 
-uint8_t* HashIndex::pinSlot(slot_id_t slotId) {
-    auto pageIdx = getPhysicalPageIdForSlot(slotId);
-    auto frame = bm.pin(*fh, pageIdx);
-    auto slotIdxInPage = getSlotIdInPageForSlot(slotId);
-    return frame + (slotIdxInPage * indexHeader->numBytesPerSlot);
+uint8_t* HashIndex::pinSlot(const SlotInfo& slotInfo) {
+    auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
+                                         oSlots->getPageCursorForSlot(slotInfo.slotId);
+    auto frame = bm.pin(*fh, pageCursor.pageIdx);
+    return frame + (pageCursor.posInPage * indexHeader->numBytesPerSlot);
 }
 
-void HashIndex::unpinSlot(slot_id_t slotId) {
-    auto pageIdx = getPhysicalPageIdForSlot(slotId);
-    bm.unpin(*fh, pageIdx);
+void HashIndex::unpinSlot(const SlotInfo& slotInfo) {
+    auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
+                                         oSlots->getPageCursorForSlot(slotInfo.slotId);
+    bm.unpin(*fh, pageCursor.pageIdx);
 }
 
 void HashIndex::flush() {
-    // Copy index header back to the page.
-    indexHeader->numEntries = numEntries.load();
     // Populate and flush the index header page.
     auto headerFrame = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
     memcpy(headerFrame, (uint8_t*)indexHeader.get(), sizeof(HashIndexHeader));

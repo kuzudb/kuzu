@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/loader/in_mem_builder/include/in_mem_structures_builder.h"
-#include "src/loader/in_mem_index/include/in_mem_hash_index.h"
+#include "src/storage/index/include/in_mem_hash_index.h"
 
 namespace graphflow {
 namespace loader {

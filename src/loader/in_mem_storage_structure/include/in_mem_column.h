@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 #include "src/storage/include/compression_scheme.h"
+#include "src/storage/storage_structure/include/in_mem_file.h"
 
 namespace graphflow {
 namespace loader {

@@ -4,14 +4,14 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/types/include/literal.h"
-#include "src/loader/in_mem_storage_structure/include/in_mem_page.h"
 #include "src/storage/include/storage_utils.h"
+#include "src/storage/storage_structure/include/in_mem_page.h"
 
 using namespace graphflow::common;
 using namespace graphflow::storage;
 
 namespace graphflow {
-namespace loader {
+namespace storage {
 
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
@@ -24,7 +24,7 @@ public:
 
     virtual ~InMemFile() = default;
 
-    void flush();
+    virtual void flush();
 
     void addNewPages(uint64_t numNewPagesToAdd, bool setToZero = false);
 
@@ -44,8 +44,6 @@ protected:
 
 //  InMemFile for storing overflow of PropertyColumn or PropertyLists.
 class InMemOverflowFile : public InMemFile {
-
-    friend class InMemRelBuilder;
 
 public:
     explicit InMemOverflowFile(const std::string& fName)
@@ -69,15 +67,15 @@ public:
     gf_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
     gf_list_t copyList(const Literal& listLiteral, PageByteCursor& overflowCursor);
 
-private:
-    uint32_t addANewOverflowPage();
-
     // Copy overflow data at srcOverflow into dstGFString.
     void copyStringOverflow(
         PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString);
     void copyListOverflow(InMemOverflowFile* srcOverflowPages,
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
         gf_list_t* dstGFList, DataType* listChildDataType);
+
+private:
+    uint32_t addANewOverflowPage();
 
     void copyFixedSizedValuesToPages(
         const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
@@ -93,5 +91,5 @@ private:
     std::shared_mutex lock;
 };
 
-} // namespace loader
+} // namespace storage
 } // namespace graphflow

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
+#include "src/storage/storage_structure/include/in_mem_file.h"
 #include "src/storage/storage_structure/include/lists/list_headers.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
 

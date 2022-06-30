@@ -14,9 +14,26 @@ cc_library(
         "//src/common:vector",
         "//src/storage:compression_scheme",
         "//src/storage:storage_utils",
-        "//src/storage/buffer_manager:buffer_manager",
-        "//src/storage/wal:wal",
+        "//src/storage/buffer_manager",
+        "//src/storage/wal",
         "//src/transaction",
+    ],
+)
+
+cc_library(
+    name = "in_mem_file",
+    srcs = [
+        "in_mem_file.cpp",
+        "in_mem_page.cpp",
+    ],
+    hdrs = [
+        "include/in_mem_file.h",
+        "include/in_mem_page.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/storage:compression_scheme",
+        "//src/storage:storage_utils",
     ],
 )
 

@@ -5,12 +5,10 @@
 
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/common/include/utils.h"
-#include "src/loader/in_mem_index/include/in_mem_hash_index.h"
 #include "src/storage/index/include/hash_index.h"
 
 using namespace std;
 using namespace graphflow::common;
-using namespace graphflow::loader;
 using namespace graphflow::storage;
 
 class HashIndexTest : public testing::Test {

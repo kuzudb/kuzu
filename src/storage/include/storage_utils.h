@@ -40,7 +40,7 @@ struct PageElementCursor {
 
     PageElementCursor(page_idx_t pageIdx, uint16_t posInPage)
         : pageIdx{pageIdx}, posInPage{posInPage} {};
-    PageElementCursor() : PageElementCursor{-1u, (uint16_t)-1} {};
+    PageElementCursor() : PageElementCursor{UINT32_MAX, UINT16_MAX} {};
 
     inline void nextPage() {
         pageIdx++;
