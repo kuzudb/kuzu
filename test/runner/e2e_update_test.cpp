@@ -145,10 +145,10 @@ TEST_F(TinySnbUpdateTest, SetBothFlatTest) {
 }
 
 TEST_F(TinySnbUpdateTest, SetTwoHopTest) {
-    conn->query(
-        "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 SET a.age=c.age");
+    conn->query("MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 AND "
+                "c.fName = 'Bob' SET a.age=c.age");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.age");
-    auto groundTruth = vector<string>{"0|35", "2|20", "3|20", "5|20"};
+    auto groundTruth = vector<string>{"0|35", "2|30", "3|30", "5|30"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 

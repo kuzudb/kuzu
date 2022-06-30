@@ -65,6 +65,7 @@ class DBLoadedTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
+        systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
     }
 };

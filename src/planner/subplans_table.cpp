@@ -5,6 +5,8 @@
 namespace graphflow {
 namespace planner {
 
+const uint64_t MAX_NUM_PLANS_PER_SUBGRAPH = 100;
+
 void SubPlansTable::resize(uint32_t newSize) {
     auto prevSize = subPlans.size();
     subPlans.resize(newSize);
@@ -31,6 +33,19 @@ void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<Logic
         subgraphPlansMap->emplace(subqueryGraph, vector<unique_ptr<LogicalPlan>>());
     }
     subgraphPlansMap->at(subqueryGraph).push_back(move(plan));
+}
+
+void SubPlansTable::finalizeLevel(uint32_t level) {
+    for (auto& [subgraph, plans] : *subPlans[level]) {
+        if (plans.size() < MAX_NUM_PLANS_PER_SUBGRAPH) {
+            continue;
+        }
+        sort(plans.begin(), plans.end(),
+            [](const unique_ptr<LogicalPlan>& a, const unique_ptr<LogicalPlan>& b) -> bool {
+                return a->cost < b->cost;
+            });
+        plans.resize(MAX_NUM_PLANS_PER_SUBGRAPH);
+    }
 }
 
 void SubPlansTable::clear() {

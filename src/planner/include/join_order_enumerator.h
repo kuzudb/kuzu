@@ -64,7 +64,16 @@ private:
     // Property push down for rel table.
     void planPropertyScansForRel(RelExpression& rel, LogicalPlan& plan);
 
-    void planHashJoin();
+    inline void planHashJoin() {
+        auto maxLeftLevel = ceil(context->currentLevel / 2.0);
+        for (auto leftLevel = 1; leftLevel <= maxLeftLevel; ++leftLevel) {
+            auto rightLevel = context->currentLevel - leftLevel;
+            planHashJoin(leftLevel, rightLevel);
+        }
+    }
+    void planHashJoin(uint32_t leftLevel, uint32_t rightLevel);
+    // Filter push down for hash join.
+    void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
 
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);

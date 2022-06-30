@@ -108,7 +108,8 @@ void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, Logical
 void JoinOrderEnumerator::planCurrentLevel() {
     assert(context->currentLevel > 1);
     planINPJoin();
-    // TODO(Xiyang): plan HashJoin
+    planHashJoin();
+    context->subPlansTable->finalizeLevel(context->currentLevel);
 }
 
 void JoinOrderEnumerator::planINPJoin() {
@@ -219,52 +220,50 @@ void JoinOrderEnumerator::planPropertyScansForRel(RelExpression& rel, LogicalPla
     enumerator->appendScanRelPropsIfNecessary(relProperties, rel, plan);
 }
 
-void JoinOrderEnumerator::planHashJoin() {
-    auto currentLevel = context->currentLevel;
-    auto queryGraph = context->getQueryGraph();
-    for (auto leftSize = currentLevel - 2; leftSize >= ceil(currentLevel / 2.0); --leftSize) {
-        auto subgraphPlansMap = context->getSubqueryGraphPlansMap(leftSize);
-        for (auto& [leftSubgraph, leftPlans] : *subgraphPlansMap) {
-            auto rightSubgraphAndJoinNodePairs =
-                queryGraph->getSingleNodeJoiningSubgraph(leftSubgraph, currentLevel - leftSize);
-            for (auto& [rightSubgraph, joinNodePos] : rightSubgraphAndJoinNodePairs) {
-                // Consider previous example in enumerateExtend()
-                // When enumerating second MATCH, and current level = 4
-                // we get left subgraph as f, d, e (size = 2), and try to find a connected
-                // right subgraph of size 2. A possible right graph could be b, c, d.
-                // However, b, c, d is a subgraph enumerated in the first MATCH and has been
-                // cleared before enumeration of second MATCH. So subPlansTable does not
-                // contain this subgraph.
-                if (!context->containPlans(rightSubgraph)) {
-                    continue;
-                }
-                auto& rightPlans = context->getPlans(rightSubgraph);
-                auto newSubgraph = leftSubgraph;
-                newSubgraph.addSubqueryGraph(rightSubgraph);
-                auto& joinNode = *queryGraph->getQueryNode(joinNodePos);
-                auto predicates = getNewMatchedExpressions(
-                    leftSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
-                for (auto& leftPlan : leftPlans) {
-                    for (auto& rightPlan : rightPlans) {
-                        auto probePlan = leftPlan->shallowCopy();
-                        appendLogicalHashJoin(joinNode, *probePlan, *rightPlan);
-                        for (auto& predicate : predicates) {
-                            enumerator->appendFilter(predicate, *probePlan);
-                        }
-                        context->addPlan(newSubgraph, move(probePlan));
-                        // flip build and probe side to get another HashJoin plan
-                        if (leftSize != currentLevel - leftSize) {
-                            probePlan = rightPlan->shallowCopy();
-                            appendLogicalHashJoin(joinNode, *probePlan, *leftPlan);
-                            for (auto& predicate : predicates) {
-                                enumerator->appendFilter(predicate, *probePlan);
-                            }
-                            context->addPlan(newSubgraph, move(probePlan));
-                        }
+void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) {
+    auto rightSubgraphPlansMap = context->subPlansTable->getSubqueryGraphPlansMap(rightLevel);
+    for (auto& [rightSubgraph, rightPlans] : *rightSubgraphPlansMap) {
+        for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
+            // Consider previous example in enumerateExtend(), when enumerating second MATCH, and
+            // current level = 4 we get left subgraph as f, d, e (size = 2), and try to find a
+            // connected right subgraph of size 2. A possible right graph could be b, c, d. However,
+            // b, c, d is a subgraph enumerated in the first MATCH and has been cleared before
+            // enumeration of second MATCH. So subPlansTable does not contain this subgraph.
+            if (!context->containPlans(nbrSubgraph)) {
+                continue;
+            }
+            auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
+            assert(joinNodePositions.size() == 1);
+            auto joinNode = context->mergedQueryGraph->getQueryNode(joinNodePositions[0]);
+            auto& leftPlans = context->getPlans(nbrSubgraph);
+            auto newSubgraph = rightSubgraph;
+            newSubgraph.addSubqueryGraph(nbrSubgraph);
+            auto predicates = getNewMatchedExpressions(
+                nbrSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
+            for (auto& leftPlan : leftPlans) {
+                for (auto& rightPlan : rightPlans) {
+                    auto leftPlanProbeCopy = leftPlan->shallowCopy();
+                    auto rightPlanBuildCopy = rightPlan->shallowCopy();
+                    auto leftPlanBuildCopy = leftPlan->shallowCopy();
+                    auto rightPlanProbeCopy = rightPlan->shallowCopy();
+                    appendLogicalHashJoin(*joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                    planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
+                    context->addPlan(newSubgraph, move(leftPlanProbeCopy));
+                    // flip build and probe side to get another HashJoin plan
+                    if (leftLevel != rightLevel) {
+                        appendLogicalHashJoin(*joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                        planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
+                        context->addPlan(newSubgraph, move(rightPlanProbeCopy));
                     }
                 }
             }
         }
+    }
+}
+
+void JoinOrderEnumerator::planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan) {
+    for (auto& predicate : predicates) {
+        enumerator->appendFilter(predicate, plan);
     }
 }
 
@@ -335,14 +334,20 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
     // Flat probe side key group if necessary
     auto probeSideKeyGroupPos = probePlanSchema->getGroupPos(joinNodeID);
     auto probeSideKeyGroup = probePlanSchema->getGroup(probeSideKeyGroupPos);
-    enumerator->appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
+    Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
     // Merge key group from build side into probe side.
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
+    auto buildSideKeyGroup = buildSideSchema.getGroup(buildSideKeyGroupPos);
+    Enumerator::appendFlattenIfNecessary(buildSideKeyGroupPos, buildPlan);
     probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
-        buildSideSchema.getGroup(buildSideKeyGroupPos)->getEstimatedCardinality()));
-    probePlanSchema->insertToGroupAndScope(
-        buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos), probeSideKeyGroupPos);
+        buildSideKeyGroup->getEstimatedCardinality()));
+    for (auto& expression : buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos)) {
+        if (expression->getUniqueName() == joinNodeID) {
+            continue;
+        }
+        probePlanSchema->insertToGroupAndScope(expression, probeSideKeyGroupPos);
+    }
     // Merge payload groups
     unordered_set<uint32_t> payloadGroupsPos;
     for (auto& groupPos : buildSideSchema.getGroupsPosInScope()) {
@@ -351,10 +356,17 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         }
         payloadGroupsPos.insert(groupPos);
     }
+    auto numGroupsBefore = probePlanSchema->getNumGroups();
     Enumerator::computeSchemaForSinkOperators(payloadGroupsPos, buildSideSchema, *probePlanSchema);
+    vector<uint64_t> flatOutputGroupPositions;
+    for (auto i = numGroupsBefore; i < probePlanSchema->getNumGroups(); ++i) {
+        if (probePlanSchema->getGroup(i)->getIsFlat()) {
+            flatOutputGroupPositions.push_back(i);
+        }
+    }
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),
-        buildSideSchema.getExpressionsInScope(), probePlan.getLastOperator(),
-        buildPlan.getLastOperator());
+        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
+        probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
 }
 

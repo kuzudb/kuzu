@@ -713,8 +713,7 @@ void AggregateHashTable::updateBothFlatAggVectorState(
     auto aggPos = aggVector->state->getPositionOfCurrIdx();
     if (!aggVector->isNull(aggPos)) {
         aggregateFunction->updatePosState(
-            hashSlotsToUpdateAggState[groupByFlatHashKeyVectors[0]->state->getPositionOfCurrIdx()]
-                    ->entry +
+            hashSlotsToUpdateAggState[hashVector->state->getPositionOfCurrIdx()]->entry +
                 aggStateOffset,
             aggVector, multiplicity, aggPos);
     }

@@ -13,6 +13,10 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
+    for (auto& pos : flatDataChunkPositions) {
+        auto dataChunk = resultSet->dataChunks[pos];
+        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
+    }
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector = make_shared<ValueVector>(
             context->memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
@@ -33,9 +37,12 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
 }
 
 void HashJoinProbe::getNextBatchOfMatchedTuples() {
-    probeState->numMatchedTuples = 0;
     tuplePosToReadInProbedState = 0;
     auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
+    if (factorizedTable->getNumTuples() == 0) {
+        probeState->numMatchedTuples = 0;
+        return;
+    }
     do {
         if (probeState->numMatchedTuples == 0) {
             if (!children[0]->getNextTuples()) {
@@ -50,6 +57,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->probedTuple =
                 *sharedState->getHashTable()->findHashEntry(probeState->probeSideKeyNodeID);
         }
+        probeState->numMatchedTuples = 0;
         while (probeState->probedTuple) {
             if (DEFAULT_VECTOR_CAPACITY == probeState->numMatchedTuples) {
                 break;
@@ -68,20 +76,11 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
 void HashJoinProbe::populateResultSet() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
     assert(tuplePosToReadInProbedState < probeState->numMatchedTuples);
-    // Consider the following plan with a HashJoin on c.
-    // Build side: Scan(a) -> Extend(b) -> Extend(c) -> Projection(c)
-    // Probe side: Scan(e) -> Extend(d) -> Extend(c)
-    // Build side only has one hash column but no payload column. In such case, a hash probe can
-    // only read tuple one by one (or updating multiplicity) because there is no payload unFlat
-    // vector to represent multiple tuples.
-    auto numTuplesToRead = columnsToRead.empty() ?
-                               1 :
-                               min(probeState->numMatchedTuples - tuplePosToReadInProbedState,
-                                   probeState->maxMorselSize);
+    // TODO(Xiyang/Guodong): add read multiple tuples
     auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
     factorizedTable->lookup(vectorsToRead, columnsToRead, probeState->matchedTuples.get(),
-        tuplePosToReadInProbedState, numTuplesToRead);
-    tuplePosToReadInProbedState += numTuplesToRead;
+        tuplePosToReadInProbedState, 1);
+    tuplePosToReadInProbedState += 1;
 }
 
 // The general flow of a hash join probe:
