@@ -78,7 +78,7 @@ void WAL::initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataField
 }
 
 void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
-    if (offsetInCurrentHeaderPage + walRecord.numBytesToWrite() > WAL_HEADER_PAGE_SIZE) {
+    if (offsetInCurrentHeaderPage + sizeof(WALRecord) > WAL_HEADER_PAGE_SIZE) {
         uint64_t nextHeaderPageIdx = fileHandle->addNewPage();
         setNextHeaderPageOfCurrentHeaderPage(nextHeaderPageIdx);
         // We next write the currentHeaderPageBuffer. This allows us to only keep track

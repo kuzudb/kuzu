@@ -25,7 +25,7 @@ public:
         WALRecord recordReadBack;
         WALRecord::constructWALRecordFromBytes(recordReadBack, bytes.get(), offset);
         // Test the offset was moved correctly
-        ASSERT_EQ(offset, previousOffset + expectedWALRecord.numBytesToWrite());
+        ASSERT_EQ(offset, previousOffset + sizeof(WALRecord));
         ASSERT_EQ(recordReadBack, expectedWALRecord);
     }
 
@@ -33,7 +33,7 @@ public:
         uint64_t offset = 0;
         expectedWALRecord.writeWALRecordToBytes(bytes.get(), offset);
         // Test the offset was moved correctly
-        ASSERT_EQ(offset, expectedWALRecord.numBytesToWrite());
+        ASSERT_EQ(offset, sizeof(WALRecord));
         // Test we read back what we wrote
         offset = 0;
         readBackWALRecordAndAssert(expectedWALRecord, offset);
@@ -90,12 +90,11 @@ TEST_F(WALRecordTest, MultipleRecordWritingTest) {
 
     uint64_t offset = 0;
     expectedWALRecord1.writeWALRecordToBytes(bytes.get(), offset);
-    ASSERT_EQ(offset, expectedWALRecord1.numBytesToWrite());
+    ASSERT_EQ(offset, sizeof(WALRecord));
     expectedWALRecord2.writeWALRecordToBytes(bytes.get(), offset);
-    ASSERT_EQ(offset, expectedWALRecord1.numBytesToWrite() + expectedWALRecord2.numBytesToWrite());
+    ASSERT_EQ(offset, 2 * sizeof(WALRecord));
     expectedWALRecord3.writeWALRecordToBytes(bytes.get(), offset);
-    ASSERT_EQ(offset, expectedWALRecord1.numBytesToWrite() + expectedWALRecord2.numBytesToWrite() +
-                          expectedWALRecord3.numBytesToWrite());
+    ASSERT_EQ(offset, 3 * sizeof(WALRecord));
     offset = 0;
     readBackWALRecordAndAssert(expectedWALRecord1, offset);
     readBackWALRecordAndAssert(expectedWALRecord2, offset);

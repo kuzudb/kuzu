@@ -15,12 +15,6 @@ struct StructuredNodePropertyColumnID {
     inline bool operator==(const StructuredNodePropertyColumnID& rhs) const {
         return nodeLabel == rhs.nodeLabel && propertyID == rhs.propertyID;
     }
-
-    inline uint64_t numBytesToWrite() { return sizeof(label_t) + sizeof(uint32_t); }
-
-    static void constructStructuredNodePropertyColumnIDFromBytes(
-        StructuredNodePropertyColumnID& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeStructuredNodePropertyColumnIDToBytes(uint8_t* bytes, uint64_t& offset);
 };
 
 enum StorageStructureType : uint8_t {
@@ -53,20 +47,6 @@ struct StorageStructureID {
         }
     }
 
-    inline uint64_t numBytesToWrite() {
-        switch (storageStructureType) {
-            // We add 2 bytes below because: 1 for StorageStructureType and 2 for isOverflow
-        case STRUCTURED_NODE_PROPERTY_COLUMN: {
-            return 2 + structuredNodePropertyColumnID.numBytesToWrite();
-        }
-        default: {
-            throw RuntimeException("Unrecognized StorageStructureType inside numBytesToWrite(). "
-                                   "StorageStructureType:" +
-                                   to_string(storageStructureType));
-        }
-        }
-    }
-
     inline static StorageStructureID newStructuredNodePropertyMainColumnID(
         label_t nodeLabel, uint32_t propertyID) {
         return newStructuredNodePropertyColumnID(nodeLabel, propertyID, false /* is main file */);
@@ -77,10 +57,6 @@ struct StorageStructureID {
         return newStructuredNodePropertyColumnID(
             nodeLabel, propertyID, true /* is overflow file */);
     }
-
-    static void constructStorageStructureIDFromBytes(
-        StorageStructureID& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeStorageStructureIDToBytes(uint8_t* bytes, uint64_t& offset);
 
 private:
     static StorageStructureID newStructuredNodePropertyColumnID(
@@ -106,17 +82,9 @@ struct PageUpdateOrInsertRecord {
                pageIdxInWAL == rhs.pageIdxInWAL && isInsert == rhs.isInsert;
     }
 
-    inline uint64_t numBytesToWrite() {
-        return storageStructureID.numBytesToWrite() + sizeof(uint64_t) + sizeof(uint64_t) +
-               sizeof(bool);
-    }
-
     static PageUpdateOrInsertRecord newPageInsertOrUpdateRecord(
         StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile,
         uint64_t pageIdxInWAL, bool isInsert);
-    static void constructPageUpdateOrInsertRecordFromBytes(
-        PageUpdateOrInsertRecord& retVal, uint8_t* bytes, uint64_t& offset);
-    void writePageUpdateOrInsertRecordToBytes(uint8_t* bytes, uint64_t& offset);
 };
 
 struct CommitRecord {
@@ -126,12 +94,7 @@ struct CommitRecord {
         return transactionID == rhs.transactionID;
     }
 
-    inline uint64_t numBytesToWrite() { return sizeof(uint64_t); }
-
     static CommitRecord newCommitRecord(uint64_t transactionID);
-    static void constructCommitRecordFromBytes(
-        CommitRecord& retVal, uint8_t* bytes, uint64_t& offset);
-    void writeCommitRecordToBytes(uint8_t* bytes, uint64_t& offset);
 };
 
 struct WALRecord {
@@ -159,25 +122,6 @@ struct WALRecord {
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
-        }
-        }
-    }
-
-    inline uint64_t numBytesToWrite() {
-        switch (recordType) {
-        case PAGE_UPDATE_OR_INSERT_RECORD: {
-            return 1 + pageInsertOrUpdateRecord.numBytesToWrite();
-        }
-        case COMMIT_RECORD: {
-            return 1 + commitRecord.numBytesToWrite();
-        }
-        case NODES_METADATA_RECORD: {
-            return 1;
-        }
-        default: {
-            throw RuntimeException(
-                "Unrecognized WAL record type inside numBytesToWrite(). recordType: " +
-                to_string(recordType));
         }
         }
     }
