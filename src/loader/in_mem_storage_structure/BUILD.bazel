@@ -12,6 +12,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/storage/buffer_manager:file_handle",
         "//src/storage:compression_scheme",
         "//src/storage:storage_utils",
     ],

@@ -57,7 +57,7 @@ protected:
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
         bool isInMemory)
         : BaseColumnOrList{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
-          metadata{fName, false /* is not for building */}, headers(move(headers)){};
+          metadata{fName}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);

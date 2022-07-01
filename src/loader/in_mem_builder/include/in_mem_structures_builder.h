@@ -34,21 +34,21 @@ protected:
         const string& filePath, vector<PropertyNameDataType>& colDefinitions);
 
     // Concurrent tasks
-    // Initializes (in listHeaders) the header of each list in a Lists structure, from the
+    // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
     static void calculateListHeadersTask(node_offset_t numNodes, uint32_t elementSize,
-        atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
+        atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
         const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar);
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
-    // largeListsPagesMap, using listSizes and listHeaders.
+    // largeListsPagesMap, using listSizes and listHeadersBuilder.
     // **Note that this file also allocates the in-memory pages of the InMemFile that will actually
     // stores the data in the lists (e.g., neighbor ids or edge properties or unstructured
     // properties).
     static void calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
-        uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
-        InMemLists* inMemList, bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger,
-        LoaderProgressBar* progressBar);
+        uint32_t elementSize, atomic_uint64_vec_t* listSizes,
+        ListHeadersBuilder* listHeadersBuilder, InMemLists* inMemList, bool hasNULLBytes,
+        const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar);
 
 private:
     vector<PropertyNameDataType> parseCSVFileHeader(string& header) const;

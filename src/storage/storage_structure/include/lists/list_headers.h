@@ -3,7 +3,8 @@
 #include <memory>
 
 #include "src/common/types/include/types_include.h"
-#include "src/storage/storage_structure/include/disk_array.h"
+#include "src/storage/buffer_manager/include/disk_array.h"
+#include "src/storage/buffer_manager/include/file_handle.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -36,18 +37,12 @@ namespace storage {
  *      2. 30-0  bits denote the idx in the largeListsPagesMaps where the length and the disk
  *      page IDs are located.
  * */
-class ListHeaders {
+class BaseListHeaders {
 
 public:
     static constexpr uint64_t LIST_HEADERS_HEADER_PAGE_IDX = 0;
 
-    explicit ListHeaders(const string& fName, uint64_t numElements);
-    explicit ListHeaders(const string& listBaseFName);
-
-    inline list_header_t getHeader(node_offset_t offset) { return (*headers)[offset]; };
-    inline void setHeader(node_offset_t offset, list_header_t header) {
-        (*headers)[offset] = header;
-    }
+    explicit BaseListHeaders(const string& listBaseFName);
 
     static inline bool isALargeList(list_header_t header) { return header & 0x80000000; };
 
@@ -66,13 +61,33 @@ public:
         return 0x80000000 | (listIdx & 0x7fffffff);
     }
 
-    void saveToDisk();
-
-private:
+protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<InMemDiskArray<list_header_t>> headers;
     unique_ptr<FileHandle> headersFileHandle;
 };
 
+class ListHeadersBuilder : public BaseListHeaders {
+public:
+    explicit ListHeadersBuilder(const string& fName, uint64_t numElements);
+
+    inline list_header_t getHeader(node_offset_t offset) { return (*headersBuilder)[offset]; };
+
+    inline void setHeader(node_offset_t offset, list_header_t header) {
+        (*headersBuilder)[offset] = header;
+    }
+    void saveToDisk();
+
+private:
+    unique_ptr<InMemDiskArrayBuilder<list_header_t>> headersBuilder;
+};
+
+class ListHeaders : public BaseListHeaders {
+public:
+    explicit ListHeaders(const string& fName);
+
+    inline list_header_t getHeader(node_offset_t offset) { return (*headers)[offset]; };
+
+    unique_ptr<InMemDiskArray<list_header_t>> headers;
+};
 } // namespace storage
 } // namespace graphflow

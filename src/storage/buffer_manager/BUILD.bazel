@@ -3,10 +3,12 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "file_handle",
     srcs = [
+        "disk_array.cpp",
         "file_handle.cpp",
         "versioned_file_handle.cpp",
     ],
     hdrs = [
+        "include/disk_array.h",
         "include/file_handle.h",
         "include/versioned_file_handle.h",
     ],
