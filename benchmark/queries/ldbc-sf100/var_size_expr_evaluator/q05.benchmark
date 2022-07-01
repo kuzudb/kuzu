@@ -1,0 +1,5 @@
+-NAME q05
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) RETURN MIN(upper(comment.content))
+---- 1
+CHROME

@@ -1,0 +1,5 @@
+-NAME q20
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) RETURN MIN(comment.locationIP)
+---- 1
+1.0.0.0
