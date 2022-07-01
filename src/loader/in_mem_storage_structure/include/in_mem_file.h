@@ -24,7 +24,7 @@ public:
 
     virtual ~InMemFile() = default;
 
-    virtual void flush();
+    void flush();
 
     void addNewPages(uint64_t numNewPagesToAdd, bool setToZero = false);
 

@@ -35,6 +35,7 @@ void InMemFile::flush() {
     }
     auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
     for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
+        pages[pageIdx]->encodeNullBits();
         FileUtils::writeToFile(
             fileInfo.get(), pages[pageIdx]->data, DEFAULT_PAGE_SIZE, pageIdx * DEFAULT_PAGE_SIZE);
     }

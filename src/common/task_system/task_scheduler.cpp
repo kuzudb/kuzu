@@ -17,7 +17,7 @@ TaskScheduler::TaskScheduler(uint64_t numThreads)
 }
 
 TaskScheduler::~TaskScheduler() {
-    stopThreads = true;
+    stopThreads.store(true);
     for (auto& thread : threads) {
         thread.join();
     }
@@ -126,7 +126,7 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
 
 void TaskScheduler::runWorkerThread() {
     while (true) {
-        if (stopThreads) {
+        if (stopThreads.load()) {
             break;
         }
         auto scheduledTask = getTaskAndRegister();
