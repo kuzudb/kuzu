@@ -26,7 +26,7 @@ public:
     // Calculates the page id and offset in page where the data of a particular list has to be put
     // in the in-mem pages.
     static PageElementCursor calcPageElementCursor(uint32_t header, uint64_t reversePos,
-        uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadata& metadata,
+        uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
         bool hasNULLBytes);
 };
 
@@ -40,7 +40,7 @@ public:
     virtual void saveToFile();
     virtual void setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val);
     virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
-    inline ListsMetadata* getListsMetadata() { return listsMetadata.get(); }
+    inline ListsMetadataBuilder* getListsMetadataBuilder() { return listsMetadataBuilder.get(); }
     inline uint8_t* getMemPtrToLoc(uint64_t pageIdx, uint16_t posInPage) {
         return inMemFile->getPage(pageIdx)->data + (posInPage * numBytesForElement);
     }
@@ -52,7 +52,7 @@ protected:
     string fName;
     DataType dataType;
     uint64_t numBytesForElement;
-    unique_ptr<ListsMetadata> listsMetadata;
+    unique_ptr<ListsMetadataBuilder> listsMetadataBuilder;
 };
 
 class InMemListsWithOverflow : public InMemLists {
@@ -75,7 +75,7 @@ public:
     InMemAdjLists(string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numNodes)
         : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes()},
           compressionScheme{compressionScheme} {
-        listHeaders = make_unique<ListHeaders>(this->fName, numNodes);
+        listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };
 
     ~InMemAdjLists() override = default;
@@ -84,10 +84,10 @@ public:
 
     void saveToFile() override;
 
-    inline ListHeaders* getListHeaders() const { return listHeaders.get(); }
+    inline ListHeadersBuilder* getListHeadersBuilder() const { return listHeadersBuilder.get(); }
 
 private:
-    unique_ptr<ListHeaders> listHeaders;
+    unique_ptr<ListHeadersBuilder> listHeadersBuilder;
     NodeIDCompressionScheme compressionScheme;
 };
 
@@ -111,10 +111,10 @@ public:
     InMemUnstructuredLists(string fName, uint64_t numNodes)
         : InMemListsWithOverflow{move(fName), DataType(UNSTRUCTURED)} {
         listSizes = make_unique<atomic_uint64_vec_t>(numNodes);
-        listHeaders = make_unique<ListHeaders>(this->fName, numNodes);
+        listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };
 
-    inline ListHeaders* getListHeaders() { return listHeaders.get(); }
+    inline ListHeadersBuilder* getListHeadersBuilder() { return listHeadersBuilder.get(); }
     inline atomic_uint64_vec_t* getListSizes() { return listSizes.get(); }
 
     void setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey, DataTypeID dataTypeID,
@@ -127,7 +127,7 @@ private:
 
 private:
     unique_ptr<atomic_uint64_vec_t> listSizes;
-    unique_ptr<ListHeaders> listHeaders;
+    unique_ptr<ListHeadersBuilder> listHeadersBuilder;
 };
 
 class InMemListsFactory {

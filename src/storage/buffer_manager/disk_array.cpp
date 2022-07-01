@@ -1,4 +1,6 @@
-#include "include/disk_array.h"
+#include "src/storage/buffer_manager/include/disk_array.h"
+
+#include "src/storage/buffer_manager/include/versioned_file_handle.h"
 
 namespace graphflow {
 namespace storage {
@@ -37,12 +39,12 @@ void PIP::print() {
     cout << endl;
 }
 
-BaseDiskArray::BaseDiskArray(
-    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize, uint64_t numElements)
-    : header(elementSize), fileHandle(fileHandle), headerPageIdx(headerPageIdx) {
-    assert(!fileHandle.isLargePaged());
-    setNumElementsAndAllocateDiskArrayPagesForBuilding(numElements);
+PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {
+    fileHandle.readPage(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
+
+BaseDiskArray::BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
+    : header{elementSize}, fileHandle(fileHandle), headerPageIdx(headerPageIdx) {}
 
 BaseDiskArray::BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
     : fileHandle(fileHandle), headerPageIdx(headerPageIdx) {
@@ -55,48 +57,44 @@ BaseDiskArray::BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
     }
 }
 
-void BaseDiskArray::setNumElementsAndAllocateDiskArrayPagesForBuilding(uint64_t newNumElements) {
-    uint64_t oldNumArrayPages = header.numArrayPages;
+template<class T>
+void InMemDiskArrayBuilder<T>::setNumElementsAndAllocateDiskArrayPagesForBuilding(
+    uint64_t newNumElements) {
+    uint64_t oldNumArrayPages = this->header.numArrayPages;
     uint64_t newNumArrayPages = getNumArrayPagesNeededForElements(newNumElements);
     for (int i = oldNumArrayPages; i < newNumArrayPages; ++i) {
         addNewArrayPageForBuilding();
     }
-    header.numElements = newNumElements;
-    header.numArrayPages = newNumArrayPages;
+    this->header.numElements = newNumElements;
+    this->header.numArrayPages = newNumArrayPages;
 }
 
-void BaseDiskArray::addNewArrayPageForBuilding() {
-    uint64_t arrayPageIdx = fileHandle.addNewPage();
+template<class T>
+void InMemDiskArrayBuilder<T>::addNewArrayPageForBuilding() {
+    uint64_t arrayPageIdx = this->fileHandle.addNewPage();
     // The idx of the next array page will be exactly header.numArrayPages. That is why we first
     // find the pipIdx and offset in the pip of the array page before incrementing
     // header.numArrayPages by 1.
     auto pipIdxAndOffset =
-        StorageUtils::getQuotientRemainder(header.numArrayPages, NUM_PAGE_IDXS_PER_PIP);
-    header.numArrayPages++;
+        StorageUtils::getQuotientRemainder(this->header.numArrayPages, NUM_PAGE_IDXS_PER_PIP);
+    this->header.numArrayPages++;
     uint64_t pipIdx = pipIdxAndOffset.first;
-    if (pipIdx == pips.size()) {
-        uint64_t pipPageIdx = fileHandle.addNewPage();
-        pips.emplace_back(pipPageIdx);
+    if (pipIdx == this->pips.size()) {
+        uint64_t pipPageIdx = this->fileHandle.addNewPage();
+        this->pips.emplace_back(pipPageIdx);
         if (pipIdx == 0) {
-            header.firstPIPPageIdx = pipPageIdx;
+            this->header.firstPIPPageIdx = pipPageIdx;
         } else {
-            pips[pipIdx - 1].pipContents.nextPipPageIdx = pipPageIdx;
+            this->pips[pipIdx - 1].pipContents.nextPipPageIdx = pipPageIdx;
         }
     }
-    pips[pipIdx].pipContents.pageIdxs[pipIdxAndOffset.second] = arrayPageIdx;
+    this->pips[pipIdx].pipContents.pageIdxs[pipIdxAndOffset.second] = arrayPageIdx;
 }
 
 page_idx_t BaseDiskArray::getArrayFilePageIdx(page_idx_t arrayPageIdx) {
     assert(arrayPageIdx < header.numArrayPages);
     auto pipIdxAndOffset = StorageUtils::getQuotientRemainder(arrayPageIdx, NUM_PAGE_IDXS_PER_PIP);
     return pips[pipIdxAndOffset.first].pipContents.pageIdxs[pipIdxAndOffset.second];
-}
-
-void BaseDiskArray::saveToDisk() {
-    header.saveToDisk(fileHandle, headerPageIdx);
-    for (int i = 0; i < pips.size(); ++i) {
-        fileHandle.writePage(reinterpret_cast<uint8_t*>(&pips[i].pipContents), pips[i].pipPageIdx);
-    }
 }
 
 void BaseDiskArray::print() {
@@ -109,55 +107,71 @@ void BaseDiskArray::print() {
 }
 
 template<class U>
-InMemDiskArray<U>::InMemDiskArray(
-    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements)
-    : BaseDiskArray(fileHandle, headerPageIdx, sizeof(U) /* elementSize */, numElements) {
-    for (uint64_t i = 0; i < header.numArrayPages; ++i) {
-        addInMemoryPage();
-    }
-}
-
-template<class U>
-InMemDiskArray<U>::InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
+BaseInMemDiskArray<U>::BaseInMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
     : BaseDiskArray(fileHandle, headerPageIdx) {
     for (page_idx_t arrayPageIdx = 0; arrayPageIdx < header.numArrayPages; ++arrayPageIdx) {
-        dataPages.emplace_back(make_unique<U[]>(1ull << header.numElementsPerPageLog2));
+        addInMemoryPage();
         fileHandle.readPage(reinterpret_cast<uint8_t*>(dataPages[arrayPageIdx].get()),
             getArrayFilePageIdx(arrayPageIdx));
     }
 }
+template<class U>
+BaseInMemDiskArray<U>::BaseInMemDiskArray(
+    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize)
+    : BaseDiskArray(fileHandle, headerPageIdx, elementSize) {}
 
-// [] operator to be used when building an InMemDiskArray without transactional updates. This
+// [] operator to be used when building an InMemDiskArrayBuilder without transactional updates. This
 // changes the contents directly in memory and not on disk (nor on the wal)
 template<class U>
-U& InMemDiskArray<U>::operator[](uint64_t idx) {
+U& BaseInMemDiskArray<U>::operator[](uint64_t idx) {
     page_idx_t arrayPageIdx = idx >> header.numElementsPerPageLog2;
     uint64_t arrayPageOffset = idx & header.elementPageOffsetMask;
     assert(arrayPageIdx < header.numArrayPages);
     return dataPages[arrayPageIdx][arrayPageOffset];
 }
 
-template<class U>
-void InMemDiskArray<U>::saveToDisk() {
-    BaseDiskArray::saveToDisk();
-    for (page_idx_t arrayPageIdx = 0; arrayPageIdx < header.numArrayPages; ++arrayPageIdx) {
-        fileHandle.writePage(reinterpret_cast<uint8_t*>(dataPages[arrayPageIdx].get()),
-            getArrayFilePageIdx(arrayPageIdx));
+template<class T>
+InMemDiskArrayBuilder<T>::InMemDiskArrayBuilder(
+    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements)
+    : BaseInMemDiskArray<T>(fileHandle, headerPageIdx, sizeof(T)) {
+    setNumElementsAndAllocateDiskArrayPagesForBuilding(numElements);
+    for (uint64_t i = 0; i < this->header.numArrayPages; ++i) {
+        this->addInMemoryPage();
     }
 }
 
-template<class U>
-void InMemDiskArray<U>::setNewNumElementsAndIncreaseCapacityIfNeeded(uint64_t newNumElements) {
-    uint64_t oldNumArrayPages = header.numArrayPages;
-    BaseDiskArray::setNumElementsAndAllocateDiskArrayPagesForBuilding(newNumElements);
-    uint64_t newNumArrayPages = header.numArrayPages;
+template<class T>
+InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
+    : BaseInMemDiskArray<T>(fileHandle, headerPageIdx) {}
+
+template<class T>
+void InMemDiskArrayBuilder<T>::saveToDisk() {
+    // save the header and pips.
+    this->header.saveToDisk(this->fileHandle, this->headerPageIdx);
+    for (int i = 0; i < this->pips.size(); ++i) {
+        this->fileHandle.writePage(
+            reinterpret_cast<uint8_t*>(&this->pips[i].pipContents), this->pips[i].pipPageIdx);
+    }
+    // Save array pages
+    for (page_idx_t arrayPageIdx = 0; arrayPageIdx < this->header.numArrayPages; ++arrayPageIdx) {
+        this->fileHandle.writePage(reinterpret_cast<uint8_t*>(this->dataPages[arrayPageIdx].get()),
+            this->getArrayFilePageIdx(arrayPageIdx));
+    }
+}
+
+template<class T>
+void InMemDiskArrayBuilder<T>::setNewNumElementsAndIncreaseCapacityIfNeeded(
+    uint64_t newNumElements) {
+    uint64_t oldNumArrayPages = this->header.numArrayPages;
+    setNumElementsAndAllocateDiskArrayPagesForBuilding(newNumElements);
+    uint64_t newNumArrayPages = this->header.numArrayPages;
     for (int i = oldNumArrayPages; i < newNumArrayPages; ++i) {
-        addInMemoryPage();
+        this->addInMemoryPage();
     }
 }
 
 template<class U>
-void InMemDiskArray<U>::print() {
+void BaseInMemDiskArray<U>::print() {
     BaseDiskArray::print();
     for (page_idx_t arrayPageIdx = 0; arrayPageIdx < header.numArrayPages; ++arrayPageIdx) {
         auto numElementsPerPage = 1 << header.numElementsPerPageLog2;
@@ -170,8 +184,8 @@ void InMemDiskArray<U>::print() {
         dataPages.emplace_back(make_unique<U[]>(1 << header.numElementsPerPageLog2));
     }
 }
-
+template class BaseInMemDiskArray<uint32_t>;
+template class InMemDiskArrayBuilder<uint32_t>;
 template class InMemDiskArray<uint32_t>;
-
 } // namespace storage
 } // namespace graphflow

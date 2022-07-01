@@ -224,19 +224,19 @@ void InMemNodeBuilder::calcUnstrListsHeadersAndMetadata() {
     if (unstrPropertyLists == nullptr) {
         return;
     }
-    logger->debug("Initializing UnstructuredPropertyListHeaders.");
+    logger->debug("Initializing UnstructuredPropertyListHeaderBuilders.");
     progressBar->addAndStartNewJob("Calculating lists headers for node: " + labelName, 1);
     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(calculateListHeadersTask,
-        numNodes, 1, unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeaders(),
-        logger, progressBar));
+        numNodes, 1, unstrPropertyLists->getListSizes(),
+        unstrPropertyLists->getListHeadersBuilder(), logger, progressBar));
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
     progressBar->addAndStartNewJob("Calculating lists metadata for node: " + labelName, 1);
-    taskScheduler.scheduleTask(
-        LoaderTaskFactory::createLoaderTask(calculateListsMetadataAndAllocateInMemListPagesTask,
-            numNodes, 1, unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeaders(),
-            unstrPropertyLists.get(), false /*hasNULLBytes*/, logger, progressBar));
+    taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+        calculateListsMetadataAndAllocateInMemListPagesTask, numNodes, 1,
+        unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeadersBuilder(),
+        unstrPropertyLists.get(), false /*hasNULLBytes*/, logger, progressBar));
     logger->debug("Done initializing UnstructuredPropertyListsMetadata.");
     taskScheduler.waitAllTasksToCompleteOrError();
 }
@@ -368,8 +368,8 @@ void InMemNodeBuilder::putUnstrPropsOfALineToLists(CSVReader& reader, node_offse
         auto reversePos = InMemListsUtils::decrementListSize(*unstrPropertyLists->getListSizes(),
             nodeOffset, UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
         PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
-            unstrPropertyLists->getListHeaders()->getHeader(nodeOffset), reversePos, 1, nodeOffset,
-            *unstrPropertyLists->getListsMetadata(), false /*hasNULLBytes*/);
+            unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
+            nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);
         PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType.typeID) {

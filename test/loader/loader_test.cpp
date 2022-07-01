@@ -54,19 +54,23 @@ public:
         label_t pLabel = catalog.getNodeLabelFromName("person");
         auto unstrPropLists =
             database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pLabel);
+        unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.print();
+        unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.print();
+        unstrPropLists->metadata.pageLists->header.print();
         // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in
-        // chunk idx 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap
-        // need to point to UINT32_MAX (representing null), while chunk 2 should point to 0.
+        // chunk idx 2 has a non-empty list. So chunk ids 0, 1, and 3's
+        // chunkToPageListHeadIdxMap need to point to UINT32_MAX (representing null),
+        // while chunk 2 should point to 0.
         uint64_t numChunks = 4;
         EXPECT_EQ(
-            numChunks, unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.elementSize);
+            numChunks, unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.numElements);
         for (int chunkIdx = 0; chunkIdx < numChunks; chunkIdx++) {
             EXPECT_EQ(chunkIdx == 2 ? 0 : UINT32_MAX,
                 (*unstrPropLists->metadata.chunkToPageListHeadIdxMap)[chunkIdx]);
         }
         // Check chunk idx 2's pageLists.
         EXPECT_EQ(storage::ListsMetadata::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE,
-            unstrPropLists->metadata.pageLists->header.elementSize);
+            unstrPropLists->metadata.pageLists->header.numElements);
         for (int chunkPageListIdx = 0;
              chunkPageListIdx < storage::ListsMetadata::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE;
              ++chunkPageListIdx) {

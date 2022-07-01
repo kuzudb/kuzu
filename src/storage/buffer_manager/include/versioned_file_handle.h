@@ -1,5 +1,7 @@
 #pragma once
 
+#include "file_handle.h"
+
 #include "src/common/include/configs.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/include/storage_utils.h"

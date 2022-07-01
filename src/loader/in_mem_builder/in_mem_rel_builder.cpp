@@ -317,7 +317,7 @@ static void putValueIntoLists(uint64_t propertyIdx,
                 directionLabelPropertyLists[relDirection].at(nodeLabel)[propertyIdx].get();
             auto nodeOffset = nodeIDs[relDirection].offset;
             auto header =
-                directionLabelAdjLists[relDirection][nodeLabel]->getListHeaders()->getHeader(
+                directionLabelAdjLists[relDirection][nodeLabel]->getListHeadersBuilder()->getHeader(
                     nodeOffset);
             propertyList->setElement(header, nodeOffset, reversePos[relDirection], val);
         }
@@ -421,8 +421,8 @@ void InMemRelBuilder::initAdjListsHeaders() {
         for (auto& [nodeLabel, adjList] : directionLabelAdjLists[relDirection]) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(calculateListHeadersTask,
                 maxNodeOffsetsPerNodeLabel[nodeLabel] + 1, numBytesPerNode,
-                directionLabelListSizes[relDirection][nodeLabel].get(), adjList->getListHeaders(),
-                logger, progressBar));
+                directionLabelListSizes[relDirection][nodeLabel].get(),
+                adjList->getListHeadersBuilder(), logger, progressBar));
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -452,12 +452,13 @@ void InMemRelBuilder::initAdjAndPropertyListsMetadata() {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
                 directionNodeIDCompressionScheme[relDirection].getNumTotalBytes(), listSizes,
-                adjList->getListHeaders(), adjList.get(), false /*hasNULLBytes*/, logger,
+                adjList->getListHeadersBuilder(), adjList.get(), false /*hasNULLBytes*/, logger,
                 progressBar));
             for (auto& property : catalog.getRelProperties(label)) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
-                    Types::getDataTypeSize(property.dataType), listSizes, adjList->getListHeaders(),
+                    Types::getDataTypeSize(property.dataType), listSizes,
+                    adjList->getListHeadersBuilder(),
                     directionLabelPropertyLists[relDirection][nodeLabel][property.propertyID].get(),
                     true /*hasNULLBytes*/, logger, progressBar));
             }
@@ -514,8 +515,8 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
                 reversePos[relDirection] = InMemListsUtils::decrementListSize(
                     *builder->directionLabelListSizes[relDirection][nodeLabel],
                     nodeIDs[relDirection].offset, 1);
-                adjList->setElement(adjList->getListHeaders()->getHeader(nodeOffset), nodeOffset,
-                    reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
+                adjList->setElement(adjList->getListHeadersBuilder()->getHeader(nodeOffset),
+                    nodeOffset, reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
             }
         }
         if (!builder->catalog.getRelProperties(builder->label).empty()) {
@@ -580,15 +581,16 @@ void InMemRelBuilder::sortOverflowValuesOfPropertyListsTask(const DataType& data
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
-        auto header = adjLists->getListHeaders()->getHeader(offsetStart);
-        uint32_t listsLen = ListHeaders::isALargeList(header) ?
-                                propertyLists->getListsMetadata()->getNumElementsInLargeLists(
-                                    ListHeaders::getLargeListIdx(header)) :
-                                ListHeaders::getSmallListLen(header);
+        auto header = adjLists->getListHeadersBuilder()->getHeader(offsetStart);
+        uint32_t listsLen =
+            ListHeaders::isALargeList(header) ?
+                propertyLists->getListsMetadataBuilder()->getNumElementsInLargeLists(
+                    ListHeaders::getLargeListIdx(header)) :
+                ListHeaders::getSmallListLen(header);
         for (auto pos = listsLen; pos > 0; pos--) {
             propertyListCursor = InMemListsUtils::calcPageElementCursor(header, pos,
-                Types::getDataTypeSize(dataType), offsetStart, *propertyLists->getListsMetadata(),
-                true /*hasNULLBytes*/);
+                Types::getDataTypeSize(dataType), offsetStart,
+                *propertyLists->getListsMetadataBuilder(), true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
                 auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.posInPage));

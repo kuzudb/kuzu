@@ -85,9 +85,9 @@ vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& 
 // Lists headers are created for only AdjLists and UnstrPropertyLists, both of which store data
 // in the page without NULL bits.
 void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, uint32_t elementSize,
-    atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
+    atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
-    logger->trace("Start: ListHeaders={0:p}", (void*)listHeaders);
+    logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
     auto numChunks = numNodes >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
@@ -107,38 +107,38 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
                 header = ListHeaders::getSmallListHeader(csrOffset, numElementsInList);
                 csrOffset += numElementsInList;
             }
-            listHeaders->setHeader(nodeOffset, header);
+            listHeadersBuilder->setHeader(nodeOffset, header);
             nodeOffset++;
         }
     }
     progressBar->incrementTaskFinished();
-    logger->trace("End: adjListHeaders={0:p}", (void*)listHeaders);
+    logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
 }
 
 void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
-    uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeaders* listHeaders,
+    uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     InMemLists* inMemList, bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger,
     LoaderProgressBar* progressBar) {
-    logger->trace("Start: listsMetadata={0:p} adjListHeaders={1:p}",
-        (void*)inMemList->getListsMetadata(), (void*)listHeaders);
+    logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
+        (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
 
     auto numChunks = numNodes >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
-    inMemList->getListsMetadata()->initChunkPageLists(numChunks);
+    inMemList->getListsMetadataBuilder()->initChunkPageLists(numChunks);
     node_offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            if (ListHeaders::isALargeList(listHeaders->getHeader(nodeOffset))) {
+            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 largeListIdx++;
             }
             nodeOffset++;
         }
     }
-    inMemList->getListsMetadata()->initLargeListPageLists(largeListIdx);
+    inMemList->getListsMetadataBuilder()->initLargeListPageLists(largeListIdx);
     nodeOffset = 0u;
     largeListIdx = 0u;
     auto numPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
@@ -147,13 +147,13 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
         auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
-            if (ListHeaders::isALargeList(listHeaders->getHeader(nodeOffset))) {
+            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 auto numPagesForLargeList = numElementsInList / numPerPage;
                 if (0 != numElementsInList % numPerPage) {
                     numPagesForLargeList++;
                 }
 
-                inMemList->getListsMetadata()->populateLargeListPageList(largeListIdx,
+                inMemList->getListsMetadataBuilder()->populateLargeListPageList(largeListIdx,
                     numPagesForLargeList, numElementsInList,
                     inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);
                 inMemList->inMemFile->addNewPages(numPagesForLargeList);
@@ -171,13 +171,13 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
         if (0 != offsetInPage) {
             numPages++;
         }
-        inMemList->getListsMetadata()->populateChunkPageList(chunkId, numPages,
+        inMemList->getListsMetadataBuilder()->populateChunkPageList(chunkId, numPages,
             inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);
         inMemList->inMemFile->addNewPages(numPages);
     }
     progressBar->incrementTaskFinished();
-    logger->trace("End: listsMetadata={0:p} listHeaders={1:p}",
-        (void*)inMemList->getListsMetadata(), (void*)listHeaders);
+    logger->trace("End: listsMetadata={0:p} listHeadersBuilder={1:p}",
+        (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
 }
 
 } // namespace loader

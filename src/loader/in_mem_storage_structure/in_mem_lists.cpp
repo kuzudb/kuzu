@@ -4,50 +4,50 @@ namespace graphflow {
 namespace loader {
 
 PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
-    uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadata& metadata,
+    uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
     bool hasNULLBytes) {
     PageElementCursor cursor;
     auto numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerElement, hasNULLBytes);
     if (ListHeaders::isALargeList(header)) {
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
-        auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
+        auto pos = metadataBuilder.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
         cursor = PageUtils::getPageElementCursorForPos(pos, numElementsInAPage);
-        cursor.pageIdx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
+        cursor.pageIdx = metadataBuilder.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
     } else {
         auto chunkId = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto listLen = ListHeaders::getSmallListLen(header);
         auto pos = listLen - reversePos;
         cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
-        cursor.pageIdx =
-            metadata.getPageMapperForChunkIdx(chunkId)((csrOffset + pos) / numElementsInAPage);
+        cursor.pageIdx = metadataBuilder.getPageMapperForChunkIdx(chunkId)(
+            (csrOffset + pos) / numElementsInAPage);
     }
     return cursor;
 }
 
 InMemLists::InMemLists(string fName, DataType dataType, uint64_t numBytesForElement)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
-    listsMetadata = make_unique<ListsMetadata>(this->fName, true /* is for building */);
+    listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
     inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement,
         this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED);
 }
 
 void InMemLists::saveToFile() {
-    listsMetadata->saveToDisk();
+    listsMetadataBuilder->saveToDisk();
     inMemFile->flush();
 }
 
 void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
-    auto cursor = InMemListsUtils::calcPageElementCursor(
-        header, pos, numBytesForElement, nodeOffset, *listsMetadata, true /* hasNULLBytes */);
+    auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
+        nodeOffset, *listsMetadataBuilder, true /* hasNULLBytes */);
     inMemFile->getPage(cursor.pageIdx)
         ->write(cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
 }
 
 void InMemAdjLists::setElement(
     uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) {
-    auto cursor = InMemListsUtils::calcPageElementCursor(
-        header, pos, numBytesForElement, nodeOffset, *listsMetadata, false /* hasNULLBytes */);
+    auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
+        nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
         ->write(node, cursor.posInPage * compressionScheme.getNumTotalBytes(), cursor.posInPage,
@@ -55,7 +55,7 @@ void InMemAdjLists::setElement(
 }
 
 void InMemAdjLists::saveToFile() {
-    listHeaders->saveToDisk();
+    listHeadersBuilder->saveToDisk();
     InMemLists::saveToFile();
 }
 
@@ -120,7 +120,7 @@ void InMemUnstructuredLists::setComponentOfUnstrProperty(
 }
 
 void InMemUnstructuredLists::saveToFile() {
-    listHeaders->saveToDisk();
+    listHeadersBuilder->saveToDisk();
     InMemListsWithOverflow::saveToFile();
 }
 
