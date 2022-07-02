@@ -4,7 +4,7 @@
 
 #include "src/common/types/include/types_include.h"
 #include "src/storage/buffer_manager/include/disk_array.h"
-#include "src/storage/buffer_manager/include/file_handle.h"
+#include "src/storage/buffer_manager/include/versioned_file_handle.h"
 
 using namespace std;
 using namespace graphflow::common;
