@@ -3,9 +3,10 @@
 namespace graphflow {
 namespace storage {
 
-HashIndex::HashIndex(
-    string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory)
-    : fName{move(fName)}, isInMemory{isInMemory}, bm{bufferManager} {
+HashIndex::HashIndex(const StorageStructureIDAndFName storageStructureIDAndFName,
+    const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory)
+    : storageStructureIDAndFName{storageStructureIDAndFName},
+      isInMemory{isInMemory}, bm{bufferManager} {
     assert(keyDataType.typeID == INT64 || keyDataType.typeID == STRING);
     initializeFileAndHeader(keyDataType);
     // Initialize functions.
@@ -20,7 +21,8 @@ HashIndex::~HashIndex() {
 }
 
 void HashIndex::initializeFileAndHeader(const DataType& keyDataType) {
-    fh = make_unique<FileHandle>(fName, FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    fh = make_unique<FileHandle>(storageStructureIDAndFName.fName,
+        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     assert(fh->getNumPages() > 0);
     // Read the index header and page mappings from file.
     auto buffer = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
@@ -38,7 +40,8 @@ void HashIndex::initializeFileAndHeader(const DataType& keyDataType) {
         StorageStructureUtils::pinEachPageOfFile(*fh, bm);
     }
     if (indexHeader->keyDataTypeID == STRING) {
-        overflowFile = make_unique<OverflowFile>(fName, bm, isInMemory);
+        overflowFile = make_unique<OverflowFile>(
+            storageStructureIDAndFName, bm, isInMemory, nullptr /* no wal for now */);
     }
 }
 

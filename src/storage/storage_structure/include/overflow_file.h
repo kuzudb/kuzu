@@ -29,16 +29,6 @@ public:
         nextBytePosToWriteTo = fileHandle.getNumPages() * DEFAULT_PAGE_SIZE;
     }
 
-    // TODO(Semih/Guodong): This overloaded constructor exists for storage structures that hold
-    // overflow pages but is not yet updatable, such as hash index or rel property lists storing
-    // strings. Currently, it creates a dummy StorageStructureID. This should be removed when we
-    // support updates for those structures too.
-    OverflowFile(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : OverflowFile(
-              StorageStructureIDAndFName(
-                  StorageStructureID::newStructuredNodePropertyMainColumnID(-1, -1), fName),
-              bufferManager, isInMemory, nullptr /* wal is null */) {}
-
     ~OverflowFile() {
         if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
@@ -47,6 +37,7 @@ public:
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
         const StorageStructureIDAndFName& storageStructureIDAndFNameForMainDBFile) {
+        // TODO(Semih): Change this to use the copy constructor of StorageStructureIDAndFName.
         StorageStructureID newOverflowStorageStructureID =
             storageStructureIDAndFNameForMainDBFile.storageStructureID;
         newOverflowStorageStructureID.isOverflow = true;

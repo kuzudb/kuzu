@@ -19,6 +19,9 @@ struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
         : storageStructureID{storageStructureID}, fName{move(fName)} {};
 
+    StorageStructureIDAndFName(const StorageStructureIDAndFName& other)
+        : storageStructureID{other.storageStructureID}, fName{other.fName} {};
+
     StorageStructureID storageStructureID;
     string fName;
 };
@@ -80,6 +83,45 @@ public:
         auto fName = getNodePropertyColumnFName(directory, property.label, property.name);
         return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyMainColumnID(
                                               property.label, property.propertyID),
+            fName);
+    }
+
+    inline static StorageStructureIDAndFName getNodeIndexIDAndFName(
+        const string& directory, label_t nodeLabel) {
+        auto fName = getNodeIndexFName(directory, nodeLabel);
+        return StorageStructureIDAndFName(StorageStructureID::newNodeIndexID(nodeLabel), fName);
+    }
+
+    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
+    // modify it to obtain versions for METADATA and HEADERS structures/files.
+    inline static StorageStructureIDAndFName getUnstructuredNodePropertyListsStructureIDAndFName(
+        const string& directory, label_t nodeLabel) {
+        auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
+        return StorageStructureIDAndFName(StorageStructureID::newUnstructuredNodePropertyListsID(
+                                              nodeLabel, ListFileType::BASE_LISTS),
+            fName);
+    }
+
+    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
+    // modify it to obtain versions for METADATA and HEADERS structures/files.
+    inline static StorageStructureIDAndFName getAdjListsStructureIDAndFName(
+        const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir) {
+        auto fName = getAdjListsFName(directory, relLabel, srcNodeLabel, dir);
+        return StorageStructureIDAndFName(StorageStructureID::newAdjListsID(relLabel, srcNodeLabel,
+                                              dir, ListFileType::BASE_LISTS),
+            fName);
+    }
+
+    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
+    // modify it to obtain versions for METADATA and HEADERS structures/files.
+    inline static StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
+        const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir,
+        const catalog::Property& property) {
+        auto fName =
+            getRelPropertyListsFName(directory, relLabel, srcNodeLabel, dir, property.name);
+        return StorageStructureIDAndFName(
+            StorageStructureID::newRelPropertyListsID(
+                relLabel, srcNodeLabel, dir, property.propertyID, ListFileType::BASE_LISTS),
             fName);
     }
 

@@ -19,10 +19,13 @@ struct UnstructuredPropertyKeyDataType {
 class UnstructuredPropertyLists : public Lists {
 
 public:
-    UnstructuredPropertyLists(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, DataType(UNSTRUCTURED), 1, make_shared<ListHeaders>(fName), bufferManager,
+    UnstructuredPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        BufferManager& bufferManager, bool isInMemory)
+        : Lists{storageStructureIDAndFName, DataType(UNSTRUCTURED), 1,
+              make_shared<ListHeaders>(storageStructureIDAndFName), bufferManager,
               false /*hasNULLBytes*/, isInMemory},
-          stringOverflowPages{fName, bufferManager, isInMemory} {};
+          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
+              nullptr /* no wal for now */} {};
 
     void readProperties(ValueVector* nodeIDVector,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);

@@ -42,10 +42,11 @@ class Lists : public BaseColumnOrList {
     friend class graphflow::loader::LoaderEmptyListsTest;
 
 public:
-    Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, dataType, elementSize, move(headers), bufferManager, true /*hasNULLBytes*/,
-              isInMemory} {};
+    Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
+        const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory)
+        : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
+              true /*hasNULLBytes*/, isInMemory} {};
 
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle);
@@ -53,11 +54,14 @@ public:
     ListInfo getListInfo(node_offset_t nodeOffset);
 
 protected:
-    Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
-        bool isInMemory)
-        : BaseColumnOrList{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
-          metadata{fName}, headers(move(headers)){};
+    // storageStructureIDAndFName is the ID and fName for the "main ".lists" file.
+    Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
+        const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool hasNULLBytes, bool isInMemory)
+        : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
+              hasNULLBytes, isInMemory, nullptr /* no wal for now */},
+          storageStructureIDAndFName{storageStructureIDAndFName},
+          metadata{storageStructureIDAndFName}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
@@ -65,6 +69,7 @@ protected:
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
 
 protected:
+    StorageStructureIDAndFName storageStructureIDAndFName;
     ListsMetadata metadata;
     shared_ptr<ListHeaders> headers;
 };
@@ -72,11 +77,12 @@ protected:
 class StringPropertyLists : public Lists {
 
 public:
-    StringPropertyLists(const string& fName, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, DataType(STRING), sizeof(gf_string_t), move(headers), bufferManager,
-              isInMemory},
-          stringOverflowPages{fName, bufferManager, isInMemory} {};
+    StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
+        : Lists{storageStructureIDAndFName, DataType(STRING), sizeof(gf_string_t), move(headers),
+              bufferManager, isInMemory},
+          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
+              nullptr /* no wal for now */} {};
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
@@ -91,10 +97,13 @@ private:
 class ListPropertyLists : public Lists {
 
 public:
-    ListPropertyLists(const string& fName, const DataType& dataType,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, dataType, sizeof(gf_list_t), move(headers), bufferManager, isInMemory},
-          listOverflowPages{fName, bufferManager, isInMemory} {};
+    ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory)
+        : Lists{storageStructureIDAndFName, dataType, sizeof(gf_list_t), move(headers),
+              bufferManager, isInMemory},
+          listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
+              nullptr /* no wal for now */} {};
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
@@ -109,10 +118,13 @@ private:
 class AdjLists : public Lists {
 
 public:
-    AdjLists(const string& fName, BufferManager& bufferManager,
-        NodeIDCompressionScheme nodeIDCompressionScheme, bool isInMemory)
-        : Lists{fName, DataType(NODE_ID), nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<ListHeaders>(fName), bufferManager, false, isInMemory},
+    AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
+        bool isInMemory)
+        : Lists{storageStructureIDAndFName, DataType(NODE_ID),
+              nodeIDCompressionScheme.getNumTotalBytes(),
+              make_shared<ListHeaders>(storageStructureIDAndFName), bufferManager, false,
+              isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
@@ -133,9 +145,9 @@ private:
 class ListsFactory {
 
 public:
-    static unique_ptr<Lists> getLists(const string& fName, const DataType& dataType,
-        const shared_ptr<ListHeaders>& adjListsHeaders, BufferManager& bufferManager,
-        bool isInMemory) {
+    static unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
+        const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
+        BufferManager& bufferManager, bool isInMemory) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -143,14 +155,14 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Lists>(fName, dataType, Types::getDataTypeSize(dataType),
-                adjListsHeaders, bufferManager, isInMemory);
+            return make_unique<Lists>(structureIDAndFName, dataType,
+                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory);
         case STRING:
             return make_unique<StringPropertyLists>(
-                fName, adjListsHeaders, bufferManager, isInMemory);
+                structureIDAndFName, adjListsHeaders, bufferManager, isInMemory);
         case LIST:
             return make_unique<ListPropertyLists>(
-                fName, dataType, adjListsHeaders, bufferManager, isInMemory);
+                structureIDAndFName, dataType, adjListsHeaders, bufferManager, isInMemory);
         default:
             throw StorageException("Invalid type for property list creation.");
         }

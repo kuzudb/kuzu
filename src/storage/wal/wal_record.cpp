@@ -8,25 +8,40 @@ StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
     StorageStructureID retVal;
     retVal.storageStructureType = STRUCTURED_NODE_PROPERTY_COLUMN;
     retVal.isOverflow = isOverflow;
-    retVal.structuredNodePropertyColumnID.nodeLabel = nodeLabel;
-    retVal.structuredNodePropertyColumnID.propertyID = propertyID;
+    retVal.structuredNodePropertyColumnID = StructuredNodePropertyColumnID(nodeLabel, propertyID);
     return retVal;
 }
 
-PageUpdateOrInsertRecord PageUpdateOrInsertRecord::newPageInsertOrUpdateRecord(
-    StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL,
-    bool isInsert) {
-    PageUpdateOrInsertRecord retVal;
-    retVal.storageStructureID = storageStructureID_;
-    retVal.pageIdxInOriginalFile = pageIdxInOriginalFile;
-    retVal.pageIdxInWAL = pageIdxInWAL;
-    retVal.isInsert = isInsert;
+StorageStructureID StorageStructureID::newNodeIndexID(label_t nodeLabel) {
+    StorageStructureID retVal;
+    retVal.storageStructureType = NODE_INDEX;
+    retVal.nodeIndexID = NodeIndexID(nodeLabel);
     return retVal;
 }
 
-CommitRecord CommitRecord::newCommitRecord(uint64_t transactionID) {
-    CommitRecord retVal;
-    retVal.transactionID = transactionID;
+StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
+    label_t nodeLabel, ListFileType listFileType) {
+    StorageStructureID retVal;
+    retVal.storageStructureType = LISTS;
+    retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(nodeLabel));
+    return retVal;
+}
+
+StorageStructureID StorageStructureID::newAdjListsID(
+    label_t relLabel, label_t srcNodeLabel, RelDirection dir, ListFileType listFileType) {
+    StorageStructureID retVal;
+    retVal.storageStructureType = LISTS;
+    retVal.listFileID =
+        ListFileID(listFileType, AdjListsID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir)));
+    return retVal;
+}
+
+StorageStructureID StorageStructureID::newRelPropertyListsID(label_t relLabel, label_t srcNodeLabel,
+    RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
+    StorageStructureID retVal;
+    retVal.storageStructureType = LISTS;
+    retVal.listFileID = ListFileID(listFileType,
+        RelPropertyListID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir), propertyID));
     return retVal;
 }
 
@@ -34,7 +49,7 @@ WALRecord WALRecord::newPageInsertOrUpdateRecord(StorageStructureID storageStruc
     uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
     retVal.recordType = PAGE_UPDATE_OR_INSERT_RECORD;
-    retVal.pageInsertOrUpdateRecord = PageUpdateOrInsertRecord::newPageInsertOrUpdateRecord(
+    retVal.pageInsertOrUpdateRecord = PageUpdateOrInsertRecord(
         storageStructureID_, pageIdxInOriginalFile, pageIdxInWAL, isInsert);
     return retVal;
 }
@@ -54,7 +69,7 @@ WALRecord WALRecord::newPageInsertRecord(
 WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
     WALRecord retVal;
     retVal.recordType = COMMIT_RECORD;
-    retVal.commitRecord = CommitRecord::newCommitRecord(transactionID);
+    retVal.commitRecord = CommitRecord(transactionID);
     return retVal;
 }
 

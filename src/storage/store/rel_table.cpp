@@ -66,10 +66,10 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                 adjColumns[relDirection].emplace(nodeLabel, move(adjColumn));
             } else {
                 // Add adj list.
-                auto fName =
-                    StorageUtils::getAdjListsFName(directory, relLabel, nodeLabel, relDirection);
-                auto adjList = make_unique<AdjLists>(
-                    fName, bufferManager, nodeIDCompressionScheme, isInMemoryMode);
+                auto adjList =
+                    make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
+                                              directory, relLabel, nodeLabel, relDirection),
+                        bufferManager, nodeIDCompressionScheme, isInMemoryMode);
                 adjLists[relDirection].emplace(nodeLabel, move(adjList));
             }
         }
@@ -123,14 +123,14 @@ void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string
         propertyLists[relDirection].emplace(
             nodeLabel, vector<unique_ptr<Lists>>(properties.size()));
         for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
-            auto fName = StorageUtils::getRelPropertyListsFName(
-                directory, relLabel, nodeLabel, relDirection, properties[propertyIdx].name);
             logger->debug("relDirection {} nodeLabelForAdjColumnAndProperties {} propertyIdx {} "
                           "type {} name `{}`",
                 relDirection, nodeLabel, properties[propertyIdx].propertyID,
                 properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
-            auto propertyList = ListsFactory::getLists(fName, properties[propertyIdx].dataType,
-                adjListsHeaders, bufferManager, isInMemoryMode);
+            auto propertyList = ListsFactory::getLists(
+                StorageUtils::getRelPropertyListsStructureIDAndFName(
+                    directory, relLabel, nodeLabel, relDirection, properties[propertyIdx]),
+                properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode);
             propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);
         }
     }
