@@ -16,25 +16,28 @@ using namespace graphflow::storage;
 class HashIndexTest : public testing::Test {
 
 public:
-    HashIndexTest() { FileUtils::createDir(TEMP_INDEX_DIR); }
+    HashIndexTest()
+        : storageStructureIdAndFName{StorageUtils::getNodeIndexIDAndFName(
+              "" /* dummy directory */, -1 /* dummy node label */)} {
+        storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_ints.hindex";
+        FileUtils::createDir(TEMP_INDEX_DIR);
+    }
 
     void TearDown() override { FileUtils::removeDir(TEMP_INDEX_DIR); }
 
 public:
     const string TEMP_INDEX_DIR = "test/temp_index/";
-    string fName;
+    StorageStructureIDAndFName storageStructureIdAndFName;
     uint64_t numKeysToInsert = 5000;
 };
 
 class LoadedHashIndexInt64KeyTest : public HashIndexTest {
 
 public:
-    LoadedHashIndexInt64KeyTest() : HashIndexTest() {
-        fName = TEMP_INDEX_DIR + "dummy_ints.hindex";
-    }
+    LoadedHashIndexInt64KeyTest() : HashIndexTest() {}
 
     void SetUp() override {
-        InMemHashIndexBuilder hashIndexBuilder(fName, DataType(INT64));
+        InMemHashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
         hashIndexBuilder.bulkReserve(numKeysToInsert);
         // Inserting(key = i, value = i * 2) pairs
         for (int64_t k = 0; k < numKeysToInsert; k++) {
@@ -47,12 +50,11 @@ public:
 class LoadedHashIndexStringKeyTest : public HashIndexTest {
 
 public:
-    LoadedHashIndexStringKeyTest() : HashIndexTest() {
-        fName = TEMP_INDEX_DIR + "dummy_strings.hindex";
-    }
+    LoadedHashIndexStringKeyTest() : HashIndexTest() {}
 
     void SetUp() override {
-        InMemHashIndexBuilder hashIndexBuilder(fName, DataType(STRING));
+        storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_strings.hindex";
+        InMemHashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(STRING));
         hashIndexBuilder.bulkReserve(numKeysToInsert);
         ifstream inf(inputFName, ios_base::in);
         inf.seekg(0, ios_base::end);
@@ -81,7 +83,8 @@ public:
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (int64_t i = 0; i < numKeysToInsert; i++) {
         auto found = hashIndex.lookup(i, result);
@@ -92,7 +95,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookup) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -113,7 +117,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookup) {
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(STRING), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(
+        storageStructureIdAndFName, DataType(STRING), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {
         auto found = hashIndex.lookup(entry.first.c_str(), result);
@@ -124,7 +129,8 @@ TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookup) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexDeleteAndLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     for (int64_t i = 0; i < numKeysToInsert; i++) {
         if (i % 10 == 0) {
             hashIndex.deleteKey(i);
@@ -143,9 +149,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexDeleteAndLookup) {
 }
 
 TEST_F(HashIndexTest, HashIndexInt64KeyInsertExists) {
-    fName = TEMP_INDEX_DIR + "dummy_name_int.hindex";
     auto bufferManager = make_unique<BufferManager>();
-    InMemHashIndexBuilder hashIndexBuilder(fName, DataType(INT64));
+    InMemHashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
     auto numEntries = 10;
     hashIndexBuilder.bulkReserve(10);
     for (uint64_t i = 0; i < numEntries; i++) {
@@ -158,9 +163,8 @@ TEST_F(HashIndexTest, HashIndexInt64KeyInsertExists) {
 }
 
 TEST_F(HashIndexTest, HashIndexStringKeyInsertExists) {
-    fName = TEMP_INDEX_DIR + "dummy_name_string.hindex";
     auto bufferManager = make_unique<BufferManager>();
-    InMemHashIndexBuilder hashIndexBuilder(fName, DataType(STRING));
+    InMemHashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(STRING));
     char const* strKeys[] = {"abc", "def", "ghi", "jkl", "mno"};
     hashIndexBuilder.bulkReserve(5);
     for (auto i = 0u; i < 5; i++) {
@@ -179,9 +183,9 @@ static void parallel_insert(InMemHashIndexBuilder* index, int64_t startId, uint6
 }
 
 TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
-    fName = TEMP_INDEX_DIR + "dummy.hindex";
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndexBuilder = make_unique<InMemHashIndexBuilder>(fName, DataType(INT64));
+    auto hashIndexBuilder =
+        make_unique<InMemHashIndexBuilder>(storageStructureIdAndFName.fName, DataType(INT64));
     auto numKeysToInsert = 5000;
     hashIndexBuilder->bulkReserve(numKeysToInsert);
     auto numThreads = 10u;
@@ -197,7 +201,8 @@ TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
     }
     hashIndexBuilder->flush();
 
-    auto hashIndex = make_unique<HashIndex>(fName, DataType(INT64), *bufferManager, true);
+    auto hashIndex =
+        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
     node_offset_t result;
     for (auto i = 0u; i < numKeysToInsert; i++) {
         ASSERT_TRUE(hashIndex->lookup(i, result));

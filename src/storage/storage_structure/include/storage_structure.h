@@ -88,14 +88,6 @@ protected:
         DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal);
 
-    BaseColumnOrList(const string& fName, const DataType& dataType, const size_t& elementSize,
-        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
-        : BaseColumnOrList{
-              StorageStructureIDAndFName(
-                  StorageStructureID::newStructuredNodePropertyMainColumnID(-1, -1), fName),
-              dataType, elementSize, bufferManager, hasNULLBytes, isInMemory,
-              nullptr /* null wal */} {}
-
     virtual ~BaseColumnOrList() {
         if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);

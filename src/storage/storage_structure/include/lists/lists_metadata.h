@@ -55,7 +55,7 @@ class ListsMetadata : public BaseListsMetadata {
     friend class graphflow::loader::LoaderEmptyListsTest;
 
 public:
-    explicit ListsMetadata(const string& listBaseFName);
+    explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList);
 
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
         return (*largeListIdxToPageListHeadIdxMap)[(2 * largeListIdx) + 1];
@@ -74,6 +74,7 @@ public:
     }
 
 private:
+    StorageStructureIDAndFName storageStructureIDAndFName;
     // chunkToPageListHeadIdxMapBuilder holds pointers to the head of pageList of each chunk.
     // For instance, chunkToPageListHeadIdxMapBuilder[3] is a pointer in `pageLists` from where
     // the pageList of chunk 3 begins.

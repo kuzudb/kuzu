@@ -28,7 +28,7 @@ InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDe
         auto nodeLabel = catalog.getNodeLabelFromName(labelName);
         assert(IDIndexes[nodeLabel] == nullptr);
         IDIndexes[nodeLabel] = make_unique<HashIndex>(
-            StorageUtils::getNodeIndexFName(this->outputDirectory, nodeLabel),
+            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeLabel),
             catalog.getNodeProperty(nodeLabel, LoaderConfig::ID_FIELD).dataType, bm,
             true /* isInMemory */);
     }

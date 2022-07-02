@@ -7,10 +7,133 @@ using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
+enum ListType : uint8_t {
+    UNSTRUCTURED_NODE_PROPERTY_LISTS = 0,
+    ADJ_LISTS = 1,
+    REL_PROPERTY_LISTS = 2,
+};
+
+enum ListFileType : uint8_t {
+    HEADERS = 0,
+    METADATA = 1,
+    BASE_LISTS = 2,
+};
+
+struct UnstructuredNodePropertyListsID {
+    label_t nodeLabel;
+    UnstructuredNodePropertyListsID() = default;
+
+    UnstructuredNodePropertyListsID(label_t nodeLabel) : nodeLabel{nodeLabel} {}
+
+    inline bool operator==(const UnstructuredNodePropertyListsID& rhs) const {
+        return nodeLabel == rhs.nodeLabel;
+    }
+};
+
+struct RelNodeLabelAndDir {
+    label_t relLabel;
+    label_t srcNodeLabel;
+    RelDirection dir;
+
+    RelNodeLabelAndDir() = default;
+
+    RelNodeLabelAndDir(label_t relLabel, label_t srcNodeLabel, RelDirection dir)
+        : relLabel{relLabel}, srcNodeLabel{srcNodeLabel}, dir{dir} {}
+
+    inline bool operator==(const RelNodeLabelAndDir& rhs) const {
+        return relLabel == rhs.relLabel && srcNodeLabel == rhs.srcNodeLabel && dir == rhs.dir;
+    }
+};
+
+struct AdjListsID {
+    RelNodeLabelAndDir relLabelAndDir;
+
+    AdjListsID() = default;
+
+    AdjListsID(RelNodeLabelAndDir relLabelAndDir) : relLabelAndDir{relLabelAndDir} {}
+
+    inline bool operator==(const AdjListsID& rhs) const {
+        return relLabelAndDir == rhs.relLabelAndDir;
+    }
+};
+
+struct RelPropertyListID {
+    RelNodeLabelAndDir relLabelAndDir;
+    uint32_t propertyID;
+
+    RelPropertyListID() = default;
+
+    RelPropertyListID(RelNodeLabelAndDir relLabelAndDir, uint32_t propertyID)
+        : relLabelAndDir{relLabelAndDir}, propertyID{propertyID} {}
+
+    inline bool operator==(const RelPropertyListID& rhs) const {
+        return relLabelAndDir == rhs.relLabelAndDir && propertyID == rhs.propertyID;
+    }
+};
+
+struct ListFileID {
+    ListType listType;
+    ListFileType listFileType;
+    union {
+        UnstructuredNodePropertyListsID unstructuredNodePropertyListsID;
+        AdjListsID adjListsID;
+        RelPropertyListID relPropertyListID;
+    };
+
+    ListFileID() = default;
+
+    ListFileID(
+        ListFileType listFileType, UnstructuredNodePropertyListsID unstructuredNodePropertyListsID)
+        : listType{UNSTRUCTURED_NODE_PROPERTY_LISTS}, listFileType{listFileType},
+          unstructuredNodePropertyListsID{unstructuredNodePropertyListsID} {}
+
+    ListFileID(ListFileType listFileType, AdjListsID adjListsID)
+        : listType{ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
+
+    ListFileID(ListFileType listFileType, RelPropertyListID relPropertyListID)
+        : listType{REL_PROPERTY_LISTS}, listFileType{listFileType}, relPropertyListID{
+                                                                        relPropertyListID} {}
+
+    inline bool operator==(const ListFileID& rhs) const {
+        if (listType == rhs.listType && listFileType == rhs.listFileType) {
+            return false;
+        }
+        switch (listType) {
+        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
+            return unstructuredNodePropertyListsID == rhs.unstructuredNodePropertyListsID;
+        }
+        case ADJ_LISTS: {
+            return adjListsID == rhs.adjListsID;
+        }
+        case REL_PROPERTY_LISTS: {
+            return relPropertyListID == rhs.relPropertyListID;
+        }
+        default: {
+            throw RuntimeException(
+                "Unrecognized ListType inside ==. ListType:" + to_string(listType));
+        }
+        }
+    }
+};
+
+struct NodeIndexID {
+    label_t nodeLabel;
+
+    NodeIndexID() = default;
+
+    NodeIndexID(label_t nodeLabel) : nodeLabel{nodeLabel} {}
+
+    inline bool operator==(const NodeIndexID& rhs) const { return nodeLabel == rhs.nodeLabel; }
+};
 
 struct StructuredNodePropertyColumnID {
     label_t nodeLabel;
     uint32_t propertyID;
+
+    StructuredNodePropertyColumnID() = default;
+
+    StructuredNodePropertyColumnID(label_t nodeLabel, uint32_t propertyID)
+        : nodeLabel{nodeLabel}, propertyID{propertyID} {}
 
     inline bool operator==(const StructuredNodePropertyColumnID& rhs) const {
         return nodeLabel == rhs.nodeLabel && propertyID == rhs.propertyID;
@@ -19,6 +142,8 @@ struct StructuredNodePropertyColumnID {
 
 enum StorageStructureType : uint8_t {
     STRUCTURED_NODE_PROPERTY_COLUMN = 0,
+    LISTS = 1,
+    NODE_INDEX = 2,
 };
 
 // StorageStructureIDs start with 1 byte type and 1 byte isOverflow field followed with additional
@@ -29,6 +154,8 @@ struct StorageStructureID {
     bool isOverflow;
     union {
         StructuredNodePropertyColumnID structuredNodePropertyColumnID;
+        ListFileID listFileID;
+        NodeIndexID nodeIndexID;
     };
 
     inline bool operator==(const StorageStructureID& rhs) const {
@@ -38,6 +165,12 @@ struct StorageStructureID {
         switch (storageStructureType) {
         case STRUCTURED_NODE_PROPERTY_COLUMN: {
             return structuredNodePropertyColumnID == rhs.structuredNodePropertyColumnID;
+        }
+        case LISTS: {
+            return listFileID == rhs.listFileID;
+        }
+        case NODE_INDEX: {
+            return nodeIndexID == rhs.nodeIndexID;
         }
         default: {
             throw RuntimeException(
@@ -57,6 +190,16 @@ struct StorageStructureID {
         return newStructuredNodePropertyColumnID(
             nodeLabel, propertyID, true /* is overflow file */);
     }
+    static StorageStructureID newNodeIndexID(label_t nodeLabel);
+
+    static StorageStructureID newUnstructuredNodePropertyListsID(
+        label_t nodeLabel, ListFileType listFileType);
+
+    static StorageStructureID newAdjListsID(
+        label_t relLabel, label_t srcNodeLabel, RelDirection dir, ListFileType listFileType);
+
+    static StorageStructureID newRelPropertyListsID(label_t relLabel, label_t srcNodeLabel,
+        RelDirection dir, uint32_t propertyID, ListFileType listFileType);
 
 private:
     static StorageStructureID newStructuredNodePropertyColumnID(
@@ -76,25 +219,30 @@ struct PageUpdateOrInsertRecord {
     uint64_t pageIdxInWAL;
     bool isInsert;
 
+    PageUpdateOrInsertRecord() = default;
+
+    PageUpdateOrInsertRecord(StorageStructureID storageStructureID, uint64_t pageIdxInOriginalFile,
+        uint64_t pageIdxInWAL, bool isInsert)
+        : storageStructureID{storageStructureID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
+          pageIdxInWAL{pageIdxInWAL}, isInsert{isInsert} {}
+
     inline bool operator==(const PageUpdateOrInsertRecord& rhs) const {
         return storageStructureID == rhs.storageStructureID &&
                pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
                pageIdxInWAL == rhs.pageIdxInWAL && isInsert == rhs.isInsert;
     }
-
-    static PageUpdateOrInsertRecord newPageInsertOrUpdateRecord(
-        StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL, bool isInsert);
 };
 
 struct CommitRecord {
     uint64_t transactionID;
 
+    CommitRecord() = default;
+
+    CommitRecord(uint64_t transactionID) : transactionID{transactionID} {}
+
     inline bool operator==(const CommitRecord& rhs) const {
         return transactionID == rhs.transactionID;
     }
-
-    static CommitRecord newCommitRecord(uint64_t transactionID);
 };
 
 struct WALRecord {

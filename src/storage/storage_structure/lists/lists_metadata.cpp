@@ -8,7 +8,11 @@
 namespace graphflow {
 namespace storage {
 
-ListsMetadata::ListsMetadata(const string& listBaseFName) : BaseListsMetadata(listBaseFName) {
+ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList)
+    : BaseListsMetadata(storageStructureIDAndFNameForBaseList.fName),
+      storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
+    storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
+    storageStructureIDAndFName.fName = metadataFileHandle->getFileInfo()->path;
     chunkToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(
         *metadataFileHandle, CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX);
     largeListIdxToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(
@@ -55,8 +59,8 @@ void ListsMetadataBuilder::initChunkPageLists(uint32_t numChunks_) {
 }
 
 void ListsMetadataBuilder::initLargeListPageLists(uint32_t numLargeLists_) {
-    // For each largeList, we store the PageListHeadIdx in pageLists and also the number of elements
-    // in the large list.
+    // For each largeList, we store the PageListHeadIdx in pageLists and also the number of
+    // elements in the large list.
     largeListIdxToPageListHeadIdxMapBuilder =
         make_unique<InMemDiskArrayBuilder<uint32_t>>(*metadataFileHandle,
             LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, (2 * numLargeLists_));
@@ -90,9 +94,9 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     if (0 != numPages % PAGE_LIST_GROUP_SIZE) {
         numPageListGroups++;
     }
-    // During the initial allocation, we allocate all the pageListGroups of a pageList contiguously.
-    // pageListTailIdx is the id in the pageLists blob where the pageList ends and the next
-    // pageLists should start.
+    // During the initial allocation, we allocate all the pageListGroups of a pageList
+    // contiguously. pageListTailIdx is the id in the pageLists blob where the pageList ends and
+    // the next pageLists should start.
     uint32_t pageListHeadIdx = pageListsBuilder->header.numElements;
     auto pageListTailIdx =
         pageListHeadIdx + ((PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);

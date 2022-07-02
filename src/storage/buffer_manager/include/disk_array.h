@@ -28,8 +28,6 @@ struct DiskArrayHeader {
 
     void readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx);
 
-    inline uint64_t getCapacity() { return numArrayPages << numElementsPerPageLog2; }
-
     // TODO(Semih): This is only for debugging purposes. Will be removed.
     void print();
 

@@ -131,6 +131,10 @@ U& BaseInMemDiskArray<U>::operator[](uint64_t idx) {
 }
 
 template<class T>
+InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
+    : BaseInMemDiskArray<T>(fileHandle, headerPageIdx) {}
+
+template<class T>
 InMemDiskArrayBuilder<T>::InMemDiskArrayBuilder(
     FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements)
     : BaseInMemDiskArray<T>(fileHandle, headerPageIdx, sizeof(T)) {
@@ -139,10 +143,6 @@ InMemDiskArrayBuilder<T>::InMemDiskArrayBuilder(
         this->addInMemoryPage();
     }
 }
-
-template<class T>
-InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx)
-    : BaseInMemDiskArray<T>(fileHandle, headerPageIdx) {}
 
 template<class T>
 void InMemDiskArrayBuilder<T>::saveToDisk() {

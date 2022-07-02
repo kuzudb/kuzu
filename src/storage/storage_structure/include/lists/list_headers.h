@@ -63,7 +63,7 @@ public:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<FileHandle> headersFileHandle;
+    unique_ptr<FileHandle> fileHandle;
 };
 
 class ListHeadersBuilder : public BaseListHeaders {
@@ -83,11 +83,14 @@ private:
 
 class ListHeaders : public BaseListHeaders {
 public:
-    explicit ListHeaders(const string& fName);
+    explicit ListHeaders(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList);
 
     inline list_header_t getHeader(node_offset_t offset) { return (*headers)[offset]; };
 
     unique_ptr<InMemDiskArray<list_header_t>> headers;
+
+private:
+    StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage
 } // namespace graphflow

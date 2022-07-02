@@ -94,8 +94,8 @@ class HashIndex {
     static constexpr bool LOOKUP_FLAG = false;
 
 public:
-    HashIndex(
-        string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
+    HashIndex(const StorageStructureIDAndFName storageStructureIDAndFName,
+        const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
 
     ~HashIndex();
 
@@ -156,7 +156,7 @@ private:
         uint8_t* slot, const uint8_t* key, node_offset_t* result = nullptr) const;
 
 private:
-    string fName;
+    StorageStructureIDAndFName storageStructureIDAndFName;
     bool isInMemory;
     unique_ptr<FileHandle> fh;
     BufferManager& bm;
