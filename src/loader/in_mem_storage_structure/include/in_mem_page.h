@@ -24,6 +24,8 @@ public:
     uint8_t* write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
         uint32_t numBytesForElem);
 
+    void encodeNullBits();
+
 public:
     uint8_t* data;
 
@@ -32,7 +34,9 @@ private:
 
     unique_ptr<uint8_t[]> buffer;
     // The pointer to the beginning of null entries in the page.
-    uint64_t* nullEntries;
+    uint64_t* nullEntriesInPage;
+    unique_ptr<uint8_t[]> nullMask;
+    uint32_t maxNumElements;
 };
 
 } // namespace loader

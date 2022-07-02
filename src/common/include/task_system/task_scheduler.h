@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <deque>
 #include <thread>
 
@@ -88,7 +89,7 @@ private:
     shared_ptr<spdlog::logger> logger;
     mutex mtx;
     deque<shared_ptr<ScheduledTask>> taskQueue;
-    bool stopThreads{false};
+    atomic<bool> stopThreads{false};
     vector<thread> threads;
     uint64_t nextScheduledTaskID;
 };
