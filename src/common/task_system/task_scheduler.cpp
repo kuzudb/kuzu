@@ -10,7 +10,7 @@ namespace graphflow {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : nextScheduledTaskID{0}, logger{LoggerUtils::getOrCreateSpdLogger("taskscheduler")} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("taskscheduler")}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }

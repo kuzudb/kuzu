@@ -19,9 +19,9 @@ cc_library(
         "//src/loader:dataset_metadata",
         "//src/loader:loader_progress_bar",
         "//src/loader:loader_task",
-        "//src/loader/in_mem_index:in_mem_hash_index",
         "//src/loader/in_mem_storage_structure",
         "//src/storage/index:hash_index",
+        "//src/storage/index:in_mem_hash_index",
         "//src/storage/store",
     ],
 )

@@ -1,24 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
-    name = "in_mem_file",
-    srcs = [
-        "in_mem_file.cpp",
-        "in_mem_page.cpp",
-    ],
-    hdrs = [
-        "include/in_mem_file.h",
-        "include/in_mem_page.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/storage/buffer_manager:file_handle",
-        "//src/storage:compression_scheme",
-        "//src/storage:storage_utils",
-    ],
-)
-
-cc_library(
     name = "in_mem_storage_structure",
     srcs = [
         "in_mem_column.cpp",
@@ -30,9 +12,9 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "in_mem_file",
         "//src/common:configs",
         "//src/common:type_utils",
+        "//src/storage/storage_structure:in_mem_file",
         "//src/storage/storage_structure:lists",
     ],
 )

@@ -532,12 +532,12 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
 
 void InMemRelBuilder::copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
+    InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile) {
     if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
         TypeUtils::decodeOverflowPtr(gfStr->overflowPtr, unorderedOverflowCursor.pageIdx,
             unorderedOverflowCursor.offsetInPage);
-        orderedOverflowPages->copyStringOverflow(orderedOverflowCursor,
-            unorderedOverflowPages->pages[unorderedOverflowCursor.pageIdx]->data +
+        orderedOverflowFile->copyStringOverflow(orderedOverflowCursor,
+            unorderedOverflowFile->getPage(unorderedOverflowCursor.pageIdx)->data +
                 unorderedOverflowCursor.offsetInPage,
             gfStr);
     }

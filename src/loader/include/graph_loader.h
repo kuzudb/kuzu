@@ -5,9 +5,9 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/common/include/task_system/task_scheduler.h"
-#include "src/loader/in_mem_index/include/in_mem_hash_index.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/loader_progress_bar.h"
+#include "src/storage/index/include/in_mem_hash_index.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::catalog;

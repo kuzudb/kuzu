@@ -1,9 +1,9 @@
-#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
+#include "src/storage/storage_structure/include/in_mem_file.h"
 
 #include "src/common/include/type_utils.h"
 
 namespace graphflow {
-namespace loader {
+namespace storage {
 
 InMemFile::InMemFile(
     string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages)
@@ -231,5 +231,5 @@ uint32_t InMemOverflowFile::addANewOverflowPage() {
     return newPageIdx;
 }
 
-} // namespace loader
+} // namespace storage
 } // namespace graphflow

@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "src/function/hash/operations/include/hash_operations.h"
+#include "src/storage/storage_structure/include/in_mem_file.h"
 #include "src/storage/storage_structure/include/overflow_file.h"
 
 using namespace graphflow::common;
@@ -11,57 +12,41 @@ namespace graphflow {
 namespace storage {
 
 using hash_function_t = std::function<hash_t(const uint8_t*)>;
-using insert_function_t =
-    std::function<void(const uint8_t*, node_offset_t, uint8_t*, OverflowFile*, PageByteCursor*)>;
 using equals_function_t = std::function<bool(const uint8_t*, const uint8_t*, OverflowFile*)>;
 
 static const uint32_t NUM_BYTES_FOR_INT64_KEY = Types::getDataTypeSize(INT64);
 static const uint32_t NUM_BYTES_FOR_STRING_KEY = Types::getDataTypeSize(STRING);
 constexpr uint64_t INDEX_HEADER_PAGE_ID = 0;
 
-class SlotHeader {
-public:
-    SlotHeader() : numEntries{0}, deletionMask{0}, nextOvfSlotId{0} {}
+using in_mem_insert_function_t =
+    std::function<void(const uint8_t*, node_offset_t, uint8_t*, InMemOverflowFile*)>;
+using in_mem_equals_function_t =
+    std::function<bool(const uint8_t*, const uint8_t*, const InMemOverflowFile*)>;
 
-    void reset() {
-        numEntries = 0;
-        deletionMask = 0;
-        nextOvfSlotId = 0;
+class InMemHashIndexUtils {
+public:
+    static in_mem_equals_function_t initializeEqualsFunc(const DataTypeID& dataTypeID);
+    static in_mem_insert_function_t initializeInsertFunc(const DataTypeID& dataTypeID);
+
+private:
+    // InsertFunc
+    inline static void insertFuncForInt64(const uint8_t* key, node_offset_t offset, uint8_t* entry,
+        InMemOverflowFile* overflowFile = nullptr) {
+        memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
+        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
     }
-
-    inline bool isEntryDeleted(uint32_t entryPos) const {
-        return deletionMask & ((uint32_t)1 << entryPos);
+    inline static void insertFuncForString(
+        const uint8_t* key, node_offset_t offset, uint8_t* entry, InMemOverflowFile* overflowFile) {
+        auto gfString = overflowFile->appendString(reinterpret_cast<const char*>(key));
+        memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
+        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
     }
-    inline void setEntryDeleted(uint32_t entryPos) { deletionMask |= ((uint32_t)1 << entryPos); }
-
-public:
-    uint8_t numEntries;
-    uint32_t deletionMask;
-    uint64_t nextOvfSlotId;
-};
-
-class HashIndexHeader {
-
-public:
-    explicit HashIndexHeader(DataTypeID keyDataType);
-    HashIndexHeader(const HashIndexHeader& other) = default;
-
-    inline void incrementLevel() {
-        currentLevel++;
-        levelHashMask = (1 << currentLevel) - 1;
-        higherLevelHashMask = (1 << (currentLevel + 1)) - 1;
+    inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* overflowFile = nullptr) {
+        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
     }
-
-public:
-    uint32_t numBytesPerEntry{0};
-    uint32_t numBytesPerSlot{0};
-    uint32_t numSlotsPerPage{0};
-    uint64_t numEntries{0};
-    uint64_t currentLevel{0};
-    uint64_t levelHashMask{0};
-    uint64_t higherLevelHashMask{0};
-    uint64_t nextSplitSlotId{0};
-    DataTypeID keyDataTypeID;
+    static bool equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* overflowFile);
 };
 
 class HashIndexUtils {

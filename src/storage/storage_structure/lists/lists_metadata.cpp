@@ -80,7 +80,6 @@ void ListsMetadataBuilder::populateChunkPageList(
 
 void ListsMetadataBuilder::populateLargeListPageList(
     uint32_t largeListIdx, uint32_t numPages_, uint32_t numElements, uint32_t startPageId) {
-    cout << "populateLargeListPageList called. numPages_: " << numPages_ << endl;
     assert(numPages_ > 0);
     auto offsetInMap = 2 * largeListIdx;
     (*largeListIdxToPageListHeadIdxMapBuilder)[offsetInMap] = pageListsBuilder->header.numElements;

@@ -2,8 +2,8 @@
 
 #include "spdlog/spdlog.h"
 
-#include "src/loader/in_mem_storage_structure/include/in_mem_file.h"
 #include "src/loader/include/loader_task.h"
+#include "src/storage/storage_structure/include/in_mem_file.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 namespace graphflow {
@@ -49,7 +49,7 @@ uint64_t InMemNodeBuilder::addLabelToCatalogAndCountLines() {
     vector<string> unstructuredPropertyNames{
         unstructuredPropertyNameSet.begin(), unstructuredPropertyNameSet.end()};
     sort(unstructuredPropertyNames.begin(), unstructuredPropertyNames.end());
-    auto numNodes = 0;
+    uint64_t numNodes = 0;
     numLinesPerBlock[0]--; // Decrement the header line.
     for (auto blockId = 0u; blockId < numBlocks; blockId++) {
         numNodes += numLinesPerBlock[blockId];
@@ -115,8 +115,10 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(uint64_t nu
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
+    logger->info("Flush the pk index to disk.");
     IDIndex->flush();
-    logger->info("Done populating structured properties and counting unstructured properties.");
+    logger->info("Done populating structured properties, constructing the pk index and counting "
+                 "unstructured properties.");
 }
 
 template<DataTypeID DT>

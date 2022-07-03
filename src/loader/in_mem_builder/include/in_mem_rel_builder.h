@@ -49,7 +49,7 @@ private:
         const vector<uint64_t>& reversePos);
     static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
         PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
-        InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages);
+        InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
     static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
         const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
         PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
