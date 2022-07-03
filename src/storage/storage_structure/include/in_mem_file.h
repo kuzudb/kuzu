@@ -76,9 +76,6 @@ public:
 private:
     uint32_t addANewOverflowPage();
 
-private:
-    uint32_t addANewOverflowPage();
-
     void copyFixedSizedValuesToPages(
         const Literal& listVal, PageCursor& overflowCursor, uint64_t numBytesOfListElement);
     template<DataTypeID DT>
