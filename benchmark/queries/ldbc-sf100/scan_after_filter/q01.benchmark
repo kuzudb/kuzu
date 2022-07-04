@@ -1,0 +1,5 @@
+-NAME q01
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) WHERE comment.length < 10 RETURN MIN(comment.ID)
+---- 1
+4198

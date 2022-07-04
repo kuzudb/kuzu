@@ -1,0 +1,5 @@
+-NAME q15
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) WHERE comment.length < 150 RETURN count(*)
+---- 1
+215554222

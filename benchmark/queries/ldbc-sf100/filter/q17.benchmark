@@ -1,0 +1,5 @@
+-NAME q17
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) WHERE comment.length < comment.ID % 10 RETURN count(*)
+---- 1
+70616461

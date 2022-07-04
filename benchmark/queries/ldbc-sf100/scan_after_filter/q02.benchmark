@@ -1,0 +1,5 @@
+-NAME q02
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) WHERE comment.length > 200 RETURN MIN(comment.ID)
+---- 1
+8638313

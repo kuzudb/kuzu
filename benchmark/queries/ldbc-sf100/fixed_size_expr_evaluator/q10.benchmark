@@ -1,0 +1,5 @@
+-NAME q10
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) RETURN MIN(comment.length / 2)
+---- 1
+1
