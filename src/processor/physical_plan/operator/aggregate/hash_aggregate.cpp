@@ -11,16 +11,18 @@ void HashAggregateSharedState::appendAggregateHashTable(
 
 void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& memoryManager) {
     auto lck = acquireLock();
-    auto numEntries = 0u;
-    for (auto& ht : localAggregateHashTables) {
-        numEntries += ht->getNumEntries();
-    }
-    globalAggregateHashTable = make_unique<AggregateHashTable>(memoryManager,
-        localAggregateHashTables[0]->getGroupByHashKeysDataTypes(),
-        localAggregateHashTables[0]->getGroupByNonHashKeysDataTypes(), aggregateFunctions,
-        numEntries);
-    for (auto& ht : localAggregateHashTables) {
-        globalAggregateHashTable->merge(*ht);
+    if (localAggregateHashTables.size() == 1) {
+        globalAggregateHashTable = move(localAggregateHashTables[0]);
+    } else {
+        auto numEntries = 0u;
+        for (auto& ht : localAggregateHashTables) {
+            numEntries += ht->getNumEntries();
+        }
+        localAggregateHashTables[0]->resize(HashTableUtils::nextPowerOfTwo(numEntries));
+        globalAggregateHashTable = move(localAggregateHashTables[0]);
+        for (auto i = 1u; i < localAggregateHashTables.size(); i++) {
+            globalAggregateHashTable->merge(*localAggregateHashTables[i]);
+        }
     }
 }
 

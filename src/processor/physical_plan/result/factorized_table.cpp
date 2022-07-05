@@ -69,9 +69,16 @@ void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
 }
 
 uint8_t* FactorizedTable::appendEmptyTuple() {
-    auto dataBuffer = allocateTupleBlocks(1 /* numTuplesToAppend */)[0].data;
+    if (tupleDataBlocks.empty() ||
+        tupleDataBlocks.back()->freeSize < tableSchema->getNumBytesPerTuple()) {
+        tupleDataBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
+    }
+    auto& block = tupleDataBlocks.back();
+    uint8_t* tuplePtr = block->getData() + LARGE_PAGE_SIZE - block->freeSize;
+    block->freeSize -= tableSchema->getNumBytesPerTuple();
+    block->numTuples++;
     numTuples++;
-    return dataBuffer;
+    return tuplePtr;
 }
 
 void FactorizedTable::scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx,
@@ -193,6 +200,11 @@ bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t c
     return isNull(nullBuffer, colIdx);
 }
 
+void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx) {
+    setNull(nullBuffer, colIdx);
+    tableSchema->setMayContainsNullsToTrue(colIdx);
+}
+
 bool FactorizedTable::isNull(const uint8_t* nullMapBuffer, uint32_t idx) {
     uint32_t nullMapIdx = idx >> 3;
     uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8
@@ -207,11 +219,6 @@ void FactorizedTable::setNull(uint8_t* nullBuffer, uint32_t idx) {
 
 void FactorizedTable::setOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx, uint32_t tupleIdx) {
     setNull(nullBuffer, tupleIdx);
-    tableSchema->setMayContainsNullsToTrue(colIdx);
-}
-
-void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx) {
-    setNull(nullBuffer, colIdx);
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 

@@ -1,9 +1,10 @@
 #include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 
 #include "src/common/include/utils.h"
+#include "src/common/include/vector/value_vector_utils.h"
 #include "src/function/aggregate/include/base_count.h"
 #include "src/function/hash/include/vector_hash_operations.h"
-#include "src/function/include/unary_operation_executor.h"
+
 using namespace graphflow::function::operation;
 
 namespace graphflow {
@@ -25,7 +26,9 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByFlatHashKeyVe
     const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
     const vector<ValueVector*>& groupByNonHashKeyVectors,
     const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
-    resizeHashTableIfNecessary();
+    resizeHashTableIfNecessary(groupByUnFlatHashKeyVectors.empty() ?
+                                   1 :
+                                   groupByUnFlatHashKeyVectors[0]->state->selectedSize);
     computeVectorHashes(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors);
     findHashSlots(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors, groupByNonHashKeyVectors);
     updateAggStates(
@@ -34,18 +37,22 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByFlatHashKeyVe
 
 bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
     const vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
-    vector<ValueVector*> distinctKeyVectors;
-    for (auto groupByFlatKeyVector : groupByFlatKeyVectors) {
-        distinctKeyVectors.push_back(groupByFlatKeyVector);
+    vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
+    for (auto i = 0u; i < groupByFlatKeyVectors.size(); i++) {
+        distinctKeyVectors[i] = groupByFlatKeyVectors[i];
     }
-    distinctKeyVectors.push_back(aggregateVector);
+    distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
     if (groupByFlatKeyVectors.empty()) {
         VectorHashOperations::computeHash(aggregateVector, hashVector.get());
     } else {
         VectorHashOperations::computeHash(groupByFlatKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByFlatKeyVectors, 1 /* startVecIdx */);
-        VectorHashOperations::computeHash(aggregateVector, tmpHashVector.get());
-        VectorHashOperations::combineHash(hashVector.get(), tmpHashVector.get(), hashVector.get());
+        auto tmpHashResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        auto tmpHashCombineResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        VectorHashOperations::computeHash(aggregateVector, tmpHashResultVector.get());
+        VectorHashOperations::combineHash(
+            hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
+        hashVector = move(tmpHashResultVector);
     }
     hash_t hash = *(hash_t*)(hashVector->values + hashVector->getNumBytesPerValue() *
                                                       hashVector->state->getPositionOfCurrIdx());
@@ -58,24 +65,53 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
 }
 
 void AggregateHashTable::merge(AggregateHashTable& other) {
-    // Since all the columns in the factorizedTable are flat, we don't need to merge the
-    // overflow dataBlocks.
-    factorizedTable->mergeMayContainNulls(*other.factorizedTable);
-    for (auto i = 0u; i < other.getNumEntries(); ++i) {
-        auto inputEntry = other.getEntry(i);
-        auto groupByKeys = inputEntry;
-        auto hash = computeHash(inputEntry);
-        auto entry = findEntry(inputEntry, hash);
-        if (entry == nullptr) {
-            entry = createEntry(groupByKeys, hash);
-        }
-        auto aggregateOffset = aggStateColOffsetInFT;
-        for (auto& aggregateFunction : aggregateFunctions) {
-            aggregateFunction->combineState(entry + aggregateOffset, inputEntry + aggregateOffset);
-            aggregateOffset += aggregateFunction->getAggregateStateSize();
-        }
+    shared_ptr<DataChunkState> vectorsToScanState = make_shared<DataChunkState>();
+    vector<shared_ptr<ValueVector>> vectorsToScan(
+        groupByHashKeysDataTypes.size() + groupByHashKeysDataTypes.size() + 1);
+    vector<ValueVector*> groupByHashVectors(groupByHashKeysDataTypes.size());
+    vector<ValueVector*> groupByNonHashVectors(groupByNonHashVectors.size());
+    vector<shared_ptr<ValueVector>> hashKeyVectors(groupByHashKeysDataTypes.size());
+    vector<shared_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
+    for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {
+        auto hashKeyVec = make_shared<ValueVector>(&memoryManager, groupByHashKeysDataTypes[i]);
+        hashKeyVec->state = vectorsToScanState;
+        hashKeyVectors[i] = hashKeyVec;
+        vectorsToScan[i] = hashKeyVec;
+        groupByHashVectors[i] = hashKeyVec.get();
     }
-    factorizedTable->getOverflowBuffer()->merge(*other.factorizedTable->getOverflowBuffer());
+    for (auto i = 0u; i < groupByNonHashKeysDataTypes.size(); i++) {
+        auto nonHashKeyVec =
+            make_shared<ValueVector>(&memoryManager, groupByNonHashKeysDataTypes[i]);
+        nonHashKeyVec->state = vectorsToScanState;
+        nonHashKeyVectors[i] = nonHashKeyVec;
+        vectorsToScan[i + groupByHashKeysDataTypes.size()] = nonHashKeyVec;
+        groupByNonHashVectors[i] = nonHashKeyVec.get();
+    }
+    hashVector->state = vectorsToScanState;
+    hashVector->setAllNonNull();
+    vectorsToScan.emplace_back(hashVector);
+
+    vector<uint32_t> colIdxesToScan(vectorsToScan.size() - 1);
+    iota(colIdxesToScan.begin(), colIdxesToScan.end(), 0);
+    // Note: we store hash values at the last column of factorizedTable.
+    colIdxesToScan.push_back(factorizedTable->getTableSchema()->getNumColumns() - 1);
+    uint64_t startTupleIdx = 0;
+    while (startTupleIdx < other.factorizedTable->getNumTuples()) {
+        auto numTuplesToScan =
+            min(other.factorizedTable->getNumTuples() - startTupleIdx, DEFAULT_VECTOR_CAPACITY);
+        other.factorizedTable->scan(vectorsToScan, startTupleIdx, numTuplesToScan, colIdxesToScan);
+        findHashSlots(vector<ValueVector*>(), groupByHashVectors, groupByNonHashVectors);
+        auto aggregateStateOffset = aggStateColOffsetInFT;
+        for (auto& aggregateFunction : aggregateFunctions) {
+            for (auto i = 0u; i < numTuplesToScan; i++) {
+                aggregateFunction->combineState(
+                    hashSlotsToUpdateAggState[i]->entry + aggregateStateOffset,
+                    other.factorizedTable->getTuple(startTupleIdx + i) + aggregateStateOffset);
+            }
+            aggregateStateOffset += aggregateFunction->getAggregateStateSize();
+        }
+        startTupleIdx += numTuplesToScan;
+    }
 }
 
 void AggregateHashTable::finalizeAggregateStates() {
@@ -86,18 +122,6 @@ void AggregateHashTable::finalizeAggregateStates() {
             aggregateFunction->finalizeState(entry + aggregateStatesOffset);
             aggregateStatesOffset += aggregateFunction->getAggregateStateSize();
         }
-    }
-}
-
-void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
-    maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
-        max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
-    bitMask = maxNumHashSlots - 1;
-    numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
-    auto numDataBlocks =
-        maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
-    for (auto i = 0u; i < numDataBlocks; i++) {
-        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
     }
 }
 
@@ -138,36 +162,35 @@ void AggregateHashTable::initializeFT(const vector<unique_ptr<AggregateFunction>
                                 &AggregateHashTable::updateDistinctAggState :
                                 &AggregateHashTable::updateAggState;
     }
+    tableSchema->appendColumn(make_unique<ColumnSchema>(isUnflat, dataChunkPos, sizeof(hash_t)));
+    hashColIdxInFT = aggStateColIdxInFT + aggFuncs.size();
+    hashColOffsetInFT = tableSchema->getColOffset(hashColIdxInFT);
     factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(tableSchema));
+}
+
+void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
+    maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
+        max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
+    bitMask = maxNumHashSlots - 1;
+    numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
+    auto numDataBlocks =
+        maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
+    for (auto i = 0u; i < numDataBlocks; i++) {
+        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
+    }
 }
 
 void AggregateHashTable::initializeTmpVectors() {
     hashState = make_shared<DataChunkState>();
     hashState->currIdx = 0;
-    hashVector = make_unique<ValueVector>(&memoryManager, INT64);
-    tmpHashVector = make_unique<ValueVector>(&memoryManager, INT64);
+    hashVector = make_shared<ValueVector>(&memoryManager, INT64);
     hashVector->state = hashState;
-    tmpHashVector->state = hashState;
     hashSlotsToUpdateAggState = make_unique<HashSlot*[]>(DEFAULT_VECTOR_CAPACITY);
     tmpValueIdxes = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
     entryIdxesToInitialize = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
     mayMatchIdxes = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
     noMatchIdxes = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
     tmpSlotIdxes = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
-}
-
-// TODO(Ziyi): refactor the while loop in these two findEntryInDistinctHT functions.
-uint8_t* AggregateHashTable::findEntry(uint8_t* entryBuffer, hash_t hash) {
-    auto slotIdx = hash & bitMask;
-    while (true) {
-        auto slot = getHashSlot(slotIdx);
-        if (slot->entry == nullptr) {
-            return nullptr;
-        } else if ((slot->hash == hash) && matchGroupByKeys(entryBuffer, slot->entry)) {
-            return slot->entry;
-        }
-        increaseSlotIdx(slotIdx);
-    }
 }
 
 uint8_t* AggregateHashTable::findEntryInDistinctHT(
@@ -184,48 +207,89 @@ uint8_t* AggregateHashTable::findEntryInDistinctHT(
     }
 }
 
-void AggregateHashTable::initializeFTEntry(const vector<ValueVector*>& groupByFlatHashKeyVectors,
-    const vector<ValueVector*>& groupByUnflatHashKeyVectors,
-    const vector<ValueVector*>& groupByNonHashKeyVectors, uint32_t valueIdxInUnflatVector,
-    uint8_t* entry) {
-    auto colIdx = 0u;
-    for (auto flatKeyVector : groupByFlatHashKeyVectors) {
-        factorizedTable->updateFlatCell(
-            entry, colIdx, flatKeyVector, flatKeyVector->state->getPositionOfCurrIdx());
-        colIdx++;
+void AggregateHashTable::resize(uint64_t newSize) {
+    maxNumHashSlots = newSize;
+    bitMask = maxNumHashSlots - 1;
+    addDataBlocksIfNecessary(maxNumHashSlots);
+    for (auto& block : hashSlotsBlocks) {
+        block->resetToZero();
     }
-    for (auto unflatKeyVector : groupByUnflatHashKeyVectors) {
-        factorizedTable->updateFlatCell(entry, colIdx, unflatKeyVector, valueIdxInUnflatVector);
-        colIdx++;
+    for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
+        uint8_t* tuple = tupleBlock->getData();
+        for (auto i = 0u; i < tupleBlock->numTuples; i++) {
+            fillHashSlot(*(hash_t*)(tuple + hashColOffsetInFT), tuple);
+            tuple += factorizedTable->getTableSchema()->getNumBytesPerTuple();
+        }
     }
-    for (auto nonHashKeyVector : groupByNonHashKeyVectors) {
-        factorizedTable->updateFlatCell(entry, colIdx, nonHashKeyVector,
-            nonHashKeyVector->state->isFlat() ? nonHashKeyVector->state->getPositionOfCurrIdx() :
-                                                valueIdxInUnflatVector);
-        colIdx++;
+}
+
+void AggregateHashTable::initializeFTEntryWithFlatVec(
+    ValueVector* groupByFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx) {
+    assert(groupByFlatVector->state->isFlat());
+    auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
+    if (groupByFlatVector->isNull(groupByFlatVector->state->getPositionOfCurrIdx())) {
+        for (auto i = 0u; i < numEntriesToInitialize; i++) {
+            auto idx = entryIdxesToInitialize[i];
+            auto entry = hashSlotsToUpdateAggState[idx]->entry;
+            factorizedTable->setNonOverflowColNull(
+                entry + factorizedTable->getTableSchema()->getNullMapOffset(), colIdx);
+        }
+    } else {
+        for (auto i = 0u; i < numEntriesToInitialize; i++) {
+            auto idx = entryIdxesToInitialize[i];
+            auto entry = hashSlotsToUpdateAggState[idx]->entry;
+            ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByFlatVector,
+                groupByFlatVector->state->getPositionOfCurrIdx(), entry + colOffset,
+                *factorizedTable->getOverflowBuffer());
+        }
     }
-    fillEntryWithInitialNullAggregateState(entry);
+}
+
+void AggregateHashTable::initializeFTEntryWithUnflatVec(
+    ValueVector* groupByUnflatVector, uint64_t numEntriesToInitialize, uint32_t colIdx) {
+    assert(!groupByUnflatVector->state->isFlat());
+    auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
+    if (groupByUnflatVector->hasNoNullsGuarantee()) {
+        for (auto i = 0u; i < numEntriesToInitialize; i++) {
+            auto entryIdx = entryIdxesToInitialize[i];
+            ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByUnflatVector, entryIdx,
+                hashSlotsToUpdateAggState[entryIdx]->entry + colOffset,
+                *factorizedTable->getOverflowBuffer());
+        }
+    } else {
+        for (auto i = 0u; i < numEntriesToInitialize; i++) {
+            auto entryIdx = entryIdxesToInitialize[i];
+            factorizedTable->updateFlatCell(
+                hashSlotsToUpdateAggState[entryIdx]->entry, colIdx, groupByUnflatVector, entryIdx);
+        }
+    }
 }
 
 void AggregateHashTable::initializeFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
     const vector<ValueVector*>& groupByUnflatHashKeyVectors,
-    const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numFTEntriesToUpdate) {
-    for (auto i = 0u; i < numFTEntriesToUpdate; i++) {
-        auto idx = entryIdxesToInitialize[i];
-        initializeFTEntry(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
-            groupByNonHashKeyVectors, idx, hashSlotsToUpdateAggState[idx]->entry);
+    const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numFTEntriesToInitialize) {
+    auto colIdx = 0u;
+    for (auto flatKeyVector : groupByFlatHashKeyVectors) {
+        initializeFTEntryWithFlatVec(flatKeyVector, numFTEntriesToInitialize, colIdx++);
     }
-}
-
-uint8_t* AggregateHashTable::createEntry(uint8_t* groupByKeys, hash_t hash) {
-    auto groupByKeysAndAggregateStateBuffer = factorizedTable->appendEmptyTuple();
-    auto nullMapOffset = factorizedTable->getTableSchema()->getNullMapOffset();
-    fillEntryWithGroupByKeys(groupByKeysAndAggregateStateBuffer, groupByKeys);
-    fillEntryWithInitialNullAggregateState(groupByKeysAndAggregateStateBuffer);
-    fillEntryWithNullMap(
-        groupByKeysAndAggregateStateBuffer + nullMapOffset, groupByKeys + nullMapOffset);
-    fillHashSlot(hash, groupByKeysAndAggregateStateBuffer);
-    return groupByKeysAndAggregateStateBuffer;
+    for (auto unflatKeyVector : groupByUnflatHashKeyVectors) {
+        initializeFTEntryWithUnflatVec(unflatKeyVector, numFTEntriesToInitialize, colIdx++);
+    }
+    for (auto nonHashKeyVector : groupByNonHashKeyVectors) {
+        if (nonHashKeyVector->state->isFlat()) {
+            initializeFTEntryWithFlatVec(nonHashKeyVector, numFTEntriesToInitialize, colIdx++);
+        } else {
+            initializeFTEntryWithUnflatVec(nonHashKeyVector, numFTEntriesToInitialize, colIdx++);
+        }
+    }
+    for (auto i = 0u; i < numFTEntriesToInitialize; i++) {
+        auto entryIdx = entryIdxesToInitialize[i];
+        auto entry = hashSlotsToUpdateAggState[entryIdx]->entry;
+        fillEntryWithInitialNullAggregateState(entry);
+        // Fill the hashValue in the ftEntry.
+        factorizedTable->updateFlatCellNoNull(entry, hashColIdxInFT,
+            hashVector->values + hashVector->getNumBytesPerValue() * entryIdx);
+    }
 }
 
 uint8_t* AggregateHashTable::createEntryInDistinctHT(
@@ -320,8 +384,12 @@ void AggregateHashTable::computeAndCombineVecHash(
     const vector<ValueVector*>& groupByHashKeyVectors, uint32_t startVecIdx) {
     for (; startVecIdx < groupByHashKeyVectors.size(); startVecIdx++) {
         auto keyVector = groupByHashKeyVectors[startVecIdx];
-        VectorHashOperations::computeHash(keyVector, tmpHashVector.get());
-        VectorHashOperations::combineHash(tmpHashVector.get(), hashVector.get(), hashVector.get());
+        auto tmpHashResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        auto tmpHashCombineResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        VectorHashOperations::computeHash(keyVector, tmpHashResultVector.get());
+        VectorHashOperations::combineHash(
+            hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
+        hashVector = move(tmpHashCombineResultVector);
     }
 }
 
@@ -335,27 +403,6 @@ void AggregateHashTable::computeVectorHashes(const vector<ValueVector*>& groupBy
         VectorHashOperations::computeHash(groupByUnflatHashKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByUnflatHashKeyVectors, 1 /* startVecIdx */);
     }
-}
-
-hash_t AggregateHashTable::computeHash(uint8_t* keys) {
-    hash_t hash = computeHash(groupByHashKeysDataTypes[0], keys, 0 /* colIdx */);
-    for (auto i = 1u; i < groupByHashKeysDataTypes.size(); ++i) {
-        combineHashScalar(
-            AggregateHashTable::computeHash(groupByHashKeysDataTypes[i], keys, i), hash);
-    }
-    return hash;
-}
-
-hash_t AggregateHashTable::computeHash(
-    const DataType& keyDataType, uint8_t* keyValue, uint64_t colIdx) {
-    assert(keyDataType.typeID != LIST);
-    hash_t hash;
-    HashOnBytes::operation(keyDataType.typeID,
-        keyValue + factorizedTable->getTableSchema()->getColOffset(colIdx),
-        factorizedTable->isNonOverflowColNull(
-            keyValue + factorizedTable->getTableSchema()->getNullMapOffset(), colIdx),
-        hash);
-    return hash;
 }
 
 void AggregateHashTable::updateDistinctAggState(
@@ -568,25 +615,6 @@ uint64_t AggregateHashTable::matchFTEntries(const vector<ValueVector*>& groupByF
     return numNoMatches;
 }
 
-bool AggregateHashTable::matchGroupByKeys(uint8_t* entryBuffer, uint8_t* entryBufferToMatch) {
-    auto nullMapOffset = factorizedTable->getTableSchema()->getNullMapOffset();
-    if (memcmp(entryBuffer + nullMapOffset, entryBufferToMatch + nullMapOffset,
-            factorizedTable->getTableSchema()->getNumBytesForNullMap()) != 0) {
-        return false;
-    }
-    if (hasStrCol) {
-        for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {
-            auto colOffset = factorizedTable->getTableSchema()->getColOffset(i);
-            if (!compareFuncs[i](entryBuffer + colOffset, entryBufferToMatch + colOffset)) {
-                return false;
-            }
-        }
-        return true;
-    } else {
-        return memcmp(entryBufferToMatch, entryBuffer, numBytesForGroupByHashKeys) == 0;
-    }
-}
-
 void AggregateHashTable::fillEntryWithInitialNullAggregateState(uint8_t* entry) {
     for (auto i = 0u; i < aggregateFunctions.size(); i++) {
         factorizedTable->updateFlatCellNoNull(entry, aggStateColIdxInFT + i,
@@ -596,30 +624,17 @@ void AggregateHashTable::fillEntryWithInitialNullAggregateState(uint8_t* entry) 
 
 void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer) {
     auto slotIdx = hash & bitMask;
-    while (getHashSlot(slotIdx)->entry) {
-        increaseSlotIdx(slotIdx);
-    }
-    auto slot = getHashSlot(slotIdx);
-    slot->hash = hash;
-    slot->entry = groupByKeysAndAggregateStateBuffer;
-}
-
-void AggregateHashTable::resize(uint64_t newSize) {
-    maxNumHashSlots = newSize;
-    bitMask = maxNumHashSlots - 1;
-    addDataBlocksIfNecessary(maxNumHashSlots);
-    for (auto& block : hashSlotsBlocks) {
-        block->resetToZero();
-    }
-    for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
-        uint8_t* tuple = tupleBlock->getData();
-        for (auto i = 0u; i < tupleBlock->numTuples; i++) {
-            auto groupByKeysAndAggregateStateBuffer =
-                tuple + i * factorizedTable->getTableSchema()->getNumBytesPerTuple();
-            auto newHash = computeHash(groupByKeysAndAggregateStateBuffer);
-            fillHashSlot(newHash, groupByKeysAndAggregateStateBuffer);
+    auto hashSlot = getHashSlot(slotIdx);
+    while (true) {
+        if (hashSlot->entry) {
+            increaseSlotIdx(slotIdx);
+            hashSlot = getHashSlot(slotIdx);
+            continue;
         }
+        break;
     }
+    hashSlot->hash = hash;
+    hashSlot->entry = groupByKeysAndAggregateStateBuffer;
 }
 
 void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
@@ -630,9 +645,9 @@ void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
     }
 }
 
-void AggregateHashTable::resizeHashTableIfNecessary() {
-    if (factorizedTable->getNumTuples() > maxNumHashSlots ||
-        (double)factorizedTable->getNumTuples() >
+void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys) {
+    if (factorizedTable->getNumTuples() + maxNumDistinctHashKeys > maxNumHashSlots ||
+        (double)factorizedTable->getNumTuples() + maxNumDistinctHashKeys >
             (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
         resize(maxNumHashSlots * 2);
     }
@@ -713,8 +728,7 @@ void AggregateHashTable::updateBothFlatAggVectorState(
     auto aggPos = aggVector->state->getPositionOfCurrIdx();
     if (!aggVector->isNull(aggPos)) {
         aggregateFunction->updatePosState(
-            hashSlotsToUpdateAggState[groupByFlatHashKeyVectors[0]->state->getPositionOfCurrIdx()]
-                    ->entry +
+            hashSlotsToUpdateAggState[hashVector->state->getPositionOfCurrIdx()]->entry +
                 aggStateOffset,
             aggVector, multiplicity, aggPos);
     }
@@ -855,14 +869,15 @@ vector<unique_ptr<AggregateHashTable>> AggregateHashTableUtils::createDistinctHa
     vector<unique_ptr<AggregateHashTable>> distinctHTs;
     for (auto& aggregateFunction : aggregateFunctions) {
         if (aggregateFunction->isFunctionDistinct()) {
-            vector<DataType> distinctKeysDataTypes;
-            for (auto& groupByKeyDataType : groupByKeyDataTypes) {
-                distinctKeysDataTypes.push_back(groupByKeyDataType);
+            vector<DataType> distinctKeysDataTypes(groupByKeyDataTypes.size() + 1);
+            for (auto i = 0u; i < groupByKeyDataTypes.size(); i++) {
+                distinctKeysDataTypes[i] = groupByKeyDataTypes[i];
             }
-            distinctKeysDataTypes.push_back(aggregateFunction->getInputDataType());
+            distinctKeysDataTypes[groupByKeyDataTypes.size()] =
+                aggregateFunction->getInputDataType();
             vector<unique_ptr<AggregateFunction>> emptyFunctions;
-            auto ht = make_unique<AggregateHashTable>(
-                memoryManager, distinctKeysDataTypes, emptyFunctions, 0 /* numEntriesToAllocate */);
+            auto ht = make_unique<AggregateHashTable>(memoryManager, move(distinctKeysDataTypes),
+                emptyFunctions, 0 /* numEntriesToAllocate */);
             distinctHTs.push_back(move(ht));
         } else {
             distinctHTs.push_back(nullptr);
