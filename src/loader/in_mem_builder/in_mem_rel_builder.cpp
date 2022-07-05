@@ -18,6 +18,7 @@ InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDe
       srcNodeLabelNames{fileDescription.srcNodeLabelNames},
       dstNodeLabelNames{fileDescription.dstNodeLabelNames},
       maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel}, bm{bufferManager} {
+    tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     IDIndexes.resize(catalog.getNumNodeLabels());
     unordered_set<string> labelNames;
     labelNames.insert(
@@ -161,8 +162,8 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
     }
     vector<PageByteCursor> overflowPagesCursors{properties.size()};
     while (reader.hasNextLine()) {
-        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes, builder->catalog,
-            requireToReadLabels);
+        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
+            builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto nodeLabel = nodeIDs[relDirection].label;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -274,7 +275,7 @@ void InMemRelBuilder::putPropsOfLineIntoColumns(
 
 void InMemRelBuilder::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
     vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-    const Catalog& catalog, vector<bool>& requireToReadLabels) {
+    Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadLabels) {
     for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
         if (requireToReadLabels[relDirection]) {
@@ -288,13 +289,13 @@ void InMemRelBuilder::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>&
         case INT64: {
             auto key = TypeUtils::convertToInt64(keyStr);
             if (!IDIndexes[nodeIDs[relDirection].label]->lookup(
-                    key, nodeIDs[relDirection].offset)) {
+                    transaction, key, nodeIDs[relDirection].offset)) {
                 throw LoaderException("Cannot find key: " + to_string(key) + " in the IDIndex.");
             }
         } break;
         case STRING: {
             if (!IDIndexes[nodeIDs[relDirection].label]->lookup(
-                    keyStr, nodeIDs[relDirection].offset)) {
+                    transaction, keyStr, nodeIDs[relDirection].offset)) {
                 throw LoaderException("Cannot find key: " + string(keyStr) + " in the IDIndex.");
             }
         } break;
@@ -505,8 +506,8 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
     }
     vector<PageByteCursor> overflowPagesCursors(properties.size());
     while (reader.hasNextLine()) {
-        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes, builder->catalog,
-            requireToReadLabels);
+        inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
+            builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!builder->catalog.isSingleMultiplicityInDirection(builder->label, relDirection)) {
                 auto nodeOffset = nodeIDs[relDirection].offset;

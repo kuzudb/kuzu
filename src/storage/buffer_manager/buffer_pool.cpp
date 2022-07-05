@@ -129,7 +129,7 @@ uint8_t* BufferPool::pinWithoutAcquiringPageLock(
         auto& frame = bufferCache[frameIdx];
         frame->pinCount.fetch_add(1);
         frame->recentlyAccessed = true;
-        bmMetrics.numCacheHit += 1;
+        //        bmMetrics.numCacheHit += 1;
     } else {
         frameIdx = claimAFrame(fileHandle, pageIdx, doNotReadFromFile);
         fileHandle.swizzle(pageIdx, frameIdx);

@@ -8,30 +8,38 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace storage {
 
+using entry_pos_t = uint8_t;
+using slot_id_t = uint64_t;
+
 struct SlotInfo {
-    uint64_t slotId;
+    slot_id_t slotId;
     bool isPSlot;
 };
 
 class SlotHeader {
 public:
-    SlotHeader() : numEntries{0}, deletionMask{0}, nextOvfSlotId{0} {}
+    static const entry_pos_t INVALID_ENTRY_POS = UINT8_MAX;
+
+    SlotHeader() : numEntries{0}, validityMask{0}, nextOvfSlotId{0} {}
 
     void reset() {
         numEntries = 0;
-        deletionMask = 0;
+        validityMask = 0;
         nextOvfSlotId = 0;
     }
 
-    inline bool isEntryDeleted(uint32_t entryPos) const {
-        return deletionMask & ((uint32_t)1 << entryPos);
+    inline bool isEntryValid(uint32_t entryPos) const {
+        return validityMask & ((uint32_t)1 << entryPos);
     }
-    inline void setEntryDeleted(uint32_t entryPos) { deletionMask |= ((uint32_t)1 << entryPos); }
+    inline void setEntryInvalid(entry_pos_t entryPos) {
+        validityMask &= ~((uint32_t)1 << entryPos);
+    }
+    inline void setEntryValid(entry_pos_t entryPos) { validityMask |= ((uint32_t)1 << entryPos); }
 
 public:
-    uint8_t numEntries;
-    uint32_t deletionMask;
-    uint64_t nextOvfSlotId;
+    entry_pos_t numEntries;
+    uint32_t validityMask;
+    slot_id_t nextOvfSlotId;
 };
 
 class HashIndexHeader {
@@ -40,8 +48,10 @@ public:
     explicit HashIndexHeader(DataTypeID keyDataType);
     HashIndexHeader(const HashIndexHeader& other) = default;
 
+    void incrementNextSplitSlotId();
     inline void incrementLevel() {
         currentLevel++;
+        nextSplitSlotId = 0;
         levelHashMask = (1 << currentLevel) - 1;
         higherLevelHashMask = (1 << (currentLevel + 1)) - 1;
     }
@@ -50,10 +60,10 @@ public:
     uint32_t numBytesPerEntry{0};
     uint32_t numBytesPerSlot{0};
     uint32_t numSlotsPerPage{0};
-    uint64_t currentLevel{0};
-    uint64_t levelHashMask{0};
-    uint64_t higherLevelHashMask{0};
-    uint64_t nextSplitSlotId{0};
+    uint64_t currentLevel{1};
+    uint64_t levelHashMask{1};
+    uint64_t higherLevelHashMask{3};
+    slot_id_t nextSplitSlotId{0};
     uint64_t pPagesMapperFirstPageIdx{0};
     uint64_t oPagesMapperFirstPageIdx{0};
     DataTypeID keyDataTypeID;
@@ -62,42 +72,58 @@ public:
 class SlotArray {
 
 public:
-    SlotArray(InMemFile* file, uint64_t numSlotsPerPage)
-        : file{file}, numSlotsPerPage{numSlotsPerPage}, nextSlotIdToAllocate{0}, slotsCapacity{0} {}
+    SlotArray(InMemFile* file, slot_id_t numSlotsPerPage)
+        : file{file}, numSlotsPerPage{numSlotsPerPage}, nextSlotIdToAllocate{0} {}
 
     virtual ~SlotArray() {}
 
     virtual void addNewPagesWithoutLock(uint64_t numPages);
-    uint64_t allocateSlot();
-    PageElementCursor getPageCursorForSlot(uint64_t slotId);
+    inline virtual slot_id_t allocateSlot() {
+        unique_lock xLck{sharedGlobalMutex};
+        return allocateSlotWithoutLock();
+    }
+    slot_id_t allocateSlotWithoutLock();
+    virtual PageElementCursor getPageCursorForSlot(slot_id_t slotId) {
+        shared_lock sLck{sharedGlobalMutex};
+        return getPageCursorForSlotWithoutLock(slotId);
+    }
 
-    void setNextSlotIdToAllocate(uint64_t slotId) { nextSlotIdToAllocate = slotId; }
+    inline void setNextSlotIdToAllocate(slot_id_t slotId) { nextSlotIdToAllocate = slotId; }
+    inline slot_id_t getNumAllocatedSlots() const { return nextSlotIdToAllocate; }
 
 public:
     shared_mutex sharedGlobalMutex;
     vector<page_idx_t> pagesLogicalToPhysicalMapper;
 
 protected:
+    PageElementCursor getPageCursorForSlotWithoutLock(slot_id_t slotId);
+
     InMemFile* file;
-    const uint64_t numSlotsPerPage;
-    uint64_t nextSlotIdToAllocate;
-    uint64_t slotsCapacity;
+    const slot_id_t numSlotsPerPage;
+    slot_id_t nextSlotIdToAllocate;
 };
 
 class SlotWithMutexArray : public SlotArray {
 
 public:
-    SlotWithMutexArray(InMemFile* file, uint64_t numSlotsPerPage)
+    SlotWithMutexArray(InMemFile* file, slot_id_t numSlotsPerPage)
         : SlotArray{file, numSlotsPerPage} {}
 
-    void addNewPagesWithoutLock(uint64_t numPages) override;
+    inline void addNewPagesWithoutLock(uint64_t numPages) override {
+        SlotArray::addNewPagesWithoutLock(numPages);
+        addSlotMutexesForPagesWithoutLock(numPages);
+    }
     void addSlotMutexesForPagesWithoutLock(uint64_t numPages);
+    inline slot_id_t allocateSlot() override { return allocateSlotWithoutLock(); }
+    inline PageElementCursor getPageCursorForSlot(slot_id_t slotId) override {
+        return getPageCursorForSlotWithoutLock(slotId);
+    }
 
-    inline void lockSlot(uint64_t slotId) {
+    inline void lockSlot(slot_id_t slotId) {
         shared_lock sLck{sharedGlobalMutex};
         mutexes[slotId]->lock();
     }
-    inline void unlockSlot(uint64_t slotId) {
+    inline void unlockSlot(slot_id_t slotId) {
         shared_lock sLck{sharedGlobalMutex};
         mutexes[slotId]->unlock();
     }
@@ -107,7 +133,7 @@ private:
 };
 
 /**
- * Each index is stored in a single file that has 4 components in it.
+ * Basic index file consists of four main components.
  *
  * 1. HashIndexHeader is stored in the first page (pageId 0) of the file. It contains the current
  * state of the hash tables (level and split information: currentLevel, levelHashMask,
@@ -125,7 +151,7 @@ private:
  * slot is given by HashIndexConfig::SLOT_CAPACITY. The size of the slot is given by
  * (sizeof(SlotHeader) + (SLOT_CAPACITY * sizeof(Entry)).
  *
- * SlotHeader: [numEntries, deletionMask, nextOvfSlotId]
+ * SlotHeader: [numEntries, validityMask, nextOvfSlotId]
  * Entry: [key (fixed sized part), node_offset]
  *
  * 3. Overflow pages are set of pages that holds overflow slots (oSlots). oSlots are used to
@@ -160,23 +186,14 @@ private:
 
 class BaseHashIndex {
 public:
-    explicit BaseHashIndex(const DataType& keyDataType) {
+    explicit BaseHashIndex(const DataType& keyDataType) : numEntries{0} {
         keyHashFunc = HashIndexUtils::initializeHashFunc(keyDataType.typeID);
     }
 
     virtual ~BaseHashIndex() {}
 
-    virtual void flush() = 0;
-
 protected:
-    inline uint64_t getPrimarySlotIdForKey(const uint8_t* key) {
-        auto hash = keyHashFunc(key);
-        auto slotId = hash & indexHeader->levelHashMask;
-        if (slotId < indexHeader->nextSplitSlotId) {
-            slotId = hash & indexHeader->higherLevelHashMask;
-        }
-        return slotId;
-    }
+    slot_id_t getPrimarySlotIdForKey(const uint8_t* key);
     inline void lockSlot(SlotInfo& slotInfo) {
         assert(slotInfo.isPSlot);
         pSlots->lockSlot(slotInfo.slotId);
@@ -185,8 +202,8 @@ protected:
         assert(slotInfo.isPSlot);
         pSlots->unlockSlot(slotInfo.slotId);
     }
-    inline uint8_t* getEntryInSlot(uint8_t* slot, uint32_t entryId) const {
-        return slot + sizeof(SlotHeader) + (entryId * indexHeader->numBytesPerEntry);
+    inline uint8_t* getEntryInSlot(uint8_t* slot, entry_pos_t entryPos) const {
+        return slot + sizeof(SlotHeader) + (entryPos * indexHeader->numBytesPerEntry);
     }
 
 protected:
@@ -194,30 +211,49 @@ protected:
     hash_function_t keyHashFunc;
     unique_ptr<SlotWithMutexArray> pSlots;
     unique_ptr<SlotArray> oSlots;
+    atomic<uint64_t> numEntries;
 };
 
-class InMemHashIndexBuilder : public BaseHashIndex {
+class InMemHashIndex : public BaseHashIndex {
+    friend class HashIndexLocalStorage;
+
 public:
-    InMemHashIndexBuilder(string fName, const DataType& keyDataType);
+    InMemHashIndex(string fName, const DataType& keyDataType);
 
 public:
     // Reserves space for at least the specified number of elements.
-    // Note: This function is NOT thread-safe.
     void bulkReserve(uint32_t numEntries);
 
+    // Note: append assumes that bulkRserve has been called before it and the index has reserved
+    // enough space already.
     inline bool append(int64_t key, node_offset_t value) {
-        return appendInternal(reinterpret_cast<uint8_t*>(&key), value);
+        return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
+    // TODO(Guodong): change const char* to gfString
     inline bool append(const char* key, node_offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
+    inline bool lookup(int64_t key, node_offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
+    }
 
-    void flush() override;
+    // Non-thread safe. This should only be called in the loader and never be called in parallel.
+    void flush();
 
 private:
     bool appendInternal(const uint8_t* key, node_offset_t value);
-    bool existsInSlot(uint8_t* slot, const uint8_t* key) const;
-    void insertToSlot(uint8_t* slot, const uint8_t* key, node_offset_t value);
+    bool deleteInternal(const uint8_t* key);
+    bool lookupInternalWithoutLock(const uint8_t* key, node_offset_t& result);
+
+    template<bool IS_LOOKUP>
+    bool lookupOrExistsInSlotWithoutLock(
+        uint8_t* slot, const uint8_t* key, node_offset_t* result = nullptr);
+    void insertToSlotWithoutLock(uint8_t* slot, const uint8_t* key, node_offset_t value);
+    void splitSlotWithoutLock();
+    void rehashSlotsWithoutLock();
+    void copyEntryToSlotWithoutLock(slot_id_t slotId, uint8_t* entry);
+    vector<uint8_t*> getPAndOSlotsWithoutLock(slot_id_t pSlotId);
+    entry_pos_t findMatchedEntryInSlotWithoutLock(uint8_t* slot, const uint8_t* key);
 
     inline uint8_t* getSlot(const SlotInfo& slotInfo) const {
         auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
@@ -226,7 +262,6 @@ private:
                (pageCursor.posInPage * indexHeader->numBytesPerSlot);
     }
 
-    // TODO(Guodong): This should be refactored to use InMemDiskArray.
     page_idx_t writeLogicalToPhysicalMapper(SlotArray* slotsArray);
 
 private:

@@ -13,6 +13,8 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace storage {
 
+static const string IN_MEM_TEMP_FILE_PATH = "";
+
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
 
@@ -20,7 +22,7 @@ public:
     InMemFile(
         std::string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0);
     InMemFile(uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0)
-        : InMemFile("", numBytesForElement, hasNullMask, numPages) {}
+        : InMemFile(IN_MEM_TEMP_FILE_PATH, numBytesForElement, hasNullMask, numPages) {}
 
     virtual ~InMemFile() = default;
 
