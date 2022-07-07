@@ -44,18 +44,21 @@ public:
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
 class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, const ProbeDataInfo& probeDataInfo,
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
+        vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{move(probeChild), move(buildChild), id, paramsString},
-          sharedState{move(sharedState)}, probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{
-                                                                            0} {}
+          sharedState{move(sharedState)}, flatDataChunkPositions{move(flatDataChunkPositions)},
+          probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
 
     // This constructor is used for cloning only.
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, const ProbeDataInfo& probeDataInfo,
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
+        vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(probeChild), id, paramsString}, sharedState{move(sharedState)},
-          probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
+          flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo},
+          tuplePosToReadInProbedState{0} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
@@ -65,12 +68,13 @@ public:
 
     // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinProbe>(
-            sharedState, probeDataInfo, children[0]->clone(), id, paramsString);
+        return make_unique<HashJoinProbe>(sharedState, flatDataChunkPositions, probeDataInfo,
+            children[0]->clone(), id, paramsString);
     }
 
 private:
     shared_ptr<HashJoinSharedState> sharedState;
+    vector<uint64_t> flatDataChunkPositions;
 
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;

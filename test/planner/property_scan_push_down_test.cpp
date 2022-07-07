@@ -33,20 +33,6 @@ TEST_F(PropertyScanPushDownTest, ProjectionPropertyPushDownTest) {
     ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_a." + INTERNAL_ID_SUFFIX));
 }
 
-// This test is to capture the bug where operator is not cloned (might lead to a bug where change of
-// prevOperator of a plan affects other plan) before property push down optimization
-TEST_F(PropertyScanPushDownTest, LogicalPlanCloneTest) {
-    auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person) "
-                 "Return b.age";
-    // if logical plan is not cloned before optimization, plan1 will have repeated scanNodeProperty
-    auto plan = move(getAllPlans(query)[1]);
-    auto op = plan->getLastOperator()->getChild(0).get();
-    while (op->getLogicalOperatorType() != LOGICAL_SCAN_NODE_PROPERTY) {
-        op = op->getChild(0).get();
-    }
-    ASSERT_TRUE(op->getChild(0)->getLogicalOperatorType() != LOGICAL_SCAN_NODE_PROPERTY);
-}
-
 TEST_F(PropertyScanPushDownTest, SubPlanPropertyPushDownTest) {
     auto query = "MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN a.age, b.age";
     auto plan = getBestPlan(query);

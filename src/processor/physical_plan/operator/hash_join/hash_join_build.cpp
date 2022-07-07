@@ -85,16 +85,10 @@ void HashJoinBuild::appendVectorsOnce() {
             factorizedTable->append(vectorsToAppend);
             return;
         }
-        // If key vector may contain null value, we have to flatten the key and for each flat key
-        // checking whether its null or not.
-        for (auto i = 0u; i < keyVector->state->selectedSize; ++i) {
-            if (keyVector->isNull(i)) {
-                continue;
-            }
-            keyVector->state->currIdx = i;
+        NodeIDVector::discardNull(*keyVector);
+        if (keyVector->state->selectedSize != 0) {
             factorizedTable->append(vectorsToAppend);
         }
-        keyVector->state->currIdx = -1;
     }
 }
 
@@ -108,5 +102,6 @@ void HashJoinBuild::execute(ExecutionContext* context) {
     sharedState->mergeLocalFactorizedTable(*factorizedTable);
     metrics->executionTime.stop();
 }
+
 } // namespace processor
 } // namespace graphflow

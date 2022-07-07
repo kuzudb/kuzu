@@ -91,5 +91,10 @@ private:
     uint32_t numBytesPerValue;
 };
 
+class NodeIDVector {
+public:
+    static void discardNull(ValueVector& vector);
+};
+
 } // namespace common
 } // namespace graphflow

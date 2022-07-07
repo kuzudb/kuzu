@@ -11,7 +11,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
@@ -30,8 +29,6 @@
 #include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
 #include "src/processor/include/physical_plan/operator/left_nested_loop_join.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
@@ -337,46 +334,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
         scanRelProperty.getBoundNodeLabel(), scanRelProperty.getRelLabel(), propertyKey);
     return make_unique<ReadRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
         lists, move(prevOperator), getOperatorID(), paramsString);
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
-    auto buildSideMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.getBuildSideSchema()));
-    auto buildSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin.getChild(1), buildSideMapperContext);
-    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin.getChild(0), mapperContext);
-    // Populate build side and probe side vector positions
-    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.getJoinNodeID());
-    auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.getJoinNodeID());
-    auto paramsString = hashJoin.getExpressionsForPrinting();
-    vector<bool> isBuildSideNonKeyDataFlat;
-    vector<DataPos> buildSideNonKeyDataPoses;
-    vector<DataPos> probeSideNonKeyDataPoses;
-    auto& buildSideSchema = *hashJoin.getBuildSideSchema();
-    for (auto& expression : hashJoin.getExpressionsToMaterialize()) {
-        auto expressionName = expression->getUniqueName();
-        if (expressionName == hashJoin.getJoinNodeID()) {
-            continue;
-        }
-        mapperContext.addComputedExpressions(expressionName);
-        buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
-        isBuildSideNonKeyDataFlat.push_back(buildSideSchema.getGroup(expressionName)->getIsFlat());
-        probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
-    }
-
-    auto sharedState = make_shared<HashJoinSharedState>();
-    // create hashJoin build
-    auto buildDataInfo =
-        BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
-    auto hashJoinBuild = make_unique<HashJoinBuild>(
-        sharedState, buildDataInfo, move(buildSidePrevOperator), getOperatorID(), paramsString);
-    // create hashJoin probe
-    auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
-    auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, probeDataInfo,
-        move(probeSidePrevOperator), move(hashJoinBuild), getOperatorID(), paramsString);
-    return hashJoinProbe;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(

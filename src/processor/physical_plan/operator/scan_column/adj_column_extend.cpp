@@ -39,21 +39,7 @@ bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
     if (valueVector.state->isFlat()) {
         return !valueVector.isNull(valueVector.state->getPositionOfCurrIdx());
     } else {
-        auto selectedPos = 0u;
-        if (valueVector.state->isUnfiltered()) {
-            valueVector.state->resetSelectorToValuePosBuffer();
-            for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
-                valueVector.state->selectedPositions[selectedPos] = i;
-                selectedPos += !valueVector.isNull(i);
-            }
-        } else {
-            for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
-                auto pos = valueVector.state->selectedPositions[i];
-                valueVector.state->selectedPositions[selectedPos] = pos;
-                selectedPos += !valueVector.isNull(pos);
-            }
-        }
-        valueVector.state->selectedSize = selectedPos;
+        NodeIDVector::discardNull(valueVector);
         return valueVector.state->selectedSize > 0;
     }
 }

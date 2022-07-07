@@ -30,5 +30,24 @@ void ValueVector::addString(uint64_t pos, string value) const {
     addString(pos, value.data(), value.length());
 }
 
+void NodeIDVector::discardNull(ValueVector& vector) {
+    assert(!vector.state->isFlat() && vector.dataType.typeID == NODE_ID);
+    auto selectedPos = 0u;
+    if (vector.state->isUnfiltered()) {
+        vector.state->resetSelectorToValuePosBuffer();
+        for (auto i = 0u; i < vector.state->selectedSize; i++) {
+            vector.state->selectedPositions[selectedPos] = i;
+            selectedPos += !vector.isNull(i);
+        }
+    } else {
+        for (auto i = 0u; i < vector.state->selectedSize; i++) {
+            auto pos = vector.state->selectedPositions[i];
+            vector.state->selectedPositions[selectedPos] = pos;
+            selectedPos += !vector.isNull(pos);
+        }
+    }
+    vector.state->selectedSize = selectedPos;
+}
+
 } // namespace common
 } // namespace graphflow

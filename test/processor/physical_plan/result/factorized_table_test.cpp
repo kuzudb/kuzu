@@ -139,7 +139,11 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     // to B1, and the second column to A2.
     auto readResultSet = initResultSet();
     readResultSet->dataChunks[0]->state->currIdx = -1;
-    readResultSet->dataChunks[1]->state->currIdx = 0;
+    auto dataChunk1 = readResultSet->dataChunks[1];
+    dataChunk1->state = DataChunkState::getSingleValueDataChunkState();
+    for (auto& vector : dataChunk1->valueVectors) {
+        vector->state = dataChunk1->state;
+    }
     vector<shared_ptr<ValueVector>> vectorsToRead = {readResultSet->dataChunks[1]->valueVectors[0],
         readResultSet->dataChunks[0]->valueVectors[1]};
     auto vectorB1 = vectorsToRead[0];

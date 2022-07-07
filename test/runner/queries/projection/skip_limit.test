@@ -56,7 +56,7 @@ Bob
 Carol
 
 -NAME KnowsTwoHopLimitTest
--QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age=35 RETURN b.fName LIMIT 1
+-QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age=35 RETURN b.fName AS k ORDER BY k LIMIT 1
 ---- 1
 Alice
 
@@ -81,6 +81,6 @@ Carol
 Dan
 
 -NAME KnowsOneHopWithLimitTest3
--QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.age=35 WITH b LIMIT 1 RETURN b.fName
+-QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.age=35 WITH b.ID AS id, b.fName AS n ORDER BY id LIMIT 1 RETURN n
 ---- 1
 Bob

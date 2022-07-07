@@ -8,10 +8,16 @@
 namespace graphflow {
 namespace binder {
 
-class QueryGraph;
-
 const label_t ANY_LABEL = numeric_limits<uint32_t>::max();
 const uint8_t MAX_NUM_VARIABLES = 64;
+
+class QueryGraph;
+struct SubqueryGraph;
+
+// hash on node bitset if subgraph has no rel
+struct SubqueryGraphHasher {
+    std::size_t operator()(const SubqueryGraph& key) const;
+};
 
 struct SubqueryGraph {
 
@@ -42,6 +48,8 @@ struct SubqueryGraph {
 
     unordered_set<uint32_t> getNodeNbrPositions() const;
     unordered_set<uint32_t> getRelNbrPositions() const;
+    unordered_set<SubqueryGraph, SubqueryGraphHasher> getNbrSubgraphs(uint32_t size) const;
+    vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
 
     bool isSrcConnected(uint32_t relPos) const;
     bool isDstConnected(uint32_t relPos) const;
@@ -52,16 +60,14 @@ struct SubqueryGraph {
         return queryRelsSelector == other.queryRelsSelector &&
                queryNodesSelector == other.queryNodesSelector;
     }
-};
 
-struct SubqueryGraphJoinNodePairHasher {
-    size_t operator()(const pair<SubqueryGraph, uint32_t>& key) const {
-        return hash<bitset<MAX_NUM_VARIABLES>>{}(key.first.queryRelsSelector);
-    }
+private:
+    unordered_set<SubqueryGraph, SubqueryGraphHasher> getBaseNbrSubgraph() const;
+    unordered_set<SubqueryGraph, SubqueryGraphHasher> getNextNbrSubgraphs(
+        const SubqueryGraph& prevNbr) const;
 };
 
 class QueryGraph {
-
 public:
     QueryGraph() = default;
 
@@ -73,49 +79,35 @@ public:
     ~QueryGraph() = default;
 
     inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
-
     inline bool containsQueryNode(const string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
-
     inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
-
     inline shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
         return queryNodes[nodePos];
     }
-
     inline uint32_t getQueryNodePos(NodeExpression& node) const {
         return getQueryNodePos(node.getUniqueName());
     }
     inline uint32_t getQueryNodePos(const string& queryNodeName) const {
         return queryNodeNameToPosMap.at(queryNodeName);
     }
-
     void addQueryNode(shared_ptr<NodeExpression> queryNode);
 
     inline uint32_t getNumQueryRels() const { return queryRels.size(); }
-
     inline bool containsQueryRel(const string& queryRelName) const {
         return queryRelNameToPosMap.contains(queryRelName);
     }
-
     inline RelExpression* getQueryRel(const string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
     }
-
     inline RelExpression* getQueryRel(uint32_t relPos) const { return queryRels[relPos].get(); }
-
     inline uint32_t getQueryRelPos(const string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }
-
     void addQueryRel(shared_ptr<RelExpression> queryRel);
-
-    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
-    getSingleNodeJoiningSubgraph(
-        const SubqueryGraph& matchedSubqueryGraph, uint32_t subgraphSize) const;
 
     unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
 
@@ -124,14 +116,6 @@ public:
     vector<shared_ptr<Expression>> getNodeIDExpressions() const;
 
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
-
-private:
-    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
-    initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const;
-
-    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
-    extendSubgraphByOneQueryRel(const SubqueryGraph& matchedSubgraph,
-        const pair<SubqueryGraph, uint32_t>& subgraphWithSingleJoinNode) const;
 
 private:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;

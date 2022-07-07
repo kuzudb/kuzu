@@ -69,6 +69,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator()->toString();
             auto result = conn.executePlan(move(plans[j]));
+            assert(result->isSuccess());
             auto numTuples = result->getNumTuples();
             if (numTuples != testConfig.expectedNumTuples) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
@@ -78,7 +79,8 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
                 vector<string> resultTuples =
                     convertResultToString(*result, testConfig.checkOutputOrder);
                 if (resultTuples == testConfig.expectedTuples) {
-                    spdlog::info("PLAN{} PASSED", j);
+                    spdlog::info(
+                        "PLAN{} PASSED in {}ms", j, result->getQuerySummary()->getExecutionTime());
                     spdlog::debug("PLAN: \n{}", planStr);
                     numPassedPlans++;
                 } else {

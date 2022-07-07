@@ -56,22 +56,22 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "tinysnb_variant_read_test",
-    srcs = [
-        "tinysnb_variant_end_to_end_test.cpp",
-    ],
-    copts = [
-        "-Iexternal/gtest/include",
-    ],
-    data = [
-        "testfiles",
-        "//dataset",
-    ],
-    deps = [
-        "//test/test_utility:test_helper",
-    ],
-)
+#cc_test(
+#    name = "tinysnb_variant_read_test",
+#    srcs = [
+#        "tinysnb_variant_end_to_end_test.cpp",
+#    ],
+#    copts = [
+#        "-Iexternal/gtest/include",
+#    ],
+#    data = [
+#        "testfiles",
+#        "//dataset",
+#    ],
+#    deps = [
+#        "//test/test_utility:test_helper",
+#    ],
+#)
 
 cc_test(
     name = "read_lists_end_to_end_test",
