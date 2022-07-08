@@ -35,7 +35,7 @@ private:
     uint64_t getNumTasksOfInitializingAdjAndPropertyListsMetadata();
     static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-        const Catalog& catalog, vector<bool>& requireToReadLabels);
+        Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadLabels);
     static void putPropsOfLineIntoColumns(
         vector<label_property_columns_map_t>& directionLabelPropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
@@ -75,6 +75,7 @@ private:
     const vector<uint64_t> maxNodeOffsetsPerNodeLabel;
 
     BufferManager& bm;
+    unique_ptr<Transaction> tmpReadTransaction;
     vector<unique_ptr<HashIndex>> IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};
     vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerLabel{2};

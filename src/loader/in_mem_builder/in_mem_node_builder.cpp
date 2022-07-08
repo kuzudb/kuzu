@@ -94,7 +94,7 @@ vector<unordered_set<string>> InMemNodeBuilder::countLinesPerBlockAndParseUnstrP
 
 void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes) {
     logger->info("Populating structured properties and Counting unstructured properties.");
-    auto IDIndex = make_unique<InMemHashIndexBuilder>(
+    auto IDIndex = make_unique<InMemHashIndex>(
         StorageUtils::getNodeIndexFName(this->outputDirectory, label), IDType);
     IDIndex->bulkReserve(numNodes);
     uint32_t IDColumnIdx = UINT32_MAX;
@@ -122,8 +122,8 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(uint64_t nu
 }
 
 template<DataTypeID DT>
-void InMemNodeBuilder::addIDsToIndex(InMemColumn* column, InMemHashIndexBuilder* hashIndex,
-    node_offset_t startOffset, uint64_t numValues) {
+void InMemNodeBuilder::addIDsToIndex(
+    InMemColumn* column, InMemHashIndex* hashIndex, node_offset_t startOffset, uint64_t numValues) {
     assert(DT == INT64 || DT == STRING);
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
@@ -143,8 +143,8 @@ void InMemNodeBuilder::addIDsToIndex(InMemColumn* column, InMemHashIndexBuilder*
     }
 }
 
-void InMemNodeBuilder::populateIDIndex(InMemColumn* column, InMemHashIndexBuilder* IDIndex,
-    node_offset_t startOffset, uint64_t numValues) {
+void InMemNodeBuilder::populateIDIndex(
+    InMemColumn* column, InMemHashIndex* IDIndex, node_offset_t startOffset, uint64_t numValues) {
     switch (column->getDataType().typeID) {
     case INT64: {
         addIDsToIndex<INT64>(column, IDIndex, startOffset, numValues);
@@ -160,8 +160,7 @@ void InMemNodeBuilder::populateIDIndex(InMemColumn* column, InMemHashIndexBuilde
 }
 
 void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-    uint64_t blockId, uint64_t startOffset, InMemHashIndexBuilder* IDIndex,
-    InMemNodeBuilder* builder) {
+    uint64_t blockId, uint64_t startOffset, InMemHashIndex* IDIndex, InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
     auto structuredProperties = builder->catalog.getStructuredNodeProperties(builder->label);
     vector<PageByteCursor> overflowCursors(structuredProperties.size());

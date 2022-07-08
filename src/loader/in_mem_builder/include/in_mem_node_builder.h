@@ -39,15 +39,14 @@ private:
         const vector<Property>& properties, vector<PageByteCursor>& overflowCursors,
         CSVReader& reader, uint64_t nodeOffset);
     template<DataTypeID DT>
-    static void addIDsToIndex(InMemColumn* column, InMemHashIndexBuilder* hashIndex,
+    static void addIDsToIndex(InMemColumn* column, InMemHashIndex* hashIndex,
         node_offset_t startOffset, uint64_t numValues);
-    static void populateIDIndex(InMemColumn* column, InMemHashIndexBuilder* IDIndex,
+    static void populateIDIndex(InMemColumn* column, InMemHashIndex* IDIndex,
         node_offset_t startOffset, uint64_t numValues);
 
     // Concurrent tasks.
     static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-        uint64_t blockId, uint64_t offsetStart, InMemHashIndexBuilder* IDIndex,
-        InMemNodeBuilder* builder);
+        uint64_t blockId, uint64_t offsetStart, InMemHashIndex* IDIndex, InMemNodeBuilder* builder);
     static void countLinesAndParseUnstrPropertyNamesInBlockTask(const string& fName,
         uint32_t numStructuredProperties, unordered_set<string>* unstrPropertyNameSet,
         uint32_t blockId, InMemNodeBuilder* builder);
