@@ -95,8 +95,6 @@ public:
 
     inline uint32_t getNullMapOffset() const { return numBytesForDataPerTuple; }
 
-    inline uint32_t getNumBytesForNullMap() const { return numBytesForNullMapPerTuple; }
-
     inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
     inline uint32_t getColOffset(uint32_t idx) const { return colOffsets[idx]; }
@@ -200,14 +198,14 @@ public:
 
     bool isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const;
 
+    void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
+
 private:
     static bool isNull(const uint8_t* nullMapBuffer, uint32_t idx);
 
     void setNull(uint8_t* nullBuffer, uint32_t idx);
 
     void setOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx, uint32_t tupleIdx);
-
-    void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
 
     uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
 

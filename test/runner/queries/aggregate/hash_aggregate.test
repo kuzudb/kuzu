@@ -11,6 +11,7 @@
 
 -NAME SingleNodeAggTest2
 -QUERY MATCH (a:person) RETURN a.unstrDateProp1, SUM(a.unstrNumericProp), COUNT(*)
+--PARALLELISM 4
 ---- 3
 1900-01-01||1
 1950-01-01|99|2
@@ -18,6 +19,7 @@
 
 -NAME OneHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
+--PARALLELISM 2
 ---- 5
 20|1|2
 20|2|3
@@ -35,6 +37,7 @@
 
 -NAME TwoHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*)
+--PARALLELISM 4
 ---- 2
 1|18
 2|18

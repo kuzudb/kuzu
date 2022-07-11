@@ -12,14 +12,14 @@ namespace processor {
 struct HashSlot {
     hash_t hash;    // 8 bytes for hashVector.
     uint8_t* entry; // pointer to the factorizedTable entry which stores [groupKey1, ...
-                    // groupKeyN, aggregateState1, ..., aggregateStateN].
+                    // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
 };
 
 /**
  * AggregateHashTable Design
  *
  * 1. Payload
- * Entry layout: [groupKey1, ... groupKeyN, aggregateState1, ..., aggregateStateN]
+ * Entry layout: [groupKey1, ... groupKeyN, aggregateState1, ..., aggregateStateN, hashValue]
  * Payload is stored in the factorizedTable.
  *
  * 2. Hash slot
@@ -58,12 +58,6 @@ public:
 
     inline uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
 
-    inline vector<DataType> getGroupByHashKeysDataTypes() const { return groupByHashKeysDataTypes; }
-
-    inline vector<DataType> getGroupByNonHashKeysDataTypes() const {
-        return groupByNonHashKeysDataTypes;
-    }
-
     inline void append(const vector<ValueVector*>& groupByFlatKeyVectors,
         const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
@@ -85,39 +79,28 @@ public:
 
     void finalizeAggregateStates();
 
+    void resize(uint64_t newSize);
+
 private:
-    inline void fillEntryWithGroupByKeys(uint8_t* entryBuffer, uint8_t* groupByKeys) {
-        memcpy(entryBuffer, groupByKeys, aggStateColOffsetInFT);
-    }
-
-    inline void fillEntryWithNullMap(uint8_t* entryNullBuffer, uint8_t* groupByKeyNullBuffer) {
-        memcpy(entryNullBuffer, groupByKeyNullBuffer,
-            factorizedTable->getTableSchema()->getNumBytesForNullMap());
-    }
-
     void initializeFT(const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
 
     void initializeTmpVectors();
 
-    uint8_t* findEntry(uint8_t* entryBuffer, hash_t hash);
-
     // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
     // are flat.
     uint8_t* findEntryInDistinctHT(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
 
-    // ! Fill the pre-allocated factorizedTable entry with groupByKeys.
-    void initializeFTEntry(const vector<ValueVector*>& groupByFlatHashKeyVectors,
-        const vector<ValueVector*>& groupByUnflatHashKeyVectors,
-        const vector<ValueVector*>& groupByNonHashKeyVectors, uint32_t valueIdxInUnflatVector,
-        uint8_t* entry);
+    void initializeFTEntryWithFlatVec(
+        ValueVector* groupByFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+
+    void initializeFTEntryWithUnflatVec(
+        ValueVector* groupByUnflatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
 
     void initializeFTEntries(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnflatHashKeyVectors,
-        const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numFTEntriesToUpdate);
-
-    uint8_t* createEntry(uint8_t* groupByKeys, hash_t hash);
+        const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numFTEntriesToInitialize);
 
     uint8_t* createEntryInDistinctHT(
         const vector<ValueVector*>& groupByHashKeyVectors, hash_t hash);
@@ -136,12 +119,6 @@ private:
         const vector<ValueVector*>& groupByUnflatHashKeyVectors, uint32_t startVecIdx);
     void computeVectorHashes(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnflatHashKeyVectors);
-
-    //! compute hash for multiple keys
-    hash_t computeHash(uint8_t* keys);
-
-    //! compute hash for single key value
-    hash_t computeHash(const DataType& keyDataType, uint8_t* keyValue, uint64_t colIdx);
 
     void updateDistinctAggState(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnFlatHashKeyVectors,
@@ -172,15 +149,10 @@ private:
         const vector<ValueVector*>& groupByNonHashKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches);
 
-    //! check if keys are the same as keys stored in entryBufferToMatch.
-    bool matchGroupByKeys(uint8_t* keys, uint8_t* entryBufferToMatch);
-
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
     void fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
-
-    void resize(uint64_t newSize);
 
     inline HashSlot* getHashSlot(uint64_t slotIdx) {
         assert(slotIdx < maxNumHashSlots);
@@ -194,12 +166,12 @@ private:
 
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);
 
-    void resizeHashTableIfNecessary();
+    void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
     template<typename type>
     static bool compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry);
 
-    compare_function_t getCompareEntryWithKeysFunc(DataTypeID typeId);
+    static compare_function_t getCompareEntryWithKeysFunc(DataTypeID typeId);
 
     void updateNullAggVectorState(const vector<ValueVector*>& groupByFlatHashKeyVectors,
         const vector<ValueVector*>& groupByUnflatHashKeyVectors,
@@ -238,6 +210,8 @@ private:
 
     //! special handling of distinct aggregate
     vector<unique_ptr<AggregateHashTable>> distinctHashTables;
+    uint32_t hashColIdxInFT;
+    uint32_t hashColOffsetInFT;
     uint32_t aggStateColOffsetInFT;
     uint32_t aggStateColIdxInFT;
     uint32_t numBytesForGroupByHashKeys = 0;
@@ -247,8 +221,7 @@ private:
     bool hasStrCol = false;
     // Temporary arrays to hold intermediate results.
     shared_ptr<DataChunkState> hashState;
-    unique_ptr<ValueVector> hashVector;
-    unique_ptr<ValueVector> tmpHashVector;
+    shared_ptr<ValueVector> hashVector;
     unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
     unique_ptr<uint64_t[]> tmpValueIdxes;
     unique_ptr<uint64_t[]> entryIdxesToInitialize;
