@@ -38,15 +38,6 @@ http_archive(
     url = "https://github.com/Taywee/args/archive/6.2.2.zip",
 )
 
-# Maps and Hashing
-http_archive(
-    name = "martinus_robin_hood_hashing",
-    build_file = "martinus_robin_hood_hashing.BUILD.bazel",
-    sha256 = "53f6307fd77a09ce99edc2c7d1238afc54b76e9081f731e729d3c8be03acebcb",
-    strip_prefix = "robin-hood-hashing-3.9.1/src/include",
-    url = "https://github.com/martinus/robin-hood-hashing/archive/3.9.1.zip",
-)
-
 ###########################################################
 #antlr4_tools
 http_jar(

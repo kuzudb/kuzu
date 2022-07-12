@@ -13,9 +13,9 @@ void HashJoinSharedState::initEmptyHashTableIfNecessary(
     }
 }
 
-void HashJoinSharedState::mergeLocalFactorizedTable(FactorizedTable& factorizedTable) {
+void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
     lock_guard<mutex> lck(hashJoinSharedStateMutex);
-    hashTable->getFactorizedTable()->merge(factorizedTable);
+    hashTable->getFactorizedTable()->merge(*localHashTable.getFactorizedTable());
 }
 
 shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
@@ -23,7 +23,7 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
     unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* isUnflat */,
+    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
         buildDataInfo.getKeyIDDataChunkPos(), Types::getDataTypeSize(keyVector->dataType)));
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
@@ -32,31 +32,36 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
-        tableSchema->appendColumn(make_unique<ColumnSchema>(!isVectorFlat, dataChunkPos,
-            isVectorFlat ? Types::getDataTypeSize(vector->dataType) :
-                           (uint32_t)sizeof(overflow_value_t)));
+        if (dataChunkPos == buildDataInfo.getKeyIDDataChunkPos()) {
+            tableSchema->appendColumn(make_unique<ColumnSchema>(
+                false /* is flat */, dataChunkPos, Types::getDataTypeSize(vector->dataType)));
+        } else {
+            tableSchema->appendColumn(make_unique<ColumnSchema>(!isVectorFlat, dataChunkPos,
+                isVectorFlat ? Types::getDataTypeSize(vector->dataType) :
+                               (uint32_t)sizeof(overflow_value_t)));
+        }
         vectorsToAppend.push_back(vector);
         sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }
     // The prev pointer column.
-    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* isUnflat */,
+    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
         Types::getDataTypeSize(INT64)));
-    factorizedTable = make_unique<FactorizedTable>(
-        context->memoryManager, make_unique<TableSchema>(*tableSchema));
+    hashTable = make_unique<JoinHashTable>(
+        *context->memoryManager, 0 /* empty table */, make_unique<TableSchema>(*tableSchema));
     sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, move(tableSchema));
     return resultSet;
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {
-    auto hashTable = sharedState->getHashTable();
-    auto factorizedTable = hashTable->getFactorizedTable();
-    hashTable->allocateHashSlots(factorizedTable->getNumTuples());
-    auto tableSchema = factorizedTable->getTableSchema();
-    for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
+    auto globalHashTable = sharedState->getHashTable();
+    auto globalFactorizedTable = globalHashTable->getFactorizedTable();
+    globalHashTable->allocateHashSlots(globalFactorizedTable->getNumTuples());
+    auto tableSchema = globalFactorizedTable->getTableSchema();
+    for (auto& tupleBlock : globalFactorizedTable->getTupleDataBlocks()) {
         uint8_t* tuple = tupleBlock->getData();
         for (auto i = 0u; i < tupleBlock->numTuples; i++) {
-            auto lastSlotEntryInHT = hashTable->insertEntry<nodeID_t>(tuple);
+            auto lastSlotEntryInHT = globalHashTable->insertEntry<nodeID_t>(tuple);
             auto prevPtr = (uint8_t**)(tuple + tableSchema->getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));
             tuple += tableSchema->getNumBytesPerTuple();
@@ -65,30 +70,10 @@ void HashJoinBuild::finalize(ExecutionContext* context) {
 }
 
 void HashJoinBuild::appendVectors() {
-    if (keyDataChunk->state->selectedSize == 0) {
-        return;
-    }
-    for (auto i = 0u; i < resultSet->multiplicity; ++i) {
-        appendVectorsOnce();
-    }
-}
-
-void HashJoinBuild::appendVectorsOnce() {
     auto& keyVector = vectorsToAppend[0];
-    if (keyVector->state->isFlat()) {
-        if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
-            return;
-        }
-        factorizedTable->append(vectorsToAppend);
-    } else {
-        if (keyVector->hasNoNullsGuarantee()) {
-            factorizedTable->append(vectorsToAppend);
-            return;
-        }
-        NodeIDVector::discardNull(*keyVector);
-        if (keyVector->state->selectedSize != 0) {
-            factorizedTable->append(vectorsToAppend);
-        }
+    auto hasNonNullsAfterDiscarding = NodeIDVector::discardNull(*keyVector);
+    if (hasNonNullsAfterDiscarding) {
+        hashTable->append(vectorsToAppend);
     }
 }
 
@@ -97,9 +82,12 @@ void HashJoinBuild::execute(ExecutionContext* context) {
     metrics->executionTime.start();
     // Append thread-local tuples
     while (children[0]->getNextTuples()) {
-        appendVectors();
+        for (auto i = 0u; i < resultSet->multiplicity; ++i) {
+            appendVectors();
+        }
     }
-    sharedState->mergeLocalFactorizedTable(*factorizedTable);
+    // Merge with global hash table once local tuples are all appended.
+    sharedState->mergeLocalHashTable(*hashTable);
     metrics->executionTime.stop();
 }
 

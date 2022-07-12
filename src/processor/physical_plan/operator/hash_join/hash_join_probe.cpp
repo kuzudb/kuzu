@@ -12,8 +12,7 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
-    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
-    for (auto& pos : flatDataChunkPositions) {
+    for (auto pos : flatDataChunkPositions) {
         auto dataChunk = resultSet->dataChunks[pos];
         dataChunk->state = DataChunkState::getSingleValueDataChunkState();
     }
@@ -26,13 +25,8 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     }
     // We only need to read nonKeys from the factorizedTable. The first column in the
     // factorizedTable is the key column, so we skip the key column.
-    columnsToRead.resize(probeDataInfo.nonKeyOutputDataPos.size());
-    iota(columnsToRead.begin(), columnsToRead.end(), 1);
-
-    // If there is an unflat column in the factorizedTable, we can only read one tuple at a time.
-    // Otherwise we can read multiple tuples at a time.
-    probeState->maxMorselSize =
-        factorizedTable->hasUnflatCol(columnsToRead) ? 1 : DEFAULT_VECTOR_CAPACITY;
+    columnIdxsToRead.resize(probeDataInfo.nonKeyOutputDataPos.size());
+    iota(columnIdxsToRead.begin(), columnIdxsToRead.end(), 1);
     return resultSet;
 }
 
@@ -78,7 +72,7 @@ void HashJoinProbe::populateResultSet() {
     assert(tuplePosToReadInProbedState < probeState->numMatchedTuples);
     // TODO(Xiyang/Guodong): add read multiple tuples
     auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
-    factorizedTable->lookup(vectorsToRead, columnsToRead, probeState->matchedTuples.get(),
+    factorizedTable->lookup(vectorsToRead, columnIdxsToRead, probeState->matchedTuples.get(),
         tuplePosToReadInProbedState, 1);
     tuplePosToReadInProbedState += 1;
 }

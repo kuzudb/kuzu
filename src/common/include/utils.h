@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cassert>
+#include <cstring>
 #include <sstream>
+#include <string>
 #include <thread>
+#include <vector>
 
 #include "exception.h"
-#include "robin_hood.h"
 
 using namespace std;
 
@@ -14,16 +17,6 @@ class logger;
 
 namespace graphflow {
 namespace common {
-
-// C-like string equalTo.
-struct charArrayEqualTo {
-    bool operator()(const char* lhs, const char* rhs) const { return strcmp(lhs, rhs) == 0; }
-};
-
-// C-like string hasher.
-struct charArrayHasher {
-    size_t operator()(const char* key) const { return robin_hood::hash_bytes(key, strlen(key)); }
-};
 
 class LoggerUtils {
 
@@ -72,6 +65,15 @@ template<typename FROM, typename TO>
 unique_ptr<TO> static_unique_pointer_cast(unique_ptr<FROM>&& old) {
     return unique_ptr<TO>{static_cast<TO*>(old.release())};
 }
+
+class BitmaskUtils {
+
+public:
+    static inline uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits) {
+        assert(numBits <= 64);
+        return numBits == 64 ? UINT64_MAX : ((uint64_t)1 << numBits) - 1;
+    }
+};
 
 class ThreadUtils {
 

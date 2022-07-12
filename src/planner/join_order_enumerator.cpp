@@ -246,12 +246,12 @@ void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) 
                     auto rightPlanBuildCopy = rightPlan->shallowCopy();
                     auto leftPlanBuildCopy = leftPlan->shallowCopy();
                     auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                    appendLogicalHashJoin(*joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                    appendHashJoin(*joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
                     planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
                     context->addPlan(newSubgraph, move(leftPlanProbeCopy));
                     // flip build and probe side to get another HashJoin plan
                     if (leftLevel != rightLevel) {
-                        appendLogicalHashJoin(*joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                        appendHashJoin(*joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
                         planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                         context->addPlan(newSubgraph, move(rightPlanProbeCopy));
                     }
@@ -327,40 +327,41 @@ void JoinOrderEnumerator::appendExtend(
     plan.appendOperator(move(extend));
 }
 
-void JoinOrderEnumerator::appendLogicalHashJoin(
+void JoinOrderEnumerator::appendHashJoin(
     const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    auto probePlanSchema = probePlan.getSchema();
     auto joinNodeID = joinNode.getIDProperty();
     // Flat probe side key group if necessary
-    auto probeSideKeyGroupPos = probePlanSchema->getGroupPos(joinNodeID);
-    auto probeSideKeyGroup = probePlanSchema->getGroup(probeSideKeyGroupPos);
+    auto probeSideSchema = probePlan.getSchema();
+    auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNodeID);
+    auto probeSideKeyGroup = probeSideSchema->getGroup(probeSideKeyGroupPos);
     Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
-    // Merge key group from build side into probe side.
+    // Set estimated cardinality.
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
-    auto buildSideKeyGroup = buildSideSchema.getGroup(buildSideKeyGroupPos);
-    Enumerator::appendFlattenIfNecessary(buildSideKeyGroupPos, buildPlan);
     probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
-        buildSideKeyGroup->getEstimatedCardinality()));
+        buildSideSchema.getGroup(buildSideKeyGroupPos)->getEstimatedCardinality()));
+    // Merge key group from build side into probe side.
     for (auto& expression : buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos)) {
         if (expression->getUniqueName() == joinNodeID) {
             continue;
         }
-        probePlanSchema->insertToGroupAndScope(expression, probeSideKeyGroupPos);
+        probeSideSchema->insertToGroupAndScope(expression, probeSideKeyGroupPos);
     }
-    // Merge payload groups
-    unordered_set<uint32_t> payloadGroupsPos;
+    // Merge build side payload groups to the result.
+    unordered_set<uint32_t> buildSidePayloadGroupsPos;
     for (auto& groupPos : buildSideSchema.getGroupsPosInScope()) {
         if (groupPos == buildSideKeyGroupPos) {
             continue;
         }
-        payloadGroupsPos.insert(groupPos);
+        buildSidePayloadGroupsPos.insert(groupPos);
     }
-    auto numGroupsBefore = probePlanSchema->getNumGroups();
-    Enumerator::computeSchemaForSinkOperators(payloadGroupsPos, buildSideSchema, *probePlanSchema);
+    auto resultSchema = probeSideSchema;
+    auto numGroupsBefore = resultSchema->getNumGroups();
+    Enumerator::computeSchemaForSinkOperators(
+        buildSidePayloadGroupsPos, buildSideSchema, *resultSchema);
     vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = numGroupsBefore; i < probePlanSchema->getNumGroups(); ++i) {
-        if (probePlanSchema->getGroup(i)->getIsFlat()) {
+    for (auto i = numGroupsBefore; i < resultSchema->getNumGroups(); ++i) {
+        if (resultSchema->getGroup(i)->getIsFlat()) {
             flatOutputGroupPositions.push_back(i);
         }
     }

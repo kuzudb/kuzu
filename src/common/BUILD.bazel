@@ -122,7 +122,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@gabime_spdlog",
-        "@martinus_robin_hood_hashing",
     ],
 )
 
