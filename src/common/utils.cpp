@@ -1,8 +1,5 @@
 #include "src/common/include/utils.h"
 
-#include <string>
-#include <vector>
-
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 

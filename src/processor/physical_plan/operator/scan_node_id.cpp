@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
-    auto lck = acquireLock();
+    unique_lock lck{mtx};
     if (currentNodeOffset > maxNodeOffset) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }

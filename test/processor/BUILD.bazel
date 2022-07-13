@@ -40,7 +40,6 @@ cc_test(
     name = "hash_table_tests",
     srcs = [
         "physical_plan/hash_table/aggregate_hash_table_test.cpp",
-        "physical_plan/hash_table/join_hash_table_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

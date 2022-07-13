@@ -24,7 +24,7 @@ public:
     void initEmptyHashTableIfNecessary(
         MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema);
 
-    void mergeLocalFactorizedTable(FactorizedTable& factorizedTable);
+    void mergeLocalHashTable(JoinHashTable& localHashTable);
 
     inline JoinHashTable* getHashTable() { return hashTable.get(); }
 
@@ -81,15 +81,16 @@ public:
     }
 
 private:
+    void appendVectors();
+
+private:
     shared_ptr<HashJoinSharedState> sharedState;
 
     BuildDataInfo buildDataInfo;
     shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
-    unique_ptr<FactorizedTable> factorizedTable;
-
-    void appendVectors();
-    void appendVectorsOnce();
+    unique_ptr<JoinHashTable> hashTable;
 };
+
 } // namespace processor
 } // namespace graphflow

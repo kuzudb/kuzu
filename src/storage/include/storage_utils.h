@@ -205,8 +205,7 @@ public:
     inline static pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {
         return make_pair(i / divisor, i % divisor);
     }
-
-    static uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits);
 };
+
 } // namespace storage
 } // namespace graphflow

@@ -15,8 +15,6 @@ public:
     explicit ScanNodeIDSharedState(NodeMetadata* nodeMetadata)
         : nodeMetadata{nodeMetadata}, maxNodeOffset{UINT64_MAX}, currentNodeOffset{0} {}
 
-    inline unique_lock<mutex> acquireLock() { return unique_lock<mutex>{mtx}; }
-
     inline void initMaxNodeOffset(Transaction* transaction) {
         maxNodeOffset = nodeMetadata->getMaxNodeOffset(transaction);
     }

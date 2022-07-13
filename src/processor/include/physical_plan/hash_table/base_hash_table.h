@@ -13,13 +13,16 @@ namespace processor {
 
 class BaseHashTable {
 public:
-    BaseHashTable(MemoryManager& memoryManager) : memoryManager{memoryManager} {}
+    explicit BaseHashTable(MemoryManager& memoryManager)
+        : maxNumHashSlots{0}, bitMask{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
+          memoryManager{memoryManager} {}
 
 protected:
     uint64_t maxNumHashSlots;
     uint64_t bitMask;
     vector<unique_ptr<DataBlock>> hashSlotsBlocks;
-    uint64_t numHashSlotsPerBlock;
+    uint64_t numSlotsPerBlockLog2;
+    uint64_t slotIdxInBlockMask;
     MemoryManager& memoryManager;
     unique_ptr<FactorizedTable> factorizedTable;
 };

@@ -20,7 +20,6 @@ struct ProbeState {
     unique_ptr<uint8_t*[]> matchedTuples;
     uint64_t numMatchedTuples;
     nodeID_t probeSideKeyNodeID;
-    uint64_t maxMorselSize;
 };
 
 struct ProbeDataInfo {
@@ -79,7 +78,7 @@ private:
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<shared_ptr<ValueVector>> vectorsToRead;
-    vector<uint32_t> columnsToRead;
+    vector<uint32_t> columnIdxsToRead;
     shared_ptr<ValueVector> probeSideKeyVector;
     unique_ptr<ProbeState> probeState;
 

@@ -172,7 +172,10 @@ void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
         max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
     bitMask = maxNumHashSlots - 1;
-    numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
+    auto numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
+    assert(numHashSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numHashSlotsPerBlock));
+    numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
+    slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     auto numDataBlocks =
         maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
     for (auto i = 0u; i < numDataBlocks; i++) {
@@ -638,8 +641,9 @@ void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggreg
 }
 
 void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
+    auto numHashSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
     auto numHashSlotsBlocksNeeded =
-        maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
+        (maxNumHashSlots + numHashSlotsPerBlock - 1) / numHashSlotsPerBlock;
     while (hashSlotsBlocks.size() < numHashSlotsBlocksNeeded) {
         hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
     }

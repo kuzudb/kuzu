@@ -158,10 +158,10 @@ private:
         assert(slotIdx < maxNumHashSlots);
         // If the slotIdx is smaller than the numHashSlotsPerBlock, then the hashSlot must be
         // in the first hashSlotsBlock. We don't need to compute the blockIdx and blockOffset.
-        return slotIdx < numHashSlotsPerBlock ?
+        return slotIdx < ((uint64_t)1 << numSlotsPerBlockLog2) ?
                    (HashSlot*)(hashSlotsBlocks[0]->getData() + slotIdx * sizeof(HashSlot)) :
-                   (HashSlot*)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->getData() +
-                               slotIdx % numHashSlotsPerBlock * sizeof(HashSlot));
+                   (HashSlot*)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]->getData() +
+                               (slotIdx & slotIdxInBlockMask) * sizeof(HashSlot));
     }
 
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);

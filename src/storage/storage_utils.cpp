@@ -14,9 +14,5 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
     return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
 }
 
-uint64_t StorageUtils::all1sMaskForLeastSignificantBits(uint64_t numBits) {
-    assert(numBits <= 64);
-    return numBits == 64 ? UINT64_MAX : (1l << numBits) - 1;
-}
 } // namespace storage
 } // namespace graphflow

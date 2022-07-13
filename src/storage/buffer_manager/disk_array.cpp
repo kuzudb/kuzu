@@ -1,5 +1,6 @@
 #include "src/storage/buffer_manager/include/disk_array.h"
 
+#include "src/common/include/utils.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
 
 namespace graphflow {
@@ -8,7 +9,7 @@ namespace storage {
 DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : elementSize{elementSize}, numElementsPerPageLog2{static_cast<uint64_t>(
                                     floor(log2(DEFAULT_PAGE_SIZE / elementSize)))},
-      elementPageOffsetMask{StorageUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
+      elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
       firstPIPPageIdx{PAGE_IDX_MAX}, numElements{0}, numArrayPages{0} {}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {

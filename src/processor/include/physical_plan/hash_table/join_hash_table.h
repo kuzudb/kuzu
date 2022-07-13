@@ -16,27 +16,20 @@ public:
     JoinHashTable(
         MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema);
 
-    template<class T>
-    uint8_t** findHashEntry(T value) const {
-        hash_t hashValue;
-        Hash::operation<T>(value, false /* isNull */, hashValue);
-        auto slotIdx = hashValue & bitMask;
-        return (uint8_t**)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->getData() +
-                           slotIdx % numHashSlotsPerBlock * sizeof(uint8_t*));
-    }
-
+    template<typename T>
+    uint8_t** findHashEntry(T value) const;
     // This function returns the pointer that previously stored in the same slot.
-    template<class T>
-    uint8_t* insertEntry(uint8_t* valueBuffer) {
-        auto slotBuffer = findHashEntry(*((T*)valueBuffer));
-        auto prevPtr = *slotBuffer;
-        *slotBuffer = valueBuffer;
-        return prevPtr;
-    }
+    template<typename T>
+    uint8_t* insertEntry(uint8_t* valueBuffer);
 
     void allocateHashSlots(uint64_t numTuples);
+    void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
+    inline FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
 
-    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
+private:
+    // NOTE: In vectorsToAppend, we need to guarantee that the first vector is the join key.
+    void appendForFlatKeys(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
+    void appendForUnflatKeys(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
 };
 
 } // namespace processor

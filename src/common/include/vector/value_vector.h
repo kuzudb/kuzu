@@ -93,7 +93,8 @@ private:
 
 class NodeIDVector {
 public:
-    static void discardNull(ValueVector& vector);
+    // If there is still non-null values after discarding, return true. Otherwise, return false.
+    static bool discardNull(ValueVector& vector);
 };
 
 } // namespace common

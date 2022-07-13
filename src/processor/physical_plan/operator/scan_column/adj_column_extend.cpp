@@ -27,21 +27,11 @@ bool AdjColumnExtend::getNextTuples() {
         saveDataChunkSelectorState(inputNodeIDDataChunk);
         outputVector->setAllNull();
         nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
-        hasAtLeastOneNonNullValue = discardNullNodesInVector(*outputVector);
+        hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
     } while (!hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selectedSize);
     return true;
-}
-
-bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
-    assert(valueVector.dataType.typeID == NODE_ID);
-    if (valueVector.state->isFlat()) {
-        return !valueVector.isNull(valueVector.state->getPositionOfCurrIdx());
-    } else {
-        NodeIDVector::discardNull(valueVector);
-        return valueVector.state->selectedSize > 0;
-    }
 }
 
 } // namespace processor
