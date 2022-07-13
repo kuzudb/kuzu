@@ -7,7 +7,7 @@ TEST_F(ApiTest, CatalogPrinting) {
 
     ASSERT_STREQ(conn->getRelPropertyNames("studyAt").c_str(),
         "studyAt src nodes: \n\tperson\nstudyAt dst nodes: \n\torganisation\nstudyAt properties: "
-        "\n\tyear INT64\n\tplaces STRING[]\n");
+        "\n\tyear INT64\n\tplaces STRING[]\n\t_id INT64\n");
     try {
         conn->getNodePropertyNames("dummy");
         FAIL();

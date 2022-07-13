@@ -70,6 +70,10 @@ public:
     }
 
     inline RelLabel& getRel(label_t labelId) { return relLabels[labelId]; }
+    inline RelLabel& getRel(const string& labelName) {
+        assert(containRelLabel(labelName));
+        return relLabels[getRelLabelFromName(labelName)];
+    }
 
     inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
     inline uint64_t getNumRelLabels() const { return relLabels.size(); }

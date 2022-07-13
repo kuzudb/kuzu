@@ -11,16 +11,18 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 public:
     InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
         string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, BufferManager& bufferManager,
-        LoaderProgressBar* progressBar);
+        const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
+        BufferManager& bufferManager, LoaderProgressBar* progressBar);
 
     ~InMemRelBuilder() override = default;
 
-    void load();
+    // Return number of rels loaded.
+    uint64_t load();
 
     void saveToFile() override;
 
 private:
+    void countLinesPerBlock();
     void initializeColumnsAndLists();
     void initializeColumns(RelDirection relDirection);
     void initializeLists(RelDirection relDirection);
@@ -36,12 +38,12 @@ private:
     static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
         Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadLabels);
-    static void putPropsOfLineIntoColumns(
+    static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<label_property_columns_map_t>& directionLabelPropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs);
-    static void putPropsOfLineIntoLists(
+    static void putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
         vector<label_property_lists_map_t>& directionLabelPropertyLists,
         vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
         vector<unique_ptr<InMemOverflowFile>>& overflowPages,
@@ -57,8 +59,9 @@ private:
 
     // Concurrent tasks.
     static void populateAdjColumnsAndCountRelsInAdjListsTask(
-        uint64_t blockId, InMemRelBuilder* builder);
-    static void populateAdjAndPropertyListsTask(uint64_t blockId, InMemRelBuilder* builder);
+        uint64_t blockId, uint64_t blockStartRelID, InMemRelBuilder* builder);
+    static void populateAdjAndPropertyListsTask(
+        uint64_t blockId, uint64_t blockStartRelID, InMemRelBuilder* builder);
     static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
         InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages,
@@ -73,6 +76,7 @@ private:
     vector<string> srcNodeLabelNames;
     vector<string> dstNodeLabelNames;
     const vector<uint64_t> maxNodeOffsetsPerNodeLabel;
+    uint64_t startRelID;
 
     BufferManager& bm;
     unique_ptr<Transaction> tmpReadTransaction;

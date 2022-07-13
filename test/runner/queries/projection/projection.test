@@ -272,3 +272,35 @@ Dan|Carol
 2021
 2020
 2020
+
+-NAME RelID1
+-QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN r._id
+---- 14
+0
+1
+10
+11
+12
+13
+2
+3
+4
+5
+6
+7
+8
+9
+
+-NAME RelID2
+-QUERY MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN r._id
+---- 3
+14
+15
+16
+
+-NAME RelID3
+-QUERY MATCH (a:person)-[r:workAt]->(o:organisation) RETURN r._id
+---- 3
+17
+18
+19

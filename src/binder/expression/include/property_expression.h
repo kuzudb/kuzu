@@ -2,10 +2,10 @@
 
 #include "expression.h"
 
+#include "src/common/include/configs.h"
+
 namespace graphflow {
 namespace binder {
-
-const string INTERNAL_ID_SUFFIX = "_id";
 
 class PropertyExpression : public Expression {
 

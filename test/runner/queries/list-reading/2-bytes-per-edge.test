@@ -13,3 +13,8 @@
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 5500 RETURN b.ID
 ---- 0
+
+-NAME EdgeID
+-QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN r._id
+---- 1
+10000

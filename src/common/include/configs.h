@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace graphflow {
 namespace common {
@@ -36,6 +37,8 @@ constexpr const uint64_t MULTI_VERSION_FILE_PAGE_GROUP_SIZE = 64;
 
 constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS =
     5000000;
+
+const std::string INTERNAL_ID_SUFFIX = "_id";
 
 struct StorageConfig {
     // The default amount of memory pre-allocated to both the default and large pages buffer pool.

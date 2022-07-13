@@ -60,7 +60,7 @@ public:
             true /* is node label */);
     }
 
-    static Property constructRelProperty(
+    static inline Property constructRelProperty(
         PropertyNameDataType nameDataType, uint32_t propertyID, label_t relLabel) {
         return Property(nameDataType.name, nameDataType.dataType, propertyID, relLabel,
             false /* is node label */);
@@ -96,15 +96,36 @@ struct NodeLabel : Label {
 };
 
 struct RelLabel : Label {
-    RelLabel() : Label{"", 0}, relMultiplicity{0} {}
+    RelLabel() : Label{"", 0}, relMultiplicity{0}, numGeneratedProperties{0} {}
     RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
         vector<Property> properties, unordered_set<label_t> srcNodeLabelIdSet,
         unordered_set<label_t> dstNodeLabelIdSet)
-        : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity}, properties{move(
-                                                                                 properties)},
+        : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity},
+          numGeneratedProperties{0}, properties{move(properties)},
           srcNodeLabelIdSet{move(srcNodeLabelIdSet)}, dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
 
+    inline void addRelIDDefinition() {
+        auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
+        properties.push_back(
+            Property::constructRelProperty(propertyNameDataType, properties.size(), labelId));
+        numGeneratedProperties++;
+    }
+    inline Property& getRelIDDefinition() {
+        for (auto& property : properties) {
+            if (property.name == INTERNAL_ID_SUFFIX) {
+                return property;
+            }
+        }
+        assert(false);
+    }
+
+    inline uint32_t getNumPropertiesToReadFromCSV() {
+        assert(properties.size() >= numGeneratedProperties);
+        return properties.size() - numGeneratedProperties;
+    }
+
     RelMultiplicity relMultiplicity;
+    uint32_t numGeneratedProperties;
     vector<Property> properties;
     unordered_set<label_t> srcNodeLabelIdSet;
     unordered_set<label_t> dstNodeLabelIdSet;

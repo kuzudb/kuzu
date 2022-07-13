@@ -20,10 +20,8 @@ public:
     void saveToFile() override;
 
 private:
-    uint64_t addLabelToCatalogAndCountLines();
     void initializeColumnsAndList();
-    vector<unordered_set<string>> countLinesPerBlockAndParseUnstrPropertyNames(
-        uint64_t numStructuredProperties);
+    vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
     void populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes);
     void calcUnstrListsHeadersAndMetadata();
     void populateUnstrPropertyLists();
@@ -47,14 +45,10 @@ private:
     // Concurrent tasks.
     static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
         uint64_t blockId, uint64_t offsetStart, InMemHashIndex* IDIndex, InMemNodeBuilder* builder);
-    static void countLinesAndParseUnstrPropertyNamesInBlockTask(const string& fName,
-        uint32_t numStructuredProperties, unordered_set<string>* unstrPropertyNameSet,
-        uint32_t blockId, InMemNodeBuilder* builder);
     static void populateUnstrPropertyListsTask(
         uint64_t blockId, node_offset_t offsetStart, InMemNodeBuilder* builder);
 
 private:
-    vector<uint64_t> numLinesPerBlock;
     DataType IDType;
     uint64_t numNodes;
     vector<unique_ptr<InMemColumn>> structuredColumns;
