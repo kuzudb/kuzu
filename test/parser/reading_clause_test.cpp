@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "src/parser/include/parser.h"
+#include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
 
@@ -25,7 +26,8 @@ TEST_F(ReadingClauseTest, EmptyMatchTest) {
     auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH () RETURN COUNT(*);";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
     ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
@@ -42,7 +44,8 @@ TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
     auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
     ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
@@ -65,7 +68,8 @@ TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
     auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
     ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
@@ -93,7 +97,8 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
     auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
     ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
@@ -123,7 +128,8 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
 
     string input =
         "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
     ASSERT_TRUE(*expectedMatch1 == *regularQuery->getSingleQuery(0)->getMatchClause(0));
     ASSERT_TRUE(*expectedMatch2 == *regularQuery->getSingleQuery(0)->getMatchClause(1));

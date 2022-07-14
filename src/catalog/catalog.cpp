@@ -276,6 +276,30 @@ void Catalog::addNodeLabel(string labelName, const DataType& IDType,
         move(structuredProperties), unstructuredPropertyNames);
 }
 
+void Catalog::addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause) {
+    auto labelName = boundCreateNodeClause.getLabelName();
+    auto propertyNameDataTypes = boundCreateNodeClause.getPropertyNameDataTypes();
+    auto primaryKey = boundCreateNodeClause.getPrimaryKey();
+    label_t labelId = nodeLabels.size();
+    uint64_t primaryKeyPropertyId = UINT64_MAX;
+    vector<Property> structuredProperties;
+    for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
+        if (propertyNameDataTypes[i].name == primaryKey) {
+            if (primaryKeyPropertyId != UINT64_MAX) {
+                throw CatalogException(
+                    "Unexpected duplicated primary key property. First primaryKeyName: " +
+                    primaryKey + " secondPrimaryKeyName" + propertyNameDataTypes[i].name);
+            }
+            primaryKeyPropertyId = i;
+        }
+        structuredProperties.push_back(
+            Property::constructStructuredNodeProperty(propertyNameDataTypes[i], i, labelId));
+    }
+    nodeLabelNameToIdMap[labelName] = labelId;
+    nodeLabels.emplace_back(move(labelName), labelId, primaryKeyPropertyId,
+        move(structuredProperties), vector<string>());
+}
+
 void Catalog::verifyColDefinitionsForRelLabel(
     const vector<PropertyNameDataType>& colHeaderDefinitions) {
     auto numMandatoryFields = 0;

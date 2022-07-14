@@ -4,6 +4,7 @@
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
+using namespace graphflow::common;
 using namespace ::testing;
 
 class SyntaxErrorTest : public Test {

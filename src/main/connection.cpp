@@ -3,6 +3,7 @@
 #include "include/database.h"
 #include "include/plan_printer.h"
 
+#include "src/binder/include/create_node_clause_binder.h"
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
@@ -60,20 +61,29 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
     unique_ptr<PhysicalPlan> physicalPlan;
     try {
         // parsing
-        auto parsedQuery = Parser::parseQuery(query);
-        querySummary->isExplain = parsedQuery->isEnableExplain();
-        querySummary->isProfile = parsedQuery->isEnableProfile();
-        // binding
-        auto binder = QueryBinder(*database->catalog);
-        auto boundQuery = binder.bind(*parsedQuery);
-        preparedStatement->parameterMap = binder.getParameterMap();
-        // planning
-        auto logicalPlan = Planner::getBestPlan(*database->catalog,
-            database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
-        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-        // mapping
-        auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
-        physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
+        auto cypher = Parser::parseQuery(query);
+        if (cypher->getStatementType() == StatementType::QUERY) {
+            auto parsedQuery = reinterpret_cast<RegularQuery*>(cypher.get());
+            querySummary->isExplain = parsedQuery->isEnableExplain();
+            querySummary->isProfile = parsedQuery->isEnableProfile();
+            // binding
+            auto binder = QueryBinder(*database->catalog);
+            auto boundQuery = binder.bind(*parsedQuery);
+            preparedStatement->parameterMap = binder.getParameterMap();
+            // planning
+            auto logicalPlan = Planner::getBestPlan(*database->catalog,
+                database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+            preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+            // mapping
+            auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
+            physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
+        } else {
+            auto parsedQuery = reinterpret_cast<CreateNodeClause*>(cypher.get());
+            // binding
+            auto binder = CreateNodeClauseBinder(database->catalog.get());
+            auto boundCreateNodeTable = binder.bind(*parsedQuery);
+            database->catalog->addNodeLabel(*boundCreateNodeTable);
+        }
     } catch (Exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
@@ -161,7 +171,8 @@ string Connection::getRelPropertyNames(const string& relLabelName) {
 vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
     lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
+    auto boundQuery =
+        QueryBinder(*database->catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
     return Planner::getAllPlans(*database->catalog,
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }

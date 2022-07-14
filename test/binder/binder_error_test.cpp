@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_catalog.h"
 
+#include "src/binder/include/create_node_clause_binder.h"
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 
@@ -18,7 +19,12 @@ public:
     string getBindingError(const string& input) {
         try {
             auto parsedQuery = Parser::parseQuery(input);
-            QueryBinder(catalog).bind(*parsedQuery);
+            if (parsedQuery->getStatementType() == StatementType::QUERY) {
+                QueryBinder(catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
+            } else {
+                CreateNodeClauseBinder(&catalog).bind(
+                    *reinterpret_cast<CreateNodeClause*>(parsedQuery.get()));
+            }
         } catch (const Exception& exception) { return exception.what(); }
         return string();
     }
@@ -308,5 +314,24 @@ TEST_F(BinderErrorTest, ReadAfterUpdate2) {
 TEST_F(BinderErrorTest, DeleteNodeProperty) {
     string expectedException = "Binder exception: Delete PROPERTY is not supported.";
     auto input = "MATCH (a:person) DELETE a.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateNodeTableUsedName) {
+    string expectedException = "Binder exception: Node person already exists.";
+    auto input = "CREATE NODE TABLE person(NAME STRING, ID INT64)";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateNodeTableInvalidPKDataType) {
+    string expectedException = "Binder exception: Invalid primary key type: date.";
+    auto input =
+        "CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (birthdate))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
+    string expectedException = "Cannot parse dataTypeID: BIGINT";
+    auto input = "CREATE NODE TABLE PERSON(NAME BIGINT)";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

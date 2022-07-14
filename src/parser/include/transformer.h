@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/antlr4/CypherParser.h"
+#include "src/parser/create_node_clause/include/create_node_clause.h"
 #include "src/parser/query/include/regular_query.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
@@ -16,7 +17,15 @@ class Transformer {
 public:
     explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
 
-    unique_ptr<RegularQuery> transform();
+    unique_ptr<RegularQuery> transformQuery();
+
+    inline unique_ptr<Statement> transform() {
+        if (root.oC_Statement()) {
+            return transformQuery();
+        } else {
+            return transformDDL();
+        }
+    }
 
 private:
     unique_ptr<RegularQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
@@ -167,6 +176,17 @@ private:
     string transformSchemaName(CypherParser::OC_SchemaNameContext& ctx);
 
     string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
+
+    unique_ptr<CreateNodeClause> transformDDL();
+
+    unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::GF_CreateNodeContext& ctx);
+
+    inline string transformPrimaryKeyName(CypherParser::GF_CreateNodeConstraintContext& ctx) {
+        return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+    }
+
+    vector<pair<string, string>> transformPropertyDefinitions(
+        CypherParser::GF_PropertyDefinitionsContext& ctx);
 
 private:
     CypherParser::OC_CypherContext& root;

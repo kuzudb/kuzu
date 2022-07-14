@@ -1,19 +1,31 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "statement",
+    hdrs = [
+        "include/statement.h",
+    ],
+    visibility = [
+        "//src/parser:__subpackages__",
+    ],
+)
+
+cc_library(
     name = "parser",
     srcs = glob([
         "*.cpp",
     ]),
-    hdrs = glob([
-        "include/*.h",
-    ]),
+    hdrs = [
+        "include/parser.h",
+        "include/transformer.h",
+    ],
     visibility = [
         "//visibility:public",
     ],
     deps = [
         "//src/common:type_utils",
         "//src/parser/antlr_parser",
+        "//src/parser/create_node_clause",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
     ],

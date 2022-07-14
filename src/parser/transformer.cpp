@@ -15,7 +15,7 @@ using namespace std;
 namespace graphflow {
 namespace parser {
 
-unique_ptr<RegularQuery> Transformer::transform() {
+unique_ptr<RegularQuery> Transformer::transformQuery() {
     auto regularQuery = transformQuery(*root.oC_Statement()->oC_Query());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
@@ -654,6 +654,33 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
         return ctx.HexLetter()->getText();
     }
     assert(false);
+}
+
+unique_ptr<CreateNodeClause> Transformer::transformDDL() {
+    if (root.gF_DDL()->gF_CreateNode()) {
+        return transformCreateNodeClause(*root.gF_DDL()->gF_CreateNode());
+    }
+    assert(false);
+}
+
+unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
+    CypherParser::GF_CreateNodeContext& ctx) {
+    return make_unique<CreateNodeClause>(
+        transformPropertyDefinitions(*ctx.gF_PropertyDefinitions()),
+        ctx.gF_CreateNodeConstraint() ? transformPrimaryKeyName(*ctx.gF_CreateNodeConstraint()) :
+                                        "",
+        transformSchemaName(*ctx.oC_SchemaName()));
+}
+
+vector<pair<string, string>> Transformer::transformPropertyDefinitions(
+    CypherParser::GF_PropertyDefinitionsContext& ctx) {
+    vector<pair<string, string>> propertyNameDataTypes;
+    for (auto property : ctx.gF_PropertyDefinition()) {
+        propertyNameDataTypes.emplace_back(
+            transformPropertyKeyName(*property->oC_PropertyKeyName()),
+            transformSchemaName(*property->oC_SchemaName()));
+    }
+    return propertyNameDataTypes;
 }
 
 } // namespace parser

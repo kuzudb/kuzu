@@ -12,7 +12,6 @@ cc_library(
     ],
 )
 
-
 cc_library(
     name = "catalog",
     srcs = glob([
@@ -23,6 +22,7 @@ cc_library(
     ]),
     visibility = ["//visibility:public"],
     deps = [
+        "//src/binder/bound_create_node_clause",
         "//src/common:configs",
         "//src/common:ser_deser",
         "//src/common/types",

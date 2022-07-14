@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "bound_create_node_clause",
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder:__subpackages__",
+        "//src/catalog:__pkg__",
+    ],
+    deps = [
+        "//src/catalog:catalog_structs",
+    ],
+)
