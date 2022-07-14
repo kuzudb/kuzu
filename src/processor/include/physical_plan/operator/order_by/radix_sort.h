@@ -34,7 +34,7 @@ public:
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo)
         : tmpSortingResultBlock{make_unique<DataBlock>(memoryManager)},
           tmpTuplePtrSortingBlock{make_unique<DataBlock>(memoryManager)},
-          orderByKeyEncoder{orderByKeyEncoder}, factorizedTable{factorizedTable},
+          factorizedTable{factorizedTable},
           stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
           numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
                                                                          numBytesPerTuple - 8} {}
@@ -71,7 +71,6 @@ private:
     // MaxNumOfTuplePointers=(LARGE_PAGE_SIZE / numBytesPerTuple) <= LARGE_PAGE_SIZE. As a result,
     // we only need one dataBlock to store the tuplePointers while solving the string ties.
     unique_ptr<DataBlock> tmpTuplePtrSortingBlock;
-    OrderByKeyEncoder& orderByKeyEncoder;
     // factorizedTable stores all columns in the tuples that will be sorted, including the order by
     // key columns. RadixSort uses factorizedTable to access the full contents of the string and
     // unstructured columns when resolving ties.

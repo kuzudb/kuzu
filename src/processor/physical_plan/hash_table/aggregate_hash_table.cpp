@@ -67,9 +67,9 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
 void AggregateHashTable::merge(AggregateHashTable& other) {
     shared_ptr<DataChunkState> vectorsToScanState = make_shared<DataChunkState>();
     vector<shared_ptr<ValueVector>> vectorsToScan(
-        groupByHashKeysDataTypes.size() + groupByHashKeysDataTypes.size() + 1);
+        groupByHashKeysDataTypes.size() + groupByNonHashKeysDataTypes.size());
     vector<ValueVector*> groupByHashVectors(groupByHashKeysDataTypes.size());
-    vector<ValueVector*> groupByNonHashVectors(groupByNonHashVectors.size());
+    vector<ValueVector*> groupByNonHashVectors(groupByNonHashKeysDataTypes.size());
     vector<shared_ptr<ValueVector>> hashKeyVectors(groupByHashKeysDataTypes.size());
     vector<shared_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
     for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {

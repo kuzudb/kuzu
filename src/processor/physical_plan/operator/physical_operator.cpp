@@ -63,9 +63,8 @@ void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profil
     // By subtracting prevOperator runtime, we get the runtime of current operator
     auto executionTime = profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
     auto numOutputTuples = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
-    json["executionTime"] =
-        to_string(profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime);
-    json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
+    json["executionTime"] = to_string(executionTime);
+    json["numOutputTuples"] = numOutputTuples;
 }
 
 double PhysicalOperator::getExecutionTime(Profiler& profiler) const {

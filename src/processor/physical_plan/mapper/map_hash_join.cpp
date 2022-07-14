@@ -33,7 +33,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
     }
 
-    auto sharedState = make_shared<HashJoinSharedState>();
+    vector<DataType> nonKeyDataPosesDataTypes(buildSideNonKeyDataPoses.size());
+    for (auto i = 0u; i < buildSideNonKeyDataPoses.size(); i++) {
+        auto [dataChunkPos, valueVectorPos] = buildSideNonKeyDataPoses[i];
+        nonKeyDataPosesDataTypes[i] =
+            buildSideSchema.getGroup(dataChunkPos)->getExpressions()[valueVectorPos]->getDataType();
+    }
+    auto sharedState = make_shared<HashJoinSharedState>(nonKeyDataPosesDataTypes);
     // create hashJoin build
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);

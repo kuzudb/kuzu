@@ -20,6 +20,8 @@ public:
     ParsedExpression(ExpressionType type, unique_ptr<ParsedExpression> left,
         unique_ptr<ParsedExpression> right, string rawName);
 
+    virtual ~ParsedExpression() = default;
+
     inline ExpressionType getExpressionType() const { return type; }
 
     inline void setAlias(string name) { alias = move(name); }

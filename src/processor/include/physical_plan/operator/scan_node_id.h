@@ -16,6 +16,7 @@ public:
         : nodeMetadata{nodeMetadata}, maxNodeOffset{UINT64_MAX}, currentNodeOffset{0} {}
 
     inline void initMaxNodeOffset(Transaction* transaction) {
+        unique_lock uLck{mtx};
         maxNodeOffset = nodeMetadata->getMaxNodeOffset(transaction);
     }
 

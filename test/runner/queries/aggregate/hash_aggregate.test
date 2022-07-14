@@ -55,6 +55,7 @@ good||1
 
 -NAME OneHopAggFlatUnflatVecTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
+-PARALLELISM 4
 ---- 9
 0|1|45
 0|2|50

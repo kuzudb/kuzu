@@ -28,13 +28,13 @@ public:
     inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
 
     uint8_t getNextFactorizedTableIdx() {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
+        unique_lock lck{orderBySharedStateMutex};
         return nextFactorizedTableIdx++;
     }
 
     void appendFactorizedTable(
         uint8_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
+        unique_lock lck{orderBySharedStateMutex};
         // If the factorizedTables is full, resize the factorizedTables and
         // insert the factorizedTable to the set.
         if (factorizedTableIdx >= factorizedTables.size()) {
@@ -44,18 +44,18 @@ public:
     }
 
     void appendSortedKeyBlock(shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
+        unique_lock lck{orderBySharedStateMutex};
         sortedKeyBlocks->emplace(mergedDataBlocks);
     }
 
-    void setNumBytesPerTuple(uint32_t numBytesPerTuple) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->numBytesPerTuple = numBytesPerTuple;
+    void setNumBytesPerTuple(uint32_t numBytesPerTuple_) {
+        unique_lock lck{orderBySharedStateMutex};
+        this->numBytesPerTuple = numBytesPerTuple_;
     }
 
-    void setDataTypes(vector<DataType> dataTypes) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->dataTypes = move(dataTypes);
+    void setDataTypes(vector<DataType> dataTypes_) {
+        unique_lock lck{orderBySharedStateMutex};
+        this->dataTypes = move(dataTypes_);
     }
 
     void combineFTHasNoNullGuarantee() {
@@ -65,9 +65,9 @@ public:
     }
 
     void setStringAndUnstructuredKeyColInfo(
-        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
-        lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo_) {
+        unique_lock lck{orderBySharedStateMutex};
+        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo_);
     }
 
 private:
@@ -117,7 +117,7 @@ public:
 
     void execute(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) {
+    void finalize(ExecutionContext* context) override {
         // TODO(Ziyi): we always call lookup function on the first factorizedTable in sharedState
         // and that lookup function may read tuples in other factorizedTable, So we need to combine
         // hasNoNullGuarantee with other factorizedTables. This is not a good way to solve this
