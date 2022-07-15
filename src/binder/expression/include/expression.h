@@ -40,6 +40,8 @@ public:
     Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
         : Expression{expressionType, move(dataType), expression_vector{}, uniqueName} {}
 
+    virtual ~Expression() = default;
+
 protected:
     Expression(ExpressionType expressionType, DataTypeID dataTypeID, const string& uniqueName)
         : Expression{expressionType, DataType(dataTypeID), uniqueName} {

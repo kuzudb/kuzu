@@ -7,14 +7,14 @@ namespace processor {
 
 void HashJoinSharedState::initEmptyHashTableIfNecessary(
     MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema) {
-    lock_guard<mutex> lck(hashJoinSharedStateMutex);
+    unique_lock lck(hashJoinSharedStateMutex);
     if (hashTable == nullptr) {
         hashTable = make_unique<JoinHashTable>(memoryManager, 0 /* numTuples */, move(tableSchema));
     }
 }
 
 void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
-    lock_guard<mutex> lck(hashJoinSharedStateMutex);
+    unique_lock lck(hashJoinSharedStateMutex);
     hashTable->getFactorizedTable()->merge(*localHashTable.getFactorizedTable());
 }
 
@@ -41,7 +41,6 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
                                (uint32_t)sizeof(overflow_value_t)));
         }
         vectorsToAppend.push_back(vector);
-        sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }
     // The prev pointer column.
     tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,

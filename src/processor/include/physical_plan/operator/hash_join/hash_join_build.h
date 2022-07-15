@@ -21,6 +21,9 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
+    explicit HashJoinSharedState(vector<DataType> nonKeyDataPosesDataTypes)
+        : nonKeyDataPosesDataTypes{move(nonKeyDataPosesDataTypes)} {}
+
     void initEmptyHashTableIfNecessary(
         MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema);
 
@@ -29,10 +32,6 @@ public:
     inline JoinHashTable* getHashTable() { return hashTable.get(); }
 
     inline vector<DataType> getNonKeyDataPosesDataTypes() { return nonKeyDataPosesDataTypes; }
-
-    inline void appendNonKeyDataPosesDataTypes(const DataType& dataType) {
-        nonKeyDataPosesDataTypes.push_back(dataType);
-    }
 
 private:
     mutex hashJoinSharedStateMutex;

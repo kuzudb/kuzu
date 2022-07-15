@@ -18,6 +18,8 @@ protected:
 
     virtual pair<uint64_t, uint64_t> getNextRangeToRead() = 0;
 
+    virtual ~BaseAggregateSharedState() {}
+
 protected:
     mutex mtx;
     uint64_t currentOffset;

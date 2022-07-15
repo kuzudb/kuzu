@@ -180,7 +180,7 @@ Alice
 # TODO(Xiyang): Fix PARALLELISM also all queries should run in multi-threading in default.
 -NAME OrderByProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
-#-PARALLELISM 2
+-PARALLELISM 4
 ---- 14
 Greg
 Farooq

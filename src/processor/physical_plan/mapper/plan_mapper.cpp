@@ -54,18 +54,6 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace processor {
 
-static unique_ptr<PhysicalOperator> createHashAggregate(
-    vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
-    vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataTypes,
-    const expression_vector& groupByExpressions, Schema* schema,
-    unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext);
-
-static void appendGroupByExpressions(const expression_vector& groupByExpressions,
-    vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
-    vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext, Schema* schema, vector<bool>& isInputGroupByHashKeyVectorFlat);
-
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->getSchema()));
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);

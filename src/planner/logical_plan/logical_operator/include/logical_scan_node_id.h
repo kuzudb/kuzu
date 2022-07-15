@@ -10,7 +10,7 @@ class LogicalScanNodeID : public LogicalOperator {
 public:
     LogicalScanNodeID(string nodeID, label_t label) : nodeID{move(nodeID)}, label{label} {}
 
-    LogicalOperatorType getLogicalOperatorType() const {
+    LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
 
