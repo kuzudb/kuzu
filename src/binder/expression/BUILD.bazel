@@ -38,6 +38,7 @@ cc_library(
     deps = [
         "base_expression",
         "//src/binder/query",
+        "//src/common:configs",
         "//src/common:type_utils",
         "//src/function",
         "//src/function/aggregate:aggregate_function",
@@ -59,5 +60,6 @@ cc_library(
     ],
     deps = [
         "base_expression",
+        "//src/common:configs",
     ],
 )

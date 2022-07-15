@@ -18,3 +18,8 @@
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 5500 RETURN COUNT(*)
 ---- 1
 0
+
+-NAME EdgeID
+-QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN COUNT(DISTINCT r._id)
+---- 1
+10001

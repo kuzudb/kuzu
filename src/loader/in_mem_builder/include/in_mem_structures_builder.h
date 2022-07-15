@@ -18,7 +18,6 @@ using label_property_lists_map_t = unordered_map<label_t, vector<unique_ptr<InMe
 using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<InMemAdjLists>>;
 
 class InMemStructuresBuilder {
-
 protected:
     InMemStructuresBuilder(label_t label, string labelName, string inputFilePath,
         string outputDirectory, CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler,
@@ -30,10 +29,20 @@ public:
     virtual void saveToFile() = 0;
 
 protected:
-    uint64_t parseCSVHeaderAndCalcNumBlocks(
+    // Chunk file into fixed-size blocks. Return number of blocks.
+    uint64_t parseHeaderAndChunkFile(
         const string& filePath, vector<PropertyNameDataType>& colDefinitions);
 
     // Concurrent tasks
+    static void countNumLinesPerBlockTask(
+        const string& fName, uint64_t blockId, InMemStructuresBuilder* builder) {
+        countNumLinesAndUnstrPropertiesPerBlockTask(fName, blockId, builder, UINT64_MAX, nullptr);
+    }
+    // We assume unstructured properties are written after structured properties, so numTokensToSkip
+    // indicates the start offset of unstructured properties.
+    static void countNumLinesAndUnstrPropertiesPerBlockTask(const string& fName, uint64_t blockId,
+        InMemStructuresBuilder* builder, uint64_t numTokensToSkip,
+        unordered_set<string>* unstrPropertyNames);
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
@@ -60,6 +69,7 @@ protected:
     string inputFilePath;
     string outputDirectory;
     uint64_t numBlocks;
+    vector<uint64_t> numLinesPerBlock;
     CSVReaderConfig csvReaderConfig;
     TaskScheduler& taskScheduler;
     Catalog& catalog;

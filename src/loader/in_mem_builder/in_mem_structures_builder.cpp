@@ -16,8 +16,8 @@ InMemStructuresBuilder::InMemStructuresBuilder(label_t label, string labelName,
       csvReaderConfig{csvReaderConfig}, taskScheduler{taskScheduler}, catalog{catalog},
       progressBar{progressBar} {}
 
-uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
-    const string& filePath, vector<PropertyNameDataType>& colDefinitions) {
+uint64_t InMemStructuresBuilder::parseHeaderAndChunkFile(
+    const string& filePath, vector<PropertyNameDataType>& propertyDefinitions) {
     logger->info("Parsing csv headers and calculating number of blocks for label {}.", labelName);
     ifstream inf(filePath, ios_base::in);
     if (!inf.is_open()) {
@@ -28,7 +28,7 @@ uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
         getline(inf, fileHeader);
     } while (fileHeader.empty() || fileHeader.at(0) == LoaderConfig::COMMENT_LINE_CHAR);
     inf.seekg(0, ios_base::end);
-    colDefinitions = parseCSVFileHeader(fileHeader);
+    propertyDefinitions = parseCSVFileHeader(fileHeader);
     logger->info(
         "Done parsing csv headers and calculating number of blocks for label {}.", labelName);
     auto numBlocksInFile = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
@@ -36,10 +36,39 @@ uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
     return numBlocksInFile;
 }
 
+static void collectUnstrPropertyNamesInLine(
+    CSVReader& reader, uint64_t numTokensToSkip, unordered_set<string>* unstrPropertyNames) {
+    for (auto i = 0u; i < numTokensToSkip; ++i) {
+        reader.hasNextToken();
+    }
+    while (reader.hasNextToken()) {
+        auto unstrPropertyStr = reader.getString();
+        auto unstrPropertyName =
+            StringUtils::split(unstrPropertyStr, LoaderConfig::UNSTR_PROPERTY_SEPARATOR)[0];
+        unstrPropertyNames->insert(unstrPropertyName);
+    }
+}
+
+void InMemStructuresBuilder::countNumLinesAndUnstrPropertiesPerBlockTask(const string& fName,
+    uint64_t blockId, InMemStructuresBuilder* builder, uint64_t numTokensToSkip,
+    unordered_set<string>* unstrPropertyNames) {
+    builder->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
+    CSVReader reader(fName, builder->csvReaderConfig, blockId);
+    builder->numLinesPerBlock[blockId] = 0ull;
+    while (reader.hasNextLine()) {
+        builder->numLinesPerBlock[blockId]++;
+        if (unstrPropertyNames != nullptr) {
+            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, unstrPropertyNames);
+        }
+    }
+    builder->logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);
+    builder->progressBar->incrementTaskFinished();
+}
+
 vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& header) const {
     auto colHeaders = StringUtils::split(header, string(1, csvReaderConfig.tokenSeparator));
     unordered_set<string> columnNameSet;
-    vector<PropertyNameDataType> colHeaderDefinitions;
+    vector<PropertyNameDataType> propertyDefinitions;
     for (auto& colHeader : colHeaders) {
         auto colHeaderComponents =
             StringUtils::split(colHeader, LoaderConfig::PROPERTY_DATATYPE_SEPARATOR);
@@ -77,9 +106,9 @@ vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& 
                                   " already appears previously in the column headers.");
         }
         columnNameSet.insert(colHeaderDefinition.name);
-        colHeaderDefinitions.push_back(colHeaderDefinition);
+        propertyDefinitions.push_back(colHeaderDefinition);
     }
-    return colHeaderDefinitions;
+    return propertyDefinitions;
 }
 
 // Lists headers are created for only AdjLists and UnstrPropertyLists, both of which store data

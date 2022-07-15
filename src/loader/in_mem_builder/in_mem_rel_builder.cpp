@@ -9,15 +9,16 @@ namespace loader {
 
 InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, BufferManager& bufferManager,
-    LoaderProgressBar* progressBar)
+    const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
+    BufferManager& bufferManager, LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{label, fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
       relMultiplicity{getRelMultiplicityFromString(fileDescription.relMultiplicity)},
       srcNodeLabelNames{fileDescription.srcNodeLabelNames},
       dstNodeLabelNames{fileDescription.dstNodeLabelNames},
-      maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel}, bm{bufferManager} {
+      maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel},
+      startRelID{startRelID}, bm{bufferManager} {
     tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     IDIndexes.resize(catalog.getNumNodeLabels());
     unordered_set<string> labelNames;
@@ -35,12 +36,15 @@ InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDe
     }
 }
 
-void InMemRelBuilder::load() {
+uint64_t InMemRelBuilder::load() {
     logger->info("Loading rel {} with label {}.", labelName, label);
-    vector<PropertyNameDataType> colDefinitions;
-    numBlocks = parseCSVHeaderAndCalcNumBlocks(inputFilePath, colDefinitions);
-    catalog.addRelLabel(
-        labelName, relMultiplicity, move(colDefinitions), srcNodeLabelNames, dstNodeLabelNames);
+    vector<PropertyNameDataType> propertyDefinitions;
+    numBlocks = parseHeaderAndChunkFile(inputFilePath, propertyDefinitions);
+    countLinesPerBlock();
+    catalog.addRelLabel(labelName, relMultiplicity, move(propertyDefinitions), srcNodeLabelNames,
+        dstNodeLabelNames);
+    auto& relLabel = catalog.getRel(labelName);
+    relLabel.addRelIDDefinition();
     initializeColumnsAndLists();
     // Construct columns and lists.
     populateAdjColumnsAndCountRelsInAdjLists();
@@ -52,6 +56,24 @@ void InMemRelBuilder::load() {
     }
     saveToFile();
     logger->info("Done loading rel {} with label {}.", labelName, label);
+    auto numRels = 0u;
+    for (auto blockId = 0u; blockId < numBlocks; blockId++) {
+        numRels += numLinesPerBlock[blockId];
+    }
+    numRels--; // Decrement the header line.
+    return numRels;
+}
+
+void InMemRelBuilder::countLinesPerBlock() {
+    logger->info("Counting number of lines in each block");
+    numLinesPerBlock.resize(numBlocks);
+    progressBar->addAndStartNewJob("Counting lines in the file for rel: " + labelName, numBlocks);
+    for (auto blockId = 0u; blockId < numBlocks; blockId++) {
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+            countNumLinesPerBlockTask, inputFilePath, blockId, this));
+    }
+    taskScheduler.waitAllTasksToCompleteOrError();
+    logger->info("Done counting number of lines in each block.");
 }
 
 void InMemRelBuilder::initializeColumnsAndLists() {
@@ -129,17 +151,34 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjLists() {
         "Populating adjacency columns and counting relations for relationship: " +
             catalog.getRelLabelName(label),
         numBlocks);
+    auto blockStartOffset = 0ull;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-            populateAdjColumnsAndCountRelsInAdjListsTask, blockIdx, this));
+        taskScheduler.scheduleTask(
+            LoaderTaskFactory::createLoaderTask(populateAdjColumnsAndCountRelsInAdjListsTask,
+                blockIdx, startRelID + blockStartOffset, this));
+        blockStartOffset += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     populateNumRels();
     logger->info("Done populating adj columns and rel property columns for rel {}.", labelName);
 }
 
+static void putValueIntoColumns(uint64_t propertyIdx,
+    vector<label_property_columns_map_t>& directionLabelPropertyColumns,
+    const vector<nodeID_t>& nodeIDs, uint8_t* val) {
+    for (auto relDirection : REL_DIRECTIONS) {
+        auto nodeLabel = nodeIDs[relDirection].label;
+        if (directionLabelPropertyColumns[relDirection].contains(nodeLabel)) {
+            auto propertyColumn =
+                directionLabelPropertyColumns[relDirection].at(nodeLabel)[propertyIdx].get();
+            auto nodeOffset = nodeIDs[relDirection].offset;
+            propertyColumn->setElement(nodeOffset, val);
+        }
+    }
+}
+
 void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
-    uint64_t blockId, InMemRelBuilder* builder) {
+    uint64_t blockId, uint64_t blockStartRelID, InMemRelBuilder* builder) {
     builder->logger->debug("Start: path=`{0}` blkIdx={1}", builder->inputFilePath, blockId);
     CSVReader reader(builder->inputFilePath, builder->csvReaderConfig, blockId);
     if (0 == blockId) {
@@ -161,6 +200,10 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
                 .dataType;
     }
     vector<PageByteCursor> overflowPagesCursors{properties.size()};
+    auto& relLabel = builder->catalog.getRel(builder->label);
+    auto numPropertiesToRead = relLabel.getNumPropertiesToReadFromCSV();
+    auto& relIDDefinition = relLabel.getRelIDDefinition();
+    int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
             builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
@@ -176,33 +219,24 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
             }
             builder->directionNumRelsPerLabel[relDirection]->operator[](nodeLabel)++;
         }
-        putPropsOfLineIntoColumns(builder->directionLabelPropertyColumns,
-            builder->catalog.getRelProperties(builder->label),
-            builder->propertyColumnsOverflowFiles, overflowPagesCursors, reader, nodeIDs);
+        if (numPropertiesToRead != 0) {
+            putPropsOfLineIntoColumns(numPropertiesToRead, builder->directionLabelPropertyColumns,
+                builder->catalog.getRelProperties(builder->label),
+                builder->propertyColumnsOverflowFiles, overflowPagesCursors, reader, nodeIDs);
+        }
+        putValueIntoColumns(relIDDefinition.propertyID, builder->directionLabelPropertyColumns,
+            nodeIDs, (uint8_t*)&relID);
+        relID++;
     }
     builder->logger->debug("End: path=`{0}` blkIdx={1}", builder->inputFilePath, blockId);
     builder->progressBar->incrementTaskFinished();
 }
 
-static void putValueIntoColumns(uint64_t propertyIdx,
-    vector<label_property_columns_map_t>& directionLabelPropertyColumns,
-    const vector<nodeID_t>& nodeIDs, uint8_t* val) {
-    for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeLabel = nodeIDs[relDirection].label;
-        if (directionLabelPropertyColumns[relDirection].contains(nodeLabel)) {
-            auto propertyColumn =
-                directionLabelPropertyColumns[relDirection].at(nodeLabel)[propertyIdx].get();
-            auto nodeOffset = nodeIDs[relDirection].offset;
-            propertyColumn->setElement(nodeOffset, val);
-        }
-    }
-}
-
-void InMemRelBuilder::putPropsOfLineIntoColumns(
+void InMemRelBuilder::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
     vector<label_property_columns_map_t>& directionLabelPropertyColumns,
     const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
     vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs) {
-    for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
+    for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
         reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
@@ -325,13 +359,13 @@ static void putValueIntoLists(uint64_t propertyIdx,
     }
 }
 
-void InMemRelBuilder::putPropsOfLineIntoLists(
+void InMemRelBuilder::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
     vector<label_property_lists_map_t>& directionLabelPropertyLists,
     vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
     vector<unique_ptr<InMemOverflowFile>>& overflowPages, vector<PageByteCursor>& overflowCursors,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos) {
-    auto propertyIdx = 0;
-    while (reader.hasNextToken()) {
+    for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
+        reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
@@ -398,7 +432,6 @@ void InMemRelBuilder::putPropsOfLineIntoLists(
                 reader.skipToken();
             }
         }
-        propertyIdx++;
     }
 }
 
@@ -474,15 +507,18 @@ void InMemRelBuilder::populateAdjAndPropertyLists() {
     progressBar->addAndStartNewJob(
         "Populating adjacency lists for relationship: " + catalog.getRelLabelName(label),
         numBlocks);
+    auto blockStartOffset = 0ull;
     for (auto blockId = 0u; blockId < numBlocks; blockId++) {
-        taskScheduler.scheduleTask(
-            LoaderTaskFactory::createLoaderTask(populateAdjAndPropertyListsTask, blockId, this));
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+            populateAdjAndPropertyListsTask, blockId, startRelID + blockStartOffset, this));
+        blockStartOffset += numLinesPerBlock[blockId];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating adjLists and rel property lists for rel {}.", labelName);
 }
 
-void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRelBuilder* builder) {
+void InMemRelBuilder::populateAdjAndPropertyListsTask(
+    uint64_t blockId, uint64_t blockStartRelID, InMemRelBuilder* builder) {
     builder->logger->trace("Start: path=`{0}` blkIdx={1}", builder->inputFilePath, blockId);
     CSVReader reader(builder->inputFilePath, builder->csvReaderConfig, blockId);
     if (0 == blockId) {
@@ -491,9 +527,9 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
         }
     }
     vector<bool> requireToReadLabels{true, true};
-    vector<nodeID_t> nodeIDs(2);
+    vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};
-    vector<uint64_t> reversePos(2);
+    vector<uint64_t> reversePos{2};
     auto properties = builder->catalog.getRelProperties(builder->label);
     for (auto relDirection : REL_DIRECTIONS) {
         auto nodeLabels =
@@ -505,6 +541,10 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
                 .dataType;
     }
     vector<PageByteCursor> overflowPagesCursors(properties.size());
+    auto& relLabel = builder->catalog.getRel(builder->label);
+    auto numPropertiesToRead = relLabel.getNumPropertiesToReadFromCSV();
+    auto& relIDDefinition = relLabel.getRelIDDefinition();
+    int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
             builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
@@ -520,12 +560,15 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
                     nodeOffset, reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
             }
         }
-        if (!builder->catalog.getRelProperties(builder->label).empty()) {
-            putPropsOfLineIntoLists(builder->directionLabelPropertyLists,
+        if (numPropertiesToRead != 0) {
+            putPropsOfLineIntoLists(numPropertiesToRead, builder->directionLabelPropertyLists,
                 builder->directionLabelAdjLists, builder->catalog.getRelProperties(builder->label),
                 builder->propertyListsOverflowFiles, overflowPagesCursors, reader, nodeIDs,
                 reversePos);
         }
+        putValueIntoLists(relIDDefinition.propertyID, builder->directionLabelPropertyLists,
+            builder->directionLabelAdjLists, nodeIDs, reversePos, (uint8_t*)&relID);
+        relID++;
     }
     builder->logger->trace("End: path=`{0}` blkIdx={1}", builder->inputFilePath, blockId);
     builder->progressBar->incrementTaskFinished();

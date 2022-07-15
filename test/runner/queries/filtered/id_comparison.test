@@ -34,3 +34,13 @@
 -QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = 'Bob' AND e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
 ---- 1
 2
+
+-NAME RelIDComparison1
+-QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE r1._id = r2._id RETURN COUNT(*)
+---- 1
+14
+
+-NAME RelIDComparison2
+-QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE r1._id <> r2._id RETURN COUNT(*)
+---- 1
+26
