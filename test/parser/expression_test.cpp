@@ -5,6 +5,7 @@
 #include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/expression/include/parsed_variable_expression.h"
 #include "src/parser/include/parser.h"
+#include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
 
@@ -44,7 +45,8 @@ TEST_F(ExpressionTest, FilterIDComparisonTest) {
     auto where = make_unique<ParsedExpression>(EQUALS, move(aID), move(bID), EMPTY);
 
     string input = "MATCH () WHERE id(a) = id(b) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -56,7 +58,8 @@ TEST_F(ExpressionTest, FilterBooleanConnectionTest) {
     auto where = make_unique<ParsedExpression>(AND, move(aIsStudent), move(bIsNotMale), EMPTY);
 
     string input = "MATCH () WHERE a.isStudent AND NOT b.isMale RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -70,7 +73,8 @@ TEST_F(ExpressionTest, FilterNullOperatorTest) {
     auto where = make_unique<ParsedExpression>(AND, move(leftAnd), move(aNameIsNull), EMPTY);
 
     string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -90,7 +94,8 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
 
     string input =
         "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\" RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -107,7 +112,8 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     auto where = make_unique<ParsedExpression>(EQUALS, move(left), move(aAge), EMPTY);
 
     string input = "MATCH () WHERE 2 + a * 0.1 = a.age RETURN *";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -124,7 +130,8 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
     auto where = make_unique<ParsedExpression>(LESS_THAN_EQUALS, move(left), move(aAge), EMPTY);
 
     string input = "MATCH () WHERE ((2 - a) % 0.1) <= a.age RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
@@ -140,7 +147,8 @@ TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
     where->addChild(move(bPowerTwo));
 
     string input = "MATCH () WHERE MIN(a, b^2) RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }

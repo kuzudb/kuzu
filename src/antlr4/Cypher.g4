@@ -14,8 +14,29 @@ grammar Cypher;
 }
 
 oC_Cypher 
-    : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF
+        | SP ? gF_DDL ( SP? ';' )? SP? EOF ;
 
+gF_DDL
+    : gF_CreateNode ;
+
+gF_CreateNode
+    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint )? SP? ')' ;
+    
+NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
+
+TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
+
+gF_PropertyDefinitions : gF_PropertyDefinition ( SP? ',' SP? gF_PropertyDefinition )* ;
+
+gF_PropertyDefinition : oC_PropertyKeyName SP oC_SchemaName ;
+
+gF_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
+
+PRIMARY: ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'Y' | 'y' ) ;
+        
+KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
+    
 oC_AnyCypherOption
     : oC_Explain
         | oC_Profile ;
@@ -83,7 +104,7 @@ OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' )
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
 
 oC_Create
-    : CREATE SP? oC_NodePattern ( SP? ',' SP? oC_NodePattern )*;
+    : CREATE SP? oC_NodePattern ( SP? ',' SP? oC_NodePattern )* ;
 
 CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 

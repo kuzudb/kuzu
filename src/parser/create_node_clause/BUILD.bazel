@@ -1,0 +1,13 @@
+cc_library(
+    name = "create_node_clause",
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder:__subpackages__",
+        "//src/parser:__subpackages__",
+    ],
+    deps = [
+        "//src/parser:statement",
+    ],
+)

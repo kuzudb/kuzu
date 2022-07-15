@@ -5,6 +5,7 @@
 #include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/expression/include/parsed_variable_expression.h"
 #include "src/parser/include/parser.h"
+#include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
 
@@ -31,7 +32,8 @@ TEST_F(ReturnWithTest, ReturnCountStarTest) {
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN COUNT(*);";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
@@ -42,7 +44,8 @@ TEST_F(ReturnWithTest, ReturnStarAndPropertyTest) {
         false /* isDistinct */, true /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN *, a.name;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
@@ -56,7 +59,8 @@ TEST_F(ReturnWithTest, ReturnAliasTest) {
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN a.name, a.name AS whatever;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
@@ -69,7 +73,8 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
         make_unique<ParsedLiteralExpression>(make_unique<Literal>((int64_t)10), EMPTY));
     auto returnClause = make_unique<ReturnClause>(move(projectionBody));
     string input = "MATCH () RETURN a.name LIMIT 10;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
@@ -85,7 +90,8 @@ TEST_F(ReturnWithTest, SingleWithTest) {
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "WITH 1 AS one, \"Xiyang\" AS name MATCH () RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
     ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses() == 0);
     ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
@@ -100,7 +106,8 @@ TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
         false /* isDistinct */, true /* containsStar */, move(expressions)));
 
     string input = "MATCH () MATCH () WITH *, 1 AS one MATCH () RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
     ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
     ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
@@ -128,7 +135,8 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
 
     string input =
         "MATCH () WITH * WHERE a.age < 1 WITH a.age AS newAge WHERE newAge = 10 MATCH () RETURN *;";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumQueryParts());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
     ASSERT_TRUE(*withClause1 == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());

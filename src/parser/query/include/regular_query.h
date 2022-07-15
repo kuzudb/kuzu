@@ -2,13 +2,15 @@
 
 #include "single_query.h"
 
+#include "src/parser/include/statement.h"
+
 namespace graphflow {
 namespace parser {
 
-class RegularQuery {
+class RegularQuery : public Statement {
 
 public:
-    explicit RegularQuery(unique_ptr<SingleQuery> singleQuery) {
+    explicit RegularQuery(unique_ptr<SingleQuery> singleQuery) : Statement{StatementType::QUERY} {
         singleQueries.push_back(move(singleQuery));
     }
 

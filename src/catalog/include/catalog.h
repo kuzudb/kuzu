@@ -6,6 +6,7 @@
 #include "catalog_structs.h"
 #include "nlohmann/json.hpp"
 
+#include "src/binder/bound_create_node_clause/include/bound_create_node_clause.h"
 #include "src/common/include/assert.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
@@ -57,6 +58,10 @@ public:
     void addNodeLabel(string labelName, const DataType& IDType,
         vector<PropertyNameDataType> colHeaderDefinitions,
         const vector<string>& unstructuredPropertyNames);
+
+    // This function is used for createNodeClause test only and should be removed as soon as
+    // possible.
+    void addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause);
 
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyNameDataType> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,

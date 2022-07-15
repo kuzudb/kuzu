@@ -2,6 +2,7 @@
 
 #include "src/parser/expression/include/parsed_subquery_expression.h"
 #include "src/parser/include/parser.h"
+#include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
 
@@ -36,7 +37,8 @@ TEST_F(SubqueryTest, ExistsTest) {
         make_unique<ParsedExpression>(NOT, move(existentialExpression), EMPTY);
 
     string input = "MATCH () WHERE NOT EXISTS { MATCH () RETURN * } RETURN COUNT(*);";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*expectedExpression == *matchClause.getWhereClause());
 }
@@ -58,7 +60,8 @@ TEST_F(SubqueryTest, NestedExistsTest) {
 
     string input = "MATCH () WHERE EXISTS { MATCH () WHERE EXISTS { MATCH () RETURN * } RETURN "
                    "* } RETURN COUNT(*);";
-    auto regularQuery = Parser::parseQuery(input);
+    auto parsedQuery = Parser::parseQuery(input);
+    auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
     ASSERT_TRUE(*expectedExpression == *matchClause.getWhereClause());
 }
