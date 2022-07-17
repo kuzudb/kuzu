@@ -460,21 +460,21 @@ void FactorizedTable::readFlatColToUnflatVector(
     if (hasNoNullGuarantee(colIdx)) {
         vector.setAllNonNull();
         for (auto i = 0u; i < numTuplesToRead; i++) {
-            auto positionInVectorToRead = vector.state->selVector->selectedPositions[i];
+            auto positionInVectorToWrite = vector.state->selVector->selectedPositions[i];
             auto srcData = tuplesToRead[i] + tableSchema->getColOffset(colIdx);
             ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                vector, positionInVectorToRead, srcData);
+                vector, positionInVectorToWrite, srcData);
         }
     } else {
         for (auto i = 0u; i < numTuplesToRead; i++) {
-            auto positionInVectorToRead = vector.state->selVector->selectedPositions[i];
+            auto positionInVectorToWrite = vector.state->selVector->selectedPositions[i];
             auto dataBuffer = tuplesToRead[i];
             if (isNonOverflowColNull(dataBuffer + tableSchema->getNullMapOffset(), colIdx)) {
-                vector.setNull(positionInVectorToRead, true);
+                vector.setNull(positionInVectorToWrite, true);
             } else {
-                vector.setNull(positionInVectorToRead, false);
-                ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                    vector, positionInVectorToRead, dataBuffer + tableSchema->getColOffset(colIdx));
+                vector.setNull(positionInVectorToWrite, false);
+                ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(vector,
+                    positionInVectorToWrite, dataBuffer + tableSchema->getColOffset(colIdx));
             }
         }
     }

@@ -171,7 +171,7 @@ void AggregateHashTable::initializeFT(const vector<unique_ptr<AggregateFunction>
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
         max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
-    bitMask = maxNumHashSlots - 1;
+    bitmask = maxNumHashSlots - 1;
     auto numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
     assert(numHashSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numHashSlotsPerBlock));
     numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
@@ -198,7 +198,7 @@ void AggregateHashTable::initializeTmpVectors() {
 
 uint8_t* AggregateHashTable::findEntryInDistinctHT(
     const vector<ValueVector*>& groupByKeyVectors, hash_t hash) {
-    auto slotIdx = hash & bitMask;
+    auto slotIdx = getSlotIdxForHash(hash);
     while (true) {
         auto slot = (HashSlot*)getHashSlot(slotIdx);
         if (slot->entry == nullptr) {
@@ -212,7 +212,7 @@ uint8_t* AggregateHashTable::findEntryInDistinctHT(
 
 void AggregateHashTable::resize(uint64_t newSize) {
     maxNumHashSlots = newSize;
-    bitMask = maxNumHashSlots - 1;
+    bitmask = maxNumHashSlots - 1;
     addDataBlocksIfNecessary(maxNumHashSlots);
     for (auto& block : hashSlotsBlocks) {
         block->resetToZero();
@@ -318,7 +318,7 @@ void AggregateHashTable::initTmpHashSlotsAndIdxes() {
     auto hashVal = (hash_t*)hashVector->values;
     if (hashVector->state->isFlat()) {
         auto pos = hashVector->state->getPositionOfCurrIdx();
-        auto slotIdx = hashVal[pos] & bitMask;
+        auto slotIdx = getSlotIdxForHash(hashVal[pos]);
         tmpSlotIdxes[pos] = slotIdx;
         hashSlotsToUpdateAggState[pos] = getHashSlot(slotIdx);
         tmpValueIdxes[0] = pos;
@@ -326,14 +326,14 @@ void AggregateHashTable::initTmpHashSlotsAndIdxes() {
         if (hashVector->state->selVector->isUnfiltered()) {
             for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
                 tmpValueIdxes[i] = i;
-                tmpSlotIdxes[i] = hashVal[i] & bitMask;
+                tmpSlotIdxes[i] = getSlotIdxForHash(hashVal[i]);
                 hashSlotsToUpdateAggState[i] = getHashSlot(tmpSlotIdxes[i]);
             }
         } else {
             for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
                 auto pos = hashVector->state->selVector->selectedPositions[i];
                 tmpValueIdxes[i] = pos;
-                tmpSlotIdxes[pos] = hashVal[pos] & bitMask;
+                tmpSlotIdxes[pos] = getSlotIdxForHash(hashVal[pos]);
                 hashSlotsToUpdateAggState[pos] = getHashSlot(tmpSlotIdxes[pos]);
             }
         }
@@ -627,7 +627,7 @@ void AggregateHashTable::fillEntryWithInitialNullAggregateState(uint8_t* entry) 
 }
 
 void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer) {
-    auto slotIdx = hash & bitMask;
+    auto slotIdx = getSlotIdxForHash(hash);
     auto hashSlot = getHashSlot(slotIdx);
     while (true) {
         if (hashSlot->entry) {
