@@ -12,7 +12,7 @@ void LiteralExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager*
     resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }
 
-uint64_t LiteralExpressionEvaluator::select(sel_t* selectedPos) {
+bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
     auto pos = resultVector->state->getPositionOfCurrIdx();
     assert(pos == 0u);
     return resultVector->values[pos] == true && (!resultVector->isNull(pos));

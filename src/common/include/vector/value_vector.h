@@ -85,9 +85,7 @@ private:
     bool _isSequential = false;
     unique_ptr<OverflowBuffer> overflowBuffer;
     unique_ptr<uint8_t[]> valueBuffer;
-    // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result
-    // ValueVectors of unary expressions, point to the nullMasks of operands.
-    shared_ptr<NullMask> nullMask;
+    unique_ptr<NullMask> nullMask;
     uint32_t numBytesPerValue;
 };
 

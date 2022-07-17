@@ -15,7 +15,7 @@ ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
     if (needOverflowBuffer()) {
         overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
     }
-    nullMask = make_shared<NullMask>();
+    nullMask = make_unique<NullMask>();
     numBytesPerValue = Types::getDataTypeSize(dataType);
 }
 
@@ -34,24 +34,24 @@ bool NodeIDVector::discardNull(ValueVector& vector) {
     if (vector.state->isFlat()) {
         return !vector.isNull(vector.state->getPositionOfCurrIdx());
     } else {
-        auto selectedPos = 0u;
         if (vector.hasNoNullsGuarantee()) {
             return true;
         } else {
-            if (vector.state->isUnfiltered()) {
-                vector.state->resetSelectorToValuePosBuffer();
-                for (auto i = 0u; i < vector.state->selectedSize; i++) {
-                    vector.state->selectedPositions[selectedPos] = i;
+            auto selectedPos = 0u;
+            if (vector.state->selVector->isUnfiltered()) {
+                vector.state->selVector->resetSelectorToValuePosBuffer();
+                for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
+                    vector.state->selVector->selectedPositions[selectedPos] = i;
                     selectedPos += !vector.isNull(i);
                 }
             } else {
-                for (auto i = 0u; i < vector.state->selectedSize; i++) {
-                    auto pos = vector.state->selectedPositions[i];
-                    vector.state->selectedPositions[selectedPos] = pos;
+                for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
+                    auto pos = vector.state->selVector->selectedPositions[i];
+                    vector.state->selVector->selectedPositions[selectedPos] = pos;
                     selectedPos += !vector.isNull(pos);
                 }
             }
-            vector.state->selectedSize = selectedPos;
+            vector.state->selVector->selectedSize = selectedPos;
             return selectedPos > 0;
         }
     }

@@ -18,7 +18,7 @@ bool AdjListExtend::getNextTuples() {
     if (largeListHandle->hasMoreToRead()) {
         readValuesFromList();
         metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+        metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
         return true;
     }
     do {
@@ -27,9 +27,9 @@ bool AdjListExtend::getNextTuples() {
             return false;
         }
         readValuesFromList();
-    } while (outDataChunk->state->selectedSize == 0);
+    } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+    metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
     return true;
 }
 

@@ -18,7 +18,8 @@ namespace function {
 struct VectorOperationDefinition;
 
 using scalar_exec_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
-using scalar_select_func = std::function<uint64_t(const vector<shared_ptr<ValueVector>>&, sel_t*)>;
+using scalar_select_func =
+    std::function<bool(const vector<shared_ptr<ValueVector>>&, SelectionVector&)>;
 using scalar_bind_func =
     std::function<void(const vector<DataType>&, VectorOperationDefinition*, DataType&)>;
 
@@ -71,11 +72,11 @@ public:
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
-    static uint64_t BinarySelectFunction(
-        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
+    static bool BinarySelectFunction(
+        const vector<shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
         assert(params.size() == 2);
         return BinaryOperationExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(
-            *params[0], *params[1], selectedPositions);
+            *params[0], *params[1], selVector);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>

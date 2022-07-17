@@ -25,7 +25,7 @@ protected:
     void reInitToRerunSubPlan(ResultSet& resultSet) {
         for (auto& dataChunk : resultSet.dataChunks) {
             dataChunk->state->initOriginalAndSelectedSize(0);
-            dataChunk->state->resetSelectorToUnselected();
+            dataChunk->state->selVector->resetSelectorToUnselected();
             dataChunk->state->currIdx = -1;
         }
     }

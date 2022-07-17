@@ -37,8 +37,9 @@ void VectorListOperations::ListCreation(
         OverflowBufferUtils::copyListNonRecursive(
             listElements, gfList, result.dataType, result.getOverflowBuffer());
     } else {
-        for (auto selectedPos = 0u; selectedPos < result.state->selectedSize; ++selectedPos) {
-            auto pos = result.state->selectedPositions[selectedPos];
+        for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
+             ++selectedPos) {
+            auto pos = result.state->selVector->selectedPositions[selectedPos];
             auto& gfList = ((gf_list_t*)result.values)[pos];
             for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
                 auto parameterPos = parameters[paramIdx]->state->isFlat() ?

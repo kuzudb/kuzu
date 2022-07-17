@@ -17,7 +17,7 @@ ListHeadersBuilder::ListHeadersBuilder(const string& fName, uint64_t numElements
     fileHandle = make_unique<FileHandle>(
         fName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     // DiskArray assumes that its header page already exists. To ensure that we need to add a page
-    // to the fileHandle. Currently the header page is at page 0, so we add one page here.
+    // to the fileHandle. Currently, the header page is at page 0, so we add one page here.
     fileHandle->addNewPage();
     headersBuilder = make_unique<InMemDiskArrayBuilder<list_header_t>>(
         *fileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements);

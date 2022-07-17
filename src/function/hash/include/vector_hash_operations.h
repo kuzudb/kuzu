@@ -21,19 +21,19 @@ struct UnaryHashOperationExecutor {
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
-                if (operand.state->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                if (operand.state->selVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         operation::Hash::operation(operandValues[i], resultValues[i]);
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        auto pos = operand.state->selectedPositions[i];
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                        auto pos = operand.state->selVector->selectedPositions[i];
                         operation::Hash::operation(operandValues[pos], resultValues[pos]);
                     }
                 }
             } else {
-                if (operand.state->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                if (operand.state->selVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         if (!operand.isNull(i)) {
                             operation::Hash::operation(operandValues[i], resultValues[i]);
                         } else {
@@ -41,8 +41,8 @@ struct UnaryHashOperationExecutor {
                         }
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        auto pos = operand.state->selectedPositions[i];
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                        auto pos = operand.state->selVector->selectedPositions[i];
                         if (!operand.isNull(pos)) {
                             operation::Hash::operation(operandValues[pos], resultValues[pos]);
                         } else {

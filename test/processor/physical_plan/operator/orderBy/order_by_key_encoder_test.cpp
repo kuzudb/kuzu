@@ -46,7 +46,7 @@ public:
     vector<shared_ptr<ValueVector>> getInt64TestValueVector(
         const uint64_t numOfElementsPerCol, const uint64_t numOfOrderByCols, bool flatCol) {
         shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(numOfOrderByCols);
-        dataChunk->state->selectedSize = numOfElementsPerCol;
+        dataChunk->state->selVector->selectedSize = numOfElementsPerCol;
         vector<shared_ptr<ValueVector>> valueVectors;
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             shared_ptr<ValueVector> valueVector =
@@ -126,7 +126,7 @@ public:
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 6;
+    dataChunk->state->selVector->selectedSize = 6;
     shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     auto int64Values = (int64_t*)int64ValueVector->values;
     int64Values[0] = 73; // positive number
@@ -202,10 +202,10 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     dataChunk->insert(0, int64ValueVector);
     // Only the first and the third value is selected, so the encoder should
     // not encode the second value.
-    int64ValueVector->state->resetSelectorToValuePosBuffer();
-    int64ValueVector->state->selectedPositions[0] = 0;
-    int64ValueVector->state->selectedPositions[1] = 2;
-    int64ValueVector->state->selectedSize = 2;
+    int64ValueVector->state->selVector->resetSelectorToValuePosBuffer();
+    int64ValueVector->state->selVector->selectedPositions[0] = 0;
+    int64ValueVector->state->selVector->selectedPositions[1] = 2;
+    int64ValueVector->state->selVector->selectedSize = 2;
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(int64ValueVector);
     auto isAscOrder = vector<bool>(1, true);
@@ -235,7 +235,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 3;
+    dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> boolValueVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
     auto boolValues = (bool*)boolValueVector->values;
     boolValues[0] = true;
@@ -266,7 +266,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 3;
+    dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> dateValueVector = make_shared<ValueVector>(memoryManager.get(), DATE);
     auto dateValues = (date_t*)dateValueVector->values;
     dateValues[0] = Date::FromCString("2035-07-04", strlen("2035-07-04")); // date after 1970-01-01
@@ -303,7 +303,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 3;
+    dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> timestampValueVector =
         make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
     auto timestampValues = (timestamp_t*)timestampValueVector->values;
@@ -355,7 +355,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 2;
+    dataChunk->state->selVector->selectedSize = 2;
     shared_ptr<ValueVector> intervalValueVector =
         make_shared<ValueVector>(memoryManager.get(), INTERVAL);
     auto intervalValues = (interval_t*)intervalValueVector->values;
@@ -402,7 +402,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 4;
+    dataChunk->state->selVector->selectedSize = 4;
     shared_ptr<ValueVector> stringValueVector =
         make_shared<ValueVector>(memoryManager.get(), STRING);
     stringValueVector->addString(0, "short str"); // short string
@@ -475,7 +475,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 6;
+    dataChunk->state->selVector->selectedSize = 6;
     shared_ptr<ValueVector> doubleValueVector =
         make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     auto doubleValues = (double*)doubleValueVector->values;
@@ -562,7 +562,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     // For unstr datatype, orderByEncoder should ignore the actual datatype and simply encode them
     // as 0.
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = 5;
+    dataChunk->state->selVector->selectedSize = 5;
     shared_ptr<ValueVector> unstrValueVector =
         make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     auto unstrValues = (Value*)unstrValueVector->values;
@@ -582,7 +582,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // For unstr values, we only need to check the nullByte and whether the encoded value is 0.
-    for (auto i = 0u; i < unstrValueVector->state->selectedSize; i++) {
+    for (auto i = 0u; i < unstrValueVector->state->selVector->selectedSize; i++) {
         if (i == 1) {
             // Note: the 2nd value is a null.
             checkNullVal(keyBlockPtr, UNSTRUCTURED, isAscOrder[0]);

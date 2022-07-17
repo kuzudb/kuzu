@@ -10,8 +10,8 @@ namespace storage {
 
 void OverflowFile::readStringsToVector(Transaction* transaction, ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
-    for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
-        auto pos = valueVector.state->selectedPositions[i];
+    for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
+        auto pos = valueVector.state->selVector->selectedPositions[i];
         if (valueVector.isNull(pos)) {
             continue;
         }
@@ -39,8 +39,8 @@ void OverflowFile::scanSequentialStringOverflow(Transaction* transaction, ValueV
     FileHandle* cachedFileHandle = nullptr;
     page_idx_t cachedPageIdx = UINT32_MAX;
     uint8_t* cachedFrame = nullptr;
-    for (auto i = 0u; i < vector.state->selectedSize; ++i) {
-        auto pos = vector.state->selectedPositions[i];
+    for (auto i = 0u; i < vector.state->selVector->selectedSize; ++i) {
+        auto pos = vector.state->selVector->selectedPositions[i];
         if (vector.isNull(pos)) {
             continue;
         }
@@ -77,8 +77,8 @@ void OverflowFile::scanSequentialStringOverflow(Transaction* transaction, ValueV
 
 void OverflowFile::readListsToVector(ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
-    for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
-        auto pos = valueVector.state->selectedPositions[i];
+    for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
+        auto pos = valueVector.state->selVector->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
             readListToVector(((gf_list_t*)valueVector.values)[pos], valueVector.dataType,
                 valueVector.getOverflowBuffer());

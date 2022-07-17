@@ -27,21 +27,22 @@ bool Skip::getNextTuples() {
         // If all dataChunks are flat, numTupleAvailable = 1 which means numTupleSkippedBefore =
         // skipNumber. So execution is handled in above if statement.
         assert(!dataChunkToSelect->state->isFlat());
-        auto selectedPosBuffer = dataChunkToSelect->state->selectedPositionsBuffer.get();
-        if (dataChunkToSelect->state->isUnfiltered()) {
+        auto selectedPosBuffer = dataChunkToSelect->state->selVector->getSelectedPositionsBuffer();
+        if (dataChunkToSelect->state->selVector->isUnfiltered()) {
             for (uint64_t i = numTupleToSkipInCurrentResultSet;
-                 i < dataChunkToSelect->state->selectedSize; ++i) {
+                 i < dataChunkToSelect->state->selVector->selectedSize; ++i) {
                 selectedPosBuffer[i - numTupleToSkipInCurrentResultSet] = i;
             }
-            dataChunkToSelect->state->resetSelectorToValuePosBuffer();
+            dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
         } else {
             for (uint64_t i = numTupleToSkipInCurrentResultSet;
-                 i < dataChunkToSelect->state->selectedSize; ++i) {
+                 i < dataChunkToSelect->state->selVector->selectedSize; ++i) {
                 selectedPosBuffer[i - numTupleToSkipInCurrentResultSet] = selectedPosBuffer[i];
             }
         }
-        dataChunkToSelect->state->selectedSize -= numTupleToSkipInCurrentResultSet;
-        metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
+        dataChunkToSelect->state->selVector->selectedSize =
+            dataChunkToSelect->state->selVector->selectedSize - numTupleToSkipInCurrentResultSet;
+        metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     }
     metrics->executionTime.stop();
     return true;

@@ -31,7 +31,7 @@ public:
 
     inline void referState(const DataChunk& other) { state = other.state; }
 
-    inline uint32_t getNumValueVectors() { return valueVectors.size(); }
+    inline uint32_t getNumValueVectors() const { return valueVectors.size(); }
 
     inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {
         return valueVectors[valueVectorPos];

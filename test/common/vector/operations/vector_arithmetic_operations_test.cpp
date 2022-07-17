@@ -99,7 +99,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
 
     BinaryOperationExecutor::executeSwitch<int64_t, int64_t, int64_t, operation::Divide,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+    for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
@@ -107,7 +107,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
 
     BinaryOperationExecutor::executeSwitch<int64_t, int64_t, int64_t, operation::Modulo,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+    for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }

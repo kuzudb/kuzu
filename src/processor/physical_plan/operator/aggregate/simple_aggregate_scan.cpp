@@ -21,7 +21,7 @@ bool SimpleAggregateScan::getNextTuples() {
     auto outDataChunk = resultSet->dataChunks[aggregatesPos[0].dataChunkPos];
     outDataChunk->state->initOriginalAndSelectedSize(1);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+    metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
     return true;
 }
 

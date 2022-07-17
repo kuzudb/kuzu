@@ -20,7 +20,7 @@ public:
 
     void evaluate() override;
 
-    uint64_t select(sel_t* selectedPos) override;
+    bool select(SelectionVector& selVector) override;
 
     unique_ptr<BaseExpressionEvaluator> clone() override;
 

@@ -41,7 +41,7 @@ void NodeOffsetsInfo::setDeletedNodeOffsetsForMorsel(shared_ptr<ValueVector> nod
     if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
         auto deletedNodeOffsets = deletedNodeOffsetsPerMorsel[morselIdxAndOffset.first];
         uint64_t morselBeginOffset = morselIdxAndOffset.first * DEFAULT_VECTOR_CAPACITY;
-        nodeOffsetVector->state->resetSelectorToValuePosBuffer();
+        nodeOffsetVector->state->selVector->resetSelectorToValuePosBuffer();
         auto itr = deletedNodeOffsets.begin();
         sel_t nextDeletedNodeOffset = *itr - morselBeginOffset;
         uint64_t nextSelectedPosition = 0;
@@ -57,10 +57,10 @@ void NodeOffsetsInfo::setDeletedNodeOffsetsForMorsel(shared_ptr<ValueVector> nod
                 nextDeletedNodeOffset = *itr - morselBeginOffset;
                 continue;
             }
-            nodeOffsetVector->state->selectedPositions[nextSelectedPosition++] = pos;
+            nodeOffsetVector->state->selVector->selectedPositions[nextSelectedPosition++] = pos;
         }
-        nodeOffsetVector->state->setSelectedSize(
-            nodeOffsetVector->state->originalSize - deletedNodeOffsets.size());
+        nodeOffsetVector->state->selVector->selectedSize =
+            nodeOffsetVector->state->originalSize - deletedNodeOffsets.size();
     }
 }
 

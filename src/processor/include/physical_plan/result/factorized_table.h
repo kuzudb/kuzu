@@ -25,7 +25,7 @@ struct BlockAppendingInfo {
 // released when this struct goes out of scope.
 struct DataBlock {
 public:
-    DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
+    explicit DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
         block = memoryManager->allocateBlock(true);
         freeSize = block->size;
     }

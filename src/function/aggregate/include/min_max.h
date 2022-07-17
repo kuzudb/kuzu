@@ -26,13 +26,13 @@ struct MinMaxFunction {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<MinMaxState*>(state_);
         if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
+                auto pos = input->state->selVector->selectedPositions[i];
                 updateSingleValue<OP>(state, input, pos);
             }
         } else {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
+                auto pos = input->state->selVector->selectedPositions[i];
                 if (!input->isNull(pos)) {
                     updateSingleValue<OP>(state, input, pos);
                 }

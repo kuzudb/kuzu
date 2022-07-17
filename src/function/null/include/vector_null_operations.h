@@ -25,10 +25,10 @@ private:
     }
 
     template<typename FUNC>
-    static uint64_t UnaryNullSelectFunction(
-        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
+    static bool UnaryNullSelectFunction(
+        const vector<shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
         assert(params.size() == 1);
-        return NullOperationExecutor::select<FUNC>(*params[0], selectedPositions);
+        return NullOperationExecutor::select<FUNC>(*params[0], selVector);
     }
 
     static scalar_exec_func bindUnaryExecFunction(

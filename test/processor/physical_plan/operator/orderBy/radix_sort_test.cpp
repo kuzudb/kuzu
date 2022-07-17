@@ -62,10 +62,10 @@ public:
         GF_ASSERT(sortingData.size() == nullMasks.size());
         GF_ASSERT(sortingData.size() == expectedBlockOffsetOrder.size());
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
-        dataChunk->state->selectedSize = sortingData.size();
+        dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
         auto values = (T*)valueVector->values;
-        for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+        for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
             } else if constexpr (is_same<T, string>::value) {
@@ -89,7 +89,7 @@ public:
         if (hasPayLoadCol) {
             // Create a new payloadValueVector for the payload column.
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+            for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
                 payloadValueVector->addString(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);

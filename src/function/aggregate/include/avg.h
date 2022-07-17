@@ -28,13 +28,13 @@ struct AvgFunction {
         auto state = reinterpret_cast<AvgState*>(state_);
         assert(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
+                auto pos = input->state->selVector->selectedPositions[i];
                 updateSingleValue(state, input, pos, multiplicity);
             }
         } else {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
+                auto pos = input->state->selVector->selectedPositions[i];
                 if (!input->isNull(pos)) {
                     updateSingleValue(state, input, pos, multiplicity);
                 }

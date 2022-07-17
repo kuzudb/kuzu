@@ -21,8 +21,8 @@ void Intersect::reInitToRerunSubPlan() {
 }
 
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
-    auto selectedPos = nodeIDVector->state->selectedPositionsBuffer.get();
-    auto size = nodeIDVector->state->selectedSize;
+    auto selectedPos = nodeIDVector->state->selVector->getSelectedPositionsBuffer();
+    auto size = nodeIDVector->state->selVector->selectedSize;
     sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
         return nodeIDVector->readNodeOffset(left) < nodeIDVector->readNodeOffset(right);
     });
@@ -33,8 +33,7 @@ bool Intersect::getNextTuples() {
     auto numSelectedValues = 0u;
     do {
         restoreDataChunkSelectorState(leftDataChunk);
-        if (rightDataChunk->state->currIdx == -1 ||
-            rightDataChunk->state->selectedSize == rightDataChunk->state->currIdx + 1ul) {
+        if (rightDataChunk->state->currIdx == -1 || rightDataChunk->state->isCurrIdxLast()) {
             rightDataChunk->state->currIdx = -1;
             if (!children[0]->getNextTuples()) {
                 metrics->executionTime.stop();
@@ -50,20 +49,21 @@ bool Intersect::getNextTuples() {
         auto rightPos = rightDataChunk->state->getPositionOfCurrIdx();
         auto rightNodeOffset = rightValueVector->readNodeOffset(rightPos);
         numSelectedValues = 0u;
-        while (leftIdx < leftDataChunk->state->selectedSize) {
-            auto leftPos = leftDataChunk->state->selectedPositions[leftIdx];
+        while (leftIdx < leftDataChunk->state->selVector->selectedSize) {
+            auto leftPos = leftDataChunk->state->selVector->selectedPositions[leftIdx];
             auto leftNodeOffset = leftValueVector->readNodeOffset(leftPos);
             if (leftNodeOffset > rightNodeOffset) {
                 break;
             } else if (leftNodeOffset == rightNodeOffset) {
-                leftDataChunk->state->selectedPositionsBuffer[numSelectedValues++] = leftPos;
+                leftDataChunk->state->selVector->getSelectedPositionsBuffer()[numSelectedValues++] =
+                    leftPos;
             }
             leftIdx++;
         }
         leftIdx -= numSelectedValues; // restore leftIdx to the first match
-        leftDataChunk->state->selectedSize = numSelectedValues;
-        if (leftDataChunk->state->isUnfiltered()) {
-            leftDataChunk->state->resetSelectorToValuePosBuffer();
+        leftDataChunk->state->selVector->selectedSize = numSelectedValues;
+        if (leftDataChunk->state->selVector->isUnfiltered()) {
+            leftDataChunk->state->selVector->resetSelectorToValuePosBuffer();
         }
     } while (numSelectedValues == 0u);
     metrics->executionTime.stop();

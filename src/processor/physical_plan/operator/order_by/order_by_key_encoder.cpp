@@ -40,7 +40,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
 
 void OrderByKeyEncoder::encodeKeys() {
     uint32_t numEntries =
-        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selectedSize;
+        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -111,7 +111,7 @@ void OrderByKeyEncoder::encodeFlatVector(
 
 void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
-    if (vector->state->isUnfiltered()) {
+    if (vector->state->selVector->isUnfiltered()) {
         auto value = vector->values + encodedTuples * vector->getNumBytesPerValue();
         if (vector->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
@@ -139,14 +139,15 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
                 encodeFunctions[keyColIdx](
-                    vector->values + vector->state->selectedPositions[i + encodedTuples] *
-                                         vector->getNumBytesPerValue(),
+                    vector->values +
+                        vector->state->selVector->selectedPositions[i + encodedTuples] *
+                            vector->getNumBytesPerValue(),
                     tuplePtr + 1, swapBytes);
                 tuplePtr += numBytesPerTuple;
             }
         } else {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
-                auto pos = vector->state->selectedPositions[i + encodedTuples];
+                auto pos = vector->state->selVector->selectedPositions[i + encodedTuples];
                 if (vector->isNull(pos)) {
                     for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
                         *(tuplePtr + j) = UINT8_MAX;

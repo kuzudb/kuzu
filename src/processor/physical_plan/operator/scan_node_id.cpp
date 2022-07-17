@@ -40,13 +40,13 @@ bool ScanNodeID::getNextTuples() {
             nodeIDValues[i].label = nodeTable->nodeMetadata->getLabelID();
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
-        outDataChunk->state->resetSelectorToUnselected();
+        outDataChunk->state->selVector->resetSelectorToUnselected();
         nodeTable->nodeMetadata->setDeletedNodeOffsetsForMorsel(transaction, outValueVector);
-        if (outDataChunk->state->selectedSize <= 0) {
+        if (outDataChunk->state->selVector->selectedSize <= 0) {
             continue;
         }
         metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(outValueVector->state->selectedSize);
+        metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
         return true;
     }
 }
