@@ -82,13 +82,11 @@ void GraphLoader::readAndParseMetadata(DatasetMetadata& metadata) {
 
 void GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
-    auto numNodeLabels = datasetMetadata.getNumNodeFiles();
-    for (auto nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
-        auto nodeBuilder = make_unique<InMemNodeBuilder>(nodeLabel,
-            datasetMetadata.getNodeFileDescription(nodeLabel), outputDirectory, *taskScheduler,
-            *catalog, progressBar.get());
-        nodeBuilder->load();
-        maxNodeOffsetsPerNodeLabel.push_back(nodeBuilder->getNumNodes() - 1);
+    for (auto i = 0u; i < datasetMetadata.getNumNodeFiles(); ++i) {
+        auto nodeBuilder = make_unique<InMemNodeBuilder>(datasetMetadata.getNodeFileDescription(i),
+            outputDirectory, *taskScheduler, *catalog, progressBar.get());
+        auto numNodesLoaded = nodeBuilder->load();
+        maxNodeOffsetsPerNodeLabel.push_back(numNodesLoaded - 1);
     }
     logger->info("Done loading nodes.");
 }

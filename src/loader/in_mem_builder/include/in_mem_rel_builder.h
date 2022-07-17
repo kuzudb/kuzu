@@ -72,6 +72,7 @@ private:
         InMemOverflowFile* orderedStringOverflowPages, LoaderProgressBar* progressBar);
 
 private:
+    label_t label;
     RelMultiplicity relMultiplicity;
     vector<string> srcNodeLabelNames;
     vector<string> dstNodeLabelNames;

@@ -9,47 +9,71 @@
 namespace graphflow {
 namespace loader {
 
-InMemNodeBuilder::InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription& fileDescription,
+InMemNodeBuilder::InMemNodeBuilder(const NodeFileDescription& fileDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
     LoaderProgressBar* progressBar)
-    : InMemStructuresBuilder{nodeLabel, fileDescription.labelName, fileDescription.filePath,
+    : InMemStructuresBuilder{fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
-      IDType{fileDescription.IDType}, numNodes{UINT64_MAX} {}
+      IDType{fileDescription.IDType}, nodeLabel{nullptr}, numNodes{UINT64_MAX} {}
 
-void InMemNodeBuilder::load() {
-    logger->info("Loading node {} with label {}.", labelName, label);
-    vector<PropertyNameDataType> propertyDefinitions;
-    numBlocks = parseHeaderAndChunkFile(inputFilePath, propertyDefinitions);
+uint64_t InMemNodeBuilder::load() {
+    createTableSchema();
+    logger->info("Loading node {} with label {}.", labelName, nodeLabel->labelId);
+    calculateNumBlocks(inputFilePath);
     auto unstructuredPropertyNames =
-        countLinesPerBlockAndParseUnstrPropertyNames(propertyDefinitions.size());
-    catalog.addNodeLabel(labelName, IDType, move(propertyDefinitions), unstructuredPropertyNames);
+        countLinesPerBlockAndParseUnstrPropertyNames(nodeLabel->getNumStructuredProperties());
+    numNodes = calculateNumRowsWithoutHeader();
+    nodeLabel->addUnstructuredProperties(unstructuredPropertyNames);
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured lists.
-    populateColumnsAndCountUnstrPropertyListSizes(numNodes);
+    populateColumnsAndCountUnstrPropertyListSizes();
     if (unstrPropertyLists) {
         calcUnstrListsHeadersAndMetadata();
         populateUnstrPropertyLists();
     }
     saveToFile();
-    logger->info("Done loading node {} with label {}.", labelName, label);
+    logger->info("Done loading node {} with label {}.", labelName, nodeLabel->labelId);
+    return numNodes;
+}
+
+void InMemNodeBuilder::createTableSchema() {
+    auto propertyDefinitions = parseCSVHeader(inputFilePath);
+    auto newNodeLabel = catalog.createNodeLabel(labelName, IDType, move(propertyDefinitions));
+    assert(nodeLabel == nullptr);
+    nodeLabel = newNodeLabel.get();
+    catalog.addNodeLabel(move(newNodeLabel));
 }
 
 void InMemNodeBuilder::initializeColumnsAndList() {
     logger->info("Initializing in memory structured columns and unstructured list.");
-    auto structuredProperties = catalog.getStructuredNodeProperties(label);
-    structuredColumns.resize(structuredProperties.size());
-    for (auto& property : structuredProperties) {
-        auto fName =
-            StorageUtils::getNodePropertyColumnFName(outputDirectory, label, property.name);
+    structuredColumns.resize(nodeLabel->getNumStructuredProperties());
+    for (auto& property : nodeLabel->structuredProperties) {
+        auto fName = StorageUtils::getNodePropertyColumnFName(
+            outputDirectory, nodeLabel->labelId, property.name);
         structuredColumns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }
-    if (!catalog.getUnstructuredNodeProperties(label).empty()) {
+    if (nodeLabel->hasUnstructuredProperties()) {
         unstrPropertyLists = make_unique<InMemUnstructuredLists>(
-            StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, label), numNodes);
+            StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel->labelId),
+            numNodes);
     }
     logger->info("Done initializing in memory structured columns and unstructured list.");
+}
+
+static vector<string> mergeUnstrPropertyNamesFromBlocks(
+    vector<unordered_set<string>>& unstructuredPropertyNamesPerBlock) {
+    unordered_set<string> unstructuredPropertyNames;
+    for (auto& unstructuredPropertiesInBlock : unstructuredPropertyNamesPerBlock) {
+        for (auto& propertyName : unstructuredPropertiesInBlock) {
+            unstructuredPropertyNames.insert(propertyName);
+        }
+    }
+    // Ensure the same order in different platforms.
+    vector<string> result{unstructuredPropertyNames.begin(), unstructuredPropertyNames.end()};
+    sort(result.begin(), result.end());
+    return result;
 }
 
 vector<string> InMemNodeBuilder::countLinesPerBlockAndParseUnstrPropertyNames(
@@ -66,34 +90,17 @@ vector<string> InMemNodeBuilder::countLinesPerBlockAndParseUnstrPropertyNames(
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->info(
         "Done counting number of lines and read unstructured property names  in each block.");
-    // Populate total numNodes
-    numNodes = 0u;
-    numLinesPerBlock[0]--; // Decrement the header line.
-    for (auto blockId = 0u; blockId < numBlocks; blockId++) {
-        numNodes += numLinesPerBlock[blockId];
-    }
-    // Populate unstructured property Names
-    unordered_set<string> unstructuredPropertyNames;
-    for (auto& unstructuredPropertiesInBlock : unstructuredPropertyNamesPerBlock) {
-        for (auto& propertyName : unstructuredPropertiesInBlock) {
-            unstructuredPropertyNames.insert(propertyName);
-        }
-    }
-    // Ensure the same order in different platforms.
-    vector<string> result{unstructuredPropertyNames.begin(), unstructuredPropertyNames.end()};
-    sort(result.begin(), result.end());
-    return result;
+    return mergeUnstrPropertyNamesFromBlocks(unstructuredPropertyNamesPerBlock);
 }
 
-void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes) {
+void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizes() {
     logger->info("Populating structured properties and Counting unstructured properties.");
     auto IDIndex = make_unique<InMemHashIndex>(
-        StorageUtils::getNodeIndexFName(this->outputDirectory, label), IDType);
+        StorageUtils::getNodeIndexFName(this->outputDirectory, nodeLabel->labelId), IDType);
     IDIndex->bulkReserve(numNodes);
     uint32_t IDColumnIdx = UINT32_MAX;
-    auto properties = catalog.getStructuredNodeProperties(label);
-    for (auto i = 0u; i < properties.size(); i++) {
-        if (properties[i].isIDProperty()) {
+    for (auto i = 0u; i < nodeLabel->getNumStructuredProperties(); i++) {
+        if (nodeLabel->structuredProperties[i].isIDProperty()) {
             IDColumnIdx = i;
             break;
         }
@@ -155,8 +162,7 @@ void InMemNodeBuilder::populateIDIndex(
 void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
     uint64_t blockId, uint64_t startOffset, InMemHashIndex* IDIndex, InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
-    auto structuredProperties = builder->catalog.getStructuredNodeProperties(builder->label);
-    vector<PageByteCursor> overflowCursors(structuredProperties.size());
+    vector<PageByteCursor> overflowCursors(builder->nodeLabel->getNumStructuredProperties());
     CSVReader reader(builder->inputFilePath, builder->csvReaderConfig, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
@@ -165,8 +171,9 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        putPropsOfLineIntoColumns(builder->structuredColumns, structuredProperties, overflowCursors,
-            reader, startOffset + bufferOffset);
+        putPropsOfLineIntoColumns(builder->structuredColumns,
+            builder->nodeLabel->structuredProperties, overflowCursors, reader,
+            startOffset + bufferOffset);
         if (builder->unstrPropertyLists) {
             calcLengthOfUnstrPropertyLists(
                 reader, startOffset + bufferOffset, builder->unstrPropertyLists.get());
@@ -239,13 +246,10 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
     }
     auto bufferOffset = 0u;
     PageByteCursor overflowPagesCursor;
-    auto numStructuredProperties =
-        builder->catalog.getStructuredNodeProperties(builder->label).size();
-    auto unstrPropertiesNameToIdMap =
-        builder->catalog.getUnstrPropertiesNameToIdMap(builder->label);
+    auto unstrPropertiesNameToIdMap = builder->nodeLabel->unstrPropertiesNameToIdMap;
     assert(!unstrPropertiesNameToIdMap.empty());
     while (reader.hasNextLine()) {
-        for (auto i = 0u; i < numStructuredProperties; ++i) {
+        for (auto i = 0u; i < builder->nodeLabel->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();
         }
         putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, overflowPagesCursor,
