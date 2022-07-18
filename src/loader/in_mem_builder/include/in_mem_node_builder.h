@@ -9,20 +9,21 @@ namespace loader {
 class InMemNodeBuilder : public InMemStructuresBuilder {
 
 public:
-    InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription& fileDescription,
-        string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-        LoaderProgressBar* progressBar);
+    InMemNodeBuilder(const NodeFileDescription& fileDescription, string outputDirectory,
+        TaskScheduler& taskScheduler, Catalog& catalog, LoaderProgressBar* progressBar);
 
     ~InMemNodeBuilder() override = default;
 
-    inline uint64_t getNumNodes() { return numNodes; }
-    void load();
+    uint64_t load();
     void saveToFile() override;
 
 private:
+    // Create node table schema based on csv header. Note this can only create structured
+    // properties.
+    void createTableSchema();
     void initializeColumnsAndList();
     vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
-    void populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes);
+    void populateColumnsAndCountUnstrPropertyListSizes();
     void calcUnstrListsHeadersAndMetadata();
     void populateUnstrPropertyLists();
 
@@ -50,6 +51,7 @@ private:
 
 private:
     DataType IDType;
+    NodeLabel* nodeLabel;
     uint64_t numNodes;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;

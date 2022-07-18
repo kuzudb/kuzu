@@ -82,9 +82,16 @@ public:
 };
 
 struct NodeLabel : Label {
-    NodeLabel() : Label{"", 0}, primaryPropertyId{0} {}
+    NodeLabel() : NodeLabel{"", UINT64_MAX, UINT64_MAX, vector<Property>{}} {}
     NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
-        vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames);
+        vector<Property> structuredProperties)
+        : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
+          structuredProperties{move(structuredProperties)} {}
+
+    inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
+    inline bool hasUnstructuredProperties() const { return getNumUnstructuredProperties() != 0; }
+    inline uint64_t getNumUnstructuredProperties() const { return unstructuredProperties.size(); }
+    void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
 
     uint64_t primaryPropertyId;
     vector<Property> structuredProperties, unstructuredProperties;

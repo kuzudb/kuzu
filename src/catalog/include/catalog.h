@@ -36,7 +36,6 @@ public:
     inline BuiltInVectorOperations* getBuiltInScalarFunctions() const {
         return builtInVectorOperations.get();
     }
-
     inline BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
         return builtInAggregateFunctions.get();
     }
@@ -54,10 +53,13 @@ public:
     /**
      * Node and Rel label functions.
      */
+    unique_ptr<NodeLabel> createNodeLabel(string labelName, const DataType& IDType,
+        vector<PropertyNameDataType> structuredPropertyDefinitions);
 
-    void addNodeLabel(string labelName, const DataType& IDType,
-        vector<PropertyNameDataType> colHeaderDefinitions,
-        const vector<string>& unstructuredPropertyNames);
+    inline void addNodeLabel(unique_ptr<NodeLabel> nodeLabel) {
+        nodeLabelNameToIdMap[nodeLabel->labelName] = nodeLabel->labelId;
+        nodeLabels.push_back(move(nodeLabel));
+    }
 
     // This function is used for createNodeClause test only and should be removed as soon as
     // possible.
@@ -68,7 +70,7 @@ public:
         const vector<string>& dstNodeLabelNames);
 
     virtual inline string getNodeLabelName(label_t labelId) const {
-        return nodeLabels[labelId].labelName;
+        return nodeLabels[labelId]->labelName;
     }
     virtual inline string getRelLabelName(label_t labelId) const {
         return relLabels[labelId].labelName;
@@ -112,17 +114,17 @@ public:
 
     vector<Property> getAllNodeProperties(label_t nodeLabel) const;
     inline const vector<Property>& getStructuredNodeProperties(label_t nodeLabel) const {
-        return nodeLabels[nodeLabel].structuredProperties;
+        return nodeLabels[nodeLabel]->structuredProperties;
     }
     inline const vector<Property>& getUnstructuredNodeProperties(label_t nodeLabel) const {
-        return nodeLabels[nodeLabel].unstructuredProperties;
+        return nodeLabels[nodeLabel]->unstructuredProperties;
     }
     inline const vector<Property>& getRelProperties(label_t relLabel) const {
         return relLabels[relLabel].properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         label_t nodeLabel) const {
-        return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
+        return nodeLabels[nodeLabel]->unstrPropertiesNameToIdMap;
     }
 
     /**
@@ -152,7 +154,7 @@ private:
     shared_ptr<spdlog::logger> logger;
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
     unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
-    vector<NodeLabel> nodeLabels;
+    vector<unique_ptr<NodeLabel>> nodeLabels;
     vector<RelLabel> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.

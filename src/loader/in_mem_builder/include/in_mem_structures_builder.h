@@ -19,9 +19,9 @@ using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<InMemAdjLists>>;
 
 class InMemStructuresBuilder {
 protected:
-    InMemStructuresBuilder(label_t label, string labelName, string inputFilePath,
-        string outputDirectory, CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler,
-        Catalog& catalog, LoaderProgressBar* progressBar);
+    InMemStructuresBuilder(string labelName, string inputFilePath, string outputDirectory,
+        CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler, Catalog& catalog,
+        LoaderProgressBar* progressBar);
 
     virtual ~InMemStructuresBuilder() = default;
 
@@ -29,6 +29,12 @@ public:
     virtual void saveToFile() = 0;
 
 protected:
+    vector<PropertyNameDataType> parseCSVHeader(const string& filePath);
+
+    void calculateNumBlocks(const string& filePath);
+
+    uint64_t calculateNumRowsWithoutHeader();
+
     // Chunk file into fixed-size blocks. Return number of blocks.
     uint64_t parseHeaderAndChunkFile(
         const string& filePath, vector<PropertyNameDataType>& colDefinitions);
@@ -60,11 +66,10 @@ protected:
         const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar);
 
 private:
-    vector<PropertyNameDataType> parseCSVFileHeader(string& header) const;
+    vector<PropertyNameDataType> parseHeaderLine(string& header) const;
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    label_t label;
     string labelName;
     string inputFilePath;
     string outputDirectory;

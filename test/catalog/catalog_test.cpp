@@ -34,8 +34,10 @@ public:
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         vector<string> unstrPropertyNames{"unstrIntProp"};
-        catalog->addNodeLabel(
-            "person", DataType(INT64), move(personProperties), unstrPropertyNames);
+        auto nodeLabel =
+            catalog->createNodeLabel("person", DataType(INT64), move(personProperties));
+        nodeLabel->addUnstructuredProperties(unstrPropertyNames);
+        catalog->addNodeLabel(move(nodeLabel));
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_LABEL", STRING);

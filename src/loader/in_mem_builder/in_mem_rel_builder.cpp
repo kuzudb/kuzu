@@ -11,10 +11,10 @@ InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDe
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
     const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
     BufferManager& bufferManager, LoaderProgressBar* progressBar)
-    : InMemStructuresBuilder{label, fileDescription.labelName, fileDescription.filePath,
+    : InMemStructuresBuilder{fileDescription.labelName, fileDescription.filePath,
           move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
-      relMultiplicity{getRelMultiplicityFromString(fileDescription.relMultiplicity)},
+      label{label}, relMultiplicity{getRelMultiplicityFromString(fileDescription.relMultiplicity)},
       srcNodeLabelNames{fileDescription.srcNodeLabelNames},
       dstNodeLabelNames{fileDescription.dstNodeLabelNames},
       maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel},
@@ -45,6 +45,7 @@ uint64_t InMemRelBuilder::load() {
         dstNodeLabelNames);
     auto& relLabel = catalog.getRel(labelName);
     relLabel.addRelIDDefinition();
+    auto numRels = calculateNumRowsWithoutHeader();
     initializeColumnsAndLists();
     // Construct columns and lists.
     populateAdjColumnsAndCountRelsInAdjLists();
@@ -56,11 +57,6 @@ uint64_t InMemRelBuilder::load() {
     }
     saveToFile();
     logger->info("Done loading rel {} with label {}.", labelName, label);
-    auto numRels = 0u;
-    for (auto blockId = 0u; blockId < numBlocks; blockId++) {
-        numRels += numLinesPerBlock[blockId];
-    }
-    numRels--; // Decrement the header line.
     return numRels;
 }
 

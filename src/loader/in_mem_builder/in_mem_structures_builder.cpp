@@ -8,13 +8,52 @@
 namespace graphflow {
 namespace loader {
 
-InMemStructuresBuilder::InMemStructuresBuilder(label_t label, string labelName,
-    string inputFilePath, string outputDirectory, CSVReaderConfig csvReaderConfig,
-    TaskScheduler& taskScheduler, Catalog& catalog, LoaderProgressBar* progressBar)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, label{label}, labelName{move(labelName)},
+InMemStructuresBuilder::InMemStructuresBuilder(string labelName, string inputFilePath,
+    string outputDirectory, CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler,
+    Catalog& catalog, LoaderProgressBar* progressBar)
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, labelName{move(labelName)},
       inputFilePath{move(inputFilePath)}, outputDirectory{move(outputDirectory)}, numBlocks{0},
       csvReaderConfig{csvReaderConfig}, taskScheduler{taskScheduler}, catalog{catalog},
       progressBar{progressBar} {}
+
+vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVHeader(const string& filePath) {
+    logger->info("Parsing csv header for label {}.", labelName);
+    ifstream inf(filePath, ios_base::in);
+    if (!inf.is_open()) {
+        throw LoaderException("Cannot open file " + filePath + ".");
+    }
+    string headerLine;
+    do {
+        getline(inf, headerLine);
+    } while (headerLine.empty() || headerLine.at(0) == LoaderConfig::COMMENT_LINE_CHAR);
+    inf.close();
+    logger->info("Done parsing csv header for label {}.", labelName);
+    return parseHeaderLine(headerLine);
+}
+
+void InMemStructuresBuilder::calculateNumBlocks(const string& filePath) {
+    logger->info("Chunking csv into blocks for label {}.", labelName);
+    ifstream inf(filePath, ios_base::in);
+    if (!inf.is_open()) {
+        throw LoaderException("Cannot open file " + filePath + ".");
+    }
+    inf.seekg(0, ios_base::end);
+    numBlocks = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
+    inf.close();
+    logger->info("Done chunking csv into blocks for label {}.", labelName);
+}
+
+uint64_t InMemStructuresBuilder::calculateNumRowsWithoutHeader() {
+    assert(numLinesPerBlock.size() == numBlocks);
+    auto numRows = 0u;
+    // Decrement the header line. Note the following line should be changed if csv may not have
+    // header.
+    numLinesPerBlock[0]--;
+    for (auto blockId = 0u; blockId < numBlocks; blockId++) {
+        numRows += numLinesPerBlock[blockId];
+    }
+    return numRows;
+}
 
 uint64_t InMemStructuresBuilder::parseHeaderAndChunkFile(
     const string& filePath, vector<PropertyNameDataType>& propertyDefinitions) {
@@ -28,7 +67,7 @@ uint64_t InMemStructuresBuilder::parseHeaderAndChunkFile(
         getline(inf, fileHeader);
     } while (fileHeader.empty() || fileHeader.at(0) == LoaderConfig::COMMENT_LINE_CHAR);
     inf.seekg(0, ios_base::end);
-    propertyDefinitions = parseCSVFileHeader(fileHeader);
+    propertyDefinitions = parseHeaderLine(fileHeader);
     logger->info(
         "Done parsing csv headers and calculating number of blocks for label {}.", labelName);
     auto numBlocksInFile = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
@@ -65,7 +104,7 @@ void InMemStructuresBuilder::countNumLinesAndUnstrPropertiesPerBlockTask(const s
     builder->progressBar->incrementTaskFinished();
 }
 
-vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& header) const {
+vector<PropertyNameDataType> InMemStructuresBuilder::parseHeaderLine(string& header) const {
     auto colHeaders = StringUtils::split(header, string(1, csvReaderConfig.tokenSeparator));
     unordered_set<string> columnNameSet;
     vector<PropertyNameDataType> propertyDefinitions;
