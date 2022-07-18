@@ -49,8 +49,9 @@ public:
         knowsProperties.emplace_back("validInterval", INTERVAL);
         vector<string> knowsSrcNodeLabelNames = {"person"};
         vector<string> knowsDstNodeLabelNames = {"person"};
-        catalog->addRelLabel("knows", MANY_MANY, move(knowsProperties), knowsSrcNodeLabelNames,
-            knowsDstNodeLabelNames);
+        auto relLabel = catalog->createRelLabel(
+            "knows", MANY_MANY, knowsProperties, knowsSrcNodeLabelNames, knowsDstNodeLabelNames);
+        catalog->addRelLabel(move(relLabel));
     }
 
 public:

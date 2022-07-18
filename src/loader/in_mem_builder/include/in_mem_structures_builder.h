@@ -35,10 +35,6 @@ protected:
 
     uint64_t calculateNumRowsWithoutHeader();
 
-    // Chunk file into fixed-size blocks. Return number of blocks.
-    uint64_t parseHeaderAndChunkFile(
-        const string& filePath, vector<PropertyNameDataType>& colDefinitions);
-
     // Concurrent tasks
     static void countNumLinesPerBlockTask(
         const string& fName, uint64_t blockId, InMemStructuresBuilder* builder) {
