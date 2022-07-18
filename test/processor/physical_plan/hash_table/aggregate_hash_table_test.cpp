@@ -34,10 +34,10 @@ public:
         }
         group3Values[0] = 20;
         dataChunk = make_shared<DataChunk>(4);
-        dataChunk->state->selectedSize = 100;
+        dataChunk->state->selVector->selectedSize = 100;
         dataChunk->state->currIdx = 0;
         dataChunk1 = make_shared<DataChunk>(1);
-        dataChunk1->state->selectedSize = 1;
+        dataChunk1->state->selVector->selectedSize = 1;
         dataChunk1->state->currIdx = 0;
         dataChunk->insert(0, group1Vector);
         dataChunk->insert(1, group2Vector);
@@ -64,7 +64,7 @@ public:
         aggregateVectors.push_back(nullptr);
         aggregateVectors.push_back(aggr2Vector.get());
         if (isGroupByKeyFlat) {
-            while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
+            while (dataChunk->state->currIdx < dataChunk->state->selVector->selectedSize) {
                 ht->append(
                     groupVectors, vector<ValueVector*>(), aggregateVectors, 1 /* multiplicity */);
                 dataChunk->state->currIdx++;
@@ -110,7 +110,7 @@ public:
         if (isFirstGroupByKeyFlat && isSecondGroupByKeyFlat) {
             flatGroupByVector.push_back(group1Vector.get());
             flatGroupByVector.push_back(group2Vector.get());
-            while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
+            while (dataChunk->state->currIdx < dataChunk->state->selVector->selectedSize) {
                 ht->append(
                     flatGroupByVector, unflatGroupByVector, aggregateVectors, 1 /* multiplicity */);
                 dataChunk->state->currIdx++;

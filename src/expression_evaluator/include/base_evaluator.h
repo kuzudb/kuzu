@@ -39,7 +39,7 @@ public:
 
     virtual void evaluate() = 0;
 
-    virtual uint64_t select(sel_t* selectedPos) = 0;
+    virtual bool select(SelectionVector& selVector) = 0;
 
     virtual unique_ptr<BaseExpressionEvaluator> clone() = 0;
 

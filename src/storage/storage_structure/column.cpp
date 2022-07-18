@@ -14,14 +14,14 @@ void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeI
         // In sequential read, we fetch start offset regardless of selected position.
         auto startOffset = nodeIDVector->readNodeOffset(0);
         auto pageCursor = PageUtils::getPageElementCursorForPos(startOffset, numElementsPerPage);
-        if (nodeIDVector->state->isUnfiltered()) {
+        if (nodeIDVector->state->selVector->isUnfiltered()) {
             scan(transaction, resultVector, pageCursor);
         } else {
             scanWithSelState(transaction, resultVector, pageCursor);
         }
     } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selectedPositions[i];
+        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             lookup(transaction, nodeIDVector, resultVector, pos);
         }
     }
@@ -35,18 +35,18 @@ void Column::writeValues(
             nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
     } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
-        auto lastPos = vectorToWriteFrom->state->selectedSize - 1;
+        auto lastPos = vectorToWriteFrom->state->selVector->selectedSize - 1;
         writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom, lastPos);
     } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
-        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto nodeOffset =
-                nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[i]);
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[i]);
             writeValueForSingleNodeIDPosition(
                 nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
         }
     } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
-        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selectedPositions[i];
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             auto nodeOffset = nodeIDVector->readNodeOffset(pos);
             writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom, pos);
         }

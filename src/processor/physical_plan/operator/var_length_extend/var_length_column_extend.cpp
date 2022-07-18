@@ -43,7 +43,7 @@ bool VarLengthColumnExtend::getNextTuples() {
                         Types::getDataTypeSize(dfsLevelInfo->children->dataType) *
                             dfsLevelInfo->children->state->getPositionOfCurrIdx(),
                     Types::getDataTypeSize(dfsLevelInfo->children->dataType));
-                nbrNodeValueVector->state->selectedSize = 1;
+                nbrNodeValueVector->state->selVector->selectedSize = 1;
                 dfsLevelInfo->hasBeenOutput = true;
                 metrics->executionTime.stop();
                 return true;

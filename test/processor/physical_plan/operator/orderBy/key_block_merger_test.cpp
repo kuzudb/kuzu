@@ -48,10 +48,10 @@ public:
         uint16_t factorizedTableIdx, bool hasPayLoadCol,
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
-        dataChunk->state->selectedSize = sortingData.size();
+        dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
         auto values = (T*)valueVector->values;
-        for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+        for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
             } else if constexpr (is_same<T, string>::value) {
@@ -73,7 +73,7 @@ public:
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+            for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
                 payloadValueVector->addString(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);
@@ -155,7 +155,7 @@ public:
             factorizedTableIdx, numTuplesPerBlockInFT);
 
         auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
-        for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+        for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
@@ -170,7 +170,7 @@ public:
         shared_ptr<DataChunk>& dataChunk) {
         assert(int64Values.size() == doubleValues.size());
         assert(doubleValues.size() == timestampValues.size());
-        dataChunk->state->selectedSize = int64Values.size();
+        dataChunk->state->selVector->selectedSize = int64Values.size();
         dataChunk->state->currIdx = 0;
 
         auto int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
@@ -283,7 +283,7 @@ public:
         vector<vector<string>>& strValues, uint16_t factorizedTableIdx,
         vector<shared_ptr<FactorizedTable>>& factorizedTables) {
         dataChunk->state->currIdx = 0;
-        dataChunk->state->selectedSize = strValues[0].size();
+        dataChunk->state->selVector->selectedSize = strValues[0].size();
         for (auto i = 0u; i < strValues.size(); i++) {
             auto strValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk->insert(i, strValueVector);

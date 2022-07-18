@@ -50,8 +50,9 @@ void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
 // numTuplesToAppend here.
 void JoinHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsToAppend) {
     assert(factorizedTable->getTableSchema()->getColumn(0)->isFlat());
-    auto numTuplesToAppend =
-        vectorsToAppend[0]->state->isFlat() ? 1 : vectorsToAppend[0]->state->selectedSize;
+    auto numTuplesToAppend = vectorsToAppend[0]->state->isFlat() ?
+                                 1 :
+                                 vectorsToAppend[0]->state->selVector->selectedSize;
     auto appendInfos = factorizedTable->allocateTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
         auto numAppendedTuples = 0ul;

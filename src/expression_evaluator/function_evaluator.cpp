@@ -27,11 +27,11 @@ void FunctionExpressionEvaluator::evaluate() {
     execFunc(parameters, *resultVector);
 }
 
-uint64_t FunctionExpressionEvaluator::select(sel_t* selectedPos) {
+bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     for (auto& child : children) {
         child->evaluate();
     }
-    return selectFunc(parameters, selectedPos);
+    return selectFunc(parameters, selVector);
 }
 
 unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {

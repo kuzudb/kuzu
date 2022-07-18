@@ -10,12 +10,12 @@ struct CountFunction : public BaseCountFunction {
     static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
         auto state = reinterpret_cast<CountState*>(state_);
         if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
                 state->count += multiplicity;
             }
         } else {
-            for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                auto pos = input->state->selectedPositions[i];
+            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
+                auto pos = input->state->selVector->selectedPositions[i];
                 if (!input->isNull(pos)) {
                     state->count += multiplicity;
                 }

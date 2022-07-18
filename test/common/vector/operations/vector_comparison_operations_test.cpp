@@ -206,7 +206,7 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto numTuples = 1;
 
     auto dataChunk = make_shared<DataChunk>(3);
-    dataChunk->state->selectedSize = numTuples;
+    dataChunk->state->selVector->selectedSize = numTuples;
     dataChunk->state->currIdx = 0;
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
@@ -284,7 +284,7 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto VECTOR_SIZE = 1;
 
     auto dataChunk = make_shared<DataChunk>(3);
-    dataChunk->state->selectedSize = VECTOR_SIZE;
+    dataChunk->state->selVector->selectedSize = VECTOR_SIZE;
     dataChunk->state->currIdx = 0;
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());

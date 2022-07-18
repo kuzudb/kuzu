@@ -39,8 +39,8 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         deleteNode(nodeIDVector, primaryKeyVector, pos);
     } else {
-        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selectedPositions[i];
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             deleteNode(nodeIDVector, primaryKeyVector, pos);
         }
     }

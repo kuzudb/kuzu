@@ -64,21 +64,21 @@ struct TernaryOperationExecutor {
         if (a.isNull(aPos) || b.isNull(bPos)) {
             result.setAllNull();
         } else if (c.hasNoNullsGuarantee()) {
-            if (c.state->isUnfiltered()) {
-                for (auto i = 0u; i < c.state->selectedSize; ++i) {
+            if (c.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < c.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, bPos, i, i);
                 }
             } else {
-                for (auto i = 0u; i < c.state->selectedSize; ++i) {
-                    auto pos = c.state->selectedPositions[i];
+                for (auto i = 0u; i < c.state->selVector->selectedSize; ++i) {
+                    auto pos = c.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, bPos, pos, pos);
                 }
             }
         } else {
-            if (c.state->isUnfiltered()) {
-                for (auto i = 0u; i < c.state->selectedSize; ++i) {
+            if (c.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < c.state->selVector->selectedSize; ++i) {
                     result.setNull(i, c.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -86,8 +86,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < c.state->selectedSize; ++i) {
-                    auto pos = c.state->selectedPositions[i];
+                for (auto i = 0u; i < c.state->selVector->selectedSize; ++i) {
+                    auto pos = c.state->selVector->selectedPositions[i];
                     result.setNull(pos, c.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -108,21 +108,21 @@ struct TernaryOperationExecutor {
         if (a.isNull(aPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (b.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, i, i, i);
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
+                    auto pos = b.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, pos, pos, pos);
                 }
             }
         } else {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (b.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
                     result.setNull(i, b.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -130,8 +130,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
+                    auto pos = b.state->selVector->selectedPositions[i];
                     result.setNull(pos, b.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -152,21 +152,21 @@ struct TernaryOperationExecutor {
         if (a.isNull(aPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee()) {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (b.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, i, cPos, i);
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
+                    auto pos = b.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, aPos, pos, cPos, pos);
                 }
             }
         } else {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (b.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
                     result.setNull(i, b.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -174,8 +174,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < b.state->selVector->selectedSize; ++i) {
+                    auto pos = b.state->selVector->selectedPositions[i];
                     result.setNull(pos, b.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -193,21 +193,21 @@ struct TernaryOperationExecutor {
         assert(a.state == b.state && b.state == c.state);
         result.state = a.state;
         if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
-            if (a.state->isUnfiltered()) {
-                for (uint64_t i = 0; i < a.state->selectedSize; i++) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (uint64_t i = 0; i < a.state->selVector->selectedSize; i++) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, i, i, i, i);
                 }
             } else {
-                for (uint64_t i = 0; i < a.state->selectedSize; i++) {
-                    auto pos = a.state->selectedPositions[i];
+                for (uint64_t i = 0; i < a.state->selVector->selectedSize; i++) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, pos, pos, pos, pos);
                 }
             }
         } else {
-            if (a.state->isUnfiltered()) {
-                for (uint64_t i = 0; i < a.state->selectedSize; i++) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (uint64_t i = 0; i < a.state->selVector->selectedSize; i++) {
                     result.setNull(i, a.isNull(i) || b.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -215,8 +215,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (uint64_t i = 0; i < a.state->selectedSize; i++) {
-                    auto pos = a.state->selectedPositions[i];
+                for (uint64_t i = 0; i < a.state->selVector->selectedSize; i++) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     result.setNull(pos, a.isNull(pos) || b.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -237,21 +237,21 @@ struct TernaryOperationExecutor {
         if (b.isNull(bPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee()) {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, i, bPos, cPos, i);
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = a.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, pos, bPos, cPos, pos);
                 }
             }
         } else {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     result.setNull(i, a.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -259,8 +259,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = a.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     result.setNull(pos, a.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -281,21 +281,21 @@ struct TernaryOperationExecutor {
         if (b.isNull(bPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, i, bPos, i, i);
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = a.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, pos, bPos, pos, pos);
                 }
             }
         } else {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     result.setNull(i, a.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -303,8 +303,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = b.state->selVector->selectedPositions[i];
                     result.setNull(pos, a.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -325,21 +325,21 @@ struct TernaryOperationExecutor {
         if (c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee()) {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, i, i, cPos, i);
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = a.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, pos, pos, cPos, pos);
                 }
             }
         } else {
-            if (a.state->isUnfiltered()) {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+            if (a.state->selVector->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
                     result.setNull(i, a.isNull(i) || b.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -347,8 +347,8 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < a.state->selectedSize; ++i) {
-                    auto pos = a.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selVector->selectedSize; ++i) {
+                    auto pos = a.state->selVector->selectedPositions[i];
                     result.setNull(pos, a.isNull(pos) || b.isNull(pos));
                     if (!result.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(

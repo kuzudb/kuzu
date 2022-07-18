@@ -23,8 +23,8 @@ bool Limit::getNextTuples() {
             // = limitNumber. So execution is terminated in above if statement.
             auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
             assert(!dataChunkToSelect->state->isFlat());
-            dataChunkToSelect->state->selectedSize = numTupleToProcessInCurrentResultSet;
-            metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
+            dataChunkToSelect->state->selVector->selectedSize = numTupleToProcessInCurrentResultSet;
+            metrics->numOutputTuple.increase(numTupleToProcessInCurrentResultSet);
         }
     } else {
         metrics->numOutputTuple.increase(numTupleAvailable);

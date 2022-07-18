@@ -43,18 +43,19 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
                 memcpy(nbrNodeValueVector->values, dfsLevelInfo->children->values,
-                    dfsLevelInfo->children->state->selectedSize *
+                    dfsLevelInfo->children->state->selVector->selectedSize *
                         Types::getDataTypeSize(dfsLevelInfo->children->dataType));
-                nbrNodeValueVector->state->selectedSize =
-                    dfsLevelInfo->children->state->selectedSize;
+                nbrNodeValueVector->state->selVector->selectedSize =
+                    dfsLevelInfo->children->state->selVector->selectedSize;
                 dfsLevelInfo->hasBeenOutput = true;
                 metrics->executionTime.stop();
                 return true;
-            } else if (dfsLevelInfo->childrenIdx < dfsLevelInfo->children->state->selectedSize &&
+            } else if (dfsLevelInfo->childrenIdx <
+                           dfsLevelInfo->children->state->selVector->selectedSize &&
                        dfsLevelInfo->level != upperBound) {
                 addDFSLevelToStackIfParentExtends(
                     dfsLevelInfo->children->readNodeOffset(
-                        dfsLevelInfo->children->state
+                        dfsLevelInfo->children->state->selVector
                             ->selectedPositions[dfsLevelInfo->childrenIdx]),
                     dfsLevelInfo->level + 1);
                 dfsLevelInfo->childrenIdx++;
@@ -89,7 +90,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
     auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset(parent);
     ((AdjLists*)storage)->readValues(parent, dfsLevelInfo->children, dfsLevelInfo->largeListHandle);
-    if (dfsLevelInfo->children->state->selectedSize != 0) {
+    if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
         dfsStack.emplace(move(dfsLevelInfo));
         return true;
     }

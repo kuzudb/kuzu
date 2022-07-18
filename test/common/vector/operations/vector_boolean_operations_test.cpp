@@ -230,153 +230,170 @@ static void checkSelectedPos(uint32_t actualNumSelectedPos, const sel_t* actualS
 }
 
 TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatNoNulls) {
-    auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
-    auto numSelectedPos = 0u;
+    auto selectedPosBuffer = result->state->selVector->getSelectedPositionsBuffer();
+    auto selectedSize = result->state->selVector->selectedSize;
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
-        *vector1, *vector2, selectedPosBuffer);
+    BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are multiples of 4 {0, 4, 8, 16 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 0; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 4 == 0; }, NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are follow that pattern {0, 1, 2, 4, 5, 6 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 != 3; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 4 != 3; }, NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions follow the pattern {1, 2, 5, 6, 9, 10 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 1 || i % 4 == 2; },
-        NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 4 == 1 || i % 4 == 2; }, NUM_TUPLES);
 
-    numSelectedPos =
-        UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, *result->state->selVector);
     // selected positions are all odd positions {1, 3, 5 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 2 == 1; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 2 == 1; }, NUM_TUPLES);
 }
 
 TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatWithNulls) {
     setNullsInVectors(vector1, vector2, NUM_TUPLES);
+    auto selectedPosBuffer = result->state->selVector->getSelectedPositionsBuffer();
+    auto selectedSize = result->state->selVector->selectedSize;
 
-    auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
-    auto numSelectedPos = 0u;
-
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
-        *vector1, *vector2, selectedPosBuffer);
+    BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are multiples of 16 {0, 16, 32, 48 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 16 == 0; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 16 == 0; }, NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of {0, 8, 16 ...}, {2, 10, 18 ...}, {1, 17, 33 ...},
     // {4, 20, 36 ...} and {5, 21, 37 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer,
+        result->state->selVector->selectedSize, selectedPosBuffer,
         [](uint32_t i) {
             return i % 8 == 0 || i % 8 == 2 || i % 16 == 1 || i % 16 == 4 || i % 16 == 5;
         },
         NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of {1, 17, 33 ...} and {2, 18, 34 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 16 == 1 || i % 16 == 2; },
-        NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 16 == 1 || i % 16 == 2; }, NUM_TUPLES);
 
-    numSelectedPos =
-        UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    UnaryBooleanOperationExecutor::select<operation::Not>(*vector1, *result->state->selVector);
     // selected positions are union of {1, 9, 17 ...} and {3, 11, 19 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 8 == 1 || i % 8 == 3; },
-        NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 8 == 1 || i % 8 == 3; }, NUM_TUPLES);
 }
 
 TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatNoNulls) {
     dataChunkWithVector1->state->currIdx = 0;
+    auto selectedPosBuffer = result->state->selVector->getSelectedPositionsBuffer();
+    auto selectedSize = result->state->selVector->selectedSize;
 
-    auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
-    auto numSelectedPos = 0u;
-
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
-        *vector1, *vector2, selectedPosBuffer);
+    BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of multiples of 4 and {1, 5, 9 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 0 || i % 4 == 1; },
-        NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 4 == 0 || i % 4 == 1; }, NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, *result->state->selVector);
     // all positions are selected.
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return true; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer, [](uint32_t i) { return true; },
+        NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of {2, 6, 10 ...} and {3, 7, 1 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 2 || i % 4 == 3; },
-        NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer,
+        [](uint32_t i) { return i % 4 == 2 || i % 4 == 3; }, NUM_TUPLES);
 }
 
 TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatWithNulls) {
     setNullsInVectors(vector1, vector2, NUM_TUPLES);
-    auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
-    auto numSelectedPos = 0u;
+    auto selectedPosBuffer = result->state->selVector->getSelectedPositionsBuffer();
+    auto selectedSize = result->state->selVector->selectedSize;
 
     // CASE 1: Flat value is TRUE
     dataChunkWithVector1->state->currIdx = 0;
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
-        *vector1, *vector2, selectedPosBuffer);
+    BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of multiples of 16, {1, 17, 33 ...}, {4, 20, 36 ...} and
     // {5, 21, 37}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer,
+        result->state->selVector->selectedSize, selectedPosBuffer,
         [](uint32_t i) { return i % 16 == 0 || i % 16 == 1 || i % 16 == 4 || i % 16 == 5; },
         NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, *result->state->selVector);
     // all positions are selected.
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return true; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer, [](uint32_t i) { return true; },
+        NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of {2, 18, 34 ...}, {3, 19, 35 ...}, {6, 22, 38} and
     // {7, 23, 39 ...}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer,
+        result->state->selVector->selectedSize, selectedPosBuffer,
         [](uint32_t i) { return i % 16 == 2 || i % 16 == 3 || i % 16 == 6 || i % 16 == 7; },
         NUM_TUPLES);
 
     // CASE 2: Flat pos has isNull = TRUE
     dataChunkWithVector1->state->currIdx = 4;
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, *result->state->selVector);
     // no positions are selected.
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return false; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer, [](uint32_t i) { return false; },
+        NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
-        *vector1, *vector2, selectedPosBuffer);
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, *result->state->selVector);
     // selected positions are union of multiples of 16, {1, 17, 33 ...}, {4, 20, 36 ...} and
     // {5, 21, 37}
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer,
+        result->state->selVector->selectedSize, selectedPosBuffer,
         [](uint32_t i) { return i % 16 == 0 || i % 16 == 1 || i % 16 == 4 || i % 16 == 5; },
         NUM_TUPLES);
 
-    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
-        *vector1, *vector2, selectedPosBuffer);
-    // no poisitons are selected.
+    result->state->selVector->selectedSize = selectedSize;
+    BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, *result->state->selVector);
+    // no positions are selected.
     checkSelectedPos(
-        numSelectedPos, selectedPosBuffer, [](uint32_t i) { return false; }, NUM_TUPLES);
+        result->state->selVector->selectedSize, selectedPosBuffer, [](uint32_t i) { return false; },
+        NUM_TUPLES);
 }

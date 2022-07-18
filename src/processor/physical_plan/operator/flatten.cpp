@@ -16,8 +16,7 @@ void Flatten::reInitToRerunSubPlan() {
 bool Flatten::getNextTuples() {
     metrics->executionTime.start();
     // currentIdx == -1 is the check for initial case
-    if (dataChunkToFlatten->state->currIdx == -1 ||
-        dataChunkToFlatten->state->selectedSize == dataChunkToFlatten->state->currIdx + 1ul) {
+    if (dataChunkToFlatten->state->currIdx == -1 || dataChunkToFlatten->state->isCurrIdxLast()) {
         dataChunkToFlatten->state->currIdx = -1;
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();

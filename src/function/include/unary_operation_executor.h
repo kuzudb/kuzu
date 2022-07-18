@@ -59,21 +59,21 @@ struct UnaryOperationExecutor {
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
-                if (operand.state->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                if (operand.state->selVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                             operand, i, resultValues[i], result);
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        auto pos = operand.state->selectedPositions[i];
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                        auto pos = operand.state->selVector->selectedPositions[i];
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                             operand, pos, resultValues[pos], result);
                     }
                 }
             } else {
-                if (operand.state->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                if (operand.state->selVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                         result.setNull(i, operand.isNull(i));
                         if (!result.isNull(i)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -81,8 +81,8 @@ struct UnaryOperationExecutor {
                         }
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        auto pos = operand.state->selectedPositions[i];
+                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                        auto pos = operand.state->selVector->selectedPositions[i];
                         result.setNull(pos, operand.isNull(pos));
                         if (!result.isNull(pos)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(

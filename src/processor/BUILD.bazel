@@ -31,6 +31,9 @@ cc_library(
     hdrs = [
         "include/physical_plan/operator/filtering_operator.h",
     ],
+    srcs = [
+        "physical_plan/operator/filtering_operator.cpp",
+    ],
     deps = [
         "//src/common:data_chunk",
     ],

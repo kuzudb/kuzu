@@ -103,16 +103,16 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
     while (true) {
         uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
-        if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
+        if (isInRange(selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
                 vectorPos + numValuesToReadInPage)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
             readAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
                 cursor.posInPage, numValuesToReadInPage);
         }
         vectorPos += numValuesToReadInPage;
-        while (selectedState->selectedPositions[selectedStatePos] < vectorPos) {
+        while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
             selectedStatePos++;
-            if (selectedStatePos == selectedState->selectedSize) {
+            if (selectedStatePos == selectedState->selVector->selectedSize) {
                 return;
             }
         }
@@ -148,16 +148,16 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
     while (true) {
         uint64_t numValuesInPage = numElementsPerPage - cursor.posInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
-        if (isInRange(selectedState->selectedPositions[selectedStatePos], vectorPos,
+        if (isInRange(selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
                 vectorPos + numValuesToReadInPage)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
             readNodeIDsFromAPageBySequentialCopy(vector, vectorPos, physicalPageIdx,
                 cursor.posInPage, numValuesToReadInPage, compressionScheme, false /* isAdjList */);
         }
         vectorPos += numValuesToReadInPage;
-        while (selectedState->selectedPositions[selectedStatePos] < vectorPos) {
+        while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
             selectedStatePos++;
-            if (selectedStatePos == selectedState->selectedSize) {
+            if (selectedStatePos == selectedState->selVector->selectedSize) {
                 return;
             }
         }

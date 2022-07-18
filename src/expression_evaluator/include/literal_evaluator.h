@@ -17,7 +17,7 @@ public:
 
     inline void evaluate() override {}
 
-    uint64_t select(sel_t* selectedPos) override;
+    bool select(SelectionVector& selVector) override;
 
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
         return make_unique<LiteralExpressionEvaluator>(literal);

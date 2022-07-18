@@ -11,8 +11,8 @@ void UnstructuredPropertyLists::readProperties(ValueVector* nodeIDVector,
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         readPropertiesForPosition(nodeIDVector, pos, propertyKeyToResultVectorMap);
     } else {
-        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selectedPositions[i];
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             readPropertiesForPosition(nodeIDVector, pos, propertyKeyToResultVectorMap);
         }
     }

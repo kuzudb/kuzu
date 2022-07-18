@@ -25,11 +25,10 @@ private:
     }
 
     template<typename FUNC>
-    static uint64_t BinaryBooleanSelectFunction(
-        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
+    static bool BinaryBooleanSelectFunction(
+        const vector<shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
         assert(params.size() == 2);
-        return BinaryBooleanOperationExecutor::select<FUNC>(
-            *params[0], *params[1], selectedPositions);
+        return BinaryBooleanOperationExecutor::select<FUNC>(*params[0], *params[1], selVector);
     }
 
     template<typename FUNC>
@@ -40,10 +39,10 @@ private:
     }
 
     template<typename FUNC>
-    static uint64_t UnaryBooleanSelectFunction(
-        const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
+    static bool UnaryBooleanSelectFunction(
+        const vector<shared_ptr<ValueVector>>& params, SelectionVector& selVector) {
         assert(params.size() == 1);
-        return UnaryBooleanOperationExecutor::select<FUNC>(*params[0], selectedPositions);
+        return UnaryBooleanOperationExecutor::select<FUNC>(*params[0], selVector);
     }
 
     static scalar_exec_func bindBinaryExecFunction(

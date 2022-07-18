@@ -30,7 +30,7 @@ bool AdjColumnExtend::getNextTuples() {
         hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
     } while (!hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selectedSize);
+    metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selVector->selectedSize);
     return true;
 }
 

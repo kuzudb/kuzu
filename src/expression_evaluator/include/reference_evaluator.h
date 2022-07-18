@@ -8,14 +8,14 @@ namespace evaluator {
 class ReferenceExpressionEvaluator : public BaseExpressionEvaluator {
 
 public:
-    ReferenceExpressionEvaluator(const DataPos& vectorPos)
+    explicit ReferenceExpressionEvaluator(const DataPos& vectorPos)
         : BaseExpressionEvaluator{}, vectorPos{vectorPos} {}
 
     void init(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
     inline void evaluate() override {}
 
-    uint64_t select(sel_t* selectedPos) override;
+    bool select(SelectionVector& selVector) override;
 
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
         return make_unique<ReferenceExpressionEvaluator>(vectorPos);

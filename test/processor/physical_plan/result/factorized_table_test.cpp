@@ -56,8 +56,8 @@ public:
             }
             vectorB2Data[i] = (double)((double)i / 2.0);
         }
-        resultSet->dataChunks[0]->state->selectedSize = 100;
-        resultSet->dataChunks[1]->state->selectedSize = 100;
+        resultSet->dataChunks[0]->state->selVector->selectedSize = 100;
+        resultSet->dataChunks[1]->state->selVector->selectedSize = 100;
     }
 
     unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) {
@@ -154,8 +154,8 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a
         // time.
         factorizedTable->scan(vectorsToRead, i, 1);
-        ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
-        ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 1);
+        ASSERT_EQ(readResultSet->dataChunks[0]->state->selVector->selectedSize, 100);
+        ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 1);
         if (i % 10) {
             ASSERT_EQ(vectorB1->isNull(i), false);
             ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].label, 28);
@@ -177,7 +177,8 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
 
 TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
-    ASSERT_EQ(factorizedTable->getNumTuples(), resultSet->dataChunks[0]->state->selectedSize);
+    ASSERT_EQ(
+        factorizedTable->getNumTuples(), resultSet->dataChunks[0]->state->selVector->selectedSize);
 
     auto readResultSet = initResultSet();
     readResultSet->dataChunks[0]->state->currIdx = -1;
@@ -193,8 +194,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
         // Since B1 is an unflat column in factorizedTable , we can only read one tuple from
         // factorizedTable at a time.
         factorizedTable->scan(vectorsToScan, i, 1);
-        ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 1);
-        ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
+        ASSERT_EQ(readResultSet->dataChunks[0]->state->selVector->selectedSize, 1);
+        ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 100);
         if (i % 15) {
             ASSERT_EQ(vectorA1->isNull(0), false);
             ASSERT_EQ(vectorA1Data[0].label, 18);
@@ -242,7 +243,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     auto numRowsToAppend = 1000;
     auto resultSet = make_unique<ResultSet>(1);
     auto dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selectedSize = numRowsToAppend;
+    dataChunk->state->selVector->selectedSize = numRowsToAppend;
     dataChunk->state->currIdx = 0;
     shared_ptr<ValueVector> strValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     resultSet->insert(0, dataChunk);

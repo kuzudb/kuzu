@@ -19,7 +19,7 @@ void ReadList::reInitToRerunSubPlan() {
 void ReadList::readValuesFromList() {
     auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
     if (inValueVector->isNull(currentIdx)) {
-        outValueVector->state->setSelectedSize(0);
+        outValueVector->state->selVector->selectedSize = 0;
         return;
     }
     auto nodeOffset = inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());

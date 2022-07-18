@@ -14,26 +14,28 @@ void ReferenceExpressionEvaluator::init(const ResultSet& resultSet, MemoryManage
         resultSet.dataChunks[vectorPos.dataChunkPos]->valueVectors[vectorPos.valueVectorPos];
 }
 
-uint64_t ReferenceExpressionEvaluator::select(sel_t* selectedPos) {
+bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
     uint64_t numSelectedValues = 0;
     if (resultVector->state->isFlat()) {
         auto pos = resultVector->state->getPositionOfCurrIdx();
         numSelectedValues += isTrue(*resultVector, pos);
     } else {
-        if (resultVector->state->isUnfiltered()) {
-            for (auto i = 0u; i < resultVector->state->selectedSize; i++) {
-                selectedPos[numSelectedValues] = i;
+        auto selectedBuffer = resultVector->state->selVector->getSelectedPositionsBuffer();
+        if (resultVector->state->selVector->isUnfiltered()) {
+            for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
+                selectedBuffer[numSelectedValues] = i;
                 numSelectedValues += isTrue(*resultVector, i);
             }
         } else {
-            for (auto i = 0u; i < resultVector->state->selectedSize; i++) {
-                auto pos = resultVector->state->selectedPositions[i];
-                selectedPos[numSelectedValues] = pos;
+            for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
+                auto pos = resultVector->state->selVector->selectedPositions[i];
+                selectedBuffer[numSelectedValues] = pos;
                 numSelectedValues += isTrue(*resultVector, pos);
             }
         }
+        selVector.selectedSize = numSelectedValues;
     }
-    return numSelectedValues;
+    return numSelectedValues > 0;
 }
 
 } // namespace evaluator

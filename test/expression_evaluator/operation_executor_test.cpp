@@ -23,10 +23,10 @@ public:
         unFlatDataChunk = make_shared<DataChunk>(5);
 
         flatDataChunk->state->currIdx = 0;
-        flatDataChunk->state->selectedSize = 3;
+        flatDataChunk->state->selVector->selectedSize = 3;
         flatDataChunk->state->originalSize = 3;
         unFlatDataChunk->state->currIdx = -1;
-        unFlatDataChunk->state->selectedSize = 3;
+        unFlatDataChunk->state->selVector->selectedSize = 3;
         unFlatDataChunk->state->originalSize = 3;
 
         flatDataChunk->insert(0, getStringValueVector());
@@ -64,7 +64,8 @@ public:
                 if (expectedValues[i] == "") {
                     ASSERT_EQ(valueVector->isNull(i), true);
                 } else {
-                    ASSERT_EQ(actualValues[valueVector->state->selectedPositions[i]].getAsString(),
+                    ASSERT_EQ(actualValues[valueVector->state->selVector->selectedPositions[i]]
+                                  .getAsString(),
                         expectedValues[i]);
                 }
             }
@@ -79,17 +80,17 @@ public:
             ASSERT_EQ(actualValues[valueVector->state->getPositionOfCurrIdx()], expectedValues[0]);
         } else {
             for (auto i = 0u; i < expectedValues.size(); i++) {
-                ASSERT_EQ(
-                    actualValues[valueVector->state->selectedPositions[i]], expectedValues[i]);
+                ASSERT_EQ(actualValues[valueVector->state->selVector->selectedPositions[i]],
+                    expectedValues[i]);
             }
         }
     }
 
     void setUnFlatDataChunkFiltered() {
-        unFlatDataChunk->state->selectedSize = 2;
-        unFlatDataChunk->state->resetSelectorToValuePosBuffer();
-        unFlatDataChunk->state->selectedPositions[0] = (sel_t)0;
-        unFlatDataChunk->state->selectedPositions[1] = (sel_t)2;
+        unFlatDataChunk->state->selVector->selectedSize = 2;
+        unFlatDataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        unFlatDataChunk->state->selVector->selectedPositions[0] = (sel_t)0;
+        unFlatDataChunk->state->selVector->selectedPositions[1] = (sel_t)2;
     }
 
     // Since nullmask is a private field of valueVector, we do this trick to let
@@ -390,7 +391,6 @@ TEST_F(OperationExecutorTest, NullOperationExecutorUnFlatFiltered) {
 TEST_F(OperationExecutorTest, NullOperationSelect) {
     vector<bool> expectedResult = {true};
     flatValueVectorA->setNull(0, true);
-    ASSERT_EQ(NullOperationExecutor::select<operation::IsNull>(
-                  *flatValueVectorA, nullptr /* selectedPositions */),
-        true);
+    SelectionVector selVector(DEFAULT_VECTOR_CAPACITY);
+    ASSERT_EQ(NullOperationExecutor::select<operation::IsNull>(*flatValueVectorA, selVector), true);
 }

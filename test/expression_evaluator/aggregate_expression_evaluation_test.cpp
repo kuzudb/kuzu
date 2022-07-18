@@ -39,7 +39,7 @@ public:
                 unStrValueVector->setNull(i, true /* isNull */);
             }
         }
-        dataChunk->state->selectedSize = 100;
+        dataChunk->state->selVector->selectedSize = 100;
         dataChunk->insert(0, int64ValueVector);
         dataChunk->insert(1, doubleValueVector);
         dataChunk->insert(2, stringValueVector);

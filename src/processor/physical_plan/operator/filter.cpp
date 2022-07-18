@@ -25,20 +25,15 @@ bool Filter::getNextTuples() {
             return false;
         }
         saveDataChunkSelectorState(dataChunkToSelect);
-        if (dataChunkToSelect->state->isFlat()) {
-            hasAtLeastOneSelectedValue =
-                expressionEvaluator->select(dataChunkToSelect->state->selectedPositions) > 0;
-        } else {
-            dataChunkToSelect->state->selectedSize = expressionEvaluator->select(
-                dataChunkToSelect->state->selectedPositionsBuffer.get());
-            if (dataChunkToSelect->state->isUnfiltered()) {
-                dataChunkToSelect->state->resetSelectorToValuePosBuffer();
-            }
-            hasAtLeastOneSelectedValue = dataChunkToSelect->state->selectedSize > 0;
+        hasAtLeastOneSelectedValue =
+            expressionEvaluator->select(*dataChunkToSelect->state->selVector);
+        if (!dataChunkToSelect->state->isFlat() &&
+            dataChunkToSelect->state->selVector->isUnfiltered()) {
+            dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
         }
     } while (!hasAtLeastOneSelectedValue);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
+    metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     return true;
 }
 
