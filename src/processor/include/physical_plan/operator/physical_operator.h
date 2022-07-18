@@ -43,6 +43,7 @@ enum PhysicalOperatorType : uint8_t {
     UNION_ALL_SCAN,
     VAR_LENGTH_ADJ_LIST_EXTEND,
     VAR_LENGTH_COLUMN_EXTEND,
+    CREATE_NODE_TABLE,
 };
 
 const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",

@@ -16,8 +16,8 @@ public:
 // ID 1, so on and so forth).
 TEST_F(TinySnbDateTest, NodePropertyColumnWithDate) {
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getNodeProperty(label, "birthdate");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "birthdate");
     auto col = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
         label, propertyIdx.propertyID);
     ASSERT_FALSE(col->isNull(0));

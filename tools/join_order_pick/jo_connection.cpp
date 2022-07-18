@@ -1,7 +1,6 @@
 #include "include/jo_connection.h"
 
 #include "src/binder/include/query_binder.h"
-#include "src/main/include/database.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/planner/logical_plan/include/logical_plan_util.h"
@@ -31,7 +30,8 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         }
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
-        auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
+        auto mapper = PlanMapper(
+            *database->storageManager, database->getMemoryManager(), database->catalog.get());
         preparedStatement->physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {

@@ -37,7 +37,7 @@ private:
     unique_ptr<TaskScheduler> taskScheduler;
     const string inputDirectory;
     const string outputDirectory;
-    unique_ptr<Catalog> catalog;
+    unique_ptr<CatalogBuilder> catalogBuilder;
     unique_ptr<BufferManager> bufferManager;
     DatasetMetadata datasetMetadata;
     vector<node_offset_t> maxNodeOffsetsPerNodeLabel;

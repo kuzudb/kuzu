@@ -6,6 +6,7 @@
 #include "src/binder/expression/include/property_expression.h"
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -23,6 +24,7 @@
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
+#include "src/processor/include/physical_plan/operator/create_node_table.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
@@ -143,6 +145,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_DELETE: {
         physicalOperator = mapLogicalDeleteToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_CREATE_NODE_TABLE: {
+        physicalOperator =
+            mapLogicalCreateNodeTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:
         assert(false);
@@ -415,6 +421,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
         outputDataPoses, orderBySharedState, move(orderByMerge), getOperatorID(), paramsString);
     return orderByScan;
+}
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto& createNodeTable = (LogicalCreateNodeTable&)*logicalOperator;
+    return make_unique<CreateNodeTable>(catalog, createNodeTable.getLabelName(),
+        createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKey(),
+        getOperatorID(), createNodeTable.getExpressionsForPrinting());
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(

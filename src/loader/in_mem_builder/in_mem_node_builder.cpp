@@ -10,10 +10,10 @@ namespace graphflow {
 namespace loader {
 
 InMemNodeBuilder::InMemNodeBuilder(const NodeFileDescription& fileDescription,
-    string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
+    string outputDirectory, TaskScheduler& taskScheduler, CatalogBuilder& catalogBuilder,
     LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{fileDescription.labelName, fileDescription.filePath,
-          move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
+          move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalogBuilder,
           progressBar},
       IDType{fileDescription.IDType}, nodeLabel{nullptr}, numNodes{UINT64_MAX} {}
 
@@ -39,10 +39,16 @@ uint64_t InMemNodeBuilder::load() {
 
 void InMemNodeBuilder::createTableSchema() {
     auto propertyDefinitions = parseCSVHeader(inputFilePath);
-    auto newNodeLabel = catalog.createNodeLabel(labelName, IDType, move(propertyDefinitions));
+    for (auto& propertyDefinition : propertyDefinitions) {
+        if (propertyDefinition.isIDProperty()) {
+            propertyDefinition.dataType = IDType;
+        }
+    }
+    auto newNodeLabel = catalogBuilder.createNodeLabel(
+        labelName, LoaderConfig::ID_FIELD, move(propertyDefinitions));
     assert(nodeLabel == nullptr);
     nodeLabel = newNodeLabel.get();
-    catalog.addNodeLabel(move(newNodeLabel));
+    catalogBuilder.addNodeLabel(move(newNodeLabel));
 }
 
 void InMemNodeBuilder::initializeColumnsAndList() {

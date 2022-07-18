@@ -79,6 +79,12 @@ WALRecord WALRecord::newNodeMetadataRecord() {
     return retVal;
 }
 
+WALRecord WALRecord::newCatalogRecord() {
+    WALRecord retVal;
+    retVal.recordType = CATALOG_RECORD;
+    return retVal;
+}
+
 void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
     ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
     offset += sizeof(WALRecord);

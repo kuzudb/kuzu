@@ -10,7 +10,8 @@ class InMemNodeBuilder : public InMemStructuresBuilder {
 
 public:
     InMemNodeBuilder(const NodeFileDescription& fileDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog, LoaderProgressBar* progressBar);
+        TaskScheduler& taskScheduler, CatalogBuilder& catalogBuilder,
+        LoaderProgressBar* progressBar);
 
     ~InMemNodeBuilder() override = default;
 

@@ -60,30 +60,31 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<PhysicalPlan> physicalPlan;
     try {
-        // parsing
         auto cypher = Parser::parseQuery(query);
+        unique_ptr<BoundStatement> boundStatement;
         if (cypher->getStatementType() == StatementType::QUERY) {
             auto parsedQuery = reinterpret_cast<RegularQuery*>(cypher.get());
             querySummary->isExplain = parsedQuery->isEnableExplain();
             querySummary->isProfile = parsedQuery->isEnableProfile();
-            // binding
             auto binder = QueryBinder(*database->catalog);
-            auto boundQuery = binder.bind(*parsedQuery);
+            boundStatement = binder.bind(*parsedQuery);
             preparedStatement->parameterMap = binder.getParameterMap();
-            // planning
-            auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
-            auto logicalPlan = Planner::getBestPlan(*database->catalog, nodesMetadata, *boundQuery);
-            preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-            // mapping
-            auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
-            physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
+            preparedStatement->isDDL = false;
         } else {
             auto parsedQuery = reinterpret_cast<CreateNodeClause*>(cypher.get());
-            // binding
             auto binder = CreateNodeClauseBinder(database->catalog.get());
-            auto boundCreateNodeTable = binder.bind(*parsedQuery);
-            database->catalog->addNodeLabel(*boundCreateNodeTable);
+            boundStatement = binder.bind(*parsedQuery);
+            preparedStatement->isDDL = true;
         }
+
+        // planning
+        auto logicalPlan = Planner::getBestPlan(*database->catalog,
+            database->storageManager->getNodesStore().getNodesMetadata(), *boundStatement);
+        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+        // mapping
+        auto mapper = PlanMapper(
+            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     } catch (Exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
@@ -116,8 +117,8 @@ string Connection::getBuiltInAggregateFunctionNames() {
 string Connection::getNodeLabelNames() {
     lock_t lck{mtx};
     string result = "Node labels: \n";
-    for (auto i = 0u; i < database->catalog->getNumNodeLabels(); ++i) {
-        result += "\t" + database->catalog->getNodeLabelName(i) + "\n";
+    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumNodeLabels(); ++i) {
+        result += "\t" + database->catalog->getReadOnlyVersion()->getNodeLabelName(i) + "\n";
     }
     return result;
 }
@@ -125,8 +126,8 @@ string Connection::getNodeLabelNames() {
 string Connection::getRelLabelNames() {
     lock_t lck{mtx};
     string result = "Rel labels: \n";
-    for (auto i = 0u; i < database->catalog->getNumRelLabels(); ++i) {
-        result += "\t" + database->catalog->getRelLabelName(i) + "\n";
+    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumRelLabels(); ++i) {
+        result += "\t" + database->catalog->getReadOnlyVersion()->getRelLabelName(i) + "\n";
     }
     return result;
 }
@@ -134,12 +135,12 @@ string Connection::getRelLabelNames() {
 string Connection::getNodePropertyNames(const string& nodeLabelName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
-    if (!catalog->containNodeLabel(nodeLabelName)) {
+    if (!catalog->getReadOnlyVersion()->containNodeLabel(nodeLabelName)) {
         throw Exception("Cannot find node label " + nodeLabelName);
     }
     string result = nodeLabelName + " properties: \n";
-    auto labelId = catalog->getNodeLabelFromName(nodeLabelName);
-    for (auto& property : catalog->getAllNodeProperties(labelId)) {
+    auto labelId = catalog->getReadOnlyVersion()->getNodeLabelFromName(nodeLabelName);
+    for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(labelId)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
         result += property.isIDProperty() ? "(ID PROPERTY)\n" : "\n";
     }
@@ -149,20 +150,22 @@ string Connection::getNodePropertyNames(const string& nodeLabelName) {
 string Connection::getRelPropertyNames(const string& relLabelName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
-    if (!catalog->containRelLabel(relLabelName)) {
+    if (!catalog->getReadOnlyVersion()->containRelLabel(relLabelName)) {
         throw Exception("Cannot find rel label " + relLabelName);
     }
-    auto labelId = catalog->getRelLabelFromName(relLabelName);
+    auto labelId = catalog->getReadOnlyVersion()->getRelLabelFromName(relLabelName);
     string result = relLabelName + " src nodes: \n";
-    for (auto& nodeLabelId : catalog->getNodeLabelsForRelLabelDirection(labelId, FWD)) {
-        result += "\t" + catalog->getNodeLabelName(nodeLabelId) + "\n";
+    for (auto& nodeLabelId :
+        catalog->getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelId, FWD)) {
+        result += "\t" + catalog->getReadOnlyVersion()->getNodeLabelName(nodeLabelId) + "\n";
     }
     result += relLabelName + " dst nodes: \n";
-    for (auto& nodeLabelId : catalog->getNodeLabelsForRelLabelDirection(labelId, BWD)) {
-        result += "\t" + catalog->getNodeLabelName(nodeLabelId) + "\n";
+    for (auto& nodeLabelId :
+        catalog->getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelId, BWD)) {
+        result += "\t" + catalog->getReadOnlyVersion()->getNodeLabelName(nodeLabelId) + "\n";
     }
     result += relLabelName + " properties: \n";
-    for (auto& property : catalog->getRelProperties(labelId)) {
+    for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(labelId)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
     }
     return result;
@@ -181,7 +184,8 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
+    auto mapper =
+        PlanMapper(*database->storageManager, database->getMemoryManager(), database->getCatalog());
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     preparedStatement->physicalPlan = move(physicalPlan);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
@@ -233,6 +237,13 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         executingTimer.start();
         shared_ptr<FactorizedTable> table;
         try {
+            if (preparedStatement->isDDL && activeTransaction) {
+                throw ConnectionException(
+                    "DDL statements are automatically wrapped in a "
+                    "transaction and committed automatically. As such, they cannot be part of an "
+                    "active transaction, please commit or rollback your previous transaction and "
+                    "issue a ddl query without opening a transaction.");
+            }
             if (AUTO_COMMIT == transactionMode) {
                 assert(!activeTransaction);
                 // If the caller didn't explicitly start a transaction, we do so now and commit or

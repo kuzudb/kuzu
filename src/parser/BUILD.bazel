@@ -8,6 +8,9 @@ cc_library(
     visibility = [
         "//src/parser:__subpackages__",
     ],
+    deps = [
+        "//src/common:statement_type",
+    ],
 )
 
 cc_library(

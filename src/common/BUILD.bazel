@@ -207,3 +207,11 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "statement_type",
+    hdrs = [
+        "include/statement_type.h",
+    ],
+    visibility = ["//visibility:public"],
+)

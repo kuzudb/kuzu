@@ -47,9 +47,10 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", relLabel);
     for (auto relDirection : REL_DIRECTIONS) {
-        const auto& nodeLabels = catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection);
-        const auto& nbrNodeLabels =
-            catalog.getNodeLabelsForRelLabelDirection(relLabel, !relDirection);
+        const auto& nodeLabels =
+            catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection);
+        const auto& nbrNodeLabels = catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+            relLabel, !relDirection);
         for (auto nodeLabel : nodeLabels) {
             NodeIDCompressionScheme nodeIDCompressionScheme(nbrNodeLabels, maxNodeOffsetsPerLabel);
             logger->debug("DIRECTION {} nodeLabelForAdjColumnAndProperties {} relLabel {} "
@@ -57,7 +58,8 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                 relDirection, nodeLabel, relLabel, nodeIDCompressionScheme.getNumBytesForLabel(),
                 nodeIDCompressionScheme.getNumBytesForOffset(),
                 nodeIDCompressionScheme.getCommonLabel());
-            if (catalog.isSingleMultiplicityInDirection(relLabel, relDirection)) {
+            if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+                    relLabel, relDirection)) {
                 // Add adj column.
                 auto storageStructureIDAndFName = StorageUtils::getAdjColumnStructureIDAndFName(
                     directory, relLabel, nodeLabel, relDirection);
@@ -80,9 +82,10 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
 void RelTable::initPropertyListsAndColumns(const Catalog& catalog, const string& directory,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal) {
     logger->info("Initializing PropertyLists and PropertyColumns for rel {}.", relLabel);
-    if (!catalog.getRelProperties(relLabel).empty()) {
+    if (!catalog.getReadOnlyVersion()->getRelProperties(relLabel).empty()) {
         for (auto relDirection : REL_DIRECTIONS) {
-            if (catalog.isSingleMultiplicityInDirection(relLabel, relDirection)) {
+            if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+                    relLabel, relDirection)) {
                 initPropertyColumnsForRelLabel(
                     catalog, directory, bufferManager, relDirection, isInMemoryMode, wal);
             } else {
@@ -97,8 +100,9 @@ void RelTable::initPropertyListsAndColumns(const Catalog& catalog, const string&
 void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& directory,
     BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
-    for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
-        auto& properties = catalog.getRelProperties(relLabel);
+    for (auto& nodeLabel :
+        catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
+        auto& properties = catalog.getReadOnlyVersion()->getRelProperties(relLabel);
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
@@ -117,8 +121,9 @@ void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const stri
 void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string& directory,
     BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode) {
     logger->debug("Initializing PropertyLists for rel {}", relLabel);
-    for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
-        auto& properties = catalog.getRelProperties(relLabel);
+    for (auto& nodeLabel :
+        catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
+        auto& properties = catalog.getReadOnlyVersion()->getRelProperties(relLabel);
         auto adjListsHeaders = adjLists[relDirection].at(nodeLabel)->getHeaders();
         propertyLists[relDirection].emplace(
             nodeLabel, vector<unique_ptr<Lists>>(properties.size()));

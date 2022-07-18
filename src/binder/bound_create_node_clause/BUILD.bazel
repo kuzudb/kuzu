@@ -10,6 +10,7 @@ cc_library(
         "//src/catalog:__pkg__",
     ],
     deps = [
+        "//src/binder/bound_statement",
         "//src/catalog:catalog_structs",
     ],
 )

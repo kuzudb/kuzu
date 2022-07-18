@@ -10,6 +10,12 @@
 #include "src/transaction/include/transaction_manager.h"
 
 namespace graphflow {
+namespace transaction {
+class TinySnbCreateNodeTableTest;
+} // namespace transaction
+} // namespace graphflow
+
+namespace graphflow {
 namespace main {
 
 struct SystemConfig {
@@ -40,6 +46,7 @@ struct DatabaseConfig {
 class Database {
     friend class Connection;
     friend class JOConnection;
+    friend class graphflow::transaction::TinySnbCreateNodeTableTest;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)
@@ -87,6 +94,12 @@ public:
                 storageManager->getNodesStore()
                     .getNodesMetadata()
                     .writeNodesMetadataFileForWALRecord(storageManager->getDBDirectory());
+            }
+        } else if (catalog->hasUpdates()) {
+            storageManager->getWAL().logCatalogRecord();
+            // If we are committing, we also need to write the WAL file for catalog.
+            if (isCommit) {
+                catalog->writeCatalogForWALRecord(storageManager->getDBDirectory());
             }
         }
         if (isCommit) {

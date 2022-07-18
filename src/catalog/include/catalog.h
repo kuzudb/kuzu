@@ -6,7 +6,6 @@
 #include "catalog_structs.h"
 #include "nlohmann/json.hpp"
 
-#include "src/binder/bound_create_node_clause/include/bound_create_node_clause.h"
 #include "src/common/include/assert.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
@@ -25,45 +24,25 @@ class logger;
 namespace graphflow {
 namespace catalog {
 
-class Catalog {
-
+class CatalogContent {
 public:
-    Catalog();
-    explicit Catalog(const string& directory);
+    CatalogContent();
+    explicit CatalogContent(const string& directory);
 
-    virtual ~Catalog() = default;
+    CatalogContent(const CatalogContent& other);
 
-    inline BuiltInVectorOperations* getBuiltInScalarFunctions() const {
-        return builtInVectorOperations.get();
-    }
-    inline BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
-        return builtInAggregateFunctions.get();
-    }
-
-    inline ExpressionType getFunctionType(const string& name) const {
-        if (builtInVectorOperations->containsFunction(name)) {
-            return FUNCTION;
-        } else if (builtInAggregateFunctions->containsFunction(name)) {
-            return AGGREGATE_FUNCTION;
-        } else {
-            throw CatalogException(name + " function does not exist.");
-        }
-    }
+    virtual ~CatalogContent() = default;
 
     /**
      * Node and Rel label functions.
      */
-    unique_ptr<NodeLabel> createNodeLabel(string labelName, const DataType& IDType,
+    unique_ptr<NodeLabel> createNodeLabel(string labelName, string primaryKey,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
     inline void addNodeLabel(unique_ptr<NodeLabel> nodeLabel) {
         nodeLabelNameToIdMap[nodeLabel->labelName] = nodeLabel->labelId;
         nodeLabels.push_back(move(nodeLabel));
     }
-
-    // This function is used for createNodeClause test only and should be removed as soon as
-    // possible.
-    void addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause);
 
     unique_ptr<RelLabel> createRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyNameDataType>& structuredPropertyDefinitions,
@@ -140,7 +119,7 @@ public:
     virtual uint64_t getNumRelsForDirectionBoundLabel(
         label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const;
 
-    void saveToFile(const string& directory);
+    void saveToFile(const string& directory, bool isForWALRecord);
     void readFromFile(const string& directory);
 
 private:
@@ -151,14 +130,106 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
-    unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
     vector<unique_ptr<NodeLabel>> nodeLabels;
     vector<unique_ptr<RelLabel>> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;
     unordered_map<string, label_t> relLabelNameToIdMap;
+};
+
+class Catalog {
+public:
+    Catalog();
+    explicit Catalog(const string& directory);
+
+    virtual ~Catalog() = default;
+
+    inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
+
+    inline BuiltInVectorOperations* getBuiltInScalarFunctions() const {
+        return builtInVectorOperations.get();
+    }
+    inline BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
+        return builtInAggregateFunctions.get();
+    }
+
+    virtual inline unique_ptr<NodeLabel> createNodeLabel(string labelName, string primaryKey,
+        vector<PropertyNameDataType> structuredPropertyDefinitions) {
+        initCatalogContentForWriteTrxIfNecessary();
+        return catalogContentForWriteTrx->createNodeLabel(
+            move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
+    }
+
+    virtual inline void addNodeLabel(unique_ptr<NodeLabel> nodeLabel) {
+        initCatalogContentForWriteTrxIfNecessary();
+        catalogContentForWriteTrx->addNodeLabel(move(nodeLabel));
+    }
+
+    virtual inline unique_ptr<RelLabel> createRelLabel(string labelName,
+        RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType>& structuredPropertyDefinitions,
+        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) {
+        initCatalogContentForWriteTrxIfNecessary();
+        return catalogContentForWriteTrx->createRelLabel(move(labelName), relMultiplicity,
+            structuredPropertyDefinitions, srcNodeLabelNames, dstNodeLabelNames);
+    }
+
+    virtual inline void addRelLabel(unique_ptr<RelLabel> relLabel) {
+        initCatalogContentForWriteTrxIfNecessary();
+        catalogContentForWriteTrx->addRelLabel(move(relLabel));
+    }
+
+    inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
+
+    void checkpointInMemoryIfNecessary();
+
+    inline void initCatalogContentForWriteTrxIfNecessary() {
+        if (!catalogContentForWriteTrx) {
+            catalogContentForWriteTrx = make_unique<CatalogContent>(*catalogContentForReadOnlyTrx);
+        }
+    }
+
+    inline void writeCatalogForWALRecord(string directory) {
+        catalogContentForWriteTrx->saveToFile(move(directory), true /* isForWALRecord */);
+    }
+
+    ExpressionType getFunctionType(const string& name) const;
+
+protected:
+    unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
+    unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
+    unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
+    unique_ptr<CatalogContent> catalogContentForWriteTrx;
+};
+
+// This class is only used by loader to initialize node/rel labels. Since the loader has no
+// knowledge of transaction, the catalogBuilder always read/update the catalogContentForReadOnly
+// transactions.
+class CatalogBuilder : public Catalog {
+public:
+    CatalogBuilder() : Catalog() {}
+
+    inline unique_ptr<NodeLabel> createNodeLabel(string labelName, string primaryKey,
+        vector<PropertyNameDataType> structuredPropertyDefinitions) override {
+        return catalogContentForReadOnlyTrx->createNodeLabel(
+            move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
+    }
+
+    inline void addNodeLabel(unique_ptr<NodeLabel> nodeLabel) override {
+        catalogContentForReadOnlyTrx->addNodeLabel(move(nodeLabel));
+    }
+
+    inline unique_ptr<RelLabel> createRelLabel(string labelName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType>& structuredPropertyDefinitions,
+        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) override {
+        return catalogContentForReadOnlyTrx->createRelLabel(move(labelName), relMultiplicity,
+            structuredPropertyDefinitions, srcNodeLabelNames, dstNodeLabelNames);
+    }
+
+    inline void addRelLabel(unique_ptr<RelLabel> relLabel) override {
+        catalogContentForReadOnlyTrx->addRelLabel(move(relLabel));
+    }
 };
 
 } // namespace catalog

@@ -235,6 +235,21 @@ cc_library(
 )
 
 cc_library(
+    name = "create_node_table",
+    srcs = [
+        "physical_plan/operator/create_node_table.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/create_node_table.h",
+    ],
+    deps = [
+        "base_operator",
+        "source_operator",
+        "//src/storage:storage_manager",
+    ],
+)
+
+cc_library(
     name = "operator_impls",
     srcs = glob([
         "physical_plan/operator/*.cpp",
@@ -245,6 +260,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
+        "create_node_table",
         "hash_join",
         "order_by",
         "physical_plan",
@@ -302,6 +318,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
+        "create_node_table",
         "physical_plan",
         "result_collector",
         "//src/common:task_system",

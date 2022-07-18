@@ -18,7 +18,7 @@ public:
 
     /******* validations *********/
     inline void validateLabelName(string& schemaName) {
-        if (catalog->containNodeLabel(schemaName)) {
+        if (catalog->getReadOnlyVersion()->containNodeLabel(schemaName)) {
             throw BinderException("Node " + schemaName + " already exists.");
         }
     }

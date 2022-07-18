@@ -53,6 +53,8 @@ struct StorageConfig {
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
     static constexpr char NODES_METADATA_FILE_NAME[] = "nodes.metadata";
     static constexpr char NODES_METADATA_FILE_NAME_FOR_WAL[] = "nodes.metadata.wal";
+    static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
@@ -80,6 +82,7 @@ struct LoaderConfig {
     constexpr static char COMMENT_LINE_CHAR = '#';
 
     // mandatory fields in input CSV files
+    // TODO(Ziyi): remove this field since the primary key may not necessarily be ID.
     static constexpr char ID_FIELD[] = "ID";
     static constexpr char START_ID_FIELD[] = "START_ID";
     static constexpr char END_ID_FIELD[] = "END_ID";

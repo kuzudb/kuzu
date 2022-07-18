@@ -10,7 +10,7 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 
 public:
     InMemRelBuilder(const RelFileDescription& fileDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog,
+        TaskScheduler& taskScheduler, CatalogBuilder& catalogBuilder,
         const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
         BufferManager* bufferManager, LoaderProgressBar* progressBar);
 

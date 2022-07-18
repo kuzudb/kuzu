@@ -19,7 +19,7 @@ GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
       inputDirectory{std::move(inputDirectory)}, outputDirectory{std::move(outputDirectory)} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
-    catalog = make_unique<Catalog>();
+    catalogBuilder = make_unique<CatalogBuilder>();
     bufferManager = make_unique<BufferManager>(defaultPageBufferPoolSize, largePageBufferPoolSize);
 }
 
@@ -38,7 +38,8 @@ void GraphLoader::loadGraph() {
         loadNodes();
         loadRels();
         progressBar->addAndStartNewJob("Saving Catalog to file.", 1);
-        catalog->saveToFile(outputDirectory);
+        catalogBuilder->getReadOnlyVersion()->saveToFile(
+            outputDirectory, false /* isForWALRecord */);
         progressBar->incrementTaskFinished();
 
         progressBar->addAndStartNewJob("Saving NodesMetadata to file.", 1);
@@ -84,7 +85,7 @@ void GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
     for (auto i = 0u; i < datasetMetadata.getNumNodeFiles(); ++i) {
         auto nodeBuilder = make_unique<InMemNodeBuilder>(datasetMetadata.getNodeFileDescription(i),
-            outputDirectory, *taskScheduler, *catalog, progressBar.get());
+            outputDirectory, *taskScheduler, *catalogBuilder, progressBar.get());
         auto numNodesLoaded = nodeBuilder->load();
         maxNodeOffsetsPerNodeLabel.push_back(numNodesLoaded - 1);
     }
@@ -97,7 +98,7 @@ void GraphLoader::loadRels() {
     for (auto relLabel = 0u; relLabel < datasetMetadata.getNumRelFiles(); relLabel++) {
         auto relBuilder =
             make_unique<InMemRelBuilder>(datasetMetadata.getRelFileDescription(relLabel),
-                outputDirectory, *taskScheduler, *catalog, maxNodeOffsetsPerNodeLabel,
+                outputDirectory, *taskScheduler, *catalogBuilder, maxNodeOffsetsPerNodeLabel,
                 numRelsLoaded, bufferManager.get(), progressBar.get());
         numRelsLoaded += relBuilder->load();
     }

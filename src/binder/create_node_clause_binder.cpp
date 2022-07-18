@@ -31,8 +31,8 @@ void CreateNodeClauseBinder::validatePrimaryKey(
     string& primaryKey, vector<pair<string, string>>& properties) {
     for (auto& property : properties) {
         if (property.first == primaryKey) {
-            // We only support INT and STRING column as primary key.
-            if ((property.second != string("INT")) && (property.second != string("STRING"))) {
+            // We only support INT64 and STRING column as primary key.
+            if ((property.second != string("INT64")) && (property.second != string("STRING"))) {
                 throw BinderException("Invalid primary key type: " + property.second + ".");
             }
             return;

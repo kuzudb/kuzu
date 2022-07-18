@@ -21,11 +21,16 @@ public:
         writeTrx = database->getTransactionManager()->beginWriteTransaction();
         readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
 
-        label_t personNodeLabel = database->getCatalog()->getNodeLabelFromName("person");
-        uint32_t agePropertyID =
-            database->getCatalog()->getNodeProperty(personNodeLabel, "age").propertyID;
-        uint32_t eyeSightPropertyID =
-            database->getCatalog()->getNodeProperty(personNodeLabel, "eyeSight").propertyID;
+        label_t personNodeLabel =
+            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
+        uint32_t agePropertyID = database->getCatalog()
+                                     ->getReadOnlyVersion()
+                                     ->getNodeProperty(personNodeLabel, "age")
+                                     .propertyID;
+        uint32_t eyeSightPropertyID = database->getCatalog()
+                                          ->getReadOnlyVersion()
+                                          ->getNodeProperty(personNodeLabel, "eyeSight")
+                                          .propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
         nodeVector = make_shared<ValueVector>(database->getMemoryManager(), NODE_ID);

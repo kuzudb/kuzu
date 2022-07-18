@@ -213,11 +213,11 @@ public:
         return fName + StorageConfig::OVERFLOW_FILE_SUFFIX;
     }
 
-    static void removeNodesMetadataFileForWALIfExists(const string& directory) {
+    static inline void removeNodesMetadataFileForWALIfExists(const string& directory) {
         FileUtils::removeFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */));
     }
 
-    static void overwriteNodesMetadataFileWithVersionFromWAL(const string& directory) {
+    static inline void overwriteNodesMetadataFileWithVersionFromWAL(const string& directory) {
         FileUtils::overwriteFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */),
             getNodesMetadataFilePath(directory, false /* original nodes metadata file */));
     }
@@ -230,6 +230,21 @@ public:
 
     static inline uint64_t getListChunkIdx(node_offset_t nodeOffset) {
         return nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+    }
+
+    static inline void removeCatalogFileForWALIfExists(const string& directory) {
+        FileUtils::removeFile(getCatalogFilePath(directory, true /* isForWALRecord */));
+    }
+
+    static inline void overwriteCatalogFileWithVersionFromWAL(const string& directory) {
+        FileUtils::overwriteFile(getCatalogFilePath(directory, true /* isForWALRecord */),
+            getCatalogFilePath(directory, false /* original catalog file */));
+    }
+
+    static inline string getCatalogFilePath(const string& directory, bool isForWALRecord) {
+        return FileUtils::joinPath(directory, isForWALRecord ?
+                                                  common::StorageConfig::CATALOG_FILE_NAME_FOR_WAL :
+                                                  common::StorageConfig::CATALOG_FILE_NAME);
     }
 
     // Note: This is a relatively slow function because of division and mod and making pair. It is

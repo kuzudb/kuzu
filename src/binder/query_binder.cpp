@@ -104,8 +104,8 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindCreateClause(
             nodeUpdateInfo->addPropertyUpdateInfo(
                 make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
         }
-        validateNodeCreateHasPrimaryKeyInput(
-            *nodeUpdateInfo, catalog.getNodePrimaryKeyProperty(node->getLabel()));
+        validateNodeCreateHasPrimaryKeyInput(*nodeUpdateInfo,
+            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getLabel()));
         boundCreateClause->addNodeUpdateInfo(move(nodeUpdateInfo));
     }
     return boundCreateClause;
@@ -211,7 +211,7 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
     const shared_ptr<Expression>& expression) {
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
-    for (auto& property : catalog.getAllNodeProperties(node.getLabel())) {
+    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getLabel())) {
         auto propertyExpression = make_shared<PropertyExpression>(
             property.dataType, property.name, property.propertyID, expression);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
@@ -223,7 +223,7 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
 expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
-    for (auto& property : catalog.getRelProperties(rel.getLabel())) {
+    for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getLabel())) {
         auto propertyExpression = make_shared<PropertyExpression>(
             property.dataType, property.name, property.propertyID, expression);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
@@ -390,20 +390,20 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
-    if (!catalog.containRelLabel(parsed_label)) {
+    if (!catalog.getReadOnlyVersion()->containRelLabel(parsed_label)) {
         throw BinderException("Rel label " + parsed_label + " does not exist.");
     }
-    return catalog.getRelLabelFromName(parsed_label);
+    return catalog.getReadOnlyVersion()->getRelLabelFromName(parsed_label);
 }
 
 label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
-    if (!catalog.containNodeLabel(parsed_label)) {
+    if (!catalog.getReadOnlyVersion()->containNodeLabel(parsed_label)) {
         throw BinderException("Node label " + parsed_label + " does not exist.");
     }
-    return catalog.getNodeLabelFromName(parsed_label);
+    return catalog.getReadOnlyVersion()->getNodeLabelFromName(parsed_label);
 }
 
 void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
@@ -416,15 +416,17 @@ void QueryBinder::validateNodeAndRelLabelIsConnected(
     const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction) {
     assert(relLabel != ANY_LABEL);
     assert(nodeLabel != ANY_LABEL);
-    auto connectedRelLabels = catalog_.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
+    auto connectedRelLabels =
+        catalog_.getReadOnlyVersion()->getRelLabelsForNodeLabelDirection(nodeLabel, direction);
     for (auto& connectedRelLabel : connectedRelLabels) {
         if (relLabel == connectedRelLabel) {
             return;
         }
     }
-    throw BinderException("Node label " + catalog_.getNodeLabelName(nodeLabel) +
-                          " doesn't connect to rel label " + catalog_.getRelLabelName(relLabel) +
-                          ".");
+    throw BinderException("Node label " +
+                          catalog_.getReadOnlyVersion()->getNodeLabelName(nodeLabel) +
+                          " doesn't connect to rel label " +
+                          catalog_.getReadOnlyVersion()->getRelLabelName(relLabel) + ".");
 }
 
 void QueryBinder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
