@@ -1,10 +1,10 @@
 #pragma once
-
 #include <memory>
 #include <vector>
 
 #include "nodes_metadata.h"
 
+#include "src/loader/in_mem_storage_structure/include/in_mem_column.h"
 #include "src/storage/store/include/node_table.h"
 
 using namespace graphflow::catalog;
@@ -30,6 +30,15 @@ public:
 
     // TODO: rename to getNodeTable
     inline NodeTable* getNode(label_t nodeLabel) const { return nodeTables[nodeLabel].get(); }
+
+    void addNode(const Catalog& catalog, const string& labelName, BufferManager* bufferManager,
+        bool isInMemory, const string& directory, WAL* wal);
+
+private:
+    static void createColumns(
+        const string& directory, label_t nodeLabel, vector<Property> properties);
+
+    static void createHashIndex(const string& directory, label_t nodeLabel, DataType pkDataType);
 
 private:
     vector<unique_ptr<NodeTable>> nodeTables;

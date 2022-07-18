@@ -8,6 +8,7 @@
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
+#include "src/processor/include/physical_plan/operator/create_node_table.h"
 
 using namespace std;
 using namespace graphflow::parser;
@@ -82,7 +83,15 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
             // binding
             auto binder = CreateNodeClauseBinder(database->catalog.get());
             auto boundCreateNodeTable = binder.bind(*parsedQuery);
-            database->catalog->addNodeLabel(*boundCreateNodeTable);
+            physicalPlan = make_unique<PhysicalPlan>(
+                make_unique<CreateNodeTable>(database->catalog.get(),
+                    boundCreateNodeTable->getLabelName(),
+                    boundCreateNodeTable->getPropertyNameDataTypes(),
+                    boundCreateNodeTable->getPrimaryKey(), database->storageManager.get(),
+                    database->bufferManager.get(), database->databaseConfig.inMemoryMode,
+                    database->databaseConfig.databasePath, 0 /* dummy id */,
+                    "" /* dummy paramsString */),
+                false /* readOnly */);
         }
     } catch (Exception& exception) {
         preparedStatement->success = false;
@@ -226,8 +235,11 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
         profiler.get(), database->memoryManager.get(), database->bufferManager.get());
-    // executing if not EXPLAIN
-    if (!querySummary->isExplain) {
+    if (preparedStatement->physicalPlan->lastOperator->getOperatorType() == CREATE_NODE_TABLE) {
+        ((CreateNodeTable*)preparedStatement->physicalPlan->lastOperator.get())->execute();
+        return queryResult;
+    } else if (!querySummary->isExplain) {
+        // executing if not EXPLAIN
         profiler->enabled = querySummary->isProfile;
         auto executingTimer = TimeMetric(true /* enable */);
         executingTimer.start();

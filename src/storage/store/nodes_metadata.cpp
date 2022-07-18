@@ -12,7 +12,8 @@ namespace storage {
 NodeOffsetsInfo::NodeOffsetsInfo(
     node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets_)
     : maxNodeOffset{maxNodeOffset} {
-    hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
+    hasDeletedNodesPerMorsel.resize(
+        ((maxNodeOffset == UINT64_MAX ? 0 : maxNodeOffset) / DEFAULT_VECTOR_CAPACITY) + 1, false);
     for (node_offset_t deletedNodeOffset : deletedNodeOffsets_) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);
@@ -118,11 +119,12 @@ bool NodeOffsetsInfo::isDeleted(node_offset_t nodeOffset, uint64_t morselIdx) {
     return false;
 }
 
-NodeMetadata::NodeMetadata(
-    label_t labelID, node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets)
-    : labelID{labelID} {
+NodeMetadata::NodeMetadata(label_t labelID, node_offset_t maxNodeOffset,
+    vector<node_offset_t> deletedNodeOffsets, string primaryKey)
+    : labelID{labelID}, primaryKey{primaryKey} {
     nodeOffsetsInfoForReadOnlyTrx = make_unique<NodeOffsetsInfo>(maxNodeOffset, deletedNodeOffsets);
 }
+
 void NodeMetadata::initMaxAndDeletedNodeOffsetsForWriteTrxIfNecessaryNoLock() {
     if (!nodeOffsetsInfoForWriteTrx) {
         nodeOffsetsInfoForWriteTrx = make_unique<NodeOffsetsInfo>(*nodeOffsetsInfoForReadOnlyTrx);

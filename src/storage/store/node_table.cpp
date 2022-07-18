@@ -9,7 +9,7 @@ NodeTable::NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, b
     bool hasUnstructuredProperties = false;
     auto IDPropertyIdx = UINT32_MAX;
     for (const auto& property : properties) {
-        if (property.name == LoaderConfig::ID_FIELD) {
+        if (property.name == nodeMetadata->getPrimaryKey()) {
             IDPropertyIdx = property.propertyID;
         }
         if (property.dataType.typeID == UNSTRUCTURED) {

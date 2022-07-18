@@ -48,13 +48,13 @@ class NodeMetadata {
     friend class NodesMetadata;
 
 public:
-    // Currently used by plan_test_helper.h.
-    NodeMetadata(label_t labelID, node_offset_t maxNodeOffset)
+    NodeMetadata(label_t labelID, node_offset_t maxNodeOffset, const string& primaryKey)
         : NodeMetadata(labelID, maxNodeOffset,
-              vector<node_offset_t>() /* no deleted node offsets during initial loading */) {}
+              vector<node_offset_t>() /* no deleted node offsets during initial loading */,
+              primaryKey) {}
 
-    NodeMetadata(
-        label_t labelID, node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets);
+    NodeMetadata(label_t labelID, node_offset_t maxNodeOffset,
+        vector<node_offset_t> deletedNodeOffsets, string primaryKey = "ID");
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
     node_offset_t addNode();
@@ -95,6 +95,8 @@ public:
         adjListsAndColumns = adjListsAndColumns_;
     }
 
+    inline string getPrimaryKey() { return primaryKey; }
+
 private:
     void errorIfNodeHasEdges(node_offset_t nodeOffset);
 
@@ -110,6 +112,7 @@ private:
 private:
     mutex mtx;
     label_t labelID;
+    string primaryKey;
     // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
     // construction.
     pair<vector<AdjLists*>, vector<AdjColumn*>> adjListsAndColumns;
@@ -166,6 +169,11 @@ public:
     static void saveToFile(const string& directory, bool isForWALRecord,
         vector<node_offset_t>& maxNodeOffsetsPerLabel,
         vector<vector<uint64_t>>& deletedNodeOffsetsPerLabel, shared_ptr<spdlog::logger>& logger);
+
+    inline void addNode(label_t nodeLabel, const string& primaryKey) {
+        nodeMetadataPerLabel.push_back(
+            make_unique<NodeMetadata>(nodeLabel, UINT64_MAX /* maxNodeOffset */, primaryKey));
+    }
 
 private:
     shared_ptr<spdlog::logger> logger;

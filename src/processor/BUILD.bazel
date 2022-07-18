@@ -28,11 +28,11 @@ cc_library(
 
 cc_library(
     name = "filtering_operator",
-    hdrs = [
-        "include/physical_plan/operator/filtering_operator.h",
-    ],
     srcs = [
         "physical_plan/operator/filtering_operator.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/filtering_operator.h",
     ],
     deps = [
         "//src/common:data_chunk",
@@ -230,7 +230,20 @@ cc_library(
         "result",
         "//src/function/aggregate:aggregate_function",
         "//src/function/hash:vector_hash_operations",
+    ],
+)
 
+cc_library(
+    name = "create_node_table",
+    srcs = [
+        "physical_plan/operator/create_node_table.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/create_node_table.h",
+    ],
+    deps = [
+        "base_operator",
+        "//src/storage:storage_manager",
     ],
 )
 
@@ -245,6 +258,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
+        "create_node_table",
         "hash_join",
         "order_by",
         "physical_plan",

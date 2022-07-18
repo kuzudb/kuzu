@@ -5,7 +5,7 @@ namespace processor {
 
 pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     unique_lock lck{mtx};
-    if (currentNodeOffset > maxNodeOffset) {
+    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }
     auto startOffset = currentNodeOffset;

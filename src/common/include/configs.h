@@ -74,6 +74,7 @@ struct LoaderConfig {
     constexpr static char COMMENT_LINE_CHAR = '#';
 
     // mandatory fields in input CSV files
+    // TODO(Ziyi): remove this field since the primary key may not necessarily be ID.
     static constexpr char ID_FIELD[] = "ID";
     static constexpr char START_ID_FIELD[] = "START_ID";
     static constexpr char END_ID_FIELD[] = "END_ID";

@@ -119,8 +119,7 @@ vector<PropertyNameDataType> InMemStructuresBuilder::parseHeaderLine(string& hea
         if (colHeaderComponents[0].empty()) {
             colHeaderDefinition.name = colHeaderComponents[1];
             if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
-                // We don't explicitly have to set the ID column in PropertyNameDataType, so we only
-                // skip over this property.
+                colHeaderDefinition.dataType.typeID = INT64;
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
                 colHeaderDefinition.dataType.typeID = NODE_ID;

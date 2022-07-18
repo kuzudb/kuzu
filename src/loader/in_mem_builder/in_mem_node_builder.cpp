@@ -39,7 +39,7 @@ uint64_t InMemNodeBuilder::load() {
 
 void InMemNodeBuilder::createTableSchema() {
     auto propertyDefinitions = parseCSVHeader(inputFilePath);
-    auto newNodeLabel = catalog.createNodeLabel(labelName, IDType, move(propertyDefinitions));
+    auto newNodeLabel = catalog.createNodeLabel(labelName, "ID", move(propertyDefinitions));
     assert(nodeLabel == nullptr);
     nodeLabel = newNodeLabel.get();
     catalog.addNodeLabel(move(newNodeLabel));

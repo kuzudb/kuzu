@@ -19,9 +19,9 @@ public:
         catalog.setUp();
         vector<unique_ptr<NodeMetadata>> nodeMetadataPerLabel;
         nodeMetadataPerLabel.push_back(
-            make_unique<NodeMetadata>(PERSON_LABEL_ID, NUM_PERSON_NODES));
+            make_unique<NodeMetadata>(PERSON_LABEL_ID, NUM_PERSON_NODES, "ID"));
         nodeMetadataPerLabel.push_back(
-            make_unique<NodeMetadata>(ORGANISATION_LABEL_ID, NUM_ORGANISATION_NODES));
+            make_unique<NodeMetadata>(ORGANISATION_LABEL_ID, NUM_ORGANISATION_NODES, "ID"));
         mockNodeMetadata = make_unique<NodesMetadata>(nodeMetadataPerLabel);
     }
 

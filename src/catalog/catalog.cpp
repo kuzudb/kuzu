@@ -210,11 +210,6 @@ Catalog::Catalog(const string& directory) : Catalog() {
 
 void Catalog::verifyColDefinitionsForNodeLabel(
     const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions) {
-    if (primaryKeyName == "") {
-        throw CatalogException(
-            "Column header definitions of a node file does not contain the mandatory field '" +
-            string(LoaderConfig::ID_FIELD) + "'.");
-    }
     for (auto& colHeaderDefinition : colHeaderDefinitions) {
         auto name = colHeaderDefinition.name;
         if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
@@ -225,7 +220,7 @@ void Catalog::verifyColDefinitionsForNodeLabel(
         if (colHeaderDefinition.dataType.typeID == ANY) {
             throw CatalogException("Column header contains an ANY data type.");
         }
-        if (colHeaderDefinition.isIDProperty()) {
+        if (primaryKeyName == colHeaderDefinition.name) {
             if (colHeaderDefinition.dataType.typeID != STRING &&
                 colHeaderDefinition.dataType.typeID != INT64) {
                 throw CatalogException("Unsupported data type '" +
@@ -236,54 +231,32 @@ void Catalog::verifyColDefinitionsForNodeLabel(
     }
 }
 
-unique_ptr<NodeLabel> Catalog::createNodeLabel(string labelName, const DataType& IDType,
+unique_ptr<NodeLabel> Catalog::createNodeLabel(string labelName, string primaryKey,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
     label_t labelId = getNumNodeLabels();
     uint64_t primaryKeyPropertyId = UINT64_MAX;
-    string primaryKeyName;
     vector<Property> structuredProperties;
     for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
         auto& propertyDefinition = structuredPropertyDefinitions[i];
-        if (propertyDefinition.isIDProperty()) {
-            propertyDefinition.dataType = IDType;
+        if (propertyDefinition.name == primaryKey) {
             if (primaryKeyPropertyId != UINT64_MAX) {
                 throw CatalogException(
                     "Unexpected duplicated primary key property. First primaryKeyName: " +
-                    primaryKeyName + " second PrimaryKeyName" + propertyDefinition.name);
+                    primaryKey + " second PrimaryKeyName" + propertyDefinition.name);
             }
-            primaryKeyName = propertyDefinition.name;
             primaryKeyPropertyId = i;
         }
         structuredProperties.push_back(
             Property::constructStructuredNodeProperty(propertyDefinition, i, labelId));
     }
-    verifyColDefinitionsForNodeLabel(primaryKeyName, structuredPropertyDefinitions);
+    if (primaryKeyPropertyId == UINT64_MAX) {
+        throw CatalogException(
+            "Column header definitions of a node file does not contain the mandatory field '" +
+            string(LoaderConfig::ID_FIELD) + "'.");
+    }
+    verifyColDefinitionsForNodeLabel(primaryKey, structuredPropertyDefinitions);
     return make_unique<NodeLabel>(
         move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
-}
-
-void Catalog::addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause) {
-    auto labelName = boundCreateNodeClause.getLabelName();
-    auto propertyNameDataTypes = boundCreateNodeClause.getPropertyNameDataTypes();
-    auto primaryKey = boundCreateNodeClause.getPrimaryKey();
-    label_t labelId = nodeLabels.size();
-    uint64_t primaryKeyPropertyId = UINT64_MAX;
-    vector<Property> structuredProperties;
-    for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
-        if (propertyNameDataTypes[i].name == primaryKey) {
-            if (primaryKeyPropertyId != UINT64_MAX) {
-                throw CatalogException(
-                    "Unexpected duplicated primary key property. First primaryKeyName: " +
-                    primaryKey + " secondPrimaryKeyName" + propertyNameDataTypes[i].name);
-            }
-            primaryKeyPropertyId = i;
-        }
-        structuredProperties.push_back(
-            Property::constructStructuredNodeProperty(propertyNameDataTypes[i], i, labelId));
-    }
-    auto nodeLabel = make_unique<NodeLabel>(
-        move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
-    addNodeLabel(move(nodeLabel));
 }
 
 void Catalog::verifyColDefinitionsForRelLabel(
