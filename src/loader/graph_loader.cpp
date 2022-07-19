@@ -93,12 +93,12 @@ void GraphLoader::loadNodes() {
 
 void GraphLoader::loadRels() {
     logger->info("Starting to load rels.");
-    auto numRelLabels = datasetMetadata.getNumRelFiles();
     uint64_t numRelsLoaded = 0;
-    for (auto relLabel = 0u; relLabel < numRelLabels; relLabel++) {
-        auto relBuilder = make_unique<InMemRelBuilder>(relLabel,
-            datasetMetadata.getRelFileDescription(relLabel), outputDirectory, *taskScheduler,
-            *catalog, maxNodeOffsetsPerNodeLabel, numRelsLoaded, *bufferManager, progressBar.get());
+    for (auto relLabel = 0u; relLabel < datasetMetadata.getNumRelFiles(); relLabel++) {
+        auto relBuilder =
+            make_unique<InMemRelBuilder>(datasetMetadata.getRelFileDescription(relLabel),
+                outputDirectory, *taskScheduler, *catalog, maxNodeOffsetsPerNodeLabel,
+                numRelsLoaded, bufferManager.get(), progressBar.get());
         numRelsLoaded += relBuilder->load();
     }
     logger->info("Done loading rels.");

@@ -1,7 +1,22 @@
 #include "include/catalog_structs.h"
 
+#include "src/common/include/exception.h"
+
 namespace graphflow {
 namespace catalog {
+
+RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString) {
+    if ("ONE_ONE" == relMultiplicityString) {
+        return ONE_ONE;
+    } else if ("MANY_ONE" == relMultiplicityString) {
+        return MANY_ONE;
+    } else if ("ONE_MANY" == relMultiplicityString) {
+        return ONE_MANY;
+    } else if ("MANY_MANY" == relMultiplicityString) {
+        return MANY_MANY;
+    }
+    throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
+}
 
 void NodeLabel::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
     for (auto& unstrPropertyName : unstructuredPropertyNames) {

@@ -183,19 +183,6 @@ uint64_t SerDeser::deserializeValue<RelLabel>(
 namespace graphflow {
 namespace catalog {
 
-RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString) {
-    if ("ONE_ONE" == relMultiplicityString) {
-        return ONE_ONE;
-    } else if ("MANY_ONE" == relMultiplicityString) {
-        return MANY_ONE;
-    } else if ("ONE_MANY" == relMultiplicityString) {
-        return ONE_MANY;
-    } else if ("MANY_MANY" == relMultiplicityString) {
-        return MANY_MANY;
-    }
-    throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
-}
-
 Catalog::Catalog() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
@@ -286,7 +273,7 @@ void Catalog::addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause) {
     addNodeLabel(move(nodeLabel));
 }
 
-void Catalog::verifyColDefinitionsForRelLabel(
+void Catalog::verifyStructurePropertyDefinitionsForRelLabel(
     const vector<PropertyNameDataType>& colHeaderDefinitions) {
     auto numMandatoryFields = 0;
     for (auto& colHeaderDefinition : colHeaderDefinitions) {
@@ -309,10 +296,10 @@ void Catalog::verifyColDefinitionsForRelLabel(
     }
 }
 
-void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
-    const vector<string>& dstNodeLabelNames) {
-    verifyColDefinitionsForRelLabel(colHeaderDefinitions);
+unique_ptr<RelLabel> Catalog::createRelLabel(string labelName, RelMultiplicity relMultiplicity,
+    vector<PropertyNameDataType>& structuredPropertyDefinitions,
+    const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) {
+    verifyStructurePropertyDefinitionsForRelLabel(structuredPropertyDefinitions);
     label_t labelId = relLabels.size();
     unordered_set<label_t> srcNodeLabelIdSet, dstNodeLabelIdSet;
     for (auto& nodeLabelName : srcNodeLabelNames) {
@@ -332,28 +319,25 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         dstNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
     }
     for (auto& nodeLabelId : srcNodeLabelIdSet) {
-        nodeLabels[nodeLabelId]->fwdRelLabelIdSet.insert(labelId);
+        nodeLabels[nodeLabelId]->addFwdRelLabel(labelId);
     }
     for (auto& nodeLabelId : dstNodeLabelIdSet) {
-        nodeLabels[nodeLabelId]->bwdRelLabelIdSet.insert(labelId);
+        nodeLabels[nodeLabelId]->addBwdRelLabel(labelId);
     }
-    relLabelNameToIdMap[labelName] = labelId;
-    // filter out mandatory fields from column header definitions and give propertyId only to the
-    // structured property definitions.
-    vector<Property> properties;
+    vector<Property> structuredProperties;
     auto propertyId = 0;
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
+    for (auto& propertyDefinition : structuredPropertyDefinitions) {
+        auto name = propertyDefinition.name;
         if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_FIELD ||
             name == LoaderConfig::START_ID_LABEL_FIELD ||
             name == LoaderConfig::END_ID_LABEL_FIELD) {
             continue;
         }
-        properties.push_back(
-            Property::constructRelProperty(colHeaderDefinition, propertyId++, labelId));
+        structuredProperties.push_back(
+            Property::constructRelProperty(propertyDefinition, propertyId++, labelId));
     }
-    relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(properties),
-        move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
+    return make_unique<RelLabel>(move(labelName), labelId, relMultiplicity,
+        move(structuredProperties), move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
 }
 
 bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) const {
@@ -376,7 +360,7 @@ const Property& Catalog::getNodeProperty(label_t labelId, const string& property
 }
 
 bool Catalog::containRelProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : relLabels[labelId].properties) {
+    for (auto& property : relLabels[labelId]->properties) {
         if (propertyName == property.name) {
             return true;
         }
@@ -385,7 +369,7 @@ bool Catalog::containRelProperty(label_t labelId, const string& propertyName) co
 }
 
 const Property& Catalog::getRelProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : relLabels[labelId].properties) {
+    for (auto& property : relLabels[labelId]->properties) {
         if (propertyName == property.name) {
             return property;
         }
@@ -422,13 +406,13 @@ const unordered_set<label_t>& Catalog::getNodeLabelsForRelLabelDirection(
         throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
     }
     if (FWD == direction) {
-        return relLabels[relLabel].srcNodeLabelIdSet;
+        return relLabels[relLabel]->srcNodeLabelIdSet;
     }
-    return relLabels[relLabel].dstNodeLabelIdSet;
+    return relLabels[relLabel]->dstNodeLabelIdSet;
 }
 
 bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, RelDirection direction) const {
-    auto relMultiplicity = relLabels[relLabel].relMultiplicity;
+    auto relMultiplicity = relLabels[relLabel]->relMultiplicity;
     if (FWD == direction) {
         return ONE_ONE == relMultiplicity || MANY_ONE == relMultiplicity;
     } else {
@@ -441,7 +425,7 @@ uint64_t Catalog::getNumRelsForDirectionBoundLabel(
     if (relLabel >= relLabels.size()) {
         throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
     }
-    return relLabels[relLabel].numRelsPerDirectionBoundLabel[FWD == relDirection ? 0 : 1].at(
+    return relLabels[relLabel]->numRelsPerDirectionBoundLabel[FWD == relDirection ? 0 : 1].at(
         boundNodeLabel);
 }
 
@@ -457,7 +441,7 @@ void Catalog::saveToFile(const string& directory) {
         offset = SerDeser::serializeValue<NodeLabel>(*nodeLabel, fileInfo.get(), offset);
     }
     for (auto& relLabel : relLabels) {
-        offset = SerDeser::serializeValue<RelLabel>(relLabel, fileInfo.get(), offset);
+        offset = SerDeser::serializeValue<RelLabel>(*relLabel, fileInfo.get(), offset);
     }
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -478,7 +462,8 @@ void Catalog::readFromFile(const string& directory) {
             SerDeser::deserializeValue<NodeLabel>(*nodeLabels[labelId], fileInfo.get(), offset);
     }
     for (auto labelId = 0u; labelId < numRelLabels; labelId++) {
-        offset = SerDeser::deserializeValue<RelLabel>(relLabels[labelId], fileInfo.get(), offset);
+        relLabels[labelId] = make_unique<RelLabel>();
+        offset = SerDeser::deserializeValue<RelLabel>(*relLabels[labelId], fileInfo.get(), offset);
     }
     // construct the labelNameToIdMap and label's unstrPropertiesNameToIdMap
     for (auto& label : nodeLabels) {
@@ -491,7 +476,7 @@ void Catalog::readFromFile(const string& directory) {
         }
     }
     for (auto& label : relLabels) {
-        relLabelNameToIdMap[label.labelName] = label.labelId;
+        relLabelNameToIdMap[label->labelName] = label->labelId;
     }
     FileUtils::closeFile(fileInfo->fd);
 }

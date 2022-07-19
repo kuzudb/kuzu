@@ -65,21 +65,20 @@ public:
     // possible.
     void addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause);
 
-    void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
-        const vector<string>& dstNodeLabelNames);
+    unique_ptr<RelLabel> createRelLabel(string labelName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType>& structuredPropertyDefinitions,
+        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames);
+
+    inline void addRelLabel(unique_ptr<RelLabel> relLabel) {
+        relLabelNameToIdMap[relLabel->labelName] = relLabel->labelId;
+        relLabels.push_back(move(relLabel));
+    }
 
     virtual inline string getNodeLabelName(label_t labelId) const {
         return nodeLabels[labelId]->labelName;
     }
     virtual inline string getRelLabelName(label_t labelId) const {
-        return relLabels[labelId].labelName;
-    }
-
-    inline RelLabel& getRel(label_t labelId) { return relLabels[labelId]; }
-    inline RelLabel& getRel(const string& labelName) {
-        assert(containRelLabel(labelName));
-        return relLabels[getRelLabelFromName(labelName)];
+        return relLabels[labelId]->labelName;
     }
 
     inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
@@ -120,7 +119,7 @@ public:
         return nodeLabels[nodeLabel]->unstructuredProperties;
     }
     inline const vector<Property>& getRelProperties(label_t relLabel) const {
-        return relLabels[relLabel].properties;
+        return relLabels[relLabel]->properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         label_t nodeLabel) const {
@@ -147,7 +146,7 @@ public:
 private:
     static void verifyColDefinitionsForNodeLabel(
         const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions);
-    static void verifyColDefinitionsForRelLabel(
+    static void verifyStructurePropertyDefinitionsForRelLabel(
         const vector<PropertyNameDataType>& colHeaderDefinitions);
 
 private:
@@ -155,7 +154,7 @@ private:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
     unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
     vector<unique_ptr<NodeLabel>> nodeLabels;
-    vector<RelLabel> relLabels;
+    vector<unique_ptr<RelLabel>> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;

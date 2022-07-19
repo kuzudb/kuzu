@@ -9,10 +9,10 @@ namespace loader {
 class InMemRelBuilder : public InMemStructuresBuilder {
 
 public:
-    InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
-        string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
+    InMemRelBuilder(const RelFileDescription& fileDescription, string outputDirectory,
+        TaskScheduler& taskScheduler, Catalog& catalog,
         const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
-        BufferManager& bufferManager, LoaderProgressBar* progressBar);
+        BufferManager* bufferManager, LoaderProgressBar* progressBar);
 
     ~InMemRelBuilder() override = default;
 
@@ -22,6 +22,7 @@ public:
     void saveToFile() override;
 
 private:
+    void createTableSchema();
     void countLinesPerBlock();
     void initializeColumnsAndLists();
     void initializeColumns(RelDirection relDirection);
@@ -72,14 +73,11 @@ private:
         InMemOverflowFile* orderedStringOverflowPages, LoaderProgressBar* progressBar);
 
 private:
-    label_t label;
-    RelMultiplicity relMultiplicity;
-    vector<string> srcNodeLabelNames;
-    vector<string> dstNodeLabelNames;
+    const RelFileDescription fileDescription;
     const vector<uint64_t> maxNodeOffsetsPerNodeLabel;
     uint64_t startRelID;
+    RelLabel* relLabel;
 
-    BufferManager& bm;
     unique_ptr<Transaction> tmpReadTransaction;
     vector<unique_ptr<HashIndex>> IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};

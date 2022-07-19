@@ -93,6 +93,9 @@ struct NodeLabel : Label {
     inline uint64_t getNumUnstructuredProperties() const { return unstructuredProperties.size(); }
     void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
 
+    inline void addFwdRelLabel(label_t relLabelId) { fwdRelLabelIdSet.insert(relLabelId); }
+    inline void addBwdRelLabel(label_t relLabelId) { bwdRelLabelIdSet.insert(relLabelId); }
+
     uint64_t primaryPropertyId;
     vector<Property> structuredProperties, unstructuredProperties;
     unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel
@@ -103,7 +106,8 @@ struct NodeLabel : Label {
 };
 
 struct RelLabel : Label {
-    RelLabel() : Label{"", 0}, relMultiplicity{0}, numGeneratedProperties{0} {}
+    RelLabel()
+        : Label{"", UINT64_MAX}, relMultiplicity{MANY_MANY}, numGeneratedProperties{UINT32_MAX} {}
     RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
         vector<Property> properties, unordered_set<label_t> srcNodeLabelIdSet,
         unordered_set<label_t> dstNodeLabelIdSet)
@@ -126,7 +130,8 @@ struct RelLabel : Label {
         assert(false);
     }
 
-    inline uint32_t getNumPropertiesToReadFromCSV() {
+    inline uint32_t getNumProperties() const { return properties.size(); }
+    inline uint32_t getNumPropertiesToReadFromCSV() const {
         assert(properties.size() >= numGeneratedProperties);
         return properties.size() - numGeneratedProperties;
     }

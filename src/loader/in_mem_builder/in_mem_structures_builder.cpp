@@ -55,26 +55,6 @@ uint64_t InMemStructuresBuilder::calculateNumRowsWithoutHeader() {
     return numRows;
 }
 
-uint64_t InMemStructuresBuilder::parseHeaderAndChunkFile(
-    const string& filePath, vector<PropertyNameDataType>& propertyDefinitions) {
-    logger->info("Parsing csv headers and calculating number of blocks for label {}.", labelName);
-    ifstream inf(filePath, ios_base::in);
-    if (!inf.is_open()) {
-        throw LoaderException("Cannot open file " + filePath + ".");
-    }
-    string fileHeader;
-    do {
-        getline(inf, fileHeader);
-    } while (fileHeader.empty() || fileHeader.at(0) == LoaderConfig::COMMENT_LINE_CHAR);
-    inf.seekg(0, ios_base::end);
-    propertyDefinitions = parseHeaderLine(fileHeader);
-    logger->info(
-        "Done parsing csv headers and calculating number of blocks for label {}.", labelName);
-    auto numBlocksInFile = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
-    inf.close();
-    return numBlocksInFile;
-}
-
 static void collectUnstrPropertyNamesInLine(
     CSVReader& reader, uint64_t numTokensToSkip, unordered_set<string>* unstrPropertyNames) {
     for (auto i = 0u; i < numTokensToSkip; ++i) {
