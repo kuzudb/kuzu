@@ -23,6 +23,8 @@ public:
 
     inline Value* getValue(uint32_t valIdx) { return values[valIdx].get(); }
 
+    inline bool isNull(uint32_t valIdx) { return nullMask[valIdx]; }
+
     inline uint32_t len() { return values.size(); }
 
     string toString(const vector<uint32_t>& colsWidth, const string& delimiter = "|");

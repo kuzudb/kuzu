@@ -194,7 +194,7 @@ void InMemNodeBuilder::calcLengthOfUnstrPropertyLists(
         auto startPos = strchr(unstrPropertyString, ':') + 1;
         *strchr(startPos, ':') = 0;
         InMemListsUtils::incrementListSize(*unstrPropertyLists->getListSizes(), nodeOffset,
-            UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN +
+            StorageConfig::UNSTR_PROP_HEADER_LEN +
                 Types::getDataTypeSize(Types::dataTypeFromString(string(startPos))));
     }
 }
@@ -342,7 +342,7 @@ void InMemNodeBuilder::putUnstrPropsOfALineToLists(CSVReader& reader, node_offse
         auto dataType = Types::dataTypeFromString(string(unstrPropertyStringBreaker1 + 1));
         auto dataTypeSize = Types::getDataTypeSize(dataType);
         auto reversePos = InMemListsUtils::decrementListSize(*unstrPropertyLists->getListSizes(),
-            nodeOffset, UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
+            nodeOffset, StorageConfig::UNSTR_PROP_HEADER_LEN + dataTypeSize);
         PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
             unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
             nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);

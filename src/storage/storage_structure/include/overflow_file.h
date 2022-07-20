@@ -69,7 +69,14 @@ public:
     void scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector);
 
     void readListsToVector(ValueVector& valueVector);
-    string readString(const gf_string_t& str);
+
+    // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
+    string readString(const gf_string_t& str) {
+        Transaction tmpTransaction(READ_ONLY, -1);
+        return readString(&tmpTransaction, str);
+    }
+
+    string readString(Transaction* transaction, const gf_string_t& str);
     vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);
     void writeStringOverflowAndUpdateOverflowPtr(
         const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo);

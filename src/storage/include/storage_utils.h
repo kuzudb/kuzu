@@ -200,6 +200,10 @@ public:
                                         common::StorageConfig::NODES_METADATA_FILE_NAME);
     }
 
+    static inline uint64_t getListChunkIdx(node_offset_t nodeOffset) {
+        return nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+    }
+
     // Note: This is a relatively slow function because of division and mod and making pair. It is
     // not meant to be used in performance critical code path.
     inline static pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {

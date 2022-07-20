@@ -25,7 +25,7 @@ NodeTable::NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, b
         unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
             StorageUtils::getUnstructuredNodePropertyListsStructureIDAndFName(
                 directory, nodeMetadata->getLabelID()),
-            bufferManager, isInMemory);
+            bufferManager, isInMemory, wal);
     }
     IDIndex = make_unique<HashIndex>(
         StorageUtils::getNodeIndexIDAndFName(directory, nodeMetadata->getLabelID()),

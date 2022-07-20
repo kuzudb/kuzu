@@ -303,6 +303,3 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 5000);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 5000);
 }
-
-// Test deleting a node and running a count* query. Begin a write transaction, grab the trx,
-// delete, now count and read.

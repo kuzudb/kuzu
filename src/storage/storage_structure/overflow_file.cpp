@@ -108,15 +108,17 @@ void OverflowFile::readListToVector(
     }
 }
 
-string OverflowFile::readString(const gf_string_t& str) {
+string OverflowFile::readString(Transaction* transaction, const gf_string_t& str) {
     if (gf_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
         PageByteCursor cursor;
         TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-        auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+        auto [fileHandleToPin, pageIdxToPin] =
+            getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
+        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
         auto retVal = string((char*)(frame + cursor.offsetInPage), str.len);
-        bufferManager.unpin(fileHandle, cursor.pageIdx);
+        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
         return retVal;
     }
 }

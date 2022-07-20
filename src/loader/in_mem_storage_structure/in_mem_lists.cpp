@@ -14,7 +14,7 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
         cursor = PageUtils::getPageElementCursorForPos(pos, numElementsInAPage);
         cursor.pageIdx = metadataBuilder.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
     } else {
-        auto chunkId = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+        auto chunkId = StorageUtils::getListChunkIdx(nodeOffset);
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto listLen = ListHeaders::getSmallListLen(header);
         auto pos = listLen - reversePos;
@@ -75,8 +75,10 @@ void InMemListsWithOverflow::saveToFile() {
 void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey,
     DataTypeID dataTypeID, const uint8_t* val, PageByteCursor* overflowCursor) {
     PageByteCursor localCursor{cursor};
-    setComponentOfUnstrProperty(localCursor, 4, reinterpret_cast<uint8_t*>(&propertyKey));
-    setComponentOfUnstrProperty(localCursor, 1, reinterpret_cast<uint8_t*>(&dataTypeID));
+    setComponentOfUnstrProperty(localCursor, StorageConfig::UNSTR_PROP_KEY_IDX_LEN,
+        reinterpret_cast<uint8_t*>(&propertyKey));
+    setComponentOfUnstrProperty(localCursor, StorageConfig::UNSTR_PROP_DATATYPE_LEN,
+        reinterpret_cast<uint8_t*>(&dataTypeID));
     switch (dataTypeID) {
     case INT64:
     case DOUBLE:

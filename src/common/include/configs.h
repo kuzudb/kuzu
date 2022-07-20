@@ -56,6 +56,12 @@ struct StorageConfig {
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
+    constexpr static double ARRAY_RESIZING_FACTOR = 1.2;
+
+    constexpr static uint8_t UNSTR_PROP_KEY_IDX_LEN = 4;
+    constexpr static uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
+    constexpr static uint8_t UNSTR_PROP_HEADER_LEN =
+        UNSTR_PROP_KEY_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
 };
 
 // Hash Index Configurations

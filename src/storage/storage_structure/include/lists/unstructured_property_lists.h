@@ -1,14 +1,13 @@
 #pragma once
 
+#include "updated_unstructured_property_lists.h"
+
 #include "src/storage/storage_structure/include/lists/lists.h"
 
 namespace graphflow {
 namespace storage {
 
-struct UnstructuredPropertyKeyDataType {
-    uint32_t keyIdx;
-    DataTypeID dataTypeID;
-};
+using lock_t = unique_lock<mutex>;
 
 // UnstructuredPropertyLists is the specialization of Lists for Node's unstructured property lists.
 // Though this shares the identical representation as Lists, it is more aligned to Columns in
@@ -20,22 +19,27 @@ class UnstructuredPropertyLists : public Lists {
 
 public:
     UnstructuredPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        BufferManager& bufferManager, bool isInMemory)
+        BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(UNSTRUCTURED), 1,
               make_shared<ListHeaders>(storageStructureIDAndFName), bufferManager,
               false /*hasNULLBytes*/, isInMemory},
-          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
-              nullptr /* no wal for now */} {};
+          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal},
+          updatedLists{stringOverflowPages} {};
 
-    void readProperties(ValueVector* nodeIDVector,
+    void readProperties(Transaction* transaction, ValueVector* nodeIDVector,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
+
+    void setPropertyListEmpty(node_offset_t nodeOffset);
+    void setProperty(node_offset_t nodeOffset, uint32_t propertyKey, Value* value);
+    void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey);
 
     // Currently, used only in Loader tests.
     unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
 
 private:
-    void readPropertiesForPosition(ValueVector* nodeIDVector, uint32_t pos,
-        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
+    void fillUnstrPropListFromPrimaryStore(ListInfo& listInfo, uint8_t* dataToFill);
+    void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,
+        uint32_t pos, const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
     void readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
@@ -43,17 +47,15 @@ private:
     void readPropertyValue(Value* propertyValue, uint64_t dataTypeSize, PageByteCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
-    void skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor);
-
     void readFromAPage(uint8_t* value, uint64_t bytesToRead, PageByteCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
 public:
-    static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;
-    static constexpr uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
-    static constexpr uint8_t UNSTR_PROP_HEADER_LEN = UNSTR_PROP_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
-
+    // TODO(Semih/Guodong): Currently we serialize all access to localUnstructuredPropertyLists
+    // and should optimize parallel updates.
+    mutex mtx;
     OverflowFile stringOverflowPages;
+    UpdatedUnstructuredPropertyLists updatedLists;
 };
 
 } // namespace storage

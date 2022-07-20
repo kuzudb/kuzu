@@ -11,6 +11,7 @@ filegroup(
         "read-list-tests/**",
         "tinysnb/**",
         "tinysnb-variant/**",
+        "unstructured-property-lists-updates-tests/**",
     ]),
     visibility = ["//visibility:public"],
 )
