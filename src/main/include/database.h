@@ -39,6 +39,7 @@ struct DatabaseConfig {
 
 class Database {
     friend class Connection;
+    friend class JOConnection;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)

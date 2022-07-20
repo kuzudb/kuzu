@@ -76,11 +76,11 @@ private:
     void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
 
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
-    void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
+    void appendScanNodeID(shared_ptr<NodeExpression> queryNode, LogicalPlan& plan);
 
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
     void appendHashJoin(
-        const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     // AppendIntersect return false if a nodeID is flat in which case we should use filter.
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 

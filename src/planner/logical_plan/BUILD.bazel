@@ -2,12 +2,12 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "logical_plan",
-    srcs = glob([
-        "*.cpp",
-    ]),
-    hdrs = glob([
-        "include/*.h",
-    ]),
+    srcs = [
+        "logical_plan.cpp",
+    ],
+    hdrs = [
+        "include/logical_plan.h",
+    ],
     visibility = [
         "//src/main:__pkg__",
         "//src/planner:__subpackages__",
@@ -16,5 +16,22 @@ cc_library(
     deps = [
         "//src/binder/expression:base_expression",
         "//src/planner/logical_plan/logical_operator:base_logical_operator",
+    ],
+)
+
+cc_library(
+    name = "logical_plan_util",
+    srcs = [
+        "logical_plan_util.cpp",
+    ],
+    hdrs = [
+        "include/logical_plan_util.h",
+    ],
+    visibility = [
+        "//tools/join_order_pick:__pkg__",
+    ],
+    deps = [
+        "logical_plan",
+        "//src/planner/logical_plan/logical_operator:logical_operator_impls",
     ],
 )

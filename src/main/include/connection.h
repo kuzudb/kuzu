@@ -143,7 +143,7 @@ public:
         return activeTransaction != nullptr;
     }
 
-private:
+protected:
     inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
         if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
             throw ConnectionException(
@@ -178,7 +178,7 @@ private:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement);
 
-private:
+protected:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
     std::unique_ptr<Transaction> activeTransaction;

@@ -8,7 +8,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
@@ -17,9 +16,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
@@ -37,17 +34,11 @@
 #include "src/processor/include/physical_plan/operator/order_by/order_by_merge.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by_scan.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
-#include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
-#include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/result_scan.h"
-#include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
-#include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
-#include "src/processor/include/physical_plan/operator/var_length_extend/var_length_adj_list_extend.h"
-#include "src/processor/include/physical_plan/operator/var_length_extend/var_length_column_extend.h"
 
 using namespace graphflow::planner;
 
@@ -159,18 +150,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     return physicalOperator;
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
-    auto sharedState = make_shared<ScanNodeIDSharedState>(
-        storageManager.getNodesStore().getNodesMetadata().getNodeMetadata(logicalScan.label));
-    auto dataPos = mapperContext.getDataPos(logicalScan.nodeID);
-    mapperContext.addComputedExpressions(logicalScan.nodeID);
-    return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        storageManager.getNodesStore().getNode(logicalScan.label), dataPos, sharedState,
-        getOperatorID(), logicalScan.getExpressionsForPrinting());
-}
-
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& resultScan = (const LogicalResultScan&)*logicalOperator;
@@ -191,40 +170,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
     return make_unique<ResultScan>(mapperContext.getResultSetDescriptor()->copy(),
         move(inDataPoses), outDataChunkPos, move(outValueVectorsPos), getOperatorID(),
         resultScan.getExpressionsForPrinting());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& extend = (const LogicalExtend&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inDataPos = mapperContext.getDataPos(extend.boundNodeID);
-    auto outDataPos = mapperContext.getDataPos(extend.nbrNodeID);
-    mapperContext.addComputedExpressions(extend.nbrNodeID);
-    auto& relsStore = storageManager.getRelsStore();
-    auto paramsString = extend.getExpressionsForPrinting();
-    if (extend.isColumn) {
-        if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
-            return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
-                relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-                move(prevOperator), getOperatorID(), paramsString);
-        } else {
-            return make_unique<VarLengthColumnExtend>(inDataPos, outDataPos,
-                relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-                extend.lowerBound, extend.upperBound, move(prevOperator), getOperatorID(),
-                paramsString);
-        }
-    } else {
-        auto adjLists =
-            relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
-        if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
-            return make_unique<AdjListExtend>(
-                inDataPos, outDataPos, adjLists, move(prevOperator), getOperatorID(), paramsString);
-        } else {
-            return make_unique<VarLengthAdjListExtend>(inDataPos, outDataPos, adjLists,
-                extend.lowerBound, extend.upperBound, move(prevOperator), getOperatorID(),
-                paramsString);
-        }
-    }
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
@@ -298,30 +243,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     }
     return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, move(outputPropertyVectorsPos),
         move(propertyColumns), move(prevOperator), getOperatorID(), paramsString);
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& scanRelProperty = (const LogicalScanRelProperty&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inputNodeIDVectorPos = mapperContext.getDataPos(scanRelProperty.getBoundNodeID());
-    auto propertyName = scanRelProperty.getPropertyName();
-    auto propertyKey = scanRelProperty.getPropertyKey();
-    auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
-    mapperContext.addComputedExpressions(propertyName);
-    auto& relStore = storageManager.getRelsStore();
-    auto paramsString = scanRelProperty.getExpressionsForPrinting();
-    if (scanRelProperty.getIsColumn()) {
-        auto column = relStore.getRelPropertyColumn(
-            scanRelProperty.getRelLabel(), scanRelProperty.getBoundNodeLabel(), propertyKey);
-        return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
-            vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
-            getOperatorID(), paramsString);
-    }
-    auto lists = relStore.getRelPropertyLists(scanRelProperty.getDirection(),
-        scanRelProperty.getBoundNodeLabel(), scanRelProperty.getRelLabel(), propertyKey);
-    return make_unique<ReadRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
-        lists, move(prevOperator), getOperatorID(), paramsString);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(

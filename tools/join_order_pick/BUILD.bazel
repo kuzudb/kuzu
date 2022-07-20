@@ -1,0 +1,32 @@
+cc_library(
+    name = "jo_connection",
+    srcs = [
+        "jo_connection.cpp",
+    ],
+    hdrs = [
+        "include/jo_connection.h",
+    ],
+    deps = [
+        "//src/loader:graph_loader",
+        "//src/main:graphflowdb",
+        "//src/planner/logical_plan:logical_plan_util",
+    ],
+)
+
+cc_test(
+    name = "test",
+    srcs = [
+        "test/test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "jo_connection",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

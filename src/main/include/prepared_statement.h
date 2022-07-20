@@ -9,6 +9,7 @@ namespace main {
 
 class PreparedStatement {
     friend class Connection;
+    friend class JOConnection;
 
 public:
     PreparedStatement() { querySummary = make_unique<QuerySummary>(); }

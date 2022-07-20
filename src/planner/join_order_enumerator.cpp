@@ -82,7 +82,7 @@ void JoinOrderEnumerator::planNodeScan() {
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
         auto node = queryGraph->getQueryNode(nodePos);
-        appendScanNodeID(*node, *plan);
+        appendScanNodeID(node, *plan);
         auto predicates =
             getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions());
         planFiltersForNode(predicates, *node, *plan);
@@ -246,12 +246,12 @@ void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) 
                     auto rightPlanBuildCopy = rightPlan->shallowCopy();
                     auto leftPlanBuildCopy = leftPlan->shallowCopy();
                     auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                    appendHashJoin(*joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                    appendHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
                     planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
                     context->addPlan(newSubgraph, move(leftPlanProbeCopy));
                     // flip build and probe side to get another HashJoin plan
                     if (leftLevel != rightLevel) {
-                        appendHashJoin(*joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                        appendHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
                         planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                         context->addPlan(newSubgraph, move(rightPlanProbeCopy));
                     }
@@ -281,15 +281,15 @@ void JoinOrderEnumerator::appendResultScan(
     plan.appendOperator(move(resultScan));
 }
 
-void JoinOrderEnumerator::appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan) {
+void JoinOrderEnumerator::appendScanNodeID(
+    shared_ptr<NodeExpression> queryNode, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto nodeID = queryNode.getIDProperty();
     assert(plan.isEmpty());
-    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.getLabel());
     auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(queryNode.getNodeIDPropertyExpression(), groupPos);
+    schema->insertToGroupAndScope(queryNode->getNodeIDPropertyExpression(), groupPos);
     schema->getGroup(groupPos)->setEstimatedCardinality(
-        nodesMetadata.getNodeMetadata(queryNode.getLabel())->getMaxNodeOffset() + 1);
+        nodesMetadata.getNodeMetadata(queryNode->getLabel())->getMaxNodeOffset() + 1);
+    auto scan = make_shared<LogicalScanNodeID>(move(queryNode));
     plan.appendOperator(move(scan));
 }
 
@@ -313,23 +313,22 @@ void JoinOrderEnumerator::appendExtend(
         groupPos = schema->getGroupPos(boundNodeID);
     } else {
         auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
-        enumerator->appendFlattenIfNecessary(boundNodeGroupPos, plan);
+        Enumerator::appendFlattenIfNecessary(boundNodeGroupPos, plan);
         groupPos = schema->createGroup();
         schema->getGroup(groupPos)->setEstimatedCardinality(
             schema->getGroup(boundNodeGroupPos)->getEstimatedCardinality() *
             getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction));
     }
-    auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->getLabel(), nbrNodeID,
-        nbrNode->getLabel(), queryRel.getLabel(), direction, isColumnExtend,
-        queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, queryRel.getLabel(), direction,
+        isColumnExtend, queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
     schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
     schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
     plan.appendOperator(move(extend));
 }
 
 void JoinOrderEnumerator::appendHashJoin(
-    const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    auto joinNodeID = joinNode.getIDProperty();
+    shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto joinNodeID = joinNode->getIDProperty();
     // Set estimated cardinality.
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
@@ -373,7 +372,7 @@ void JoinOrderEnumerator::appendHashJoin(
             flatOutputGroupPositions.push_back(i);
         }
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
         flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));

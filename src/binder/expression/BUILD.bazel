@@ -57,6 +57,7 @@ cc_library(
     ],
     visibility = [
         "//src/binder:__subpackages__",
+        "//src/planner:__subpackages__",
     ],
     deps = [
         "base_expression",
