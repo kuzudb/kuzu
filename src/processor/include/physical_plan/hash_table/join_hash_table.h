@@ -16,20 +16,34 @@ public:
     JoinHashTable(
         MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema);
 
-    template<typename T>
-    uint8_t** findHashEntry(T value) const;
-    // This function returns the pointer that previously stored in the same slot.
-    template<typename T>
-    uint8_t* insertEntry(uint8_t* valueBuffer);
-
-    void allocateHashSlots(uint64_t numTuples);
     void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
-    inline FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
+    void allocateHashSlots(uint64_t numTuples);
+    void buildHashSlots();
+    void probe(ValueVector& keyVector, uint8_t** probedTuples, SelectionVector& probeSelVector);
+
+    inline void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
+        uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {
+        factorizedTable->lookup(vectors, colIdxesToScan, tuplesToRead, startPos, numTuplesToRead);
+    }
+    inline void merge(JoinHashTable& other) { factorizedTable->merge(*other.factorizedTable); }
+    inline uint64_t getNumTuples() { return factorizedTable->getNumTuples(); }
+    inline uint8_t** getPrevTuple(const uint8_t* tuple) const {
+        return (uint8_t**)(tuple + colOffsetOfPrevPtrInTuple);
+    }
 
 private:
-    // NOTE: In vectorsToAppend, we need to guarantee that the first vector is the join key.
-    void appendForFlatKeys(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
-    void appendForUnflatKeys(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
+    uint8_t** findHashSlot(const nodeID_t& value) const;
+    // This function returns the pointer that previously stored in the same slot.
+    uint8_t* insertEntry(uint8_t* tuple) const;
+
+    inline uint8_t* getTupleForHash(hash_t hash) {
+        auto slotIdx = getSlotIdxForHash(hash);
+        return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
+                                ->getData()))[slotIdx & slotIdxInBlockMask];
+    }
+
+private:
+    uint64_t colOffsetOfPrevPtrInTuple;
 };
 
 } // namespace processor

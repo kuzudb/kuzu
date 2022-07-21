@@ -330,14 +330,22 @@ void JoinOrderEnumerator::appendExtend(
 void JoinOrderEnumerator::appendHashJoin(
     const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode.getIDProperty();
-    // Flat probe side key group if necessary
-    auto probeSideSchema = probePlan.getSchema();
-    auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNodeID);
-    auto probeSideKeyGroup = probeSideSchema->getGroup(probeSideKeyGroupPos);
-    Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
     // Set estimated cardinality.
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
+    auto probeSideSchema = probePlan.getSchema();
+    auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNodeID);
+    auto probeSideKeyGroup = probeSideSchema->getGroup(probeSideKeyGroupPos);
+    // Flat probe side key group if the build side contains more than one group or the build side
+    // has projected out data chunks, which may increase the multiplicity of data chunks in the
+    // build side. The core idea is to keep probe side key unflat only when we know that there is
+    // only 0 or 1 match for each key.
+    // TODO(Xiyang): how do we figure out if build side keys are distinct here?
+    bool hasProjectedOutGroups =
+        buildSideSchema.getNumGroups() > buildSideSchema.getGroupsPosInScope().size();
+    if (hasProjectedOutGroups || buildSideSchema.getExpressionsInScope().size() > 1) {
+        Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
+    }
     probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
         buildSideSchema.getGroup(buildSideKeyGroupPos)->getEstimatedCardinality()));
     // Merge key group from build side into probe side.

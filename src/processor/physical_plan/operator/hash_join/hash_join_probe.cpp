@@ -1,5 +1,6 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 
+#include "src/function/hash/include/vector_hash_operations.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 
 using namespace graphflow::function::operation;
@@ -9,72 +10,87 @@ namespace processor {
 
 shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
-    probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
-                             ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
+    probeState = make_unique<ProbeState>();
+    probeSideKeyDataChunk = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()];
+    probeSideKeyVector = probeSideKeyDataChunk->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     for (auto pos : flatDataChunkPositions) {
         auto dataChunk = resultSet->dataChunks[pos];
         dataChunk->state = DataChunkState::getSingleValueDataChunkState();
     }
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
-        auto probeSideVector = make_shared<ValueVector>(
+        auto probeSideNonKeyVector = make_shared<ValueVector>(
             context->memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
-        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
-        vectorsToRead.push_back(probeSideVector);
+        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideNonKeyVector);
+        vectorsToReadInto.push_back(probeSideNonKeyVector);
     }
     // We only need to read nonKeys from the factorizedTable. The first column in the
     // factorizedTable is the key column, so we skip the key column.
-    columnIdxsToRead.resize(probeDataInfo.nonKeyOutputDataPos.size());
-    iota(columnIdxsToRead.begin(), columnIdxsToRead.end(), 1);
+    columnIdxsToReadFrom.resize(probeDataInfo.nonKeyOutputDataPos.size());
+    iota(columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), 1);
     return resultSet;
 }
 
-void HashJoinProbe::getNextBatchOfMatchedTuples() {
-    tuplePosToReadInProbedState = 0;
-    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
-    if (factorizedTable->getNumTuples() == 0) {
-        probeState->numMatchedTuples = 0;
-        return;
+bool HashJoinProbe::getNextBatchOfMatchedTuples() {
+    if (probeState->nextMatchedTupleIdx < probeState->numMatchedTuples) {
+        return true;
     }
+    auto keys = (nodeID_t*)probeSideKeyVector->values;
     do {
         if (probeState->numMatchedTuples == 0) {
+            restoreDataChunkSelectorState(probeSideKeyDataChunk);
             if (!children[0]->getNextTuples()) {
-                probeState->numMatchedTuples = 0;
-                return;
+                return false;
             }
-            auto currentIdx = probeSideKeyVector->state->getPositionOfCurrIdx();
-            if (probeSideKeyVector->isNull(currentIdx)) {
-                continue;
-            }
-            probeState->probeSideKeyNodeID = ((nodeID_t*)probeSideKeyVector->values)[currentIdx];
-            probeState->probedTuple =
-                *sharedState->getHashTable()->findHashEntry(probeState->probeSideKeyNodeID);
+            saveDataChunkSelectorState(probeSideKeyDataChunk);
+            sharedState->getHashTable()->probe(
+                *probeSideKeyVector, probeState->probedTuples.get(), *probeState->probeSelVector);
         }
-        probeState->numMatchedTuples = 0;
-        while (probeState->probedTuple) {
-            if (DEFAULT_VECTOR_CAPACITY == probeState->numMatchedTuples) {
+        auto numMatchedTuples = 0;
+        while (true) {
+            if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY ||
+                probeState->probedTuples[0] == nullptr) {
+                // The logic behind checking on probedTuples[0]: when the probe side is flat, we
+                // always put the probed tuple into probedTuples[0], and chase the pointer until it
+                // reaches the end (nullptr); when the probe side is unflat, it is guaranteed that
+                // all probed tuples has no prev chained to it, so for probedTuples[0]. Thus, we
+                // only check on probedTuples[0] to see if we hit the end or not.
                 break;
             }
-            auto nodeID = *(nodeID_t*)probeState->probedTuple;
-            probeState->matchedTuples[probeState->numMatchedTuples] = probeState->probedTuple;
-            probeState->numMatchedTuples += nodeID == probeState->probeSideKeyNodeID;
-            probeState->probedTuple =
-                *(uint8_t**)(probeState->probedTuple +
-                             factorizedTable->getTableSchema()->getNullMapOffset() -
-                             sizeof(uint8_t*));
+            for (auto i = 0u; i < probeState->probeSelVector->selectedSize; i++) {
+                auto pos = probeState->probeSelVector->selectedPositions[i];
+                auto currentTuple = probeState->probedTuples[i];
+                probeState->matchedTuples[numMatchedTuples] = currentTuple;
+                probeState->probeSelVector->selectedPositions[numMatchedTuples] = pos;
+                numMatchedTuples += *(nodeID_t*)currentTuple == keys[pos];
+                probeState->probedTuples[i] =
+                    *sharedState->getHashTable()->getPrevTuple(currentTuple);
+            }
         }
+        probeState->numMatchedTuples = numMatchedTuples;
+        probeState->nextMatchedTupleIdx = 0;
     } while (probeState->numMatchedTuples == 0);
+    return true;
 }
 
-void HashJoinProbe::populateResultSet() {
+uint64_t HashJoinProbe::populateResultSet() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
-    assert(tuplePosToReadInProbedState < probeState->numMatchedTuples);
-    // TODO(Xiyang/Guodong): add read multiple tuples
-    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
-    factorizedTable->lookup(vectorsToRead, columnIdxsToRead, probeState->matchedTuples.get(),
-        tuplePosToReadInProbedState, 1);
-    tuplePosToReadInProbedState += 1;
+    auto numTuplesToRead = probeSideKeyVector->state->isFlat() ? 1 : probeState->numMatchedTuples;
+    if (!probeSideKeyVector->state->isFlat() &&
+        probeSideKeyVector->state->selVector->selectedSize != numTuplesToRead) {
+        // Update probeSideKeyVector's selectedPositions when the probe side is unflat and its
+        // selected positions need to change (i.e., some keys has no matched tuples).
+        auto keySelectedBuffer = probeSideKeyVector->state->selVector->getSelectedPositionsBuffer();
+        for (auto i = 0u; i < numTuplesToRead; i++) {
+            keySelectedBuffer[i] = probeState->probeSelVector->selectedPositions[i];
+        }
+        probeSideKeyVector->state->selVector->selectedSize = numTuplesToRead;
+        probeSideKeyVector->state->selVector->resetSelectorToValuePosBuffer();
+    }
+    sharedState->getHashTable()->lookup(vectorsToReadInto, columnIdxsToReadFrom,
+        probeState->matchedTuples.get(), probeState->nextMatchedTupleIdx, numTuplesToRead);
+    probeState->nextMatchedTupleIdx += numTuplesToRead;
+    return numTuplesToRead;
 }
 
 // The general flow of a hash join probe:
@@ -82,25 +98,19 @@ void HashJoinProbe::populateResultSet() {
 // 2) populate values from matched tuples into resultKeyDataChunk , buildSideFlatResultDataChunk
 // (all flat data chunks from the build side are merged into one) and buildSideVectorPtrs (each
 // VectorPtr corresponds to one unFlat build side data chunk that is appended to the resultSet).
-// 3) flat buildSideFlatResultDataChunk, updating its currIdx, and also populates appended unFlat
-// data chunks. If there is no appended unFlat data chunks, which means buildSideVectorPtrs is
-// empty, directly unFlat buildSideFlatResultDataChunk (if it exists).
 bool HashJoinProbe::getNextTuples() {
     metrics->executionTime.start();
-    if (tuplePosToReadInProbedState < probeState->numMatchedTuples) {
-        populateResultSet();
-        metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(probeState->numMatchedTuples);
-        return true;
-    }
-    getNextBatchOfMatchedTuples();
-    if (probeState->numMatchedTuples == 0) {
+    if (sharedState->getHashTable()->getNumTuples() == 0) {
         metrics->executionTime.stop();
         return false;
     }
-    populateResultSet();
+    if (!getNextBatchOfMatchedTuples()) {
+        metrics->executionTime.stop();
+        return false;
+    }
+    auto numPopulatedTuples = populateResultSet();
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(probeState->numMatchedTuples);
+    metrics->numOutputTuple.increase(numPopulatedTuples);
     return true;
 }
 } // namespace processor

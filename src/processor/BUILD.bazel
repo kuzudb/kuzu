@@ -28,11 +28,11 @@ cc_library(
 
 cc_library(
     name = "filtering_operator",
-    hdrs = [
-        "include/physical_plan/operator/filtering_operator.h",
-    ],
     srcs = [
         "physical_plan/operator/filtering_operator.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/filtering_operator.h",
     ],
     deps = [
         "//src/common:data_chunk",
@@ -124,6 +124,7 @@ cc_library(
         "include/physical_plan/operator/hash_join/*.h",
     ]),
     deps = [
+        "filtering_operator",
         "hash_table",
         "sink_operator",
     ],
@@ -230,7 +231,6 @@ cc_library(
         "result",
         "//src/function/aggregate:aggregate_function",
         "//src/function/hash:vector_hash_operations",
-
     ],
 )
 

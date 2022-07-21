@@ -1,25 +1,29 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/operator/filtering_operator.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-
-using namespace std;
 
 namespace graphflow {
 namespace processor {
 
 struct ProbeState {
-    explicit ProbeState(uint64_t pointersSize)
-        : probedTuple{nullptr}, numMatchedTuples{0}, probeSideKeyNodeID{
-                                                         nodeID_t(UINT64_MAX, UINT64_MAX)} {
-        matchedTuples = make_unique<uint8_t*[]>(pointersSize);
+    explicit ProbeState() : numMatchedTuples{0}, nextMatchedTupleIdx{0} {
+        matchedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
+        probedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
+        probeSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        probeSelVector->resetSelectorToValuePosBuffer();
     }
-    uint8_t* probedTuple;
+
+    // Each key corresponds to a pointer with the same hash value from the ht directory.
+    unique_ptr<uint8_t*[]> probedTuples;
     // Pointers to tuples in ht that actually matched.
     unique_ptr<uint8_t*[]> matchedTuples;
-    uint64_t numMatchedTuples;
-    nodeID_t probeSideKeyNodeID;
+    // Selective index mapping each probed tuple to its probe side key vector.
+    unique_ptr<SelectionVector> probeSelVector;
+    sel_t numMatchedTuples;
+    sel_t nextMatchedTupleIdx;
 };
 
 struct ProbeDataInfo {
@@ -41,23 +45,22 @@ public:
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
-class HashJoinProbe : public PhysicalOperator {
+class HashJoinProbe : public PhysicalOperator, FilteringOperator {
 public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(probeChild), move(buildChild), id, paramsString},
-          sharedState{move(sharedState)}, flatDataChunkPositions{move(flatDataChunkPositions)},
-          probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
+        : PhysicalOperator{move(probeChild), move(buildChild), id, paramsString}, sharedState{move(
+                                                                                      sharedState)},
+          flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(probeChild), id, paramsString}, sharedState{move(sharedState)},
-          flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo},
-          tuplePosToReadInProbedState{0} {}
+          flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
@@ -72,18 +75,19 @@ public:
     }
 
 private:
+    bool getNextBatchOfMatchedTuples();
+    uint64_t populateResultSet();
+
+private:
     shared_ptr<HashJoinSharedState> sharedState;
     vector<uint64_t> flatDataChunkPositions;
 
     ProbeDataInfo probeDataInfo;
-    uint64_t tuplePosToReadInProbedState;
-    vector<shared_ptr<ValueVector>> vectorsToRead;
-    vector<uint32_t> columnIdxsToRead;
+    vector<shared_ptr<ValueVector>> vectorsToReadInto;
+    vector<uint32_t> columnIdxsToReadFrom;
     shared_ptr<ValueVector> probeSideKeyVector;
+    shared_ptr<DataChunk> probeSideKeyDataChunk;
     unique_ptr<ProbeState> probeState;
-
-    void getNextBatchOfMatchedTuples();
-    void populateResultSet();
 };
 } // namespace processor
 } // namespace graphflow

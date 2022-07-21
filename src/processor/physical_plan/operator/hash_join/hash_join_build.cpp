@@ -15,7 +15,7 @@ void HashJoinSharedState::initEmptyHashTableIfNecessary(
 
 void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
     unique_lock lck(hashJoinSharedStateMutex);
-    hashTable->getFactorizedTable()->merge(*localHashTable.getFactorizedTable());
+    hashTable->merge(localHashTable);
 }
 
 shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
@@ -53,19 +53,9 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {
-    auto globalHashTable = sharedState->getHashTable();
-    auto globalFactorizedTable = globalHashTable->getFactorizedTable();
-    globalHashTable->allocateHashSlots(globalFactorizedTable->getNumTuples());
-    auto tableSchema = globalFactorizedTable->getTableSchema();
-    for (auto& tupleBlock : globalFactorizedTable->getTupleDataBlocks()) {
-        uint8_t* tuple = tupleBlock->getData();
-        for (auto i = 0u; i < tupleBlock->numTuples; i++) {
-            auto lastSlotEntryInHT = globalHashTable->insertEntry<nodeID_t>(tuple);
-            auto prevPtr = (uint8_t**)(tuple + tableSchema->getNullMapOffset() - sizeof(uint8_t*));
-            memcpy((uint8_t*)prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));
-            tuple += tableSchema->getNumBytesPerTuple();
-        }
-    }
+    auto numTuples = sharedState->getHashTable()->getNumTuples();
+    sharedState->getHashTable()->allocateHashSlots(numTuples);
+    sharedState->getHashTable()->buildHashSlots();
 }
 
 void HashJoinBuild::appendVectors() {
