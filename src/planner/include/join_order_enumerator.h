@@ -60,9 +60,10 @@ private:
     void planRelINPJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
         vector<unique_ptr<LogicalPlan>>& prevPlans);
     // Filter push down for rel table.
-    void planFiltersForRel(expression_vector& predicates, RelExpression& rel, LogicalPlan& plan);
+    void planFiltersForRel(expression_vector& predicates, RelExpression& rel,
+        RelDirection direction, LogicalPlan& plan);
     // Property push down for rel table.
-    void planPropertyScansForRel(RelExpression& rel, LogicalPlan& plan);
+    void planPropertyScansForRel(RelExpression& rel, RelDirection direction, LogicalPlan& plan);
 
     inline void planHashJoin() {
         auto maxLeftLevel = ceil(context->currentLevel / 2.0);

@@ -315,20 +315,20 @@ void Enumerator::appendScanNodePropIfNecessary(
     plan.appendOperator(move(scanNodeProperty));
 }
 
-void Enumerator::appendScanRelPropIfNecessary(
-    shared_ptr<Expression>& expression, RelExpression& rel, LogicalPlan& plan) {
+void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
+    RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     if (schema->isExpressionInScope(*expression)) {
         return;
     }
+    auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
+    auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
+    auto isColumn = catalog.isSingleMultiplicityInDirection(rel.getLabel(), direction);
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto extend = schema->getExistingLogicalExtend(rel.getUniqueName());
-    auto boundNode = extend->getBoundNodeExpression();
-    auto nbrNode = extend->getNbrNodeExpression();
-    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode,
-        extend->getRelLabel(), extend->getDirection(), property->getUniqueName(),
-        property->getPropertyKey(), extend->getIsColumn(), plan.getLastOperator());
+    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getLabel(),
+        direction, property->getUniqueName(), property->getPropertyKey(), isColumn,
+        plan.getLastOperator());
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
     plan.appendOperator(move(scanProperty));

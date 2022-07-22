@@ -19,8 +19,8 @@ class Enumerator {
 
 public:
     explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
-        : joinOrderEnumerator{catalog, nodesMetadata, this}, projectionEnumerator{catalog, this},
-          updatePlanner{catalog, this} {}
+        : catalog{catalog}, joinOrderEnumerator{catalog, nodesMetadata, this},
+          projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
 
@@ -73,14 +73,14 @@ private:
     void appendScanNodePropIfNecessary(
         expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured);
 
-    inline void appendScanRelPropsIfNecessary(
-        expression_vector& properties, RelExpression& rel, LogicalPlan& plan) {
+    inline void appendScanRelPropsIfNecessary(expression_vector& properties, RelExpression& rel,
+        RelDirection direction, LogicalPlan& plan) {
         for (auto& property : properties) {
-            appendScanRelPropIfNecessary(property, rel, plan);
+            appendScanRelPropIfNecessary(property, rel, direction, plan);
         }
     }
-    void appendScanRelPropIfNecessary(
-        shared_ptr<Expression>& expression, RelExpression& rel, LogicalPlan& plan);
+    void appendScanRelPropIfNecessary(shared_ptr<Expression>& expression, RelExpression& rel,
+        RelDirection direction, LogicalPlan& plan);
 
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
@@ -119,6 +119,7 @@ private:
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
 
 private:
+    const Catalog& catalog;
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionEnumerator projectionEnumerator;
