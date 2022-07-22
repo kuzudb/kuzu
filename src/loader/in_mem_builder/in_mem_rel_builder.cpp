@@ -137,8 +137,8 @@ void InMemRelBuilder::initializeLists(RelDirection relDirection) {
         for (auto i = 0u; i < relLabel->getNumProperties(); ++i) {
             auto propertyName = relLabel->properties[i].name;
             auto propertyDataType = relLabel->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyListsFName(
-                outputDirectory, relLabel->labelId, nodeLabel, relDirection, propertyName);
+            auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory, relLabel->labelId,
+                nodeLabel, relDirection, relLabel->properties[i].propertyID);
             propertyLists[i] =
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
         }

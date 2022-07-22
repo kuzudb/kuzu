@@ -12,7 +12,7 @@ WAL::WAL(const string& directory, BufferManager& bufferManager)
     : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false}, containsNodesMetadataRecord_{
                                                                           false} {
-    createFileHandle(FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)));
+    fileHandle = WAL::createWALFileHandle(directory);
     initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields();
 }
 

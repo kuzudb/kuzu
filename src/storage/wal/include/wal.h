@@ -120,12 +120,13 @@ public:
         return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
     }
 
-private:
-    inline void createFileHandle(const string& path) {
-        fileHandle = make_shared<FileHandle>(
-            path, FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    inline static shared_ptr<FileHandle> createWALFileHandle(const string& directory) {
+        return make_shared<FileHandle>(
+            FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)),
+            FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     }
 
+private:
     inline void flushHeaderPages() {
         if (!isEmptyWAL()) {
             fileHandle->writePage(currentHeaderPageBuffer.get(), currentHeaderPageIdx);

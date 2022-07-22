@@ -39,7 +39,12 @@ void VersionedFileHandle::setUpdatedWALPageVersionNoLock(
         pageIdxInWAL;
 }
 
-void VersionedFileHandle::clearUpdatedWALPageVersion(page_idx_t pageIdx) {
+void VersionedFileHandle::clearUpdatedWALPageVersionIfNecessary(page_idx_t pageIdx) {
+    lock_t lock(fhMutex);
+    if (numPages <= pageIdx) {
+        return;
+    }
+    lock.unlock();
     createPageVersionGroupIfNecessary(pageIdx);
     setUpdatedWALPageVersionNoLock(pageIdx, UINT32_MAX);
     releasePageLock(pageIdx);
@@ -47,6 +52,10 @@ void VersionedFileHandle::clearUpdatedWALPageVersion(page_idx_t pageIdx) {
 
 page_idx_t VersionedFileHandle::addNewPage() {
     lock_t lock(fhMutex);
+    return addNewPageWithoutLock();
+}
+
+page_idx_t VersionedFileHandle::addNewPageWithoutLock() {
     auto retVal = FileHandle::addNewPageWithoutLock();
     resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
     return retVal;

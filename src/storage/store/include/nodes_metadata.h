@@ -68,9 +68,9 @@ public:
     void setDeletedNodeOffsetsForMorsel(
         Transaction* transaction, shared_ptr<ValueVector> nodeOffsetVector);
 
-    void commitIfNecessary();
+    void checkpointInMemoryIfNecessary();
 
-    void rollbackIfNecessary();
+    void rollbackInMemoryIfNecessary();
 
     inline bool hasUpdates() { return nodeOffsetsInfoForWriteTrx != nullptr; }
 
@@ -146,9 +146,9 @@ public:
 
     bool hasUpdates();
 
-    void commitIfNecessary();
+    void checkpointInMemoryIfNecessary();
 
-    void rollbackIfNecessary();
+    void rollbackInMemoryIfNecessary();
 
     void readFromFile(const string& directory);
 

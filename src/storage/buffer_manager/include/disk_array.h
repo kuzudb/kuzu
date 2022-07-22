@@ -107,8 +107,9 @@ protected:
     BaseInMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx);
 
 public:
-    // [] operator to be used when building an InMemDiskArrayBuilder without transactional updates.
-    // This changes the contents directly in memory and not on disk (nor on the wal)
+    // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
+    // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
+    // memory and not on disk (nor on the wal).
     U& operator[](uint64_t idx);
 
     // TODO(Semih): This is only for debugging purposes. Will be removed.

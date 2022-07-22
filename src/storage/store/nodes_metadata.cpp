@@ -195,12 +195,12 @@ void NodeMetadata::setDeletedNodeOffsetsForMorsel(
     nodeOffsetsInfo->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
 }
 
-void NodeMetadata::rollbackIfNecessary() {
+void NodeMetadata::rollbackInMemoryIfNecessary() {
     lock_t lck{mtx};
     nodeOffsetsInfoForWriteTrx.reset();
 }
 
-void NodeMetadata::commitIfNecessary() {
+void NodeMetadata::checkpointInMemoryIfNecessary() {
     lock_t lck{mtx};
     if (!hasUpdates()) {
         return;
@@ -224,15 +224,15 @@ bool NodesMetadata::hasUpdates() {
     return false;
 }
 
-void NodesMetadata::commitIfNecessary() {
+void NodesMetadata::checkpointInMemoryIfNecessary() {
     for (label_t label = 0u; label < nodeMetadataPerLabel.size(); ++label) {
-        nodeMetadataPerLabel[label]->commitIfNecessary();
+        nodeMetadataPerLabel[label]->checkpointInMemoryIfNecessary();
     }
 }
 
-void NodesMetadata::rollbackIfNecessary() {
+void NodesMetadata::rollbackInMemoryIfNecessary() {
     for (label_t label = 0u; label < nodeMetadataPerLabel.size(); ++label) {
-        nodeMetadataPerLabel[label]->rollbackIfNecessary();
+        nodeMetadataPerLabel[label]->rollbackInMemoryIfNecessary();
     }
 }
 
