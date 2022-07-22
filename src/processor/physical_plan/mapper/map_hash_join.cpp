@@ -8,23 +8,24 @@ namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
+    auto hashJoin = (LogicalHashJoin*)logicalOperator;
     auto buildSideMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.getBuildSideSchema()));
+        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin->getBuildSideSchema()));
     auto buildSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin.getChild(1), buildSideMapperContext);
-    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin.getChild(0), mapperContext);
+        mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);
+    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
     // Populate build side and probe side vector positions
-    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.getJoinNodeID());
-    auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.getJoinNodeID());
-    auto paramsString = hashJoin.getExpressionsForPrinting();
+    auto joinNodeID = hashJoin->getJoinNode()->getIDProperty();
+    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(joinNodeID);
+    auto probeSideKeyIDDataPos = mapperContext.getDataPos(joinNodeID);
+    auto paramsString = hashJoin->getExpressionsForPrinting();
     vector<bool> isBuildSideNonKeyDataFlat;
     vector<DataPos> buildSideNonKeyDataPoses;
     vector<DataPos> probeSideNonKeyDataPoses;
-    auto& buildSideSchema = *hashJoin.getBuildSideSchema();
-    for (auto& expression : hashJoin.getExpressionsToMaterialize()) {
+    auto& buildSideSchema = *hashJoin->getBuildSideSchema();
+    for (auto& expression : hashJoin->getExpressionsToMaterialize()) {
         auto expressionName = expression->getUniqueName();
-        if (expressionName == hashJoin.getJoinNodeID()) {
+        if (expressionName == joinNodeID) {
             continue;
         }
         mapperContext.addComputedExpressions(expressionName);
@@ -48,7 +49,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     // create hashJoin probe
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState,
-        hashJoin.getFlatOutputGroupPositions(), probeDataInfo, move(probeSidePrevOperator),
+        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, move(probeSidePrevOperator),
         move(hashJoinBuild), getOperatorID(), paramsString);
     return hashJoinProbe;
 }

@@ -324,11 +324,12 @@ void Enumerator::appendScanRelPropIfNecessary(
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
     auto extend = schema->getExistingLogicalExtend(rel.getUniqueName());
-    auto scanProperty =
-        make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
-            extend->nbrNodeID, extend->relLabel, extend->direction, property->getUniqueName(),
-            property->getPropertyKey(), extend->isColumn, plan.getLastOperator());
-    auto groupPos = schema->getGroupPos(extend->nbrNodeID);
+    auto boundNode = extend->getBoundNodeExpression();
+    auto nbrNode = extend->getNbrNodeExpression();
+    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode,
+        extend->getRelLabel(), extend->getDirection(), property->getUniqueName(),
+        property->getPropertyKey(), extend->getIsColumn(), plan.getLastOperator());
+    auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
     plan.appendOperator(move(scanProperty));
 }

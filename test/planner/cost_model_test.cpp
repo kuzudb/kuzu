@@ -10,10 +10,12 @@ TEST_F(CostModelTest, OneHopSingleFilter) {
     auto plan = getBestPlan(query);
     auto op1 = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->getNbrNodeExpression()->getIDProperty(),
+        "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->nodeID, "_a." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->getNodeExpression()->getIDProperty(),
+        "_a." + INTERNAL_ID_SUFFIX));
 }
 
 TEST_F(CostModelTest, OneHopMultiFilters) {
@@ -28,10 +30,12 @@ TEST_F(CostModelTest, OneHopMultiFilters) {
                    ->getChild(0)
                    .get();
     ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->getNbrNodeExpression()->getIDProperty(),
+        "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->nodeID, "_a." + INTERNAL_ID_SUFFIX));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->getNodeExpression()->getIDProperty(),
+        "_a." + INTERNAL_ID_SUFFIX));
 }
 
 TEST_F(PlannerTest, OrderByTest3) {

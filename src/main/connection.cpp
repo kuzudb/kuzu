@@ -49,7 +49,7 @@ unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
     return queryResult;
 }
 
-std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& query) {
+std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
         throw Exception("Input query is empty.");
@@ -71,8 +71,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
             auto boundQuery = binder.bind(*parsedQuery);
             preparedStatement->parameterMap = binder.getParameterMap();
             // planning
-            auto logicalPlan = Planner::getBestPlan(*database->catalog,
-                database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+            auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
+            auto logicalPlan = Planner::getBestPlan(*database->catalog, nodesMetadata, *boundQuery);
             preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
             // mapping
             auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager());
