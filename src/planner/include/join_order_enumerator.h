@@ -66,7 +66,7 @@ private:
     void planPropertyScansForRel(RelExpression& rel, RelDirection direction, LogicalPlan& plan);
 
     inline void planHashJoin() {
-        auto maxLeftLevel = ceil(context->currentLevel / 2.0);
+        auto maxLeftLevel = floor(context->currentLevel / 2.0);
         for (auto leftLevel = 1; leftLevel <= maxLeftLevel; ++leftLevel) {
             auto rightLevel = context->currentLevel - leftLevel;
             planHashJoin(leftLevel, rightLevel);
