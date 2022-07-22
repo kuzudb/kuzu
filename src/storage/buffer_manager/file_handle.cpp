@@ -79,7 +79,8 @@ page_idx_t FileHandle::addNewPage() {
 
 page_idx_t FileHandle::addNewPageWithoutLock() {
     if (numPages == pageCapacity) {
-        pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));
+        pageCapacity =
+            max(pageCapacity + 1, (uint32_t)(pageCapacity * StorageConfig::ARRAY_RESIZING_FACTOR));
         pageIdxToFrameMap.resize(pageCapacity);
         pageLocks.resize(pageCapacity);
     }

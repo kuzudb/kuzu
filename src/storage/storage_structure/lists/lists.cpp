@@ -16,7 +16,7 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
         info.listLen = metadata.getNumElementsInLargeLists(largeListIdx);
     } else {
         info.isLargeList = false;
-        auto chunkIdx = nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+        auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
         info.cursor = PageUtils::getPageElementCursorForPos(
             ListHeaders::getSmallListCSROffset(header), numElementsPerPage);
         info.mapper = metadata.getPageMapperForChunkIdx(chunkIdx);

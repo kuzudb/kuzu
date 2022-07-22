@@ -57,10 +57,9 @@ public:
         unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.print();
         unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.print();
         unstrPropLists->metadata.pageLists->header.print();
-        // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in
-        // chunk idx 2 has a non-empty list. So chunk ids 0, 1, and 3's
-        // chunkToPageListHeadIdxMap need to point to UINT32_MAX (representing null),
-        // while chunk 2 should point to 0.
+        // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk idx
+        // 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
+        // point to UINT32_MAX (representing null), while chunk 2 should point to 0.
         uint64_t numChunks = 4;
         EXPECT_EQ(
             numChunks, unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.numElements);

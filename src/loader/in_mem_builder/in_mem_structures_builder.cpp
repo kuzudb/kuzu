@@ -137,7 +137,7 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
     const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
-    auto numChunks = numNodes >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+    auto numChunks = StorageUtils::getListChunkIdx(numNodes);
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
@@ -170,7 +170,7 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
 
-    auto numChunks = numNodes >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+    auto numChunks = StorageUtils::getListChunkIdx(numNodes);
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }

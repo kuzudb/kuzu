@@ -27,7 +27,7 @@ bool ScanUnstructuredProperty::getNextTuples() {
         vector->resetOverflowBuffer();
     }
     unstructuredPropertyLists->readProperties(
-        inputNodeIDVector.get(), propertyKeyToResultVectorMap);
+        transaction, inputNodeIDVector.get(), propertyKeyToResultVectorMap);
     metrics->executionTime.stop();
     return true;
 }

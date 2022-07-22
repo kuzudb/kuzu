@@ -167,10 +167,9 @@ void NodeMetadata::deleteNode(node_offset_t nodeOffset) {
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init
     // nodeOffsetsInfoForWriteTrx before calling delete on it
     if (nodeOffset > nodeOffsetsInfoForWriteTrx->maxNodeOffset) {
-        throw RuntimeException(
-            StringUtils::string_format("Cannot delete nodeOffset %d in nodeLabel %d. Node "
-                                       "offset is > maxNodeOffset: %d.",
-                nodeOffset, labelID, nodeOffsetsInfoForWriteTrx->maxNodeOffset));
+        throw RuntimeException(StringUtils::string_format(
+            "Cannot delete nodeOffset %d in nodeLabel %d. Node offset is > maxNodeOffset: %d.",
+            nodeOffset, labelID, nodeOffsetsInfoForWriteTrx->maxNodeOffset));
     }
     errorIfNodeHasEdges(nodeOffset);
     nodeOffsetsInfoForWriteTrx->deleteNode(nodeOffset);
