@@ -1,6 +1,7 @@
 #include "src/storage/storage_structure/include/column.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
+#include "src/storage/storage_structure/include/storage_structure_utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -85,7 +86,8 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nod
 void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
     uint32_t vectorPos, PageElementCursor& cursor) {
     auto [fileHandleToPin, pageIdxToPin] =
-        getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto vectorBytesOffset = vectorPos * elementSize;
     auto frameBytesOffset = cursor.posInPage * elementSize;
@@ -94,33 +96,23 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-UpdatedPageInfoAndWALPageFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
+UpdatedWALPageIdxPosInPageAndFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto originalPageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
-    if (originalPageCursor.pageIdx >= fileHandle.getNumPages()) {
-        assert(originalPageCursor.pageIdx == fileHandle.getNumPages());
-        // TODO(Semih/Guodong): What if the column is in memory? How do we ensure that the file
-        // remains pinned?
-        addNewPageToFileHandle();
-    }
-    auto updatedPageInfoAndWALPageFrame =
-        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
-            nodeOffset, numElementsPerPage);
-    memcpy(
-        updatedPageInfoAndWALPageFrame.frame +
-            mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage),
+    auto updatedWALPageInfo =
+        createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
+    memcpy(updatedWALPageInfo.frame + mapElementPosToByteOffset(updatedWALPageInfo.posInPage),
         vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
-    setNullBitOfAPosInFrame(updatedPageInfoAndWALPageFrame.frame,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
+    setNullBitOfAPosInFrame(updatedWALPageInfo.frame, updatedWALPageInfo.posInPage,
         vectorToWriteFrom->isNull(posInVectorToWriteFrom));
-    return updatedPageInfoAndWALPageFrame;
+    return updatedWALPageInfo;
 }
 
 void Column::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
 void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
@@ -130,8 +122,7 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
         auto stringToWriteTo =
             ((gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
-                            mapElementPosToByteOffset(
-                                updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage)));
+                            mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
         auto stringToWriteFrom = ((gf_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
         // If the string we write is a long string, it's overflowPtr is currently pointing to the
         // overflow buffer of vectorToWriteFrom. We need to move it to storage.
@@ -140,7 +131,8 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
                 stringToWriteFrom, *stringToWriteTo);
         }
     }
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
 Literal StringPropertyColumn::readValue(node_offset_t offset) {
@@ -160,13 +152,13 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
         auto gfListToWriteTo =
             ((gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
-                          mapElementPosToByteOffset(
-                              updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage)));
+                          mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
         auto gfListToWriteFrom = ((gf_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
         listOverflowPages.writeListOverflowAndUpdateOverflowPtr(
             gfListToWriteFrom, *gfListToWriteTo, vectorToWriteFrom->dataType);
     }
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
 Literal ListPropertyColumn::readValue(node_offset_t offset) {

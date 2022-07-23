@@ -21,8 +21,8 @@ public:
     UnstructuredPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(UNSTRUCTURED), 1,
-              make_shared<ListHeaders>(storageStructureIDAndFName), bufferManager,
-              false /*hasNULLBytes*/, isInMemory},
+              make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
+              bufferManager, false /*hasNULLBytes*/, isInMemory, wal},
           stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal},
           updatedLists{stringOverflowPages} {};
 

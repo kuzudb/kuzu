@@ -3,6 +3,33 @@
 namespace graphflow {
 namespace storage {
 
+std::size_t ListFileIDHasher::operator()(const ListFileID& key) const {
+    size_t listTypeHash;
+    switch (key.listType) {
+    case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
+        listTypeHash += key.unstructuredNodePropertyListsID.nodeLabel << 3;
+    } break;
+    case ADJ_LISTS: {
+        listTypeHash += (key.adjListsID.relLabelAndDir.relLabel << 5) +
+                        (key.adjListsID.relLabelAndDir.srcNodeLabel << 4) +
+                        (key.adjListsID.relLabelAndDir.dir << 3);
+
+    } break;
+    case REL_PROPERTY_LISTS: {
+        listTypeHash += (key.relPropertyListID.relLabelAndDir.relLabel << 6) +
+                        (key.relPropertyListID.relLabelAndDir.srcNodeLabel << 5) +
+                        (key.relPropertyListID.relLabelAndDir.dir << 4) +
+                        (key.relPropertyListID.propertyID << 3);
+
+    } break;
+    default:
+        throw RuntimeException("Unrecognized ListType: " + to_string(key.listType) +
+                               " in ListFileIDHasher. This should never happen.");
+    }
+    return listTypeHash + (hash<uint8_t>()(key.listType) << 2) + (hash<uint8_t>()(key.listFileType))
+           << 1;
+}
+
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
     label_t nodeLabel, uint32_t propertyID, bool isOverflow) {
     StorageStructureID retVal;

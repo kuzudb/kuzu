@@ -104,6 +104,7 @@ TEST_F(UnstructuredPropertyListsUpdateTests, UpdateExistingFixedLenPropertiesUse
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, UpdateExistingFixedLenAndStringPropTest) {
+    cout << "TEST started " << endl;
     setPropertyOfNode123("us123", longStrVal);
     queryAndVerifyResults(123, "ui123", "us123", existingIntVal /* expected int for write trx */,
         longStrVal /* expected str for write trx */, existingIntVal /* expected int for read trx */,

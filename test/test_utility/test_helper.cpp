@@ -129,5 +129,22 @@ void BaseGraphLoadingTest::createDBAndConn() {
     conn = make_unique<Connection>(database.get());
 }
 
+void BaseGraphLoadingTest::commitOrRollbackConnection(bool isCommit, bool testRecovery) {
+    if (!testRecovery) {
+        if (isCommit) {
+            conn->commit();
+        } else {
+            conn->rollback();
+        }
+        conn->beginWriteTransaction();
+    } else {
+        if (isCommit) {
+            conn->commitButSkipCheckpointingForTestingRecovery();
+        } else {
+            conn->rollbackButSkipCheckpointingForTestingRecovery();
+        }
+    }
+}
+
 } // namespace testing
 } // namespace graphflow

@@ -11,7 +11,9 @@ VersionedFileHandle::VersionedFileHandle(
 }
 
 void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
-    lock_t lock(fhMutex);
+    // Note that we do not have to acquire an xlock here because this function assumes that prior to
+    // calling this pageVersion and pageGroupLocks have been resized correctly.
+    shared_lock slock(fhSharedMutex);
     assert(pageIdx < numPages);
     // Although getPageElementCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
@@ -31,6 +33,13 @@ void VersionedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) 
     pageGroupLocks[pageGroupIdxAndPosInGroup.pageIdx]->clear();
 }
 
+void VersionedFileHandle::setUpdatedWALPageVersion(
+    page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
+    // We acquire an slock, because this function does not modify the pageVersions.
+    shared_lock slock(fhSharedMutex);
+    setUpdatedWALPageVersionNoLock(originalPageIdx, pageIdxInWAL);
+}
+
 void VersionedFileHandle::setUpdatedWALPageVersionNoLock(
     page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
     auto pageGroupIdxAndPosInGroup =
@@ -40,18 +49,18 @@ void VersionedFileHandle::setUpdatedWALPageVersionNoLock(
 }
 
 void VersionedFileHandle::clearUpdatedWALPageVersionIfNecessary(page_idx_t pageIdx) {
-    lock_t lock(fhMutex);
+    shared_lock slock(fhSharedMutex);
     if (numPages <= pageIdx) {
         return;
     }
-    lock.unlock();
+    slock.unlock();
     createPageVersionGroupIfNecessary(pageIdx);
     setUpdatedWALPageVersionNoLock(pageIdx, UINT32_MAX);
     releasePageLock(pageIdx);
 }
 
 page_idx_t VersionedFileHandle::addNewPage() {
-    lock_t lock(fhMutex);
+    unique_lock xlock(fhSharedMutex);
     return addNewPageWithoutLock();
 }
 
@@ -62,7 +71,7 @@ page_idx_t VersionedFileHandle::addNewPageWithoutLock() {
 }
 
 void VersionedFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) {
-    lock_t lock(fhMutex);
+    unique_lock xlock(fhSharedMutex);
     FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
     resizePageGroupLocksAndPageVersionsToNumPageGroupsWithoutLock();
 }

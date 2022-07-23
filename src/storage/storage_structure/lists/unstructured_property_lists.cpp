@@ -177,6 +177,7 @@ void UnstructuredPropertyLists::setPropertyListEmpty(node_offset_t nodeOffset) {
 void UnstructuredPropertyLists::setProperty(
     node_offset_t nodeOffset, uint32_t propertyKey, Value* value) {
     lock_t lck{mtx};
+    cout << "setProperty called " << endl;
     if (!updatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
         uint64_t updatedListCapacity =
@@ -187,7 +188,9 @@ void UnstructuredPropertyLists::setProperty(
             nodeOffset, make_unique<UnstrPropListWrapper>(
                             move(existingUstrPropLists), info.listLen, updatedListCapacity));
     }
+    cout << " setProperty called before calling setProperty" << endl;
     updatedLists.setProperty(nodeOffset, propertyKey, value);
+    cout << " setProperty called before returning in setProperty" << endl;
 }
 
 void UnstructuredPropertyLists::removeProperty(node_offset_t nodeOffset, uint32_t propertyKey) {

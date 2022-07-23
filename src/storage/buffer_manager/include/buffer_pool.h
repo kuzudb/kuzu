@@ -100,6 +100,8 @@ public:
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
         FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx);
 
+    void removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx);
+
 private:
     uint8_t* pin(FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
 
@@ -112,14 +114,17 @@ private:
         page_idx_t frameIdx, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
 
     void moveClockHand(uint64_t newClockHand);
-
+    // Performs 2 actions:
+    // 1) Clears the contents of the frame.
+    // 2) Unswizzles the pageIdx in the frame.
+    void clearFrameAndUnswizzleWithoutLock(
+        const unique_ptr<Frame>& frame, FileHandle& fileHandleInFrame, page_idx_t pageIdxInFrame);
     void readNewPageIntoFrame(
         Frame& frame, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
 
-    void flushIfDirtyWithoutPageOrFrameLock(const unique_ptr<Frame>& frame);
+    void flushIfDirty(const unique_ptr<Frame>& frame);
 
-    void removePageFromFrameOrFlushIfDirty(
-        FileHandle& fileHandle, page_idx_t pageIdx, bool isRemoving);
+    void removePageFromFrame(FileHandle& fileHandle, page_idx_t pageIdx, bool shouldFlush);
 
 private:
     shared_ptr<spdlog::logger> logger;

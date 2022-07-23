@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "src/common/types/include/types_include.h"
-#include "src/storage/buffer_manager/include/disk_array.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
+#include "src/storage/storage_structure/include/disk_array.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -42,7 +42,7 @@ class BaseListHeaders {
 public:
     static constexpr uint64_t LIST_HEADERS_HEADER_PAGE_IDX = 0;
 
-    explicit BaseListHeaders(const string& listBaseFName);
+    explicit BaseListHeaders();
 
     static inline bool isALargeList(list_header_t header) { return header & 0x80000000; };
 
@@ -51,6 +51,9 @@ public:
     static inline uint32_t getSmallListCSROffset(list_header_t header) {
         return header >> 11 & 0xfffff;
     };
+    // Constructs a small list header for a list that starts at offset csrOffset and has
+    // numElementsInList many elements.
+    // Note: if the csrOffset is 0 and the list is empty the header is 0.
     static inline uint32_t getSmallListHeader(uint32_t csrOffset, uint32_t numElementsInList) {
         return ((csrOffset & 0xfffff) << 11) | (numElementsInList & 0x7ff);
     }
@@ -63,7 +66,6 @@ public:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<FileHandle> fileHandle;
 };
 
 class ListHeadersBuilder : public BaseListHeaders {
@@ -78,18 +80,25 @@ public:
     void saveToDisk();
 
 private:
+    unique_ptr<FileHandle> fileHandle;
     unique_ptr<InMemDiskArrayBuilder<list_header_t>> headersBuilder;
 };
 
 class ListHeaders : public BaseListHeaders {
+
 public:
-    explicit ListHeaders(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList);
+    explicit ListHeaders(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+        BufferManager* bufferManager, WAL* wal);
 
-    inline list_header_t getHeader(node_offset_t offset) { return (*headers)[offset]; };
+    inline list_header_t getHeader(node_offset_t offset) { return (*headersDiskArray)[offset]; };
 
-    unique_ptr<InMemDiskArray<list_header_t>> headers;
+    inline VersionedFileHandle* getFileHandle() { return headersDiskArray->getFileHandle(); }
+
+public:
+    unique_ptr<InMemDiskArray<list_header_t>> headersDiskArray;
 
 private:
+    unique_ptr<VersionedFileHandle> versionedFileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage

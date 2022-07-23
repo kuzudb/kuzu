@@ -71,7 +71,7 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                 auto adjList =
                     make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
                                               directory, relLabel, nodeLabel, relDirection),
-                        bufferManager, nodeIDCompressionScheme, isInMemoryMode);
+                        bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjLists[relDirection].emplace(nodeLabel, move(adjList));
             }
         }
@@ -90,7 +90,7 @@ void RelTable::initPropertyListsAndColumns(const Catalog& catalog, const string&
                     catalog, directory, bufferManager, relDirection, isInMemoryMode, wal);
             } else {
                 initPropertyListsForRelLabel(
-                    catalog, directory, bufferManager, relDirection, isInMemoryMode);
+                    catalog, directory, bufferManager, relDirection, isInMemoryMode, wal);
             }
         }
     }
@@ -119,7 +119,7 @@ void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const stri
 }
 
 void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode) {
+    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal) {
     logger->debug("Initializing PropertyLists for rel {}", relLabel);
     for (auto& nodeLabel :
         catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
@@ -135,7 +135,8 @@ void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string
             auto propertyList = ListsFactory::getLists(
                 StorageUtils::getRelPropertyListsStructureIDAndFName(
                     directory, relLabel, nodeLabel, relDirection, properties[propertyIdx]),
-                properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode);
+                properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode,
+                wal);
             propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);
         }
     }

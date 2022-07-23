@@ -40,28 +40,42 @@ struct ListInfo {
  * */
 class Lists : public BaseColumnOrList {
     friend class graphflow::loader::LoaderEmptyListsTest;
+    friend class DiskArrayUpdateTests;
+    friend class DiskArrayUpdateEmptyDBTests;
 
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory)
+        bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
-              true /*hasNULLBytes*/, isInMemory} {};
+              true /*hasNULLBytes*/, isInMemory, wal} {};
 
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle);
 
+    shared_ptr<ListHeaders> getHeaders() { return headers; };
+
     ListInfo getListInfo(node_offset_t nodeOffset);
+
+    inline void checkpointInMemoryIfNecessary() {
+        // TODO(Semih): Currently we only support updates to headers as part of the PR that makes
+        // disk arrays transactional. We should later on call checkpointInMemoryIfNecessary also
+        // on ListsMetadata.
+        cout << "Lists::checkpointInMemoryIfNecessary called" << endl;
+        headers->headersDiskArray->checkpointInMemoryIfNecessary();
+    }
+
+    void rollbackInMemoryIfNecessary() { headers->headersDiskArray->rollbackInMemoryIfNecessary(); }
 
 protected:
     // storageStructureIDAndFName is the ID and fName for the "main ".lists" file.
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool hasNULLBytes, bool isInMemory)
+        bool hasNULLBytes, bool isInMemory, WAL* wal)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
               hasNULLBytes, isInMemory, nullptr /* no wal for now */},
           storageStructureIDAndFName{storageStructureIDAndFName},
-          metadata{storageStructureIDAndFName}, headers(move(headers)){};
+          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
@@ -78,11 +92,10 @@ class StringPropertyLists : public Lists {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(STRING), sizeof(gf_string_t), move(headers),
-              bufferManager, isInMemory},
-          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
-              nullptr /* no wal for now */} {};
+              bufferManager, isInMemory, wal},
+          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
@@ -99,11 +112,10 @@ class ListPropertyLists : public Lists {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory)
+        bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, dataType, sizeof(gf_list_t), move(headers),
-              bufferManager, isInMemory},
-          listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory,
-              nullptr /* no wal for now */} {};
+              bufferManager, isInMemory, wal},
+          listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
@@ -120,14 +132,12 @@ class AdjLists : public Lists {
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
-        bool isInMemory)
+        bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(NODE_ID),
               nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<ListHeaders>(storageStructureIDAndFName), bufferManager, false,
-              isInMemory},
+              make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
+              bufferManager, false, isInMemory, wal},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
-
-    shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     // Currently, used only in Loader tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
@@ -147,7 +157,7 @@ class ListsFactory {
 public:
     static unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
         const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
-        BufferManager& bufferManager, bool isInMemory) {
+        BufferManager& bufferManager, bool isInMemory, WAL* wal) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -156,13 +166,13 @@ public:
         case TIMESTAMP:
         case INTERVAL:
             return make_unique<Lists>(structureIDAndFName, dataType,
-                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory);
+                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal);
         case STRING:
             return make_unique<StringPropertyLists>(
-                structureIDAndFName, adjListsHeaders, bufferManager, isInMemory);
+                structureIDAndFName, adjListsHeaders, bufferManager, isInMemory, wal);
         case LIST:
             return make_unique<ListPropertyLists>(
-                structureIDAndFName, dataType, adjListsHeaders, bufferManager, isInMemory);
+                structureIDAndFName, dataType, adjListsHeaders, bufferManager, isInMemory, wal);
         default:
             throw StorageException("Invalid type for property list creation.");
         }

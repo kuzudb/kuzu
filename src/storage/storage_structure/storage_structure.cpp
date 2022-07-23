@@ -10,16 +10,6 @@ static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
     return val >= start && val < end;
 }
 
-pair<FileHandle*, page_idx_t> StorageStructure::getFileHandleAndPhysicalPageIdxToPin(
-    Transaction* transaction, page_idx_t physicalPageIdx) {
-    if (transaction->isReadOnly() || !fileHandle.hasUpdatedWALPageVersionNoLock(physicalPageIdx)) {
-        return make_pair(&fileHandle, physicalPageIdx);
-    } else {
-        return make_pair(
-            wal->fileHandle.get(), fileHandle.getUpdatedWALPageVersionNoLock(physicalPageIdx));
-    }
-}
-
 void StorageStructure::addNewPageToFileHandle() {
     auto pageIdxInOriginalFile = fileHandle.addNewPage();
     auto pageIdxInWAL = wal->logPageInsertRecord(
@@ -27,46 +17,27 @@ void StorageStructure::addNewPageToFileHandle() {
     bufferManager.pinWithoutAcquiringPageLock(
         *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
     fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
-    fileHandle.setUpdatedWALPageVersionNoLock(pageIdxInOriginalFile, pageIdxInWAL);
+    fileHandle.setUpdatedWALPageVersion(pageIdxInOriginalFile, pageIdxInWAL);
     bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
     bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
 }
 
-UpdatedPageInfoAndWALPageFrame
-StorageStructure::getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+UpdatedWALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryForElement(
     uint64_t elementOffset, uint64_t numElementsPerPage) {
     auto originalPageCursor =
         PageUtils::getPageElementCursorForPos(elementOffset, numElementsPerPage);
-    fileHandle.createPageVersionGroupIfNecessary(originalPageCursor.pageIdx);
-    fileHandle.acquirePageLock(originalPageCursor.pageIdx, true /* block */);
-    page_idx_t pageIdxInWAL;
-    uint8_t* frame;
-    if (fileHandle.hasUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx)) {
-        pageIdxInWAL = fileHandle.getUpdatedWALPageVersionNoLock(originalPageCursor.pageIdx);
-        frame = bufferManager.pinWithoutAcquiringPageLock(
-            *wal->fileHandle, pageIdxInWAL, false /* read from file */);
-    } else {
-        pageIdxInWAL = wal->logPageUpdateRecord(fileHandle.getStorageStructureIDIDForWALRecord(),
-            originalPageCursor.pageIdx /* pageIdxInOriginalFile */);
-        frame = bufferManager.pinWithoutAcquiringPageLock(
-            *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
-        uint8_t* originalFrame = bufferManager.pinWithoutAcquiringPageLock(
-            fileHandle, originalPageCursor.pageIdx, false /* read from file */);
-        // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
-        memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
-        bufferManager.unpinWithoutAcquiringPageLock(fileHandle, originalPageCursor.pageIdx);
-        fileHandle.setUpdatedWALPageVersionNoLock(
-            originalPageCursor.pageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
-        bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+    bool insertingNewPage = false;
+    if (originalPageCursor.pageIdx >= fileHandle.getNumPages()) {
+        assert(originalPageCursor.pageIdx == fileHandle.getNumPages());
+        // TODO(Semih/Guodong): What if the column is in memory? How do we ensure that the file
+        // remains pinned?
+        addNewPageToFileHandle();
+        insertingNewPage = true;
     }
-    return UpdatedPageInfoAndWALPageFrame(originalPageCursor, pageIdxInWAL, frame);
-}
-
-void StorageStructure::finishUpdatingPage(
-    UpdatedPageInfoAndWALPageFrame& updatedPageInfoAndWALPageFrame) {
-    bufferManager.unpinWithoutAcquiringPageLock(
-        *wal->fileHandle, updatedPageInfoAndWALPageFrame.pageIdxInWAL);
-    fileHandle.releasePageLock(updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx);
+    auto updatedWALPageIdxAndFrame = StorageStructureUtils::createWALVersionOfPageIfNecessary(
+        originalPageCursor.pageIdx, insertingNewPage, fileHandle, bufferManager, *wal);
+    return UpdatedWALPageIdxPosInPageAndFrame(
+        updatedWALPageIdxAndFrame, originalPageCursor.posInPage);
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
@@ -205,7 +176,8 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
-        getFileHandleAndPhysicalPageIdxToPin(transaction, physicalPageIdx);
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
     auto vectorBytesOffset = vectorStartPos * elementSize;
     auto frameBytesOffset = pagePosOfFirstElement * elementSize;
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);

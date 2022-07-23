@@ -70,19 +70,18 @@ class StorageUtils {
 public:
     inline static unique_ptr<FileInfo> getFileInfoForReadWrite(
         const string& directory, StorageStructureID storageStructureID) {
-        string fname;
+        string fName;
         switch (storageStructureID.storageStructureType) {
         case STRUCTURED_NODE_PROPERTY_COLUMN: {
-            fname = getNodePropertyColumnFName(directory,
+            fName = getNodePropertyColumnFName(directory,
                 storageStructureID.structuredNodePropertyColumnID.nodeLabel,
                 storageStructureID.structuredNodePropertyColumnID.propertyID);
             if (storageStructureID.isOverflow) {
-                fname = getOverflowPagesFName(fname);
+                fName = getOverflowPagesFName(fName);
             }
         } break;
         case LISTS: {
-            throw RuntimeException("There should not be any code path yet triggering getting List "
-                                   "file name from StorageStructureID.");
+            fName = getListFName(directory, storageStructureID.listFileID);
         } break;
         case NODE_INDEX: {
             throw RuntimeException("There should not be any code path yet triggering getting "
@@ -93,7 +92,7 @@ public:
                                    "StorageUtils::getFileInfoFromStorageStructureID.");
         }
         }
-        return FileUtils::openFile(fname, O_RDWR);
+        return FileUtils::openFile(fName, O_RDWR);
     }
 
     inline static string getNodeIndexFName(const string& directory, const label_t& nodeLabel) {
@@ -207,6 +206,36 @@ public:
         auto fName = StringUtils::string_format(
             "r-%d-%d-%d-%d", relLabel, nodeLabel, relDirection, propertyID);
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
+    }
+
+    inline static string getListHeadersFName(string baseListFName) {
+        return baseListFName + ".headers";
+    }
+
+    inline static string getListFName(const string& directory, ListFileID listFileID) {
+        string baseFName;
+        switch (listFileID.listType) {
+        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
+            baseFName = getNodeUnstrPropertyListsFName(
+                directory, listFileID.unstructuredNodePropertyListsID.nodeLabel);
+        } break;
+        default: {
+            throw RuntimeException(
+                "There should not be any code path yet triggering getting List "
+                "file name for anything other than UnstructuredNodePropertyList ListType.");
+        }
+            //            , ADJ_LISTS = 1, REL_PROPERTY_LISTS = 2,
+        }
+
+        switch (listFileID.listFileType) {
+        case HEADERS: {
+            return getListHeadersFName(baseFName);
+        }
+        default: {
+            throw RuntimeException("There should not be any code path yet triggering getting List "
+                                   "file name for anything other than a HEADERS ListFileType.");
+        }
+        }
     }
 
     inline static string getOverflowPagesFName(const string& fName) {

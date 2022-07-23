@@ -44,7 +44,7 @@ void FileHandle::constructNewFileHandle(const string& path) {
 }
 
 void FileHandle::resetToZeroPagesAndPageCapacity() {
-    lock_t lock(fhMutex);
+    unique_lock xlock(fhSharedMutex);
     numPages = 0;
     pageCapacity = 0;
     FileUtils::truncateFileToEmpty(fileInfo.get());
@@ -68,12 +68,15 @@ bool FileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
 }
 
 bool FileHandle::acquire(page_idx_t pageIdx) {
+    if (pageIdx >= pageLocks.size()) {
+        throw RuntimeException("pageIdx is >= pageLocks.size()");
+    }
     auto retVal = !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
     return retVal;
 }
 
 page_idx_t FileHandle::addNewPage() {
-    lock_t lock(fhMutex);
+    unique_lock xlock(fhSharedMutex);
     return addNewPageWithoutLock();
 }
 
@@ -89,7 +92,7 @@ page_idx_t FileHandle::addNewPageWithoutLock() {
 }
 
 void FileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) {
-    lock_t lock(fhMutex);
+    unique_lock xlock(fhSharedMutex);
     removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
 }
 

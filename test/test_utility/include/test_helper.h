@@ -53,6 +53,8 @@ public:
 
     void createDBAndConn();
 
+    void commitOrRollbackConnection(bool isCommit, bool testRecovery);
+
 public:
     unique_ptr<SystemConfig> systemConfig;
     unique_ptr<DatabaseConfig> databaseConfig;
