@@ -25,17 +25,18 @@ public:
     inline NodesStore& getNodesStore() const { return *nodesStore; }
     inline WAL& getWAL() const { return *wal; }
     inline void checkpointAndClearWAL() {
-        checkpointOrRollbackAndClearWAL(true /* isCheckpoint */);
+        checkpointOrRollbackAndClearWAL(false /* is not recovering */, true /* isCheckpoint */);
     }
 
     inline void rollbackAndClearWAL() {
-        checkpointOrRollbackAndClearWAL(false /* rolling back updates */);
+        checkpointOrRollbackAndClearWAL(
+            false /* is not recovering */, false /* rolling back updates */);
     }
 
     inline string getDBDirectory() { return directory; }
 
 private:
-    void checkpointOrRollbackAndClearWAL(bool isCheckpoint);
+    void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
     void recoverIfNecessary();
 
 private:

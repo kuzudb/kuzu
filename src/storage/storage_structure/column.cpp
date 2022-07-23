@@ -99,6 +99,8 @@ UpdatedPageInfoAndWALPageFrame Column::beginUpdatingPage(node_offset_t nodeOffse
     auto originalPageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     if (originalPageCursor.pageIdx >= fileHandle.getNumPages()) {
         assert(originalPageCursor.pageIdx == fileHandle.getNumPages());
+        // TODO(Semih/Guodong): What if the column is in memory? How do we ensure that the file
+        // remains pinned?
         addNewPageToFileHandle();
     }
     auto updatedPageInfoAndWALPageFrame =
@@ -111,8 +113,7 @@ UpdatedPageInfoAndWALPageFrame Column::beginUpdatingPage(node_offset_t nodeOffse
     setNullBitOfAPosInFrame(updatedPageInfoAndWALPageFrame.frame,
         updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
         vectorToWriteFrom->isNull(posInVectorToWriteFrom));
-    return UpdatedPageInfoAndWALPageFrame(updatedPageInfoAndWALPageFrame.originalPageCursor,
-        updatedPageInfoAndWALPageFrame.pageIdxInWAL, updatedPageInfoAndWALPageFrame.frame);
+    return updatedPageInfoAndWALPageFrame;
 }
 
 void Column::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,

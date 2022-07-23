@@ -50,7 +50,7 @@ void InMemNodeBuilder::initializeColumnsAndList() {
     structuredColumns.resize(nodeLabel->getNumStructuredProperties());
     for (auto& property : nodeLabel->structuredProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
-            outputDirectory, nodeLabel->labelId, property.name);
+            outputDirectory, nodeLabel->labelId, property.propertyID);
         structuredColumns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }

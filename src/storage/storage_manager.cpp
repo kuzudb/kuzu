@@ -16,15 +16,7 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
       bufferManager{bufferManager}, directory{directory} {
     logger->info("Initializing StorageManager from directory: " + directory);
     wal = make_unique<storage::WAL>(directory, bufferManager);
-    // We do part of the recovery first to make sure that the NodesMetadata file's disk contents
-    // are accurate. We achieve atomicity for NodesMetadata file by writing it to a backup file,
-    // and don't have a mechanism to refresh it (we could construct and reconstruct it but
-    // we do not currently do that).
-    if (wal->isLastLoggedRecordCommit() && wal->containsNodesMetadataRecord()) {
-        logger->info(
-            "WAL's last record is commit and there is a nodesMetadataRecord. Copying it over.");
-        StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(directory);
-    }
+    recoverIfNecessary();
     nodesStore =
         make_unique<NodesStore>(catalog, bufferManager, directory, isInMemoryMode, wal.get());
     vector<uint64_t> maxNodeOffsetPerLabel =
@@ -32,7 +24,6 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
     relsStore = make_unique<RelsStore>(
         catalog, maxNodeOffsetPerLabel, bufferManager, directory, isInMemoryMode, wal.get());
     nodesStore->getNodesMetadata().setAdjListsAndColumns(relsStore.get());
-    recoverIfNecessary();
     logger->info("Done.");
 }
 
@@ -40,13 +31,15 @@ StorageManager::~StorageManager() {
     spdlog::drop("storage");
 }
 
-void StorageManager::checkpointOrRollbackAndClearWAL(bool isCheckpoint) {
+void StorageManager::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint) {
     lock_t lck{checkpointMtx};
     logger->info(
         "Starting " +
         (isCheckpoint ? string("checkpointing") : string("rolling back the wal contents")) +
-        " in the storage manager.");
-    WALReplayer walReplayer(*this, bufferManager, isCheckpoint);
+        " in the storage manager during " +
+        (isRecovering ? "recovery." : "normal db execution (i.e., not recovering)."));
+    WALReplayer walReplayer =
+        isRecovering ? WALReplayer(this) : WALReplayer(this, &bufferManager, isCheckpoint);
     walReplayer.replay();
     logger->info(
         "Finished " +
@@ -60,7 +53,7 @@ void StorageManager::recoverIfNecessary() {
         if (wal->isLastLoggedRecordCommit()) {
             logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
                          "transaction. Replaying to checkpoint.");
-            checkpointOrRollbackAndClearWAL(true /* checkpoint */);
+            checkpointOrRollbackAndClearWAL(true /* is recovering */, true /* checkpoint */);
         } else {
             logger->info("Starting up StorageManager and found a non-empty WAL but last record is "
                          "not commit. Clearing the WAL.");

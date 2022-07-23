@@ -41,7 +41,7 @@ public:
     }
 
     void createPageVersionGroupIfNecessary(page_idx_t pageIdx);
-    void clearUpdatedWALPageVersion(page_idx_t pageIdx);
+    void clearUpdatedWALPageVersionIfNecessary(page_idx_t pageIdx);
 
     void setUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL);
 
@@ -52,6 +52,7 @@ public:
     }
 
 private:
+    page_idx_t addNewPageWithoutLock();
     uint32_t getNumPageGroups() {
         return ceil((double)numPages / MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
     }

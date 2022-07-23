@@ -68,19 +68,47 @@ struct PageUtils {
 class StorageUtils {
 
 public:
+    inline static unique_ptr<FileInfo> getFileInfoForReadWrite(
+        const string& directory, StorageStructureID storageStructureID) {
+        string fname;
+        switch (storageStructureID.storageStructureType) {
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+            fname = getNodePropertyColumnFName(directory,
+                storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+                storageStructureID.structuredNodePropertyColumnID.propertyID);
+            if (storageStructureID.isOverflow) {
+                fname = getOverflowPagesFName(fname);
+            }
+        } break;
+        case LISTS: {
+            throw RuntimeException("There should not be any code path yet triggering getting List "
+                                   "file name from StorageStructureID.");
+        } break;
+        case NODE_INDEX: {
+            throw RuntimeException("There should not be any code path yet triggering getting "
+                                   "NODE_INDEX file name from StorageStructureID.");
+        } break;
+        default: {
+            throw RuntimeException("Unsupported StorageStructureID in "
+                                   "StorageUtils::getFileInfoFromStorageStructureID.");
+        }
+        }
+        return FileUtils::openFile(fname, O_RDWR);
+    }
+
     inline static string getNodeIndexFName(const string& directory, const label_t& nodeLabel) {
         auto fName = StringUtils::string_format("n-%d", nodeLabel);
         return FileUtils::joinPath(directory, fName + StorageConfig::INDEX_FILE_SUFFIX);
     }
     inline static string getNodePropertyColumnFName(
-        const string& directory, const label_t& nodeLabel, const string& propertyName) {
-        auto fName = StringUtils::string_format("n-%d-%s", nodeLabel, propertyName.data());
+        const string& directory, const label_t& nodeLabel, uint32_t propertyID) {
+        auto fName = StringUtils::string_format("n-%d-%d", nodeLabel, propertyID);
         return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
     inline static StorageStructureIDAndFName getStructuredNodePropertyColumnStructureIDAndFName(
         const string& directory, const catalog::Property& property) {
-        auto fName = getNodePropertyColumnFName(directory, property.label, property.name);
+        auto fName = getNodePropertyColumnFName(directory, property.label, property.propertyID);
         return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyMainColumnID(
                                               property.label, property.propertyID),
             fName);
@@ -118,7 +146,7 @@ public:
         const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir,
         const catalog::Property& property) {
         auto fName =
-            getRelPropertyListsFName(directory, relLabel, srcNodeLabel, dir, property.name);
+            getRelPropertyListsFName(directory, relLabel, srcNodeLabel, dir, property.propertyID);
         return StorageStructureIDAndFName(
             StorageStructureID::newRelPropertyListsID(
                 relLabel, srcNodeLabel, dir, property.propertyID, ListFileType::BASE_LISTS),
@@ -175,9 +203,9 @@ public:
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName) {
+        const label_t& nodeLabel, const RelDirection& relDirection, const uint32_t propertyID) {
         auto fName = StringUtils::string_format(
-            "r-%d-%d-%d-%s", relLabel, nodeLabel, relDirection, propertyName.data());
+            "r-%d-%d-%d-%d", relLabel, nodeLabel, relDirection, propertyID);
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
