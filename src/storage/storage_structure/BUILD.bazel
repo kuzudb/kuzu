@@ -1,10 +1,13 @@
 cc_library(
     name = "storage_structure",
     srcs = [
+        "disk_array.cpp",
         "overflow_file.cpp",
         "storage_structure.cpp",
+        "storage_structure_utils.cpp",
     ],
     hdrs = [
+        "include/disk_array.h",
         "include/overflow_file.h",
         "include/storage_structure.h",
         "include/storage_structure_utils.h",

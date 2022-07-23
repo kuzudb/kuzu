@@ -67,11 +67,27 @@ cc_test(
     ],
 )
 
-
 cc_test(
     name = "unstructured_property_lists_updates_test",
     srcs = [
         "unstructured_property_lists_updates_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//src/storage:storage_manager",
+        "//test/test_utility:test_helper",
+    ],
+)
+
+cc_test(
+    name = "disk_array_update_test",
+    srcs = [
+        "disk_array_update_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

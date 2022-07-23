@@ -2,6 +2,7 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "src/storage/buffer_manager/include/versioned_file_handle.h"
 #include "src/storage/wal/include/wal.h"
 #include "src/storage/wal/include/wal_record.h"
 
@@ -25,6 +26,10 @@ public:
 private:
     void init();
     void replayWALRecord(WALRecord& walRecord);
+    void checkpointOrRollbackInMemoryColumn(
+        const WALRecord& walRecord, const StorageStructureID& storageStructureID);
+    void truncateFileIfInsertion(
+        VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
 
 private:
     bool isRecovering;
@@ -35,6 +40,8 @@ private:
     BufferManager* bufferManager;
     shared_ptr<FileHandle> walFileHandle;
     unique_ptr<uint8_t[]> pageBuffer;
+    unordered_set<ListFileID, ListFileIDHasher> fileIDsOfListsToCheckpointOrRollback;
+
     shared_ptr<spdlog::logger> logger;
 };
 

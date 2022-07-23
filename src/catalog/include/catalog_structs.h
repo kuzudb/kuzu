@@ -89,7 +89,6 @@ struct NodeLabel : Label {
           structuredProperties{move(structuredProperties)} {}
 
     inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
-    inline bool hasUnstructuredProperties() const { return getNumUnstructuredProperties() != 0; }
     inline uint64_t getNumUnstructuredProperties() const { return unstructuredProperties.size(); }
     void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
 

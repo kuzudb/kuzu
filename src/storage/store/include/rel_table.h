@@ -47,7 +47,7 @@ private:
     void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, const string& directory,
         BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal);
     void initPropertyListsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode);
+        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal);
 
 private:
     shared_ptr<spdlog::logger> logger;

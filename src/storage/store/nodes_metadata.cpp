@@ -12,7 +12,9 @@ namespace storage {
 NodeOffsetsInfo::NodeOffsetsInfo(
     node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets_)
     : maxNodeOffset{maxNodeOffset} {
-    hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
+    if (maxNodeOffset != UINT64_MAX) {
+        hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
+    }
     for (node_offset_t deletedNodeOffset : deletedNodeOffsets_) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);
@@ -166,10 +168,12 @@ void NodeMetadata::deleteNode(node_offset_t nodeOffset) {
     // TODO(Semih/Guodong): This check can go into nodeOffsetsInfoForWriteTrx->deleteNode
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init
     // nodeOffsetsInfoForWriteTrx before calling delete on it
-    if (nodeOffset > nodeOffsetsInfoForWriteTrx->maxNodeOffset) {
-        throw RuntimeException(StringUtils::string_format(
-            "Cannot delete nodeOffset %d in nodeLabel %d. Node offset is > maxNodeOffset: %d.",
-            nodeOffset, labelID, nodeOffsetsInfoForWriteTrx->maxNodeOffset));
+    if (nodeOffsetsInfoForWriteTrx->maxNodeOffset == UINT64_MAX ||
+        nodeOffset > nodeOffsetsInfoForWriteTrx->maxNodeOffset) {
+        throw RuntimeException(
+            StringUtils::string_format("Cannot delete nodeOffset %d in nodeLabel %d. maxNodeOffset "
+                                       "is either -1 or nodeOffset is > maxNodeOffset: %d.",
+                nodeOffset, labelID, nodeOffsetsInfoForWriteTrx->maxNodeOffset));
     }
     errorIfNodeHasEdges(nodeOffset);
     nodeOffsetsInfoForWriteTrx->deleteNode(nodeOffset);

@@ -28,10 +28,8 @@ uint64_t InMemNodeBuilder::load() {
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured lists.
     populateColumnsAndCountUnstrPropertyListSizes();
-    if (unstrPropertyLists) {
-        calcUnstrListsHeadersAndMetadata();
-        populateUnstrPropertyLists();
-    }
+    calcUnstrListsHeadersAndMetadata();
+    populateUnstrPropertyLists();
     saveToFile();
     logger->info("Done loading node {} with label {}.", labelName, nodeLabel->labelId);
     return numNodes;
@@ -60,11 +58,9 @@ void InMemNodeBuilder::initializeColumnsAndList() {
         structuredColumns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }
-    if (nodeLabel->hasUnstructuredProperties()) {
-        unstrPropertyLists = make_unique<InMemUnstructuredLists>(
-            StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel->labelId),
-            numNodes);
-    }
+    unstrPropertyLists = make_unique<InMemUnstructuredLists>(
+        StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel->labelId),
+        numNodes);
     logger->info("Done initializing in memory structured columns and unstructured list.");
 }
 
@@ -180,10 +176,8 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_
         putPropsOfLineIntoColumns(builder->structuredColumns,
             builder->nodeLabel->structuredProperties, overflowCursors, reader,
             startOffset + bufferOffset);
-        if (builder->unstrPropertyLists) {
-            calcLengthOfUnstrPropertyLists(
-                reader, startOffset + bufferOffset, builder->unstrPropertyLists.get());
-        }
+        calcLengthOfUnstrPropertyLists(
+            reader, startOffset + bufferOffset, builder->unstrPropertyLists.get());
         bufferOffset++;
     }
     populateIDIndex(builder->structuredColumns[IDColumnIdx].get(), IDIndex, startOffset,
@@ -194,7 +188,6 @@ void InMemNodeBuilder::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_
 
 void InMemNodeBuilder::calcLengthOfUnstrPropertyLists(
     CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists) {
-    assert(unstrPropertyLists);
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
         auto startPos = strchr(unstrPropertyString, ':') + 1;
@@ -227,9 +220,6 @@ void InMemNodeBuilder::calcUnstrListsHeadersAndMetadata() {
 }
 
 void InMemNodeBuilder::populateUnstrPropertyLists() {
-    if (unstrPropertyLists == nullptr) {
-        return;
-    }
     logger->debug("Populating Unstructured Property Lists.");
     node_offset_t offsetStart = 0;
     progressBar->addAndStartNewJob(
@@ -253,7 +243,6 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
     auto bufferOffset = 0u;
     PageByteCursor overflowPagesCursor;
     auto unstrPropertiesNameToIdMap = builder->nodeLabel->unstrPropertiesNameToIdMap;
-    assert(!unstrPropertiesNameToIdMap.empty());
     while (reader.hasNextLine()) {
         for (auto i = 0u; i < builder->nodeLabel->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();
@@ -414,14 +403,12 @@ void InMemNodeBuilder::saveToFile() {
             },
             column.get(), progressBar));
     }
-    if (unstrPropertyLists) {
-        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-            [&](InMemLists* x, LoaderProgressBar* progressBar_) {
-                x->saveToFile();
-                progressBar_->incrementTaskFinished();
-            },
-            unstrPropertyLists.get(), progressBar));
-    }
+    taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+        [&](InMemLists* x, LoaderProgressBar* progressBar_) {
+            x->saveToFile();
+            progressBar_->incrementTaskFinished();
+        },
+        unstrPropertyLists.get(), progressBar));
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing node structured columns to disk.");
 }

@@ -37,13 +37,11 @@ public:
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
         const StorageStructureIDAndFName& storageStructureIDAndFNameForMainDBFile) {
-        // TODO(Semih): Change this to use the copy constructor of StorageStructureIDAndFName.
-        StorageStructureID newOverflowStorageStructureID =
-            storageStructureIDAndFNameForMainDBFile.storageStructureID;
-        newOverflowStorageStructureID.isOverflow = true;
-        auto newFilePath =
+        StorageStructureIDAndFName copy = storageStructureIDAndFNameForMainDBFile;
+        copy.storageStructureID.isOverflow = true;
+        copy.fName =
             StorageUtils::getOverflowPagesFName(storageStructureIDAndFNameForMainDBFile.fName);
-        return StorageStructureIDAndFName(newOverflowStorageStructureID, newFilePath);
+        return copy;
     }
 
     // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
