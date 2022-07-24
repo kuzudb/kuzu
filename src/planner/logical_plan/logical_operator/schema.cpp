@@ -53,18 +53,8 @@ unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
     return result;
 }
 
-void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
-    queryRelLogicalExtendMap.insert({queryRel, extend});
-}
-
-LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
-    assert(queryRelLogicalExtendMap.contains(queryRel));
-    return queryRelLogicalExtendMap.at(queryRel);
-}
-
 unique_ptr<Schema> Schema::copy() const {
     auto newSchema = make_unique<Schema>();
-    newSchema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
     newSchema->expressionNameToGroupPos = expressionNameToGroupPos;
     for (auto& group : groups) {
         newSchema->groups.push_back(make_unique<FactorizationGroup>(*group));

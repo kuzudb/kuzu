@@ -177,15 +177,15 @@ void JoinOrderEnumerator::planRelINPJoin(const SubqueryGraph& prevSubgraph, uint
                     tmpCloseNode->getNodeIDPropertyExpression(),
                     catalog.getBuiltInScalarFunctions());
                 enumerator->appendFilter(idComparison, *plan);
-                planFiltersForRel(predicates, *tmpRel, *plan);
-                planPropertyScansForRel(*tmpRel, *plan);
+                planFiltersForRel(predicates, *tmpRel, direction, *plan);
+                planPropertyScansForRel(*tmpRel, direction, *plan);
                 context->addPlan(newSubgraph, move(plan));
             }
             for (auto& prevPlan : prevPlans) { // intersect-based solution
                 auto plan = prevPlan->shallowCopy();
                 appendExtend(*tmpRel, direction, *plan);
-                planFiltersForRel(predicates, *tmpRel, *plan);
-                planPropertyScansForRel(*tmpRel, *plan);
+                planFiltersForRel(predicates, *tmpRel, direction, *plan);
+                planPropertyScansForRel(*tmpRel, direction, *plan);
                 if (appendIntersect(
                         closeNode->getIDProperty(), tmpCloseNode->getIDProperty(), *plan)) {
                     context->addPlan(newSubgraph, move(plan));
@@ -196,28 +196,30 @@ void JoinOrderEnumerator::planRelINPJoin(const SubqueryGraph& prevSubgraph, uint
         auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
         auto isDstConnected = prevSubgraph.isDstConnected(relPos);
         assert(isSrcConnected || isDstConnected);
+        auto direction = isSrcConnected ? FWD : BWD;
         for (auto& prevPlan : prevPlans) {
             auto plan = prevPlan->shallowCopy();
-            appendExtend(*rel, isSrcConnected ? FWD : BWD, *plan);
-            planFiltersForRel(predicates, *rel, *plan);
-            planPropertyScansForRel(*rel, *plan);
+            appendExtend(*rel, direction, *plan);
+            planFiltersForRel(predicates, *rel, direction, *plan);
+            planPropertyScansForRel(*rel, direction, *plan);
             context->addPlan(newSubgraph, move(plan));
         }
     }
 }
 
 void JoinOrderEnumerator::planFiltersForRel(
-    expression_vector& predicates, RelExpression& rel, LogicalPlan& plan) {
+    expression_vector& predicates, RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
         auto relPropertiesToScan = getPropertiesForVariable(*predicate, rel);
-        enumerator->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, plan);
+        enumerator->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, direction, plan);
         enumerator->appendFilter(predicate, plan);
     }
 }
 
-void JoinOrderEnumerator::planPropertyScansForRel(RelExpression& rel, LogicalPlan& plan) {
+void JoinOrderEnumerator::planPropertyScansForRel(
+    RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
     auto relProperties = enumerator->getPropertiesForRel(rel);
-    enumerator->appendScanRelPropsIfNecessary(relProperties, rel, plan);
+    enumerator->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
 }
 
 void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) {
@@ -321,7 +323,6 @@ void JoinOrderEnumerator::appendExtend(
     }
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, queryRel.getLabel(), direction,
         isColumnExtend, queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
-    schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
     schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
     plan.appendOperator(move(extend));
 }
