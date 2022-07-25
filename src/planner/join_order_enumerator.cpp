@@ -223,6 +223,7 @@ void JoinOrderEnumerator::planPropertyScansForRel(
 }
 
 void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) {
+    assert(leftLevel <= rightLevel);
     auto rightSubgraphPlansMap = context->subPlansTable->getSubqueryGraphPlansMap(rightLevel);
     for (auto& [rightSubgraph, rightPlans] : *rightSubgraphPlansMap) {
         for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
@@ -327,10 +328,37 @@ void JoinOrderEnumerator::appendExtend(
     plan.appendOperator(move(extend));
 }
 
+static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
+    auto buildSchema = buildPlan.getSchema();
+    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
+    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
+    if (numGroupsInScope > 1 || hasProjectedOutGroups) {
+        return false;
+    }
+    // Now there is a single factorization group, we need to further make sure joinNodeID comes from
+    // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
+    // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
+    // linear.
+    auto firstop = buildPlan.getLastOperator().get();
+    while (firstop->getNumChildren() != 0) {
+        if (firstop->getNumChildren() > 1) {
+            return false;
+        }
+        firstop = firstop->getChild(0).get();
+    }
+    if (firstop->getLogicalOperatorType() != LOGICAL_SCAN_NODE_ID) {
+        return false;
+    }
+    auto scanNodeID = (LogicalScanNodeID*)firstop;
+    if (scanNodeID->getNodeExpression()->getIDProperty() != joinNodeID) {
+        return false;
+    }
+    return true;
+}
+
 void JoinOrderEnumerator::appendHashJoin(
     shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
-    // Set estimated cardinality.
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
     auto probeSideSchema = probePlan.getSchema();
@@ -340,10 +368,7 @@ void JoinOrderEnumerator::appendHashJoin(
     // has projected out data chunks, which may increase the multiplicity of data chunks in the
     // build side. The core idea is to keep probe side key unflat only when we know that there is
     // only 0 or 1 match for each key.
-    // TODO(Xiyang): how do we figure out if build side keys are distinct here?
-    bool hasProjectedOutGroups =
-        buildSideSchema.getNumGroups() > buildSideSchema.getGroupsPosInScope().size();
-    if (hasProjectedOutGroups || buildSideSchema.getExpressionsInScope().size() > 1) {
+    if (!isJoinKeyUniqueOnBuildSide(joinNodeID, buildPlan)) {
         Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
     }
     probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
