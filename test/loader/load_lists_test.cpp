@@ -34,8 +34,8 @@ public:
 TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
-    auto& property = catalog.getNodeProperty(label, "workedHours");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto& property = catalog.getReadOnlyVersion()->getNodeProperty(label, "workedHours");
     auto col = graph->getNodesStore().getNodePropertyColumn(label, property.propertyID);
     ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"12", "8"}, col->readValue(1)));
@@ -50,8 +50,8 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
 TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
-    auto& property = catalog.getNodeProperty(label, "usedNames");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto& property = catalog.getReadOnlyVersion()->getNodeProperty(label, "usedNames");
     auto col = graph->getNodesStore().getNodePropertyColumn(label, property.propertyID);
     ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"Bobby"}, col->readValue(1)));
@@ -66,9 +66,10 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
 TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto relLabel = catalog.getRelLabelFromName("studyAt");
-    auto nodeLabelForAdjColumnAndProperties = catalog.getNodeLabelFromName("person");
-    auto& property = catalog.getRelProperty(relLabel, "places");
+    auto relLabel = catalog.getReadOnlyVersion()->getRelLabelFromName("studyAt");
+    auto nodeLabelForAdjColumnAndProperties =
+        catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto& property = catalog.getReadOnlyVersion()->getRelProperty(relLabel, "places");
     auto col = graph->getRelsStore().getRelPropertyColumn(
         relLabel, nodeLabelForAdjColumnAndProperties, property.propertyID);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));

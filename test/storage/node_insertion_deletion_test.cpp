@@ -18,10 +18,13 @@ public:
     void initWithoutLoadingGraph() {
         createDBAndConn();
         readConn = make_unique<Connection>(database.get());
-        label_t personNodeLabel = database->getCatalog()->getNodeLabelFromName("person");
+        label_t personNodeLabel =
+            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
         personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
-        uint32_t idPropertyID =
-            database->getCatalog()->getNodeProperty(personNodeLabel, "ID").propertyID;
+        uint32_t idPropertyID = database->getCatalog()
+                                    ->getReadOnlyVersion()
+                                    ->getNodeProperty(personNodeLabel, "ID")
+                                    .propertyID;
         idColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
             personNodeLabel, idPropertyID);
         conn->beginWriteTransaction();

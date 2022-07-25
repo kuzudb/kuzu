@@ -1,9 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "catalog_test",
+    name = "catalog_builder_test",
     srcs = [
-        "catalog_test.cpp",
+        "catalog_builder_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

@@ -126,8 +126,9 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         return bindNodePropertyExpression(child, propertyName);
     } else if (REL == child->dataType.typeID) {
         auto rel = static_pointer_cast<RelExpression>(child);
-        if (catalog.containRelProperty(rel->getLabel(), propertyName)) {
-            auto& property = catalog.getRelProperty(rel->getLabel(), propertyName);
+        if (catalog.getReadOnlyVersion()->containRelProperty(rel->getLabel(), propertyName)) {
+            auto& property =
+                catalog.getReadOnlyVersion()->getRelProperty(rel->getLabel(), propertyName);
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.propertyID, move(child));
         } else {
@@ -142,8 +143,10 @@ shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
     auto& catalog = queryBinder->catalog;
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
-    if (catalog.containNodeProperty(nodeExpression->getLabel(), propertyName)) {
-        auto& property = catalog.getNodeProperty(nodeExpression->getLabel(), propertyName);
+    if (catalog.getReadOnlyVersion()->containNodeProperty(
+            nodeExpression->getLabel(), propertyName)) {
+        auto& property =
+            catalog.getReadOnlyVersion()->getNodeProperty(nodeExpression->getLabel(), propertyName);
         return make_shared<PropertyExpression>(
             property.dataType, propertyName, property.propertyID, move(node));
     } else {

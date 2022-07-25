@@ -1,14 +1,16 @@
 #pragma once
+#include <cstdint>
+
 #include "src/common/include/statement_type.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
-namespace parser {
+namespace binder {
 
-class Statement {
+class BoundStatement {
 public:
-    explicit Statement(StatementType statementType) : statementType{statementType} {}
+    explicit BoundStatement(StatementType statementType) : statementType{statementType} {}
 
     inline StatementType getStatementType() const { return statementType; }
 
@@ -16,5 +18,5 @@ private:
     StatementType statementType;
 };
 
-} // namespace parser
+} // namespace binder
 } // namespace graphflow

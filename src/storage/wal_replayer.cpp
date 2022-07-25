@@ -96,11 +96,19 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 storageManager->getNodesStore().getNodesMetadata().checkpointInMemoryIfNecessary();
             }
         } else {
-            StorageUtils::removeNodesMetadataFileForWALIfExists(storageManager->getDBDirectory());
             storageManager->getNodesStore().getNodesMetadata().rollbackInMemoryIfNecessary();
         }
     } break;
     case COMMIT_RECORD: {
+    } break;
+    case CATALOG_RECORD: {
+        if (isCheckpoint) {
+            StorageUtils::overwriteCatalogFileWithVersionFromWAL(storageManager->getDBDirectory());
+            storageManager->getCatalog()->checkpointInMemoryIfNecessary();
+        } else {
+            // Since DDL statements are single statements that are auto committed, it is impossible
+            // for users to roll back a DDL statement.
+        }
     } break;
     default:
         throw RuntimeException(

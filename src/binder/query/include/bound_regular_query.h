@@ -2,13 +2,16 @@
 
 #include "normalized_single_query.h"
 
+#include "src/binder/bound_statement/include/bound_statement.h"
+
 namespace graphflow {
 namespace binder {
 
-class BoundRegularQuery {
+class BoundRegularQuery : public BoundStatement {
 
 public:
-    explicit BoundRegularQuery(vector<bool> isUnionAll) : isUnionAll{move(isUnionAll)} {}
+    explicit BoundRegularQuery(vector<bool> isUnionAll)
+        : BoundStatement{StatementType::QUERY}, isUnionAll{move(isUnionAll)} {}
 
     ~BoundRegularQuery() = default;
 

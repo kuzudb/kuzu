@@ -51,7 +51,7 @@ public:
     // Lists and ListsMetadata.
     void testLoaderEmptyListsTest() {
         auto& catalog = *database->getCatalog();
-        label_t pLabel = catalog.getNodeLabelFromName("person");
+        label_t pLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
         auto unstrPropLists =
             database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pLabel);
         unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.print();
@@ -111,8 +111,8 @@ struct ALabelAKnowsLists {
 KnowsLabelPLabelPKnowsLists getKnowsLabelPLabelPKnowsLists(
     const Catalog& catalog, StorageManager* graph) {
     KnowsLabelPLabelPKnowsLists retVal;
-    retVal.pNodeLabel = catalog.getNodeLabelFromName("person");
-    retVal.knowsRelLabel = catalog.getRelLabelFromName("knows");
+    retVal.pNodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    retVal.knowsRelLabel = catalog.getReadOnlyVersion()->getRelLabelFromName("knows");
     retVal.fwdPKnowsLists =
         graph->getRelsStore().getAdjLists(FWD, retVal.pNodeLabel, retVal.knowsRelLabel);
     retVal.bwdPKnowsLists =
@@ -122,8 +122,8 @@ KnowsLabelPLabelPKnowsLists getKnowsLabelPLabelPKnowsLists(
 
 ALabelAKnowsLists getALabelAKnowsLists(const Catalog& catalog, StorageManager* storageManager) {
     ALabelAKnowsLists retVal;
-    retVal.aNodeLabel = catalog.getNodeLabelFromName("animal");
-    auto knowsRelLabel = catalog.getRelLabelFromName("knows");
+    retVal.aNodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("animal");
+    auto knowsRelLabel = catalog.getReadOnlyVersion()->getRelLabelFromName("knows");
     retVal.fwdAKnowsLists =
         storageManager->getRelsStore().getAdjLists(FWD, retVal.aNodeLabel, knowsRelLabel);
     retVal.bwdAKnowsLists =
@@ -136,8 +136,8 @@ ALabelAKnowsLists getALabelAKnowsLists(const Catalog& catalog, StorageManager* s
 TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getNodeProperty(label, "randomString");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID));
     string fName = getInputCSVDir() + "vPerson.csv";
@@ -166,10 +166,10 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
 TEST_F(LoaderNodePropertyTest, NodeUnstructuredPropertyTest) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
     auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
         graph->getNodesStore().getNodeUnstrPropertyLists(label));
-    auto& propertyNameToIdMap = catalog.getUnstrPropertiesNameToIdMap(label);
+    auto& propertyNameToIdMap = catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(label);
     for (int i = 0; i < 1000; ++i) {
         auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
         if (i == 300 || i == 400 || i == 500) {
@@ -303,8 +303,8 @@ TEST_F(LoaderReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
 TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
     auto storageManager = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getNodeProperty(label, "randomString");
+    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "randomString");
     auto col = storageManager->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
 
     EXPECT_EQ("this is |the first line", col->readValue(0).strVal);
@@ -315,8 +315,8 @@ TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
     EXPECT_EQ("this is a ##plain## #string", col->readValue(5).strVal);
     EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6).strVal);
 
-    label = catalog.getNodeLabelFromName("organisation");
-    propertyIdx = catalog.getNodeProperty(label, "name");
+    label = catalog.getReadOnlyVersion()->getNodeLabelFromName("organisation");
+    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "name");
     col = storageManager->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);

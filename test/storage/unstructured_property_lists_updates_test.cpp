@@ -20,7 +20,8 @@ public:
         createDBAndConn();
         overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
-        personNodeLabel = database->getCatalog()->getNodeLabelFromName("person");
+        personNodeLabel =
+            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
         personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
 
         existingStrVal.dataType = DataType(DataTypeID::STRING);
@@ -51,14 +52,18 @@ public:
     // TODO(Xiyang): Currently we are manually calling set in getUnstrPropertyLists. Once we have
     // frontend support, these sets should also be done through Cypher queries.
     void setPropertyOfNode123(string strPropKey, Value& newStrVal) {
-        uint32_t unstrPropKey =
-            database->getCatalog()->getNodeProperty(personNodeLabel, strPropKey).propertyID;
+        uint32_t unstrPropKey = database->getCatalog()
+                                    ->getReadOnlyVersion()
+                                    ->getNodeProperty(personNodeLabel, strPropKey)
+                                    .propertyID;
         personNodeTable->getUnstrPropertyLists()->setProperty(123, unstrPropKey, &newStrVal);
     }
 
     void removeProperty(node_offset_t nodeOffset, string propKey) {
-        uint32_t unstrPropKey =
-            database->getCatalog()->getNodeProperty(personNodeLabel, propKey).propertyID;
+        uint32_t unstrPropKey = database->getCatalog()
+                                    ->getReadOnlyVersion()
+                                    ->getNodeProperty(personNodeLabel, propKey)
+                                    .propertyID;
         personNodeTable->getUnstrPropertyLists()->removeProperty(nodeOffset, unstrPropKey);
     }
 

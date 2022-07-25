@@ -1,5 +1,7 @@
 #include "src/planner/include/enumerator.h"
 
+#include "src/binder/query/include/bound_regular_query.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -12,39 +14,49 @@
 namespace graphflow {
 namespace planner {
 
-vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundRegularQuery& regularQuery) {
+vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& boundStatement) {
     vector<unique_ptr<LogicalPlan>> resultPlans;
-    if (regularQuery.getNumSingleQueries() == 1) {
-        resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
+    if (boundStatement.getStatementType() == StatementType::QUERY) {
+        auto& regularQuery = (BoundRegularQuery&)boundStatement;
+        if (regularQuery.getNumSingleQueries() == 1) {
+            resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
+        } else {
+            vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
+                regularQuery.getNumSingleQueries());
+            for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+                childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
+            }
+            auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
+            for (auto& childrenPlan : childrenPlans) {
+                resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
+            }
+        }
+        for (auto& plan : resultPlans) {
+            plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
+        }
     } else {
-        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
-            regularQuery.getNumSingleQueries());
-        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-            childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
-        }
-        auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
-        for (auto& childrenPlan : childrenPlans) {
-            resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
-        }
-    }
-    for (auto& plan : resultPlans) {
-        plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
+        resultPlans.push_back(createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement));
     }
     return resultPlans;
 }
 
-unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundRegularQuery& regularQuery) {
+unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundStatement) {
     unique_ptr<LogicalPlan> bestPlan;
-    if (regularQuery.getNumSingleQueries() == 1) {
-        bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
-    } else {
-        vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
-        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-            childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
+    if (boundStatement.getStatementType() == StatementType::QUERY) {
+        auto& regularQuery = (BoundRegularQuery&)boundStatement;
+        if (regularQuery.getNumSingleQueries() == 1) {
+            bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
+        } else {
+            vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
+            for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+                childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
+            }
+            bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
         }
-        bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
+        bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
+    } else {
+        bestPlan = createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement);
     }
-    bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
     return bestPlan;
 }
 
@@ -323,7 +335,8 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
     }
     auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
     auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
-    auto isColumn = catalog.isSingleMultiplicityInDirection(rel.getLabel(), direction);
+    auto isColumn =
+        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getLabel(), direction);
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
     auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getLabel(),
@@ -477,6 +490,14 @@ vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlan
         resultChildrenPlans = move(curChildResultLogicalPlans);
     }
     return resultChildrenPlans;
+}
+
+unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
+    BoundCreateNodeClause& boundCreateNodeClause) {
+    auto plan = make_unique<LogicalPlan>();
+    plan->appendOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getLabelName(),
+        boundCreateNodeClause.getPrimaryKey(), boundCreateNodeClause.getPropertyNameDataTypes()));
+    return plan;
 }
 
 } // namespace planner

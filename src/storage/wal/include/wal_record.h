@@ -210,6 +210,7 @@ enum WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 0,
     NODES_METADATA_RECORD = 1,
     COMMIT_RECORD = 2,
+    CATALOG_RECORD = 3,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -280,6 +281,7 @@ struct WALRecord {
         uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newNodeMetadataRecord();
+    static WALRecord newCatalogRecord();
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

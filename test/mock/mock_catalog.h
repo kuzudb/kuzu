@@ -29,6 +29,7 @@ static const uint64_t NUM_PERSON_NODES = 10000;
 static const uint64_t NUM_ORGANISATION_NODES = 100;
 
 using ::testing::_;
+using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::ReturnRef;
 using ::testing::StrEq;
@@ -36,7 +37,7 @@ using ::testing::Throw;
 
 using namespace graphflow::catalog;
 
-class MockCatalog : public Catalog {
+class MockCatalogContent : public CatalogContent {
 
 public:
     MOCK_METHOD(bool, containNodeProperty, (label_t labelId, const string& propertyName),
@@ -63,12 +64,12 @@ public:
 };
 
 /**
- * Mock tiny snb catalog with 2 node labels person and organisation
+ * Mock tiny snb catalogContent with 2 node labels person and organisation
  * and 2 rel label knows and workAt.
  * Person has property age with type INT64.
  * Knows has property description with type STRING.
  */
-class TinySnbCatalog : public MockCatalog {
+class TinySnbCatalogContent : public MockCatalogContent {
 
 public:
     void setUp() {
@@ -244,4 +245,13 @@ private:
     vector<unordered_set<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;
     Property ageProperty, nameProperty, descriptionProperty, birthDateProperty,
         registerTimeProperty, knowsDateProperty;
+};
+
+class TinySnbCatalog : public Catalog {
+public:
+    void setUp() {
+        auto catalogContent = make_unique<NiceMock<TinySnbCatalogContent>>();
+        catalogContent->setUp();
+        catalogContentForReadOnlyTrx = move(catalogContent);
+    }
 };

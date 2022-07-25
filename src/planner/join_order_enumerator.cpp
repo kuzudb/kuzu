@@ -303,7 +303,8 @@ void JoinOrderEnumerator::appendExtend(
     auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
     auto boundNodeID = boundNode->getIDProperty();
     auto nbrNodeID = nbrNode->getIDProperty();
-    auto isColumnExtend = catalog.isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
+    auto isColumnExtend = catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+        queryRel.getLabel(), direction);
     uint32_t groupPos;
     // If the join is a single (1-hop) fixed-length column extend (e.g., over a relationship with
     // one-to-one multiplicity), then we put the nbrNode vector into the same
@@ -438,7 +439,8 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, RelDirection relDirection) {
-    auto numRels = catalog.getNumRelsForDirectionBoundLabel(relLabel, relDirection, boundNodeLabel);
+    auto numRels = catalog.getReadOnlyVersion()->getNumRelsForDirectionBoundLabel(
+        relLabel, relDirection, boundNodeLabel);
     return ceil(
         (double)numRels / nodesMetadata.getNodeMetadata(boundNodeLabel)->getMaxNodeOffset() + 1);
 }

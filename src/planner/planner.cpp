@@ -4,12 +4,12 @@ namespace graphflow {
 namespace planner {
 
 unique_ptr<LogicalPlan> Planner::getBestPlan(
-    const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundRegularQuery& query) {
+    const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundStatement& query) {
     return optimize(Enumerator(catalog, nodesMetadata).getBestPlan(query));
 }
 
 vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
-    const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundRegularQuery& query) {
+    const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundStatement& query) {
     auto plans = Enumerator(catalog, nodesMetadata).getAllPlans(query);
     vector<unique_ptr<LogicalPlan>> optimizedPlans;
     for (auto& plan : plans) {

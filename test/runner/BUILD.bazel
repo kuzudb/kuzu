@@ -107,6 +107,23 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "e2e_create_node_test",
+    srcs = [
+        "e2e_create_node_table_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+    ],
+)
+
 filegroup(
     name = "testfiles",
     srcs = glob(["queries/**"]),

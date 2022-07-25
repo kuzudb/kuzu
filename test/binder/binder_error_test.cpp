@@ -8,7 +8,6 @@
 using namespace graphflow::parser;
 using namespace graphflow::binder;
 
-using ::testing::NiceMock;
 using ::testing::Test;
 
 class BinderErrorTest : public Test {

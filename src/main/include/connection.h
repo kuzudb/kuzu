@@ -4,6 +4,8 @@
 #include "prepared_statement.h"
 #include "query_result.h"
 
+#include "src/catalog/include/catalog.h"
+#include "src/main/include/database.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/storage/wal/include/wal.h"
 #include "src/transaction/include/transaction_manager.h"
@@ -13,10 +15,16 @@ using namespace graphflow::transaction;
 using lock_t = unique_lock<mutex>;
 
 namespace graphflow {
+namespace transaction {
+class TinySnbCreateNodeTableTest;
+} // namespace transaction
+} // namespace graphflow
+
+namespace graphflow {
 namespace main {
 
-class Database;
 class Connection {
+    friend class graphflow::transaction::TinySnbCreateNodeTableTest;
 
 public:
     /**

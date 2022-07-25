@@ -4,8 +4,9 @@
 #include "projection_enumerator.h"
 #include "update_planner.h"
 
+#include "src/binder/bound_create_node_clause/include/bound_create_node_clause.h"
+#include "src/binder/bound_statement/include/bound_statement.h"
 #include "src/binder/expression/include/existential_subquery_expression.h"
-#include "src/binder/query/include/bound_regular_query.h"
 
 using namespace graphflow::binder;
 
@@ -22,9 +23,9 @@ public:
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesMetadata, this},
           projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
 
-    vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
-    unique_ptr<LogicalPlan> getBestPlan(const BoundRegularQuery& regularQuery);
+    unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement);
 
 private:
     // See logical_plan.h for detailed description of our sub-plan limitation.
@@ -117,6 +118,9 @@ private:
 
     static vector<vector<unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
+
+    static unique_ptr<LogicalPlan> createCreateNodeTablePlan(
+        BoundCreateNodeClause& boundCreateNodeClause);
 
 private:
     const Catalog& catalog;

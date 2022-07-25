@@ -99,6 +99,8 @@ public:
 
     void logNodeMetadataRecord();
 
+    void logCatalogRecord();
+
     // Removes the contents of WAL file.
     void clearWAL();
 
@@ -107,11 +109,6 @@ public:
     inline bool isLastLoggedRecordCommit() {
         lock_t lck{mtx};
         return isLastLoggedRecordCommit_;
-    }
-
-    inline bool containsNodesMetadataRecord() {
-        lock_t lck{mtx};
-        return containsNodesMetadataRecord_;
     }
 
     void flushAllPages();
@@ -133,9 +130,9 @@ private:
         }
     }
 
-    void initCurrentPageAndResetIsLastRecordCommitAndContainsNodesMetadataFields();
+    void initCurrentPage();
     void addNewWALRecordWithoutLock(WALRecord& walRecord);
-    void setIsLastRecordCommitAndContainsNodesMetadataFields();
+    void setIsLastRecordCommit();
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -143,7 +140,6 @@ private:
     mutex mtx;
     BufferManager& bufferManager;
     bool isLastLoggedRecordCommit_;
-    bool containsNodesMetadataRecord_;
 };
 
 class WALIterator : public BaseWALAndWALIterator {

@@ -2,6 +2,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include "src/storage/include/storage_utils.h"
+
 using namespace std;
 using namespace graphflow::catalog;
 
@@ -183,121 +185,58 @@ uint64_t SerDeser::deserializeValue<RelLabel>(
 namespace graphflow {
 namespace catalog {
 
-Catalog::Catalog() {
+CatalogContent::CatalogContent() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    builtInVectorOperations = make_unique<BuiltInVectorOperations>();
-    builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
 }
 
-Catalog::Catalog(const string& directory) : Catalog() {
+CatalogContent::CatalogContent(const string& directory) : CatalogContent() {
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
     logger->info("Initializing catalog.");
     readFromFile(directory);
     logger->info("Initializing catalog done.");
 }
 
-void Catalog::verifyColDefinitionsForNodeLabel(
-    const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions) {
-    if (primaryKeyName == "") {
-        throw CatalogException(
-            "Column header definitions of a node file does not contain the mandatory field '" +
-            string(LoaderConfig::ID_FIELD) + "'.");
+CatalogContent::CatalogContent(const CatalogContent& other) {
+    for (auto& nodeLabel : other.nodeLabels) {
+        nodeLabels.push_back(make_unique<NodeLabel>(*nodeLabel));
     }
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
-            throw CatalogException(
-                "Column header contains a mandatory field '" + name + "' that is not allowed.");
-        }
-        if (colHeaderDefinition.dataType.typeID == ANY) {
-            throw CatalogException("Column header contains an ANY data type.");
-        }
-        if (colHeaderDefinition.isIDProperty()) {
-            if (colHeaderDefinition.dataType.typeID != STRING &&
-                colHeaderDefinition.dataType.typeID != INT64) {
-                throw CatalogException("Unsupported data type '" +
-                                       Types::dataTypeToString(colHeaderDefinition.dataType) +
-                                       "' for primary key property.");
-            }
-        }
+    for (auto& relLabel : other.relLabels) {
+        relLabels.push_back(make_unique<RelLabel>(*relLabel));
     }
+    nodeLabelNameToIdMap = other.nodeLabelNameToIdMap;
+    relLabelNameToIdMap = other.relLabelNameToIdMap;
 }
 
-unique_ptr<NodeLabel> Catalog::createNodeLabel(string labelName, const DataType& IDType,
+unique_ptr<NodeLabel> CatalogContent::createNodeLabel(string labelName, string primaryKey,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
     label_t labelId = getNumNodeLabels();
     uint64_t primaryKeyPropertyId = UINT64_MAX;
-    string primaryKeyName;
     vector<Property> structuredProperties;
     for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
         auto& propertyDefinition = structuredPropertyDefinitions[i];
-        if (propertyDefinition.isIDProperty()) {
-            propertyDefinition.dataType = IDType;
+        if (propertyDefinition.name == primaryKey) {
             if (primaryKeyPropertyId != UINT64_MAX) {
                 throw CatalogException(
                     "Unexpected duplicated primary key property. First primaryKeyName: " +
-                    primaryKeyName + " second PrimaryKeyName" + propertyDefinition.name);
+                    primaryKey + " second PrimaryKeyName" + propertyDefinition.name);
             }
-            primaryKeyName = propertyDefinition.name;
             primaryKeyPropertyId = i;
         }
         structuredProperties.push_back(
             Property::constructStructuredNodeProperty(propertyDefinition, i, labelId));
     }
-    verifyColDefinitionsForNodeLabel(primaryKeyName, structuredPropertyDefinitions);
+    if (primaryKeyPropertyId == UINT64_MAX) {
+        throw CatalogException(
+            "Column header definitions of a node file does not contain the mandatory field '" +
+            string(LoaderConfig::ID_FIELD) + "'.");
+    }
+    verifyColDefinitionsForNodeLabel(primaryKey, structuredPropertyDefinitions);
     return make_unique<NodeLabel>(
         move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
 }
 
-void Catalog::addNodeLabel(BoundCreateNodeClause& boundCreateNodeClause) {
-    auto labelName = boundCreateNodeClause.getLabelName();
-    auto propertyNameDataTypes = boundCreateNodeClause.getPropertyNameDataTypes();
-    auto primaryKey = boundCreateNodeClause.getPrimaryKey();
-    label_t labelId = nodeLabels.size();
-    uint64_t primaryKeyPropertyId = UINT64_MAX;
-    vector<Property> structuredProperties;
-    for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
-        if (propertyNameDataTypes[i].name == primaryKey) {
-            if (primaryKeyPropertyId != UINT64_MAX) {
-                throw CatalogException(
-                    "Unexpected duplicated primary key property. First primaryKeyName: " +
-                    primaryKey + " secondPrimaryKeyName" + propertyNameDataTypes[i].name);
-            }
-            primaryKeyPropertyId = i;
-        }
-        structuredProperties.push_back(
-            Property::constructStructuredNodeProperty(propertyNameDataTypes[i], i, labelId));
-    }
-    auto nodeLabel = make_unique<NodeLabel>(
-        move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
-    addNodeLabel(move(nodeLabel));
-}
-
-void Catalog::verifyStructurePropertyDefinitionsForRelLabel(
-    const vector<PropertyNameDataType>& colHeaderDefinitions) {
-    auto numMandatoryFields = 0;
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
-            numMandatoryFields++;
-        }
-        if (name == LoaderConfig::ID_FIELD) {
-            throw CatalogException("Column header definitions of a rel file cannot contain "
-                                   "the mandatory field 'ID'.");
-        }
-        if (colHeaderDefinition.dataType.typeID == ANY) {
-            throw CatalogException("Column header contains an ANY data type.");
-        }
-    }
-    if (numMandatoryFields != 4) {
-        throw CatalogException("Column header definitions of a rel file does not contains all "
-                               "the mandatory field.");
-    }
-}
-
-unique_ptr<RelLabel> Catalog::createRelLabel(string labelName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType>& structuredPropertyDefinitions,
+unique_ptr<RelLabel> CatalogContent::createRelLabel(string labelName,
+    RelMultiplicity relMultiplicity, vector<PropertyNameDataType>& structuredPropertyDefinitions,
     const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) {
     verifyStructurePropertyDefinitionsForRelLabel(structuredPropertyDefinitions);
     label_t labelId = relLabels.size();
@@ -340,7 +279,53 @@ unique_ptr<RelLabel> Catalog::createRelLabel(string labelName, RelMultiplicity r
         move(structuredProperties), move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
 }
 
-bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) const {
+void CatalogContent::verifyColDefinitionsForNodeLabel(
+    const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions) {
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
+            throw CatalogException(
+                "Column header contains a mandatory field '" + name + "' that is not allowed.");
+        }
+        if (colHeaderDefinition.dataType.typeID == ANY) {
+            throw CatalogException("Column header contains an ANY data type.");
+        }
+        if (primaryKeyName == colHeaderDefinition.name) {
+            if (colHeaderDefinition.dataType.typeID != STRING &&
+                colHeaderDefinition.dataType.typeID != INT64) {
+                throw CatalogException("Unsupported data type '" +
+                                       Types::dataTypeToString(colHeaderDefinition.dataType) +
+                                       "' for primary key property.");
+            }
+        }
+    }
+}
+
+void CatalogContent::verifyStructurePropertyDefinitionsForRelLabel(
+    const vector<PropertyNameDataType>& colHeaderDefinitions) {
+    auto numMandatoryFields = 0;
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
+            numMandatoryFields++;
+        }
+        if (name == LoaderConfig::ID_FIELD) {
+            throw CatalogException("Column header definitions of a rel file cannot contain "
+                                   "the mandatory field 'ID'.");
+        }
+        if (colHeaderDefinition.dataType.typeID == ANY) {
+            throw CatalogException("Column header contains an ANY data type.");
+        }
+    }
+    if (numMandatoryFields != 4) {
+        throw CatalogException("Column header definitions of a rel file does not contains all "
+                               "the mandatory field.");
+    }
+}
+
+bool CatalogContent::containNodeProperty(label_t labelId, const string& propertyName) const {
     for (auto& property : nodeLabels[labelId]->structuredProperties) {
         if (propertyName == property.name) {
             return true;
@@ -349,7 +334,16 @@ bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) c
     return nodeLabels[labelId]->unstrPropertiesNameToIdMap.contains(propertyName);
 }
 
-const Property& Catalog::getNodeProperty(label_t labelId, const string& propertyName) const {
+bool CatalogContent::containRelProperty(label_t labelId, const string& propertyName) const {
+    for (auto& property : relLabels[labelId]->properties) {
+        if (propertyName == property.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const Property& CatalogContent::getNodeProperty(label_t labelId, const string& propertyName) const {
     for (auto& property : nodeLabels[labelId]->structuredProperties) {
         if (propertyName == property.name) {
             return property;
@@ -359,16 +353,7 @@ const Property& Catalog::getNodeProperty(label_t labelId, const string& property
     return getUnstructuredNodeProperties(labelId)[unstrPropertyIdx];
 }
 
-bool Catalog::containRelProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : relLabels[labelId]->properties) {
-        if (propertyName == property.name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-const Property& Catalog::getRelProperty(label_t labelId, const string& propertyName) const {
+const Property& CatalogContent::getRelProperty(label_t labelId, const string& propertyName) const {
     for (auto& property : relLabels[labelId]->properties) {
         if (propertyName == property.name) {
             return property;
@@ -377,19 +362,19 @@ const Property& Catalog::getRelProperty(label_t labelId, const string& propertyN
     assert(false);
 }
 
-const Property& Catalog::getNodePrimaryKeyProperty(label_t nodeLabel) const {
+const Property& CatalogContent::getNodePrimaryKeyProperty(label_t nodeLabel) const {
     auto primaryKeyId = nodeLabels[nodeLabel]->primaryPropertyId;
     return nodeLabels[nodeLabel]->structuredProperties[primaryKeyId];
 }
 
-vector<Property> Catalog::getAllNodeProperties(label_t nodeLabel) const {
+vector<Property> CatalogContent::getAllNodeProperties(label_t nodeLabel) const {
     auto allProperties = nodeLabels[nodeLabel]->structuredProperties;
     allProperties.insert(allProperties.end(), nodeLabels[nodeLabel]->unstructuredProperties.begin(),
         nodeLabels[nodeLabel]->unstructuredProperties.end());
     return allProperties;
 }
 
-const unordered_set<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
+const unordered_set<label_t>& CatalogContent::getRelLabelsForNodeLabelDirection(
     label_t nodeLabel, RelDirection direction) const {
     if (nodeLabel >= nodeLabels.size()) {
         throw CatalogException("Node label " + to_string(nodeLabel) + " is out of bounds.");
@@ -400,7 +385,7 @@ const unordered_set<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
     return nodeLabels[nodeLabel]->bwdRelLabelIdSet;
 }
 
-const unordered_set<label_t>& Catalog::getNodeLabelsForRelLabelDirection(
+const unordered_set<label_t>& CatalogContent::getNodeLabelsForRelLabelDirection(
     label_t relLabel, RelDirection direction) const {
     if (relLabel >= relLabels.size()) {
         throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
@@ -411,7 +396,8 @@ const unordered_set<label_t>& Catalog::getNodeLabelsForRelLabelDirection(
     return relLabels[relLabel]->dstNodeLabelIdSet;
 }
 
-bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, RelDirection direction) const {
+bool CatalogContent::isSingleMultiplicityInDirection(
+    label_t relLabel, RelDirection direction) const {
     auto relMultiplicity = relLabels[relLabel]->relMultiplicity;
     if (FWD == direction) {
         return ONE_ONE == relMultiplicity || MANY_ONE == relMultiplicity;
@@ -420,7 +406,7 @@ bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, RelDirection dir
     }
 }
 
-uint64_t Catalog::getNumRelsForDirectionBoundLabel(
+uint64_t CatalogContent::getNumRelsForDirectionBoundLabel(
     label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const {
     if (relLabel >= relLabels.size()) {
         throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
@@ -429,8 +415,8 @@ uint64_t Catalog::getNumRelsForDirectionBoundLabel(
         boundNodeLabel);
 }
 
-void Catalog::saveToFile(const string& directory) {
-    auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
+void CatalogContent::saveToFile(const string& directory, bool isForWALRecord) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(directory, isForWALRecord);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     uint64_t numNodeLabels = nodeLabels.size();
@@ -446,8 +432,8 @@ void Catalog::saveToFile(const string& directory) {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-void Catalog::readFromFile(const string& directory) {
-    auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
+void CatalogContent::readFromFile(const string& directory) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(directory, false /* isForWALRecord */);
     logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
@@ -479,6 +465,35 @@ void Catalog::readFromFile(const string& directory) {
         relLabelNameToIdMap[label->labelName] = label->labelId;
     }
     FileUtils::closeFile(fileInfo->fd);
+}
+
+Catalog::Catalog() {
+    catalogContentForReadOnlyTrx = make_unique<CatalogContent>();
+    builtInVectorOperations = make_unique<BuiltInVectorOperations>();
+    builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
+}
+
+Catalog::Catalog(const string& directory) {
+    catalogContentForReadOnlyTrx = make_unique<CatalogContent>(directory);
+    builtInVectorOperations = make_unique<BuiltInVectorOperations>();
+    builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
+}
+
+void Catalog::checkpointInMemoryIfNecessary() {
+    if (!hasUpdates()) {
+        return;
+    }
+    catalogContentForReadOnlyTrx = move(catalogContentForWriteTrx);
+}
+
+ExpressionType Catalog::getFunctionType(const string& name) const {
+    if (builtInVectorOperations->containsFunction(name)) {
+        return FUNCTION;
+    } else if (builtInAggregateFunctions->containsFunction(name)) {
+        return AGGREGATE_FUNCTION;
+    } else {
+        throw CatalogException(name + " function does not exist.");
+    }
 }
 
 } // namespace catalog

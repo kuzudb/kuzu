@@ -35,6 +35,7 @@ enum LogicalOperatorType : uint8_t {
     LOGICAL_DELETE,
     LOGICAL_SINK,
     LOGICAL_STATIC_TABLE_SCAN,
+    LOGICAL_CREATE_NODE_TABLE,
 };
 
 const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE_ID", "LOGICAL_SELECT_SCAN",

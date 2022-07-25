@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/catalog/include/catalog.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/wal/include/wal.h"
 #include "src/storage/wal/include/wal_record.h"

@@ -5,11 +5,18 @@
 #include "query_summary.h"
 
 namespace graphflow {
+namespace transaction {
+class TinySnbCreateNodeTableTest;
+} // namespace transaction
+} // namespace graphflow
+
+namespace graphflow {
 namespace main {
 
 class PreparedStatement {
     friend class Connection;
     friend class JOConnection;
+    friend class graphflow::transaction::TinySnbCreateNodeTableTest;
 
 public:
     PreparedStatement() { querySummary = make_unique<QuerySummary>(); }
@@ -29,6 +36,7 @@ public:
     inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
 
 private:
+    bool isDDL;
     bool success = true;
     string errMsg;
 

@@ -16,7 +16,7 @@ namespace storage {
 class StorageManager {
 
 public:
-    StorageManager(const catalog::Catalog& catalog, BufferManager& bufferManager, string directory,
+    StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager, string directory,
         bool isInMemoryMode);
 
     virtual ~StorageManager();
@@ -35,6 +35,8 @@ public:
 
     inline string getDBDirectory() { return directory; }
 
+    inline Catalog* getCatalog() { return &catalog; }
+
 private:
     void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
     void recoverIfNecessary();
@@ -47,6 +49,7 @@ private:
     unique_ptr<RelsStore> relsStore;
     unique_ptr<NodesStore> nodesStore;
     mutex checkpointMtx;
+    Catalog& catalog;
 };
 
 } // namespace storage

@@ -20,8 +20,8 @@ using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<InMemAdjLists>>;
 class InMemStructuresBuilder {
 protected:
     InMemStructuresBuilder(string labelName, string inputFilePath, string outputDirectory,
-        CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler, Catalog& catalog,
-        LoaderProgressBar* progressBar);
+        CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler,
+        CatalogBuilder& catalogBuilder, LoaderProgressBar* progressBar);
 
     virtual ~InMemStructuresBuilder() = default;
 
@@ -73,7 +73,7 @@ protected:
     vector<uint64_t> numLinesPerBlock;
     CSVReaderConfig csvReaderConfig;
     TaskScheduler& taskScheduler;
-    Catalog& catalog;
+    CatalogBuilder& catalogBuilder;
     LoaderProgressBar* progressBar;
 };
 

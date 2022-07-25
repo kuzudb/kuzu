@@ -20,7 +20,7 @@ public:
 
     inline bool isReadOnly() const {
         return !lastOperator->descendantsContainType(
-            unordered_set<LogicalOperatorType>{LOGICAL_SET});
+            unordered_set<LogicalOperatorType>{LOGICAL_SET, LOGICAL_CREATE_NODE_TABLE});
     }
 
     // Our sub-plan (specific to the right plan of Exists and LeftNestedLoopJoin operator) does not

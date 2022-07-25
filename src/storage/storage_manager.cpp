@@ -10,10 +10,10 @@
 namespace graphflow {
 namespace storage {
 
-StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& bufferManager,
-    string directory, bool isInMemoryMode)
+StorageManager::StorageManager(
+    catalog::Catalog& catalog, BufferManager& bufferManager, string directory, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
-      bufferManager{bufferManager}, directory{directory} {
+      bufferManager{bufferManager}, directory{directory}, catalog{catalog} {
     logger->info("Initializing StorageManager from directory: " + directory);
     wal = make_unique<storage::WAL>(directory, bufferManager);
     recoverIfNecessary();
@@ -24,6 +24,11 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
     relsStore = make_unique<RelsStore>(
         catalog, maxNodeOffsetPerLabel, bufferManager, directory, isInMemoryMode, wal.get());
     nodesStore->getNodesMetadata().setAdjListsAndColumns(relsStore.get());
+    // TODO(ZIYI): we currently don't add nodes created by DDL to the nodeStore. When restarting
+    // database, we can't rebuild the nodeStore based on the replayed catalog. For now, we
+    // should just rebuild catalog after building nodeStore. The next PR will implement the logic
+    // to add a new node to nodeStore, then this code can be removed.
+    catalog.getReadOnlyVersion()->readFromFile(directory);
     logger->info("Done.");
 }
 
