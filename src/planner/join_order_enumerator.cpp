@@ -107,26 +107,26 @@ void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, Logical
 
 void JoinOrderEnumerator::planCurrentLevel() {
     assert(context->currentLevel > 1);
-    planINPJoin();
+    planINLJoin();
     planHashJoin();
     context->subPlansTable->finalizeLevel(context->currentLevel);
 }
 
-void JoinOrderEnumerator::planINPJoin() {
+void JoinOrderEnumerator::planINLJoin() {
     auto prevLevel = context->currentLevel - 1;
     for (auto& [subgraph, plans] : *context->subPlansTable->getSubqueryGraphPlansMap(prevLevel)) {
         auto nodeNbrPositions = subgraph.getNodeNbrPositions();
         for (auto& nodePos : nodeNbrPositions) {
-            planNodeINPJoin(subgraph, nodePos, plans);
+            planNodeINLJoin(subgraph, nodePos, plans);
         }
         auto relNbrPositions = subgraph.getRelNbrPositions();
         for (auto& relPos : relNbrPositions) {
-            planRelINPJoin(subgraph, relPos, plans);
+            planRelINLJoin(subgraph, relPos, plans);
         }
     }
 }
 
-void JoinOrderEnumerator::planNodeINPJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
+void JoinOrderEnumerator::planNodeINLJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
     vector<unique_ptr<LogicalPlan>>& prevPlans) {
     auto newSubgraph = prevSubgraph;
     newSubgraph.addQueryNode(nodePos);
@@ -137,11 +137,12 @@ void JoinOrderEnumerator::planNodeINPJoin(const SubqueryGraph& prevSubgraph, uin
         auto plan = prevPlan->shallowCopy();
         planFiltersForNode(predicates, *node, *plan);
         planPropertyScansForNode(*node, *plan);
+        plan->multiplyCost(EnumeratorKnobs::RANDOM_LOOKUP_PENALTY);
         context->addPlan(newSubgraph, move(plan));
     }
 }
 
-void JoinOrderEnumerator::planRelINPJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
+void JoinOrderEnumerator::planRelINLJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
     vector<unique_ptr<LogicalPlan>>& prevPlans) {
     // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
     // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
@@ -279,7 +280,6 @@ void JoinOrderEnumerator::appendResultScan(
     }
     auto resultScan = make_shared<LogicalResultScan>(expressionsToSelect);
     auto group = schema->getGroup(groupPos);
-    group->setEstimatedCardinality(1);
     group->setIsFlat(true);
     plan.appendOperator(move(resultScan));
 }
@@ -290,9 +290,9 @@ void JoinOrderEnumerator::appendScanNodeID(
     assert(plan.isEmpty());
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(queryNode->getNodeIDPropertyExpression(), groupPos);
-    schema->getGroup(groupPos)->setEstimatedCardinality(
-        nodesMetadata.getNodeMetadata(queryNode->getLabel())->getMaxNodeOffset() + 1);
+    auto numNodes = nodesMetadata.getNodeMetadata(queryNode->getLabel())->getMaxNodeOffset() + 1;
     auto scan = make_shared<LogicalScanNodeID>(move(queryNode));
+    schema->getGroup(groupPos)->setMultiplier(numNodes);
     plan.appendOperator(move(scan));
 }
 
@@ -305,7 +305,8 @@ void JoinOrderEnumerator::appendExtend(
     auto nbrNodeID = nbrNode->getIDProperty();
     auto isColumnExtend = catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
         queryRel.getLabel(), direction);
-    uint32_t groupPos;
+    auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
+    uint32_t nbrGroupPos;
     // If the join is a single (1-hop) fixed-length column extend (e.g., over a relationship with
     // one-to-one multiplicity), then we put the nbrNode vector into the same
     // datachunk/factorization group as the boundNodeId. Otherwise (including a var-length join over
@@ -314,18 +315,18 @@ void JoinOrderEnumerator::appendExtend(
     // the vector in this case can be an unflat vector with a single value in it).
     if (isColumnExtend && (queryRel.getLowerBound() == 1) &&
         (queryRel.getLowerBound() == queryRel.getUpperBound())) {
-        groupPos = schema->getGroupPos(boundNodeID);
+        nbrGroupPos = boundNodeGroupPos;
     } else {
-        auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
         Enumerator::appendFlattenIfNecessary(boundNodeGroupPos, plan);
-        groupPos = schema->createGroup();
-        schema->getGroup(groupPos)->setEstimatedCardinality(
-            schema->getGroup(boundNodeGroupPos)->getEstimatedCardinality() *
+        nbrGroupPos = schema->createGroup();
+        auto nbrNodeGroup = schema->getGroup(nbrGroupPos);
+        nbrNodeGroup->setMultiplier(
             getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction));
     }
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, queryRel.getLabel(), direction,
         isColumnExtend, queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
-    schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
+    schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), nbrGroupPos);
+    plan.increaseCost(plan.getCardinality());
     plan.appendOperator(move(extend));
 }
 
@@ -364,16 +365,18 @@ void JoinOrderEnumerator::appendHashJoin(
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
     auto probeSideSchema = probePlan.getSchema();
     auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNodeID);
-    auto probeSideKeyGroup = probeSideSchema->getGroup(probeSideKeyGroupPos);
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     // Flat probe side key group if the build side contains more than one group or the build side
     // has projected out data chunks, which may increase the multiplicity of data chunks in the
     // build side. The core idea is to keep probe side key unflat only when we know that there is
     // only 0 or 1 match for each key.
     if (!isJoinKeyUniqueOnBuildSide(joinNodeID, buildPlan)) {
         Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
+        // Update probe side cardinality if build side does not guarantee to have 0/1 match
+        probePlan.multiplyCardinality(
+            buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
+        probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
     }
-    probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
-        buildSideSchema.getGroup(buildSideKeyGroupPos)->getEstimatedCardinality()));
     // Merge key group from build side into probe side.
     for (auto& expression : buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos)) {
         if (expression->getUniqueName() == joinNodeID) {
@@ -417,10 +420,6 @@ bool JoinOrderEnumerator::appendIntersect(
         return false;
     }
     auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.getLastOperator());
-    plan.cost += max(leftGroup.getEstimatedCardinality(), rightGroup.getEstimatedCardinality());
-    leftGroup.setEstimatedCardinality(leftGroup.getEstimatedCardinality() * PREDICATE_SELECTIVITY);
-    rightGroup.setEstimatedCardinality(
-        rightGroup.getEstimatedCardinality() * PREDICATE_SELECTIVITY);
     plan.appendOperator(move(intersect));
     return true;
 }

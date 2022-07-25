@@ -75,7 +75,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getValidSubPlans(
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
     auto bestPlan = move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
-        if (plans[i]->cost < bestPlan->cost) {
+        if (plans[i]->getCost() < bestPlan->getCost()) {
             bestPlan = move(plans[i]);
         }
     }
@@ -272,7 +272,7 @@ void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) 
         return;
     }
     plan.getSchema()->flattenGroup(groupPos);
-    plan.cost += group.getEstimatedCardinality();
+    plan.multiplyCardinality(group.getMultiplier());
     auto flatten = make_shared<LogicalFlatten>(group.getAnyExpression(), plan.getLastOperator());
     plan.appendOperator(move(flatten));
 }
@@ -282,8 +282,7 @@ void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalP
     auto dependentGroupsPos = getDependentGroupsPos(expression, *plan.getSchema());
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
-    auto group = plan.getSchema()->getGroup(groupPosToSelect);
-    group->setEstimatedCardinality(group->getEstimatedCardinality() * PREDICATE_SELECTIVITY);
+    plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
     plan.appendOperator(move(filter));
 }
 
@@ -375,7 +374,7 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     Enumerator::computeSchemaForSinkOperators(
         firstChildSchema->getGroupsPosInScope(), *firstChildSchema, *plan->getSchema());
     for (auto& childPlan : childrenPlans) {
-        plan->cost += childPlan->cost;
+        plan->increaseCost(childPlan->getCost());
         logicalUnion->addChild(childPlan->getLastOperator());
         logicalUnion->addSchema(childPlan->getSchema()->copy());
     }
@@ -455,10 +454,10 @@ void Enumerator::computeSchemaForSinkOperators(
         } else {
             isAllVectorsFlat = false;
             auto groupPos = schemaAfterSink.createGroup();
+            auto group = schemaAfterSink.getGroup(groupPos);
             schemaAfterSink.insertToGroupAndScope(
                 schemaBeforeSink.getExpressionsInScope(groupToMaterializePos), groupPos);
-            schemaAfterSink.getGroup(groupPos)->setEstimatedCardinality(
-                groupToMaterialize->getEstimatedCardinality());
+            group->setMultiplier(groupToMaterialize->getMultiplier());
         }
     }
     if (!isAllVectorsFlat && flatVectorsOutputPos != UINT32_MAX) {

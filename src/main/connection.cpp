@@ -60,10 +60,10 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<PhysicalPlan> physicalPlan;
     try {
-        auto cypher = Parser::parseQuery(query);
+        auto statement = Parser::parseQuery(query);
         unique_ptr<BoundStatement> boundStatement;
-        if (cypher->getStatementType() == StatementType::QUERY) {
-            auto parsedQuery = reinterpret_cast<RegularQuery*>(cypher.get());
+        if (statement->getStatementType() == StatementType::QUERY) {
+            auto parsedQuery = (RegularQuery*)statement.get();
             querySummary->isExplain = parsedQuery->isEnableExplain();
             querySummary->isProfile = parsedQuery->isEnableProfile();
             auto binder = QueryBinder(*database->catalog);
@@ -71,7 +71,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
             preparedStatement->parameterMap = binder.getParameterMap();
             preparedStatement->isDDL = false;
         } else {
-            auto parsedQuery = reinterpret_cast<CreateNodeClause*>(cypher.get());
+            auto parsedQuery = (CreateNodeClause*)statement.get();
             auto binder = CreateNodeClauseBinder(database->catalog.get());
             boundStatement = binder.bind(*parsedQuery);
             preparedStatement->isDDL = true;

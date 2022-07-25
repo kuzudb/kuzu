@@ -15,6 +15,7 @@ cc_library(
         "//src/binder/expression:expression_implementations",
         "//src/binder/query",
         "//src/catalog",
+        "//src/common:configs",
         "//src/function/comparison:vector_comparison_operations",
         "//src/planner/logical_plan",
         "//src/planner/logical_plan/logical_operator:logical_operator_impls",

@@ -10,13 +10,15 @@ void LogicalPlan::appendOperator(shared_ptr<LogicalOperator> op) {
 }
 
 unique_ptr<LogicalPlan> LogicalPlan::shallowCopy() const {
-    auto plan = make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, cost);
+    auto plan =
+        make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, estCardinality, cost);
     plan->lastOperator = lastOperator;
     return plan;
 }
 
 unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
-    auto plan = make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, cost);
+    auto plan =
+        make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, estCardinality, cost);
     plan->lastOperator = lastOperator ? lastOperator->copy() : lastOperator;
     return plan;
 }

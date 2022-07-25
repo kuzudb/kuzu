@@ -216,9 +216,7 @@ void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) 
     auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(
         limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        schema->getGroup(i)->setEstimatedCardinality(limitNumber);
-    }
+    plan.setCardinality(limitNumber);
     plan.appendOperator(move(limit));
 }
 
@@ -227,10 +225,7 @@ void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(
         skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        auto group = schema->getGroup(i);
-        group->setEstimatedCardinality(group->getEstimatedCardinality() - skipNumber);
-    }
+    plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.appendOperator(move(skip));
 }
 

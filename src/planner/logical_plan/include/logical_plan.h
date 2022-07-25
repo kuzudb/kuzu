@@ -7,12 +7,13 @@ namespace graphflow {
 namespace planner {
 
 class LogicalPlan {
-
 public:
-    LogicalPlan() : schema{make_unique<Schema>()}, cost{0} {}
+    LogicalPlan() : schema{make_unique<Schema>()}, estCardinality{1}, cost{0} {}
 
-    LogicalPlan(unique_ptr<Schema> schema, expression_vector expressionsToCollect, uint64_t cost)
-        : schema{move(schema)}, expressionsToCollect{move(expressionsToCollect)}, cost{cost} {}
+    LogicalPlan(unique_ptr<Schema> schema, expression_vector expressionsToCollect,
+        uint64_t estCardinality, uint64_t cost)
+        : schema{move(schema)}, expressionsToCollect{move(expressionsToCollect)},
+          estCardinality{estCardinality}, cost{cost} {}
 
     void appendOperator(shared_ptr<LogicalOperator> op);
 
@@ -40,6 +41,14 @@ public:
 
     inline Schema* getSchema() { return schema.get(); }
 
+    inline void multiplyCardinality(uint64_t factor) { estCardinality *= factor; }
+    inline void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
+    inline uint64_t getCardinality() const { return estCardinality; }
+
+    inline void multiplyCost(uint64_t factor) { cost *= factor; }
+    inline void increaseCost(uint64_t costToIncrease) { cost += costToIncrease; }
+    inline uint64_t getCost() const { return cost; }
+
     unique_ptr<LogicalPlan> shallowCopy() const;
 
     unique_ptr<LogicalPlan> deepCopy() const;
@@ -49,8 +58,7 @@ private:
     unique_ptr<Schema> schema;
     // This fields represents return columns in the same order as user input.
     expression_vector expressionsToCollect;
-
-public:
+    uint64_t estCardinality;
     uint64_t cost;
 };
 
