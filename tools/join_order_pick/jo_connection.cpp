@@ -10,7 +10,7 @@ namespace graphflow {
 namespace main {
 
 unique_ptr<QueryResult> JOConnection::query(const string& query, const string& encodedJoin) {
-    assert(!query.empty() && !encodedJoin.empty());
+    assert(!query.empty());
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     try {
@@ -20,13 +20,18 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
         auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
         unique_ptr<LogicalPlan> logicalPlan;
-        for (auto& plan : Planner::getAllPlans(*database->catalog, nodesMetadata, *boundQuery)) {
-            if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
-                logicalPlan = move(plan);
+        if (encodedJoin.empty()) {
+            logicalPlan = Planner::getBestPlan(*database->catalog, nodesMetadata, *boundQuery);
+        } else {
+            for (auto& plan :
+                Planner::getAllPlans(*database->catalog, nodesMetadata, *boundQuery)) {
+                if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
+                    logicalPlan = move(plan);
+                }
             }
-        }
-        if (logicalPlan == nullptr) {
-            throw ConnectionException("Cannot find a plan matching " + encodedJoin);
+            if (logicalPlan == nullptr) {
+                throw ConnectionException("Cannot find a plan matching " + encodedJoin);
+            }
         }
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping

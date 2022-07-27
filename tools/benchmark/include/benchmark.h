@@ -1,10 +1,10 @@
 #pragma once
 
 #include "tools/benchmark/include/benchmark_config.h"
+#include "tools/join_order_pick/include/jo_connection.h"
 
 #include "src/main/include/graphflowdb.h"
 
-using namespace std;
 using namespace graphflow::main;
 
 namespace graphflow {
@@ -28,10 +28,11 @@ private:
 
 public:
     BenchmarkConfig& config;
-    unique_ptr<Connection> conn;
+    unique_ptr<JOConnection> conn;
     string name;
     string query;
     vector<string> expectedOutput;
+    string encodedJoin;
 };
 
 } // namespace benchmark

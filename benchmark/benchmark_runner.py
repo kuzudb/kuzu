@@ -145,7 +145,7 @@ def run_graphflowdb(serialized_graph_path):
             '--run=' + str(num_run),
             '--thread=' + str(args.thread),
             '--out=' + benchmark_log_dir + '/' + group,
-            '--default-bm=1024',
+            '--default-bm=20480',
             '--large-bm=20480',
             '--profile'
         ]

@@ -13,7 +13,7 @@ namespace benchmark {
 
 Benchmark::Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config)
     : config{config} {
-    conn = make_unique<Connection>(database);
+    conn = make_unique<JOConnection>(database);
     conn->setMaxNumThreadForExec(config.numThreads);
     loadBenchmark(benchmarkPath);
 }
@@ -27,10 +27,11 @@ void Benchmark::loadBenchmark(const string& benchmarkPath) {
     query += queryConfig.query;
     name = queryConfig.name;
     expectedOutput = queryConfig.expectedTuples;
+    encodedJoin = queryConfig.encodedJoin;
 }
 
 unique_ptr<QueryResult> Benchmark::run() {
-    return conn->query(query);
+    return conn->query(query, encodedJoin);
 }
 
 void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, vector<string>& actualOutput) const {

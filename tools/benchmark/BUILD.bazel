@@ -14,6 +14,7 @@ cc_library(
     deps = [
         "//src/main:graphflowdb",
         "//test/test_utility:test_helper",
+        "//tools/join_order_pick:jo_connection",
     ],
 )
 
