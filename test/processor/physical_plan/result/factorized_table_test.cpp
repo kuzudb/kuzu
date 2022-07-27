@@ -2,13 +2,14 @@
 
 #include "src/common/include/exception.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
+#include "src/processor/include/physical_plan/result/factorized_tuple_iterator.h"
 
 using namespace graphflow::processor;
 
 class FactorizedTableTest : public ::testing::Test {
 
 public:
-    unique_ptr<ResultSet> initResultSet() {
+    unique_ptr<ResultSet> initResultSet() const {
         auto result = make_unique<ResultSet>(2);
         auto dataChunkA = make_shared<DataChunk>(2);
         auto dataChunkB = make_shared<DataChunk>(2);
@@ -60,7 +61,7 @@ public:
         resultSet->dataChunks[1]->state->selVector->selectedSize = 100;
     }
 
-    unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) {
+    unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) const {
         // Prepare the factorizedTable and unflat vectors (A1, B1).
         unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
@@ -156,7 +157,7 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         factorizedTable->scan(vectorsToRead, i, 1);
         ASSERT_EQ(readResultSet->dataChunks[0]->state->selVector->selectedSize, 100);
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 1);
-        if (i % 10) {
+        if (i % 10 != 0) {
             ASSERT_EQ(vectorB1->isNull(i), false);
             ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].label, 28);
             ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].offset, (uint64_t)i);
@@ -164,7 +165,7 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
             ASSERT_EQ(vectorB1->isNull(i), true);
         }
         for (auto j = 0u; j < 100; j++) {
-            if (j % 10) {
+            if (j % 10 != 0) {
                 ASSERT_EQ(vectorA2->isNull(j), false);
                 ASSERT_EQ(((int64_t*)vectorA2->values)[j], j << 1);
             } else {

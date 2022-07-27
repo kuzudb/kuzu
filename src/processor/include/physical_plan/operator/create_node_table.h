@@ -17,9 +17,9 @@ public:
     CreateNodeTable(Catalog* catalog, string labelName,
         vector<PropertyNameDataType> propertyNameDataTypes, string primaryKey, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{id, paramsString},
-          SourceOperator{nullptr}, catalog{catalog}, labelName{move(labelName)},
-          propertyNameDataTypes{move(propertyNameDataTypes)}, primaryKey{move(primaryKey)} {}
+        : PhysicalOperator{id, paramsString}, SourceOperator{nullptr}, catalog{catalog},
+          labelName{move(labelName)}, primaryKey{move(primaryKey)}, propertyNameDataTypes{move(
+                                                                        propertyNameDataTypes)} {}
 
     PhysicalOperatorType getOperatorType() override { return CREATE_NODE_TABLE; }
 

@@ -1,6 +1,5 @@
 #include "src/common/include/vector/value_vector_utils.h"
 
-#include "src/common/include/overflow_buffer_utils.h"
 #include "src/common/types/include/value.h"
 
 using namespace graphflow;
@@ -37,13 +36,6 @@ void ValueVectorUtils::addLiteralToStructuredVector(
     default:
         assert(false);
     }
-}
-
-void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-    ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
-    copyNonNullDataWithSameType(resultVector.dataType, srcData,
-        resultVector.values + pos * resultVector.getNumBytesPerValue(),
-        resultVector.getOverflowBuffer());
 }
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector,

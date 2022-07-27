@@ -4,6 +4,7 @@
 
 #include "src/common/types/include/types.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
+#include "src/processor/include/physical_plan/result/factorized_tuple_iterator.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 
 using namespace graphflow::processor;
@@ -29,10 +30,10 @@ public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
 
-    inline void setResultHeaderAndTable(std::unique_ptr<QueryResultHeader> header,
-        std::shared_ptr<processor::FactorizedTable> factorizedTable) {
-        this->header = move(header);
-        this->factorizedTable = move(factorizedTable);
+    inline void setResultHeaderAndTable(std::unique_ptr<QueryResultHeader> header_,
+        std::shared_ptr<processor::FactorizedTable> factorizedTable_) {
+        this->header = move(header_);
+        this->factorizedTable = move(factorizedTable_);
         resetIterator();
     }
 

@@ -214,7 +214,6 @@ TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllUnstructuredPropertiesOfAl
         }
     }
 
-    uint64_t numQueries = 0;
     for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
          nodeOffsetForPropKeys++) {
         string query = "MATCH (a:person) WHERE a.ui" + to_string(nodeOffsetForPropKeys) +

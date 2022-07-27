@@ -12,7 +12,7 @@ JoinHashTable::JoinHashTable(
     bitmask = maxNumHashSlots - 1;
     auto numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
     assert(numHashSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numHashSlotsPerBlock));
-    numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
+    numSlotsPerBlockLog2 = (uint64_t)log2(numHashSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     auto numBlocks = (maxNumHashSlots + numHashSlotsPerBlock - 1) / numHashSlotsPerBlock;
     for (auto i = 0u; i < numBlocks; i++) {
@@ -31,13 +31,19 @@ void JoinHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsToAppen
                                  1 :
                                  vectorsToAppend[0]->state->selVector->selectedSize;
     auto appendInfos = factorizedTable->allocateTupleBlocks(numTuplesToAppend);
-    for (auto i = 0u; i < vectorsToAppend.size(); i++) {
-        auto numAppendedTuples = 0ul;
-        for (auto& blockAppendInfo : appendInfos) {
-            factorizedTable->copyVectorToColumn(
-                *vectorsToAppend[i], blockAppendInfo, numAppendedTuples, i);
-            numAppendedTuples += blockAppendInfo.numTuplesToAppend;
+    auto tuplesToWrite = make_unique<uint8_t*[]>(numTuplesToAppend);
+    auto tupleIdx = 0ul;
+    for (auto& blockAppendInfo : appendInfos) {
+        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
+            tuplesToWrite[tupleIdx++] =
+                blockAppendInfo.data +
+                (i * factorizedTable->getTableSchema()->getNumBytesPerTuple());
         }
+    }
+    assert(tupleIdx == numTuplesToAppend);
+    for (auto i = 0u; i < vectorsToAppend.size(); i++) {
+        factorizedTable->writeVectorToColumn(
+            *vectorsToAppend[i], tuplesToWrite.get(), i, numTuplesToAppend);
     }
     factorizedTable->numTuples += numTuplesToAppend;
 }
