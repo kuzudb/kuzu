@@ -34,9 +34,10 @@ public:
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         vector<string> unstrPropertyNames{"unstrIntProp"};
-        auto nodeLabel = catalogBuilder->createNodeLabel("person", "ID", move(personProperties));
+        auto labelID =
+            catalogBuilder->createAndAddNodeLabel("person", "ID", move(personProperties));
+        auto nodeLabel = catalogBuilder->getReadOnlyVersion()->getNodeLabel(labelID);
         nodeLabel->addUnstructuredProperties(unstrPropertyNames);
-        catalogBuilder->addNodeLabel(move(nodeLabel));
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_LABEL", STRING);
@@ -127,7 +128,8 @@ TEST_F(CatalogBuilderTest, SaveAndReadTest) {
     catalogBuilder->getReadOnlyVersion()->saveToFile(
         CATALOG_TEMP_DIRECTORY, false /* isForWALRecord */);
     auto newCatalog = make_unique<CatalogBuilder>();
-    newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY);
+    newCatalog->getReadOnlyVersion()->readFromFile(
+        CATALOG_TEMP_DIRECTORY, false /* isForWALRecord */);
     ASSERT_TRUE(newCatalog->getReadOnlyVersion()->getStructuredNodeProperties(0)[0].isIDProperty());
     // Test getting label id from string
     ASSERT_TRUE(catalogBuilder->getReadOnlyVersion()->containNodeLabel("person"));

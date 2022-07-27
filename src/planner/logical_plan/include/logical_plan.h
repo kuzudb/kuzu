@@ -20,8 +20,8 @@ public:
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
     inline bool isReadOnly() const {
-        return !lastOperator->descendantsContainType(
-            unordered_set<LogicalOperatorType>{LOGICAL_SET, LOGICAL_CREATE_NODE_TABLE});
+        return !lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
+            LOGICAL_SET, LOGICAL_CREATE_NODE_TABLE, LOGICAL_CREATE, LOGICAL_DELETE});
     }
 
     // Our sub-plan (specific to the right plan of Exists and LeftNestedLoopJoin operator) does not

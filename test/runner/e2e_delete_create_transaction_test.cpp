@@ -84,16 +84,6 @@ TEST_F(DeleteCreateTransactionTest, ReadAfterRollback) {
     }
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteSameNodeErrorTest) {
-    auto nodeIDsToDelete = vector<uint64_t>{3};
-    deleteNodes(conn.get(), nodeIDsToDelete);
-    auto result =
-        conn->query("MATCH (a:person) WHERE a.ID=" + to_string(nodeIDsToDelete[0]) + " DELETE a");
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ(result->getErrorMessage().c_str(),
-        "Runtime exception: Node with offset 3 is already deleted.");
-}
-
 TEST_F(DeleteCreateTransactionTest, DeleteEntireMorselTest) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) WHERE a.ID < 4096 DELETE a");

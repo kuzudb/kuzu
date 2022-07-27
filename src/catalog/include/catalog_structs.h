@@ -95,6 +95,10 @@ struct NodeLabel : Label {
     inline void addFwdRelLabel(label_t relLabelId) { fwdRelLabelIdSet.insert(relLabelId); }
     inline void addBwdRelLabel(label_t relLabelId) { bwdRelLabelIdSet.insert(relLabelId); }
 
+    inline Property getPrimaryKey() const { return structuredProperties[primaryPropertyId]; }
+
+    vector<Property> getAllNodeProperties() const;
+
     uint64_t primaryPropertyId;
     vector<Property> structuredProperties, unstructuredProperties;
     unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel

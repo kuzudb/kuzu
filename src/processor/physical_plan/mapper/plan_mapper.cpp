@@ -427,7 +427,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
     auto& createNodeTable = (LogicalCreateNodeTable&)*logicalOperator;
     return make_unique<CreateNodeTable>(catalog, createNodeTable.getLabelName(),
         createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKey(),
-        getOperatorID(), createNodeTable.getExpressionsForPrinting());
+        getOperatorID(), createNodeTable.getExpressionsForPrinting(),
+        &storageManager.getNodesStore().getNodesMetadata());
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(

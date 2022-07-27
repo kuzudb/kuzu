@@ -53,6 +53,12 @@ void WAL::logCatalogRecord() {
     addNewWALRecordWithoutLock(walRecord);
 }
 
+void WAL::logNodeTableRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newNodeTableRecord(labelID);
+    addNewWALRecordWithoutLock(walRecord);
+}
+
 void WAL::clearWAL() {
     // We remove the nodeMetadata back up file if necessary.
     bufferManager.removeFilePagesFromFrames(*fileHandle);

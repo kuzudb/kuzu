@@ -112,6 +112,13 @@ WALRecord WALRecord::newCatalogRecord() {
     return retVal;
 }
 
+WALRecord WALRecord::newNodeTableRecord(label_t labelID) {
+    WALRecord retVal;
+    retVal.recordType = NODE_TABLE_RECORD;
+    retVal.nodeTableRecord = NodeTableRecord(labelID);
+    return retVal;
+}
+
 void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
     ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
     offset += sizeof(WALRecord);

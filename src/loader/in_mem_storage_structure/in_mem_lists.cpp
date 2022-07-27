@@ -25,9 +25,15 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
     return cursor;
 }
 
-InMemLists::InMemLists(string fName, DataType dataType, uint64_t numBytesForElement)
+InMemLists::InMemLists(
+    string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
+    auto numChunks = StorageUtils::getListChunkIdx(numNodes);
+    if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
+        numChunks++;
+    }
+    listsMetadataBuilder->initChunkPageLists(numChunks);
     inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement,
         this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED);
 }
@@ -59,8 +65,8 @@ void InMemAdjLists::saveToFile() {
     InMemLists::saveToFile();
 }
 
-InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType)
-    : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType)} {
+InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes)
+    : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType), numNodes} {
     assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST ||
            this->dataType.typeID == UNSTRUCTURED);
     overflowInMemFile =
@@ -135,11 +141,11 @@ unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
-        return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType));
+        return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes);
     case STRING:
-        return make_unique<InMemStringLists>(fName);
+        return make_unique<InMemStringLists>(fName, numNodes);
     case LIST:
-        return make_unique<InMemListLists>(fName, dataType);
+        return make_unique<InMemListLists>(fName, dataType, numNodes);
     case UNSTRUCTURED:
         return make_unique<InMemUnstructuredLists>(fName, numNodes);
     default:

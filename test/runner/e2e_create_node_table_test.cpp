@@ -35,11 +35,26 @@ public:
         if (testRecovery) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("EXAM_PAPER"), false);
+            ASSERT_EQ(database->getStorageManager()
+                          ->getNodesStore()
+                          .getNodesMetadata()
+                          .getNumNodeMetadataPerLabel(),
+                2);
             initWithoutLoadingGraph();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("EXAM_PAPER"), true);
+            ASSERT_EQ(database->getStorageManager()
+                          ->getNodesStore()
+                          .getNodesMetadata()
+                          .getNumNodeMetadataPerLabel(),
+                3);
         } else {
             conn->commit();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("EXAM_PAPER"), true);
+            ASSERT_EQ(database->getStorageManager()
+                          ->getNodesStore()
+                          .getNodesMetadata()
+                          .getNumNodeMetadataPerLabel(),
+                3);
         }
     }
 
@@ -58,6 +73,20 @@ TEST_F(TinySnbCreateNodeTableTest, MultipleCreateNodeTablesTest) {
     ASSERT_EQ(result->isSuccess(), true);
     ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("UNIVERSITY"), true);
     ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("STUDENT"), true);
+    result = conn->query("MATCH (S:STUDENT) return S.STUDENT_ID");
+    ASSERT_EQ(result->isSuccess(), true);
+    result = conn->query("MATCH (U:UNIVERSITY) return U.NAME");
+    ASSERT_EQ(result->isSuccess(), true);
+}
+
+TEST_F(TinySnbCreateNodeTableTest, CreateNodeAfterCreateNodeTableTest) {
+    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
+                              "STRING)");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("UNIVERSITY"), true);
+    result = conn->query(
+        "CREATE (university:UNIVERSITY {NAME: \"WATERLOO\", WEBSITE: \"WATERLOO.CA\"})");
+    ASSERT_EQ(result->isSuccess(), true);
 }
 
 TEST_F(TinySnbCreateNodeTableTest, CreateNodeTableWithActiveTransactionErrorTest) {

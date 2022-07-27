@@ -2,7 +2,6 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/storage/index/include/hash_index.h"
-#include "src/storage/storage_structure/include/column.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 #include "src/storage/store/include/nodes_metadata.h"
@@ -18,8 +17,8 @@ namespace storage {
 class NodeTable {
 
 public:
-    NodeTable(NodeMetadata* nodeMetadata, BufferManager& bufferManager, bool isInMemory,
-        const vector<catalog::Property>& properties, const string& directory, WAL* wal);
+    NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory, WAL* wal,
+        NodeLabel* nodeLabel);
 
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
         return propertyColumns[propertyIdx].get();
@@ -29,14 +28,21 @@ public:
     }
     inline HashIndex* getIDIndex() const { return IDIndex.get(); }
 
-    inline void addNode() { nodeMetadata->addNode(); }
+    inline NodesMetadata* getNodesMetadata() const { return nodesMetadata; }
+
+    inline label_t getLabelID() const { return labelID; }
+
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
+    static void createEmptyDBFilesForNewNodeTable(
+        Catalog* catalog, label_t label, string directory);
+
 private:
-    void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos);
+    void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 public:
-    NodeMetadata* nodeMetadata;
+    NodesMetadata* nodesMetadata;
+    label_t labelID;
 
 private:
     // This is for structured properties.

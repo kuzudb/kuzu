@@ -101,6 +101,8 @@ public:
 
     void logCatalogRecord();
 
+    void logNodeTableRecord(label_t labelID);
+
     // Removes the contents of WAL file.
     void clearWAL();
 
@@ -122,6 +124,8 @@ public:
             FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)),
             FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     }
+
+    inline string getDirectory() const { return directory; }
 
 private:
     inline void flushHeaderPages() {

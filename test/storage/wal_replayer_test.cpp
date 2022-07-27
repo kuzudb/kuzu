@@ -11,9 +11,9 @@ public:
 };
 
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {
-    auto walIterator = database->getStorageManager()->getWAL().getIterator();
-    WALReplayer walReplayer(
-        database->getStorageManager(), database->getBufferManager(), true /* is checkpointWAL */);
+    auto walIterator = database->getWAL()->getIterator();
+    WALReplayer walReplayer(database->getWAL(), database->getStorageManager(),
+        database->getBufferManager(), true /* is checkpointWAL */);
     try {
         walReplayer.replay();
         FAIL();

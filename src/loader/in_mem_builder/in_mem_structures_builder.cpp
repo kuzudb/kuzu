@@ -174,7 +174,6 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
     if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
-    inMemList->getListsMetadataBuilder()->initChunkPageLists(numChunks);
     node_offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {

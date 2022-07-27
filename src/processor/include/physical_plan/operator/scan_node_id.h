@@ -12,19 +12,21 @@ namespace processor {
 class ScanNodeIDSharedState {
 
 public:
-    explicit ScanNodeIDSharedState(NodeMetadata* nodeMetadata)
-        : nodeMetadata{nodeMetadata}, maxNodeOffset{UINT64_MAX}, currentNodeOffset{0} {}
+    explicit ScanNodeIDSharedState(NodesMetadata* nodesMetadata, label_t labelID)
+        : nodesMetadata{nodesMetadata}, labelID{labelID}, maxNodeOffset{UINT64_MAX},
+          currentNodeOffset{0} {}
 
     inline void initMaxNodeOffset(Transaction* transaction) {
         unique_lock uLck{mtx};
-        maxNodeOffset = nodeMetadata->getMaxNodeOffset(transaction);
+        maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
     }
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
 private:
     mutex mtx;
-    NodeMetadata* nodeMetadata;
+    NodesMetadata* nodesMetadata;
+    label_t labelID;
     uint64_t maxNodeOffset;
     uint64_t currentNodeOffset;
 };
