@@ -13,8 +13,6 @@ namespace planner {
 class Enumerator;
 class JoinOrderEnumeratorContext;
 
-const double PREDICATE_SELECTIVITY = 0.2;
-
 /**
  * JoinOrderEnumerator is currently responsible for
  *      join order enumeration
@@ -52,12 +50,12 @@ private:
     void planCurrentLevel();
 
     // Plan index nested loop join.
-    void planINPJoin();
+    void planINLJoin();
     // Node table index nested loop join (random access).
-    void planNodeINPJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
+    void planNodeINLJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
         vector<unique_ptr<LogicalPlan>>& prevPlans);
     // Edge table index nested join.
-    void planRelINPJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
+    void planRelINLJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
         vector<unique_ptr<LogicalPlan>>& prevPlans);
     // Filter push down for rel table.
     void planFiltersForRel(expression_vector& predicates, RelExpression& rel,

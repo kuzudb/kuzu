@@ -15,43 +15,33 @@ class FactorizationGroup {
     friend class Schema;
 
 public:
-    FactorizationGroup() : isFlat{false}, estimatedCardinality{1} {}
-
+    FactorizationGroup() : isFlat{false}, cardinalityMultiplier{1} {}
     FactorizationGroup(const FactorizationGroup& other)
-        : isFlat{other.isFlat}, estimatedCardinality{other.estimatedCardinality},
+        : isFlat{other.isFlat}, cardinalityMultiplier{other.cardinalityMultiplier},
           expressions{other.expressions} {}
 
     inline void setIsFlat(bool flag) { isFlat = flag; }
-
     inline bool getIsFlat() const { return isFlat; }
 
-    inline void setEstimatedCardinality(uint64_t cardinality) {
-        estimatedCardinality = cardinality;
-    }
-
-    inline uint64_t getEstimatedCardinality() const { return estimatedCardinality; }
+    inline void setMultiplier(uint64_t multiplier) { cardinalityMultiplier = multiplier; }
+    inline uint64_t getMultiplier() const { return cardinalityMultiplier; }
 
     inline void insertExpression(const shared_ptr<Expression>& expression) {
         expressions.push_back(expression);
     }
-
     inline shared_ptr<Expression> getAnyExpression() const {
         assert(!expressions.empty());
         return expressions[0];
     }
-
     inline expression_vector getExpressions() const { return expressions; }
-
-    inline uint32_t getNumExpressions() const { return expressions.size(); }
 
 private:
     bool isFlat;
-    uint64_t estimatedCardinality;
+    uint64_t cardinalityMultiplier;
     expression_vector expressions;
 };
 
 class Schema {
-
 public:
     inline uint32_t getNumGroups() const { return groups.size(); }
 

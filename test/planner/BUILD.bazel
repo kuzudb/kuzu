@@ -9,6 +9,7 @@ cc_library(
         "//src/binder",
         "//src/parser",
         "//src/planner:enumerator",
+        "//src/planner/logical_plan:logical_plan_util",
         "//test/mock:mock_catalog",
     ],
 )

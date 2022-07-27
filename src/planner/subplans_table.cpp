@@ -42,7 +42,7 @@ void SubPlansTable::finalizeLevel(uint32_t level) {
         }
         sort(plans.begin(), plans.end(),
             [](const unique_ptr<LogicalPlan>& a, const unique_ptr<LogicalPlan>& b) -> bool {
-                return a->cost < b->cost;
+                return a->getCost() < b->getCost();
             });
         plans.resize(MAX_NUM_PLANS_PER_SUBGRAPH);
     }

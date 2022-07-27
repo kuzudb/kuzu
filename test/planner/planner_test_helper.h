@@ -4,6 +4,7 @@
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
+#include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/storage/store/include/nodes_metadata.h"
 
 using ::testing::NiceMock;
@@ -26,17 +27,10 @@ public:
     }
 
     unique_ptr<LogicalPlan> getBestPlan(const string& query) {
-        unique_ptr<RegularQuery> regularQuery{
-            reinterpret_cast<RegularQuery*>(Parser::parseQuery(query).release())};
-        auto boundQuery = QueryBinder(catalog).bind(*regularQuery);
-        return Planner::getBestPlan(catalog, *mockNodeMetadata.get(), *boundQuery);
-    }
-
-    vector<unique_ptr<LogicalPlan>> getAllPlans(const string& query) {
-        auto parsedQuery = Parser::parseQuery(query);
-        auto boundQuery =
-            QueryBinder(catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
-        return Planner::getAllPlans(catalog, *mockNodeMetadata.get(), *boundQuery);
+        auto statement = Parser::parseQuery(query);
+        auto parsedQuery = (RegularQuery*)statement.get();
+        auto boundQuery = QueryBinder(catalog).bind(*parsedQuery);
+        return Planner::getBestPlan(catalog, *mockNodeMetadata, *boundQuery);
     }
 
     bool containSubstr(const string& str, const string& substr) {

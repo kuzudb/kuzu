@@ -130,9 +130,9 @@ TEST_F(TinySnbUpdateTest, SetUnflatFlatTest) {
 }
 
 TEST_F(TinySnbUpdateTest, SetFlatUnflatTest) {
-    conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 SET b.age=a.age");
+    conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b.age=a.age");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age");
-    auto groundTruth = vector<string>{"0|35", "2|20", "3|45"};
+    auto groundTruth = vector<string>{"0|35", "2|35", "3|45"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 

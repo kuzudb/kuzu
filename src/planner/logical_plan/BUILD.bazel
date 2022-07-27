@@ -28,6 +28,7 @@ cc_library(
         "include/logical_plan_util.h",
     ],
     visibility = [
+        "//test/planner:__subpackages__",
         "//tools/join_order_pick:__pkg__",
     ],
     deps = [

@@ -98,5 +98,11 @@ struct LoaderConfig {
     static constexpr char DEFAULT_LIST_END_CHAR = ']';
 };
 
+struct EnumeratorKnobs {
+    static constexpr double PREDICATE_SELECTIVITY = 0.1;
+    static constexpr double RANDOM_LOOKUP_PENALTY = 1000;
+    static constexpr double FLAT_PROBE_PENALTY = 10;
+};
+
 } // namespace common
 } // namespace graphflow
