@@ -52,10 +52,14 @@ void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
     }
 }
 
-void JoinHashTable::buildHashSlots() {
+void JoinHashTable::buildHashSlots(ScanNodeIDSharedState* nodeScanSharedState) {
     for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
         uint8_t* tuple = tupleBlock->getData();
         for (auto i = 0u; i < tupleBlock->numTuples; i++) {
+            auto nodeID = (nodeID_t*)tuple;
+            if (nodeScanSharedState) {
+                nodeScanSharedState->setMorselMask(nodeID->offset / DEFAULT_VECTOR_CAPACITY);
+            }
             auto lastSlotEntryInHT = insertEntry(tuple);
             auto prevPtr = getPrevTuple(tuple);
             memcpy(prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));

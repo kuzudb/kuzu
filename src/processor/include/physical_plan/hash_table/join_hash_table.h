@@ -3,6 +3,7 @@
 #include "src/common/include/utils.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/hash_table/base_hash_table.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
@@ -18,7 +19,7 @@ public:
 
     void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);
-    void buildHashSlots();
+    void buildHashSlots(ScanNodeIDSharedState* nodeScanSharedState);
     void probe(ValueVector& keyVector, uint8_t** probedTuples, SelectionVector& probeSelVector);
 
     inline void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,

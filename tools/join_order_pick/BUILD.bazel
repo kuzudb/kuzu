@@ -6,9 +6,7 @@ cc_library(
     hdrs = [
         "include/jo_connection.h",
     ],
-    visibility = [
-        "//tools/benchmark:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         "//src/loader:graph_loader",
         "//src/main:graphflowdb",

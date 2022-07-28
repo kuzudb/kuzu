@@ -41,11 +41,18 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             buildSideSchema.getGroup(dataChunkPos)->getExpressions()[valueVectorPos]->getDataType();
     }
     auto sharedState = make_shared<HashJoinSharedState>(nonKeyDataPosesDataTypes);
+    auto probeSideOperator = probeSidePrevOperator.get();
+    while (probeSideOperator->getNumChildren() > 0) {
+        probeSideOperator = probeSideOperator->getChild(0);
+    }
+    auto probeSideScanNode = (ScanNodeID*)probeSideOperator;
+    probeSideScanNode->getSharedState()->setHashMorselMask();
     // create hashJoin build
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
-    auto hashJoinBuild = make_unique<HashJoinBuild>(
-        sharedState, buildDataInfo, move(buildSidePrevOperator), getOperatorID(), paramsString);
+    auto hashJoinBuild =
+        make_unique<HashJoinBuild>(sharedState, buildDataInfo, move(buildSidePrevOperator),
+            getOperatorID(), paramsString, probeSideScanNode->getSharedState());
     // create hashJoin probe
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState,
