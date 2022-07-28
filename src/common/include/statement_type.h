@@ -7,7 +7,8 @@ namespace common {
 
 enum class StatementType : uint8_t {
     QUERY = 0,
-    CreateNodeClause = 1,
+    CREATENODECLAUSE = 1,
+    COPYCSV = 2,
 };
 
 } // namespace common

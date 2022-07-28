@@ -15,6 +15,16 @@ using namespace std;
 namespace graphflow {
 namespace parser {
 
+unique_ptr<Statement> Transformer::transform() {
+    if (root.oC_Statement()) {
+        return transformQuery();
+    } else if (root.gF_DDL()) {
+        return transformDDL();
+    } else {
+        return transformCopyCSV();
+    }
+}
+
 unique_ptr<RegularQuery> Transformer::transformQuery() {
     auto regularQuery = transformQuery(*root.oC_Statement()->oC_Query());
     if (root.oC_AnyCypherOption()) {
@@ -526,10 +536,8 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
-        auto str = ctx.StringLiteral()->getText();
-        auto strStripped = str.substr(1, str.size() - 2); /* strip double quotation */
         return make_unique<ParsedLiteralExpression>(
-            make_unique<Literal>(strStripped), ctx.getText());
+            make_unique<Literal>(transformStringLiteral(*ctx.StringLiteral())), ctx.getText());
     } else if (ctx.NULL_()) {
         return make_unique<ParsedLiteralExpression>(make_unique<Literal>(), ctx.getText());
     } else if (ctx.oC_ListLiteral()) {
@@ -681,6 +689,31 @@ vector<pair<string, string>> Transformer::transformPropertyDefinitions(
             transformSchemaName(*property->oC_SchemaName()));
     }
     return propertyNameDataTypes;
+}
+
+unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
+    auto& ctx = *root.gF_CopyCSV();
+    auto csvFileName = transformStringLiteral(*ctx.StringLiteral());
+    auto labelName = transformSchemaName(*ctx.oC_SchemaName());
+    auto parsingOptions = ctx.gF_ParsingOptions() ?
+                              transformParsingOptions(*ctx.gF_ParsingOptions()) :
+                              unordered_map<string, string>();
+    return make_unique<CopyCSV>(move(csvFileName), move(labelName), move(parsingOptions));
+}
+
+unordered_map<string, string> Transformer::transformParsingOptions(
+    CypherParser::GF_ParsingOptionsContext& ctx) {
+    unordered_map<string, string> loadOptions;
+    for (auto loadOption : ctx.gF_ParsingOption()) {
+        loadOptions.emplace(transformSymbolicName(*loadOption->oC_SymbolicName()),
+            transformStringLiteral(*loadOption->StringLiteral()));
+    }
+    return loadOptions;
+}
+
+string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {
+    auto str = stringLiteral.getText();
+    return str.substr(1, str.size() - 2);
 }
 
 } // namespace parser

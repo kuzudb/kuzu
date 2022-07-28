@@ -567,7 +567,7 @@ uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
     assert(vector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
     uint64_t mayMatchIdx = 0;
-    auto pos = vector->state->currIdx;
+    auto pos = vector->state->getPositionOfCurrIdx();
     auto isVectorNull = vector->isNull(pos);
     auto value = vector->values + pos * vector->getNumBytesPerValue();
     for (auto i = 0u; i < numMayMatches; i++) {

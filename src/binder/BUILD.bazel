@@ -12,6 +12,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//src/binder/bound_copy_csv",
         "//src/binder/bound_create_node_clause",
         "//src/binder/expression:expression_implementations",
         "//src/binder/query",
@@ -19,6 +20,7 @@ cc_library(
         "//src/function/boolean:vector_boolean_operations",
         "//src/function/cast:vector_cast_operations",
         "//src/function/null:vector_null_operations",
+        "//src/parser/copy_csv",
         "//src/parser/create_node_clause",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",

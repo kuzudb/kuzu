@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/antlr4/CypherParser.h"
+#include "src/parser/copy_csv/include/copy_csv.h"
 #include "src/parser/create_node_clause/include/create_node_clause.h"
 #include "src/parser/query/include/regular_query.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
@@ -19,13 +20,7 @@ public:
 
     unique_ptr<RegularQuery> transformQuery();
 
-    inline unique_ptr<Statement> transform() {
-        if (root.oC_Statement()) {
-            return transformQuery();
-        } else {
-            return transformDDL();
-        }
-    }
+    unique_ptr<Statement> transform();
 
 private:
     unique_ptr<RegularQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
@@ -187,6 +182,13 @@ private:
 
     vector<pair<string, string>> transformPropertyDefinitions(
         CypherParser::GF_PropertyDefinitionsContext& ctx);
+
+    unique_ptr<CopyCSV> transformCopyCSV();
+
+    unordered_map<string, string> transformParsingOptions(
+        CypherParser::GF_ParsingOptionsContext& ctx);
+
+    string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
 
 private:
     CypherParser::OC_CypherContext& root;

@@ -12,7 +12,7 @@ class BoundCreateNodeClause : public BoundStatement {
 public:
     explicit BoundCreateNodeClause(
         string labelName, string primaryKey, vector<PropertyNameDataType> propertyNameDataTypes)
-        : BoundStatement{StatementType::CreateNodeClause}, labelName{move(labelName)},
+        : BoundStatement{StatementType::CREATENODECLAUSE}, labelName{move(labelName)},
           primaryKey{move(primaryKey)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
 
     inline string getLabelName() const { return labelName; }

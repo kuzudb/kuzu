@@ -14,7 +14,7 @@ class CreateNodeClause : public Statement {
 public:
     explicit CreateNodeClause(
         vector<pair<string, string>> propertyNameDataTypes, string primaryKey, string labelName)
-        : Statement{StatementType::CreateNodeClause}, labelName{move(labelName)},
+        : Statement{StatementType::CREATENODECLAUSE}, labelName{move(labelName)},
           primaryKey{move(primaryKey)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
 
     inline string getLabelName() const { return labelName; }
