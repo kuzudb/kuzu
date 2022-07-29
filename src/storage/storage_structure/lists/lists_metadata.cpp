@@ -8,17 +8,20 @@
 namespace graphflow {
 namespace storage {
 
-ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList)
-    : BaseListsMetadata(storageStructureIDAndFNameForBaseList.fName),
-      storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
+ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+    BufferManager* bufferManager, WAL* wal)
+    : BaseListsMetadata(), storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
-    storageStructureIDAndFName.fName = metadataFileHandle->getFileInfo()->path;
-    chunkToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(
-        *metadataFileHandle, CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX);
-    largeListIdxToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(
-        *metadataFileHandle, LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX);
+    storageStructureIDAndFName.fName = storageStructureIDAndFNameForBaseList.fName + ".metadata";
+    metadataVersionedFileHandle = make_unique<VersionedFileHandle>(
+        storageStructureIDAndFName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate);
+    chunkToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
+        CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
+    largeListIdxToPageListHeadIdxMap =
+        make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
+            LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
     pageLists = make_unique<InMemDiskArray<page_idx_t>>(
-        *metadataFileHandle, CHUNK_PAGE_LIST_HEADER_PAGE_IDX);
+        *metadataVersionedFileHandle, CHUNK_PAGE_LIST_HEADER_PAGE_IDX, bufferManager, wal);
 }
 
 uint64_t BaseListsMetadata::getPageIdxFromAPageList(
@@ -31,17 +34,19 @@ uint64_t BaseListsMetadata::getPageIdxFromAPageList(
     return (*pageLists)[pageListGroupHeadIdx + logicalPageIdx];
 }
 
-ListsMetadataBuilder::ListsMetadataBuilder(const string& listBaseFName)
-    : BaseListsMetadata(listBaseFName) {
+ListsMetadataBuilder::ListsMetadataBuilder(const string& listBaseFName) : BaseListsMetadata() {
+    metadataFileHandleForBuilding = make_unique<FileHandle>(
+        listBaseFName + ".metadata", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     // When building list metadata during loading, we need to make space for the header of each
     // disk array in listsMetadata (so that these header pages are pre-allocated and not used
     // for another purpose)
-    metadataFileHandle->addNewPage(); // CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX=0
-    metadataFileHandle->addNewPage(); // LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX
-    metadataFileHandle->addNewPage(); // CHUNK_PAGE_LIST_HEADER_PAGE_IDX
+    metadataFileHandleForBuilding->addNewPage(); // CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX=0
+    metadataFileHandleForBuilding
+        ->addNewPage(); // LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX
+    metadataFileHandleForBuilding->addNewPage(); // CHUNK_PAGE_LIST_HEADER_PAGE_IDX
     // Initialize an empty page lists array for building
     pageListsBuilder = make_unique<InMemDiskArrayBuilder<page_idx_t>>(
-        *metadataFileHandle, CHUNK_PAGE_LIST_HEADER_PAGE_IDX, 0);
+        *metadataFileHandleForBuilding, CHUNK_PAGE_LIST_HEADER_PAGE_IDX, 0);
 }
 
 void ListsMetadataBuilder::saveToDisk() {
@@ -52,7 +57,7 @@ void ListsMetadataBuilder::saveToDisk() {
 
 void ListsMetadataBuilder::initChunkPageLists(uint32_t numChunks_) {
     chunkToPageListHeadIdxMapBuilder = make_unique<InMemDiskArrayBuilder<uint32_t>>(
-        *metadataFileHandle, CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, numChunks_);
+        *metadataFileHandleForBuilding, CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, numChunks_);
     for (uint64_t chunkIdx = 0; chunkIdx < numChunks_; ++chunkIdx) {
         (*chunkToPageListHeadIdxMapBuilder)[chunkIdx] = UINT32_MAX;
     }
@@ -62,7 +67,7 @@ void ListsMetadataBuilder::initLargeListPageLists(uint32_t numLargeLists_) {
     // For each largeList, we store the PageListHeadIdx in pageLists and also the number of
     // elements in the large list.
     largeListIdxToPageListHeadIdxMapBuilder =
-        make_unique<InMemDiskArrayBuilder<uint32_t>>(*metadataFileHandle,
+        make_unique<InMemDiskArrayBuilder<uint32_t>>(*metadataFileHandleForBuilding,
             LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, (2 * numLargeLists_));
     for (uint64_t largeListIdx = 0; largeListIdx < numLargeLists_; ++largeListIdx) {
         (*largeListIdxToPageListHeadIdxMapBuilder)[largeListIdx] = UINT32_MAX;

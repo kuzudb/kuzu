@@ -16,16 +16,6 @@ using namespace graphflow::transaction;
 namespace graphflow {
 namespace storage {
 
-struct UpdatedPageInfoAndWALPageFrame {
-    UpdatedPageInfoAndWALPageFrame(
-        PageElementCursor originalPageCursor, page_idx_t pageIdxInWAL, uint8_t* frame)
-        : originalPageCursor{originalPageCursor}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
-
-    PageElementCursor originalPageCursor;
-    page_idx_t pageIdxInWAL;
-    uint8_t* frame;
-};
-
 class StorageStructure {
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
@@ -39,9 +29,6 @@ public:
         }
     }
 
-    pair<FileHandle*, page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
-        Transaction* transaction, page_idx_t physicalPageIdx);
-
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
 protected:
@@ -52,13 +39,9 @@ protected:
     // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains
     // *and does not release* the lock original page. Pins and updates the WAL version of the
     // page. Note that caller must ensure to unpin and release the WAL version of the page by
-    // calling StorageStructure::finishUpdatingPage.
-    UpdatedPageInfoAndWALPageFrame getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
+    // calling StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
+    WALPageIdxPosInPageAndFrame createWALVersionOfPageIfNecessaryForElement(
         uint64_t elementOffset, uint64_t numElementsPerPage);
-
-    // Unpins the WAL version of a page that was updated and releases the lock of the page (recall
-    // we use the same lock to do operations on both the original and WAL version of the page).
-    void finishUpdatingPage(UpdatedPageInfoAndWALPageFrame& updatedPageInfoAndWALPageFrame);
 
 protected:
     shared_ptr<spdlog::logger> logger;

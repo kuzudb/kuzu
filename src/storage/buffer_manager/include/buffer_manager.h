@@ -101,6 +101,8 @@ public:
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
         FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx);
 
+    void removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx);
+
 private:
     shared_ptr<spdlog::logger> logger;
     unique_ptr<BufferPool> bufferPoolDefaultPages;

@@ -1,12 +1,14 @@
 filegroup(
     name = "dataset",
     srcs = glob([
+        "empty-db/**",
         "hash-index-test/**",
         "loader-fault-tests/**",
         "loader-empty-lists-test/**",
         "loader-node-property-test/**",
         "loader-special-char-test/**",
         "node-insertion-deletion-tests/**",
+        "non-empty-disk-array-db/**",
         "order-by-tests/**",
         "read-list-tests/**",
         "tinysnb/**",

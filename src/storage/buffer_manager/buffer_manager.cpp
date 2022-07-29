@@ -85,6 +85,12 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
             fileHandle, newPage, pageIdx);
 }
 
+void BufferManager::removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx) {
+    fileHandle.isLargePaged() ?
+        bufferPoolLargePages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx) :
+        bufferPoolDefaultPages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx);
+}
+
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {
     return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
         {

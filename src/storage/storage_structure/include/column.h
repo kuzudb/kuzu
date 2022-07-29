@@ -56,8 +56,8 @@ protected:
     // Obtains *and does not release* the lock original page. Pins and updates the WAL version of
     // the page. Finally updates the page with the new value from vectorToWriteFrom.
     // Note that caller must ensure to unpin and release the WAL version of the page by calling
-    // StorageStructure::finishUpdatingPage.
-    UpdatedPageInfoAndWALPageFrame beginUpdatingPage(node_offset_t nodeOffset,
+    // StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
+    WALPageIdxPosInPageAndFrame beginUpdatingPage(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);

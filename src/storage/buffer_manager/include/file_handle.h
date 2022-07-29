@@ -135,7 +135,7 @@ protected:
     uint32_t pageCapacity;
     // Intended to be used to coordinate calls to functions that change in the internal data
     // structures of the file handle.
-    mutex fhMutex;
+    shared_mutex fhSharedMutex;
 };
 
 } // namespace storage

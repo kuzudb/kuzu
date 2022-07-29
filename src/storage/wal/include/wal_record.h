@@ -95,7 +95,7 @@ struct ListFileID {
                                                                         relPropertyListID} {}
 
     inline bool operator==(const ListFileID& rhs) const {
-        if (listType == rhs.listType && listFileType == rhs.listFileType) {
+        if (listType != rhs.listType || listFileType != rhs.listFileType) {
             return false;
         }
         switch (listType) {
@@ -114,6 +114,10 @@ struct ListFileID {
         }
         }
     }
+};
+
+struct ListFileIDHasher {
+    std::size_t operator()(const ListFileID& key) const;
 };
 
 struct NodeIndexID {

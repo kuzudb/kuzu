@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/storage/buffer_manager/include/disk_array.h"
+#include "src/storage/storage_structure/include/disk_array.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace std;
@@ -32,11 +32,7 @@ public:
     static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 3;
     static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
 
-    explicit BaseListsMetadata(const string& listBaseFName) {
-        metadataFileHandle = make_unique<FileHandle>(
-            listBaseFName + ".metadata", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
-        logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    }
+    explicit BaseListsMetadata() { logger = LoggerUtils::getOrCreateSpdLogger("storage"); }
 
     inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
         BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListsHead) {
@@ -48,14 +44,14 @@ public:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<FileHandle> metadataFileHandle;
 };
 
 class ListsMetadata : public BaseListsMetadata {
     friend class graphflow::loader::LoaderEmptyListsTest;
 
 public:
-    explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList);
+    explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+        BufferManager* bufferManager, WAL* wal);
 
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
         return (*largeListIdxToPageListHeadIdxMap)[(2 * largeListIdx) + 1];
@@ -74,6 +70,7 @@ public:
     }
 
 private:
+    unique_ptr<VersionedFileHandle> metadataVersionedFileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
     // chunkToPageListHeadIdxMapBuilder holds pointers to the head of pageList of each chunk.
     // For instance, chunkToPageListHeadIdxMapBuilder[3] is a pointer in `pageLists` from where
@@ -142,6 +139,7 @@ private:
     void populatePageIdsInAPageList(uint32_t numPages, uint32_t startPageId);
 
 private:
+    unique_ptr<FileHandle> metadataFileHandleForBuilding;
     unique_ptr<InMemDiskArrayBuilder<uint32_t>> chunkToPageListHeadIdxMapBuilder;
     unique_ptr<InMemDiskArrayBuilder<uint32_t>> largeListIdxToPageListHeadIdxMapBuilder;
     unique_ptr<InMemDiskArrayBuilder<page_idx_t>> pageListsBuilder;

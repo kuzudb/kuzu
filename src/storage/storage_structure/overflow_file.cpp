@@ -29,7 +29,8 @@ void OverflowFile::readStringToVector(
     uint16_t pagePos = UINT16_MAX;
     TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, pageIdx, pagePos);
     auto [fileHandleToPin, pageIdxToPin] =
-        getFileHandleAndPhysicalPageIdxToPin(transaction, pageIdx);
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, pageIdx, *wal, transaction->isReadOnly());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     OverflowBufferUtils::copyString((char*)(frame + pagePos), gfStr.len, gfStr, overflowBuffer);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
@@ -52,7 +53,8 @@ void OverflowFile::scanSequentialStringOverflow(Transaction* transaction, ValueV
         uint16_t pagePos = UINT16_MAX;
         TypeUtils::decodeOverflowPtr(gfString.overflowPtr, pageIdx, pagePos);
         auto [fileHandleToPin, pageIdxToPin] =
-            getFileHandleAndPhysicalPageIdxToPin(transaction, pageIdx);
+            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+                fileHandle, pageIdx, *wal, transaction->isReadOnly());
         if (pageIdxToPin == cachedPageIdx) { // cache hit
             OverflowBufferUtils::copyString(
                 (char*)(cachedFrame + pagePos), gfString.len, gfString, vector.getOverflowBuffer());
@@ -115,7 +117,8 @@ string OverflowFile::readString(Transaction* transaction, const gf_string_t& str
         PageByteCursor cursor;
         TypeUtils::decodeOverflowPtr(str.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
         auto [fileHandleToPin, pageIdxToPin] =
-            getFileHandleAndPhysicalPageIdxToPin(transaction, cursor.pageIdx);
+            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+                fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
         auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
         auto retVal = string((char*)(frame + cursor.offsetInPage), str.len);
         bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
@@ -173,16 +176,14 @@ void OverflowFile::setStringOverflowWithoutLock(const gf_string_t& src, gf_strin
     }
     addNewPageIfNecessaryWithoutLock(src.len);
     auto updatedPageInfoAndWALPageFrame =
-        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
-            nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
-    memcpy(updatedPageInfoAndWALPageFrame.frame +
-               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
+        createWALVersionOfPageIfNecessaryForElement(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
+    memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
         reinterpret_cast<char*>(src.overflowPtr), src.len);
-    TypeUtils::encodeOverflowPtr(dst.overflowPtr,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+    TypeUtils::encodeOverflowPtr(dst.overflowPtr, updatedPageInfoAndWALPageFrame.originalPageIdx,
+        updatedPageInfoAndWALPageFrame.posInPage);
     nextBytePosToWriteTo += src.len;
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
 void OverflowFile::writeStringOverflowAndUpdateOverflowPtr(
@@ -208,31 +209,27 @@ void OverflowFile::setListRecursiveIfNestedWithoutLock(
     }
     addNewPageIfNecessaryWithoutLock(src.size * elementSize);
     auto updatedPageInfoAndWALPageFrame =
-        getUpdatePageInfoForElementAndCreateWALVersionOfPageIfNecessary(
-            nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
+        createWALVersionOfPageIfNecessaryForElement(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
     dst.size = src.size;
     // Copy non-overflow part for elements in the list.
-    memcpy(updatedPageInfoAndWALPageFrame.frame +
-               updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage,
+    memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
         (uint8_t*)src.overflowPtr, src.size * elementSize);
     nextBytePosToWriteTo += src.size * elementSize;
-    TypeUtils::encodeOverflowPtr(dst.overflowPtr,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.pageIdx,
-        updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
-    finishUpdatingPage(updatedPageInfoAndWALPageFrame);
+    TypeUtils::encodeOverflowPtr(dst.overflowPtr, updatedPageInfoAndWALPageFrame.originalPageIdx,
+        updatedPageInfoAndWALPageFrame.posInPage);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
     if (dataType.childType->typeID == STRING) {
         // Copy overflow for string elements in the list.
-        auto dstListElements =
-            (gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
-                           updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+        auto dstListElements = (gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
+                                              updatedPageInfoAndWALPageFrame.posInPage);
         for (auto i = 0u; i < dst.size; i++) {
             setStringOverflowWithoutLock(((gf_string_t*)src.overflowPtr)[i], dstListElements[i]);
         }
     } else if (dataType.childType->typeID == LIST) {
         // Recursively copy overflow for list elements in the list.
-        auto dstListElements =
-            (gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
-                         updatedPageInfoAndWALPageFrame.originalPageCursor.posInPage);
+        auto dstListElements = (gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
+                                            updatedPageInfoAndWALPageFrame.posInPage);
         for (auto i = 0u; i < dst.size; i++) {
             setListRecursiveIfNestedWithoutLock(
                 ((gf_list_t*)src.overflowPtr)[i], dstListElements[i], *dataType.childType);

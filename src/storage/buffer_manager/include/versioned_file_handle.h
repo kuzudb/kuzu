@@ -21,9 +21,15 @@ public:
         const StorageStructureIDAndFName& storageStructureIDAndFName, uint8_t flags);
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
-    inline bool hasUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
+    inline bool hasWALPageVersionNoPageLock(page_idx_t originalPageIdx) {
         auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForPos(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
+        // TODO: and Warning: This can be a major performance bottleneck, where we need to acquire a
+        // shared lock for the entire file handle to ensure that another thread cannot be updating
+        // pageVersions. We can fix this by instead making pageVersions a linkedList of vectors for
+        // each page group (so not a vector of vector, which can be dynamically allocated) and
+        // having a lock on each page group.
+        shared_lock slock(fhSharedMutex);
         // There is an updated wal page if the PageVersionAndLockInfo for the page group exists
         // and the page version for the page is not null (which is UINT32_MAX).
         auto retVal =
@@ -34,16 +40,19 @@ public:
     }
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
-    inline page_idx_t getUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx) {
+    inline page_idx_t getWALPageVersionNoPageLock(page_idx_t originalPageIdx) {
+        // See the comment about a shared lock in hasWALPageVersionNoPageLock
+        shared_lock slock(fhSharedMutex);
         auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForPos(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
         return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage];
     }
 
     void createPageVersionGroupIfNecessary(page_idx_t pageIdx);
-    void clearUpdatedWALPageVersionIfNecessary(page_idx_t pageIdx);
+    void clearWALPageVersionIfNecessary(page_idx_t pageIdx);
 
-    void setUpdatedWALPageVersionNoLock(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL);
+    void setWALPageVersion(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL);
+    void setWALPageVersionNoLock(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL);
 
     page_idx_t addNewPage() override;
     void removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) override;

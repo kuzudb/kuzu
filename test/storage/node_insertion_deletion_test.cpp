@@ -32,6 +32,14 @@ public:
 
     string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
 
+    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit, bool testRecovery) {
+        commitOrRollbackConnection(isCommit, testRecovery);
+        if (testRecovery) {
+            // This creates a new database/conn/readConn and should run the recovery algorithm
+            initWithoutLoadingGraph();
+        }
+    }
+
     node_offset_t addNode() {
         // TODO(Guodong/Semih/Xiyang): Currently it is not clear when and from where the hash index,
         // structured columns, unstructured property lists, adjacency lists, and adj columns of a
@@ -119,22 +127,7 @@ public:
         ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
         ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
 
-        if (!testRecovery) {
-            if (isCommit) {
-                conn->commit();
-            } else {
-                conn->rollback();
-            }
-            conn->beginWriteTransaction();
-        } else {
-            if (isCommit) {
-                conn->commitButSkipCheckpointingForTestingRecovery();
-            } else {
-                conn->rollbackButSkipCheckpointingForTestingRecovery();
-            }
-            // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
-        }
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
         if (isCommit) {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
             ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
@@ -156,22 +149,7 @@ public:
         ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
         ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
 
-        if (!testRecovery) {
-            if (isCommit) {
-                conn->commit();
-            } else {
-                conn->rollback();
-            }
-            conn->beginWriteTransaction();
-        } else {
-            if (isCommit) {
-                conn->commitButSkipCheckpointingForTestingRecovery();
-            } else {
-                conn->rollbackButSkipCheckpointingForTestingRecovery();
-            }
-            // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
-        }
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
 
         if (isCommit) {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
