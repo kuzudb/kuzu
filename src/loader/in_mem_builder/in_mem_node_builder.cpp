@@ -4,7 +4,6 @@
 
 #include "src/loader/include/loader_task.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
-#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 namespace graphflow {
 namespace loader {
@@ -42,11 +41,10 @@ void InMemNodeBuilder::createTableSchema() {
             propertyDefinition.dataType = IDType;
         }
     }
-    auto newNodeLabel = catalogBuilder.createNodeLabel(
+    auto newLabelID = catalogBuilder.createAndAddNodeLabel(
         labelName, LoaderConfig::ID_FIELD, move(propertyDefinitions));
     assert(nodeLabel == nullptr);
-    nodeLabel = newNodeLabel.get();
-    catalogBuilder.addNodeLabel(move(newNodeLabel));
+    nodeLabel = catalogBuilder.getReadOnlyVersion()->getNodeLabel(newLabelID);
 }
 
 void InMemNodeBuilder::initializeColumnsAndList() {

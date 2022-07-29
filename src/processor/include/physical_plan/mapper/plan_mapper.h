@@ -19,7 +19,7 @@ public:
     // Create plan mapper with default mapper context.
     PlanMapper(const StorageManager& storageManager, MemoryManager* memoryManager, Catalog* catalog)
         : storageManager{storageManager}, memoryManager{memoryManager}, outerMapperContext{nullptr},
-          expressionMapper{}, physicalOperatorID{0}, catalog{catalog} {}
+          expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 

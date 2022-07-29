@@ -15,6 +15,10 @@ class TinySnbCreateNodeTableTest;
 } // namespace transaction
 } // namespace graphflow
 
+namespace spdlog {
+class logger;
+}
+
 namespace graphflow {
 namespace main {
 
@@ -73,6 +77,7 @@ public:
     // used in API test
     inline uint64_t getDefaultBMSize() const { return systemConfig.defaultPageBufferPoolSize; }
     inline uint64_t getLargeBMSize() const { return systemConfig.largePageBufferPoolSize; }
+    inline WAL* getWAL() const { return wal.get(); }
 
     // TODO(Semih): This is refactored here for now to be able to test transaction behavior
     // in absence of the frontend support. Consider moving this code to connection.cpp.
@@ -88,18 +93,19 @@ public:
         // replaying and committing/rollingback each record, so a NODES_METADATA_RECORD needs to
         // appear in the log.
         if (storageManager->getNodesStore().getNodesMetadata().hasUpdates()) {
-            storageManager->getWAL().logNodeMetadataRecord();
+            wal->logNodeMetadataRecord();
             // If we are committing, we also need to write the WAL file for NodesMetadata.
             if (isCommit) {
                 storageManager->getNodesStore()
                     .getNodesMetadata()
-                    .writeNodesMetadataFileForWALRecord(storageManager->getDBDirectory());
+                    .writeNodesMetadataFileForWALRecord(databaseConfig.databasePath);
             }
-        } else if (catalog->hasUpdates()) {
-            storageManager->getWAL().logCatalogRecord();
+        }
+        if (catalog->hasUpdates()) {
+            wal->logCatalogRecord();
             // If we are committing, we also need to write the WAL file for catalog.
             if (isCommit) {
-                catalog->writeCatalogForWALRecord(storageManager->getDBDirectory());
+                catalog->writeCatalogForWALRecord(databaseConfig.databasePath);
             }
         }
         if (isCommit) {
@@ -113,24 +119,35 @@ public:
             // Note: committing and stopping new transactions can be done in any order. This order
             // allows us to throw exceptions if we have to wait a lot to stop.
             transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
-            storageManager->getWAL().flushAllPages();
+            wal->flushAllPages();
             if (skipCheckpointForTestingRecovery) {
                 transactionManager->allowReceivingNewTransactions();
                 return;
             }
-            storageManager->checkpointAndClearWAL();
+            checkpointAndClearWAL();
         } else {
             if (skipCheckpointForTestingRecovery) {
-                storageManager->getWAL().flushAllPages();
+                wal->flushAllPages();
                 return;
             }
-            storageManager->rollbackAndClearWAL();
+            rollbackAndClearWAL();
         }
         transactionManager->manuallyClearActiveWriteTransaction(writeTransaction);
         if (isCommit) {
             transactionManager->allowReceivingNewTransactions();
         }
     }
+
+private:
+    inline void checkpointAndClearWAL() {
+        checkpointOrRollbackAndClearWAL(false /* is not recovering */, true /* isCheckpoint */);
+    }
+    inline void rollbackAndClearWAL() {
+        checkpointOrRollbackAndClearWAL(
+            false /* is not recovering */, false /* rolling back updates */);
+    }
+    void recoverIfNecessary();
+    void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
 
 private:
     DatabaseConfig databaseConfig;
@@ -141,6 +158,8 @@ private:
     std::unique_ptr<catalog::Catalog> catalog;
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
+    unique_ptr<storage::WAL> wal;
+    shared_ptr<spdlog::logger> logger;
 };
 
 } // namespace main

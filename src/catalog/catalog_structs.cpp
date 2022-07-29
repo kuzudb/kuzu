@@ -28,5 +28,12 @@ void NodeLabel::addUnstructuredProperties(vector<string>& unstructuredPropertyNa
     }
 }
 
+vector<Property> NodeLabel::getAllNodeProperties() const {
+    auto allProperties = structuredProperties;
+    allProperties.insert(
+        allProperties.end(), unstructuredProperties.begin(), unstructuredProperties.end());
+    return allProperties;
+}
+
 } // namespace catalog
 } // namespace graphflow

@@ -11,7 +11,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     auto nodeExpression = logicalScan->getNodeExpression();
     auto& nodesStore = storageManager.getNodesStore();
     auto sharedState = make_shared<ScanNodeIDSharedState>(
-        nodesStore.getNodesMetadata().getNodeMetadata(nodeExpression->getLabel()));
+        &nodesStore.getNodesMetadata(), nodeExpression->getLabel());
     auto dataPos = mapperContext.getDataPos(nodeExpression->getIDProperty());
     mapperContext.addComputedExpressions(nodeExpression->getIDProperty());
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),

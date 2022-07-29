@@ -31,6 +31,7 @@ cc_library(
         "//src/common:ser_deser",
         "//src/function:built_in_vector_operations",
         "//src/function/aggregate:built_in_aggregate_functions",
+        "//src/storage/wal",
         "@gabime_spdlog",
         "@nlohmann_json",
     ],

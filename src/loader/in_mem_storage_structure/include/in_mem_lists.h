@@ -33,7 +33,7 @@ public:
 class InMemLists {
 
 public:
-    InMemLists(string fName, DataType dataType, uint64_t numBytesForElement);
+    InMemLists(string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes);
 
     virtual ~InMemLists() = default;
 
@@ -58,7 +58,7 @@ protected:
 class InMemListsWithOverflow : public InMemLists {
 
 protected:
-    InMemListsWithOverflow(string fName, DataType dataType);
+    InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes);
 
     ~InMemListsWithOverflow() override = default;
 
@@ -73,7 +73,8 @@ class InMemAdjLists : public InMemLists {
 
 public:
     InMemAdjLists(string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numNodes)
-        : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes()},
+        : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getNumTotalBytes(),
+              numNodes},
           compressionScheme{compressionScheme} {
         listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };
@@ -94,22 +95,22 @@ private:
 class InMemStringLists : public InMemListsWithOverflow {
 
 public:
-    explicit InMemStringLists(string fName)
-        : InMemListsWithOverflow{move(fName), DataType(STRING)} {};
+    explicit InMemStringLists(string fName, uint64_t numNodes)
+        : InMemListsWithOverflow{move(fName), DataType(STRING), numNodes} {};
 };
 
 class InMemListLists : public InMemListsWithOverflow {
 
 public:
-    InMemListLists(string fName, DataType dataType)
-        : InMemListsWithOverflow{move(fName), move(dataType)} {};
+    InMemListLists(string fName, DataType dataType, uint64_t numNodes)
+        : InMemListsWithOverflow{move(fName), move(dataType), numNodes} {};
 };
 
 class InMemUnstructuredLists : public InMemListsWithOverflow {
 
 public:
     InMemUnstructuredLists(string fName, uint64_t numNodes)
-        : InMemListsWithOverflow{move(fName), DataType(UNSTRUCTURED)} {
+        : InMemListsWithOverflow{move(fName), DataType(UNSTRUCTURED), numNodes} {
         listSizes = make_unique<atomic_uint64_vec_t>(numNodes);
         listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };

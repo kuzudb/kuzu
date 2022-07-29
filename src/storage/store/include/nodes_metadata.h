@@ -4,9 +4,6 @@
 #include <set>
 
 #include "src/common/include/ser_deser.h"
-#include "src/storage/include/storage_utils.h"
-#include "src/storage/storage_structure/include/column.h"
-#include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/store/include/rels_store.h"
 
 namespace graphflow {
@@ -17,16 +14,17 @@ class NodeMetadata;
 // Note: NodeOffsetsInfo is not thread-safe.
 class NodeOffsetsInfo {
     friend class NodeMetadata;
+    friend class NodesMetadata;
 
 public:
-    NodeOffsetsInfo(node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets_);
+    NodeOffsetsInfo(node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets_);
     NodeOffsetsInfo(NodeOffsetsInfo& other);
 
 private:
     // This function assumes that it is being called right after ScanNodeID has obtained a morsel
     // and that the nodeID structs in nodeOffsetVector.values have consecutive node offsets and
     // the same labels.
-    void setDeletedNodeOffsetsForMorsel(shared_ptr<ValueVector> nodeOffsetVector);
+    void setDeletedNodeOffsetsForMorsel(const shared_ptr<ValueVector>& nodeOffsetVector);
 
     node_offset_t addNode();
 
@@ -48,16 +46,19 @@ class NodeMetadata {
     friend class NodesMetadata;
 
 public:
-    // Currently used by plan_test_helper.h.
     NodeMetadata(label_t labelID, node_offset_t maxNodeOffset)
         : NodeMetadata(labelID, maxNodeOffset,
               vector<node_offset_t>() /* no deleted node offsets during initial loading */) {}
 
-    NodeMetadata(
-        label_t labelID, node_offset_t maxNodeOffset, vector<node_offset_t> deletedNodeOffsets);
+    NodeMetadata(label_t labelID, node_offset_t maxNodeOffset,
+        const vector<node_offset_t>& deletedNodeOffsets);
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
-    node_offset_t addNode();
+
+    NodeMetadata(const NodeMetadata& other)
+        : labelID{other.labelID}, adjListsAndColumns{other.adjListsAndColumns} {
+        nodeOffsetsInfo = make_unique<NodeOffsetsInfo>(*other.nodeOffsetsInfo);
+    }
 
     // See the comment for addNode().
     void deleteNode(node_offset_t nodeOffset);
@@ -65,31 +66,11 @@ public:
     // This function assumes that it is being called right after ScanNodeID has obtained a morsel
     // and that the nodeID structs in nodeOffsetVector.values have consecutive node offsets and
     // the same labels.
-    void setDeletedNodeOffsetsForMorsel(
-        Transaction* transaction, shared_ptr<ValueVector> nodeOffsetVector);
-
-    void checkpointInMemoryIfNecessary();
-
-    void rollbackInMemoryIfNecessary();
-
-    inline bool hasUpdates() { return nodeOffsetsInfoForWriteTrx != nullptr; }
-
-    inline label_t getLabelID() { return labelID; }
-
-    inline node_offset_t getMaxNodeOffset(Transaction* transaction) {
-        return getMaxNodeOffset(
-            (transaction == nullptr || transaction->isReadOnly()) ? true : false);
+    inline void setDeletedNodeOffsetsForMorsel(const shared_ptr<ValueVector>& nodeOffsetVector) {
+        nodeOffsetsInfo->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
     }
 
-    // Helper method to return the maxNodeOffset for read only trxs for parts of system that
-    // don't have access to a transaction.
-    inline node_offset_t getMaxNodeOffset() { return getMaxNodeOffset(nullptr); }
-
-    inline node_offset_t getMaxNodeOffset(bool isReadOnly) {
-        return (isReadOnly || !nodeOffsetsInfoForWriteTrx) ?
-                   nodeOffsetsInfoForReadOnlyTrx->maxNodeOffset :
-                   nodeOffsetsInfoForWriteTrx->maxNodeOffset;
-    }
+    inline node_offset_t getMaxNodeOffset() { return nodeOffsetsInfo->maxNodeOffset; }
     inline void setAdjListsAndColumns(
         pair<vector<AdjLists*>, vector<AdjColumn*>> adjListsAndColumns_) {
         adjListsAndColumns = adjListsAndColumns_;
@@ -98,23 +79,16 @@ public:
 private:
     void errorIfNodeHasEdges(node_offset_t nodeOffset);
 
-    void initMaxAndDeletedNodeOffsetsForWriteTrxIfNecessaryNoLock();
-
     inline vector<node_offset_t> getDeletedNodeOffsetsForWriteTrx() {
-        NodeOffsetsInfo* nodeOffsetsInfo = nodeOffsetsInfoForWriteTrx ?
-                                               nodeOffsetsInfoForWriteTrx.get() :
-                                               nodeOffsetsInfoForReadOnlyTrx.get();
         return nodeOffsetsInfo->getDeletedNodeOffsets();
     }
 
 private:
-    mutex mtx;
     label_t labelID;
     // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
     // construction.
     pair<vector<AdjLists*>, vector<AdjColumn*>> adjListsAndColumns;
-    unique_ptr<NodeOffsetsInfo> nodeOffsetsInfoForReadOnlyTrx;
-    unique_ptr<NodeOffsetsInfo> nodeOffsetsInfoForWriteTrx;
+    unique_ptr<NodeOffsetsInfo> nodeOffsetsInfo;
 };
 
 // Manages the disk image of the maxNodeOffsets and deleted node IDs (per node label).
@@ -126,38 +100,29 @@ public:
     NodesMetadata(const string& directory);
 
     // Should be used ony by tests;
-    NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLabel_) {
-        for (auto i = 0u; i < nodeMetadataPerLabel_.size(); ++i) {
-            nodeMetadataPerLabel.push_back(move(nodeMetadataPerLabel_[i]));
-        }
-    }
+    explicit NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLabel_);
 
-    NodeMetadata* getNodeMetadata(label_t label) const { return nodeMetadataPerLabel[label].get(); }
-
-    vector<node_offset_t> getMaxNodeOffsetPerLabel() {
-        vector<node_offset_t> retVal;
-        for (label_t label = 0u; label < nodeMetadataPerLabel.size(); ++label) {
-            retVal.push_back(nodeMetadataPerLabel[label]->getMaxNodeOffset());
-        }
-        return retVal;
+    inline NodeMetadata* getNodeMetadata(label_t label) const {
+        return (*nodeMetadataPerLabelForReadOnlyTrx)[label].get();
     }
 
     void writeNodesMetadataFileForWALRecord(const string& directory);
 
-    bool hasUpdates();
+    inline bool hasUpdates() { return nodeMetadataPerLabelForWriteTrx != nullptr; }
 
-    void checkpointInMemoryIfNecessary();
+    inline void checkpointInMemoryIfNecessary() {
+        lock_t lck{mtx};
+        nodeMetadataPerLabelForReadOnlyTrx = move(nodeMetadataPerLabelForWriteTrx);
+    }
 
-    void rollbackInMemoryIfNecessary();
+    inline void rollbackInMemoryIfNecessary() {
+        lock_t lck{mtx};
+        nodeMetadataPerLabelForWriteTrx.reset();
+    }
 
     void readFromFile(const string& directory);
 
-    void setAdjListsAndColumns(RelsStore* relsStore) {
-        for (label_t nodeLabel = 0u; nodeLabel < nodeMetadataPerLabel.size(); ++nodeLabel) {
-            nodeMetadataPerLabel[nodeLabel]->setAdjListsAndColumns(
-                relsStore->getAdjListsAndColumns(nodeLabel));
-        }
-    }
+    void setAdjListsAndColumns(RelsStore* relsStore);
 
     // Should be used by the loader to write an initial NodesMetadata with no deleted nodes.
     static void saveToFile(const string& directory, vector<node_offset_t>& maxNodeOffsetsPerLabel,
@@ -167,9 +132,57 @@ public:
         vector<node_offset_t>& maxNodeOffsetsPerLabel,
         vector<vector<uint64_t>>& deletedNodeOffsetsPerLabel, shared_ptr<spdlog::logger>& logger);
 
+    void initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
+
+    // This function assumes that there is a single write transaction. That is why for now we
+    // keep the interface simple and no transaction is passed.
+    node_offset_t addNode(label_t labelID) {
+        lock_t lck{mtx};
+        initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
+        return (*nodeMetadataPerLabelForWriteTrx)[labelID]->nodeOffsetsInfo->addNode();
+    }
+
+    // Refer to the comments for addNode.
+    void deleteNode(label_t labelID, node_offset_t nodeOffset) {
+        lock_t lck{mtx};
+        initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
+        (*nodeMetadataPerLabelForWriteTrx)[labelID]->deleteNode(nodeOffset);
+    }
+
+    inline node_offset_t getMaxNodeOffset(Transaction* transaction, label_t labelID) {
+        return getMaxNodeOffset(transaction == nullptr || transaction->isReadOnly() ?
+                                    TransactionType::READ_ONLY :
+                                    TransactionType::WRITE,
+            labelID);
+    }
+
+    inline node_offset_t getMaxNodeOffset(TransactionType transactionType, label_t labelID) {
+        return (transactionType == TransactionType::READ_ONLY ||
+                   nodeMetadataPerLabelForWriteTrx == nullptr) ?
+                   (*nodeMetadataPerLabelForReadOnlyTrx)[labelID]->getMaxNodeOffset() :
+                   (*nodeMetadataPerLabelForWriteTrx)[labelID]->getMaxNodeOffset();
+    }
+
+    // This function is only used by storageManager to construct relsStore during start-up, so we
+    // can just safely return the maxNodeOffsetPerLabel for readOnlyVersion.
+    vector<node_offset_t> getMaxNodeOffsetPerLabel();
+
+    void setDeletedNodeOffsetsForMorsel(
+        Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, label_t labelID);
+
+    void addNodeMetadata(NodeLabel* nodeLabel);
+
+    // This function is only used for testing purpose.
+    inline uint32_t getNumNodeMetadataPerLabel() const {
+        return nodeMetadataPerLabelForReadOnlyTrx->size();
+    }
+
 private:
+    mutex mtx;
     shared_ptr<spdlog::logger> logger;
-    vector<unique_ptr<NodeMetadata>> nodeMetadataPerLabel;
+    string directory;
+    unique_ptr<vector<unique_ptr<NodeMetadata>>> nodeMetadataPerLabelForReadOnlyTrx;
+    unique_ptr<vector<unique_ptr<NodeMetadata>>> nodeMetadataPerLabelForWriteTrx;
 };
 
 } // namespace storage

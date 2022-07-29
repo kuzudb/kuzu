@@ -5,7 +5,8 @@ namespace processor {
 
 pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     unique_lock lck{mtx};
-    if (currentNodeOffset > maxNodeOffset) {
+    // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
+    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }
     auto startOffset = currentNodeOffset;
@@ -37,11 +38,12 @@ bool ScanNodeID::getNextTuples() {
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
             nodeIDValues[i].offset = startOffset + i;
-            nodeIDValues[i].label = nodeTable->nodeMetadata->getLabelID();
+            nodeIDValues[i].label = nodeTable->labelID;
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
         outDataChunk->state->selVector->resetSelectorToUnselected();
-        nodeTable->nodeMetadata->setDeletedNodeOffsetsForMorsel(transaction, outValueVector);
+        nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
+            transaction, outValueVector, nodeTable->getLabelID());
         if (outDataChunk->state->selVector->selectedSize <= 0) {
             continue;
         }

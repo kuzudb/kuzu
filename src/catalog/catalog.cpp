@@ -192,7 +192,7 @@ CatalogContent::CatalogContent() {
 CatalogContent::CatalogContent(const string& directory) : CatalogContent() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     logger->info("Initializing catalog.");
-    readFromFile(directory);
+    readFromFile(directory, false /* isForWALRecord */);
     logger->info("Initializing catalog done.");
 }
 
@@ -368,10 +368,7 @@ const Property& CatalogContent::getNodePrimaryKeyProperty(label_t nodeLabel) con
 }
 
 vector<Property> CatalogContent::getAllNodeProperties(label_t nodeLabel) const {
-    auto allProperties = nodeLabels[nodeLabel]->structuredProperties;
-    allProperties.insert(allProperties.end(), nodeLabels[nodeLabel]->unstructuredProperties.begin(),
-        nodeLabels[nodeLabel]->unstructuredProperties.end());
-    return allProperties;
+    return nodeLabels[nodeLabel]->getAllNodeProperties();
 }
 
 const unordered_set<label_t>& CatalogContent::getRelLabelsForNodeLabelDirection(
@@ -432,8 +429,8 @@ void CatalogContent::saveToFile(const string& directory, bool isForWALRecord) {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-void CatalogContent::readFromFile(const string& directory) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(directory, false /* isForWALRecord */);
+void CatalogContent::readFromFile(const string& directory, bool isForWALRecord) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(directory, isForWALRecord);
     logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
@@ -473,7 +470,7 @@ Catalog::Catalog() {
     builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
 }
 
-Catalog::Catalog(const string& directory) {
+Catalog::Catalog(const string& directory, WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = make_unique<CatalogContent>(directory);
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
     builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
@@ -494,6 +491,26 @@ ExpressionType Catalog::getFunctionType(const string& name) const {
     } else {
         throw CatalogException(name + " function does not exist.");
     }
+}
+
+label_t Catalog::createAndAddNodeLabel(string labelName, string primaryKey,
+    vector<PropertyNameDataType> structuredPropertyDefinitions) {
+    initCatalogContentForWriteTrxIfNecessary();
+    auto nodeLabel = catalogContentForWriteTrx->createNodeLabel(
+        move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
+    auto labelID = nodeLabel->labelId;
+    catalogContentForWriteTrx->addNodeLabel(move(nodeLabel));
+    wal->logNodeTableRecord(labelID);
+    return labelID;
+}
+
+label_t CatalogBuilder::createAndAddNodeLabel(string labelName, string primaryKey,
+    vector<PropertyNameDataType> structuredPropertyDefinitions) {
+    auto nodeLabel = catalogContentForReadOnlyTrx->createNodeLabel(
+        move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
+    auto labelID = nodeLabel->labelId;
+    catalogContentForReadOnlyTrx->addNodeLabel(move(nodeLabel));
+    return labelID;
 }
 
 } // namespace catalog

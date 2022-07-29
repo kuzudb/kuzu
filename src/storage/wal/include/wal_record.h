@@ -215,6 +215,7 @@ enum WALRecordType : uint8_t {
     NODES_METADATA_RECORD = 1,
     COMMIT_RECORD = 2,
     CATALOG_RECORD = 3,
+    NODE_TABLE_RECORD = 4,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -250,11 +251,22 @@ struct CommitRecord {
     }
 };
 
+struct NodeTableRecord {
+    label_t labelID;
+
+    NodeTableRecord() = default;
+
+    NodeTableRecord(label_t labelID) : labelID{labelID} {}
+
+    inline bool operator==(const NodeTableRecord& rhs) const { return labelID == rhs.labelID; }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
+        NodeTableRecord nodeTableRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -272,6 +284,13 @@ struct WALRecord {
             // NodesMetadataRecords are empty so are always equal
             return true;
         }
+        case CATALOG_RECORD: {
+            // CatalogRecords are empty so are always equal
+            return true;
+        }
+        case NODE_TABLE_RECORD: {
+            return nodeTableRecord == rhs.nodeTableRecord;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
@@ -286,6 +305,7 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newNodeMetadataRecord();
     static WALRecord newCatalogRecord();
+    static WALRecord newNodeTableRecord(label_t labelID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

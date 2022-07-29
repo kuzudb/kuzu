@@ -2,26 +2,27 @@
 
 #include "spdlog/spdlog.h"
 
+#include "src/catalog/include/catalog.h"
 #include "src/storage/include/storage_manager.h"
+#include "src/storage/include/storage_utils.h"
 
 namespace graphflow {
 namespace storage {
 
-WALReplayer::WALReplayer(StorageManager* storageManager)
-    : isRecovering{true}, isCheckpoint{true}, storageManager{storageManager} {
+WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal{wal} {
     init();
 }
 
 WALReplayer::WALReplayer(
-    StorageManager* storageManager, BufferManager* bufferManager, bool isCheckpoint)
+    WAL* wal, StorageManager* storageManager, BufferManager* bufferManager, bool isCheckpoint)
     : isRecovering{false}, isCheckpoint{isCheckpoint}, storageManager{storageManager},
-      bufferManager{bufferManager} {
+      bufferManager{bufferManager}, wal{wal} {
     init();
 }
 
 void WALReplayer::init() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    walFileHandle = WAL::createWALFileHandle(storageManager->getDBDirectory());
+    walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
@@ -30,8 +31,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         // 1. As the first step we copy over the page on disk, regardless of if we are recovering
         // (and checkpointing) or checkpointing while during regular execution.
         auto storageStructureID = walRecord.pageInsertOrUpdateRecord.storageStructureID;
-        unique_ptr<FileInfo> fileInfoOfStorageStructure = StorageUtils::getFileInfoForReadWrite(
-            storageManager->getDBDirectory(), storageStructureID);
+        unique_ptr<FileInfo> fileInfoOfStorageStructure =
+            StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), storageStructureID);
         if (isCheckpoint) {
             walFileHandle->readPage(
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
@@ -63,8 +64,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case NODES_METADATA_RECORD: {
         if (isCheckpoint) {
-            StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(
-                storageManager->getDBDirectory());
+            StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(wal->getDirectory());
             if (!isRecovering) {
                 storageManager->getNodesStore().getNodesMetadata().checkpointInMemoryIfNecessary();
             }
@@ -76,11 +76,36 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case CATALOG_RECORD: {
         if (isCheckpoint) {
-            StorageUtils::overwriteCatalogFileWithVersionFromWAL(storageManager->getDBDirectory());
-            storageManager->getCatalog()->checkpointInMemoryIfNecessary();
+            StorageUtils::overwriteCatalogFileWithVersionFromWAL(wal->getDirectory());
+            if (!isRecovering) {
+                storageManager->getCatalog()->checkpointInMemoryIfNecessary();
+            }
         } else {
             // Since DDL statements are single statements that are auto committed, it is impossible
             // for users to roll back a DDL statement.
+        }
+    } break;
+    case NODE_TABLE_RECORD: {
+        if (isCheckpoint) {
+            // Since we log the NODE_TABLE_RECORD prior to logging CATALOG_RECORD, the catalog
+            // file has not recovered yet. Thus, the catalog needs to read the catalog file for WAL
+            // record.
+            auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+            catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
+                wal->getDirectory(), true /* isForWALRecord */);
+            NodeTable::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
+                walRecord.nodeTableRecord.labelID, wal->getDirectory());
+            if (!isRecovering) {
+                // If we are not recovering, i.e., we are checkpointing during normal execution,
+                // then we need to create the NodeTable object for the newly created node table.
+                // Therefore, this effectively fixe the in-memory data structures (i.e., performs
+                // the in-memory checkpointing).
+                storageManager->getNodesStore().createNodeTable(walRecord.nodeTableRecord.labelID,
+                    bufferManager, wal, catalogForCheckpointing.get());
+            }
+        } else {
+            // Since DDL statements are single statements that are auto committed, it is
+            // impossible for users to roll back a DDL statement.
         }
     } break;
     default:
@@ -135,18 +160,18 @@ void WALReplayer::checkpointOrRollbackInMemoryColumn(
 void WALReplayer::replay() {
     // Note: We assume no other thread is accessing the wal during the following operations. If
     // this assumption no longer holds, we need to lock the wal.
-    if (!isRecovering && isCheckpoint && !storageManager->getWAL().isLastLoggedRecordCommit()) {
+    if (!isRecovering && isCheckpoint && !wal->isLastLoggedRecordCommit()) {
         throw StorageException(
             "Cannot checkpointWAL because last logged record is not a commit record.");
     }
-    if (isRecovering && !storageManager->getWAL().isLastLoggedRecordCommit()) {
+    if (isRecovering && !wal->isLastLoggedRecordCommit()) {
         logger->info("WALReplayer is in recovery mode but the last record is not commit, so not "
                      "replaying. This should not happen and the caller should instead not call "
                      "WALReplayer::replay.");
         throw StorageException("System should not try to rollback when the last logged record is "
                                "not a commit record.");
     }
-    auto walIterator = storageManager->getWAL().getIterator();
+    auto walIterator = wal->getIterator();
     WALRecord walRecord;
     while (walIterator->hasNextRecord()) {
         walIterator->getNextRecord(walRecord);
