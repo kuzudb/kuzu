@@ -11,18 +11,24 @@ shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
     leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
     rightDataChunk = resultSet->dataChunks[rightDataPos.dataChunkPos];
     rightValueVector = rightDataChunk->valueVectors[rightDataPos.valueVectorPos];
+    selVectorsToSaveRestore.push_back(leftValueVector->state->selVector.get());
+    selVectorsToSaveRestore.push_back(rightValueVector->state->selVector.get());
     return resultSet;
 }
 
 void Intersect::reInitToRerunSubPlan() {
     children[0]->reInitToRerunSubPlan();
     FilteringOperator::reInitToRerunSubPlan();
-    leftIdx = 0;
 }
 
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
-    auto selectedPos = nodeIDVector->state->selVector->getSelectedPositionsBuffer();
-    auto size = nodeIDVector->state->selVector->selectedSize;
+    auto selVector = nodeIDVector->state->selVector.get();
+    auto size = selVector->selectedSize;
+    auto selectedPos = selVector->getSelectedPositionsBuffer();
+    if (selVector->isUnfiltered()) {
+        memcpy(selectedPos, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
+        selVector->resetSelectorToValuePosBuffer();
+    }
     sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
         return nodeIDVector->readNodeOffset(left) < nodeIDVector->readNodeOffset(right);
     });
@@ -32,42 +38,40 @@ bool Intersect::getNextTuples() {
     metrics->executionTime.start();
     auto numSelectedValues = 0u;
     do {
-        restoreDataChunkSelectorState(leftDataChunk);
-        if (rightDataChunk->state->currIdx == -1 || rightDataChunk->state->isCurrIdxLast()) {
-            rightDataChunk->state->currIdx = -1;
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
-                return false;
-            }
-            sortSelectedPos(leftValueVector);
-            sortSelectedPos(rightValueVector);
-            leftIdx = 0;
+        restoreSelVectors(selVectorsToSaveRestore);
+        if (!children[0]->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
         }
-        // Flatten right dataChunk
-        rightDataChunk->state->currIdx++;
-        saveDataChunkSelectorState(leftDataChunk);
-        auto rightPos = rightDataChunk->state->getPositionOfCurrIdx();
-        auto rightNodeOffset = rightValueVector->readNodeOffset(rightPos);
-        numSelectedValues = 0u;
-        while (leftIdx < leftDataChunk->state->selVector->selectedSize) {
-            auto leftPos = leftDataChunk->state->selVector->selectedPositions[leftIdx];
+        assert(!leftValueVector->state->isFlat());
+        assert(!rightValueVector->state->isFlat());
+        saveSelVectors(selVectorsToSaveRestore);
+        sortSelectedPos(leftValueVector);
+        sortSelectedPos(rightValueVector);
+        auto leftSelVector = leftValueVector->state->selVector.get();
+        auto rightSelVector = rightValueVector->state->selVector.get();
+        auto leftIdx = 0;
+        auto rightIdx = 0;
+        while (leftIdx < leftSelVector->selectedSize && rightIdx < rightSelVector->selectedSize) {
+            auto leftPos = leftSelVector->selectedPositions[leftIdx];
             auto leftNodeOffset = leftValueVector->readNodeOffset(leftPos);
+            auto rightPos = rightSelVector->selectedPositions[rightIdx];
+            auto rightNodeOffset = rightValueVector->readNodeOffset(rightPos);
             if (leftNodeOffset > rightNodeOffset) {
-                break;
-            } else if (leftNodeOffset == rightNodeOffset) {
-                leftDataChunk->state->selVector->getSelectedPositionsBuffer()[numSelectedValues++] =
-                    leftPos;
+                rightIdx++;
+            } else if (leftNodeOffset < rightNodeOffset) {
+                leftIdx++;
+            } else {
+                leftSelVector->getSelectedPositionsBuffer()[numSelectedValues++] = leftPos;
+                leftIdx++;
+                rightIdx++;
             }
-            leftIdx++;
         }
-        leftIdx -= numSelectedValues; // restore leftIdx to the first match
-        leftDataChunk->state->selVector->selectedSize = numSelectedValues;
-        if (leftDataChunk->state->selVector->isUnfiltered()) {
-            leftDataChunk->state->selVector->resetSelectorToValuePosBuffer();
-        }
-    } while (numSelectedValues == 0u);
+        leftSelVector->selectedSize = numSelectedValues;
+    } while (numSelectedValues == 0);
+    // TODO: open an issue about this
+    rightValueVector->state->selVector->selectedSize = 1;
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(numSelectedValues);
     return true;
 }
 

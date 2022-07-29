@@ -3,32 +3,33 @@
 namespace graphflow {
 namespace processor {
 
-void FilteringOperator::restoreDataChunkSelectorState(
-    const shared_ptr<DataChunk>& dataChunkToSelect) {
+void FilteringOperator::restoreSelVector(
+    SelectionVector* prevSelVector, SelectionVector* selVector) {
     if (prevSelVector->selectedPositions == nullptr) {
         return;
     }
-    dataChunkToSelect->state->selVector->selectedSize = prevSelVector->selectedSize;
+    selVector->selectedSize = prevSelVector->selectedSize;
     if (prevSelVector->isUnfiltered()) {
-        dataChunkToSelect->state->selVector->resetSelectorToUnselected();
+        selVector->resetSelectorToUnselected();
     } else {
-        dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
-        memcpy(dataChunkToSelect->state->selVector->selectedPositions,
-            prevSelVector->getSelectedPositionsBuffer(),
-            prevSelVector->selectedSize * sizeof(sel_t));
+        auto sizeToCopy = prevSelVector->selectedSize * sizeof(sel_t);
+        selVector->resetSelectorToValuePosBuffer();
+        memcpy(
+            selVector->selectedPositions, prevSelVector->getSelectedPositionsBuffer(), sizeToCopy);
     }
 }
 
-void FilteringOperator::saveDataChunkSelectorState(const shared_ptr<DataChunk>& dataChunkToSelect) {
-    prevSelVector->selectedSize = dataChunkToSelect->state->selVector->selectedSize;
-    if (dataChunkToSelect->state->selVector->isUnfiltered()) {
+void FilteringOperator::saveSelVector(SelectionVector* prevSelVector, SelectionVector* selVector) {
+    prevSelVector->selectedSize = selVector->selectedSize;
+    if (selVector->isUnfiltered()) {
         prevSelVector->resetSelectorToUnselected();
     } else {
-        memcpy(prevSelVector->getSelectedPositionsBuffer(),
-            dataChunkToSelect->state->selVector->getSelectedPositionsBuffer(),
-            prevSelVector->selectedSize * sizeof(sel_t));
+        auto sizeToCopy = prevSelVector->selectedSize * sizeof(sel_t);
+        memcpy(prevSelVector->getSelectedPositionsBuffer(), selVector->getSelectedPositionsBuffer(),
+            sizeToCopy);
         prevSelVector->resetSelectorToValuePosBuffer();
     }
 }
+
 } // namespace processor
 } // namespace graphflow

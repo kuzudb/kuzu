@@ -38,11 +38,11 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
     auto keys = (nodeID_t*)probeSideKeyVector->values;
     do {
         if (probeState->numMatchedTuples == 0) {
-            restoreDataChunkSelectorState(probeSideKeyDataChunk);
+            restoreSelVector(probeSideKeyDataChunk->state->selVector.get());
             if (!children[0]->getNextTuples()) {
                 return false;
             }
-            saveDataChunkSelectorState(probeSideKeyDataChunk);
+            saveSelVector(probeSideKeyDataChunk->state->selVector.get());
             sharedState->getHashTable()->probe(
                 *probeSideKeyVector, probeState->probedTuples.get(), *probeState->probeSelVector);
         }

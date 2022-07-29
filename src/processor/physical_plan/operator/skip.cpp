@@ -9,13 +9,13 @@ bool Skip::getNextTuples() {
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
-        restoreDataChunkSelectorState(dataChunkToSelect);
+        restoreSelVector(dataChunkToSelect->state->selVector.get());
         // end of execution due to no more input
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }
-        saveDataChunkSelectorState(dataChunkToSelect);
+        saveSelVector(dataChunkToSelect->state->selVector.get());
         numTuplesAvailable = resultSet->getNumTuples(dataChunksPosInScope);
         numTupleSkippedBefore = counter->fetch_add(numTuplesAvailable);
     } while (numTupleSkippedBefore + numTuplesAvailable <= skipNumber);

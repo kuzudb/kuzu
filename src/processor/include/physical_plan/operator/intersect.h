@@ -7,12 +7,12 @@ namespace graphflow {
 namespace processor {
 
 class Intersect : public PhysicalOperator, public FilteringOperator {
-
 public:
     Intersect(const DataPos& leftDataPos, const DataPos& rightDataPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, FilteringOperator{},
-          leftDataPos{leftDataPos}, rightDataPos{rightDataPos}, leftIdx{0} {}
+        : PhysicalOperator{move(child), id, paramsString},
+          FilteringOperator{2 /* numStatesToSave */}, leftDataPos{leftDataPos}, rightDataPos{
+                                                                                    rightDataPos} {}
 
     PhysicalOperatorType getOperatorType() override { return INTERSECT; }
 
@@ -35,8 +35,7 @@ private:
     shared_ptr<ValueVector> leftValueVector;
     shared_ptr<DataChunk> rightDataChunk;
     shared_ptr<ValueVector> rightValueVector;
-
-    uint64_t leftIdx;
+    vector<SelectionVector*> selVectorsToSaveRestore;
 };
 
 } // namespace processor

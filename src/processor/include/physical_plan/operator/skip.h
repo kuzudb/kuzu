@@ -13,7 +13,8 @@ public:
         unordered_set<uint32_t> dataChunksPosInScope, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString},
-          FilteringOperator(), skipNumber{skipNumber}, counter{move(counter)},
+          FilteringOperator{1 /* numStatesToSave */}, skipNumber{skipNumber}, counter{move(
+                                                                                  counter)},
           dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksPosInScope{
                                                           move(dataChunksPosInScope)} {}
 

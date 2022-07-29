@@ -15,7 +15,7 @@ public:
         const string& paramsString)
         : ScanSingleColumn{inputNodeIDVectorPos, outputNodeIDVectorPos, move(child), id,
               paramsString},
-          FilteringOperator(), nodeIDColumn{nodeIDColumn} {}
+          FilteringOperator{1 /* numStatesToSave */}, nodeIDColumn{nodeIDColumn} {}
 
     PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
 
