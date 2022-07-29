@@ -27,14 +27,15 @@ bool LogicalOperator::descendantsContainType(
 }
 
 string LogicalOperator::toString(uint64_t depth) const {
-    string result = string(depth * 4, ' ');
+    auto padding = string(depth * 4, ' ');
+    string result = padding;
     result += LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
               getExpressionsForPrinting() + "]";
     if (children.size() == 1) {
         result += "\n" + children[0]->toString(depth);
     } else if (children.size() == 2) {
-        result += "\nLEFT:\n" + children[0]->toString(depth + 1);
-        result += "\nRIGHT:\n" + children[1]->toString(depth + 1);
+        result += "\n" + padding + "LEFT:\n" + children[0]->toString(depth + 1);
+        result += "\n" + padding + "RIGHT:\n" + children[1]->toString(depth + 1);
     }
     return result;
 }

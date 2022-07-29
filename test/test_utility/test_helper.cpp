@@ -32,6 +32,8 @@ vector<TestQueryConfig> TestHelper::parseTestFile(const string& path, bool check
                     retVal.back().numThreads = stoi(line.substr(13, line.length()));
                 } else if (line.starts_with("-QUERY")) {
                     retVal.back().query = line.substr(7, line.length());
+                } else if (line.starts_with("-ENCODED_JOIN")) {
+                    retVal.back().encodedJoin = line.substr(14, line.length());
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
                     retVal.back().expectedNumTuples = numTuples;

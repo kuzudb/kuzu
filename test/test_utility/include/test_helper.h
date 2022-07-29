@@ -18,6 +18,7 @@ struct TestQueryConfig {
     string query;
     uint64_t expectedNumTuples;
     vector<string> expectedTuples;
+    string encodedJoin = "";
     bool checkOutputOrder = false;
 };
 
