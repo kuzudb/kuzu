@@ -51,18 +51,20 @@ public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle);
 
+    inline ListsMetadata& getListsMetadata() { return metadata; };
+
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     ListInfo getListInfo(node_offset_t nodeOffset);
 
-    inline void checkpointInMemoryIfNecessary() {
+    virtual inline void checkpointInMemoryIfNecessary() {
         // TODO(Semih): Currently we only support updates to headers as part of the PR that makes
         // disk arrays transactional. We should later on call checkpointInMemoryIfNecessary also
         // on ListsMetadata.
         headers->headersDiskArray->checkpointInMemoryIfNecessary();
     }
 
-    inline void rollbackInMemoryIfNecessary() {
+    virtual inline void rollbackInMemoryIfNecessary() {
         headers->headersDiskArray->rollbackInMemoryIfNecessary();
     }
 

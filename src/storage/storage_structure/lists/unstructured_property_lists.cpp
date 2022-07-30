@@ -37,7 +37,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
     // the else branch executes, data is never used.
     unique_ptr<UnstrPropListWrapper> primaryStoreListWrapper;
     UnstrPropListIterator itr;
-    if (transaction->isReadOnly() || !updatedLists.hasUpdatedList(nodeOffset)) {
+    if (transaction->isReadOnly() || !localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
         auto primaryStoreData = make_unique<uint8_t[]>(info.listLen);
         fillUnstrPropListFromPrimaryStore(info, primaryStoreData.get());
@@ -45,7 +45,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
             make_unique<UnstrPropListWrapper>(move(primaryStoreData), info.listLen, info.listLen);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
     } else {
-        itr = updatedLists.getUpdatedListIterator(nodeOffset);
+        itr = localUpdatedLists.getUpdatedListIterator(nodeOffset);
     }
 
     while (itr.hasNext()) {
@@ -171,28 +171,28 @@ void UnstructuredPropertyLists::readFromAPage(uint8_t* value, uint64_t bytesToRe
 
 void UnstructuredPropertyLists::setPropertyListEmpty(node_offset_t nodeOffset) {
     lock_t lck{mtx};
-    updatedLists.setEmptyUpdatedPropertiesList(nodeOffset);
+    localUpdatedLists.setEmptyUpdatedPropertiesList(nodeOffset);
 }
 
 void UnstructuredPropertyLists::setProperty(
     node_offset_t nodeOffset, uint32_t propertyKey, Value* value) {
     lock_t lck{mtx};
-    if (!updatedLists.hasUpdatedList(nodeOffset)) {
+    if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
         uint64_t updatedListCapacity =
             max(info.listLen, (uint64_t)(info.listLen * StorageConfig::ARRAY_RESIZING_FACTOR));
         unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
         fillUnstrPropListFromPrimaryStore(info, existingUstrPropLists.get());
-        updatedLists.setPropertyList(
+        localUpdatedLists.setPropertyList(
             nodeOffset, make_unique<UnstrPropListWrapper>(
                             move(existingUstrPropLists), info.listLen, updatedListCapacity));
     }
-    updatedLists.setProperty(nodeOffset, propertyKey, value);
+    localUpdatedLists.setProperty(nodeOffset, propertyKey, value);
 }
 
 void UnstructuredPropertyLists::removeProperty(node_offset_t nodeOffset, uint32_t propertyKey) {
     lock_t lck{mtx};
-    if (!updatedLists.hasUpdatedList(nodeOffset)) {
+    if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
         uint64_t updatedListCapacity =
             max(info.listLen, (uint64_t)(info.listLen * StorageConfig::ARRAY_RESIZING_FACTOR));
@@ -203,12 +203,24 @@ void UnstructuredPropertyLists::removeProperty(node_offset_t nodeOffset, uint32_
         bool found = UnstrPropListUtils::findKeyPropertyAndPerformOp(
             unstrListWrapper.get(), propertyKey, [](UnstrPropListIterator& itr) -> void {});
         if (found) {
-            updatedLists.setPropertyList(nodeOffset, move(unstrListWrapper));
-            updatedLists.removeProperty(nodeOffset, propertyKey);
+            localUpdatedLists.setPropertyList(nodeOffset, move(unstrListWrapper));
+            localUpdatedLists.removeProperty(nodeOffset, propertyKey);
         }
     } else {
-        updatedLists.removeProperty(nodeOffset, propertyKey);
+        localUpdatedLists.removeProperty(nodeOffset, propertyKey);
     }
+}
+
+void prepareCommit() {
+    // TODO(Semih): Implement
+}
+
+void checkpointInMemoryIfNecessary() {
+    // TODO(Semih): Implement
+}
+
+void rollbackInMemoryIfNecessary() {
+    // TODO(Semih): Implement
 }
 
 } // namespace storage

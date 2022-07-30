@@ -24,7 +24,7 @@ public:
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
               bufferManager, false /*hasNULLBytes*/, isInMemory, wal},
           stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal},
-          updatedLists{stringOverflowPages} {};
+          localUpdatedLists{stringOverflowPages} {};
 
     void readProperties(Transaction* transaction, ValueVector* nodeIDVector,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
@@ -35,6 +35,23 @@ public:
 
     // Currently, used only in Loader tests.
     unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
+
+    // Prepares all the db file changes necessary to update the "persistent" unstructured property
+    // lists with the UpdatedUnstructuredPropertyLists localUpdatedLists, which stores the updates
+    // by the write trx locally.
+    // TODO(Semih): This should call update and push back on the InMemoryDiskArray and create the
+    //  WAL and updates versions of the actual pages of the lists.
+    void prepareCommit();
+
+    // Checkpoints the in memory version of the lists.
+    // TODO(Semih): This should simply call checkpointInMemory on all InMemDiskArrays that it has
+    // and clear the localUpdatedLists.
+    void checkpointInMemoryIfNecessary() override;
+
+    // Rollbacks in memory any updates that have been performed.
+    // TODO(Semih): This should simply call rollbackInMemory on all InMemDiskArrays that it has
+    // and clear the localUpdatedLists.
+    void rollbackInMemoryIfNecessary() override;
 
 private:
     void fillUnstrPropListFromPrimaryStore(ListInfo& listInfo, uint8_t* dataToFill);
@@ -51,11 +68,11 @@ private:
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
 public:
-    // TODO(Semih/Guodong): Currently we serialize all access to localUnstructuredPropertyLists
+    // TODO(Semih/Guodong): Currently we serialize all access to localUpdatedLists
     // and should optimize parallel updates.
     mutex mtx;
     OverflowFile stringOverflowPages;
-    UpdatedUnstructuredPropertyLists updatedLists;
+    UpdatedUnstructuredPropertyLists localUpdatedLists;
 };
 
 } // namespace storage
