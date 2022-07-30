@@ -219,24 +219,24 @@ void InMemNodeBuilder::calcUnstrListsHeadersAndMetadata() {
 
 void InMemNodeBuilder::populateUnstrPropertyLists() {
     logger->debug("Populating Unstructured Property Lists.");
-    node_offset_t offsetStart = 0;
+    node_offset_t nodeOffsetStart = 0;
     progressBar->addAndStartNewJob(
         "Populating unstructured property lists for node: " + labelName, numBlocks);
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-            populateUnstrPropertyListsTask, offsetStart, blockIdx, this));
-        offsetStart += numLinesPerBlock[blockIdx];
+            populateUnstrPropertyListsTask, blockIdx, nodeOffsetStart, this));
+        nodeOffsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating Unstructured Property Lists.");
 }
 
 void InMemNodeBuilder::populateUnstrPropertyListsTask(
-    uint64_t blockId, node_offset_t offsetStart, InMemNodeBuilder* builder) {
+    uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeBuilder* builder) {
     builder->logger->trace("Start: path={0} blkIdx={1}", builder->inputFilePath, blockId);
     CSVReader reader(builder->inputFilePath, builder->csvReaderConfig, blockId);
     if (0 == blockId) {
-        if (reader.hasNextLine()) {}
+        reader.hasNextLine();
     }
     auto bufferOffset = 0u;
     PageByteCursor overflowPagesCursor;
@@ -245,7 +245,7 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
         for (auto i = 0u; i < builder->nodeLabel->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();
         }
-        putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, overflowPagesCursor,
+        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset, overflowPagesCursor,
             unstrPropertiesNameToIdMap,
             reinterpret_cast<InMemUnstructuredLists*>(builder->unstrPropertyLists.get()));
         bufferOffset++;

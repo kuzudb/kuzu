@@ -256,6 +256,14 @@ public:
                                         common::StorageConfig::NODES_METADATA_FILE_NAME);
     }
 
+    static inline uint64_t getNumChunks(node_offset_t numNodes) {
+        auto numChunks = StorageUtils::getListChunkIdx(numNodes);
+        if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
+            numChunks++;
+        }
+        return numChunks;
+    }
+
     static inline uint64_t getListChunkIdx(node_offset_t nodeOffset) {
         return nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
     }
