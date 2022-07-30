@@ -137,10 +137,7 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
     const shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
-    auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-    if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
-        numChunks++;
-    }
+    auto numChunks = StorageUtils::getNumChunks(numNodes);
     node_offset_t nodeOffset = 0u;
     uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
@@ -169,11 +166,7 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
     LoaderProgressBar* progressBar) {
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
-
-    auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-    if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
-        numChunks++;
-    }
+    auto numChunks = StorageUtils::getNumChunks(numNodes);
     node_offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
@@ -199,7 +192,6 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
                 if (0 != numElementsInList % numPerPage) {
                     numPagesForLargeList++;
                 }
-
                 inMemList->getListsMetadataBuilder()->populateLargeListPageList(largeListIdx,
                     numPagesForLargeList, numElementsInList,
                     inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);

@@ -48,7 +48,7 @@ private:
     static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
         uint64_t blockId, uint64_t offsetStart, InMemHashIndex* IDIndex, InMemNodeBuilder* builder);
     static void populateUnstrPropertyListsTask(
-        uint64_t blockId, node_offset_t offsetStart, InMemNodeBuilder* builder);
+        uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeBuilder* builder);
 
 private:
     DataType IDType;
