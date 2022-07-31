@@ -10,25 +10,46 @@ namespace graphflow {
 namespace processor {
 
 class FilteringOperator {
-
 public:
-    FilteringOperator() {
-        prevSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        prevSelVector->selectedPositions = nullptr;
+    explicit FilteringOperator(uint64_t numStatesToSave) {
+        for (auto i = 0u; i < numStatesToSave; ++i) {
+            auto prevSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+            prevSelVector->selectedPositions = nullptr;
+            prevSelVectors.push_back(move(prevSelVector));
+        }
     }
 
 protected:
     inline void reInitToRerunSubPlan() {
-        prevSelVector->selectedSize = 0;
-        prevSelVector->selectedPositions = nullptr;
+        for (auto& prevSelVector : prevSelVectors) {
+            prevSelVector->selectedSize = 0;
+            prevSelVector->selectedPositions = nullptr;
+        }
     }
 
-    void restoreDataChunkSelectorState(const shared_ptr<DataChunk>& dataChunkToSelect);
+    inline void restoreSelVectors(vector<SelectionVector*>& selVectors) {
+        for (auto i = 0u; i < selVectors.size(); ++i) {
+            restoreSelVector(prevSelVectors[i].get(), selVectors[i]);
+        }
+    }
+    inline void restoreSelVector(SelectionVector* selVector) {
+        restoreSelVector(prevSelVectors[0].get(), selVector);
+    }
 
-    void saveDataChunkSelectorState(const shared_ptr<DataChunk>& dataChunkToSelect);
+    inline void saveSelVectors(vector<SelectionVector*>& selVectors) {
+        for (auto i = 0u; i < selVectors.size(); ++i) {
+            saveSelVector(prevSelVectors[i].get(), selVectors[i]);
+        }
+    }
+    inline void saveSelVector(SelectionVector* selVector) {
+        saveSelVector(prevSelVectors[0].get(), selVector);
+    }
 
-protected:
-    unique_ptr<SelectionVector> prevSelVector;
+private:
+    static void restoreSelVector(SelectionVector* prevSelVector, SelectionVector* selVector);
+    static void saveSelVector(SelectionVector* prevSelVector, SelectionVector* selVector);
+
+    vector<unique_ptr<SelectionVector>> prevSelVectors;
 };
 } // namespace processor
 } // namespace graphflow

@@ -51,15 +51,16 @@ public:
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(probeChild), move(buildChild), id, paramsString}, sharedState{move(
-                                                                                      sharedState)},
+        : PhysicalOperator{move(probeChild), move(buildChild), id, paramsString},
+          FilteringOperator{1 /* numStatesToSave */}, sharedState{move(sharedState)},
           flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(probeChild), id, paramsString}, sharedState{move(sharedState)},
+        : PhysicalOperator{move(probeChild), id, paramsString},
+          FilteringOperator{1 /* numStatesToSave */}, sharedState{move(sharedState)},
           flatDataChunkPositions{move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }

@@ -19,12 +19,12 @@ bool Filter::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneSelectedValue;
     do {
-        restoreDataChunkSelectorState(dataChunkToSelect);
+        restoreSelVector(dataChunkToSelect->state->selVector.get());
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }
-        saveDataChunkSelectorState(dataChunkToSelect);
+        saveSelVector(dataChunkToSelect->state->selVector.get());
         hasAtLeastOneSelectedValue =
             expressionEvaluator->select(*dataChunkToSelect->state->selVector);
         if (!dataChunkToSelect->state->isFlat() &&

@@ -19,12 +19,12 @@ bool AdjColumnExtend::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneNonNullValue;
     do {
-        restoreDataChunkSelectorState(inputNodeIDDataChunk);
+        restoreSelVector(inputNodeIDDataChunk->state->selVector.get());
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }
-        saveDataChunkSelectorState(inputNodeIDDataChunk);
+        saveSelVector(inputNodeIDDataChunk->state->selVector.get());
         outputVector->setAllNull();
         nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
         hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
