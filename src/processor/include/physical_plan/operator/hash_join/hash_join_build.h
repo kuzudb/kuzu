@@ -3,11 +3,11 @@
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/hash_table/join_hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
-using namespace std;
 using namespace graphflow::function::operation;
 
 namespace graphflow {
@@ -63,9 +63,10 @@ public:
 class HashJoinBuild : public Sink {
 public:
     HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, sharedState{move(sharedState)}, buildDataInfo{
-                                                                                   buildDataInfo} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString,
+        ScanNodeIDSharedState* nodeScanSharedState)
+        : Sink{move(child), id, paramsString}, sharedState{move(sharedState)},
+          buildDataInfo{buildDataInfo}, nodeScanSharedState{move(nodeScanSharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
@@ -75,8 +76,8 @@ public:
     void finalize(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinBuild>(
-            sharedState, buildDataInfo, children[0]->clone(), id, paramsString);
+        return make_unique<HashJoinBuild>(sharedState, buildDataInfo, children[0]->clone(), id,
+            paramsString, nodeScanSharedState);
     }
 
 private:
@@ -89,6 +90,7 @@ private:
     shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     unique_ptr<JoinHashTable> hashTable;
+    ScanNodeIDSharedState* nodeScanSharedState;
 };
 
 } // namespace processor

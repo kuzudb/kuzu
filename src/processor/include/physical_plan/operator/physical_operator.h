@@ -68,8 +68,7 @@ class PhysicalOperator {
 
 public:
     // Leaf operator
-    PhysicalOperator(uint32_t id, const string& paramsString)
-        : id{id}, paramsString{paramsString} {}
+    PhysicalOperator(uint32_t id, string paramsString) : id{id}, paramsString{move(paramsString)} {}
     // Unary operator
     PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
     // Binary operator

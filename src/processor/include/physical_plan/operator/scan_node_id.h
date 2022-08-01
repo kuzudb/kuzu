@@ -12,16 +12,28 @@ namespace processor {
 class ScanNodeIDSharedState {
 
 public:
-    explicit ScanNodeIDSharedState(NodesMetadata* nodesMetadata, label_t labelID)
+    ScanNodeIDSharedState(NodesMetadata* nodesMetadata, label_t labelID)
         : nodesMetadata{nodesMetadata}, labelID{labelID}, maxNodeOffset{UINT64_MAX},
-          currentNodeOffset{0} {}
+          currentNodeOffset{0}, hasMorselMask{false}, isInitialized{false} {
+        maxNodeOffset = nodesMetadata->getMaxNodeOffset(READ_ONLY, labelID);
+        morselMask.resize(
+            (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY, false);
+    }
 
+    // TODO(Guodong): move transaction to mapper and constructor.
     inline void initMaxNodeOffset(Transaction* transaction) {
         unique_lock uLck{mtx};
-        maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+        if (!isInitialized) {
+            isInitialized = true;
+            maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+        }
     }
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
+
+    inline void setMorselMask(uint64_t morselIdx) { morselMask[morselIdx] = true; }
+
+    inline void setHashMorselMask() { hasMorselMask = true; }
 
 private:
     mutex mtx;
@@ -29,6 +41,9 @@ private:
     label_t labelID;
     uint64_t maxNodeOffset;
     uint64_t currentNodeOffset;
+    bool hasMorselMask;
+    bool isInitialized;
+    vector<bool> morselMask;
 };
 
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
@@ -37,7 +52,7 @@ public:
     ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
         const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
         string paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
+        : PhysicalOperator{id, move(paramsString)}, SourceOperator{move(resultSetDescriptor)},
           nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
@@ -54,6 +69,7 @@ public:
     inline double getExecutionTime(Profiler& profiler) const override {
         return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
+    inline ScanNodeIDSharedState* getSharedState() { return sharedState.get(); };
 
 private:
     NodeTable* nodeTable;

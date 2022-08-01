@@ -219,6 +219,21 @@ cc_library(
 )
 
 cc_library(
+    name = "scan_node_id",
+    srcs = [
+        "physical_plan/operator/scan_node_id.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/scan_node_id.h",
+    ],
+    deps = [
+        "base_operator",
+        "source_operator",
+        "//src/storage/store",
+    ],
+)
+
+cc_library(
     name = "hash_table",
     srcs = glob([
         "physical_plan/hash_table/*.cpp",
@@ -229,6 +244,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "result",
+        "scan_node_id",
         "//src/function/aggregate:aggregate_function",
         "//src/function/hash:vector_hash_operations",
     ],

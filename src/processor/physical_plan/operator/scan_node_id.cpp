@@ -9,6 +9,19 @@ pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }
+    if (hasMorselMask) {
+        auto maxNumMorsels =
+            (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
+        auto currentMorselIdx = currentNodeOffset / DEFAULT_VECTOR_CAPACITY;
+        assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
+        while (!morselMask[currentMorselIdx]) {
+            if (currentMorselIdx >= maxNumMorsels) {
+                break;
+            }
+            currentMorselIdx++;
+        }
+        currentNodeOffset = currentMorselIdx * DEFAULT_VECTOR_CAPACITY;
+    }
     auto startOffset = currentNodeOffset;
     auto range = min(DEFAULT_VECTOR_CAPACITY, maxNodeOffset + 1 - currentNodeOffset);
     currentNodeOffset += range;
