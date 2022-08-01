@@ -9,7 +9,7 @@ pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }
-    if (hasMorselMask) {
+    if (hasSemiMask) {
         auto maxNumMorsels =
             (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
         auto currentMorselIdx = currentNodeOffset / DEFAULT_VECTOR_CAPACITY;
@@ -39,6 +39,17 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     return resultSet;
 }
 
+void ScanNodeID::setSelectedPositions(
+    node_offset_t startOffset, node_offset_t endOffset, SelectionVector& selVector) {
+    selVector.resetSelectorToValuePosBuffer();
+    sel_t numSelectedValues = 0;
+    for (auto i = 0u; i < (endOffset - startOffset); i++) {
+        selVector.selectedPositions[numSelectedValues] = i;
+        numSelectedValues += sharedState->getMaskForNode(i + startOffset);
+    }
+    selVector.selectedSize = numSelectedValues;
+}
+
 bool ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
     while (true) {
@@ -54,7 +65,9 @@ bool ScanNodeID::getNextTuples() {
             nodeIDValues[i].label = nodeTable->labelID;
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
-        outDataChunk->state->selVector->resetSelectorToUnselected();
+        if (sharedState->getHasSemiMask()) {
+            setSelectedPositions(startOffset, endOffset, *outDataChunk->state->selVector);
+        }
         nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
             transaction, outValueVector, nodeTable->getLabelID());
         if (outDataChunk->state->selVector->selectedSize <= 0) {

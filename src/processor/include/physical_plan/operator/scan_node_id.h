@@ -14,10 +14,11 @@ class ScanNodeIDSharedState {
 public:
     ScanNodeIDSharedState(NodesMetadata* nodesMetadata, label_t labelID)
         : nodesMetadata{nodesMetadata}, labelID{labelID}, maxNodeOffset{UINT64_MAX},
-          currentNodeOffset{0}, hasMorselMask{false}, isInitialized{false} {
+          currentNodeOffset{0}, hasSemiMask{false}, isInitialized{false} {
         maxNodeOffset = nodesMetadata->getMaxNodeOffset(READ_ONLY, labelID);
         morselMask.resize(
             (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY, false);
+        nodeMask.resize(maxNodeOffset, false);
     }
 
     // TODO(Guodong): move transaction to mapper and constructor.
@@ -31,9 +32,14 @@ public:
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
-    inline void setMorselMask(uint64_t morselIdx) { morselMask[morselIdx] = true; }
+    inline void setMaskForNode(uint64_t nodeOffset) {
+        nodeMask[nodeOffset] = true;
+        morselMask[nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2] = true;
+    }
+    inline bool getMaskForNode(uint64_t nodeOffset) { return nodeMask[nodeOffset]; }
 
-    inline void setHashMorselMask() { hasMorselMask = true; }
+    inline void setHasSemiMask() { hasSemiMask = true; }
+    inline bool getHasSemiMask() { return hasSemiMask; }
 
 private:
     mutex mtx;
@@ -41,9 +47,10 @@ private:
     label_t labelID;
     uint64_t maxNodeOffset;
     uint64_t currentNodeOffset;
-    bool hasMorselMask;
+    bool hasSemiMask;
     bool isInitialized;
     vector<bool> morselMask;
+    vector<bool> nodeMask;
 };
 
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
@@ -70,6 +77,10 @@ public:
         return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
     inline ScanNodeIDSharedState* getSharedState() { return sharedState.get(); };
+
+private:
+    void setSelectedPositions(
+        node_offset_t startOffset, node_offset_t endOffset, SelectionVector& selVector);
 
 private:
     NodeTable* nodeTable;

@@ -6,7 +6,8 @@
 namespace graphflow {
 namespace common {
 
-constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
+constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
+constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
 // Currently the system supports files with 2 different pages size, which we refer to as
 // DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write

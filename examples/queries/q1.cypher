@@ -1,1 +1,1 @@
-MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=933 RETURN b.birthday
+MATCH (a:Person)-[:knows]->(b:Person) WHERE a.ID=933 RETURN b.birthday
