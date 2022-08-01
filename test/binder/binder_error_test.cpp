@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_catalog.h"
 
+#include "src/binder/include/copy_csv_binder.h"
 #include "src/binder/include/create_node_clause_binder.h"
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
@@ -20,9 +21,11 @@ public:
             auto parsedQuery = Parser::parseQuery(input);
             if (parsedQuery->getStatementType() == StatementType::QUERY) {
                 QueryBinder(catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
-            } else {
+            } else if (parsedQuery->getStatementType() == StatementType::CREATENODECLAUSE) {
                 CreateNodeClauseBinder(&catalog).bind(
                     *reinterpret_cast<CreateNodeClause*>(parsedQuery.get()));
+            } else {
+                CopyCSVBinder(&catalog).bind(*reinterpret_cast<CopyCSV*>(parsedQuery.get()));
             }
         } catch (const Exception& exception) { return exception.what(); }
         return string();
@@ -332,5 +335,25 @@ TEST_F(BinderErrorTest, CreateNodeTableInvalidPKDataType) {
 TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: BIGINT";
     auto input = "CREATE NODE TABLE PERSON(NAME BIGINT)";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CopyCSVInvalidParsingOption) {
+    string expectedException = "Binder exception: Unrecognized parsing csv option: pk.";
+    auto input = R"(COPY person FROM "person_0_0.csv" (pk=","))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CopyCSVInvalidSchemaName) {
+    string expectedException = "Binder exception: Node/Rel university does not exist.";
+    auto input = R"(COPY university FROM "person_0_0.csv" (pk=","))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CopyCSVInvalidEscapeChar) {
+    string expectedException =
+        "Binder exception: Copy csv option value can only be a single character with an "
+        "optional escape character.";
+    auto input = R"(COPY person FROM "person_0_0.csv" (ESCAPE=".."))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

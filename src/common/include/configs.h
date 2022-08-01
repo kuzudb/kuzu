@@ -91,6 +91,8 @@ struct LoaderConfig {
     static constexpr char LIST_FIELD_SUFFIX[] = "[]";
 
     // Default configuration for csv file parsing
+    static constexpr const char* CSV_PARSING_OPTIONS[5] = {
+        "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};
     static constexpr char DEFAULT_ESCAPE_CHAR = '\\';
     static constexpr char DEFAULT_TOKEN_SEPARATOR = ',';
     static constexpr char DEFAULT_QUOTE_CHAR = '"';

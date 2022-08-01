@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "bound_copy_csv",
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder:__subpackages__",
+    ],
+    deps = [
+        "//src/binder/bound_statement",
+    ],
+)

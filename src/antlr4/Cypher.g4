@@ -15,7 +15,21 @@ grammar Cypher;
 
 oC_Cypher 
     : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF
-        | SP ? gF_DDL ( SP? ';' )? SP? EOF ;
+        | SP ? gF_DDL ( SP? ';' )? SP? EOF 
+        | SP ? gF_CopyCSV ( SP? ';' )? SP? EOF ;
+        
+gF_CopyCSV
+    : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP '(' SP? gF_ParsingOptions SP? ')' )? ;
+
+gF_ParsingOptions
+    : gF_ParsingOption ( SP? ',' SP? gF_ParsingOption )* ;
+    
+gF_ParsingOption
+    : oC_SymbolicName SP? '=' SP? StringLiteral ;
+
+COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;    
+
+FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
 gF_DDL
     : gF_CreateNode ;
