@@ -41,6 +41,7 @@
 #include "src/processor/include/physical_plan/operator/scan_column/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
+#include "src/processor/include/physical_plan/mapper/physical_plan_optimizer.h"
 
 using namespace graphflow::planner;
 
@@ -52,7 +53,9 @@ unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<Logical
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);
     auto lastOperator = appendResultCollector(logicalPlan->getExpressionsToCollect(),
         *logicalPlan->getSchema(), move(prevOperator), mapperContext);
-    return make_unique<PhysicalPlan>(move(lastOperator), logicalPlan->isReadOnly());
+    auto plan = make_unique<PhysicalPlan>(move(lastOperator), logicalPlan->isReadOnly());
+    SemiJoinOptimizer::tryOptimize(plan.get());
+    return plan;
 }
 
 const MapperContext* PlanMapper::enterSubquery(const MapperContext* newMapperContext) {

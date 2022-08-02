@@ -16,9 +16,6 @@ public:
         : nodesMetadata{nodesMetadata}, labelID{labelID}, maxNodeOffset{UINT64_MAX},
           currentNodeOffset{0}, hasSemiMask{false}, isInitialized{false} {
         maxNodeOffset = nodesMetadata->getMaxNodeOffset(READ_ONLY, labelID);
-        morselMask.resize(
-            (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY, false);
-        nodeMask.resize(maxNodeOffset, false);
     }
 
     // TODO(Guodong): move transaction to mapper and constructor.
@@ -38,8 +35,13 @@ public:
     }
     inline bool getMaskForNode(uint64_t nodeOffset) { return nodeMask[nodeOffset]; }
 
-    inline void setHasSemiMask() { hasSemiMask = true; }
-    inline bool getHasSemiMask() { return hasSemiMask; }
+    inline void setHasSemiMask() {
+        hasSemiMask = true;
+        morselMask.resize(
+            (maxNodeOffset + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY, false);
+        nodeMask.resize(maxNodeOffset, false);
+    }
+    inline bool getHasSemiMask() const { return hasSemiMask; }
 
 private:
     mutex mtx;
@@ -56,11 +58,12 @@ private:
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
-        string paramsString)
+    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, string nodeID,
+        NodeTable* nodeTable, const DataPos& outDataPos,
+        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, string paramsString)
         : PhysicalOperator{id, move(paramsString)}, SourceOperator{move(resultSetDescriptor)},
-          nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
+          nodeID{move(nodeID)}, nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{move(
+                                                                                  sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -68,9 +71,11 @@ public:
 
     bool getNextTuples() override;
 
+    inline string getNodeID() const { return nodeID; }
+
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(resultSetDescriptor->copy(), nodeID, nodeTable, outDataPos,
+            sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -83,6 +88,7 @@ private:
         node_offset_t startOffset, node_offset_t endOffset, SelectionVector& selVector);
 
 private:
+    string nodeID;
     NodeTable* nodeTable;
     DataPos outDataPos;
     shared_ptr<ScanNodeIDSharedState> sharedState;

@@ -22,24 +22,6 @@ void DiskArrayHeader::readFromFile(FileHandle& fileHandle, uint64_t headerPageId
         sizeof(DiskArrayHeader), headerPageIdx * fileHandle.getPageSize());
 }
 
-void DiskArrayHeader::print() {
-    cout << "firstPIPPageIdx: " << firstPIPPageIdx << endl;
-    cout << "elementSize: " << elementSize << endl;
-    cout << "numElements: " << numElements << endl;
-    cout << "numElementsPerPageLog2: " << numElementsPerPageLog2 << endl;
-    cout << "elementPageOffsetMask: " << elementPageOffsetMask << endl;
-    cout << "numAPs: " << numAPs << endl;
-}
-
-void PIP::print() {
-    cout << "nextPipPageIdx: " << nextPipPageIdx << endl;
-    cout << "pageIdxs:";
-    for (int i = 0; i < NUM_PAGE_IDXS_PER_PIP; ++i) {
-        cout << " " << pageIdxs[i];
-    }
-    cout << endl;
-}
-
 PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {
     fileHandle.readPage(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
@@ -148,7 +130,7 @@ void BaseDiskArray<U>::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDisk
         StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle),
             pipPageIdxOfPreviousPIP, false /* not inserting a new page */, *bufferManager, *wal,
             [&nextPIPPageIdx](
-                uint8_t* frame) -> void { ((PIP*)frame)->nextPipPageIdx = nextPIPPageIdx; });
+                const uint8_t* frame) -> void { ((PIP*)frame)->nextPipPageIdx = nextPIPPageIdx; });
         // The above updatePage operation changes the "previousPIP" identified by
         // pipIdxOfPreviousPIP, so we put it to updatedPIPIdxs if it was a pip that already existed
         // before this transaction started. If pipIdxOfPreviousPIP >= pips.size() then it must
@@ -173,7 +155,7 @@ page_idx_t BaseDiskArray<U>::getAPPageIdxNoLock(page_idx_t apIdx, TransactionTyp
         StorageStructureUtils::readWALVersionOfPage((VersionedFileHandle&)(fileHandle),
             pageIdxOfUpdatedPip, *bufferManager, *wal,
             [&retVal, &offsetInPIP](
-                uint8_t* frame) -> void { retVal = ((PIP*)frame)->pageIdxs[offsetInPIP]; });
+                const uint8_t* frame) -> void { retVal = ((PIP*)frame)->pageIdxs[offsetInPIP]; });
         return retVal;
     }
 }
@@ -242,7 +224,7 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 template<typename U>
 uint64_t BaseDiskArray<U>::readUint64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    VersionedFileHandle* versionedFileHandle = (VersionedFileHandle*)(&fileHandle);
+    auto versionedFileHandle = (VersionedFileHandle*)(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
         !versionedFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
         return readOp(&this->header);
@@ -269,7 +251,7 @@ pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryFor
         assert(apIdx == updatedDiskArrayHeader->numAPs);
         // We need to add a new AP. This may further cause a new pip to be inserted, which is
         // handled by the if/else-if/else branch below.
-        VersionedFileHandle& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;
+        auto& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;
         page_idx_t newAPPageIdx = versionedFileHandle.addNewPage();
         // We need to create a new array page and then add its apPageIdx (newAPPageIdx variable) to
         // an appropriate PIP.
@@ -300,23 +282,13 @@ pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryFor
         // Finally we update the PIP page (possibly newly created) and add newAPPageIdx into it.
         StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), pipPageIdx,
             isInsertingANewPIPPage, *bufferManager, *wal,
-            [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](uint8_t* frame) -> void {
+            [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](const uint8_t* frame) -> void {
                 if (isInsertingANewPIPPage) {
                     ((PIP*)frame)->nextPipPageIdx = PAGE_IDX_MAX;
                 }
                 ((PIP*)frame)->pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
             });
         return make_pair(newAPPageIdx, true /* inserting a new ap page */);
-    }
-}
-
-template<typename U>
-void BaseDiskArray<U>::print() {
-    cout << "Printing BaseDisk Array" << endl;
-    cout << "headerPageIdx: " << headerPageIdx << endl;
-    header.print();
-    for (int i = 0; i < pips.size(); ++i) {
-        pips[i].print();
     }
 }
 
@@ -364,13 +336,13 @@ U BaseInMemDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
                                    " of the element in DiskArray is >= this->header.numElements: " +
                                    to_string(this->header.numElements) + " for write trx.");
         }
-        VersionedFileHandle& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;
+        auto& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;
         page_idx_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
         if (versionedFileHandle.hasWALPageVersionNoPageLock(apPageIdx)) {
             // apPageIdx has an updated version, so we read from the WAL version of apPageIdx.
             U retVal;
             StorageStructureUtils::readWALVersionOfPage(versionedFileHandle, apPageIdx,
-                *this->bufferManager, *this->wal, [&retVal, &offsetInAP](uint8_t* frame) -> void {
+                *this->bufferManager, *this->wal, [&retVal, &offsetInAP](const uint8_t* frame) -> void {
                     retVal = ((U*)frame)[offsetInAP];
                 });
             return retVal;
@@ -396,21 +368,6 @@ template<typename U>
 void BaseInMemDiskArray<U>::readArrayPageFromFile(uint64_t apIdx, page_idx_t apPageIdx) {
     this->fileHandle.readPage(
         reinterpret_cast<uint8_t*>(this->inMemArrayPages[apIdx].get()), apPageIdx);
-}
-
-template<typename U>
-void BaseInMemDiskArray<U>::print() {
-    BaseDiskArray<U>::print();
-    for (page_idx_t apIdx = 0; apIdx < this->header.numAPs; ++apIdx) {
-        auto numElementsPerPage = 1 << this->header.numElementsPerPageLog2;
-        cout << "array page " << apIdx << " (file pageIdx: " << this->getAPPageIdxNoLock(apIdx)
-             << ") contents: ";
-        for (int j = 0; j < numElementsPerPage; ++j) {
-            cout << " " << inMemArrayPages[apIdx][j];
-        }
-        cout << endl;
-        inMemArrayPages.emplace_back(make_unique<U[]>(1 << this->header.numElementsPerPageLog2));
-    }
 }
 
 template<typename T>
@@ -512,7 +469,6 @@ void InMemDiskArrayBuilder<T>::setNewNumElementsAndIncreaseCapacityIfNeeded(
 template<typename T>
 void InMemDiskArrayBuilder<T>::saveToDisk() {
     // save the header and pips.
-    this->header.print();
     this->header.saveToDisk(this->fileHandle, this->headerPageIdx);
     for (int i = 0; i < this->pips.size(); ++i) {
         this->fileHandle.writePage(

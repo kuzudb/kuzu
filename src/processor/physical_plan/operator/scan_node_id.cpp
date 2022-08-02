@@ -15,7 +15,7 @@ pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
         auto currentMorselIdx = currentNodeOffset / DEFAULT_VECTOR_CAPACITY;
         assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
         while (!morselMask[currentMorselIdx]) {
-            if (currentMorselIdx >= maxNumMorsels) {
+            if (currentMorselIdx >= (maxNumMorsels - 1)) {
                 break;
             }
             currentMorselIdx++;
@@ -65,6 +65,7 @@ bool ScanNodeID::getNextTuples() {
             nodeIDValues[i].label = nodeTable->labelID;
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
+        outDataChunk->state->selVector->resetSelectorToUnselected();
         if (sharedState->getHasSemiMask()) {
             setSelectedPositions(startOffset, endOffset, *outDataChunk->state->selVector);
         }

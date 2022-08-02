@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 
 #include "src/common/include/configs.h"
 #include "src/common/types/include/types.h"
@@ -30,9 +29,6 @@ struct DiskArrayHeader {
 
     void readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx);
 
-    // TODO(Semih): This is only for debugging purposes. Will be removed.
-    void print();
-
     // We do not need to store numElementsPerPageLog2, elementPageOffsetMask, and numArrayPages or
     // save them on disk as they are functions of elementSize and numElements but we
     // nonetheless store them (and save them to disk) for simplicity.
@@ -47,23 +43,14 @@ struct DiskArrayHeader {
 struct PIP {
     PIP() : nextPipPageIdx{PAGE_IDX_MAX} {}
 
-    // TODO(Semih): This is only for debugging purposes. Will be removed.
-    void print();
-
     page_idx_t nextPipPageIdx;
-    page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
+    page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP]{};
 };
 
 struct PIPWrapper {
     PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx);
 
-    PIPWrapper(page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
-
-    // TODO(Semih): This is only for debugging purposes. Will be removed.
-    void print() {
-        cout << "Printing PIPWrapper pipPageIdx: " << pipPageIdx << endl;
-        pipContents.print();
-    }
+    explicit PIPWrapper(page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
 
     page_idx_t pipPageIdx;
     PIP pipContents;
@@ -123,9 +110,6 @@ public:
     // Note: This function is to be used only by the WRITE trx.
     void pushBack(U val);
 
-    // TODO(Semih): This is only for debugging purposes. Will be removed.
-    void print();
-
 protected:
     uint64_t getNumElementsNoLock(TransactionType trxType);
 
@@ -144,7 +128,7 @@ protected:
 
     void clearWALPageVersionAndRemovePageFromFrameIfNecessary(page_idx_t pageIdx);
 
-    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
+    virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
 private:
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
@@ -185,9 +169,6 @@ public:
     U& operator[](uint64_t idx);
     U get(uint64_t idx, TransactionType trxType = TransactionType::READ_ONLY);
 
-    // TODO(Semih): This is only for debugging purposes. Will be removed.
-    void print();
-
 protected:
     uint64_t addInMemoryArrayPage() {
         inMemArrayPages.emplace_back(make_unique<U[]>(1ull << this->header.numElementsPerPageLog2));
@@ -219,7 +200,7 @@ public:
     inline VersionedFileHandle* getFileHandle() { return (VersionedFileHandle*)&this->fileHandle; }
 
 private:
-    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
+    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;
 };
 
 template<typename T>

@@ -15,8 +15,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     auto dataPos = mapperContext.getDataPos(nodeExpression->getIDProperty());
     mapperContext.addComputedExpressions(nodeExpression->getIDProperty());
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        nodesStore.getNode(nodeExpression->getLabel()), dataPos, sharedState, getOperatorID(),
-        logicalScan->getExpressionsForPrinting());
+        nodeExpression->getIDProperty(), nodesStore.getNode(nodeExpression->getLabel()), dataPos,
+        sharedState, getOperatorID(), logicalScan->getExpressionsForPrinting());
 }
 
 } // namespace processor

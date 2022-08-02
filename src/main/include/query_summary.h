@@ -17,6 +17,7 @@ public:
     bool getIsExplain() const { return isExplain; }
 
     bool getIsProfile() const { return isProfile; }
+    void enableProfile()  { isProfile = true; }
 
     void printPlanToStdOut() { planPrinter->printPlanToShell(); }
     nlohmann::json printPlanToJson() { return planPrinter->printPlanToJson(); }

@@ -62,11 +62,18 @@ public:
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString,
-        ScanNodeIDSharedState* nodeScanSharedState)
-        : Sink{move(child), id, paramsString}, sharedState{move(sharedState)},
-          buildDataInfo{buildDataInfo}, nodeScanSharedState{move(nodeScanSharedState)} {}
+    HashJoinBuild(string nodeID, shared_ptr<HashJoinSharedState> sharedState,
+        const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : Sink{move(child), id, paramsString}, nodeID{move(nodeID)}, sharedState{move(sharedState)},
+          buildDataInfo{buildDataInfo}, nodeScanSharedState{nullptr} {}
+
+    inline string getNodeID() const { return nodeID; }
+
+    inline void setScanNodeIDSharedState(ScanNodeIDSharedState* state) {
+        nodeScanSharedState = state;
+        paramsString += " SEMI";
+    }
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
@@ -76,14 +83,19 @@ public:
     void finalize(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinBuild>(sharedState, buildDataInfo, children[0]->clone(), id,
-            paramsString, nodeScanSharedState);
+        auto clonedHashJoinBuild = make_unique<HashJoinBuild>(
+            nodeID, sharedState, buildDataInfo, children[0]->clone(), id, paramsString);
+        if (nodeScanSharedState) {
+            clonedHashJoinBuild->setScanNodeIDSharedState(nodeScanSharedState);
+        }
+        return clonedHashJoinBuild;
     }
 
 private:
     void appendVectors();
 
 private:
+    string nodeID;
     shared_ptr<HashJoinSharedState> sharedState;
 
     BuildDataInfo buildDataInfo;

@@ -66,7 +66,8 @@ void QueryProcessor::decomposePlanIntoTasks(
         parentTask->addChildTask(move(childTask));
     } break;
     default: {
-        for (auto i = 0u; i < op->getNumChildren(); i++) {
+        // Finish right side (build side) first
+        for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
             decomposePlanIntoTasks(op->getChild(i), op, parentTask, context);
         }
     } break;
