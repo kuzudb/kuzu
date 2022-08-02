@@ -46,7 +46,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         probeSideOperator = probeSideOperator->getChild(0);
     }
     auto probeSideScanNode = (ScanNodeID*)probeSideOperator;
-    probeSideScanNode->getSharedState()->setHashMorselMask();
+    probeSideScanNode->getSharedState()->setHasSemiMask();
     // create hashJoin build
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);

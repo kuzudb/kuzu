@@ -36,11 +36,10 @@ static string ReadFile(const string& file_path) {
     return str;
 }
 
-void runQuery(const string& serializedPath, const string& queryId, const string& encodedJoin,
+void runQuery(const string& serializedPath, const string& queryPath, const string& encodedJoin,
     uint64_t numThreads) {
     assert(numThreads <= 8);
-    auto basePath = "/Users/g35jin/Developer/graphflowdb/examples/queries/";
-    auto query = ReadFile(basePath + queryId + ".cypher");
+    auto query = ReadFile(queryPath);
     DatabaseConfig databaseConfig(serializedPath);
     SystemConfig systemConfig;
     systemConfig.maxNumThreads = 8;
@@ -49,26 +48,28 @@ void runQuery(const string& serializedPath, const string& queryId, const string&
     auto database = make_unique<Database>(databaseConfig, systemConfig);
     auto conn = make_unique<JOConnection>(database.get());
     conn->setMaxNumThreadForExec(numThreads);
-    try {
-        auto profileQuery = "PROFILE " + query;
-        auto result = conn->query(profileQuery, encodedJoin);
-        cout << "Num tuples: " << result->getNumTuples() << endl;
-        vector<uint32_t> widths(result->getNumColumns(), 10);
-        while (result->hasNext()) {
-            auto tuple = result->getNext();
-            cout << tuple->toString(widths, "|") << endl;
-        }
-        auto querySummary = result->getQuerySummary();
-        if (querySummary->getIsProfile()) {
-            querySummary->printPlanToStdOut();
-        } else {
-            cout << "No profiling available." << endl;
-        }
-    } catch (exception& e) { cout << e.what() << endl; }
+    auto profileQuery = "PROFILE " + query;
+    auto result = conn->query(profileQuery, encodedJoin);
+    if (!result->isSuccess()) {
+        cout << "Error: " << result->getErrorMessage() << endl;
+        return;
+    }
+    cout << "Num tuples: " << result->getNumTuples() << endl;
+    vector<uint32_t> widths(result->getNumColumns(), 10);
+    while (result->hasNext()) {
+        auto tuple = result->getNext();
+        cout << tuple->toString(widths, "|") << endl;
+    }
+    auto querySummary = result->getQuerySummary();
+    if (querySummary->getIsProfile()) {
+        querySummary->printPlanToStdOut();
+    } else {
+        cout << "No profiling available." << endl;
+    }
 
     vector<double> runTimes(5);
     for (auto i = 0u; i < 5; i++) {
-        auto result = conn->query(query, encodedJoin);
+        result = conn->query(query, encodedJoin);
         runTimes[i] = result->getQuerySummary()->getExecutionTime();
     }
     cout << "Cost: ";
@@ -105,14 +106,14 @@ void planEnumerator(const string& query) {
 // Q2. Plan: 47 HJ(c){HJ(a){E(c)E(a)S(b)}{S(a)}}{S(c)}. Count: 149008866
 int main(int argv, char* argc[]) {
     if (argv != 5) {
-        cout << "HELP: EXEC <serializedPath> <query> <encodedJoin> <numThreads>" << endl;
+        cout << "HELP: EXEC <serializedPath> <queryPath> <encodedJoin> <numThreads>" << endl;
         return 1;
     }
     auto serializedPath = argc[1];
-    auto query = argc[2];
+    auto queryPath = argc[2];
     string encodedJoin = argc[3];
     std::replace(encodedJoin.begin(), encodedJoin.end(), '\"', ' ');
     trim(encodedJoin);
     auto numThreads = stoi(argc[4]);
-    runQuery(serializedPath, query, encodedJoin, numThreads);
+    runQuery(serializedPath, queryPath, encodedJoin, numThreads);
 }
