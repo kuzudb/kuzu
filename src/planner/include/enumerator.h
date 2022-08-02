@@ -4,7 +4,8 @@
 #include "projection_enumerator.h"
 #include "update_planner.h"
 
-#include "src/binder/bound_create_node_clause/include/bound_create_node_clause.h"
+#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
+#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
 #include "src/binder/bound_statement/include/bound_statement.h"
 #include "src/binder/expression/include/existential_subquery_expression.h"
 
@@ -121,6 +122,8 @@ private:
 
     static unique_ptr<LogicalPlan> createCreateNodeTablePlan(
         BoundCreateNodeClause& boundCreateNodeClause);
+
+    static unique_ptr<LogicalPlan> createCreateRelPlan(BoundCreateRelClause& boundCreateRelClause);
 
 private:
     const Catalog& catalog;

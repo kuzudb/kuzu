@@ -26,7 +26,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "catalog_structs",
-        "//src/binder/bound_create_node_clause",
         "//src/common:configs",
         "//src/common:ser_deser",
         "//src/function:built_in_vector_operations",

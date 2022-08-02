@@ -1,6 +1,6 @@
 #include "include/jo_connection.h"
 
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/planner/logical_plan/include/logical_plan_util.h"
@@ -17,7 +17,7 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         auto statement = Parser::parseQuery(query);
         assert(statement->getStatementType() == StatementType::QUERY);
         auto parsedQuery = (RegularQuery*)statement.get();
-        auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
+        auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
         auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
         unique_ptr<LogicalPlan> logicalPlan;
         if (encodedJoin.empty()) {

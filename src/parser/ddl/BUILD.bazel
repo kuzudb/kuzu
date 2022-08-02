@@ -1,5 +1,5 @@
 cc_library(
-    name = "create_node_clause",
+    name = "ddl",
     hdrs = glob([
         "include/*.h",
     ]),

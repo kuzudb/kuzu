@@ -3,10 +3,16 @@
 #include "expression_binder.h"
 #include "query_normalizer.h"
 
+#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
+#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
+#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/binder/query/updating_clause/include/bound_create_clause.h"
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
 #include "src/binder/query/updating_clause/include/bound_set_clause.h"
+#include "src/parser/copy_csv/include/copy_csv.h"
+#include "src/parser/ddl/include/create_node_clause.h"
+#include "src/parser/ddl/include/create_rel_clause.h"
 #include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
@@ -15,14 +21,23 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace binder {
 
-class QueryBinder {
+class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit QueryBinder(const Catalog& catalog)
+    explicit Binder(const Catalog& catalog)
         : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
-    unique_ptr<BoundRegularQuery> bind(const RegularQuery& regularQuery);
+    unique_ptr<BoundStatement> bind(const Statement& statement);
+
+    unique_ptr<BoundRegularQuery> bindQuery(const RegularQuery& regularQuery);
+
+    unique_ptr<BoundCreateNodeClause> bindCreateNodeClause(
+        const CreateNodeClause& createNodeClause);
+
+    unique_ptr<BoundCreateRelClause> bindCreateRelClause(const CreateRelClause& createRelClause);
+
+    unique_ptr<BoundCopyCSV> bindCopyCSV(const CopyCSV& copyCSV);
 
     inline unordered_map<string, shared_ptr<Literal>> getParameterMap() {
         return expressionBinder.parameterMap;
@@ -75,9 +90,22 @@ private:
         const NodePattern& nodePattern, QueryGraph& queryGraph);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
 
-    label_t bindRelLabel(const string& parsed_label);
+    label_t bindRelLabel(const string& parsed_label) const;
 
-    label_t bindNodeLabel(const string& parsed_label);
+    label_t bindNodeLabel(const string& parsed_label) const;
+
+    static uint32_t bindPrimaryKey(
+        string primaryKey, vector<pair<string, string>> propertyNameDataTypes);
+
+    static vector<PropertyNameDataType> bindPropertyNameDataTypes(
+        vector<pair<string, string>> propertyNameDataTypes);
+
+    vector<pair<label_t, label_t>> bindRelConnections(RelConnection relConnections) const;
+
+    static unordered_map<string, char> bindParsingOptions(
+        unordered_map<string, string> parsingOptions);
+
+    static char bindParsingOptionValue(string parsingOptionValue);
 
     /******* validations *********/
     // E.g. Optional MATCH (a) RETURN a.age
@@ -111,6 +139,12 @@ private:
 
     static void validateNodeCreateHasPrimaryKeyInput(
         const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty);
+
+    static void validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
+
+    void validateLabelExist(string& schemaName) const;
+
+    static void validateParsingOptionName(string& parsingOptionName);
 
     /******* helpers *********/
 

@@ -12,13 +12,13 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace binder {
 
-class QueryBinder;
+class Binder;
 
 class ExpressionBinder {
-    friend class QueryBinder;
+    friend class Binder;
 
 public:
-    explicit ExpressionBinder(QueryBinder* queryBinder) : queryBinder{queryBinder} {}
+    explicit ExpressionBinder(Binder* queryBinder) : binder{queryBinder} {}
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -74,7 +74,7 @@ private:
     static void validateExistsSubqueryHasNoAggregationOrOrderBy(const Expression& expression);
 
 private:
-    QueryBinder* queryBinder;
+    Binder* binder;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
 };
 

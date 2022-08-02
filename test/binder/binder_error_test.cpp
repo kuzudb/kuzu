@@ -1,9 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_catalog.h"
 
-#include "src/binder/include/copy_csv_binder.h"
-#include "src/binder/include/create_node_clause_binder.h"
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
@@ -19,14 +17,7 @@ public:
     string getBindingError(const string& input) {
         try {
             auto parsedQuery = Parser::parseQuery(input);
-            if (parsedQuery->getStatementType() == StatementType::QUERY) {
-                QueryBinder(catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
-            } else if (parsedQuery->getStatementType() == StatementType::CREATENODECLAUSE) {
-                CreateNodeClauseBinder(&catalog).bind(
-                    *reinterpret_cast<CreateNodeClause*>(parsedQuery.get()));
-            } else {
-                CopyCSVBinder(&catalog).bind(*reinterpret_cast<CopyCSV*>(parsedQuery.get()));
-            }
+            Binder(catalog).bind(*parsedQuery);
         } catch (const Exception& exception) { return exception.what(); }
         return string();
     }
@@ -355,5 +346,29 @@ TEST_F(BinderErrorTest, CopyCSVInvalidEscapeChar) {
         "Binder exception: Copy csv option value can only be a single character with an "
         "optional escape character.";
     auto input = R"(COPY person FROM "person_0_0.csv" (ESCAPE=".."))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelUsedName) {
+    string expectedException = "Binder exception: Rel knows already exists.";
+    auto input = "CREATE REL knows ( FROM person TO person);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelInvalidNodeTableName) {
+    string expectedException = "Binder exception: Node label post does not exist.";
+    auto input = "CREATE REL knows_post ( FROM person TO post);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelInvalidRelMultiplicity) {
+    string expectedException = "Catalog exception: Invalid relMultiplicity string \"MANY_LOT\"";
+    auto input = "CREATE REL knows_post ( FROM person TO person, MANY_LOT);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelInvalidDataType) {
+    string expectedException = "Cannot parse dataTypeID: SMALLINT";
+    auto input = "CREATE REL knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

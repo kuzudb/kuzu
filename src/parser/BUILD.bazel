@@ -29,7 +29,7 @@ cc_library(
         "//src/common:type_utils",
         "//src/parser/antlr_parser",
         "//src/parser/copy_csv",
-        "//src/parser/create_node_clause",
+        "//src/parser/ddl",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
     ],

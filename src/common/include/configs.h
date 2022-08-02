@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 namespace graphflow {
 namespace common {
@@ -105,6 +106,14 @@ struct EnumeratorKnobs {
     static constexpr double RANDOM_LOOKUP_PENALTY = 1000;
     static constexpr double FLAT_PROBE_PENALTY = 10;
 };
+
+static inline std::unordered_map<std::string, char> getDefaultParsingOptions() {
+    return {{"ESCAPE", LoaderConfig::DEFAULT_ESCAPE_CHAR},
+        {"DELIM", LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
+        {"QUOTE", LoaderConfig::DEFAULT_QUOTE_CHAR},
+        {"LIST_BEGIN", LoaderConfig::DEFAULT_LIST_BEGIN_CHAR},
+        {"LIST_END", LoaderConfig::DEFAULT_LIST_END_CHAR}};
+}
 
 } // namespace common
 } // namespace graphflow

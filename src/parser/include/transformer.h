@@ -2,7 +2,8 @@
 
 #include "src/antlr4/CypherParser.h"
 #include "src/parser/copy_csv/include/copy_csv.h"
-#include "src/parser/create_node_clause/include/create_node_clause.h"
+#include "src/parser/ddl/include/create_node_clause.h"
+#include "src/parser/ddl/include/create_rel_clause.h"
 #include "src/parser/query/include/regular_query.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
@@ -172,16 +173,21 @@ private:
 
     string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
 
-    unique_ptr<CreateNodeClause> transformDDL();
+    unique_ptr<DDL> transformDDL();
 
     unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::GF_CreateNodeContext& ctx);
 
-    inline string transformPrimaryKeyName(CypherParser::GF_CreateNodeConstraintContext& ctx) {
-        return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
-    }
+    unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::GF_CreateRelContext& ctx);
+
+    string transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
+        vector<pair<string, string>> propertyDefinitions);
 
     vector<pair<string, string>> transformPropertyDefinitions(
         CypherParser::GF_PropertyDefinitionsContext& ctx);
+
+    RelConnection transformRelConnection(CypherParser::GF_RelConnectionsContext& ctx);
+
+    vector<string> transformNodeLabels(CypherParser::GF_NodeLabelsContext& ctx);
 
     unique_ptr<CopyCSV> transformCopyCSV();
 
