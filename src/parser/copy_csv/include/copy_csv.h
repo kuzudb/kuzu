@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "src/parser/include/statement.h"
@@ -14,7 +15,7 @@ class CopyCSV : public Statement {
 public:
     explicit CopyCSV(
         string csvFileName, string labelName, unordered_map<string, string> parsingOptions)
-        : Statement{StatementType::COPYCSV}, csvFileName{move(csvFileName)},
+        : Statement{StatementType::COPY_CSV}, csvFileName{move(csvFileName)},
           labelName{move(labelName)}, parsingOptions{move(parsingOptions)} {}
 
     inline string getCSVFileName() const { return csvFileName; }

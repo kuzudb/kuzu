@@ -1,40 +1,32 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "logical_ddl.h"
 
 namespace graphflow {
 namespace planner {
 
-class LogicalCreateNodeTable : public LogicalOperator {
+class LogicalCreateNodeTable : public LogicalDDL {
 
 public:
-    LogicalCreateNodeTable(
-        string labelName, string primaryKey, vector<PropertyNameDataType> propertyNameDataTypes)
-        : LogicalOperator{}, labelName{move(labelName)}, primaryKey{move(primaryKey)},
-          propertyNameDataTypes{move(propertyNameDataTypes)} {}
+    LogicalCreateNodeTable(string labelName, vector<PropertyNameDataType> propertyNameDataTypes,
+        uint32_t primaryKeyIdx)
+        : LogicalDDL{move(labelName), move(propertyNameDataTypes)}, primaryKeyIdx{primaryKeyIdx} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LOGICAL_CREATE_NODE_TABLE;
     }
 
-    inline string getExpressionsForPrinting() const override { return labelName; }
-
-    inline string getLabelName() const { return labelName; }
-
-    inline string getPrimaryKey() const { return primaryKey; }
-
-    inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
-        return propertyNameDataTypes;
-    }
+    inline uint32_t getPrimaryKeyIdx() const { return primaryKeyIdx; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreateNodeTable>(labelName, primaryKey, propertyNameDataTypes);
+        return make_unique<LogicalCreateNodeTable>(labelName, propertyNameDataTypes, primaryKeyIdx);
     }
 
 private:
     string labelName;
-    string primaryKey;
     vector<PropertyNameDataType> propertyNameDataTypes;
+    uint32_t primaryKeyIdx;
 };
 
 } // namespace planner

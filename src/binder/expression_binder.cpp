@@ -5,7 +5,7 @@
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/binder/expression/include/parameter_expression.h"
 #include "src/binder/expression/include/rel_expression.h"
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 #include "src/common/include/type_utils.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/cast/include/vector_cast_operations.h"
@@ -85,7 +85,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenTypes.push_back(child->dataType);
         children.push_back(move(child));
     }
-    auto builtInFunctions = queryBinder->catalog.getBuiltInScalarFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(parsedExpression.getExpressionType());
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
@@ -121,7 +121,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
-    auto& catalog = queryBinder->catalog;
+    auto& catalog = binder->catalog;
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(child, propertyName);
     } else if (REL == child->dataType.typeID) {
@@ -141,7 +141,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
-    auto& catalog = queryBinder->catalog;
+    auto& catalog = binder->catalog;
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
     if (catalog.getReadOnlyVersion()->containNodeProperty(
             nodeExpression->getLabel(), propertyName)) {
@@ -160,7 +160,7 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     auto functionName = parsedFunctionExpression.getFunctionName();
     StringUtils::toUpper(functionName);
-    auto functionType = queryBinder->catalog.getFunctionType(functionName);
+    auto functionType = binder->catalog.getFunctionType(functionName);
     if (functionType == FUNCTION) {
         return bindScalarFunctionExpression(parsedExpression, functionName);
     } else {
@@ -172,7 +172,7 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const string& functionName) {
-    auto builtInFunctions = queryBinder->catalog.getBuiltInScalarFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
     vector<DataType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -204,7 +204,7 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const string& functionName, bool isDistinct) {
-    auto builtInFunctions = queryBinder->catalog.getBuiltInAggregateFunction();
+    auto builtInFunctions = binder->catalog.getBuiltInAggregateFunction();
     vector<DataType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -270,8 +270,8 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
     auto& variableExpression = (ParsedVariableExpression&)parsedExpression;
     auto variableName = variableExpression.getVariableName();
-    if (queryBinder->variablesInScope.contains(variableName)) {
-        return queryBinder->variablesInScope.at(variableName);
+    if (binder->variablesInScope.contains(variableName)) {
+        return binder->variablesInScope.at(variableName);
     }
     throw BinderException("Variable " + parsedExpression.getRawName() + " is not in scope.");
 }
@@ -279,12 +279,12 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
-    auto prevVariablesInScope = queryBinder->enterSubquery();
-    auto boundSingleQuery = queryBinder->bindSingleQuery(*subqueryExpression.getSubquery());
-    queryBinder->exitSubquery(move(prevVariablesInScope));
+    auto prevVariablesInScope = binder->enterSubquery();
+    auto boundSingleQuery = binder->bindSingleQuery(*subqueryExpression.getSubquery());
+    binder->exitSubquery(move(prevVariablesInScope));
     return make_shared<ExistentialSubqueryExpression>(
         QueryNormalizer::normalizeQuery(*boundSingleQuery),
-        queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
+        binder->getUniqueExpressionName(parsedExpression.getRawName()));
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(

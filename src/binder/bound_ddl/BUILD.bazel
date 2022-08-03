@@ -1,16 +1,15 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "bound_create_node_clause",
+    name = "bound_ddl",
     hdrs = glob([
         "include/*.h",
     ]),
     visibility = [
         "//src/binder:__subpackages__",
-        "//src/catalog:__pkg__",
+        "//src/planner:__pkg__",
     ],
     deps = [
         "//src/binder/bound_statement",
-        "//src/catalog:catalog_structs",
     ],
 )

@@ -1,8 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_catalog.h"
 
-#include "src/binder/include/copy_csv_binder.h"
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 #include "src/common/include/configs.h"
 #include "src/parser/include/parser.h"
 
@@ -24,10 +23,13 @@ TEST_F(BinderTest, VarLenExtendMaxDepthTest) {
     // If the upper bound of the varLenEtend is larger than VAR_LENGTH_EXTEND_MAX_DEPTH, the
     // upper bound will be set to VAR_LENGTH_EXTEND_MAX_DEPTH.
     auto input = "MATCH (a:person)-[:knows*2..32]->(b:person) return count(*)";
-    auto boundRegularQuery = QueryBinder(catalog).bind(
-        *reinterpret_cast<RegularQuery*>(Parser::parseQuery(input).get()));
-    auto queryRel =
-        boundRegularQuery->getSingleQuery(0)->getQueryPart(0)->getQueryGraph(0)->getQueryRel(0);
+    auto boundRegularQuery =
+        Binder(catalog).bind(*reinterpret_cast<RegularQuery*>(Parser::parseQuery(input).get()));
+    auto queryRel = ((BoundRegularQuery*)boundRegularQuery.get())
+                        ->getSingleQuery(0)
+                        ->getQueryPart(0)
+                        ->getQueryGraph(0)
+                        ->getQueryRel(0);
     ASSERT_EQ(queryRel->getLowerBound(), 2);
     ASSERT_EQ(queryRel->getUpperBound(), VAR_LENGTH_EXTEND_MAX_DEPTH);
 }
@@ -36,8 +38,8 @@ TEST_F(BinderTest, VarLenExtendMaxDepthTest) {
 TEST_F(BinderTest, CopyCSVWithParsingOptionsTest) {
     auto input =
         R"(COPY person FROM "person_0_0.csv" (ESCAPE="\\", DELIM=';', QUOTE='"',LIST_BEGIN='{',LIST_END='}');)";
-    auto boundCopyCSV =
-        CopyCSVBinder(&catalog).bind(*reinterpret_cast<CopyCSV*>(Parser::parseQuery(input).get()));
+    auto boundStatement = Binder(catalog).bind(*Parser::parseQuery(input));
+    auto boundCopyCSV = (BoundCopyCSV*)boundStatement.get();
     ASSERT_EQ(boundCopyCSV->getCSVFileName(), "person_0_0.csv");
     ASSERT_EQ(boundCopyCSV->getLabelID(), 0);
     ASSERT_EQ(boundCopyCSV->getIsNodeLabel(), true);
@@ -50,8 +52,8 @@ TEST_F(BinderTest, CopyCSVWithParsingOptionsTest) {
 
 TEST_F(BinderTest, CopyCSVWithoutParsingOptionsTest) {
     auto input = R"(COPY person FROM "person_0_0.csv";)";
-    auto boundCopyCSV =
-        CopyCSVBinder(&catalog).bind(*reinterpret_cast<CopyCSV*>(Parser::parseQuery(input).get()));
+    auto boundStatement = Binder(catalog).bind(*Parser::parseQuery(input));
+    auto boundCopyCSV = (BoundCopyCSV*)boundStatement.get();
     ASSERT_EQ(boundCopyCSV->getCSVFileName(), "person_0_0.csv");
     ASSERT_EQ(boundCopyCSV->getLabelID(), 0);
     ASSERT_EQ(boundCopyCSV->getIsNodeLabel(), true);
@@ -60,4 +62,43 @@ TEST_F(BinderTest, CopyCSVWithoutParsingOptionsTest) {
     ASSERT_EQ(boundCopyCSV->getParsingOptions()["QUOTE"], '\"');
     ASSERT_EQ(boundCopyCSV->getParsingOptions()["LIST_BEGIN"], '[');
     ASSERT_EQ(boundCopyCSV->getParsingOptions()["LIST_END"], ']');
+}
+
+TEST_F(BinderTest, CreateRelTest) {
+    auto input = "CREATE REL knows1 ( FROM person TO person, FROM person TO organisation, date "
+                 "DATE, ID INT64, MANY_ONE);";
+    auto boundStatement = Binder(catalog).bind(*Parser::parseQuery(input));
+    auto boundCreateRelClause = (BoundCreateRelClause*)boundStatement.get();
+    ASSERT_EQ(boundCreateRelClause->getLabelName(), "knows1");
+    auto propertyNameDataTypes = boundCreateRelClause->getPropertyNameDataTypes();
+    ASSERT_EQ(propertyNameDataTypes[0].name, "date");
+    ASSERT_EQ(propertyNameDataTypes[0].dataType, DataType(DataTypeID::DATE));
+    ASSERT_EQ(propertyNameDataTypes[1].name, "ID");
+    ASSERT_EQ(propertyNameDataTypes[1].dataType, DataType(DataTypeID::INT64));
+    ASSERT_EQ(boundCreateRelClause->getRelMultiplicity(), RelMultiplicity::MANY_ONE);
+    auto relConnections = boundCreateRelClause->getRelConnections();
+    ASSERT_EQ(relConnections[0].first, 0);
+    ASSERT_EQ(relConnections[0].second, 0);
+    ASSERT_EQ(relConnections[1].first, 0);
+    ASSERT_EQ(relConnections[1].second, 1);
+}
+
+TEST_F(BinderTest, CreateRelTest1) {
+    auto input =
+        "CREATE REL knows1 ( FROM person|organisation TO person, FROM person TO organisation, date "
+        "DATE, MANY_ONE);";
+    auto boundStatement = Binder(catalog).bind(*Parser::parseQuery(input));
+    auto boundCreateRelClause = (BoundCreateRelClause*)boundStatement.get();
+    ASSERT_EQ(boundCreateRelClause->getLabelName(), "knows1");
+    auto propertyNameDataTypes = boundCreateRelClause->getPropertyNameDataTypes();
+    ASSERT_EQ(propertyNameDataTypes[0].name, "date");
+    ASSERT_EQ(propertyNameDataTypes[0].dataType, DataType(DataTypeID::DATE));
+    ASSERT_EQ(boundCreateRelClause->getRelMultiplicity(), RelMultiplicity::MANY_ONE);
+    auto relConnections = boundCreateRelClause->getRelConnections();
+    ASSERT_EQ(relConnections[0].first, 0);
+    ASSERT_EQ(relConnections[0].second, 0);
+    ASSERT_EQ(relConnections[2].first, 1);
+    ASSERT_EQ(relConnections[2].second, 0);
+    ASSERT_EQ(relConnections[1].first, 0);
+    ASSERT_EQ(relConnections[1].second, 1);
 }

@@ -3,8 +3,6 @@
 #include "include/database.h"
 #include "include/plan_printer.h"
 
-#include "src/binder/include/create_node_clause_binder.h"
-#include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
@@ -49,6 +47,28 @@ unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
     return queryResult;
 }
 
+void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binder& binder,
+    QuerySummary* querySummary, PreparedStatement* preparedStatement) {
+    switch (statement->getStatementType()) {
+    case StatementType::QUERY: {
+        auto parsedQuery = (RegularQuery*)statement;
+        querySummary->isExplain = parsedQuery->isEnableExplain();
+        querySummary->isProfile = parsedQuery->isEnableProfile();
+        preparedStatement->parameterMap = binder.getParameterMap();
+        preparedStatement->isDDL = false;
+    } break;
+    case StatementType::COPY_CSV: {
+        preparedStatement->isDDL = false;
+    } break;
+    case StatementType::CREATE_REL_CLAUSE:
+    case StatementType::CREATE_NODE_CLAUSE: {
+        preparedStatement->isDDL = true;
+    } break;
+    default:
+        assert(false);
+    }
+}
+
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
@@ -61,22 +81,10 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     unique_ptr<PhysicalPlan> physicalPlan;
     try {
         auto statement = Parser::parseQuery(query);
-        unique_ptr<BoundStatement> boundStatement;
-        if (statement->getStatementType() == StatementType::QUERY) {
-            auto parsedQuery = (RegularQuery*)statement.get();
-            querySummary->isExplain = parsedQuery->isEnableExplain();
-            querySummary->isProfile = parsedQuery->isEnableProfile();
-            auto binder = QueryBinder(*database->catalog);
-            boundStatement = binder.bind(*parsedQuery);
-            preparedStatement->parameterMap = binder.getParameterMap();
-            preparedStatement->isDDL = false;
-        } else {
-            auto parsedQuery = (CreateNodeClause*)statement.get();
-            auto binder = CreateNodeClauseBinder(database->catalog.get());
-            boundStatement = binder.bind(*parsedQuery);
-            preparedStatement->isDDL = true;
-        }
-
+        auto binder = Binder(*database->catalog);
+        auto boundStatement = binder.bind(*statement);
+        setQuerySummaryAndPreparedStatement(
+            statement.get(), binder, querySummary, preparedStatement.get());
         // planning
         auto logicalPlan = Planner::getBestPlan(*database->catalog,
             database->storageManager->getNodesStore().getNodesMetadata(), *boundStatement);
@@ -175,7 +183,7 @@ vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string
     lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery =
-        QueryBinder(*database->catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
+        Binder(*database->catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
     return Planner::getAllPlans(*database->catalog,
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }

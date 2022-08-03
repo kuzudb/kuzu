@@ -1,4 +1,4 @@
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/common/include/type_utils.h"
@@ -9,7 +9,26 @@
 namespace graphflow {
 namespace binder {
 
-unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery) {
+unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
+    switch (statement.getStatementType()) {
+    case StatementType::QUERY: {
+        return bindQuery((const RegularQuery&)statement);
+    }
+    case StatementType::CREATE_NODE_CLAUSE: {
+        return bindCreateNodeClause((const CreateNodeClause&)statement);
+    }
+    case StatementType::CREATE_REL_CLAUSE: {
+        return bindCreateRelClause((const CreateRelClause&)statement);
+    }
+    case StatementType::COPY_CSV: {
+        return bindCopyCSV((const CopyCSV&)statement);
+    }
+    default:
+        assert(false);
+    }
+}
+
+unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
     auto boundRegularQuery = make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll());
     vector<unique_ptr<BoundSingleQuery>> boundSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
@@ -28,7 +47,76 @@ unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery
     return boundRegularQuery;
 }
 
-unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {
+unique_ptr<BoundCreateNodeClause> Binder::bindCreateNodeClause(
+    const CreateNodeClause& createNodeClause) {
+    auto labelName = createNodeClause.getLabelName();
+    if (catalog.getReadOnlyVersion()->containNodeLabel(labelName)) {
+        throw BinderException("Node " + labelName + " already exists.");
+    }
+    auto boundPropertyNameDataTypes =
+        bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
+    auto primaryKeyIdx = bindPrimaryKey(
+        createNodeClause.getPrimaryKey(), createNodeClause.getPropertyNameDataTypes());
+    return make_unique<BoundCreateNodeClause>(
+        labelName, move(boundPropertyNameDataTypes), primaryKeyIdx);
+}
+
+unique_ptr<BoundCreateRelClause> Binder::bindCreateRelClause(
+    const CreateRelClause& createRelClause) {
+    auto labelName = createRelClause.getLabelName();
+    if (catalog.getReadOnlyVersion()->containRelLabel(labelName)) {
+        throw BinderException("Rel " + labelName + " already exists.");
+    }
+    auto propertyNameDataTypes =
+        bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
+    auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
+    auto relConnections = bindRelConnections(createRelClause.getRelConnection());
+    return make_unique<BoundCreateRelClause>(
+        labelName, move(propertyNameDataTypes), relMultiplicity, move(relConnections));
+}
+
+unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
+    auto labelName = copyCSV.getLabelName();
+    validateLabelExist(labelName);
+    auto isNodeLabel = catalog.getReadOnlyVersion()->containNodeLabel(labelName);
+    auto labelID = isNodeLabel ? catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName) :
+                                 catalog.getReadOnlyVersion()->getRelLabelFromName(labelName);
+    return make_unique<BoundCopyCSV>(copyCSV.getCSVFileName(), labelID, isNodeLabel,
+        bindParsingOptions(copyCSV.getParsingOptions()));
+}
+
+vector<pair<label_t, label_t>> Binder::bindRelConnections(RelConnection relConnections) const {
+    vector<pair<label_t, label_t>> boundRelConnections;
+    for (auto& srcNodeLabel : relConnections.srcNodeLabels) {
+        for (auto& dstNodeLabel : relConnections.dstNodeLabels) {
+            boundRelConnections.emplace_back(
+                bindNodeLabel(srcNodeLabel), bindNodeLabel(dstNodeLabel));
+        }
+    }
+    return boundRelConnections;
+}
+
+unordered_map<string, char> Binder::bindParsingOptions(
+    unordered_map<string, string> parsingOptions) {
+    unordered_map<string, char> boundParsingOptions = getDefaultParsingOptions();
+    for (auto& parsingOption : parsingOptions) {
+        auto loadOptionName = parsingOption.first;
+        validateParsingOptionName(loadOptionName);
+        boundParsingOptions[loadOptionName] = bindParsingOptionValue(parsingOption.second);
+    }
+    return boundParsingOptions;
+}
+
+char Binder::bindParsingOptionValue(string parsingOptionValue) {
+    if (parsingOptionValue.length() > 2 ||
+        (parsingOptionValue.length() == 2 && parsingOptionValue[0] != '\\')) {
+        throw BinderException("Copy csv option value can only be a single character with an "
+                              "optional escape character.");
+    }
+    return parsingOptionValue[parsingOptionValue.length() - 1];
+}
+
+unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
     validateFirstMatchIsNotOptional(singleQuery);
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
@@ -46,7 +134,7 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
     return boundSingleQuery;
 }
 
-unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart) {
+unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
     auto boundQueryPart = make_unique<BoundQueryPart>();
     for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
         boundQueryPart->addMatchClause(bindMatchClause(*queryPart.getMatchClause(i)));
@@ -58,7 +146,7 @@ unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart
     return boundQueryPart;
 }
 
-unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& matchClause) {
+unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchClause.getPatternElements());
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
@@ -70,8 +158,7 @@ unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& mat
     return boundMatchClause;
 }
 
-unique_ptr<BoundUpdatingClause> QueryBinder::bindUpdatingClause(
-    const UpdatingClause& updatingClause) {
+unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause& updatingClause) {
     switch (updatingClause.getClauseType()) {
     case ClauseType::CREATE: {
         return bindCreateClause(updatingClause);
@@ -87,8 +174,7 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindUpdatingClause(
     }
 }
 
-unique_ptr<BoundUpdatingClause> QueryBinder::bindCreateClause(
-    const UpdatingClause& updatingClause) {
+unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
     auto boundCreateClause = make_unique<BoundCreateClause>();
     for (auto i = 0u; i < createClause.getNumNodePatterns(); ++i) {
@@ -111,7 +197,7 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindCreateClause(
     return boundCreateClause;
 }
 
-unique_ptr<BoundUpdatingClause> QueryBinder::bindSetClause(const UpdatingClause& updatingClause) {
+unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& updatingClause) {
     auto& setClause = (SetClause&)updatingClause;
     auto boundSetClause = make_unique<BoundSetClause>();
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
@@ -126,8 +212,7 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindSetClause(const UpdatingClause&
     return boundSetClause;
 }
 
-unique_ptr<BoundUpdatingClause> QueryBinder::bindDeleteClause(
-    const UpdatingClause& updatingClause) {
+unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& updatingClause) {
     auto& deleteClause = (DeleteClause&)updatingClause;
     auto boundDeleteClause = make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
@@ -142,7 +227,7 @@ unique_ptr<BoundUpdatingClause> QueryBinder::bindDeleteClause(
     return boundDeleteClause;
 }
 
-unique_ptr<BoundWithClause> QueryBinder::bindWithClause(const WithClause& withClause) {
+unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
     auto boundProjectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->getContainsStar());
@@ -160,7 +245,7 @@ unique_ptr<BoundWithClause> QueryBinder::bindWithClause(const WithClause& withCl
     return boundWithClause;
 }
 
-unique_ptr<BoundReturnClause> QueryBinder::bindReturnClause(const ReturnClause& returnClause) {
+unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = rewriteProjectionExpressions(bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->getContainsStar()));
@@ -170,7 +255,7 @@ unique_ptr<BoundReturnClause> QueryBinder::bindReturnClause(const ReturnClause& 
     return make_unique<BoundReturnClause>(move(boundProjectionBody));
 }
 
-expression_vector QueryBinder::bindProjectionExpressions(
+expression_vector Binder::bindProjectionExpressions(
     const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar) {
     expression_vector boundProjectionExpressions;
     for (auto& expression : projectionExpressions) {
@@ -189,7 +274,7 @@ expression_vector QueryBinder::bindProjectionExpressions(
     return boundProjectionExpressions;
 }
 
-expression_vector QueryBinder::rewriteProjectionExpressions(const expression_vector& expressions) {
+expression_vector Binder::rewriteProjectionExpressions(const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
         if (expression->dataType.typeID == NODE) {
@@ -207,8 +292,7 @@ expression_vector QueryBinder::rewriteProjectionExpressions(const expression_vec
     return result;
 }
 
-expression_vector QueryBinder::rewriteNodeAsAllProperties(
-    const shared_ptr<Expression>& expression) {
+expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getLabel())) {
@@ -220,7 +304,7 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
     return result;
 }
 
-expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
+expression_vector Binder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getLabel())) {
@@ -232,7 +316,7 @@ expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expres
     return result;
 }
 
-void QueryBinder::bindOrderBySkipLimitIfNecessary(
+void Binder::bindOrderBySkipLimitIfNecessary(
     BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody) {
     if (projectionBody.hasOrderByExpressions()) {
         // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
@@ -256,7 +340,7 @@ void QueryBinder::bindOrderBySkipLimitIfNecessary(
     }
 }
 
-expression_vector QueryBinder::bindOrderByExpressions(
+expression_vector Binder::bindOrderByExpressions(
     const vector<unique_ptr<ParsedExpression>>& orderByExpressions) {
     expression_vector boundOrderByExpressions;
     for (auto& expression : orderByExpressions) {
@@ -265,14 +349,14 @@ expression_vector QueryBinder::bindOrderByExpressions(
     return boundOrderByExpressions;
 }
 
-uint64_t QueryBinder::bindSkipLimitExpression(const ParsedExpression& expression) {
+uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
     auto skipOrLimitNumber = ((LiteralExpression&)(*boundExpression)).literal->val.int64Val;
     GF_ASSERT(skipOrLimitNumber >= 0);
     return skipOrLimitNumber;
 }
 
-void QueryBinder::addExpressionsToScope(const expression_vector& projectionExpressions) {
+void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->getRawName();
@@ -280,13 +364,13 @@ void QueryBinder::addExpressionsToScope(const expression_vector& projectionExpre
     }
 }
 
-shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
+shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOL);
     return whereExpression;
 }
 
-unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
+unique_ptr<QueryGraph> Binder::bindQueryGraph(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
     auto queryGraph = make_unique<QueryGraph>();
     for (auto& patternElement : graphPattern) {
@@ -301,9 +385,8 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
     return queryGraph;
 }
 
-void QueryBinder::bindQueryRel(const RelPattern& relPattern,
-    const shared_ptr<NodeExpression>& leftNode, const shared_ptr<NodeExpression>& rightNode,
-    QueryGraph& queryGraph) {
+void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
+    const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph) {
     auto parsedName = relPattern.getName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
@@ -345,7 +428,7 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     queryGraph.addQueryRel(queryRel);
 }
 
-shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
+shared_ptr<NodeExpression> Binder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph) {
     if (nodePattern.getNumProperties() > 0) {
         // E.g. MATCH (a:person {p1:v1}) is not supported.
@@ -370,7 +453,7 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     return queryNode;
 }
 
-shared_ptr<NodeExpression> QueryBinder::createQueryNode(const NodePattern& nodePattern) {
+shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getName();
     auto nodeLabel = bindNodeLabel(nodePattern.getLabel());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
@@ -386,7 +469,7 @@ shared_ptr<NodeExpression> QueryBinder::createQueryNode(const NodePattern& nodeP
     return queryNode;
 }
 
-label_t QueryBinder::bindRelLabel(const string& parsed_label) {
+label_t Binder::bindRelLabel(const string& parsed_label) const {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
@@ -396,7 +479,7 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
     return catalog.getReadOnlyVersion()->getRelLabelFromName(parsed_label);
 }
 
-label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
+label_t Binder::bindNodeLabel(const string& parsed_label) const {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
@@ -406,13 +489,36 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     return catalog.getReadOnlyVersion()->getNodeLabelFromName(parsed_label);
 }
 
-void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
+uint32_t Binder::bindPrimaryKey(
+    string primaryKey, vector<pair<string, string>> propertyNameDataTypes) {
+    auto primaryKeyIdx = 0u;
+    for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
+        if (propertyNameDataTypes[i].first == primaryKey) {
+            primaryKeyIdx = i;
+        }
+    }
+    validatePrimaryKey(primaryKeyIdx, move(propertyNameDataTypes));
+    return primaryKeyIdx;
+}
+
+vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
+    vector<pair<string, string>> propertyNameDataTypes) {
+    vector<PropertyNameDataType> boundPropertyNameDataTypes;
+    for (auto& propertyNameDataType : propertyNameDataTypes) {
+        StringUtils::toUpper(propertyNameDataType.second);
+        boundPropertyNameDataTypes.emplace_back(
+            propertyNameDataType.first, Types::dataTypeFromString(propertyNameDataType.second));
+    }
+    return boundPropertyNameDataTypes;
+}
+
+void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     if (singleQuery.isFirstMatchOptional()) {
         throw BinderException("First match clause cannot be optional match.");
     }
 }
 
-void QueryBinder::validateNodeAndRelLabelIsConnected(
+void Binder::validateNodeAndRelLabelIsConnected(
     const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction) {
     assert(relLabel != ANY_LABEL);
     assert(nodeLabel != ANY_LABEL);
@@ -429,7 +535,7 @@ void QueryBinder::validateNodeAndRelLabelIsConnected(
                           catalog_.getReadOnlyVersion()->getRelLabelName(relLabel) + ".");
 }
 
-void QueryBinder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
+void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = unordered_set<string>();
     for (auto& expression : expressions) {
         if (existColumnNames.contains(expression->getRawName())) {
@@ -440,8 +546,7 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(const expression_vector
     }
 }
 
-void QueryBinder::validateProjectionColumnsInWithClauseAreAliased(
-    const expression_vector& expressions) {
+void Binder::validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions) {
     for (auto& expression : expressions) {
         if (!expression->hasAlias()) {
             throw BinderException("Expression in WITH must be aliased (use AS).");
@@ -449,7 +554,7 @@ void QueryBinder::validateProjectionColumnsInWithClauseAreAliased(
     }
 }
 
-void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithClause(
+void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
@@ -457,7 +562,7 @@ void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithClause(
     }
 }
 
-void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+void Binder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
     const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope) {
     auto visited = unordered_set<string>();
     for (auto& [name, variable] : prevVariablesInScope) {
@@ -492,7 +597,7 @@ void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
     throw BinderException("Disconnect query graph is not supported.");
 }
 
-void QueryBinder::validateUnionColumnsOfTheSameType(
+void Binder::validateUnionColumnsOfTheSameType(
     const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries) {
     if (boundSingleQueries.size() <= 1) {
         return;
@@ -512,7 +617,7 @@ void QueryBinder::validateUnionColumnsOfTheSameType(
     }
 }
 
-void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
+void Binder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     auto unionAllExpressionCounter = 0u;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries() - 1; i++) {
         unionAllExpressionCounter += regularQuery.getIsUnionAll(i);
@@ -523,7 +628,7 @@ void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQ
     }
 }
 
-void QueryBinder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery) {
+void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery) {
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < normalizedSingleQuery.getNumQueryParts(); ++i) {
         auto normalizedQueryPart = normalizedSingleQuery.getQueryPart(i);
@@ -534,7 +639,7 @@ void QueryBinder::validateReadNotFollowUpdate(const NormalizedSingleQuery& norma
     }
 }
 
-void QueryBinder::validateNodeCreateHasPrimaryKeyInput(
+void Binder::validateNodeCreateHasPrimaryKeyInput(
     const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty) {
     for (auto i = 0u; i < nodeUpdateInfo.getNumPropertyUpdateInfo(); ++i) {
         auto& property =
@@ -547,15 +652,39 @@ void QueryBinder::validateNodeCreateHasPrimaryKeyInput(
                           " expects primary key input.");
 }
 
-string QueryBinder::getUniqueExpressionName(const string& name) {
+void Binder::validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, string>> properties) {
+    auto primaryKey = properties[primaryKeyIdx];
+    // We only support INT64 and STRING column as the primary key.
+    if ((primaryKey.second != string("INT64")) && (primaryKey.second != string("STRING"))) {
+        throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
+    }
+}
+
+void Binder::validateLabelExist(string& labelName) const {
+    if (!catalog.getReadOnlyVersion()->containNodeLabel(labelName) &&
+        !catalog.getReadOnlyVersion()->containRelLabel(labelName)) {
+        throw BinderException("Node/Rel " + labelName + " does not exist.");
+    }
+}
+
+void Binder::validateParsingOptionName(string& parsingOptionName) {
+    for (auto i = 0; i < size(LoaderConfig::CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == LoaderConfig::CSV_PARSING_OPTIONS[i]) {
+            return;
+        }
+    }
+    throw BinderException("Unrecognized parsing csv option: " + parsingOptionName + ".");
+}
+
+string Binder::getUniqueExpressionName(const string& name) {
     return "_" + to_string(lastExpressionId++) + "_" + name;
 }
 
-unordered_map<string, shared_ptr<Expression>> QueryBinder::enterSubquery() {
+unordered_map<string, shared_ptr<Expression>> Binder::enterSubquery() {
     return variablesInScope;
 }
 
-void QueryBinder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
+void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
     variablesInScope = move(prevVariablesInScope);
 }
 

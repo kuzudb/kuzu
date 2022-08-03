@@ -4,6 +4,7 @@
 #include "prepared_statement.h"
 #include "query_result.h"
 
+#include "src/binder/include/binder.h"
 #include "src/catalog/include/catalog.h"
 #include "src/main/include/database.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
@@ -167,6 +168,9 @@ protected:
     void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
+
+    void setQuerySummaryAndPreparedStatement(Statement* statement, Binder& binder,
+        QuerySummary* querySummary, PreparedStatement* preparedStatement);
 
     std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query);
 

@@ -32,7 +32,8 @@ COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
 gF_DDL
-    : gF_CreateNode ;
+    : gF_CreateNode
+        | gF_CreateRel;
 
 gF_CreateNode
     : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint )? SP? ')' ;
@@ -40,6 +41,15 @@ gF_CreateNode
 NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
+
+gF_CreateRel
+    : CREATE SP REL SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ; 
+    
+gF_RelConnections : gF_RelConnection ( SP? ',' SP? gF_RelConnection )* ;
+
+gF_RelConnection: FROM SP gF_NodeLabels SP TO SP gF_NodeLabels ;
+
+gF_NodeLabels: oC_SchemaName ( SP? '|' SP ? oC_SchemaName )* ;
 
 gF_PropertyDefinitions : gF_PropertyDefinition ( SP? ',' SP? gF_PropertyDefinition )* ;
 
@@ -50,6 +60,10 @@ gF_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' 
 PRIMARY: ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'Y' | 'y' ) ;
         
 KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
+
+REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
+
+TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
     
 oC_AnyCypherOption
     : oC_Explain

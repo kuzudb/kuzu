@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_catalog.h"
 
-#include "src/binder/include/query_binder.h"
+#include "src/binder/include/binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/planner/logical_plan/include/logical_plan_util.h"
@@ -29,7 +29,7 @@ public:
     unique_ptr<LogicalPlan> getBestPlan(const string& query) {
         auto statement = Parser::parseQuery(query);
         auto parsedQuery = (RegularQuery*)statement.get();
-        auto boundQuery = QueryBinder(catalog).bind(*parsedQuery);
+        auto boundQuery = Binder(catalog).bind(*parsedQuery);
         return Planner::getBestPlan(catalog, *mockNodeMetadata, *boundQuery);
     }
 

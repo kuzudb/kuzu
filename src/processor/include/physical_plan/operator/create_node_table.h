@@ -16,11 +16,11 @@ class CreateNodeTable : public PhysicalOperator, public SourceOperator {
 
 public:
     CreateNodeTable(Catalog* catalog, string labelName,
-        vector<PropertyNameDataType> propertyNameDataTypes, string primaryKey, uint32_t id,
+        vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx, uint32_t id,
         const string& paramsString, NodesMetadata* nodesMetadata)
         : PhysicalOperator{id, paramsString}, SourceOperator{nullptr}, catalog{catalog},
           labelName{move(labelName)}, propertyNameDataTypes{move(propertyNameDataTypes)},
-          primaryKey{move(primaryKey)}, nodesMetadata{nodesMetadata} {}
+          primaryKeyIdx{move(primaryKeyIdx)}, nodesMetadata{nodesMetadata} {}
 
     PhysicalOperatorType getOperatorType() override { return CREATE_NODE_TABLE; }
 
@@ -29,8 +29,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateNodeTable>(
-            catalog, labelName, propertyNameDataTypes, primaryKey, id, paramsString, nodesMetadata);
+        return make_unique<CreateNodeTable>(catalog, labelName, propertyNameDataTypes,
+            primaryKeyIdx, id, paramsString, nodesMetadata);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -40,8 +40,8 @@ public:
 private:
     Catalog* catalog;
     string labelName;
-    string primaryKey;
     vector<PropertyNameDataType> propertyNameDataTypes;
+    uint32_t primaryKeyIdx;
     NodesMetadata* nodesMetadata;
 };
 

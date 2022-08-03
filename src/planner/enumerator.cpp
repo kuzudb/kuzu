@@ -2,6 +2,7 @@
 
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_create_rel.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -34,8 +35,10 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
         for (auto& plan : resultPlans) {
             plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
         }
-    } else {
+    } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
         resultPlans.push_back(createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement));
+    } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
+        resultPlans.push_back(createCreateRelPlan((BoundCreateRelClause&)boundStatement));
     }
     return resultPlans;
 }
@@ -54,8 +57,10 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundState
             bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
         }
         bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
-    } else {
+    } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
         bestPlan = createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement);
+    } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
+        bestPlan = createCreateRelPlan((BoundCreateRelClause&)boundStatement);
     }
     return bestPlan;
 }
@@ -495,7 +500,17 @@ unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
     BoundCreateNodeClause& boundCreateNodeClause) {
     auto plan = make_unique<LogicalPlan>();
     plan->appendOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getLabelName(),
-        boundCreateNodeClause.getPrimaryKey(), boundCreateNodeClause.getPropertyNameDataTypes()));
+        boundCreateNodeClause.getPropertyNameDataTypes(),
+        boundCreateNodeClause.getPrimaryKeyIdx()));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Enumerator::createCreateRelPlan(
+    BoundCreateRelClause& boundCreateRelClause) {
+    auto plan = make_unique<LogicalPlan>();
+    plan->appendOperator(make_shared<LogicalCreateRel>(boundCreateRelClause.getLabelName(),
+        boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
+        boundCreateRelClause.getRelConnections()));
     return plan;
 }
 

@@ -1,9 +1,8 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
-
-#include <hash_map>
 
 #include "src/binder/bound_statement/include/bound_statement.h"
 #include "src/common/types/include/node_id_t.h"
@@ -17,7 +16,7 @@ class BoundCopyCSV : public BoundStatement {
 public:
     BoundCopyCSV(string csvFileName, label_t labelID, bool isNodeLabel,
         unordered_map<string, char> parsingOptions)
-        : BoundStatement{StatementType::COPYCSV}, csvFileName{move(csvFileName)}, labelID{labelID},
+        : BoundStatement{StatementType::COPY_CSV}, csvFileName{move(csvFileName)}, labelID{labelID},
           isNodeLabel{isNodeLabel}, parsingOptions{move(parsingOptions)} {}
 
     inline string getCSVFileName() const { return csvFileName; }

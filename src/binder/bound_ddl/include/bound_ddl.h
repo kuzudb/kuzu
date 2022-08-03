@@ -8,22 +8,20 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace binder {
 
-class BoundCreateNodeClause : public BoundStatement {
+class BoundDDL : public BoundStatement {
 public:
-    explicit BoundCreateNodeClause(
-        string labelName, string primaryKey, vector<PropertyNameDataType> propertyNameDataTypes)
-        : BoundStatement{StatementType::CREATENODECLAUSE}, labelName{move(labelName)},
-          primaryKey{move(primaryKey)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
+    explicit BoundDDL(StatementType statementType, string labelName,
+        vector<PropertyNameDataType> propertyNameDataTypes)
+        : BoundStatement{statementType}, labelName{move(labelName)}, propertyNameDataTypes{move(
+                                                                         propertyNameDataTypes)} {}
 
     inline string getLabelName() const { return labelName; }
-    inline string getPrimaryKey() const { return primaryKey; }
     inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 private:
     string labelName;
-    string primaryKey;
     vector<PropertyNameDataType> propertyNameDataTypes;
 };
 

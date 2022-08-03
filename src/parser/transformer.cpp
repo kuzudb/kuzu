@@ -664,20 +664,37 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
     assert(false);
 }
 
-unique_ptr<CreateNodeClause> Transformer::transformDDL() {
+unique_ptr<DDL> Transformer::transformDDL() {
     if (root.gF_DDL()->gF_CreateNode()) {
         return transformCreateNodeClause(*root.gF_DDL()->gF_CreateNode());
+    } else {
+        return transformCreateRelClause(*root.gF_DDL()->gF_CreateRel());
     }
-    assert(false);
 }
 
 unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
     CypherParser::GF_CreateNodeContext& ctx) {
+    auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
+    auto propertyDefinitions = transformPropertyDefinitions(*ctx.gF_PropertyDefinitions());
+    auto primaryKeyIdx =
+        ctx.gF_CreateNodeConstraint() ?
+            transformPrimaryKey(*ctx.gF_CreateNodeConstraint(), propertyDefinitions) :
+            "";
     return make_unique<CreateNodeClause>(
-        transformPropertyDefinitions(*ctx.gF_PropertyDefinitions()),
-        ctx.gF_CreateNodeConstraint() ? transformPrimaryKeyName(*ctx.gF_CreateNodeConstraint()) :
-                                        "",
-        transformSchemaName(*ctx.oC_SchemaName()));
+        move(schemaName), move(propertyDefinitions), primaryKeyIdx);
+}
+
+unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
+    CypherParser::GF_CreateRelContext& ctx) {
+    auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
+    auto propertyDefinitions = ctx.gF_PropertyDefinitions() ?
+                                   transformPropertyDefinitions(*ctx.gF_PropertyDefinitions()) :
+                                   vector<pair<string, string>>();
+    auto relMultiplicity =
+        ctx.oC_SymbolicName() ? transformSymbolicName(*ctx.oC_SymbolicName()) : "MANY_MANY";
+    auto relConnections = transformRelConnection(*ctx.gF_RelConnections());
+    return make_unique<CreateRelClause>(
+        move(schemaName), move(propertyDefinitions), relMultiplicity, move(relConnections));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(
@@ -689,6 +706,34 @@ vector<pair<string, string>> Transformer::transformPropertyDefinitions(
             transformSchemaName(*property->oC_SchemaName()));
     }
     return propertyNameDataTypes;
+}
+
+string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
+    vector<pair<string, string>> propertyDefinitions) {
+    return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+}
+
+RelConnection Transformer::transformRelConnection(CypherParser::GF_RelConnectionsContext& ctx) {
+    vector<string> srcNodeLabels, dstNodeLabels;
+    if (!ctx.gF_RelConnection().empty()) {
+        for (auto& relConnection : ctx.gF_RelConnection()) {
+            auto newSrcNodeLabels = transformNodeLabels(*relConnection->gF_NodeLabels()[0]);
+            auto newDstNodeLabels = transformNodeLabels(*relConnection->gF_NodeLabels()[1]);
+            srcNodeLabels.insert(
+                srcNodeLabels.end(), newSrcNodeLabels.begin(), newSrcNodeLabels.end());
+            dstNodeLabels.insert(
+                dstNodeLabels.end(), newDstNodeLabels.begin(), newDstNodeLabels.end());
+        }
+    }
+    return RelConnection(move(srcNodeLabels), move(dstNodeLabels));
+}
+
+vector<string> Transformer::transformNodeLabels(CypherParser::GF_NodeLabelsContext& ctx) {
+    vector<string> nodeLabels;
+    for (auto& nodeLabel : ctx.oC_SchemaName()) {
+        nodeLabels.push_back(transformSchemaName(*nodeLabel));
+    }
+    return nodeLabels;
 }
 
 unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
