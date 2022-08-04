@@ -7,6 +7,7 @@
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -25,6 +26,7 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/create_node_table.h"
+#include "src/processor/include/physical_plan/operator/create_rel_table.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
@@ -149,6 +151,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_CREATE_NODE_TABLE: {
         physicalOperator =
             mapLogicalCreateNodeTableToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_CREATE_REL_TABLE: {
+        physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:
         assert(false);
@@ -422,6 +427,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         outputDataPoses, orderBySharedState, move(orderByMerge), getOperatorID(), paramsString);
     return orderByScan;
 }
+
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& createNodeTable = (LogicalCreateNodeTable&)*logicalOperator;
@@ -429,6 +435,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
         createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKeyIdx(),
         getOperatorID(), createNodeTable.getExpressionsForPrinting(),
         &storageManager.getNodesStore().getNodesMetadata());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto& createRelTable = (LogicalCreateRelTable&)*logicalOperator;
+    return make_unique<CreateRelTable>(catalog, createRelTable.getLabelName(),
+        createRelTable.getPropertyNameDataTypes(), createRelTable.getRelMultiplicity(),
+        createRelTable.getSrcDstLabels(), getOperatorID(),
+        createRelTable.getExpressionsForPrinting());
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(

@@ -10,11 +10,11 @@ namespace loader {
 
 InMemStructuresBuilder::InMemStructuresBuilder(string labelName, string inputFilePath,
     string outputDirectory, CSVReaderConfig csvReaderConfig, TaskScheduler& taskScheduler,
-    CatalogBuilder& catalogBuilder, LoaderProgressBar* progressBar)
+    Catalog& catalog, LoaderProgressBar* progressBar)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, labelName{move(labelName)},
       inputFilePath{move(inputFilePath)}, outputDirectory{move(outputDirectory)}, numBlocks{0},
-      csvReaderConfig{csvReaderConfig}, taskScheduler{taskScheduler},
-      catalogBuilder{catalogBuilder}, progressBar{progressBar} {}
+      csvReaderConfig{csvReaderConfig}, taskScheduler{taskScheduler}, catalog{catalog},
+      progressBar{progressBar} {}
 
 vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVHeader(const string& filePath) {
     logger->info("Parsing csv header for label {}.", labelName);

@@ -5,6 +5,7 @@
 #include "src/catalog/include/catalog.h"
 #include "src/storage/include/storage_manager.h"
 #include "src/storage/include/storage_utils.h"
+#include "src/storage/include/wal_replayer_utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -82,7 +83,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             auto catalogForCheckpointing = make_unique<catalog::Catalog>();
             catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), true /* isForWALRecord */);
-            NodeTable::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
+            WALReplayerUtils::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
                 walRecord.nodeTableRecord.labelID, wal->getDirectory());
             if (!isRecovering) {
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -95,6 +96,25 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         } else {
             // Since DDL statements are single statements that are auto committed, it is
             // impossible for users to roll back a DDL statement.
+        }
+    } break;
+    case REL_TABLE_RECORD: {
+        if (isCheckpoint) {
+            // See comments for NODE_TABLE_RECORD.
+            auto nodesMetadataForCheckPointing = make_unique<NodesMetadata>(wal->getDirectory());
+            auto maxNodeOffsetPerLabel = nodesMetadataForCheckPointing->getMaxNodeOffsetPerLabel();
+            auto catalogForCheckPointing = make_unique<catalog::Catalog>();
+            catalogForCheckPointing->getReadOnlyVersion()->readFromFile(
+                wal->getDirectory(), true /* isForWALRecord */);
+            WALReplayerUtils::createEmptyDBFilesForNewRelTable(catalogForCheckPointing.get(),
+                walRecord.relTableRecord.labelID, wal->getDirectory(), maxNodeOffsetPerLabel);
+            if (!isRecovering) {
+                // See comments for NODE_TABLE_RECORD.
+                storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.labelID,
+                    maxNodeOffsetPerLabel, bufferManager, wal, catalogForCheckPointing.get());
+            }
+        } else {
+            // See comments for NODE_TABLE_RECORD.
         }
     } break;
     case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {

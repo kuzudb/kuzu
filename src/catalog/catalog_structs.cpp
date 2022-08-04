@@ -35,5 +35,18 @@ vector<Property> NodeLabel::getAllNodeProperties() const {
     return allProperties;
 }
 
+RelLabel::RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
+    vector<Property> properties, SrcDstLabels srcDstLabels)
+    : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity}, numGeneratedProperties{0},
+      properties{move(properties)}, srcDstLabels{move(srcDstLabels)} {
+    numRelsPerDirectionBoundLabel.resize(2);
+    for (auto srcNodeLabel : this->srcDstLabels.srcNodeLabels) {
+        numRelsPerDirectionBoundLabel[RelDirection::FWD].emplace(srcNodeLabel, 0);
+    }
+    for (auto dstNodeLabel : this->srcDstLabels.dstNodeLabels) {
+        numRelsPerDirectionBoundLabel[RelDirection::BWD].emplace(dstNodeLabel, 0);
+    }
+}
+
 } // namespace catalog
 } // namespace graphflow

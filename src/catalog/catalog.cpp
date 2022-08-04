@@ -160,8 +160,10 @@ uint64_t SerDeser::serializeValue<RelLabel>(
     offset = SerDeser::serializeValue<label_t>(value.labelId, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<label_t>(
+        value.srcDstLabels.srcNodeLabels, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<label_t>(
+        value.srcDstLabels.dstNodeLabels, fileInfo, offset);
     return SerDeser::serializeVector<unordered_map<label_t, uint64_t>>(
         value.numRelsPerDirectionBoundLabel, fileInfo, offset);
 }
@@ -173,8 +175,10 @@ uint64_t SerDeser::deserializeValue<RelLabel>(
     offset = SerDeser::deserializeValue<label_t>(value.labelId, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<label_t>(
+        value.srcDstLabels.srcNodeLabels, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<label_t>(
+        value.srcDstLabels.dstNodeLabels, fileInfo, offset);
     return SerDeser::deserializeVector<unordered_map<label_t, uint64_t>>(
         value.numRelsPerDirectionBoundLabel, fileInfo, offset);
 }
@@ -207,7 +211,7 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     relLabelNameToIdMap = other.relLabelNameToIdMap;
 }
 
-unique_ptr<NodeLabel> CatalogContent::createNodeLabel(string labelName, string primaryKey,
+label_t CatalogContent::addNodeLabel(string labelName, string primaryKey,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
     label_t labelId = getNumNodeLabels();
     uint64_t primaryKeyPropertyId = UINT64_MAX;
@@ -231,52 +235,33 @@ unique_ptr<NodeLabel> CatalogContent::createNodeLabel(string labelName, string p
             string(LoaderConfig::ID_FIELD) + "'.");
     }
     verifyColDefinitionsForNodeLabel(primaryKey, structuredPropertyDefinitions);
-    return make_unique<NodeLabel>(
+    auto nodeLabel = make_unique<NodeLabel>(
         move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
+    nodeLabelNameToIdMap[nodeLabel->labelName] = labelId;
+    nodeLabels.push_back(move(nodeLabel));
+    return labelId;
 }
 
-unique_ptr<RelLabel> CatalogContent::createRelLabel(string labelName,
-    RelMultiplicity relMultiplicity, vector<PropertyNameDataType>& structuredPropertyDefinitions,
-    const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) {
-    verifyStructurePropertyDefinitionsForRelLabel(structuredPropertyDefinitions);
+label_t CatalogContent::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels) {
     label_t labelId = relLabels.size();
-    unordered_set<label_t> srcNodeLabelIdSet, dstNodeLabelIdSet;
-    for (auto& nodeLabelName : srcNodeLabelNames) {
-        if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
-            throw CatalogException(StringUtils::string_format(
-                "Specified src node label '%s' of rel label '%s' is not found in the catalog.",
-                nodeLabelName.c_str(), labelName.c_str()));
-        }
-        srcNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
-    }
-    for (auto& nodeLabelName : dstNodeLabelNames) {
-        if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
-            throw CatalogException(StringUtils::string_format(
-                "Specified dst node node '%s' of rel label '%s' is not found in the catalog.",
-                nodeLabelName.c_str(), labelName.c_str()));
-        }
-        dstNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
-    }
-    for (auto& nodeLabelId : srcNodeLabelIdSet) {
+    for (auto& nodeLabelId : srcDstLabels.srcNodeLabels) {
         nodeLabels[nodeLabelId]->addFwdRelLabel(labelId);
     }
-    for (auto& nodeLabelId : dstNodeLabelIdSet) {
+    for (auto& nodeLabelId : srcDstLabels.dstNodeLabels) {
         nodeLabels[nodeLabelId]->addBwdRelLabel(labelId);
     }
     vector<Property> structuredProperties;
     auto propertyId = 0;
     for (auto& propertyDefinition : structuredPropertyDefinitions) {
-        auto name = propertyDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_FIELD ||
-            name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::END_ID_LABEL_FIELD) {
-            continue;
-        }
         structuredProperties.push_back(
             Property::constructRelProperty(propertyDefinition, propertyId++, labelId));
     }
-    return make_unique<RelLabel>(move(labelName), labelId, relMultiplicity,
-        move(structuredProperties), move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
+    auto relLabel = make_unique<RelLabel>(
+        move(labelName), labelId, relMultiplicity, move(structuredProperties), move(srcDstLabels));
+    relLabelNameToIdMap[relLabel->labelName] = labelId;
+    relLabels.push_back(move(relLabel));
+    return labelId;
 }
 
 void CatalogContent::verifyColDefinitionsForNodeLabel(
@@ -299,29 +284,6 @@ void CatalogContent::verifyColDefinitionsForNodeLabel(
                                        "' for primary key property.");
             }
         }
-    }
-}
-
-void CatalogContent::verifyStructurePropertyDefinitionsForRelLabel(
-    const vector<PropertyNameDataType>& colHeaderDefinitions) {
-    auto numMandatoryFields = 0;
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
-            numMandatoryFields++;
-        }
-        if (name == LoaderConfig::ID_FIELD) {
-            throw CatalogException("Column header definitions of a rel file cannot contain "
-                                   "the mandatory field 'ID'.");
-        }
-        if (colHeaderDefinition.dataType.typeID == ANY) {
-            throw CatalogException("Column header contains an ANY data type.");
-        }
-    }
-    if (numMandatoryFields != 4) {
-        throw CatalogException("Column header definitions of a rel file does not contains all "
-                               "the mandatory field.");
     }
 }
 
@@ -388,9 +350,9 @@ const unordered_set<label_t>& CatalogContent::getNodeLabelsForRelLabelDirection(
         throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
     }
     if (FWD == direction) {
-        return relLabels[relLabel]->srcNodeLabelIdSet;
+        return relLabels[relLabel]->srcDstLabels.srcNodeLabels;
     }
-    return relLabels[relLabel]->dstNodeLabelIdSet;
+    return relLabels[relLabel]->srcDstLabels.dstNodeLabels;
 }
 
 bool CatalogContent::isSingleMultiplicityInDirection(
@@ -493,23 +455,21 @@ ExpressionType Catalog::getFunctionType(const string& name) const {
     }
 }
 
-label_t Catalog::createAndAddNodeLabel(string labelName, string primaryKey,
+label_t Catalog::addNodeLabel(string labelName, string primaryKey,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto nodeLabel = catalogContentForWriteTrx->createNodeLabel(
+    auto labelID = catalogContentForWriteTrx->addNodeLabel(
         move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
-    auto labelID = nodeLabel->labelId;
-    catalogContentForWriteTrx->addNodeLabel(move(nodeLabel));
     wal->logNodeTableRecord(labelID);
     return labelID;
 }
 
-label_t CatalogBuilder::createAndAddNodeLabel(string labelName, string primaryKey,
-    vector<PropertyNameDataType> structuredPropertyDefinitions) {
-    auto nodeLabel = catalogContentForReadOnlyTrx->createNodeLabel(
-        move(labelName), move(primaryKey), move(structuredPropertyDefinitions));
-    auto labelID = nodeLabel->labelId;
-    catalogContentForReadOnlyTrx->addNodeLabel(move(nodeLabel));
+label_t Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels) {
+    initCatalogContentForWriteTrxIfNecessary();
+    auto labelID = catalogContentForWriteTrx->addRelLabel(
+        move(labelName), relMultiplicity, move(structuredPropertyDefinitions), move(srcDstLabels));
+    wal->logRelTableRecord(labelID);
     return labelID;
 }
 

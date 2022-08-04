@@ -2,7 +2,7 @@
 
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_rel.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -38,7 +38,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
     } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
         resultPlans.push_back(createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement));
     } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
-        resultPlans.push_back(createCreateRelPlan((BoundCreateRelClause&)boundStatement));
+        resultPlans.push_back(createCreateRelTablePlan((BoundCreateRelClause&)boundStatement));
     }
     return resultPlans;
 }
@@ -60,7 +60,7 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundState
     } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
         bestPlan = createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement);
     } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
-        bestPlan = createCreateRelPlan((BoundCreateRelClause&)boundStatement);
+        bestPlan = createCreateRelTablePlan((BoundCreateRelClause&)boundStatement);
     }
     return bestPlan;
 }
@@ -505,12 +505,12 @@ unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
     return plan;
 }
 
-unique_ptr<LogicalPlan> Enumerator::createCreateRelPlan(
+unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
     BoundCreateRelClause& boundCreateRelClause) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCreateRel>(boundCreateRelClause.getLabelName(),
+    plan->appendOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getLabelName(),
         boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
-        boundCreateRelClause.getRelConnections()));
+        boundCreateRelClause.getSrcDstLabels()));
     return plan;
 }
 

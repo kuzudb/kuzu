@@ -123,7 +123,8 @@ private:
     static unique_ptr<LogicalPlan> createCreateNodeTablePlan(
         BoundCreateNodeClause& boundCreateNodeClause);
 
-    static unique_ptr<LogicalPlan> createCreateRelPlan(BoundCreateRelClause& boundCreateRelClause);
+    static unique_ptr<LogicalPlan> createCreateRelTablePlan(
+        BoundCreateRelClause& boundCreateRelClause);
 
 private:
     const Catalog& catalog;

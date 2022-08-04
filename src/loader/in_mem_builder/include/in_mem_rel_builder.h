@@ -10,7 +10,7 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 
 public:
     InMemRelBuilder(const RelFileDescription& fileDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, CatalogBuilder& catalogBuilder,
+        TaskScheduler& taskScheduler, Catalog& catalog,
         const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
         BufferManager* bufferManager, LoaderProgressBar* progressBar);
 
@@ -71,6 +71,8 @@ private:
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
         InMemLists* propertyLists, InMemOverflowFile* unorderedStringOverflowPages,
         InMemOverflowFile* orderedStringOverflowPages, LoaderProgressBar* progressBar);
+    static vector<PropertyNameDataType> getAndVerifyStructuredPropertyDefinitions(
+        const vector<PropertyNameDataType>& colHeaderDefinitions);
 
 private:
     const RelFileDescription fileDescription;

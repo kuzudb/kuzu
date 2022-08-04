@@ -67,6 +67,12 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRelTableRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     // We remove the nodeMetadata back up file if necessary.
     bufferManager.removeFilePagesFromFrames(*fileHandle);

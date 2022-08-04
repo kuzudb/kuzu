@@ -70,9 +70,9 @@ unique_ptr<BoundCreateRelClause> Binder::bindCreateRelClause(
     auto propertyNameDataTypes =
         bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    auto relConnections = bindRelConnections(createRelClause.getRelConnection());
+    auto srcDstLabels = bindRelConnections(createRelClause.getRelConnection());
     return make_unique<BoundCreateRelClause>(
-        labelName, move(propertyNameDataTypes), relMultiplicity, move(relConnections));
+        labelName, move(propertyNameDataTypes), relMultiplicity, move(srcDstLabels));
 }
 
 unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
@@ -85,15 +85,15 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
         bindParsingOptions(copyCSV.getParsingOptions()));
 }
 
-vector<pair<label_t, label_t>> Binder::bindRelConnections(RelConnection relConnections) const {
-    vector<pair<label_t, label_t>> boundRelConnections;
+SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
+    unordered_set<label_t> srcNodeLabels, dstNodeLabels;
     for (auto& srcNodeLabel : relConnections.srcNodeLabels) {
         for (auto& dstNodeLabel : relConnections.dstNodeLabels) {
-            boundRelConnections.emplace_back(
-                bindNodeLabel(srcNodeLabel), bindNodeLabel(dstNodeLabel));
+            srcNodeLabels.insert(bindNodeLabel(srcNodeLabel));
+            dstNodeLabels.insert(bindNodeLabel(dstNodeLabel));
         }
     }
-    return boundRelConnections;
+    return SrcDstLabels(move(srcNodeLabels), move(dstNodeLabels));
 }
 
 unordered_map<string, char> Binder::bindParsingOptions(

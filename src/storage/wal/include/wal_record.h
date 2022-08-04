@@ -212,9 +212,10 @@ enum WALRecordType : uint8_t {
     COMMIT_RECORD = 2,
     CATALOG_RECORD = 3,
     NODE_TABLE_RECORD = 4,
+    REL_TABLE_RECORD = 5,
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
-    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 5,
+    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 6,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -260,6 +261,16 @@ struct NodeTableRecord {
     inline bool operator==(const NodeTableRecord& rhs) const { return labelID == rhs.labelID; }
 };
 
+struct RelTableRecord {
+    label_t labelID;
+
+    RelTableRecord() = default;
+
+    RelTableRecord(label_t labelID) : labelID{labelID} {}
+
+    inline bool operator==(const RelTableRecord& rhs) const { return labelID == rhs.labelID; }
+};
+
 struct OverflowFileNextBytePosRecord {
     StorageStructureID storageStructureID;
     uint64_t prevNextBytePosToWriteTo;
@@ -282,6 +293,7 @@ struct WALRecord {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
+        RelTableRecord relTableRecord;
         OverflowFileNextBytePosRecord overflowFileNextBytePosRecord;
     };
 
@@ -307,6 +319,9 @@ struct WALRecord {
         case NODE_TABLE_RECORD: {
             return nodeTableRecord == rhs.nodeTableRecord;
         }
+        case REL_TABLE_RECORD: {
+            return relTableRecord == rhs.relTableRecord;
+        }
         case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return overflowFileNextBytePosRecord == rhs.overflowFileNextBytePosRecord;
         }
@@ -325,6 +340,7 @@ struct WALRecord {
     static WALRecord newNodeMetadataRecord();
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(label_t labelID);
+    static WALRecord newRelTableRecord(label_t labelID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);

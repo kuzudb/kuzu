@@ -8,12 +8,11 @@ namespace graphflow {
 namespace storage {
 
 RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
-    label_t relLabel, const string& directory, BufferManager& bufferManager, bool isInMemoryMode,
-    WAL* wal)
+    label_t relLabel, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, relLabel{relLabel} {
     initAdjColumnOrLists(
-        catalog, maxNodeOffsetsPerLabel, directory, bufferManager, isInMemoryMode, wal);
-    initPropertyListsAndColumns(catalog, directory, bufferManager, isInMemoryMode, wal);
+        catalog, maxNodeOffsetsPerLabel, wal->getDirectory(), bufferManager, isInMemoryMode, wal);
+    initPropertyListsAndColumns(catalog, wal->getDirectory(), bufferManager, isInMemoryMode, wal);
 }
 
 vector<AdjLists*> RelTable::getAdjListsForNodeLabel(label_t nodeLabel) {

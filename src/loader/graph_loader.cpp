@@ -19,7 +19,7 @@ GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
       inputDirectory{std::move(inputDirectory)}, outputDirectory{std::move(outputDirectory)} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
-    catalogBuilder = make_unique<CatalogBuilder>();
+    catalog = make_unique<Catalog>();
     bufferManager = make_unique<BufferManager>(defaultPageBufferPoolSize, largePageBufferPoolSize);
 }
 
@@ -38,8 +38,7 @@ void GraphLoader::loadGraph() {
         loadNodes();
         loadRels();
         progressBar->addAndStartNewJob("Saving Catalog to file.", 1);
-        catalogBuilder->getReadOnlyVersion()->saveToFile(
-            outputDirectory, false /* isForWALRecord */);
+        catalog->getReadOnlyVersion()->saveToFile(outputDirectory, false /* isForWALRecord */);
         progressBar->incrementTaskFinished();
 
         progressBar->addAndStartNewJob("Saving NodesMetadata to file.", 1);
@@ -85,7 +84,7 @@ void GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
     for (auto i = 0u; i < datasetMetadata.getNumNodeFiles(); ++i) {
         auto nodeBuilder = make_unique<InMemNodeBuilder>(datasetMetadata.getNodeFileDescription(i),
-            outputDirectory, *taskScheduler, *catalogBuilder, progressBar.get());
+            outputDirectory, *taskScheduler, *catalog, progressBar.get());
         auto numNodesLoaded = nodeBuilder->load();
         maxNodeOffsetsPerNodeLabel.push_back(numNodesLoaded - 1);
     }
@@ -98,7 +97,7 @@ void GraphLoader::loadRels() {
     for (auto relLabel = 0u; relLabel < datasetMetadata.getNumRelFiles(); relLabel++) {
         auto relBuilder =
             make_unique<InMemRelBuilder>(datasetMetadata.getRelFileDescription(relLabel),
-                outputDirectory, *taskScheduler, *catalogBuilder, maxNodeOffsetsPerNodeLabel,
+                outputDirectory, *taskScheduler, *catalog, maxNodeOffsetsPerNodeLabel,
                 numRelsLoaded, bufferManager.get(), progressBar.get());
         numRelsLoaded += relBuilder->load();
     }

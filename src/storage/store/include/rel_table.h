@@ -17,7 +17,7 @@ class RelTable {
 
 public:
     explicit RelTable(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel, const string& directory,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
 public:

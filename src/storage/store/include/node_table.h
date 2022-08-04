@@ -34,9 +34,6 @@ public:
 
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
-    static void createEmptyDBFilesForNewNodeTable(
-        Catalog* catalog, label_t label, string directory);
-
 private:
     void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const;
 
