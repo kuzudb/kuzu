@@ -11,7 +11,7 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     if (expression->dataType.typeID == BOOL) {
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     }
-    resultVector = make_shared<ValueVector>(memoryManager, expression->dataType);
+    resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
     if (children.empty()) {
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     }

@@ -49,18 +49,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         // make sure that the system's in-memory structures are consistent with what is on disk.
         // For example, we update the BM's image of the pages or InMemDiskArrays used by lists or
         // the WALVersion pageIdxs of pages for VersionedFileHandles.
-        switch (storageStructureID.storageStructureType) {
-        case STRUCTURED_NODE_PROPERTY_COLUMN: {
-            checkpointOrRollbackInMemoryColumn(walRecord, storageStructureID);
-        } break;
-        case LISTS: {
-            fileIDsOfListsToCheckpointOrRollback.insert(storageStructureID.listFileID);
-        } break;
-        default:
-            throw RuntimeException("Unrecognized StorageStructureType inside "
-                                   "WALReplayer::replay(). StorageStructureType:" +
-                                   to_string(storageStructureID.storageStructureType));
-        }
+        checkpointOrRollbackVersionedFileHandleAndBufferManager(walRecord, storageStructureID);
     } break;
     case NODES_METADATA_RECORD: {
         if (isCheckpoint) {
@@ -108,6 +97,49 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // impossible for users to roll back a DDL statement.
         }
     } break;
+    case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
+        // If we are recovering we do not replay OVERFLOW_FILE_NEXT_BYTE_POS_RECORD because
+        // this record is intended for rolling back a transaction to ensure that we can
+        // recover the overflow space allocated for the write trx by calling
+        // OverflowFile::resetNextBytePosToWriteTo(...). However during recovery, storageManager is
+        // null, so we cannot construct this value.
+        if (isRecovering) {
+            return;
+        }
+        assert(walRecord.overflowFileNextBytePosRecord.storageStructureID.isOverflow);
+        auto storageStructureID = walRecord.overflowFileNextBytePosRecord.storageStructureID;
+        OverflowFile* overflowFile;
+        switch (storageStructureID.storageStructureType) {
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+            Column* column = storageManager->getNodesStore().getNodePropertyColumn(
+                storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+                storageStructureID.structuredNodePropertyColumnID.propertyID);
+            // TODO: We are explicitly assuming that if the log record's storageStructureID is an
+            // overflow file, then the storage structure is a StringPropertyColumn. This should
+            // change as we support other variable length data types and in other storage
+            // structures.
+            overflowFile = reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFile();
+        } break;
+        case LISTS: {
+            assert(storageStructureID.listFileID.listType == UNSTRUCTURED_NODE_PROPERTY_LISTS);
+            UnstructuredPropertyLists* unstructuredPropertyLists =
+                storageManager->getNodesStore().getNodeUnstrPropertyLists(
+                    storageStructureID.listFileID.unstructuredNodePropertyListsID.nodeLabel);
+            overflowFile = &unstructuredPropertyLists->overflowFile;
+            assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
+        } break;
+        default:
+            throw RuntimeException("Unsupported storageStructureType " +
+                                   to_string(storageStructureID.storageStructureType) +
+                                   " for OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
+        }
+        // Reset NextBytePosToWriteTo if we are rolling back.
+        if (!isCheckpoint) {
+            overflowFile->resetNextBytePosToWriteTo(
+                walRecord.overflowFileNextBytePosRecord.prevNextBytePosToWriteTo);
+        }
+        overflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +
@@ -134,32 +166,82 @@ void WALReplayer::truncateFileIfInsertion(
     }
 }
 
-void WALReplayer::checkpointOrRollbackInMemoryColumn(
+void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     const WALRecord& walRecord, const StorageStructureID& storageStructureID) {
-    Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-        storageStructureID.structuredNodePropertyColumnID.nodeLabel,
-        storageStructureID.structuredNodePropertyColumnID.propertyID);
-    // TODO: We are explicitly assuming that if the log record's storageStructureID is an
-    // overflow file, then the storage structure is a StringPropertyColumn. This should change
-    // as we support other variable length data types and in other storage structures.
     VersionedFileHandle* fileHandle =
-        storageStructureID.isOverflow ?
-            reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFileHandle() :
-            column->getFileHandle();
-    fileHandle->clearWALPageVersionIfNecessary(
-        walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
-    if (isCheckpoint) {
-        // Update the page in buffer manager if it is in a frame
-        bufferManager->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandle,
-            pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
-    } else {
-        truncateFileIfInsertion(fileHandle, walRecord.pageInsertOrUpdateRecord);
+        getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(storageStructureID);
+    if (fileHandle) {
+        fileHandle->clearWALPageVersionIfNecessary(
+            walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+        if (isCheckpoint) {
+            // Update the page in buffer manager if it is in a frame. Note that we assume that
+            // the pageBuffer currently contains the contents of the WALVersion, so the caller
+            // needs to make sure that this assumption holds.
+            bufferManager->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandle,
+                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+        } else {
+            truncateFileIfInsertion(fileHandle, walRecord.pageInsertOrUpdateRecord);
+        }
+    }
+}
+
+VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+    const StorageStructureID& storageStructureID) {
+    switch (storageStructureID.storageStructureType) {
+    case STRUCTURED_NODE_PROPERTY_COLUMN: {
+        Column* column = storageManager->getNodesStore().getNodePropertyColumn(
+            storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+            storageStructureID.structuredNodePropertyColumnID.propertyID);
+        // TODO: We are explicitly assuming that if the log record's storageStructureID is an
+        // overflow file, then the storage structure is a StringPropertyColumn. This should
+        // change as we support updates to other variable length data types in columns.
+        return storageStructureID.isOverflow ?
+                   reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFileHandle() :
+                   column->getFileHandle();
+    }
+    case LISTS: {
+        switch (storageStructureID.listFileID.listType) {
+        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
+            UnstructuredPropertyLists* unstructuredPropertyLists =
+                storageManager->getNodesStore().getNodeUnstrPropertyLists(
+                    storageStructureID.listFileID.unstructuredNodePropertyListsID.nodeLabel);
+            switch (storageStructureID.listFileID.listFileType) {
+            case BASE_LISTS: {
+                return storageStructureID.isOverflow ?
+                           unstructuredPropertyLists->overflowFile.getFileHandle() :
+                           unstructuredPropertyLists->getFileHandle();
+            }
+            default:
+                // Note: We do not clear the WAL version of updated pages (nor do we need to
+                // update the Buffer Manager versions of these pages) for METADATA and HEADERS.
+                // The reason is METADATA and HEADERs are stored in InMemoryDiskArrays, which
+                // bypass the BufferManager and during checkpointing Lists, those InMemDiskArray
+                // rely on the WAL version of these pages existing to update their own in-memory
+                // versions manually. If we clear the WAL versions in WALReplayer
+                // InMeMDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock will omit
+                // refreshing their in memory copies of these updated pages. If we make the
+                // InMemDiskArrays also store their pages through the BufferManager, we should
+                // return the VersionedFileHandle's for METADATA and HEADERs as well.
+                return nullptr;
+            }
+        }
+        default:
+            throw RuntimeException(
+                "There should not be any code path yet triggering getting List "
+                "type name for anything other than UnstructuredNodePropertyList." +
+                to_string(storageStructureID.listFileID.listType));
+        }
+    }
+    default:
+        throw RuntimeException("Unrecognized StorageStructureType inside "
+                               "WALReplayer::replay(). StorageStructureType:" +
+                               to_string(storageStructureID.storageStructureType));
     }
 }
 
 void WALReplayer::replay() {
-    // Note: We assume no other thread is accessing the wal during the following operations. If
-    // this assumption no longer holds, we need to lock the wal.
+    // Note: We assume no other thread is accessing the wal during the following operations.
+    // If this assumption no longer holds, we need to lock the wal.
     if (!isRecovering && isCheckpoint && !wal->isLastLoggedRecordCommit()) {
         throw StorageException(
             "Cannot checkpointWAL because last logged record is not a commit record.");
@@ -179,7 +261,7 @@ void WALReplayer::replay() {
     }
 
     // We next perform an in-memory checkpointing or rolling back of any lists.
-    for (auto& listFileID : fileIDsOfListsToCheckpointOrRollback) {
+    for (auto& listFileID : wal->updatedUnstructuredPropertyLists) {
         switch (listFileID.listType) {
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
             auto unstructuredPropertyLists =
@@ -196,10 +278,6 @@ void WALReplayer::replay() {
                                    to_string(listFileID.listType) + " is not supported.");
         }
     }
-    // Strictly speaking this is not necessary because WALReplayer should not be used
-    // multiple times but we clear any fileIDs we accumulated during replay for
-    // checkpointing or rolling back when we are done with replaying.
-    fileIDsOfListsToCheckpointOrRollback.clear();
 }
 
 } // namespace storage

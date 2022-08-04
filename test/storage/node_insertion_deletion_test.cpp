@@ -52,9 +52,9 @@ public:
         auto dataChunk = make_shared<DataChunk>(2);
         // Flatten the data chunk
         dataChunk->state->currIdx = 0;
-        auto nodeIDVector = make_shared<ValueVector>(database->getMemoryManager(), NODE_ID);
+        auto nodeIDVector = make_shared<ValueVector>(NODE_ID, database->getMemoryManager());
         dataChunk->insert(0, nodeIDVector);
-        auto idVector = make_shared<ValueVector>(database->getMemoryManager(), INT64);
+        auto idVector = make_shared<ValueVector>(INT64, database->getMemoryManager());
         dataChunk->insert(1, idVector);
         ((nodeID_t*)nodeIDVector->values)[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);

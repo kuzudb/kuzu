@@ -29,10 +29,12 @@ public:
 private:
     void init();
     void replayWALRecord(WALRecord& walRecord);
-    void checkpointOrRollbackInMemoryColumn(
+    void checkpointOrRollbackVersionedFileHandleAndBufferManager(
         const WALRecord& walRecord, const StorageStructureID& storageStructureID);
     void truncateFileIfInsertion(
         VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
+    VersionedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+        const StorageStructureID& storageStructureID);
 
 private:
     bool isRecovering;
@@ -43,8 +45,6 @@ private:
     BufferManager* bufferManager;
     shared_ptr<FileHandle> walFileHandle;
     unique_ptr<uint8_t[]> pageBuffer;
-    unordered_set<ListFileID, ListFileIDHasher> fileIDsOfListsToCheckpointOrRollback;
-
     shared_ptr<spdlog::logger> logger;
     WAL* wal;
 };

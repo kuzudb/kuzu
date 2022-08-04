@@ -6,13 +6,13 @@
 namespace graphflow {
 namespace common {
 
-ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
+ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
     : dataType{move(dataType)} {
-    assert(memoryManager != nullptr);
     valueBuffer =
         make_unique<uint8_t[]>(Types::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
     values = valueBuffer.get();
     if (needOverflowBuffer()) {
+        assert(memoryManager != nullptr);
         overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
     }
     nullMask = make_unique<NullMask>();

@@ -19,7 +19,7 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     }
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideNonKeyVector = make_shared<ValueVector>(
-            context->memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
+            sharedState->getNonKeyDataPosesDataTypes()[i], context->memoryManager);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideNonKeyVector);
         vectorsToReadInto.push_back(probeSideNonKeyVector);

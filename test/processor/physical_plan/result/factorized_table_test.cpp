@@ -12,10 +12,10 @@ public:
         auto result = make_unique<ResultSet>(2);
         auto dataChunkA = make_shared<DataChunk>(2);
         auto dataChunkB = make_shared<DataChunk>(2);
-        auto vectorA1 = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
-        auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT64);
-        auto vectorB1 = make_shared<ValueVector>(memoryManager.get(), NODE_ID);
-        auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
+        auto vectorA1 = make_shared<ValueVector>(NODE_ID, memoryManager.get());
+        auto vectorA2 = make_shared<ValueVector>(INT64, memoryManager.get());
+        auto vectorB1 = make_shared<ValueVector>(NODE_ID, memoryManager.get());
+        auto vectorB2 = make_shared<ValueVector>(DOUBLE, memoryManager.get());
         dataChunkA->insert(0, vectorA1);
         dataChunkA->insert(1, vectorA2);
         dataChunkB->insert(0, vectorB1);
@@ -245,7 +245,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     auto dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = numRowsToAppend;
     dataChunk->state->currIdx = 0;
-    shared_ptr<ValueVector> strValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    shared_ptr<ValueVector> strValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
     resultSet->insert(0, dataChunk);
     dataChunk->insert(0, strValueVector);
     for (auto i = 0u; i < numRowsToAppend; i++) {

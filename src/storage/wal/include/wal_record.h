@@ -14,9 +14,9 @@ enum ListType : uint8_t {
 };
 
 enum ListFileType : uint8_t {
-    HEADERS = 0,
-    METADATA = 1,
-    BASE_LISTS = 2,
+    BASE_LISTS = 0,
+    HEADERS = 1,
+    METADATA = 2,
 };
 
 struct UnstructuredNodePropertyListsID {
@@ -116,10 +116,6 @@ struct ListFileID {
     }
 };
 
-struct ListFileIDHasher {
-    std::size_t operator()(const ListFileID& key) const;
-};
-
 struct NodeIndexID {
     label_t nodeLabel;
 
@@ -216,6 +212,9 @@ enum WALRecordType : uint8_t {
     COMMIT_RECORD = 2,
     CATALOG_RECORD = 3,
     NODE_TABLE_RECORD = 4,
+    // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
+    // used when rolling back to restore this value.
+    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 5,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -261,12 +260,29 @@ struct NodeTableRecord {
     inline bool operator==(const NodeTableRecord& rhs) const { return labelID == rhs.labelID; }
 };
 
+struct OverflowFileNextBytePosRecord {
+    StorageStructureID storageStructureID;
+    uint64_t prevNextBytePosToWriteTo;
+
+    OverflowFileNextBytePosRecord() = default;
+
+    OverflowFileNextBytePosRecord(
+        StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo)
+        : storageStructureID{storageStructureID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
+
+    inline bool operator==(const OverflowFileNextBytePosRecord& rhs) const {
+        return storageStructureID == rhs.storageStructureID &&
+               prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
+    }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
+        OverflowFileNextBytePosRecord overflowFileNextBytePosRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -291,6 +307,9 @@ struct WALRecord {
         case NODE_TABLE_RECORD: {
             return nodeTableRecord == rhs.nodeTableRecord;
         }
+        case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
+            return overflowFileNextBytePosRecord == rhs.overflowFileNextBytePosRecord;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
@@ -306,6 +325,8 @@ struct WALRecord {
     static WALRecord newNodeMetadataRecord();
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(label_t labelID);
+    static WALRecord newOverflowFileNextBytePosRecord(
+        StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

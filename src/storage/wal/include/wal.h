@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "src/common/types/include/types_include.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
@@ -103,6 +105,9 @@ public:
 
     void logNodeTableRecord(label_t labelID);
 
+    void logOverflowFileNextBytePosRecord(
+        StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
+
     // Removes the contents of WAL file.
     void clearWAL();
 
@@ -127,6 +132,10 @@ public:
 
     inline string getDirectory() const { return directory; }
 
+    inline void addToUpdatedUnstructuredPropertyLists(ListFileID listFileID) {
+        updatedUnstructuredPropertyLists.push_back(listFileID);
+    }
+
 private:
     inline void flushHeaderPages() {
         if (!isEmptyWAL()) {
@@ -135,8 +144,16 @@ private:
     }
 
     void initCurrentPage();
-    void addNewWALRecordWithoutLock(WALRecord& walRecord);
+    void addNewWALRecordNoLock(WALRecord& walRecord);
     void setIsLastRecordCommit();
+
+public:
+    // Ideally we need a pointer to UnstructuredPropertyLists but instead we store the ListFileIDs
+    // because UnstructuredPropertyLists depends on WAL and making WAL depend on
+    // UnstructuredPropetyLists would create a circular dependency. Also note that ListFileID
+    // identify the "files" of the lists, e.g., the header or the metadata or the actual .lists
+    // file. We need information to only identify the list, so the fileIDType will be ignored.
+    vector<ListFileID> updatedUnstructuredPropertyLists;
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -152,13 +169,13 @@ public:
 
     inline bool hasNextRecord() {
         lock_t lck{mtx};
-        return hasNextRecordWithoutLock();
+        return hasNextRecordNoLock();
     }
 
     void getNextRecord(WALRecord& retVal);
 
 private:
-    inline bool hasNextRecordWithoutLock() {
+    inline bool hasNextRecordNoLock() {
         return numRecordsReadInCurrentHeaderPage < getNumRecordsInCurrentHeaderPage();
     }
 

@@ -14,7 +14,7 @@ shared_ptr<ResultSet> ResultScan::init(ExecutionContext* context) {
         auto& inValueVector =
             *resultSetToCopyFrom->dataChunks[inDataChunkPos]->valueVectors[inValueVectorPos];
         auto outValueVector =
-            make_shared<ValueVector>(context->memoryManager, inValueVector.dataType);
+            make_shared<ValueVector>(inValueVector.dataType, context->memoryManager);
         outDataChunk->insert(outValueVectorsPos[i], outValueVector);
     }
     return resultSet;

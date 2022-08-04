@@ -24,6 +24,11 @@ public:
     inline RelsStore& getRelsStore() const { return *relsStore; }
     inline NodesStore& getNodesStore() const { return *nodesStore; }
     inline Catalog* getCatalog() { return &catalog; }
+    void prepareListsToCommitOrRollbackIfNecessary(bool isCommit) {
+        nodesStore->prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(isCommit);
+        // TODO(Semih): When updates to other lists are called, we should call prepareToCommit on
+        // other lists as well.
+    }
 
 private:
     shared_ptr<spdlog::logger> logger;

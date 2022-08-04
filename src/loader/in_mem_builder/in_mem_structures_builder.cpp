@@ -142,7 +142,8 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
     uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
-        auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);
+        auto lastNodeOffsetInChunk =
+            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
             uint32_t header;
@@ -170,7 +171,8 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
     node_offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
-        auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);
+        auto lastNodeOffsetInChunk =
+            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 largeListIdx++;
@@ -184,7 +186,8 @@ void InMemStructuresBuilder::calculateListsMetadataAndAllocateInMemListPagesTask
     auto numPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
-        auto lastNodeOffsetInChunk = min(nodeOffset + StorageConfig::LISTS_CHUNK_SIZE, numNodes);
+        auto lastNodeOffsetInChunk =
+            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {

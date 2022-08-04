@@ -73,7 +73,7 @@ public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          stringOverflowPages{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
+          overflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
 
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -81,31 +81,31 @@ public:
     // Currently, used only in Loader tests.
     Literal readValue(node_offset_t offset) override;
 
-    inline VersionedFileHandle* getOverflowFileHandle() {
-        return stringOverflowPages.getFileHandle();
-    }
+    inline OverflowFile* getOverflowFile() { return &overflowFile; }
+
+    inline VersionedFileHandle* getOverflowFileHandle() { return overflowFile.getFileHandle(); }
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         if (!resultVector->isNull(vectorPos)) {
-            stringOverflowPages.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
+            overflowFile.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
         }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        stringOverflowPages.scanSequentialStringOverflow(transaction, *resultVector);
+        overflowFile.scanSequentialStringOverflow(transaction, *resultVector);
     }
     void scanWithSelState(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        stringOverflowPages.scanSequentialStringOverflow(transaction, *resultVector);
+        overflowFile.scanSequentialStringOverflow(transaction, *resultVector);
     }
 
 private:
-    OverflowFile stringOverflowPages;
+    OverflowFile overflowFile;
 };
 
 class ListPropertyColumn : public Column {

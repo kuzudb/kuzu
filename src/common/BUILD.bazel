@@ -131,6 +131,9 @@ cc_library(
         "include/configs.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "//src/common/types",
+    ],
 )
 
 cc_library(

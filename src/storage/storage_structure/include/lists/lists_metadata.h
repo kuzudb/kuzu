@@ -19,28 +19,24 @@ class LoaderEmptyListsTest;
 namespace graphflow {
 namespace storage {
 
+class UnstructuredPropertyListsUpdateIterator;
+
 class BaseListsMetadata {
 
 public:
     static constexpr uint64_t CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX = 0;
     static constexpr uint64_t LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX = 1;
     static constexpr uint64_t CHUNK_PAGE_LIST_HEADER_PAGE_IDX = 2;
-    // All pageLists (defined later) are broken in pieces (called a pageListGroups) of size
-    // PAGE_LIST_GROUP_SIZE + 1 each and chained together. In each piece, there are
-    // PAGE_LIST_GROUP_SIZE elements of that list and the offset to the next pageListGroups in the
-    // blob that contains all pageListGroups of all lists.
-    static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 3;
-    static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
 
     explicit BaseListsMetadata() { logger = LoggerUtils::getOrCreateSpdLogger("storage"); }
 
-    inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
+    inline static std::function<uint32_t(uint32_t)> getIdxInPageListToListPageIdxMapper(
         BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListsHead) {
         return bind(getPageIdxFromAPageList, pageLists, pageListsHead, placeholders::_1);
     }
 
     static uint64_t getPageIdxFromAPageList(
-        BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t logicalPageIdx);
+        BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t idxInPageList);
 
 protected:
     shared_ptr<spdlog::logger> logger;
@@ -48,6 +44,7 @@ protected:
 
 class ListsMetadata : public BaseListsMetadata {
     friend class graphflow::loader::LoaderEmptyListsTest;
+    friend class UnstructuredPropertyListsUpdateIterator;
 
 public:
     explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
@@ -59,15 +56,29 @@ public:
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
-        return getLogicalToPhysicalPageMapper(
+        return getIdxInPageListToListPageIdxMapper(
             pageLists.get(), (*chunkToPageListHeadIdxMap)[chunkIdx]);
     }
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
-        return getLogicalToPhysicalPageMapper(
+        return getIdxInPageListToListPageIdxMapper(
             pageLists.get(), (*largeListIdxToPageListHeadIdxMap)[2 * largeListIdx]);
     }
+
+    inline void checkpointInMemoryIfNecessary() {
+        chunkToPageListHeadIdxMap->checkpointInMemoryIfNecessary();
+        largeListIdxToPageListHeadIdxMap->checkpointInMemoryIfNecessary();
+        pageLists->checkpointInMemoryIfNecessary();
+    }
+
+    inline void rollbackInMemoryIfNecessary() {
+        chunkToPageListHeadIdxMap->rollbackInMemoryIfNecessary();
+        largeListIdxToPageListHeadIdxMap->rollbackInMemoryIfNecessary();
+        pageLists->rollbackInMemoryIfNecessary();
+    }
+
+    inline VersionedFileHandle* getFileHandle() { return metadataVersionedFileHandle.get(); }
 
 private:
     unique_ptr<VersionedFileHandle> metadataVersionedFileHandle;
@@ -96,8 +107,10 @@ private:
  * that organizes and stores {@class Lists} data structure. Each object of Lists requires
  * ListsMetadata object that helps in locating.
  *
- * The Mapper functions (called, logicalToPhysicalPageMappers) of this class maps the logical
- * location of the list to the actual physical location in disk pages.
+ * The mapper functions (called, IdxInPageListToListPageIdxMaper) of this class maps the idxs in
+ * page lists  to the actual physical location in disk pages. These are the
+ * ``logicalToPhysicalPageMapper'' mappers used in the BaseColumnOrList common functions for reading
+ * data from disk for columns and lists.
  */
 class ListsMetadataBuilder : public BaseListsMetadata {
 
@@ -111,13 +124,13 @@ public:
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
-        return getLogicalToPhysicalPageMapper(
+        return getIdxInPageListToListPageIdxMapper(
             pageListsBuilder.get(), (*chunkToPageListHeadIdxMapBuilder)[chunkIdx]);
     }
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
-        return getLogicalToPhysicalPageMapper(
+        return getIdxInPageListToListPageIdxMapper(
             pageListsBuilder.get(), (*largeListIdxToPageListHeadIdxMapBuilder)[2 * largeListIdx]);
     }
     void initChunkPageLists(uint32_t numChunks);

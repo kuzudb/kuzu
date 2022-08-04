@@ -4,6 +4,7 @@
 
 #include "src/common/include/utils.h"
 #include "src/storage/include/storage_utils.h"
+#include "src/storage/storage_structure/include/storage_structure_utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -12,7 +13,8 @@ ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureID
     BufferManager* bufferManager, WAL* wal)
     : BaseListsMetadata(), storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
-    storageStructureIDAndFName.fName = storageStructureIDAndFNameForBaseList.fName + ".metadata";
+    storageStructureIDAndFName.fName =
+        StorageUtils::getListMetadataFName(storageStructureIDAndFNameForBaseList.fName);
     metadataVersionedFileHandle = make_unique<VersionedFileHandle>(
         storageStructureIDAndFName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate);
     chunkToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
@@ -25,18 +27,20 @@ ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureID
 }
 
 uint64_t BaseListsMetadata::getPageIdxFromAPageList(
-    BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t logicalPageIdx) {
+    BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t idxInPageList) {
     auto pageListGroupHeadIdx = pageListHead;
-    while (PAGE_LIST_GROUP_SIZE <= logicalPageIdx) {
-        pageListGroupHeadIdx = (*pageLists)[pageListGroupHeadIdx + PAGE_LIST_GROUP_SIZE];
-        logicalPageIdx -= PAGE_LIST_GROUP_SIZE;
+    while (ListsMetadataConfig::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
+        pageListGroupHeadIdx =
+            (*pageLists)[pageListGroupHeadIdx + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE];
+        idxInPageList -= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
     }
-    return (*pageLists)[pageListGroupHeadIdx + logicalPageIdx];
+    return (*pageLists)[pageListGroupHeadIdx + idxInPageList];
 }
 
 ListsMetadataBuilder::ListsMetadataBuilder(const string& listBaseFName) : BaseListsMetadata() {
-    metadataFileHandleForBuilding = make_unique<FileHandle>(
-        listBaseFName + ".metadata", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    metadataFileHandleForBuilding =
+        make_unique<FileHandle>(StorageUtils::getListMetadataFName(listBaseFName),
+            FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     // When building list metadata during loading, we need to make space for the header of each
     // disk array in listsMetadata (so that these header pages are pre-allocated and not used
     // for another purpose)
@@ -59,7 +63,8 @@ void ListsMetadataBuilder::initChunkPageLists(uint32_t numChunks_) {
     chunkToPageListHeadIdxMapBuilder = make_unique<InMemDiskArrayBuilder<uint32_t>>(
         *metadataFileHandleForBuilding, CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, numChunks_);
     for (uint64_t chunkIdx = 0; chunkIdx < numChunks_; ++chunkIdx) {
-        (*chunkToPageListHeadIdxMapBuilder)[chunkIdx] = UINT32_MAX;
+        (*chunkToPageListHeadIdxMapBuilder)[chunkIdx] =
+            StorageStructureUtils::NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX;
     }
 }
 
@@ -70,7 +75,8 @@ void ListsMetadataBuilder::initLargeListPageLists(uint32_t numLargeLists_) {
         make_unique<InMemDiskArrayBuilder<uint32_t>>(*metadataFileHandleForBuilding,
             LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, (2 * numLargeLists_));
     for (uint64_t largeListIdx = 0; largeListIdx < numLargeLists_; ++largeListIdx) {
-        (*largeListIdxToPageListHeadIdxMapBuilder)[largeListIdx] = UINT32_MAX;
+        (*largeListIdxToPageListHeadIdxMapBuilder)[largeListIdx] =
+            StorageStructureUtils::NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX;
     }
 }
 
@@ -94,8 +100,8 @@ void ListsMetadataBuilder::populateLargeListPageList(
 
 void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_t startPageId) {
     // calculate the number of pageListGroups to accommodate the pageList completely.
-    auto numPageListGroups = numPages / PAGE_LIST_GROUP_SIZE;
-    if (0 != numPages % PAGE_LIST_GROUP_SIZE) {
+    auto numPageListGroups = numPages / ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+    if (0 != numPages % ListsMetadataConfig::PAGE_LIST_GROUP_SIZE) {
         numPageListGroups++;
     }
     // During the initial allocation, we allocate all the pageListGroups of a pageList
@@ -103,21 +109,24 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     // the next pageLists should start.
     uint32_t pageListHeadIdx = pageListsBuilder->header.numElements;
     auto pageListTailIdx =
-        pageListHeadIdx + ((PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);
+        pageListHeadIdx +
+        ((ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);
     pageListsBuilder->setNewNumElementsAndIncreaseCapacityIfNeeded(pageListTailIdx);
     for (auto i = 0u; i < numPageListGroups; i++) {
-        auto numPagesInThisGroup = min(PAGE_LIST_GROUP_SIZE, numPages);
+        auto numPagesInThisGroup = min(ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, numPages);
         for (auto j = 0u; j < numPagesInThisGroup; j++) {
             (*pageListsBuilder)[pageListHeadIdx + j] = startPageId++;
         }
-        // if there are empty spots in the pageListGroup, put PAGE_IDX_MAX in them.
-        for (auto j = numPagesInThisGroup; j < PAGE_LIST_GROUP_SIZE; j++) {
-            (*pageListsBuilder)[pageListHeadIdx + j] = PAGE_IDX_MAX;
+        // if there are empty spots in the pageListGroup, put StorageConfig::NULL_PAGE_IDX in them.
+        for (auto j = numPagesInThisGroup; j < ListsMetadataConfig::PAGE_LIST_GROUP_SIZE; j++) {
+            (*pageListsBuilder)[pageListHeadIdx + j] = StorageStructureUtils::NULL_PAGE_IDX;
         }
         numPages -= numPagesInThisGroup;
-        pageListHeadIdx += PAGE_LIST_GROUP_SIZE;
-        // store the id to the next pageListGroup, if exists, other PAGE_IDX_MAX.
-        (*pageListsBuilder)[pageListHeadIdx] = (0 == numPages) ? PAGE_IDX_MAX : 1 + pageListHeadIdx;
+        pageListHeadIdx += ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+        // store the id to the next pageListGroup, if exists, otherwise store
+        // StorageConfig::NULL_PAGE_IDX.
+        (*pageListsBuilder)[pageListHeadIdx] =
+            (0 == numPages) ? StorageStructureUtils::NULL_PAGE_IDX : 1 + pageListHeadIdx;
         pageListHeadIdx++;
     }
 }

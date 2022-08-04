@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 
+#include "storage_structure_utils.h"
+
 #include "src/common/include/configs.h"
 #include "src/common/types/include/types.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
@@ -45,7 +47,7 @@ struct DiskArrayHeader {
 };
 
 struct PIP {
-    PIP() : nextPipPageIdx{PAGE_IDX_MAX} {}
+    PIP() : nextPipPageIdx{StorageStructureUtils::NULL_PAGE_IDX} {}
 
     // TODO(Semih): This is only for debugging purposes. Will be removed.
     void print();
@@ -87,8 +89,8 @@ struct PIPUpdates {
  * stable header page, i.e., the header page of the array is always in a pre-allocated page in the
  * file. The header page contains the pointer to the first ``page indices page'' (pip). Each pip
  * stores a list of page indices that store the ``array pages''. Each PIP also stores the pageIdx of
- * the next PIP if one exists (or we use PAGE_IDX_MAX as null). Array pages store the actual data in
- * the array.
+ * the next PIP if one exists (or we use StorageConfig::NULL_PAGE_IDX as null). Array pages store
+ * the actual data in the array.
  *
  * Storage structures can use multiple disk arrays in a single file by giving each one a different
  * pre-allocated stable header pageIdxs.
@@ -149,7 +151,7 @@ protected:
 private:
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
-    uint64_t readUint64HeaderFieldNoLock(
+    uint64_t readUInt64HeaderFieldNoLock(
         TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp);
 
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is

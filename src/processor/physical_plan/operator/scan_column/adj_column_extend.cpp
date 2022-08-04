@@ -5,7 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
     resultSet = BaseScanColumn::init(context);
-    outputVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
+    outputVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     inputNodeIDDataChunk->insert(outputVectorPos.valueVectorPos, outputVector);
     return resultSet;
 }

@@ -2,6 +2,7 @@
 
 #include "src/common/include/utils.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
+#include "src/storage/storage_structure/include/storage_structure_utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -10,7 +11,7 @@ DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : elementSize{elementSize}, numElementsPerPageLog2{static_cast<uint64_t>(
                                     floor(log2(DEFAULT_PAGE_SIZE / elementSize)))},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
-      firstPIPPageIdx{PAGE_IDX_MAX}, numElements{0}, numAPs{0} {}
+      firstPIPPageIdx{StorageStructureUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {
     FileUtils::writeToFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
@@ -56,9 +57,10 @@ BaseDiskArray<U>::BaseDiskArray(
     : fileHandle(fileHandle), headerPageIdx(headerPageIdx), hasTransactionalUpdates{false},
       bufferManager{bufferManager}, wal{wal} {
     header.readFromFile(this->fileHandle, headerPageIdx);
-    if (this->header.firstPIPPageIdx != PAGE_IDX_MAX) {
+    if (this->header.firstPIPPageIdx != StorageStructureUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
-        while (pips[pips.size() - 1].pipContents.nextPipPageIdx != PAGE_IDX_MAX) {
+        while (pips[pips.size() - 1].pipContents.nextPipPageIdx !=
+               StorageStructureUtils::NULL_PAGE_IDX) {
             pips.emplace_back(fileHandle, pips[pips.size() - 1].pipContents.nextPipPageIdx);
         }
     }
@@ -72,7 +74,7 @@ uint64_t BaseDiskArray<U>::getNumElements(TransactionType trxType) {
 
 template<typename U>
 uint64_t BaseDiskArray<U>::getNumElementsNoLock(TransactionType trxType) {
-    return readUint64HeaderFieldNoLock(trxType,
+    return readUInt64HeaderFieldNoLock(trxType,
         [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numElements; });
 }
 
@@ -89,14 +91,14 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
     uint64_t offsetInAP = idx & header.elementPageOffsetMask;
     // TODO: We are currently supporting only DiskArrays that can grow in size and not
     // those that can shrink in size. That is why we can use
-    // getAPPageIdxNoLock(apIdx) directly to compute the physical page Idx because
-    // any apIdx is guaranteed to be either in an existing PIP or a new PIP we added,
-    // which getAPPageIdxNoLock will correctly locate: this function simply searches an exising PIP
-    // if apIdx < numAPs stored in "previous" PIP; otherwise one of the newly inserted PIPs
-    // stored inpipPageIdxsOfinsertedPIPs. If within a single transaction we could grow or shrink,
-    // then getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0,
-    // may no longer to be guaranteed to be in pips[0].)
-    page_idx_t apPageIdx = getAPPageIdxNoLock(apIdx);
+    // getAPPageIdxNoLock(apIdx, Transaction::WRITE) directly to compute the physical page Idx
+    // because any apIdx is guaranteed to be either in an existing PIP or a new PIP we added, which
+    // getAPPageIdxNoLock will correctly locate: this function simply searches an exising PIP if
+    // apIdx < numAPs stored in "previous" PIP; otherwise one of the newly inserted PIPs stored
+    // inpipPageIdxsOfinsertedPIPs. If within a single transaction we could grow or shrink, then
+    // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
+    // no longer to be guaranteed to be in pips[0].)
+    page_idx_t apPageIdx = getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
     StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), apPageIdx,
         false /* not inserting a new page */, *bufferManager, *wal,
         [&offsetInAP, &val](uint8_t* frame) -> void { ((U*)frame)[offsetInAP] = val; });
@@ -126,7 +128,7 @@ void BaseDiskArray<U>::pushBack(U val) {
 
 template<typename U>
 uint64_t BaseDiskArray<U>::getNumAPsNoLock(TransactionType trxType) {
-    return readUint64HeaderFieldNoLock(trxType,
+    return readUInt64HeaderFieldNoLock(trxType,
         [](DiskArrayHeader* diskArrayHeader) -> uint64_t { return diskArrayHeader->numAPs; });
 }
 
@@ -240,7 +242,7 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 }
 
 template<typename U>
-uint64_t BaseDiskArray<U>::readUint64HeaderFieldNoLock(
+uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
     VersionedFileHandle* versionedFileHandle = (VersionedFileHandle*)(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
@@ -278,7 +280,7 @@ pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryFor
         uint64_t pipIdx = pipIdxAndOffsetOfNewAP.first;
         uint64_t offsetOfNewAPInPIP = pipIdxAndOffsetOfNewAP.second;
         updatedDiskArrayHeader->numAPs++;
-        page_idx_t pipPageIdx = PAGE_IDX_MAX;
+        page_idx_t pipPageIdx = StorageStructureUtils::NULL_PAGE_IDX;
         bool isInsertingANewPIPPage = false;
         if (pipIdx < pips.size()) {
             // We do not need to insert a new pip and we need to add newAPPageIdx to a PIP that
@@ -302,7 +304,7 @@ pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryFor
             isInsertingANewPIPPage, *bufferManager, *wal,
             [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](uint8_t* frame) -> void {
                 if (isInsertingANewPIPPage) {
-                    ((PIP*)frame)->nextPipPageIdx = PAGE_IDX_MAX;
+                    ((PIP*)frame)->nextPipPageIdx = StorageStructureUtils::NULL_PAGE_IDX;
                 }
                 ((PIP*)frame)->pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
             });
@@ -476,6 +478,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
             minNewAPPageIdxToTruncateTo = min(minNewAPPageIdxToTruncateTo, apPageIdx);
         }
     }
+
     // TODO(Semih): Currently we do not support truncating DiskArrays. When we support that, we
     // need to implement the logic to truncate InMemArrayPages as well.
     // Note that the base class call sets hasTransactionalUpdates to false.

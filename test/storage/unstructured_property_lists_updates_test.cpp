@@ -1,7 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
-#include "src/storage/include/wal_replayer.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::testing;
@@ -17,6 +16,9 @@ public:
     }
 
     void initWithoutLoadingGraph() {
+        if (overflowBuffer) {
+            overflowBuffer.reset();
+        }
         createDBAndConn();
         overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
@@ -41,8 +43,15 @@ public:
             longStr.c_str(), longStr.size(), longStrVal.val.strVal, *overflowBuffer);
         intVal.dataType = DataType(DataTypeID::INT64);
         intVal.val.int64Val = 677121;
-
         conn->beginWriteTransaction();
+    }
+
+    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit, bool testRecovery) {
+        commitOrRollbackConnection(isCommit, testRecovery);
+        if (testRecovery) {
+            // This creates a new database/conn/readConn and should run the recovery algorithm
+            initWithoutLoadingGraph();
+        }
     }
 
     string getInputCSVDir() override {
@@ -51,12 +60,12 @@ public:
 
     // TODO(Xiyang): Currently we are manually calling set in getUnstrPropertyLists. Once we have
     // frontend support, these sets should also be done through Cypher queries.
-    void setPropertyOfNode123(string strPropKey, Value& newStrVal) {
+    void setPropertyOfNode(node_offset_t nodeOffset, string propKey, Value& newVal) {
         uint32_t unstrPropKey = database->getCatalog()
                                     ->getReadOnlyVersion()
-                                    ->getNodeProperty(personNodeLabel, strPropKey)
+                                    ->getNodeProperty(personNodeLabel, propKey)
                                     .propertyID;
-        personNodeTable->getUnstrPropertyLists()->setProperty(123, unstrPropKey, &newStrVal);
+        personNodeTable->getUnstrPropertyLists()->setProperty(nodeOffset, unstrPropKey, &newVal);
     }
 
     void removeProperty(node_offset_t nodeOffset, string propKey) {
@@ -68,21 +77,418 @@ public:
     }
 
     void queryAndVerifyResults(node_offset_t nodeOffset, string intPropKey, string strPropKey,
-        Value& expectedIntForWriteTrx, Value& expectedStrValueForWriteTrx,
-        Value& expectedIntForReadTrx, Value& expectedStrValueForReadTrx) {
+        Value* expectedIntForWriteTrx, Value* expectedStrValueForWriteTrx,
+        Value* expectedIntForReadTrx, Value* expectedStrValueForReadTrx) {
         string query = "MATCH (a:person) WHERE a.ID = " + to_string(nodeOffset) + " RETURN a." +
                        intPropKey + ", a." + strPropKey;
-        auto writeConTuple = conn->query(query)->getNext();
-        ASSERT_FALSE(writeConTuple->isNull(0));
-        ASSERT_EQ(writeConTuple->getValue(0)->val.int64Val, expectedIntForWriteTrx.val.int64Val);
-        ASSERT_FALSE(writeConTuple->isNull(1));
-        ASSERT_EQ(writeConTuple->getValue(1)->val.strVal, expectedStrValueForWriteTrx.val.strVal);
+        auto writeQResult = conn->query(query);
+        auto writeConTuple = writeQResult->getNext();
+        if (expectedIntForWriteTrx == nullptr) {
+            ASSERT_TRUE(writeConTuple->isNull(0));
+        } else {
+            ASSERT_FALSE(writeConTuple->isNull(0));
+            ASSERT_EQ(
+                writeConTuple->getValue(0)->val.int64Val, expectedIntForWriteTrx->val.int64Val);
+        }
+        if (expectedStrValueForWriteTrx == nullptr) {
+            ASSERT_TRUE(writeConTuple->isNull(1));
+        } else {
+            ASSERT_FALSE(writeConTuple->isNull(1));
+            ASSERT_EQ(
+                writeConTuple->getValue(1)->val.strVal, expectedStrValueForWriteTrx->val.strVal);
+        }
 
-        auto readConTuple = readConn->query(query)->getNext();
-        ASSERT_FALSE(readConTuple->isNull(0));
-        ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, expectedIntForReadTrx.val.int64Val);
-        ASSERT_FALSE(readConTuple->isNull(1));
-        ASSERT_EQ(readConTuple->getValue(1)->val.strVal, expectedStrValueForReadTrx.val.strVal);
+        auto readQResult = readConn->query(query);
+        auto readConTuple = readQResult->getNext();
+        if (expectedIntForReadTrx == nullptr) {
+            ASSERT_TRUE(readConTuple->isNull(0));
+        } else {
+            ASSERT_FALSE(readConTuple->isNull(0));
+            ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, expectedIntForReadTrx->val.int64Val);
+        }
+        if (expectedStrValueForReadTrx == nullptr) {
+            ASSERT_TRUE(readConTuple->isNull(1));
+        } else {
+            ASSERT_FALSE(readConTuple->isNull(1));
+            ASSERT_EQ(
+                readConTuple->getValue(1)->val.strVal, expectedStrValueForReadTrx->val.strVal);
+        }
+    }
+
+    void updateExistingFixedLenPropertiesUseShortStringTest(bool isCommit, bool testRecovery) {
+        setPropertyOfNode(123, "ui123", intVal);
+        setPropertyOfNode(123, "us123", shortStrVal);
+        queryAndVerifyResults(123, "ui123", "us123", &intVal /* expected int for write trx */,
+            &shortStrVal /* expected str for write trx */,
+            &existingIntVal /* expected int for read trx */,
+            &existingStrVal /* expected str for read trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            queryAndVerifyResults(123, "ui123", "us123", &intVal /* expected int for write trx */,
+                &shortStrVal /* expected str for write trx */,
+                &intVal /* expected int for read trx */,
+                &shortStrVal /* expected str for read trx */);
+        } else {
+            queryAndVerifyResults(123, "ui123", "us123",
+                &existingIntVal /* expected int for write trx */,
+                &existingStrVal /* expected str for write trx */,
+                &existingIntVal /* expected int for read trx */,
+                &existingStrVal /* expected str for read trx */);
+        }
+    }
+
+    void updateLongStringPropertyTest(bool isCommit, bool testRecovery) {
+        setPropertyOfNode(123, "us123", longStrVal);
+        queryAndVerifyResults(123, "ui123", "us123",
+            &existingIntVal /* expected int for write trx */,
+            &longStrVal /* expected str for write trx */,
+            &existingIntVal /* expected int for read trx */,
+            &existingStrVal /* expected str for write trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            queryAndVerifyResults(123, "ui123", "us123",
+                &existingIntVal /* expected int for write trx */,
+                &longStrVal /* expected str for write trx */,
+                &existingIntVal /* expected int for read trx */,
+                &longStrVal /* expected str for read trx */);
+        } else {
+            queryAndVerifyResults(123, "ui123", "us123",
+                &existingIntVal /* expected int for write trx */,
+                &existingStrVal /* expected str for write trx */,
+                &existingIntVal /* expected int for read trx */,
+                &existingStrVal /* expected str for read trx */);
+        }
+    }
+
+    void insertNonExistingPropsTest(bool isCommit, bool testRecovery) {
+        setPropertyOfNode(123, "us125", longStrVal);
+        setPropertyOfNode(123, "ui124", intVal);
+        queryAndVerifyResults(123, "ui124", "us125", &intVal /* expected int for write trx */,
+            &longStrVal /* expected str for write trx */, nullptr /*expected int for read trx */,
+            nullptr /* expected str for read trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            queryAndVerifyResults(123, "ui124", "us125", &intVal /* expected int for write trx */,
+                &longStrVal /* expected str for write trx */,
+                &intVal /*expected int for read trx */,
+                &longStrVal /* expected str for read trx */);
+        } else {
+            queryAndVerifyResults(123, "ui124", "us125", nullptr /* expected int for write trx */,
+                nullptr /* expected str for write trx */, nullptr /*expected int for read trx */,
+                nullptr /* expected str for read trx */);
+        }
+    }
+
+    void removeExistingPropsTest(bool isCommit, bool testRecovery) {
+        removeProperty(123, "us123");
+        removeProperty(123, "ui123");
+        queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
+            nullptr /* expected str for write trx */,
+            &existingIntVal /*expected int for read trx */,
+            &existingStrVal /* expected str for read trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
+                nullptr /* expected str for write trx */, nullptr /*expected int for read trx */,
+                nullptr /* expected str for read trx */);
+        } else {
+            queryAndVerifyResults(123, "ui123", "us123",
+                &existingIntVal /* expected int for write trx */,
+                &existingStrVal /* expected str for write trx */,
+                &existingIntVal /*expected int for read trx */,
+                &existingStrVal /* expected str for read trx */);
+        }
+    }
+
+    void removeNonExistingPropsTest(bool isCommit, bool testRecovery) {
+        removeProperty(123, "us125");
+        removeProperty(123, "ui124");
+        queryAndVerifyResults(123, "ui123", "us123",
+            &existingIntVal /* expected int for write trx */,
+            &existingStrVal /* expected str for write trx */,
+            &existingIntVal /* expected int for read trx */,
+            &existingStrVal /* expected str for write trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        // Regardless of whether we are committing or rollbacking, because there is no change
+        // the results should be the same.
+        queryAndVerifyResults(123, "ui123", "us123",
+            &existingIntVal /* expected int for write trx */,
+            &existingStrVal /* expected str for write trx */,
+            &existingIntVal /* expected int for read trx */,
+            &existingStrVal /* expected str for write trx */);
+    }
+
+    void verifyWriteOrCommittedTrxForRemoveNewlyAddedPropertiesTest(
+        unique_ptr<QueryResult> qResult) {
+        auto tuple = qResult->getNext();
+        ASSERT_TRUE(tuple->isNull(0));
+        ASSERT_EQ(tuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
+        ASSERT_TRUE(tuple->isNull(2));
+    }
+
+    void verifyReadOrRolledbackTrxForRemoveNewlyAddedPropertiesTest(
+        unique_ptr<QueryResult> qResult) {
+        auto tuple = qResult->getNext();
+        ASSERT_EQ(tuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
+        ASSERT_EQ(tuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
+        ASSERT_TRUE(tuple->isNull(2));
+    }
+
+    void removeNewlyAddedPropertiesTest(bool isCommit, bool testRecovery) {
+        setPropertyOfNode(123, "us125", longStrVal);
+        removeProperty(123, "us125");
+        setPropertyOfNode(123, "ui123", intVal);
+        removeProperty(123, "ui123");
+
+        string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui123, a.us123, a.us125";
+        auto writeQResult = conn->query(query);
+        verifyWriteOrCommittedTrxForRemoveNewlyAddedPropertiesTest(move(writeQResult));
+        auto readQResult = readConn->query(query);
+        verifyReadOrRolledbackTrxForRemoveNewlyAddedPropertiesTest(move(readQResult));
+
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            writeQResult = conn->query(query);
+            verifyWriteOrCommittedTrxForRemoveNewlyAddedPropertiesTest(move(writeQResult));
+            readQResult = readConn->query(query);
+            verifyWriteOrCommittedTrxForRemoveNewlyAddedPropertiesTest(move(readQResult));
+        } else {
+            writeQResult = conn->query(query);
+            verifyReadOrRolledbackTrxForRemoveNewlyAddedPropertiesTest(move(writeQResult));
+            readQResult = readConn->query(query);
+            verifyReadOrRolledbackTrxForRemoveNewlyAddedPropertiesTest(move(readQResult));
+        }
+    }
+
+    void removeAllPropertiesBySetPropertyListEmptyTest(bool isCommit, bool testRecovery) {
+        personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(123);
+        queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
+            nullptr /* expected str for write trx */,
+            &existingIntVal /* expected int for read trx */,
+            &existingStrVal /* expected str for write trx */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
+                nullptr /* expected str for write trx */, nullptr /*expected int for read trx */,
+                nullptr /* expected str for read trx */);
+        } else {
+            queryAndVerifyResults(123, "ui123", "us123",
+                &existingIntVal /* expected int for write trx */,
+                &existingStrVal /* expected str for write trx */,
+                &existingIntVal /*expected int for read trx */,
+                &existingStrVal /* expected str for read trx */);
+        }
+    }
+
+    void verifyEmptyDB(Connection* connection) {
+        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+             nodeOffsetForPropKeys++) {
+            string query = "MATCH (a:person) WHERE a.ui" + to_string(nodeOffsetForPropKeys) +
+                           " IS NOT NULL OR a.us" + to_string(nodeOffsetForPropKeys) +
+                           " IS NOT NULL RETURN count (*)";
+            auto qResult = connection->query(query);
+            auto tuple = qResult->getNext();
+            ASSERT_EQ(tuple->getValue(0)->val.int64Val, 0);
+        }
+    }
+
+    void verifyInitialDBState(Connection* connection) {
+        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+             nodeOffsetForPropKeys++) {
+            string query = "MATCH (a:person) WHERE a.ui" + to_string(nodeOffsetForPropKeys) +
+                           " IS NOT NULL OR a.us" + to_string(nodeOffsetForPropKeys) +
+                           " IS NOT NULL RETURN count (*)";
+            auto qResult = connection->query(query);
+            auto tuple = qResult->getNext();
+            if (nodeOffsetForPropKeys == 250) {
+                // If we are looking for 250's properties, e.g., ui250 and us250, then we expect the
+                // count to be only 1 because only node 250 contains these
+                ASSERT_EQ(tuple->getValue(0)->val.int64Val, 1);
+            } else {
+                // If we are not looking for 250's properties, e.g., ui0 and us0, then we expect the
+                // count to be 2 because there are 2 nodes with those properties: 1 is the node with
+                // nodeID=nodeOffsetForPropKeys; and 2 is node 250 which has all unstructured
+                // properties.
+                ASSERT_EQ(tuple->getValue(0)->val.int64Val, 2);
+            }
+        }
+    }
+
+    void removeAllPropertiesOfAllNodesTest(bool isCommit, bool testRecovery) {
+        // We blindly remove all unstructured properties from all nodes one by one
+        for (uint64_t queryNodeOffset = 0; queryNodeOffset <= 600; queryNodeOffset++) {
+            for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+                 ++nodeOffsetForPropKeys) {
+                removeProperty(queryNodeOffset, "ui" + to_string(nodeOffsetForPropKeys));
+                removeProperty(queryNodeOffset, "us" + to_string(nodeOffsetForPropKeys));
+            }
+        }
+
+        verifyEmptyDB(conn.get());
+        verifyInitialDBState(readConn.get());
+
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+
+        if (isCommit) {
+            verifyEmptyDB(conn.get());
+            verifyEmptyDB(readConn.get());
+        } else {
+            verifyInitialDBState(conn.get());
+            verifyInitialDBState(readConn.get());
+        }
+    }
+
+    void verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(Connection* connection) {
+        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+             ++nodeOffsetForPropKeys) {
+            string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui" +
+                           to_string(nodeOffsetForPropKeys) + ", a.us" +
+                           to_string(nodeOffsetForPropKeys);
+            auto qResult = connection->query(query);
+            auto tuple = qResult->getNext();
+            ASSERT_FALSE(tuple->isNull(0));
+            ASSERT_EQ(tuple->getValue(0)->val.int64Val, intVal.val.int64Val);
+            ASSERT_FALSE(tuple->isNull(1));
+            ASSERT_EQ(tuple->getValue(1)->val.strVal, longStrVal.val.strVal);
+        }
+    }
+
+    void verifyReadOrRolledbackTrxInsertALargeNumberOfPropertiesTest(Connection* connection) {
+        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+             ++nodeOffsetForPropKeys) {
+            string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui" +
+                           to_string(nodeOffsetForPropKeys) + ", a.us" +
+                           to_string(nodeOffsetForPropKeys);
+            auto qResult = connection->query(query);
+            auto tuple = qResult->getNext();
+            if (nodeOffsetForPropKeys == 123) {
+                ASSERT_FALSE(tuple->isNull(0));
+                ASSERT_EQ(tuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
+                ASSERT_FALSE(tuple->isNull(1));
+                ASSERT_EQ(tuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
+            } else {
+                ASSERT_TRUE(tuple->isNull(0));
+                ASSERT_TRUE(tuple->isNull(1));
+            }
+        }
+    }
+
+    void insertALargeNumberOfPropertiesTest(bool isCommit, bool testRecovery) {
+        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+             ++nodeOffsetForPropKeys) {
+            setPropertyOfNode(123, "ui" + to_string(nodeOffsetForPropKeys), intVal);
+            setPropertyOfNode(123, "us" + to_string(nodeOffsetForPropKeys), longStrVal);
+        }
+
+        verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(conn.get());
+        verifyReadOrRolledbackTrxInsertALargeNumberOfPropertiesTest(readConn.get());
+
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+
+        if (isCommit) {
+            verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(conn.get());
+            verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(readConn.get());
+        } else {
+            verifyReadOrRolledbackTrxInsertALargeNumberOfPropertiesTest(conn.get());
+            verifyReadOrRolledbackTrxInsertALargeNumberOfPropertiesTest(readConn.get());
+        }
+    }
+
+    // This function assumes that the current state of the db is empty.
+    void writeInitialDBStateTest(bool isInitialStateEmpty, bool isCommit, bool testRecovery) {
+        for (uint64_t queryNodeOffset = 0; queryNodeOffset <= 600; queryNodeOffset++) {
+            if (queryNodeOffset == 250) {
+                for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
+                     ++nodeOffsetForPropKeys) {
+                    setPropertyOfNode(
+                        queryNodeOffset, "ui" + to_string(nodeOffsetForPropKeys), existingIntVal);
+                    setPropertyOfNode(
+                        queryNodeOffset, "us" + to_string(nodeOffsetForPropKeys), existingStrVal);
+                }
+            } else {
+                setPropertyOfNode(
+                    queryNodeOffset, "ui" + to_string(queryNodeOffset), existingIntVal);
+                setPropertyOfNode(
+                    queryNodeOffset, "us" + to_string(queryNodeOffset), existingStrVal);
+            }
+        }
+
+        verifyInitialDBState(conn.get());
+        if (isInitialStateEmpty) {
+            verifyEmptyDB(readConn.get());
+        } else {
+            verifyInitialDBState(readConn.get());
+        }
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+
+        if (isCommit) {
+            verifyInitialDBState(conn.get());
+            verifyInitialDBState(readConn.get());
+        } else {
+            if (isInitialStateEmpty) {
+                verifyEmptyDB(conn.get());
+                verifyEmptyDB(readConn.get());
+            } else {
+                verifyInitialDBState(conn.get());
+                verifyInitialDBState(readConn.get());
+            }
+        }
+    }
+
+    void removeAndWriteDataTwiceTest(bool isCommit, bool testRecovery) {
+        removeAllPropertiesOfAllNodesTest(isCommit, testRecovery);
+        writeInitialDBStateTest(isCommit ? true /* initial state is empty db */ :
+                                           false /* initial state is inital db state */,
+            isCommit, testRecovery);
+        removeAllPropertiesOfAllNodesTest(isCommit, testRecovery);
+        writeInitialDBStateTest(isCommit ? true /* initial state is empty db */ :
+                                           false /* initial state is inital db state */,
+            isCommit, testRecovery);
+    }
+
+    void addNewListsTest(bool isCommit, bool testRecovery) {
+        uint32_t unstrIntPropKey = database->getCatalog()
+                                       ->getReadOnlyVersion()
+                                       ->getNodeProperty(personNodeLabel, "ui0")
+                                       .propertyID;
+        uint32_t unstrStrPropKey = database->getCatalog()
+                                       ->getReadOnlyVersion()
+                                       ->getNodeProperty(personNodeLabel, "us0")
+                                       .propertyID;
+        // Inserting until 1100 ensures that chunk 1 is filled and a new chunk 2 is started
+        for (node_offset_t nodeOffset = 601; nodeOffset < 1100; ++nodeOffset) {
+            personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(nodeOffset);
+            personNodeTable->getUnstrPropertyLists()->setProperty(
+                nodeOffset, unstrIntPropKey, &existingIntVal);
+            personNodeTable->getUnstrPropertyLists()->setProperty(
+                nodeOffset, unstrStrPropKey, &existingStrVal);
+        }
+
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        if (isCommit) {
+            // We test that the newly lists are inserted through callin ghte
+            // readUnstructuredPropertiesOfNode(), which was a function designed for tests because
+            // currently the frontend to add new nodes and unstructured properties is not supported.
+            for (node_offset_t nodeOffset = 601; nodeOffset < 1100; ++nodeOffset) {
+                auto unstrProperties =
+                    personNodeTable->getUnstrPropertyLists()->readUnstructuredPropertiesOfNode(
+                        nodeOffset);
+                ASSERT_EQ(2, unstrProperties->size());
+                auto actualIntVal = unstrProperties->find(unstrIntPropKey)->second;
+                ASSERT_FALSE(actualIntVal.isNull());
+                ASSERT_EQ(existingIntVal.val.int64Val, actualIntVal.val.int64Val);
+                auto actualStrVal = unstrProperties->find(unstrStrPropKey)->second;
+                ASSERT_FALSE(actualStrVal.isNull());
+                ASSERT_EQ(existingStrVal.val.strVal.getAsString(), actualStrVal.strVal);
+            }
+        } else {
+            ASSERT_EQ(601, personNodeTable->getUnstrPropertyLists()
+                               ->getHeaders()
+                               ->headersDiskArray->getNumElements(TransactionType::WRITE));
+            ASSERT_EQ(601, personNodeTable->getUnstrPropertyLists()
+                               ->getHeaders()
+                               ->headersDiskArray->getNumElements(TransactionType::READ_ONLY));
+        }
     }
 
 public:
@@ -94,146 +500,190 @@ public:
     Value existingStrVal, existingIntVal, shortStrVal, longStrVal, intVal;
 };
 
-TEST_F(UnstructuredPropertyListsUpdateTests, UpdateExistingFixedLenPropertiesUseShortString) {
-    setPropertyOfNode123("ui123", intVal);
-    setPropertyOfNode123("us123", shortStrVal);
-    queryAndVerifyResults(123, "ui123", "us123", intVal /* expected int for write trx */,
-        shortStrVal /* expected str for write trx */,
-        existingIntVal /* expected int for read trx */,
-        existingStrVal /* expected str for write trx */);
+TEST_F(UnstructuredPropertyListsUpdateTests,
+    ExistingFixedLenPropertiesShortStringCommitNormalExecution) {
+    updateExistingFixedLenPropertiesUseShortStringTest(
+        true /* commit */, false /* normal execution */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, UpdateExistingFixedLenAndStringPropTest) {
-    setPropertyOfNode123("us123", longStrVal);
-    queryAndVerifyResults(123, "ui123", "us123", existingIntVal /* expected int for write trx */,
-        longStrVal /* expected str for write trx */, existingIntVal /* expected int for read trx */,
-        existingStrVal /* expected str for write trx */);
+TEST_F(UnstructuredPropertyListsUpdateTests,
+    ExistingFixedLenPropertiesShortStringRollbackNormalExecution) {
+    updateExistingFixedLenPropertiesUseShortStringTest(
+        false /* rollback */, false /* normal execution */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsTest) {
-    setPropertyOfNode123("us125", longStrVal);
-    setPropertyOfNode123("ui124", intVal);
-    string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui124, a.us125";
-    auto writeConTuple = conn->query(query)->getNext();
-    ASSERT_EQ(writeConTuple->getValue(0)->val.int64Val, intVal.val.int64Val);
-    ASSERT_EQ(writeConTuple->getValue(1)->val.strVal, longStrVal.val.strVal);
-
-    auto readConTuple = readConn->query(query)->getNext();
-    ASSERT_TRUE(readConTuple->isNull(0));
-    ASSERT_TRUE(readConTuple->isNull(1));
+TEST_F(UnstructuredPropertyListsUpdateTests, ExistingFixedLenPropertiesShortStringCommitRecovery) {
+    updateExistingFixedLenPropertiesUseShortStringTest(true /* commit */, true /* recovering */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingProperties) {
-    removeProperty(123, "us123");
-    removeProperty(123, "ui123");
-    string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui123, a.us123";
-    auto writeConTuple = conn->query(query)->getNext();
-    ASSERT_TRUE(writeConTuple->isNull(0));
-    ASSERT_TRUE(writeConTuple->isNull(1));
-
-    auto readConTuple = readConn->query(query)->getNext();
-    ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
-    ASSERT_EQ(readConTuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
+TEST_F(
+    UnstructuredPropertyListsUpdateTests, ExistingFixedLenPropertiesShortStringRollbackRecovery) {
+    updateExistingFixedLenPropertiesUseShortStringTest(
+        false /* is rollback */, true /* recovering */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingProperties) {
-    removeProperty(123, "us125");
-    removeProperty(123, "ui124");
-    string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui123, a.us123";
-    queryAndVerifyResults(123, "ui123", "us123", existingIntVal /* expected int for write trx */,
-        existingStrVal /* expected str for write trx */,
-        existingIntVal /* expected int for read trx */,
-        existingStrVal /* expected str for write trx */);
-    // TODO(Semih): When commit & checkpointing logic is implemented, we can test here that the wal
-    // is empty because this is one case where there is actually not updates.
+TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestCommitNormalExecution) {
+    updateLongStringPropertyTest(true /* commit */, false /* normal execution */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedProperties) {
-    setPropertyOfNode123("us125", longStrVal);
-    removeProperty(123, "us125");
-    setPropertyOfNode123("ui123", intVal);
-    removeProperty(123, "ui123");
-
-    string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui123, a.us123, a.us125";
-    auto writeConTuple = conn->query(query)->getNext();
-    ASSERT_TRUE(writeConTuple->isNull(0));
-    ASSERT_EQ(writeConTuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
-    ASSERT_TRUE(writeConTuple->isNull(2));
-
-    auto readConTuple = readConn->query(query)->getNext();
-    ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
-    ASSERT_EQ(readConTuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
-    ASSERT_TRUE(readConTuple->isNull(2));
+TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestRollbackNormalExecution) {
+    updateLongStringPropertyTest(false /* rollback */, false /* normal execution */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesBySetPropertyListEmpty) {
-    personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(123);
-    string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui123, a.us123";
-    auto writeConTuple = conn->query(query)->getNext();
-    ASSERT_TRUE(writeConTuple->isNull(0));
-    ASSERT_TRUE(writeConTuple->isNull(1));
-
-    auto readConTuple = readConn->query(query)->getNext();
-    ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
-    ASSERT_EQ(readConTuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
+TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestCommitRecovery) {
+    updateLongStringPropertyTest(true /* commit */, true /* recovering */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfProperties) {
-    for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
-         ++nodeOffsetForPropKeys) {
-        setPropertyOfNode123("ui" + to_string(nodeOffsetForPropKeys), intVal);
-        setPropertyOfNode123("us" + to_string(nodeOffsetForPropKeys), longStrVal);
-    }
-    for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
-         ++nodeOffsetForPropKeys) {
-        string query = "MATCH (a:person) WHERE a.ID = 123 RETURN a.ui" +
-                       to_string(nodeOffsetForPropKeys) + ", a.us" +
-                       to_string(nodeOffsetForPropKeys);
-        auto writeConTuple = conn->query(query)->getNext();
-        ASSERT_EQ(writeConTuple->getValue(0)->val.int64Val, intVal.val.int64Val);
-        ASSERT_EQ(writeConTuple->getValue(1)->val.strVal, longStrVal.val.strVal);
-
-        auto readConTuple = readConn->query(query)->getNext();
-        if (nodeOffsetForPropKeys == 123) {
-            ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, existingIntVal.val.int64Val);
-            ASSERT_EQ(readConTuple->getValue(1)->val.strVal, existingStrVal.val.strVal);
-        } else {
-            ASSERT_TRUE(readConTuple->isNull(0));
-            ASSERT_TRUE(readConTuple->isNull(1));
-        }
-    }
+TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestRollbackRecovery) {
+    updateLongStringPropertyTest(false /* rollback */, true /* recovering */);
 }
 
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllUnstructuredPropertiesOfAllNodes) {
-    // We blindly remove all unstructured properties from all nodes one by one
-    for (uint64_t queryNodeOffset = 0; queryNodeOffset <= 600; queryNodeOffset++) {
-        for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
-             ++nodeOffsetForPropKeys) {
-            removeProperty(queryNodeOffset, "ui" + to_string(nodeOffsetForPropKeys));
-            removeProperty(queryNodeOffset, "us" + to_string(nodeOffsetForPropKeys));
-        }
-    }
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsCommitNormalExecution) {
+    insertNonExistingPropsTest(true /* commit */, false /* normal execution */);
+}
 
-    uint64_t numQueries = 0;
-    for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
-         nodeOffsetForPropKeys++) {
-        string query = "MATCH (a:person) WHERE a.ui" + to_string(nodeOffsetForPropKeys) +
-                       " IS NOT NULL OR a.us" + to_string(nodeOffsetForPropKeys) +
-                       " IS NOT NULL RETURN count (*)";
-        auto writeConTuple = conn->query(query)->getNext();
-        ASSERT_EQ(writeConTuple->getValue(0)->val.int64Val, 0);
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsRollbackNormalExecution) {
+    insertNonExistingPropsTest(false /* rollback */, false /* normal execution */);
+}
 
-        auto readConTuple = readConn->query(query)->getNext();
-        if (nodeOffsetForPropKeys == 250) {
-            // If we are looking for 250's properties, e.g., ui250 and us250, then we expect the
-            // count to be only 1 because only node 250 contains these
-            ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, 1);
-        } else {
-            // If we are not looking for 250's properties, e.g., ui0 and us0, then we expect the
-            // count to be 2 because there are 2 nodes with those properties: 1 is the node with
-            // nodeID=nodeOffsetForPropKeys; and 2 is node 250 which has all unstructured
-            // properties.
-            ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, 2);
-        }
-    }
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsCommitRecovery) {
+    insertNonExistingPropsTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsRollbackRecovery) {
+    insertNonExistingPropsTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesCommitNormalExecution) {
+    removeExistingPropsTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesRollbackNormalExecution) {
+    removeExistingPropsTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesCommitRecovery) {
+    removeExistingPropsTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesRollbackRecovery) {
+    removeExistingPropsTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesCommitNormalExecution) {
+    removeNonExistingPropsTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesRollbackNormalExecution) {
+    removeNonExistingPropsTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesCommitRecovery) {
+    removeNonExistingPropsTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesRollbackRecovery) {
+    removeNonExistingPropsTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesCommitNormalExecution) {
+    removeNewlyAddedPropertiesTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesRollbackNormalExecution) {
+    removeNewlyAddedPropertiesTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesCommitRecovery) {
+    removeNewlyAddedPropertiesTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesRollbackRecovery) {
+    removeNewlyAddedPropertiesTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests,
+    RemoveAllPropertiesBySetPropertyListEmptyCommitNormalExecution) {
+    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests,
+    RemoveAllPropertiesBySetPropertyListEmptyRollbackNormalExecution) {
+    removeAllPropertiesBySetPropertyListEmptyTest(
+        false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(
+    UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesBySetPropertyListEmptyCommitRecovery) {
+    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests,
+    RemoveAllPropertiesBySetPropertyListEmptyRollbackRecovery) {
+    removeAllPropertiesBySetPropertyListEmptyTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesCommitNormalExecution) {
+    insertALargeNumberOfPropertiesTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(
+    UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesRollbackNormalExecution) {
+    insertALargeNumberOfPropertiesTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesCommitRecovery) {
+    insertALargeNumberOfPropertiesTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesRollbackRecovery) {
+    insertALargeNumberOfPropertiesTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitNormalExecution) {
+    removeAllPropertiesOfAllNodesTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackNormalExecution) {
+    removeAllPropertiesOfAllNodesTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitRecovery) {
+    removeAllPropertiesOfAllNodesTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackRecovery) {
+    removeAllPropertiesOfAllNodesTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitNormalExecution) {
+    removeAndWriteDataTwiceTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackNormalExecution) {
+    removeAndWriteDataTwiceTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitRecovery) {
+    removeAndWriteDataTwiceTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackRecovery) {
+    removeAndWriteDataTwiceTest(false /* rollback */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitNormalExecution) {
+    addNewListsTest(true /* commit */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackNormalExecution) {
+    addNewListsTest(false /* rollback */, false /* normal execution */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitRecovery) {
+    addNewListsTest(true /* commit */, true /* recovery */);
+}
+
+TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackRecovery) {
+    addNewListsTest(false /* rollback */, true /* recovery */);
 }

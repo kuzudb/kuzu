@@ -50,7 +50,7 @@ public:
         vector<shared_ptr<ValueVector>> valueVectors;
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             shared_ptr<ValueVector> valueVector =
-                make_shared<ValueVector>(memoryManager.get(), INT64);
+                make_shared<ValueVector>(INT64, memoryManager.get());
             auto intValuePtr = (int64_t*)valueVector->values;
             for (auto j = 0u; j < numOfElementsPerCol; j++) {
                 intValuePtr[j] = 5;
@@ -127,7 +127,7 @@ public:
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
-    shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+    shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
     auto int64Values = (int64_t*)int64ValueVector->values;
     int64Values[0] = 73; // positive number
     int64ValueVector->setNull(1, true);
@@ -194,7 +194,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     // This test is used to test whether the orderByKeyEncoder correctly encodes the filtered
     // valueVector.
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+    shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
     auto int64Values = (int64_t*)int64ValueVector->values;
     int64Values[0] = 73;
     int64Values[1] = -52;
@@ -236,7 +236,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
 TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
-    shared_ptr<ValueVector> boolValueVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
+    shared_ptr<ValueVector> boolValueVector = make_shared<ValueVector>(BOOL, memoryManager.get());
     auto boolValues = (bool*)boolValueVector->values;
     boolValues[0] = true;
     boolValues[1] = false;
@@ -267,7 +267,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
 TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
-    shared_ptr<ValueVector> dateValueVector = make_shared<ValueVector>(memoryManager.get(), DATE);
+    shared_ptr<ValueVector> dateValueVector = make_shared<ValueVector>(DATE, memoryManager.get());
     auto dateValues = (date_t*)dateValueVector->values;
     dateValues[0] = Date::FromCString("2035-07-04", strlen("2035-07-04")); // date after 1970-01-01
     dateValueVector->setNull(1, true);
@@ -305,7 +305,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> timestampValueVector =
-        make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
+        make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
     auto timestampValues = (timestamp_t*)timestampValueVector->values;
     // timestamp before 1970-01-01
     timestampValues[0] =
@@ -357,7 +357,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 2;
     shared_ptr<ValueVector> intervalValueVector =
-        make_shared<ValueVector>(memoryManager.get(), INTERVAL);
+        make_shared<ValueVector>(INTERVAL, memoryManager.get());
     auto intervalValues = (interval_t*)intervalValueVector->values;
     intervalValues[0] = Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
         strlen("18 hours 55 days 13 years 8 milliseconds 3 months"));
@@ -404,7 +404,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 4;
     shared_ptr<ValueVector> stringValueVector =
-        make_shared<ValueVector>(memoryManager.get(), STRING);
+        make_shared<ValueVector>(STRING, memoryManager.get());
     stringValueVector->addString(0, "short str"); // short string
     stringValueVector->setNull(1, true);
     stringValueVector->addString(2, "commonprefix string1"); // long string(encoding: commonprefix)
@@ -477,7 +477,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
     shared_ptr<ValueVector> doubleValueVector =
-        make_shared<ValueVector>(memoryManager.get(), DOUBLE);
+        make_shared<ValueVector>(DOUBLE, memoryManager.get());
     auto doubleValues = (double*)doubleValueVector->values;
     doubleValues[0] = 3.452; // small positive number
     doubleValueVector->setNull(1, true);
@@ -564,7 +564,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 5;
     shared_ptr<ValueVector> unstrValueVector =
-        make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
+        make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
     auto unstrValues = (Value*)unstrValueVector->values;
     unstrValues[0] = Value(38.22);
     unstrValueVector->setNull(1, true);
@@ -640,11 +640,11 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColMultiBlockFlatTest) {
 
 TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     vector<bool> isAscOrder = {true, false, true, true, true};
-    auto intFlatValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    auto doubleFlatValueVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-    auto stringFlatValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    auto timestampFlatValueVector = make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
-    auto dateFlatValueVector = make_shared<ValueVector>(memoryManager.get(), DATE);
+    auto intFlatValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
+    auto doubleFlatValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());
+    auto stringFlatValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
+    auto timestampFlatValueVector = make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
+    auto dateFlatValueVector = make_shared<ValueVector>(DATE, memoryManager.get());
 
     auto mockDataChunk = make_shared<DataChunk>(5);
     mockDataChunk->insert(0, intFlatValueVector);

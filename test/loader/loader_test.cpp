@@ -68,10 +68,10 @@ public:
                 (*unstrPropLists->metadata.chunkToPageListHeadIdxMap)[chunkIdx]);
         }
         // Check chunk idx 2's pageLists.
-        EXPECT_EQ(storage::ListsMetadata::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE,
+        EXPECT_EQ(storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE,
             unstrPropLists->metadata.pageLists->header.numElements);
         for (int chunkPageListIdx = 0;
-             chunkPageListIdx < storage::ListsMetadata::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE;
+             chunkPageListIdx < storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE;
              ++chunkPageListIdx) {
             if (chunkPageListIdx == 0) {
                 EXPECT_NE(PAGE_IDX_MAX, (*unstrPropLists->metadata.pageLists)[chunkPageListIdx]);

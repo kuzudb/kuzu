@@ -13,7 +13,7 @@ namespace processor {
 struct DFSLevelInfo {
     DFSLevelInfo(uint8_t level, ExecutionContext& context)
         : level{level}, hasBeenOutput{false}, children{make_shared<ValueVector>(
-                                                  context.memoryManager, NODE_ID)} {};
+                                                  NODE_ID, context.memoryManager)} {};
     const uint8_t level;
     bool hasBeenOutput;
     shared_ptr<ValueVector> children;

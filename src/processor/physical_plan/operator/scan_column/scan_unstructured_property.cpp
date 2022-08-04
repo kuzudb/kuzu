@@ -9,7 +9,7 @@ shared_ptr<ResultSet> ScanUnstructuredProperty::init(ExecutionContext* context) 
     resultSet = BaseScanColumn::init(context);
     for (auto i = 0u; i < outputVectorsPos.size(); ++i) {
         assert(unstructuredPropertyLists->getDataTypeId() == UNSTRUCTURED);
-        auto vector = make_shared<ValueVector>(context->memoryManager, UNSTRUCTURED);
+        auto vector = make_shared<ValueVector>(UNSTRUCTURED, context->memoryManager);
         inputNodeIDDataChunk->insert(outputVectorsPos[i].valueVectorPos, vector);
         outputVectors.push_back(vector);
         propertyKeyToResultVectorMap.insert({propertyKeys[i], vector.get()});

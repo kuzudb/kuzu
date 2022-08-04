@@ -10,7 +10,7 @@ shared_ptr<ResultSet> ScanStructuredProperty::init(ExecutionContext* context) {
     assert(outputVectorsPos.size() == propertyColumns.size());
     for (auto i = 0u; i < propertyColumns.size(); ++i) {
         auto vector =
-            make_shared<ValueVector>(context->memoryManager, propertyColumns[i]->dataType);
+            make_shared<ValueVector>(propertyColumns[i]->dataType, context->memoryManager);
         inputNodeIDDataChunk->insert(outputVectorsPos[i].valueVectorPos, vector);
         outputVectors.push_back(vector);
     }

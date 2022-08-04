@@ -108,16 +108,19 @@ public:
                 catalog->writeCatalogForWALRecord(databaseConfig.databasePath);
             }
         }
+        storageManager->prepareListsToCommitOrRollbackIfNecessary(isCommit);
+
         if (isCommit) {
-            // Note: It is enough to stop and wait transactions to leave the system instead of for
-            // example checking on the query processor's task scheduler. This is because the first
-            // and last steps that a connection performs when executing a query is to start and
-            // comming/rollback transaction. The query processor also ensures that it will only
-            // return results or error after all threads working on the tasks of a query stop
-            // working on the tasks of the query and these tasks are removed from the query.
+            // Note: It is enough to stop and wait transactions to leave the system instead of
+            // for example checking on the query processor's task scheduler. This is because the
+            // first and last steps that a connection performs when executing a query is to
+            // start and comming/rollback transaction. The query processor also ensures that it
+            // will only return results or error after all threads working on the tasks of a
+            // query stop working on the tasks of the query and these tasks are removed from the
+            // query.
             transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
-            // Note: committing and stopping new transactions can be done in any order. This order
-            // allows us to throw exceptions if we have to wait a lot to stop.
+            // Note: committing and stopping new transactions can be done in any order. This
+            // order allows us to throw exceptions if we have to wait a lot to stop.
             transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
             wal->flushAllPages();
             if (skipCheckpointForTestingRecovery) {

@@ -41,7 +41,7 @@ class Frame {
 
 public:
     explicit Frame(uint64_t pageSize);
-    ~Frame();
+    ~Frame() noexcept(false);
 
 private:
     void resetFrameWithoutLock();

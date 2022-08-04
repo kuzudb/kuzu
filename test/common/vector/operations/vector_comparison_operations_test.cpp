@@ -211,15 +211,15 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(0, lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    auto rVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(1, rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
+    auto result = make_shared<ValueVector>(BOOL, memoryManager.get());
     dataChunk->insert(2, result);
     auto resultData = result->values;
 
@@ -289,15 +289,15 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(0, lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    auto rVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(1, rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
+    auto result = make_shared<ValueVector>(BOOL, memoryManager.get());
     dataChunk->insert(2, result);
     auto resultData = result->values;
 

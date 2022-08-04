@@ -56,15 +56,24 @@ struct StorageConfig {
     static constexpr char NODES_METADATA_FILE_NAME_FOR_WAL[] = "nodes.metadata.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
-    // LIST_CHUNK_SIZE should strictly be a power of 2.
-    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
-    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
     constexpr static double ARRAY_RESIZING_FACTOR = 1.2;
 
     constexpr static uint8_t UNSTR_PROP_KEY_IDX_LEN = 4;
     constexpr static uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
     constexpr static uint8_t UNSTR_PROP_HEADER_LEN =
         UNSTR_PROP_KEY_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
+};
+
+struct ListsMetadataConfig {
+    // LIST_CHUNK_SIZE should strictly be a power of 2.
+    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
+    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
+    // All pageLists (defined later) are broken in pieces (called a pageListGroups) of size
+    // PAGE_LIST_GROUP_SIZE + 1 each and chained together. In each piece, there are
+    // PAGE_LIST_GROUP_SIZE elements of that list and the offset to the next pageListGroups in the
+    // blob that contains all pageListGroups of all lists.
+    static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 3;
+    static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
 };
 
 // Hash Index Configurations

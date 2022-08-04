@@ -21,7 +21,7 @@ page_idx_t WAL::logPageUpdateRecord(
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
         WALRecord::newPageUpdateRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
 
@@ -31,32 +31,40 @@ page_idx_t WAL::logPageInsertRecord(
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
         WALRecord::newPageInsertRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
 
 void WAL::logCommit(uint64_t transactionID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCommitRecord(transactionID);
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logNodeMetadataRecord() {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newNodeMetadataRecord();
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logCatalogRecord() {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCatalogRecord();
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logNodeTableRecord(label_t labelID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newNodeTableRecord(labelID);
-    addNewWALRecordWithoutLock(walRecord);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logOverflowFileNextBytePosRecord(
+    StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
+    lock_t lck{mtx};
+    WALRecord walRecord =
+        WALRecord::newOverflowFileNextBytePosRecord(storageStructureID, prevNextByteToWriteTo);
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::clearWAL() {
@@ -88,7 +96,7 @@ void WAL::initCurrentPage() {
     }
 }
 
-void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
+void WAL::addNewWALRecordNoLock(WALRecord& walRecord) {
     if (offsetInCurrentHeaderPage + sizeof(WALRecord) > WAL_HEADER_PAGE_SIZE) {
         uint64_t nextHeaderPageIdx = fileHandle->addNewPage();
         setNextHeaderPageOfCurrentHeaderPage(nextHeaderPageIdx);
@@ -136,7 +144,7 @@ WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)
 
 void WALIterator::getNextRecord(WALRecord& retVal) {
     lock_t lck{mtx};
-    if (!hasNextRecordWithoutLock()) {
+    if (!hasNextRecordNoLock()) {
         throw RuntimeException("WALIterator cannot read  more log records from the WAL.");
     }
     WALRecord::constructWALRecordFromBytes(

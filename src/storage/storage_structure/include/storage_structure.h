@@ -16,7 +16,11 @@ using namespace graphflow::transaction;
 namespace graphflow {
 namespace storage {
 
+class UnstructuredPropertyListsUpdateIterator;
+
 class StorageStructure {
+    friend class UnstructuredPropertyListsUpdateIterator;
+
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
