@@ -11,7 +11,7 @@
 
 namespace graphflow {
 namespace transaction {
-class TinySnbCreateNodeTableTest;
+class TinySnbDDLTest;
 } // namespace transaction
 } // namespace graphflow
 
@@ -50,7 +50,7 @@ struct DatabaseConfig {
 class Database {
     friend class Connection;
     friend class JOConnection;
-    friend class graphflow::transaction::TinySnbCreateNodeTableTest;
+    friend class graphflow::transaction::TinySnbDDLTest;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)

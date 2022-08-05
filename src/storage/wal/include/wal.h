@@ -105,6 +105,8 @@ public:
 
     void logNodeTableRecord(label_t labelID);
 
+    void logRelTableRecord(label_t labelID);
+
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 

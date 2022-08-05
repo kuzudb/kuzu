@@ -10,17 +10,17 @@ class BoundCreateRelClause : public BoundDDL {
 public:
     explicit BoundCreateRelClause(string labelName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        vector<pair<label_t, label_t>> relConnections)
+        SrcDstLabels srcDstLabels)
         : BoundDDL{StatementType::CREATE_REL_CLAUSE, move(labelName), move(propertyNameDataTypes)},
-          relMultiplicity{relMultiplicity}, relConnections{move(relConnections)} {}
+          relMultiplicity{relMultiplicity}, srcDstLabels{move(srcDstLabels)} {}
 
     RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    vector<pair<label_t, label_t>> getRelConnections() const { return relConnections; }
+    SrcDstLabels getSrcDstLabels() const { return srcDstLabels; }
 
 private:
     RelMultiplicity relMultiplicity;
-    vector<pair<label_t, label_t>> relConnections;
+    SrcDstLabels srcDstLabels;
 };
 
 } // namespace binder

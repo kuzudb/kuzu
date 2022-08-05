@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 bool CreateNodeTable::getNextTuples() {
-    auto newNodeLabelID = catalog->createAndAddNodeLabel(
+    auto newNodeLabelID = catalog->addNodeLabel(
         labelName, propertyNameDataTypes[primaryKeyIdx].name, propertyNameDataTypes);
     nodesMetadata->addNodeMetadata(catalog->getWriteVersion()->getNodeLabel(newNodeLabelID));
     return false;

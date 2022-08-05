@@ -5,7 +5,7 @@ using namespace graphflow::testing;
 namespace graphflow {
 namespace transaction {
 
-class TinySnbCreateNodeTableTest : public BaseGraphLoadingTest {
+class TinySnbDDLTest : public BaseGraphLoadingTest {
 
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
@@ -58,12 +58,35 @@ public:
         }
     }
 
+    void createRelTableCommitAndRecoveryTest(bool testRecovery) {
+        auto preparedStatement = conn->prepareNoLock(
+            "CREATE REL likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
+        conn->beginTransactionNoLock(WRITE);
+        auto profiler = make_unique<Profiler>();
+        auto executionContext = make_unique<ExecutionContext>(1, profiler.get(), nullptr, nullptr);
+        database->queryProcessor->execute(
+            preparedStatement->physicalPlan.get(), executionContext.get());
+        ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), false);
+        if (testRecovery) {
+            conn->commitButSkipCheckpointingForTestingRecovery();
+            ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), false);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 4);
+            initWithoutLoadingGraph();
+            ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), true);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
+        } else {
+            conn->commit();
+            ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), true);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
+        }
+    }
+
     Catalog* catalog;
 };
 } // namespace transaction
 } // namespace graphflow
 
-TEST_F(TinySnbCreateNodeTableTest, MultipleCreateNodeTablesTest) {
+TEST_F(TinySnbDDLTest, MultipleCreateNodeTablesTest) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING, REGISTER_TIME DATE)");
     ASSERT_EQ(result->isSuccess(), true);
@@ -75,11 +98,15 @@ TEST_F(TinySnbCreateNodeTableTest, MultipleCreateNodeTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("STUDENT"), true);
     result = conn->query("MATCH (S:STUDENT) return S.STUDENT_ID");
     ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
     result = conn->query("MATCH (U:UNIVERSITY) return U.NAME");
     ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("MATCH (C:COLLEGE) return C.NAME");
+    ASSERT_EQ(result->isSuccess(), false);
 }
 
-TEST_F(TinySnbCreateNodeTableTest, CreateNodeAfterCreateNodeTableTest) {
+TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTableTest) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING)");
     ASSERT_EQ(result->isSuccess(), true);
@@ -89,7 +116,7 @@ TEST_F(TinySnbCreateNodeTableTest, CreateNodeAfterCreateNodeTableTest) {
     ASSERT_EQ(result->isSuccess(), true);
 }
 
-TEST_F(TinySnbCreateNodeTableTest, CreateNodeTableWithActiveTransactionErrorTest) {
+TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionErrorTest) {
     conn->beginWriteTransaction();
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING, REGISTER_TIME DATE)");
@@ -99,10 +126,37 @@ TEST_F(TinySnbCreateNodeTableTest, CreateNodeTableWithActiveTransactionErrorTest
         "previous transaction and issue a ddl query without opening a transaction.");
 }
 
-TEST_F(TinySnbCreateNodeTableTest, CreateNodeTableCommitTest) {
+TEST_F(TinySnbDDLTest, CreateNodeTableCommitTest) {
     createNodeTableCommitAndRecoveryTest(false /* testRecovery */);
 }
 
-TEST_F(TinySnbCreateNodeTableTest, CreateNodeTableCommitRecoveryTest) {
+TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecoveryTest) {
     createNodeTableCommitAndRecoveryTest(true /* testRecovery */);
+}
+
+TEST_F(TinySnbDDLTest, MultipleCreateRelTablesTest) {
+    auto result = conn->query("CREATE REL likes (FROM person TO person, FROM person TO "
+                              "organisation, date DATE, MANY_MANY)");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), true);
+    result = conn->query("CREATE REL pays (FROM organisation TO person , date DATE, MANY_MANY)");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("pays"), true);
+    result = conn->query("MATCH (p:person)-[l:likes]->(p1:person) return l.date");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("MATCH (o:organisation)-[l:pays]->(p1:person) return l.date");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("MATCH (o:organisation)-[l:employees]->(p1:person) return l.ID");
+    ASSERT_EQ(result->isSuccess(), false);
+}
+
+TEST_F(TinySnbDDLTest, CreateRelTableCommitTest) {
+    createRelTableCommitAndRecoveryTest(false /* testRecovery */);
+}
+
+TEST_F(TinySnbDDLTest, CreateRelTableCommitRecoveryTest) {
+    createRelTableCommitAndRecoveryTest(true /* testRecovery */);
 }

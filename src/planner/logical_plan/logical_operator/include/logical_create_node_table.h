@@ -24,8 +24,6 @@ public:
     }
 
 private:
-    string labelName;
-    vector<PropertyNameDataType> propertyNameDataTypes;
     uint32_t primaryKeyIdx;
 };
 

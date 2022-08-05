@@ -11,6 +11,14 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace catalog {
 
+struct SrcDstLabels {
+    SrcDstLabels(unordered_set<label_t> srcNodeLabels, unordered_set<label_t> dstNodeLabels)
+        : srcNodeLabels{move(srcNodeLabels)}, dstNodeLabels{move(dstNodeLabels)} {}
+    SrcDstLabels() = default;
+    unordered_set<label_t> srcNodeLabels;
+    unordered_set<label_t> dstNodeLabels;
+};
+
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
 
@@ -112,11 +120,7 @@ struct RelLabel : Label {
     RelLabel()
         : Label{"", UINT64_MAX}, relMultiplicity{MANY_MANY}, numGeneratedProperties{UINT32_MAX} {}
     RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
-        vector<Property> properties, unordered_set<label_t> srcNodeLabelIdSet,
-        unordered_set<label_t> dstNodeLabelIdSet)
-        : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity},
-          numGeneratedProperties{0}, properties{move(properties)},
-          srcNodeLabelIdSet{move(srcNodeLabelIdSet)}, dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
+        vector<Property> properties, SrcDstLabels srcDstLabels);
 
     inline void addRelIDDefinition() {
         auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
@@ -142,10 +146,9 @@ struct RelLabel : Label {
     RelMultiplicity relMultiplicity;
     uint32_t numGeneratedProperties;
     vector<Property> properties;
-    unordered_set<label_t> srcNodeLabelIdSet;
-    unordered_set<label_t> dstNodeLabelIdSet;
+    SrcDstLabels srcDstLabels;
     // Cardinality information
-    vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel{2};
+    vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel;
 };
 } // namespace catalog
 } // namespace graphflow

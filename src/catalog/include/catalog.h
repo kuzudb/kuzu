@@ -37,22 +37,11 @@ public:
     /**
      * Node and Rel label functions.
      */
-    unique_ptr<NodeLabel> createNodeLabel(string labelName, string primaryKey,
+    label_t addNodeLabel(string labelName, string primaryKey,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
-    inline void addNodeLabel(unique_ptr<NodeLabel> nodeLabel) {
-        nodeLabelNameToIdMap[nodeLabel->labelName] = nodeLabel->labelId;
-        nodeLabels.push_back(move(nodeLabel));
-    }
-
-    unique_ptr<RelLabel> createRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType>& structuredPropertyDefinitions,
-        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames);
-
-    inline void addRelLabel(unique_ptr<RelLabel> relLabel) {
-        relLabelNameToIdMap[relLabel->labelName] = relLabel->labelId;
-        relLabels.push_back(move(relLabel));
-    }
+    label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels);
 
     virtual inline string getNodeLabelName(label_t labelId) const {
         return nodeLabels[labelId]->labelName;
@@ -62,6 +51,7 @@ public:
     }
 
     inline NodeLabel* getNodeLabel(label_t labelId) const { return nodeLabels[labelId].get(); }
+    inline RelLabel* getRelLabel(label_t labelId) const { return relLabels[labelId].get(); }
 
     inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
     inline uint64_t getNumRelLabels() const { return relLabels.size(); }
@@ -128,8 +118,6 @@ public:
 private:
     static void verifyColDefinitionsForNodeLabel(
         const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions);
-    static void verifyStructurePropertyDefinitionsForRelLabel(
-        const vector<PropertyNameDataType>& colHeaderDefinitions);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -159,20 +147,6 @@ public:
         return builtInAggregateFunctions.get();
     }
 
-    virtual inline unique_ptr<RelLabel> createRelLabel(string labelName,
-        RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType>& structuredPropertyDefinitions,
-        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) {
-        initCatalogContentForWriteTrxIfNecessary();
-        return catalogContentForWriteTrx->createRelLabel(move(labelName), relMultiplicity,
-            structuredPropertyDefinitions, srcNodeLabelNames, dstNodeLabelNames);
-    }
-
-    virtual inline void addRelLabel(unique_ptr<RelLabel> relLabel) {
-        initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->addRelLabel(move(relLabel));
-    }
-
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 
     void checkpointInMemoryIfNecessary();
@@ -189,8 +163,11 @@ public:
 
     ExpressionType getFunctionType(const string& name) const;
 
-    virtual label_t createAndAddNodeLabel(string labelName, string primaryKey,
+    label_t addNodeLabel(string labelName, string primaryKey,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
+
+    label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
@@ -198,28 +175,6 @@ protected:
     unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     unique_ptr<CatalogContent> catalogContentForWriteTrx;
     WAL* wal;
-};
-
-// This class is only used by loader to initialize node/rel labels. Since the loader has no
-// knowledge of transaction, the catalogBuilder always read/update the catalogContentForReadOnly
-// transactions.
-class CatalogBuilder : public Catalog {
-public:
-    CatalogBuilder() : Catalog() {}
-
-    label_t createAndAddNodeLabel(string labelName, string primaryKey,
-        vector<PropertyNameDataType> structuredPropertyDefinitions) override;
-
-    inline unique_ptr<RelLabel> createRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType>& structuredPropertyDefinitions,
-        const vector<string>& srcNodeLabelNames, const vector<string>& dstNodeLabelNames) override {
-        return catalogContentForReadOnlyTrx->createRelLabel(move(labelName), relMultiplicity,
-            structuredPropertyDefinitions, srcNodeLabelNames, dstNodeLabelNames);
-    }
-
-    inline void addRelLabel(unique_ptr<RelLabel> relLabel) override {
-        catalogContentForReadOnlyTrx->addRelLabel(move(relLabel));
-    }
 };
 
 } // namespace catalog

@@ -95,6 +95,13 @@ WALRecord WALRecord::newNodeTableRecord(label_t labelID) {
     return retVal;
 }
 
+WALRecord WALRecord::newRelTableRecord(label_t labelID) {
+    WALRecord retVal;
+    retVal.recordType = REL_TABLE_RECORD;
+    retVal.relTableRecord = RelTableRecord(labelID);
+    return retVal;
+}
+
 WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
     WALRecord retVal;

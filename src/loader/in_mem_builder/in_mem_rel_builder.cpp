@@ -8,27 +8,27 @@ namespace graphflow {
 namespace loader {
 
 InMemRelBuilder::InMemRelBuilder(const RelFileDescription& fileDescription, string outputDirectory,
-    TaskScheduler& taskScheduler, CatalogBuilder& catalogBuilder,
+    TaskScheduler& taskScheduler, Catalog& catalog,
     const vector<uint64_t>& maxNodeOffsetsPerNodeLabel, uint64_t startRelID,
     BufferManager* bufferManager, LoaderProgressBar* progressBar)
     : InMemStructuresBuilder{fileDescription.labelName, fileDescription.filePath,
-          move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalogBuilder,
+          move(outputDirectory), fileDescription.csvReaderConfig, taskScheduler, catalog,
           progressBar},
       fileDescription{fileDescription}, maxNodeOffsetsPerNodeLabel{maxNodeOffsetsPerNodeLabel},
       startRelID{startRelID}, relLabel{nullptr} {
     tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    IDIndexes.resize(catalogBuilder.getReadOnlyVersion()->getNumNodeLabels());
+    IDIndexes.resize(catalog.getReadOnlyVersion()->getNumNodeLabels());
     unordered_set<string> labelNames;
     labelNames.insert(
         fileDescription.srcNodeLabelNames.begin(), fileDescription.srcNodeLabelNames.end());
     labelNames.insert(
         fileDescription.dstNodeLabelNames.begin(), fileDescription.dstNodeLabelNames.end());
     for (auto& labelName : labelNames) {
-        auto nodeLabel = catalogBuilder.getReadOnlyVersion()->getNodeLabelFromName(labelName);
+        auto nodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName);
         assert(IDIndexes[nodeLabel] == nullptr);
         IDIndexes[nodeLabel] = make_unique<HashIndex>(
             StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeLabel),
-            catalogBuilder.getReadOnlyVersion()
+            catalog.getReadOnlyVersion()
                 ->getNodeProperty(nodeLabel, LoaderConfig::ID_FIELD)
                 .dataType,
             *bufferManager, true /* isInMemory */);
@@ -56,14 +56,24 @@ uint64_t InMemRelBuilder::load() {
 }
 
 void InMemRelBuilder::createTableSchema() {
-    auto propertyDefinitions = parseCSVHeader(inputFilePath);
-    auto newRelLabel = catalogBuilder.createRelLabel(labelName,
-        getRelMultiplicityFromString(fileDescription.relMultiplicity), propertyDefinitions,
-        fileDescription.srcNodeLabelNames, fileDescription.dstNodeLabelNames);
+    SrcDstLabels srcDstLabels;
+    for (auto& srcNodeLabelName : fileDescription.srcNodeLabelNames) {
+        srcDstLabels.srcNodeLabels.insert(
+            catalog.getReadOnlyVersion()->getNodeLabelFromName(srcNodeLabelName));
+    }
+    for (auto& dstNodeLabelName : fileDescription.dstNodeLabelNames) {
+        srcDstLabels.dstNodeLabels.insert(
+            catalog.getReadOnlyVersion()->getNodeLabelFromName(dstNodeLabelName));
+    }
+    auto structuredPropertyDefinitions =
+        getAndVerifyStructuredPropertyDefinitions(parseCSVHeader(inputFilePath));
+    auto labelID = catalog.getReadOnlyVersion()->addRelLabel(labelName,
+        getRelMultiplicityFromString(fileDescription.relMultiplicity),
+        structuredPropertyDefinitions, move(srcDstLabels));
+    auto newRelLabel = catalog.getReadOnlyVersion()->getRelLabel(labelID);
     newRelLabel->addRelIDDefinition();
     assert(relLabel == nullptr);
-    relLabel = newRelLabel.get();
-    catalogBuilder.addRelLabel(move(newRelLabel));
+    relLabel = newRelLabel;
 }
 
 void InMemRelBuilder::countLinesPerBlock() {
@@ -80,20 +90,20 @@ void InMemRelBuilder::countLinesPerBlock() {
 
 void InMemRelBuilder::initializeColumnsAndLists() {
     for (auto relDirection : REL_DIRECTIONS) {
-        directionNodeIDCompressionScheme[relDirection] = NodeIDCompressionScheme(
-            catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
-                relLabel->labelId, !relDirection),
-            maxNodeOffsetsPerNodeLabel);
-        directionNumRelsPerLabel[relDirection] = make_unique<atomic_uint64_vec_t>(
-            catalogBuilder.getReadOnlyVersion()->getNumNodeLabels());
+        directionNodeIDCompressionScheme[relDirection] =
+            NodeIDCompressionScheme(catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+                                        relLabel->labelId, !relDirection),
+                maxNodeOffsetsPerNodeLabel);
+        directionNumRelsPerLabel[relDirection] =
+            make_unique<atomic_uint64_vec_t>(catalog.getReadOnlyVersion()->getNumNodeLabels());
         directionLabelListSizes[relDirection].resize(
-            catalogBuilder.getReadOnlyVersion()->getNumNodeLabels());
-        for (auto nodeLabel = 0u;
-             nodeLabel < catalogBuilder.getReadOnlyVersion()->getNumNodeLabels(); nodeLabel++) {
+            catalog.getReadOnlyVersion()->getNumNodeLabels());
+        for (auto nodeLabel = 0u; nodeLabel < catalog.getReadOnlyVersion()->getNumNodeLabels();
+             nodeLabel++) {
             directionLabelListSizes[relDirection][nodeLabel] = make_unique<atomic_uint64_vec_t>(
                 maxNodeOffsetsPerNodeLabel[nodeLabel] + 1 /* num nodes */);
         }
-        if (catalogBuilder.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+        if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relLabel->labelId, relDirection)) {
             initializeColumns(relDirection);
         } else {
@@ -111,7 +121,7 @@ void InMemRelBuilder::initializeColumnsAndLists() {
 }
 
 void InMemRelBuilder::initializeColumns(RelDirection relDirection) {
-    auto nodeLabels = catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+    auto nodeLabels = catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
         relLabel->labelId, relDirection);
     for (auto nodeLabel : nodeLabels) {
         auto numNodes = maxNodeOffsetsPerNodeLabel[nodeLabel] + 1;
@@ -133,7 +143,7 @@ void InMemRelBuilder::initializeColumns(RelDirection relDirection) {
 }
 
 void InMemRelBuilder::initializeLists(RelDirection relDirection) {
-    auto nodeLabels = catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+    auto nodeLabels = catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
         relLabel->labelId, relDirection);
     for (auto nodeLabel : nodeLabels) {
         auto numNodes = maxNodeOffsetsPerNodeLabel[nodeLabel] + 1;
@@ -199,13 +209,12 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
     vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};
     for (auto& relDirection : REL_DIRECTIONS) {
-        auto nodeLabels =
-            builder->catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
-                builder->relLabel->labelId, relDirection);
+        auto nodeLabels = builder->catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+            builder->relLabel->labelId, relDirection);
         requireToReadLabels[relDirection] = nodeLabels.size() != 1;
         nodeIDs[relDirection].label = *nodeLabels.begin();
         nodeIDTypes[relDirection] =
-            builder->catalogBuilder.getReadOnlyVersion()
+            builder->catalog.getReadOnlyVersion()
                 ->getNodeProperty(nodeIDs[relDirection].label, LoaderConfig::ID_FIELD)
                 .dataType;
     }
@@ -214,7 +223,7 @@ void InMemRelBuilder::populateAdjColumnsAndCountRelsInAdjListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
-            builder->tmpReadTransaction.get(), builder->catalogBuilder, requireToReadLabels);
+            builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto nodeLabel = nodeIDs[relDirection].label;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -446,11 +455,10 @@ void InMemRelBuilder::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
 
 void InMemRelBuilder::populateNumRels() {
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto boundNodeLabel :
-            catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
-                relLabel->labelId, relDirection)) {
-            relLabel->numRelsPerDirectionBoundLabel[relDirection].emplace(boundNodeLabel,
-                directionNumRelsPerLabel[relDirection]->operator[](boundNodeLabel).load());
+        for (auto boundNodeLabel : catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+                 relLabel->labelId, relDirection)) {
+            relLabel->numRelsPerDirectionBoundLabel[relDirection][boundNodeLabel] =
+                directionNumRelsPerLabel[relDirection]->operator[](boundNodeLabel).load();
         }
     }
 }
@@ -539,13 +547,12 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(
     vector<DataType> nodeIDTypes{2};
     vector<uint64_t> reversePos{2};
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeLabels =
-            builder->catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
-                builder->relLabel->labelId, relDirection);
+        auto nodeLabels = builder->catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+            builder->relLabel->labelId, relDirection);
         requireToReadLabels[relDirection] = nodeLabels.size() != 1;
         nodeIDs[relDirection].label = *nodeLabels.begin();
         nodeIDTypes[relDirection] =
-            builder->catalogBuilder.getReadOnlyVersion()
+            builder->catalog.getReadOnlyVersion()
                 ->getNodeProperty(nodeIDs[relDirection].label, LoaderConfig::ID_FIELD)
                 .dataType;
     }
@@ -554,9 +561,9 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDTypes, builder->IDIndexes,
-            builder->tmpReadTransaction.get(), builder->catalogBuilder, requireToReadLabels);
+            builder->tmpReadTransaction.get(), builder->catalog, requireToReadLabels);
         for (auto relDirection : REL_DIRECTIONS) {
-            if (!builder->catalogBuilder.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+            if (!builder->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     builder->relLabel->labelId, relDirection)) {
                 auto nodeOffset = nodeIDs[relDirection].offset;
                 auto nodeLabel = nodeIDs[relDirection].label;
@@ -732,7 +739,7 @@ void InMemRelBuilder::saveToFile() {
     logger->debug("Writing columns and lists to disk for rel {}.", labelName);
     progressBar->addAndStartNewJob("Writing adj columns and lists to disk.", 1);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeLabels = catalogBuilder.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
+        auto nodeLabels = catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
             relLabel->labelId, relDirection);
         // Write columns
         for (auto& [_, adjColumn] : directionLabelAdjColumns[relDirection]) {
@@ -754,6 +761,33 @@ void InMemRelBuilder::saveToFile() {
         }
     }
     logger->debug("Done writing columns and lists to disk for rel {}.", labelName);
+}
+
+vector<PropertyNameDataType> InMemRelBuilder::getAndVerifyStructuredPropertyDefinitions(
+    const vector<PropertyNameDataType>& colHeaderDefinitions) {
+    vector<PropertyNameDataType> structuredPropertyDefinitions;
+    auto numMandatoryFields = 0;
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
+            numMandatoryFields++;
+        } else {
+            structuredPropertyDefinitions.emplace_back(colHeaderDefinition);
+        }
+        if (name == LoaderConfig::ID_FIELD) {
+            throw CatalogException("Column header definitions of a rel file cannot contain "
+                                   "the mandatory field 'ID'.");
+        }
+        if (colHeaderDefinition.dataType.typeID == ANY) {
+            throw CatalogException("Column header contains an ANY data type.");
+        }
+    }
+    if (numMandatoryFields != 4) {
+        throw CatalogException("Column header definitions of a rel file does not contains all "
+                               "the mandatory field.");
+    }
+    return structuredPropertyDefinitions;
 }
 
 } // namespace loader

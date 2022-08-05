@@ -1,8 +1,5 @@
 #include "src/storage/store/include/node_table.h"
 
-#include "src/loader/in_mem_storage_structure/include/in_mem_column.h"
-#include "src/loader/in_mem_storage_structure/include/in_mem_lists.h"
-
 namespace graphflow {
 namespace storage {
 
@@ -45,28 +42,6 @@ void NodeTable::deleteNode(
     auto nodeOffset = nodeIDVector->readNodeOffset(pos);
     nodesMetadata->deleteNode(labelID, nodeOffset);
     // TODO(Guodong): delete primary key index
-}
-
-void NodeTable::createEmptyDBFilesForNewNodeTable(
-    Catalog* catalog, label_t label, string directory) {
-    auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(label);
-    for (auto& property : nodeLabel->structuredProperties) {
-        auto fName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeLabel->labelId, property.propertyID);
-        loader::InMemColumnFactory::getInMemPropertyColumn(
-            fName, property.dataType, 0 /* numNodes */)
-            ->saveToFile();
-    }
-    auto unstrPropertyLists = make_unique<loader::InMemUnstructuredLists>(
-        StorageUtils::getNodeUnstrPropertyListsFName(directory, nodeLabel->labelId),
-        0 /* numNodes */);
-    unstrPropertyLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
-    unstrPropertyLists->saveToFile();
-    auto IDIndex =
-        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(directory, nodeLabel->labelId),
-            nodeLabel->getPrimaryKey().dataType);
-    IDIndex->bulkReserve(0 /* numNodes */);
-    IDIndex->flush();
 }
 
 } // namespace storage

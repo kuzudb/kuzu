@@ -100,7 +100,7 @@ private:
     static vector<PropertyNameDataType> bindPropertyNameDataTypes(
         vector<pair<string, string>> propertyNameDataTypes);
 
-    vector<pair<label_t, label_t>> bindRelConnections(RelConnection relConnections) const;
+    SrcDstLabels bindRelConnections(RelConnection relConnections) const;
 
     static unordered_map<string, char> bindParsingOptions(
         unordered_map<string, string> parsingOptions);
