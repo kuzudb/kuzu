@@ -18,9 +18,9 @@ public:
     void initVectors() {
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
-        vector1 = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfOperands());
-        vector2 = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfOperands());
-        result = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfResultVector());
+        vector1 = make_shared<ValueVector>(getDataTypeOfOperands(), memoryManager.get());
+        vector2 = make_shared<ValueVector>(getDataTypeOfOperands(), memoryManager.get());
+        result = make_shared<ValueVector>(getDataTypeOfResultVector(), memoryManager.get());
     }
 
 public:

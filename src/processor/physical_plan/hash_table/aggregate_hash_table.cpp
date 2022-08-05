@@ -47,8 +47,8 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
     } else {
         VectorHashOperations::computeHash(groupByFlatKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByFlatKeyVectors, 1 /* startVecIdx */);
-        auto tmpHashResultVector = make_unique<ValueVector>(&memoryManager, INT64);
-        auto tmpHashCombineResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        auto tmpHashResultVector = make_unique<ValueVector>(INT64, &memoryManager);
+        auto tmpHashCombineResultVector = make_unique<ValueVector>(INT64, &memoryManager);
         VectorHashOperations::computeHash(aggregateVector, tmpHashResultVector.get());
         VectorHashOperations::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
@@ -73,7 +73,7 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
     vector<shared_ptr<ValueVector>> hashKeyVectors(groupByHashKeysDataTypes.size());
     vector<shared_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
     for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {
-        auto hashKeyVec = make_shared<ValueVector>(&memoryManager, groupByHashKeysDataTypes[i]);
+        auto hashKeyVec = make_shared<ValueVector>(groupByHashKeysDataTypes[i], &memoryManager);
         hashKeyVec->state = vectorsToScanState;
         hashKeyVectors[i] = hashKeyVec;
         vectorsToScan[i] = hashKeyVec;
@@ -81,7 +81,7 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
     }
     for (auto i = 0u; i < groupByNonHashKeysDataTypes.size(); i++) {
         auto nonHashKeyVec =
-            make_shared<ValueVector>(&memoryManager, groupByNonHashKeysDataTypes[i]);
+            make_shared<ValueVector>(groupByNonHashKeysDataTypes[i], &memoryManager);
         nonHashKeyVec->state = vectorsToScanState;
         nonHashKeyVectors[i] = nonHashKeyVec;
         vectorsToScan[i + groupByHashKeysDataTypes.size()] = nonHashKeyVec;
@@ -186,7 +186,7 @@ void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
 void AggregateHashTable::initializeTmpVectors() {
     hashState = make_shared<DataChunkState>();
     hashState->currIdx = 0;
-    hashVector = make_shared<ValueVector>(&memoryManager, INT64);
+    hashVector = make_shared<ValueVector>(INT64, &memoryManager);
     hashVector->state = hashState;
     hashSlotsToUpdateAggState = make_unique<HashSlot*[]>(DEFAULT_VECTOR_CAPACITY);
     tmpValueIdxes = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
@@ -388,8 +388,8 @@ void AggregateHashTable::computeAndCombineVecHash(
     const vector<ValueVector*>& groupByHashKeyVectors, uint32_t startVecIdx) {
     for (; startVecIdx < groupByHashKeyVectors.size(); startVecIdx++) {
         auto keyVector = groupByHashKeyVectors[startVecIdx];
-        auto tmpHashResultVector = make_unique<ValueVector>(&memoryManager, INT64);
-        auto tmpHashCombineResultVector = make_unique<ValueVector>(&memoryManager, INT64);
+        auto tmpHashResultVector = make_unique<ValueVector>(INT64, &memoryManager);
+        auto tmpHashCombineResultVector = make_unique<ValueVector>(INT64, &memoryManager);
         VectorHashOperations::computeHash(keyVector, tmpHashResultVector.get());
         VectorHashOperations::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());

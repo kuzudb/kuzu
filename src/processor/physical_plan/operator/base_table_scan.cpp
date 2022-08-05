@@ -7,7 +7,7 @@ void BaseTableScan::initFurther(ExecutionContext* context) {
     for (auto i = 0u; i < outVecPositions.size(); ++i) {
         auto outVectorPosition = outVecPositions[i];
         auto outDataChunk = resultSet->dataChunks[outVectorPosition.dataChunkPos];
-        auto valueVector = make_shared<ValueVector>(context->memoryManager, outVecDataTypes[i]);
+        auto valueVector = make_shared<ValueVector>(outVecDataTypes[i], context->memoryManager);
         outDataChunk->insert(outVectorPosition.valueVectorPos, valueVector);
         vectorsToScan.push_back(valueVector);
     }

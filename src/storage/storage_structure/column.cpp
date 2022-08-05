@@ -126,7 +126,7 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
         // If the string we write is a long string, it's overflowPtr is currently pointing to the
         // overflow buffer of vectorToWriteFrom. We need to move it to storage.
         if (!gf_string_t::isShortString(stringToWriteFrom.len)) {
-            stringOverflowPages.writeStringOverflowAndUpdateOverflowPtr(
+            overflowFile.writeStringOverflowAndUpdateOverflowPtr(
                 stringToWriteFrom, *stringToWriteTo);
         }
     }
@@ -140,7 +140,7 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.posInPage), sizeof(gf_string_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(stringOverflowPages.readString(gfString));
+    return Literal(overflowFile.readString(gfString));
 }
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,

@@ -113,7 +113,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    result = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
+    result = make_shared<ValueVector>(DOUBLE, memoryManager.get());
     dataChunk->insert(0, result);
     auto resultDataAsDoubleArr = (double_t*)result->values;
     BinaryOperationExecutor::executeSwitch<int64_t, int64_t, double_t, operation::Power,

@@ -81,12 +81,12 @@ public:
             }
         } break;
         case LISTS: {
-            fName = getListFName(directory, storageStructureID.listFileID);
+            fName = getListFName(directory, storageStructureID);
         } break;
         case NODE_INDEX: {
             throw RuntimeException("There should not be any code path yet triggering getting "
                                    "NODE_INDEX file name from StorageStructureID.");
-        } break;
+        }
         default: {
             throw RuntimeException("Unsupported StorageStructureID in "
                                    "StorageUtils::getFileInfoFromStorageStructureID.");
@@ -212,8 +212,14 @@ public:
         return baseListFName + ".headers";
     }
 
-    inline static string getListFName(const string& directory, ListFileID listFileID) {
+    inline static string getListMetadataFName(string baseListFName) {
+        return baseListFName + ".metadata";
+    }
+
+    inline static string getListFName(
+        const string& directory, StorageStructureID storageStructureID) {
         string baseFName;
+        ListFileID listFileID = storageStructureID.listFileID;
         switch (listFileID.listType) {
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
             baseFName = getNodeUnstrPropertyListsFName(
@@ -227,12 +233,21 @@ public:
         }
 
         switch (listFileID.listFileType) {
+        case BASE_LISTS:
+            if (storageStructureID.isOverflow) {
+                return StorageUtils::getOverflowPagesFName(baseFName);
+            } else {
+                return baseFName;
+            }
         case HEADERS: {
             return getListHeadersFName(baseFName);
         }
+        case METADATA: {
+            return getListMetadataFName(baseFName);
+        }
         default: {
-            throw RuntimeException("There should not be any code path yet triggering getting List "
-                                   "file name for anything other than a HEADERS ListFileType.");
+            throw RuntimeException("This should never happen. There are no listFileType other than "
+                                   "BASE_LISTS, HEADERS, and METADATA");
         }
         }
     }
@@ -258,14 +273,22 @@ public:
 
     static inline uint64_t getNumChunks(node_offset_t numNodes) {
         auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-        if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
+        if (0 != (numNodes & (ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
             numChunks++;
         }
         return numChunks;
     }
 
     static inline uint64_t getListChunkIdx(node_offset_t nodeOffset) {
-        return nodeOffset >> StorageConfig::LISTS_CHUNK_SIZE_LOG_2;
+        return nodeOffset >> ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
+    }
+
+    static inline node_offset_t getChunkIdxBeginNodeOffset(uint64_t chunkIdx) {
+        return chunkIdx << ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
+    }
+
+    static inline node_offset_t getChunkIdxEndNodeOffsetInclusive(uint64_t chunkIdx) {
+        return ((chunkIdx + 1) << ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2) - 1;
     }
 
     static inline void removeCatalogFileForWALIfExists(const string& directory) {

@@ -5,10 +5,6 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-bool UpdatedUnstructuredPropertyLists::empty() {
-    return updatedChunks.empty();
-}
-
 bool UpdatedUnstructuredPropertyLists::hasUpdatedList(node_offset_t nodeOffset) {
     uint64_t chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     return updatedChunks.contains(chunkIdx) &&
@@ -57,6 +53,7 @@ void UpdatedUnstructuredPropertyLists::setProperty(
     if (!found) {
         uint64_t dataTypeSize = Types::getDataTypeSize(value->dataType);
         uint64_t totalSize = StorageConfig::UNSTR_PROP_HEADER_LEN + dataTypeSize;
+
         updatedList->increaseCapacityIfNeeded(updatedList->size + totalSize);
         uint64_t offsetToWriteTo = updatedList->size;
         memcpy(updatedList->data.get() + offsetToWriteTo, reinterpret_cast<uint8_t*>(&propertyKey),

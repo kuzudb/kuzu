@@ -10,7 +10,7 @@ shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
         auto outDataPos = outDataPoses[i];
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
         auto valueVector =
-            make_shared<ValueVector>(context->memoryManager, sharedState->getDataType(i));
+            make_shared<ValueVector>(sharedState->getDataType(i), context->memoryManager);
         outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
         vectorsToRead.emplace_back(valueVector);
     }

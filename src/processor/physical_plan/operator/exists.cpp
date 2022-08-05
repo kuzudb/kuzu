@@ -8,7 +8,7 @@ namespace processor {
 shared_ptr<ResultSet> Exists::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     auto dataChunkToWrite = resultSet->dataChunks[outDataPos.dataChunkPos].get();
-    valueVectorToWrite = make_shared<ValueVector>(context->memoryManager, BOOL);
+    valueVectorToWrite = make_shared<ValueVector>(BOOL, context->memoryManager);
     dataChunkToWrite->insert(outDataPos.valueVectorPos, valueVectorToWrite);
     // side way information passing: give resultSet reference to subPlan
     auto op = children[1]->getLeafOperator();

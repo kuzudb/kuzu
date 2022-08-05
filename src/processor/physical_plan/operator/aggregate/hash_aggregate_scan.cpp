@@ -7,7 +7,7 @@ shared_ptr<ResultSet> HashAggregateScan::init(ExecutionContext* context) {
     auto result = BaseAggregateScan::init(context);
     for (auto i = 0u; i < groupByKeyVectorsPos.size(); i++) {
         auto valueVector =
-            make_shared<ValueVector>(context->memoryManager, groupByKeyVectorDataTypes[i]);
+            make_shared<ValueVector>(groupByKeyVectorDataTypes[i], context->memoryManager);
         auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[i].dataChunkPos];
         outDataChunk->insert(groupByKeyVectorsPos[i].valueVectorPos, valueVector);
         groupByKeyVectors.push_back(valueVector);

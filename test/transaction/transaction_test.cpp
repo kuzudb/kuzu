@@ -33,16 +33,16 @@ public:
                                           .propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
-        nodeVector = make_shared<ValueVector>(database->getMemoryManager(), NODE_ID);
+        nodeVector = make_shared<ValueVector>(NODE_ID, database->getMemoryManager());
         dataChunk->insert(0, nodeVector);
         ((nodeID_t*)nodeVector->values)[0].offset = 0;
         ((nodeID_t*)nodeVector->values)[1].offset = 1;
 
         agePropertyVectorToReadDataInto =
-            make_shared<ValueVector>(database->getMemoryManager(), INT64);
+            make_shared<ValueVector>(INT64, database->getMemoryManager());
         dataChunk->insert(1, agePropertyVectorToReadDataInto);
         eyeSightVectorToReadDataInto =
-            make_shared<ValueVector>(database->getMemoryManager(), DOUBLE);
+            make_shared<ValueVector>(DOUBLE, database->getMemoryManager());
         dataChunk->insert(2, eyeSightVectorToReadDataInto);
 
         personAgeColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
@@ -81,7 +81,7 @@ public:
     void writeToAgePropertyNode(uint64_t nodeOffset, int64_t expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            make_shared<ValueVector>(database->getMemoryManager(), INT64);
+            make_shared<ValueVector>(INT64, database->getMemoryManager());
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
@@ -97,7 +97,7 @@ public:
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            make_shared<ValueVector>(database->getMemoryManager(), DOUBLE);
+            make_shared<ValueVector>(DOUBLE, database->getMemoryManager());
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);

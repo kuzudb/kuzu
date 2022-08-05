@@ -16,11 +16,11 @@ public:
     void SetUp() override {
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
-        group1Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        group2Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        group3Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        aggr1Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        aggr2Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
+        group1Vector = make_shared<ValueVector>(INT64, memoryManager.get());
+        group2Vector = make_shared<ValueVector>(INT64, memoryManager.get());
+        group3Vector = make_shared<ValueVector>(INT64, memoryManager.get());
+        aggr1Vector = make_shared<ValueVector>(INT64, memoryManager.get());
+        aggr2Vector = make_shared<ValueVector>(INT64, memoryManager.get());
         auto group1Values = (int64_t*)group1Vector->values;
         auto group2Values = (int64_t*)group2Vector->values;
         auto group3Values = (int64_t*)group3Vector->values;

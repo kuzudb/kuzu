@@ -51,20 +51,24 @@ public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle);
 
+    inline ListsMetadata& getListsMetadata() { return metadata; };
+
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     ListInfo getListInfo(node_offset_t nodeOffset);
 
-    inline void checkpointInMemoryIfNecessary() {
-        // TODO(Semih): Currently we only support updates to headers as part of the PR that makes
-        // disk arrays transactional. We should later on call checkpointInMemoryIfNecessary also
-        // on ListsMetadata.
-        headers->headersDiskArray->checkpointInMemoryIfNecessary();
+    virtual inline void checkpointInMemoryIfNecessary() {
+        cout << "Lists::checkpointInMemoryIfNecessary called." << endl;
+        headers->checkpointInMemoryIfNecessary();
+        metadata.checkpointInMemoryIfNecessary();
     }
 
-    inline void rollbackInMemoryIfNecessary() {
-        headers->headersDiskArray->rollbackInMemoryIfNecessary();
+    virtual inline void rollbackInMemoryIfNecessary() {
+        headers->rollbackInMemoryIfNecessary();
+        metadata.rollbackInMemoryIfNecessary();
     }
+
+    virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
 
 protected:
     // storageStructureIDAndFName is the ID and fName for the "main ".lists" file.
@@ -72,14 +76,12 @@ protected:
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
-              hasNULLBytes, isInMemory, nullptr /* no wal for now */},
+              hasNULLBytes, isInMemory, wal},
           storageStructureIDAndFName{storageStructureIDAndFName},
           metadata{storageStructureIDAndFName, &bufferManager, wal}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
-
-    virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;

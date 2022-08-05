@@ -4,7 +4,7 @@ namespace graphflow {
 namespace common {
 
 void DataChunk::insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
-    valueVector->state = this->state;
+    valueVector->setState(this->state);
     assert(valueVectors.size() > pos);
     valueVectors[pos] = valueVector;
 }

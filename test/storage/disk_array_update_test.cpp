@@ -36,7 +36,20 @@ public:
         }
     }
 
+    // This function is necessary to call to trigger the checkpoint/rollback mechanism of the
+    // database: since we are using list_headers as a wrapper around the headerDA DiskArray, which
+    // we use as our DiskArray in these tests, a call to set the property list of nodeOffset to
+    // empty will trigger the following: the UnstructuredPropertyLists will have an "update"; then
+    // this will trigger UnstructuredPropertyLists to add itself to
+    // wal->addToUpdatedUnstructuredPropertyLists when prepareCommitOrRollbackIfNecessary called;
+    // then the WALReplayer will call checkpoint/rollbackInMemory on this UnstructuredPropertyLists;
+    // finally UnstructuredPropertyLists will call headerDA->checkpoint/rollbackInMemoryIfNecessary.
+    void setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism() {
+        personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(0);
+    }
+
     void testBasicUpdate(bool isCommit, bool testRecovery) {
+        setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         // This is a simple test to test where we change each element i in a disk array with
         // value i and the verify that we are able to do this transactionally.
         auto headersDA =
@@ -69,6 +82,7 @@ public:
     }
 
     void testBasicPushBack(bool isCommit, bool testRecovery) {
+        setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         auto headersDA =
             personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
         headersDA->pushBack(1234);
@@ -77,7 +91,6 @@ public:
             headersDA->get(1000, TransactionType::READ_ONLY);
             FAIL();
         } catch (exception& e) {}
-
         ASSERT_EQ(1001, headersDA->getNumElements(TransactionType::WRITE));
         ASSERT_EQ(1234, headersDA->get(1000, TransactionType::WRITE));
         try {
@@ -86,8 +99,8 @@ public:
         } catch (exception& e) {}
 
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
-        headersDA = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
 
+        headersDA = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
         if (isCommit) {
             ASSERT_EQ(1001, headersDA->getNumElements(TransactionType::READ_ONLY));
             ASSERT_EQ(1001, headersDA->getNumElements(TransactionType::WRITE));
@@ -100,6 +113,7 @@ public:
     }
 
     void testPushBack(uint64_t sizeAfterPushing, bool isCommit, bool testRecovery) {
+        setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         auto headersDA =
             personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
         auto oldNumPages = headersDA->getFileHandle()->getNumPages();
@@ -131,6 +145,7 @@ public:
 
     void testTwoPushBackBatches(
         bool isCommit, bool testRecovery, uint64_t sizeAfterPushingFirstPhase) {
+        setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         uint64_t sizeAfterPushing = sizeAfterPushingFirstPhase;
         testPushBack(sizeAfterPushing, isCommit, testRecovery);
         if (isCommit) {
@@ -289,7 +304,6 @@ TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillTwoPIPsTestRollbackRecovery) {
 }
 
 TEST_F(DiskArrayUpdateEmptyDBTests, EmptyDiskArrayUpdatesTest) {
-    // In this one we need 1 more than 1024*1024 to create a new pip.
     auto headers = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
     ASSERT_EQ(0, headers->getNumElements(TransactionType::READ_ONLY));
     ASSERT_EQ(0, headers->getNumElements(TransactionType::WRITE));
@@ -300,16 +314,18 @@ TEST_F(DiskArrayUpdateEmptyDBTests, EmptyDiskArrayUpdatesTest) {
         FAIL();
     } catch (exception& e) {}
 
-    headers->pushBack(5678);
+    headers->pushBack(0);
+    setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
     ASSERT_EQ(0, headers->getNumElements(TransactionType::READ_ONLY));
     ASSERT_EQ(1, headers->getNumElements(TransactionType::WRITE));
-    ASSERT_EQ(5678, headers->get(0, TransactionType::WRITE));
+    ASSERT_EQ(0, headers->get(0, TransactionType::WRITE));
 
     commitOrRollbackConnectionAndInitDBIfNecessary(
         true /* is commit */, false /* not recovering */);
+
     headers = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
     ASSERT_EQ(1, headers->getNumElements(TransactionType::READ_ONLY));
     ASSERT_EQ(1, headers->getNumElements(TransactionType::WRITE));
-    ASSERT_EQ(5678, headers->get(0, TransactionType::READ_ONLY));
-    ASSERT_EQ(5678, headers->get(0, TransactionType::WRITE));
+    ASSERT_EQ(0, headers->get(0, TransactionType::READ_ONLY));
+    ASSERT_EQ(0, headers->get(0, TransactionType::WRITE));
 }

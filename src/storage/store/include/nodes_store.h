@@ -39,6 +39,12 @@ public:
             wal, catalog->getReadOnlyVersion()->getNodeLabel(labelID)));
     }
 
+    void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
+        for (uint64_t i = 0; i < nodeTables.size(); ++i) {
+            nodeTables[i]->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
+        }
+    }
+
 private:
     vector<unique_ptr<NodeTable>> nodeTables;
     NodesMetadata nodesMetadata;

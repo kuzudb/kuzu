@@ -66,7 +66,7 @@ void JoinHashTable::buildHashSlots() {
 
 void JoinHashTable::probe(
     ValueVector& keyVector, uint8_t** probedTuples, SelectionVector& probeSelVector) {
-    auto hashVector = make_unique<ValueVector>(&memoryManager, INT64);
+    auto hashVector = make_unique<ValueVector>(INT64, &memoryManager);
     auto hasNoNullValues = NodeIDVector::discardNull(keyVector);
     if (!hasNoNullValues) {
         probeSelVector.selectedSize = 0;

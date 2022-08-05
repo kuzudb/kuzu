@@ -15,14 +15,15 @@ namespace common {
 class ValueVector {
 
 public:
-    ValueVector(MemoryManager* memoryManager, DataType dataType);
-    ValueVector(MemoryManager* memoryManager, DataTypeID dataTypeID)
-        : ValueVector(memoryManager, DataType(dataTypeID)) {
+    ValueVector(DataType dataType, MemoryManager* memoryManager = nullptr);
+    ValueVector(DataTypeID dataTypeID, MemoryManager* memoryManager = nullptr)
+        : ValueVector(DataType(dataTypeID), memoryManager) {
         assert(dataTypeID != LIST);
     }
 
     ~ValueVector() = default;
 
+    inline void setState(shared_ptr<DataChunkState> state_) { state = move(state_); }
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
 

@@ -19,7 +19,7 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     PhysicalOperator::init(context);
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE_ID);
+    outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outValueVector->setSequential();
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     sharedState->initMaxNodeOffset(transaction);

@@ -15,8 +15,7 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
         cursor.pageIdx = metadataBuilder.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
     } else {
         auto chunkId = StorageUtils::getListChunkIdx(nodeOffset);
-        auto csrOffset = ListHeaders::getSmallListCSROffset(header);
-        auto listLen = ListHeaders::getSmallListLen(header);
+        auto [listLen, csrOffset] = ListHeaders::getSmallListLenAndCSROffset(header);
         auto pos = listLen - reversePos;
         cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
         cursor.pageIdx = metadataBuilder.getPageMapperForChunkIdx(chunkId)(
@@ -30,7 +29,7 @@ InMemLists::InMemLists(
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
     auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-    if (0 != (numNodes & (StorageConfig::LISTS_CHUNK_SIZE - 1))) {
+    if (0 != (numNodes & (ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
     listsMetadataBuilder->initChunkPageLists(numChunks);

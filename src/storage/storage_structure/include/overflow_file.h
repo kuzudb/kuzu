@@ -25,7 +25,8 @@ public:
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
-              bufferManager, isInMemory, wal) {
+              bufferManager, isInMemory, wal),
+          loggedNewOverflowFileNextBytePosRecord{false} {
         nextBytePosToWriteTo = fileHandle.getNumPages() * DEFAULT_PAGE_SIZE;
     }
 
@@ -81,6 +82,14 @@ public:
     void writeListOverflowAndUpdateOverflowPtr(const gf_list_t& listToWriteFrom,
         gf_list_t& listToWriteTo, const DataType& elementDataType);
 
+    inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {
+        nextBytePosToWriteTo = nextBytePosToWriteTo_;
+    }
+
+    void resetLoggedNewOverflowFileNextBytePosRecord() {
+        loggedNewOverflowFileNextBytePosRecord = false;
+    }
+
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void readListToVector(
@@ -88,6 +97,7 @@ private:
     void setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst);
     void setListRecursiveIfNestedWithoutLock(
         const gf_list_t& src, gf_list_t& dst, const DataType& dataType);
+    void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
 
 private:
     // This is the index of the last free byte to which we can write.
@@ -98,6 +108,7 @@ private:
     // For simplicity, currently only a single thread can update overflow pages at ant time. See the
     // note in writeStringOverflowAndUpdateOverflowPtr for more details.
     mutex mtx;
+    bool loggedNewOverflowFileNextBytePosRecord;
 };
 
 } // namespace storage

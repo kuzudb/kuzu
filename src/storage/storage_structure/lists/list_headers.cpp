@@ -11,10 +11,10 @@ BaseListHeaders::BaseListHeaders() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
-ListHeadersBuilder::ListHeadersBuilder(const string& fName, uint64_t numElements)
+ListHeadersBuilder::ListHeadersBuilder(const string& baseListFName, uint64_t numElements)
     : BaseListHeaders() {
-    fileHandle = make_unique<FileHandle>(
-        fName + ".headers", FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    fileHandle = make_unique<FileHandle>(StorageUtils::getListHeadersFName(baseListFName),
+        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
     // DiskArray assumes that its header page already exists. To ensure that we need to add a page
     // to the fileHandle. Currently, the header page is at page 0, so we add one page here.
     fileHandle->addNewPage();

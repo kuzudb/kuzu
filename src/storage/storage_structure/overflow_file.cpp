@@ -196,6 +196,7 @@ void OverflowFile::writeStringOverflowAndUpdateOverflowPtr(
     // threads will still try to write to the same page and block each other because we
     // give nextBytePosToWriteTo consecutively.
     lock_t lck{mtx};
+    logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
     setStringOverflowWithoutLock(strToWriteFrom, strToWriteTo);
 }
 
@@ -240,7 +241,16 @@ void OverflowFile::setListRecursiveIfNestedWithoutLock(
 void OverflowFile::writeListOverflowAndUpdateOverflowPtr(
     const gf_list_t& listToWriteFrom, gf_list_t& listToWriteTo, const DataType& dataType) {
     lock_t lck{mtx};
+    logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
     setListRecursiveIfNestedWithoutLock(listToWriteFrom, listToWriteTo, dataType);
+}
+
+void OverflowFile::logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock() {
+    if (!loggedNewOverflowFileNextBytePosRecord) {
+        loggedNewOverflowFileNextBytePosRecord = true;
+        wal->logOverflowFileNextBytePosRecord(
+            fileHandle.getStorageStructureIDIDForWALRecord(), nextBytePosToWriteTo);
+    }
 }
 
 } // namespace storage

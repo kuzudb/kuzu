@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+
+#include "src/common/types/include/types.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
@@ -29,6 +34,10 @@ struct WALPageIdxPosInPageAndFrame : WALPageIdxAndFrame {
 };
 
 class StorageStructureUtils {
+public:
+    constexpr static page_idx_t NULL_PAGE_IDX = PAGE_IDX_MAX;
+    constexpr static uint32_t NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX = UINT32_MAX;
+
 public:
     inline static void pinEachPageOfFile(FileHandle& fileHandle, BufferManager& bufferManager) {
         for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {

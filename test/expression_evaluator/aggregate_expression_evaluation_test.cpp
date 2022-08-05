@@ -19,10 +19,10 @@ public:
     void SetUp() override {
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
-        int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        doubleValueVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-        stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-        unStrValueVector = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
+        int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        doubleValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());
+        stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
+        unStrValueVector = make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
         dataChunk = make_shared<DataChunk>(4);
         auto int64Values = (int64_t*)int64ValueVector->values;
         auto doubleValues = (double_t*)doubleValueVector->values;

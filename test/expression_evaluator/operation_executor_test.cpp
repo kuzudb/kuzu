@@ -37,8 +37,8 @@ public:
         unFlatDataChunk->insert(2, getInt64ValueVector(false /* isStartPosVector */));
         flatDataChunk->insert(3, getStringValueVector());
         unFlatDataChunk->insert(3, getStringValueVector());
-        flatDataChunk->insert(4, make_shared<ValueVector>(memoryManager.get(), BOOL));
-        unFlatDataChunk->insert(4, make_shared<ValueVector>(memoryManager.get(), BOOL));
+        flatDataChunk->insert(4, make_shared<ValueVector>(BOOL, memoryManager.get()));
+        unFlatDataChunk->insert(4, make_shared<ValueVector>(BOOL, memoryManager.get()));
 
         unFlatValueVectorA = unFlatDataChunk->valueVectors[0];
         unFlatValueVectorB = unFlatDataChunk->valueVectors[1];
@@ -130,14 +130,14 @@ public:
 
 private:
     shared_ptr<ValueVector> getStringValueVector() {
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+        auto valueVector = make_shared<ValueVector>(STRING, memoryManager.get());
         valueVector->addString(0, "This is a long string1");
         valueVector->addString(1, "This is another long string");
         valueVector->addString(2, "Substring test");
         return valueVector;
     }
     shared_ptr<ValueVector> getInt64ValueVector(bool isStartPosVector) {
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+        auto valueVector = make_shared<ValueVector>(INT64, memoryManager.get());
         auto values = (int64_t*)valueVector->values;
         vector<int64_t> data =
             isStartPosVector ? vector<int64_t>{2, 1, 3} : vector<int64_t>{7, 10, 12};

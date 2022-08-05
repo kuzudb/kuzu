@@ -10,10 +10,10 @@ using namespace std;
 TEST(ValueVectorTests, TestDefaultHasNull) {
     auto bufferManager = make_unique<BufferManager>();
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
-    ValueVector valueVector(memoryManager.get(), DataTypeID::INT64);
+    ValueVector valueVector(DataTypeID::INT64, memoryManager.get());
     shared_ptr<DataChunkState> dataChunkState =
         make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
-    valueVector.state = dataChunkState;
+    valueVector.setState(dataChunkState);
     valueVector.state->selVector->selectedSize = 3;
     for (int i = 0; i < 3; ++i) {
         ((uint64_t*)valueVector.values)[i] = i;

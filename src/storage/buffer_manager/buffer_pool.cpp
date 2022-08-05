@@ -11,12 +11,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-Frame::Frame(uint64_t pageSize) : frameLock(ATOMIC_FLAG_INIT) {
+Frame::Frame(uint64_t pageSize) : frameLock{ATOMIC_FLAG_INIT} {
     resetFrameWithoutLock();
     buffer = make_unique<uint8_t[]>(pageSize);
 }
 
-Frame::~Frame() {
+Frame::~Frame() noexcept(false) {
     auto count = pinCount.load();
     if (0 != count && -1u != count) {
         throw BufferManagerException("Deleting buffer that is still pinned. pinCount: " +
@@ -104,15 +104,6 @@ void BufferPool::removePageFromFrameWithoutFlushingIfNecessary(
         return;
     }
     removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
-    //    fileHandle.acquirePageLock(pageIdx, true /*block*/);
-    //    auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-    //    if (FileHandle::isAFrame(frameIdx)) {
-    //        auto& frame = bufferCache[frameIdx];
-    //        frame->acquireFrameLock(true /* block */);
-    //        clearFrameAndUnswizzleWithoutLock(frame, fileHandle, pageIdx);
-    //        frame->releaseFrameLock();
-    //    }
-    //    fileHandle.releasePageLock(pageIdx);
 }
 
 void BufferPool::flushAllDirtyPagesInFrames(FileHandle& fileHandle) {

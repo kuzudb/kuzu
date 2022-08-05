@@ -49,7 +49,7 @@ public:
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selVector->selectedSize = sortingData.size();
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
+        auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
         auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
@@ -72,7 +72,7 @@ public:
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
 
         if (hasPayLoadCol) {
-            auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            auto payloadValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
                 payloadValueVector->addString(i, to_string(i));
             }
@@ -173,9 +173,9 @@ public:
         dataChunk->state->selVector->selectedSize = int64Values.size();
         dataChunk->state->currIdx = 0;
 
-        auto int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        auto doubleValueVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-        auto timestampValueVector = make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
+        auto int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        auto doubleValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());
+        auto timestampValueVector = make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
 
         dataChunk->insert(0, int64ValueVector);
         dataChunk->insert(1, doubleValueVector);
@@ -221,8 +221,8 @@ public:
         if (hasStrCol) {
             tableSchema->appendColumn(make_unique<ColumnSchema>(
                 false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
-            auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
-            auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
+            auto stringValueVector1 = make_shared<ValueVector>(STRING, memoryManager.get());
+            auto stringValueVector2 = make_shared<ValueVector>(STRING, memoryManager.get());
             dataChunk1->insert(3, stringValueVector1);
             dataChunk2->insert(3, stringValueVector2);
 
@@ -285,7 +285,7 @@ public:
         dataChunk->state->currIdx = 0;
         dataChunk->state->selVector->selectedSize = strValues[0].size();
         for (auto i = 0u; i < strValues.size(); i++) {
-            auto strValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            auto strValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             dataChunk->insert(i, strValueVector);
             for (auto j = 0u; j < strValues[i].size(); j++) {
                 strValueVector->addString(j, strValues[i][j]);

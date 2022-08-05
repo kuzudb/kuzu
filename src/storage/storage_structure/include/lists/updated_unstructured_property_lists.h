@@ -19,7 +19,7 @@ public:
     UpdatedUnstructuredPropertyLists(OverflowFile& stringOverflowPages)
         : stringOverflowPages{stringOverflowPages} {};
 
-    bool empty();
+    inline bool empty() { return updatedChunks.empty(); }
     bool hasUpdatedList(node_offset_t nodeOffset);
     UnstrPropListIterator getUpdatedListIterator(node_offset_t nodeOffset);
     void setEmptyUpdatedPropertiesList(node_offset_t nodeOffset);
@@ -29,6 +29,7 @@ public:
     // Warning: This function assumes that an updatedList for the nodeOffsetForPropKeys already
     // exists
     void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey);
+    inline void clear() { updatedChunks.clear(); }
 
 private:
     uint64_t getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(node_offset_t nodeOffset);

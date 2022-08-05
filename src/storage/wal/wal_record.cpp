@@ -3,33 +3,6 @@
 namespace graphflow {
 namespace storage {
 
-std::size_t ListFileIDHasher::operator()(const ListFileID& key) const {
-    size_t listTypeHash;
-    switch (key.listType) {
-    case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-        listTypeHash += key.unstructuredNodePropertyListsID.nodeLabel << 3;
-    } break;
-    case ADJ_LISTS: {
-        listTypeHash += (key.adjListsID.relLabelAndDir.relLabel << 5) +
-                        (key.adjListsID.relLabelAndDir.srcNodeLabel << 4) +
-                        (key.adjListsID.relLabelAndDir.dir << 3);
-
-    } break;
-    case REL_PROPERTY_LISTS: {
-        listTypeHash += (key.relPropertyListID.relLabelAndDir.relLabel << 6) +
-                        (key.relPropertyListID.relLabelAndDir.srcNodeLabel << 5) +
-                        (key.relPropertyListID.relLabelAndDir.dir << 4) +
-                        (key.relPropertyListID.propertyID << 3);
-
-    } break;
-    default:
-        throw RuntimeException("Unrecognized ListType: " + to_string(key.listType) +
-                               " in ListFileIDHasher. This should never happen.");
-    }
-    return listTypeHash + (hash<uint8_t>()(key.listType) << 2) + (hash<uint8_t>()(key.listFileType))
-           << 1;
-}
-
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
     label_t nodeLabel, uint32_t propertyID, bool isOverflow) {
     StorageStructureID retVal;
@@ -49,6 +22,7 @@ StorageStructureID StorageStructureID::newNodeIndexID(label_t nodeLabel) {
 StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
     label_t nodeLabel, ListFileType listFileType) {
     StorageStructureID retVal;
+    retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
     retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(nodeLabel));
     return retVal;
@@ -57,6 +31,7 @@ StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
 StorageStructureID StorageStructureID::newAdjListsID(
     label_t relLabel, label_t srcNodeLabel, RelDirection dir, ListFileType listFileType) {
     StorageStructureID retVal;
+    retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
     retVal.listFileID =
         ListFileID(listFileType, AdjListsID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir)));
@@ -66,6 +41,7 @@ StorageStructureID StorageStructureID::newAdjListsID(
 StorageStructureID StorageStructureID::newRelPropertyListsID(label_t relLabel, label_t srcNodeLabel,
     RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
     StorageStructureID retVal;
+    retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
     retVal.listFileID = ListFileID(listFileType,
         RelPropertyListID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir), propertyID));
@@ -116,6 +92,15 @@ WALRecord WALRecord::newNodeTableRecord(label_t labelID) {
     WALRecord retVal;
     retVal.recordType = NODE_TABLE_RECORD;
     retVal.nodeTableRecord = NodeTableRecord(labelID);
+    return retVal;
+}
+
+WALRecord WALRecord::newOverflowFileNextBytePosRecord(
+    StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
+    WALRecord retVal;
+    retVal.recordType = OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
+    retVal.overflowFileNextBytePosRecord =
+        OverflowFileNextBytePosRecord(storageStructureID_, prevNextByteToWriteTo_);
     return retVal;
 }
 

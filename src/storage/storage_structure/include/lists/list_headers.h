@@ -18,7 +18,7 @@ namespace storage {
 
 /**
  * ListHeaders holds the headers of all lists in a single Lists data structure, which implements a
- * chunked CSR, where each chunk stores StorageConfig::LISTS_CHUNK_SIZE many lists.
+ * chunked CSR, where each chunk stores ListsMetadataConfig::LISTS_CHUNK_SIZE many lists.
  *
  * A header of a list is a unsigned integer values. Each value describes the following
  * information about the list: 1) type: small or large, 2) location of list in pages.
@@ -51,16 +51,20 @@ public:
     static inline uint32_t getSmallListCSROffset(list_header_t header) {
         return header >> 11 & 0xfffff;
     };
+    static inline pair<uint32_t, uint32_t> getSmallListLenAndCSROffset(list_header_t header) {
+        return make_pair(getSmallListLen(header), getSmallListCSROffset(header));
+    }
+
     // Constructs a small list header for a list that starts at offset csrOffset and has
     // numElementsInList many elements.
     // Note: if the csrOffset is 0 and the list is empty the header is 0.
-    static inline uint32_t getSmallListHeader(uint32_t csrOffset, uint32_t numElementsInList) {
+    static inline list_header_t getSmallListHeader(uint32_t csrOffset, uint32_t numElementsInList) {
         return ((csrOffset & 0xfffff) << 11) | (numElementsInList & 0x7ff);
     }
 
     // For large lists.
     static inline uint32_t getLargeListIdx(list_header_t header) { return header & 0x7fffffff; };
-    static inline uint32_t getLargeListHeader(uint32_t listIdx) {
+    static inline list_header_t getLargeListHeader(uint32_t listIdx) {
         return 0x80000000 | (listIdx & 0x7fffffff);
     }
 
@@ -70,7 +74,7 @@ protected:
 
 class ListHeadersBuilder : public BaseListHeaders {
 public:
-    explicit ListHeadersBuilder(const string& fName, uint64_t numElements);
+    explicit ListHeadersBuilder(const string& baseListFName, uint64_t numElements);
 
     inline list_header_t getHeader(node_offset_t offset) { return (*headersBuilder)[offset]; };
 
@@ -92,7 +96,13 @@ public:
 
     inline list_header_t getHeader(node_offset_t offset) { return (*headersDiskArray)[offset]; };
 
-    inline VersionedFileHandle* getFileHandle() { return headersDiskArray->getFileHandle(); }
+    inline VersionedFileHandle* getFileHandle() { return versionedFileHandle.get(); }
+
+    inline void checkpointInMemoryIfNecessary() {
+        headersDiskArray->checkpointInMemoryIfNecessary();
+    }
+
+    inline void rollbackInMemoryIfNecessary() { headersDiskArray->rollbackInMemoryIfNecessary(); }
 
 public:
     unique_ptr<InMemDiskArray<list_header_t>> headersDiskArray;

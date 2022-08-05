@@ -63,7 +63,7 @@ public:
         GF_ASSERT(sortingData.size() == expectedBlockOffsetOrder.size());
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selVector->selectedSize = sortingData.size();
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
+        auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
         auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
@@ -88,7 +88,7 @@ public:
 
         if (hasPayLoadCol) {
             // Create a new payloadValueVector for the payload column.
-            auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            auto payloadValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
                 payloadValueVector->addString(i, to_string(i));
             }
@@ -134,7 +134,7 @@ public:
         unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
-            auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            auto stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             tableSchema->appendColumn(make_unique<ColumnSchema>(
                 false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
             stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
@@ -368,11 +368,11 @@ TEST_F(RadixSortTest, singleOrderByColWithPayloadTest) {
 
 TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     vector<bool> isAscOrder = {true, false, true, false, false};
-    auto intFlatValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    auto doubleFlatValueVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-    auto stringFlatValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    auto timestampFlatValueVector = make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
-    auto dateFlatValueVector = make_shared<ValueVector>(memoryManager.get(), DATE);
+    auto intFlatValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
+    auto doubleFlatValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());
+    auto stringFlatValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
+    auto timestampFlatValueVector = make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
+    auto dateFlatValueVector = make_shared<ValueVector>(DATE, memoryManager.get());
 
     auto mockDataChunk = make_shared<DataChunk>(5);
     mockDataChunk->insert(0, intFlatValueVector);
