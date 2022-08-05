@@ -21,22 +21,45 @@ namespace storage {
  * chunked CSR, where each chunk stores ListsMetadataConfig::LISTS_CHUNK_SIZE many lists.
  *
  * A header of a list is a unsigned integer values. Each value describes the following
- * information about the list: 1) type: small or large, 2) location of list in pages.
+ * information about the list: 1) type: small or large, 2) location of the list in pages.
  *
  * If the list is small, the layout of header is:
  *      1. MSB (31st bit) is 0
- *      2. 30-11 bits denote the "logical" CSR offset in the chunk. Using Lists::numElementsPerPage
- *      (which is stored in the base class StorageStructure), this offset can be turned into a
- *      logical pageIdx, which can later be turned into a physical page index in the .lists file.
- *      This logic is encapsulated in Lists::getListInfo(node_offset_t nodeOffset) function.
- *      4. 10-0  bits denote the number of elements in the list.
+ *      2. 30-11 bits denote the "logical" CSR offset in the chunk.
+ *      3. 10-0 bits denote the number of elements in the list.
+ * Using Lists::numElementsPerPage (which is stored in the base class StorageStructure), this offset
+ * can be turned into a logical pageIdx (which we call idxInPageList), which can later be turned
+ * into a physical page index (which we refer to as listPageIdx) in the .lists file. This is done as
+ * follows: Consider a nodeOffset v that is in chunk c. We obtain the the beginning of the
+ * "pageList" of the chunk by going to idxOfPageListBeginInPageLists =
+ * chunkToPageListHeadIdxMap(c). PageLists are the list of physical page idx's in the .lists file
+ * that store the contents of the lists in a chunk. Each chunk has a page list. Similarly each large
+ * list has a pageList (see below for large lists)Now suppose the CSR offset of v is such
+ * that it should be in the "2"nd page of the chunk. So the idxInPageList for v's list is 2. Then we
+ * can go to pageLists[idxOfPageListBeginInPageLists+idxInPageList], which gives us the physical
+ * pageIdx that contains v's list in the .lists file. We cannot always directly go to
+ * pageLists[idxOfPageListBeginInPageLists+idxInPageList] because the page list of the chunk is
+ * logically divided into "page groups" ListsMetadataConfig::PAGE_LIST_GROUP_SIZE with a pointer to
+ * the next page group. That is, suppose PAGE_LIST_GROUP_SIZE = 3 and we need to find the physical
+ * pageIdx of idxInPageList=5'th page. Then we need to follow one "pointer" at
+ * idxOfNextPageGroupBeginInPageLists=pageLists[idxOfPageListBeginInPageLists+3] (+0, +1, and +2
+ * store the physical page idx's for the first 3 pages and +3 stores the pointer to the beginning of
+ * the next page group). Then we go to pageLists[idxOfNextPageGroupBeginInPageLists + (5-3=2)].
  *
- * If list is a large one (during initial data ingest, the criterion for being large is
- * whether or not a list fits in a single page), the layout of header is:
+ * If a list is a large one (during initial data ingest, the criterion for being large is
+ * whether or not a list fits in a single page), the layout of the header is:
  *      1. MSB (31st bit) is 1
- *      2. 30-0  bits denote the idx in the largeListsPagesMaps where the length and the disk
- *      page IDs are located.
- * */
+ *      2. 30-0  bits denote the largeListIdx in the largeListIdxToPageListHeadIdxMap where: (i)
+ *      the location of the beginning of the first pageGroup for the large list is located; and (ii)
+ *      the length of the list is located.
+ * Each large list gets a largeListIdx, starting from 0, 1,.... Then through a similar process to
+ * how we convert a idxInPageList to a physical page Idx, we can do the following to find the
+ * physical page idxs of the pages of a large list. Suppose the largeListIdx = 7. Then
+ * largeListIdxToPageListHeadIdxMap[2*7=14] gives the idxOfPageListBeginInPageLists for this large
+ * list. Then pageLists[idxOfPageListBeginInPageLists+0],
+ * pageLists[idxOfPageListBeginInPageLists+1], etc. will give the physical page idx's of the first,
+ * second, etc. pages of the large list.
+ */
 class BaseListHeaders {
 
 public:
