@@ -15,11 +15,13 @@ public:
     // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
     LogicalHashJoin(shared_ptr<NodeExpression> joinNode, unique_ptr<Schema> buildSideSchema,
         vector<uint64_t> flatOutputGroupPositions, expression_vector expressionsToMaterialize,
-        shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
+        bool isOutputAFlatTuple, shared_ptr<LogicalOperator> probeSideChild,
+        shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{move(probeSideChild), move(buildSideChild)}, joinNode(move(joinNode)),
           buildSideSchema(move(buildSideSchema)), flatOutputGroupPositions{move(
                                                       flatOutputGroupPositions)},
-          expressionsToMaterialize{move(expressionsToMaterialize)} {}
+          expressionsToMaterialize{move(expressionsToMaterialize)}, isOutputAFlatTuple{
+                                                                        isOutputAFlatTuple} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
@@ -34,11 +36,12 @@ public:
     inline shared_ptr<NodeExpression> getJoinNode() const { return joinNode; }
     inline Schema* getBuildSideSchema() const { return buildSideSchema.get(); }
     inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
+    inline bool getIsOutputAFlatTuple() const { return isOutputAFlatTuple; }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalHashJoin>(joinNode, buildSideSchema->copy(),
-            flatOutputGroupPositions, expressionsToMaterialize, children[0]->copy(),
-            children[1]->copy());
+            flatOutputGroupPositions, expressionsToMaterialize, isOutputAFlatTuple,
+            children[0]->copy(), children[1]->copy());
     }
 
 private:
@@ -47,6 +50,7 @@ private:
     // TODO(Xiyang): solve this with issue 606
     vector<uint64_t> flatOutputGroupPositions;
     expression_vector expressionsToMaterialize;
+    bool isOutputAFlatTuple;
 };
 } // namespace planner
 } // namespace graphflow

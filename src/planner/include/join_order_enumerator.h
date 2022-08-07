@@ -79,7 +79,7 @@ private:
 
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
     void appendHashJoin(
-        shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     // AppendIntersect return false if a nodeID is flat in which case we should use filter.
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 

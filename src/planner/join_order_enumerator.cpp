@@ -359,7 +359,7 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
 }
 
 void JoinOrderEnumerator::appendHashJoin(
-    shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
@@ -386,24 +386,51 @@ void JoinOrderEnumerator::appendHashJoin(
     }
     // Merge build side payload groups to the result.
     unordered_set<uint32_t> buildSidePayloadGroupsPos;
+    bool buildSideHasUnflatPayloads = false;
     for (auto& groupPos : buildSideSchema.getGroupsPosInScope()) {
         if (groupPos == buildSideKeyGroupPos) {
             continue;
         }
         buildSidePayloadGroupsPos.insert(groupPos);
+        if (!buildSideSchema.getGroup(groupPos)->getIsFlat()) {
+            buildSideHasUnflatPayloads = true;
+        }
     }
     auto resultSchema = probeSideSchema;
     auto numGroupsBefore = resultSchema->getNumGroups();
     Enumerator::computeSchemaForSinkOperators(
         buildSidePayloadGroupsPos, buildSideSchema, *resultSchema);
+    // When the build side payload has no unflat groups, and build side key has more than 1 vectors,
+    // we flatten newly added groups from the build side in the output. This is because we cannot
+    // guarantee a 1-1 mapping between the key and other payloads within the key data chunk (take
+    // rel properties as an example). Notice that if there is any unflat groups in the build side,
+    // they are already flatten in previous call `computeSchemaForSinkOperators`. Otherwise, they
+    // may still stay unflat. Thus, we further apply this rule.
+    bool flattenBuildSideOutput =
+        !buildSideHasUnflatPayloads &&
+        buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos).size() > 1;
     vector<uint64_t> flatOutputGroupPositions;
     for (auto i = numGroupsBefore; i < resultSchema->getNumGroups(); ++i) {
         if (resultSchema->getGroup(i)->getIsFlat()) {
             flatOutputGroupPositions.push_back(i);
+        } else if (flattenBuildSideOutput) {
+            flatOutputGroupPositions.push_back(i);
+            resultSchema->flattenGroup(i);
         }
     }
+    // Here, for flat probe side key, we decide for the operator if the final output is a flat
+    // tuple. Three cases are considered: 1) build side output is already flat, then the output is
+    // also flat; 2) build side has no payloads, we also need to output a flat tuple because we lose
+    // the multiplicity information from the build side in the final output; 3) build side contains
+    // unflat payload, we must output a flat tuple for form a correct f-structure.
+    bool isOutputAFlatTuple = false;
+    if (probeSideSchema->getGroup(probeSideKeyGroupPos)->getIsFlat() &&
+        (flattenBuildSideOutput || buildSidePayloadGroupsPos.empty() ||
+            buildSideHasUnflatPayloads)) {
+        isOutputAFlatTuple = true;
+    }
     auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
-        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
+        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(), isOutputAFlatTuple,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
 }
