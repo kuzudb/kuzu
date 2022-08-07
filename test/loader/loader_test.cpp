@@ -54,9 +54,6 @@ public:
         label_t pLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
         auto unstrPropLists =
             database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pLabel);
-        unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.print();
-        unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.print();
-        unstrPropLists->metadata.pageLists->header.print();
         // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk idx
         // 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
         // point to UINT32_MAX (representing null), while chunk 2 should point to 0.

@@ -515,7 +515,6 @@ void InMemDiskArrayBuilder<T>::setNewNumElementsAndIncreaseCapacityIfNeeded(
 template<typename T>
 void InMemDiskArrayBuilder<T>::saveToDisk() {
     // save the header and pips.
-    this->header.print();
     this->header.saveToDisk(this->fileHandle, this->headerPageIdx);
     for (int i = 0; i < this->pips.size(); ++i) {
         this->fileHandle.writePage(
