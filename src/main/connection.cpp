@@ -90,8 +90,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
             database->storageManager->getNodesStore().getNodesMetadata(), *boundStatement);
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager(),
+            database->catalog.get(), database->bufferManager.get());
         physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     } catch (Exception& exception) {
         preparedStatement->success = false;
@@ -192,8 +192,8 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    auto mapper =
-        PlanMapper(*database->storageManager, database->getMemoryManager(), database->getCatalog());
+    auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager(),
+        database->getCatalog(), database->getBufferManager());
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     preparedStatement->physicalPlan = move(physicalPlan);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());

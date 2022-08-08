@@ -10,8 +10,19 @@ namespace graphflow {
 namespace storage {
 
 NodeOffsetsInfo::NodeOffsetsInfo(
-    node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets_)
-    : maxNodeOffset{maxNodeOffset} {
+    node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets_) {
+    init(maxNodeOffset, deletedNodeOffsets_);
+}
+
+NodeOffsetsInfo::NodeOffsetsInfo(NodeOffsetsInfo& other) {
+    maxNodeOffset = other.maxNodeOffset;
+    hasDeletedNodesPerMorsel = other.hasDeletedNodesPerMorsel;
+    deletedNodeOffsetsPerMorsel = other.deletedNodeOffsetsPerMorsel;
+}
+
+void NodeOffsetsInfo::init(
+    node_offset_t maxNodeOffset_, const vector<node_offset_t>& deletedNodeOffsets_) {
+    maxNodeOffset = maxNodeOffset_;
     if (maxNodeOffset != UINT64_MAX) {
         hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
@@ -27,10 +38,8 @@ NodeOffsetsInfo::NodeOffsetsInfo(
     }
 }
 
-NodeOffsetsInfo::NodeOffsetsInfo(NodeOffsetsInfo& other) {
-    maxNodeOffset = other.maxNodeOffset;
-    hasDeletedNodesPerMorsel = other.hasDeletedNodesPerMorsel;
-    deletedNodeOffsetsPerMorsel = other.deletedNodeOffsetsPerMorsel;
+void NodeOffsetsInfo::setMaxNodeOffset(node_offset_t maxNodeOffset_) {
+    init(maxNodeOffset_, getDeletedNodeOffsets());
 }
 
 // This function assumes that it is being called right after ScanNodeID has obtained a morsel
@@ -258,7 +267,7 @@ void NodesMetadata::initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock() {
     }
 }
 
-vector<node_offset_t> NodesMetadata::getMaxNodeOffsetPerLabel() {
+vector<node_offset_t> NodesMetadata::getMaxNodeOffsetPerLabel() const {
     vector<node_offset_t> retVal;
     for (label_t label = 0u; label < nodeMetadataPerLabelForReadOnlyTrx->size(); ++label) {
         retVal.push_back((*nodeMetadataPerLabelForReadOnlyTrx)[label]->getMaxNodeOffset());

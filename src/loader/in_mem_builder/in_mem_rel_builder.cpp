@@ -26,12 +26,13 @@ InMemRelBuilder::InMemRelBuilder(const RelFileDescription& fileDescription, stri
     for (auto& labelName : labelNames) {
         auto nodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName);
         assert(IDIndexes[nodeLabel] == nullptr);
-        IDIndexes[nodeLabel] = make_unique<HashIndex>(
-            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeLabel),
-            catalog.getReadOnlyVersion()
-                ->getNodeProperty(nodeLabel, LoaderConfig::ID_FIELD)
-                .dataType,
-            *bufferManager, true /* isInMemory */);
+        IDIndexes[nodeLabel] =
+            make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(this->outputDirectory,
+                                       nodeLabel, false /* isForWALRecord */),
+                catalog.getReadOnlyVersion()
+                    ->getNodeProperty(nodeLabel, LoaderConfig::ID_FIELD)
+                    .dataType,
+                *bufferManager, true /* isInMemory */);
     }
 }
 
@@ -126,15 +127,16 @@ void InMemRelBuilder::initializeColumns(RelDirection relDirection) {
     for (auto nodeLabel : nodeLabels) {
         auto numNodes = maxNodeOffsetsPerNodeLabel[nodeLabel] + 1;
         directionLabelAdjColumns[relDirection].emplace(
-            nodeLabel, make_unique<InMemAdjColumn>(StorageUtils::getAdjColumnFName(outputDirectory,
-                                                       relLabel->labelId, nodeLabel, relDirection),
+            nodeLabel, make_unique<InMemAdjColumn>(
+                           StorageUtils::getAdjColumnFName(outputDirectory, relLabel->labelId,
+                               nodeLabel, relDirection, false /* isForWALRecord */),
                            directionNodeIDCompressionScheme[relDirection], numNodes));
         vector<unique_ptr<InMemColumn>> propertyColumns(relLabel->getNumProperties());
         for (auto i = 0u; i < relLabel->getNumProperties(); ++i) {
             auto propertyName = relLabel->properties[i].name;
             auto propertyDataType = relLabel->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyColumnFName(
-                outputDirectory, relLabel->labelId, nodeLabel, relDirection, propertyName);
+            auto fName = StorageUtils::getRelPropertyColumnFName(outputDirectory, relLabel->labelId,
+                nodeLabel, relDirection, propertyName, false /* isForWALRecord */);
             propertyColumns[i] =
                 InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes);
         }
@@ -148,15 +150,17 @@ void InMemRelBuilder::initializeLists(RelDirection relDirection) {
     for (auto nodeLabel : nodeLabels) {
         auto numNodes = maxNodeOffsetsPerNodeLabel[nodeLabel] + 1;
         directionLabelAdjLists[relDirection].emplace(
-            nodeLabel, make_unique<InMemAdjLists>(StorageUtils::getAdjListsFName(outputDirectory,
-                                                      relLabel->labelId, nodeLabel, relDirection),
+            nodeLabel, make_unique<InMemAdjLists>(
+                           StorageUtils::getAdjListsFName(outputDirectory, relLabel->labelId,
+                               nodeLabel, relDirection, false /* isForWALRecord */),
                            directionNodeIDCompressionScheme[relDirection], numNodes));
         vector<unique_ptr<InMemLists>> propertyLists(relLabel->getNumProperties());
         for (auto i = 0u; i < relLabel->getNumProperties(); ++i) {
             auto propertyName = relLabel->properties[i].name;
             auto propertyDataType = relLabel->properties[i].dataType;
             auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory, relLabel->labelId,
-                nodeLabel, relDirection, relLabel->properties[i].propertyID);
+                nodeLabel, relDirection, relLabel->properties[i].propertyID,
+                false /* isForWALRecord */);
             propertyLists[i] =
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
         }

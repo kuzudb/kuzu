@@ -160,6 +160,29 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         }
         overflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
     } break;
+    case COPY_NODE_CSV_RECORD: {
+        if (isCheckpoint) {
+            auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+            catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
+                wal->getDirectory(), true /* isForWALRecord */);
+            // We copy the csv files to WAL version of the columns and lists files. When doing
+            // checkPointing, we overwrite the columns and lists files with the WAL version.
+            WALReplayerUtils::overwriteNodeColumnAndListFilesWithVersionFromWAL(
+                catalogForCheckpointing->getReadOnlyVersion()->getNodeLabel(
+                    walRecord.copyCSVRecord.labelID),
+                wal->getDirectory());
+            if (!isRecovering) {
+                // If we are not recovering, i.e., we are checkpointing during normal execution,
+                // then we need to update the nodeTable because the actual columns and lists files
+                // have been changed during checkPointing.
+                storageManager->getNodesStore().updateNodeTable(walRecord.copyCSVRecord.labelID,
+                    bufferManager, wal, catalogForCheckpointing.get());
+            }
+        } else {
+            // Since COPY_CSV statements are single statements that are auto committed, it is
+            // impossible for users to roll back a DDL statement.
+        }
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +

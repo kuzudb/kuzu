@@ -4,6 +4,7 @@
 #include "projection_enumerator.h"
 #include "update_planner.h"
 
+#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
 #include "src/binder/bound_ddl/include/bound_create_node_clause.h"
 #include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
 #include "src/binder/bound_statement/include/bound_statement.h"
@@ -125,6 +126,8 @@ private:
 
     static unique_ptr<LogicalPlan> createCreateRelTablePlan(
         BoundCreateRelClause& boundCreateRelClause);
+
+    static unique_ptr<LogicalPlan> createCopyCSVPlan(BoundCopyCSV& boundCopyCSV);
 
 private:
     const Catalog& catalog;

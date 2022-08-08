@@ -35,8 +35,8 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         }
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        auto mapper = PlanMapper(*database->storageManager, database->getMemoryManager(),
+            database->catalog.get(), database->bufferManager.get());
         preparedStatement->physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {

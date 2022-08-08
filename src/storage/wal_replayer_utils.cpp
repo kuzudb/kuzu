@@ -30,18 +30,19 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(label);
     for (auto& property : nodeLabel->structuredProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeLabel->labelId, property.propertyID);
+            directory, nodeLabel->labelId, property.propertyID, false /* isForWALRecord */);
         loader::InMemColumnFactory::getInMemPropertyColumn(
             fName, property.dataType, 0 /* numNodes */)
             ->saveToFile();
     }
     auto unstrPropertyLists = make_unique<loader::InMemUnstructuredLists>(
-        StorageUtils::getNodeUnstrPropertyListsFName(directory, nodeLabel->labelId),
+        StorageUtils::getNodeUnstrPropertyListsFName(
+            directory, nodeLabel->labelId, false /* isForWALRecord */),
         0 /* numNodes */);
     initLargeListPageListsAndSaveToFile(unstrPropertyLists.get());
-    auto IDIndex =
-        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(directory, nodeLabel->labelId),
-            nodeLabel->getPrimaryKey().dataType);
+    auto IDIndex = make_unique<InMemHashIndex>(
+        StorageUtils::getNodeIndexFName(directory, nodeLabel->labelId, false /* isForWALRecord */),
+        nodeLabel->getPrimaryKey().dataType);
     IDIndex->bulkReserve(0 /* numNodes */);
     IDIndex->flush();
 }
@@ -58,16 +59,19 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelLabel* relLabel, la
         auto propertyName = relLabel->properties[i].name;
         auto propertyDataType = relLabel->properties[i].dataType;
         if (isForRelPropertyColumn) {
-            auto fName = StorageUtils::getRelPropertyColumnFName(
-                directory, relLabel->labelId, nodeLabel, relDirection, propertyName);
+            auto fName = StorageUtils::getRelPropertyColumnFName(directory, relLabel->labelId,
+                nodeLabel, relDirection, propertyName, false /* isForWALRecord */);
             loader::InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes)
                 ->saveToFile();
         } else {
-            auto fName = StorageUtils::getRelPropertyListsFName(directory, relLabel->labelId,
-                nodeLabel, relDirection, relLabel->properties[i].propertyID);
+            auto fName =
+                StorageUtils::getRelPropertyListsFName(directory, relLabel->labelId, nodeLabel,
+                    relDirection, relLabel->properties[i].propertyID, false /* isForWALRecord */);
             auto inMemPropertyList =
                 loader::InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
             initLargeListPageListsAndSaveToFile(inMemPropertyList.get());
+            auto exists = FileUtils::fileExists(fName);
+            auto a = 2;
         }
     }
 }
@@ -81,7 +85,8 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<label_t>
                             0 :
                             maxNodeOffsetsPerLabel[nodeLabel] + 1;
         make_unique<loader::InMemAdjColumn>(
-            StorageUtils::getAdjColumnFName(directory, relLabel->labelId, nodeLabel, relDirection),
+            StorageUtils::getAdjColumnFName(
+                directory, relLabel->labelId, nodeLabel, relDirection, false /* isForWALRecord */),
             directionNodeIDCompressionScheme, numNodes)
             ->saveToFile();
         createEmptyDBFilesForRelProperties(relLabel, nodeLabel, directory, relDirection, numNodes,
@@ -98,12 +103,28 @@ void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<label_t>& 
                             0 :
                             maxNodeOffsetsPerLabel[nodeLabel] + 1;
         auto adjLists = make_unique<loader::InMemAdjLists>(
-            StorageUtils::getAdjListsFName(directory, relLabel->labelId, nodeLabel, relDirection),
+            StorageUtils::getAdjListsFName(
+                directory, relLabel->labelId, nodeLabel, relDirection, false /* isForWALRecord */),
             directionNodeIDCompressionScheme, numNodes);
         initLargeListPageListsAndSaveToFile(adjLists.get());
         createEmptyDBFilesForRelProperties(relLabel, nodeLabel, directory, relDirection, numNodes,
             false /* isForRelPropertyColumn */);
     }
+}
+
+void WALReplayerUtils::overwriteNodeColumnAndListFilesWithVersionFromWAL(
+    catalog::NodeLabel* nodeLabel, string directory) {
+    for (auto& property : nodeLabel->structuredProperties) {
+        FileUtils::overwriteFile(
+            StorageUtils::getNodePropertyColumnFName(
+                directory, nodeLabel->labelId, property.propertyID, true /* isForWALRecord */),
+            StorageUtils::getNodePropertyColumnFName(
+                directory, nodeLabel->labelId, property.propertyID, false /* isForWALRecord */));
+    }
+    FileUtils::overwriteFile(StorageUtils::getNodeUnstrPropertyListsFName(
+                                 directory, nodeLabel->labelId, true /* isForWALRecord */),
+        StorageUtils::getNodeUnstrPropertyListsFName(
+            directory, nodeLabel->labelId, false /* isForWALRecord */));
 }
 
 } // namespace storage

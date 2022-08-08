@@ -75,7 +75,8 @@ public:
         case STRUCTURED_NODE_PROPERTY_COLUMN: {
             fName = getNodePropertyColumnFName(directory,
                 storageStructureID.structuredNodePropertyColumnID.nodeLabel,
-                storageStructureID.structuredNodePropertyColumnID.propertyID);
+                storageStructureID.structuredNodePropertyColumnID.propertyID,
+                false /* isForWALRecord */);
             if (storageStructureID.isOverflow) {
                 fName = getOverflowPagesFName(fName);
             }
@@ -95,35 +96,38 @@ public:
         return FileUtils::openFile(fName, O_RDWR);
     }
 
-    inline static string getNodeIndexFName(const string& directory, const label_t& nodeLabel) {
-        auto fName = StringUtils::string_format("n-%d", nodeLabel);
+    inline static string getNodeIndexFName(
+        const string& directory, const label_t& nodeLabel, bool isForWALRecord) {
+        auto fName = StringUtils::string_format("n-%d%s", nodeLabel, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::INDEX_FILE_SUFFIX);
     }
-    inline static string getNodePropertyColumnFName(
-        const string& directory, const label_t& nodeLabel, uint32_t propertyID) {
-        auto fName = StringUtils::string_format("n-%d-%d", nodeLabel, propertyID);
+    inline static string getNodePropertyColumnFName(const string& directory,
+        const label_t& nodeLabel, uint32_t propertyID, bool isForWALRecord) {
+        auto fName = StringUtils::string_format(
+            "n-%d-%d%s", nodeLabel, propertyID, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
     inline static StorageStructureIDAndFName getStructuredNodePropertyColumnStructureIDAndFName(
-        const string& directory, const catalog::Property& property) {
-        auto fName = getNodePropertyColumnFName(directory, property.label, property.propertyID);
+        const string& directory, const catalog::Property& property, bool isForWALRecord) {
+        auto fName = getNodePropertyColumnFName(
+            directory, property.label, property.propertyID, isForWALRecord);
         return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyMainColumnID(
                                               property.label, property.propertyID),
             fName);
     }
 
     inline static StorageStructureIDAndFName getNodeIndexIDAndFName(
-        const string& directory, label_t nodeLabel) {
-        auto fName = getNodeIndexFName(directory, nodeLabel);
+        const string& directory, label_t nodeLabel, bool isForWALRecord) {
+        auto fName = getNodeIndexFName(directory, nodeLabel, isForWALRecord);
         return StorageStructureIDAndFName(StorageStructureID::newNodeIndexID(nodeLabel), fName);
     }
 
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     inline static StorageStructureIDAndFName getUnstructuredNodePropertyListsStructureIDAndFName(
-        const string& directory, label_t nodeLabel) {
-        auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
+        const string& directory, label_t nodeLabel, bool isForWALRecord) {
+        auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel, isForWALRecord);
         return StorageStructureIDAndFName(StorageStructureID::newUnstructuredNodePropertyListsID(
                                               nodeLabel, ListFileType::BASE_LISTS),
             fName);
@@ -131,9 +135,9 @@ public:
 
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
-    inline static StorageStructureIDAndFName getAdjListsStructureIDAndFName(
-        const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir) {
-        auto fName = getAdjListsFName(directory, relLabel, srcNodeLabel, dir);
+    inline static StorageStructureIDAndFName getAdjListsStructureIDAndFName(const string& directory,
+        label_t relLabel, label_t srcNodeLabel, RelDirection dir, bool isForWALRecord) {
+        auto fName = getAdjListsFName(directory, relLabel, srcNodeLabel, dir, isForWALRecord);
         return StorageStructureIDAndFName(StorageStructureID::newAdjListsID(relLabel, srcNodeLabel,
                                               dir, ListFileType::BASE_LISTS),
             fName);
@@ -143,9 +147,9 @@ public:
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     inline static StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
         const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir,
-        const catalog::Property& property) {
-        auto fName =
-            getRelPropertyListsFName(directory, relLabel, srcNodeLabel, dir, property.propertyID);
+        const catalog::Property& property, bool isForWALRecord) {
+        auto fName = getRelPropertyListsFName(
+            directory, relLabel, srcNodeLabel, dir, property.propertyID, isForWALRecord);
         return StorageStructureIDAndFName(
             StorageStructureID::newRelPropertyListsID(
                 relLabel, srcNodeLabel, dir, property.propertyID, ListFileType::BASE_LISTS),
@@ -153,14 +157,15 @@ public:
     }
 
     inline static string getNodeUnstrPropertyListsFName(
-        const string& directory, const label_t& nodeLabel) {
-        auto fName = StringUtils::string_format("n-%d", nodeLabel);
+        const string& directory, const label_t& nodeLabel, bool isForWALRecord) {
+        auto fName = StringUtils::string_format("n-%d%s", nodeLabel, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
     inline static string getAdjColumnFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection) {
-        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, relDirection);
+        const label_t& nodeLabel, const RelDirection& relDirection, bool isForWALRecord) {
+        auto fName = StringUtils::string_format(
+            "r-%d-%d-%d%s", relLabel, nodeLabel, relDirection, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
@@ -170,22 +175,25 @@ public:
     // is correct.
     inline static StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
         const string& directory, const label_t& relLabel, const label_t& nodeLabel,
-        const RelDirection& relDirection) {
-        auto fName = getAdjColumnFName(directory, relLabel, nodeLabel, relDirection);
+        const RelDirection& relDirection, bool isForWALRecord) {
+        auto fName =
+            getAdjColumnFName(directory, relLabel, nodeLabel, relDirection, isForWALRecord);
         return StorageStructureIDAndFName(
             StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, -1), fName);
     }
 
     inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection) {
-        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, relDirection);
+        const label_t& nodeLabel, const RelDirection& relDirection, bool isForWALRecord) {
+        auto fName = StringUtils::string_format(
+            "r-%d-%d-%d%s", relLabel, nodeLabel, relDirection, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
     inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName) {
-        auto fName = StringUtils::string_format(
-            "r-%d-%d-%d-%s", relLabel, nodeLabel, relDirection, propertyName.data());
+        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName,
+        bool isForWALRecord) {
+        auto fName = StringUtils::string_format("r-%d-%d-%d-%s%s", relLabel, nodeLabel,
+            relDirection, propertyName.data(), isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
     // TODO(Semih): Warning: We currently do not support updates on adj columns or their
@@ -194,17 +202,18 @@ public:
     // is correct.
     inline static StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const string& directory, const label_t& relLabel, const label_t& nodeLabel,
-        const RelDirection& relDirection, const string& propertyName) {
-        auto fName =
-            getRelPropertyColumnFName(directory, relLabel, nodeLabel, relDirection, propertyName);
+        const RelDirection& relDirection, const string& propertyName, bool isForWALRecord) {
+        auto fName = getRelPropertyColumnFName(
+            directory, relLabel, nodeLabel, relDirection, propertyName, isForWALRecord);
         return StorageStructureIDAndFName(
             StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, -1), fName);
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection, const uint32_t propertyID) {
-        auto fName = StringUtils::string_format(
-            "r-%d-%d-%d-%d", relLabel, nodeLabel, relDirection, propertyID);
+        const label_t& nodeLabel, const RelDirection& relDirection, const uint32_t propertyID,
+        bool isForWALRecord) {
+        auto fName = StringUtils::string_format("r-%d-%d-%d-%d%s", relLabel, nodeLabel,
+            relDirection, propertyID, isForWALRecord ? ".wal" : "");
         return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
@@ -222,8 +231,8 @@ public:
         ListFileID listFileID = storageStructureID.listFileID;
         switch (listFileID.listType) {
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            baseFName = getNodeUnstrPropertyListsFName(
-                directory, listFileID.unstructuredNodePropertyListsID.nodeLabel);
+            baseFName = getNodeUnstrPropertyListsFName(directory,
+                listFileID.unstructuredNodePropertyListsID.nodeLabel, false /* isForWALRecord */);
         } break;
         default: {
             throw RuntimeException(

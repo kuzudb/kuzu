@@ -61,16 +61,16 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                     relLabel, relDirection)) {
                 // Add adj column.
                 auto storageStructureIDAndFName = StorageUtils::getAdjColumnStructureIDAndFName(
-                    directory, relLabel, nodeLabel, relDirection);
+                    directory, relLabel, nodeLabel, relDirection, false /* isForWALRecord */);
                 auto adjColumn = make_unique<AdjColumn>(storageStructureIDAndFName, bufferManager,
                     nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjColumns[relDirection].emplace(nodeLabel, move(adjColumn));
             } else {
                 // Add adj list.
-                auto adjList =
-                    make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
-                                              directory, relLabel, nodeLabel, relDirection),
-                        bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
+                auto adjList = make_unique<AdjLists>(
+                    StorageUtils::getAdjListsStructureIDAndFName(
+                        directory, relLabel, nodeLabel, relDirection, false /* isForWALRecord */),
+                    bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjLists[relDirection].emplace(nodeLabel, move(adjList));
             }
         }
@@ -104,8 +104,10 @@ void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const stri
         auto& properties = catalog.getReadOnlyVersion()->getRelProperties(relLabel);
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
-            auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                directory, relLabel, nodeLabel, relDirection, property.name);
+            auto storageStructureIDAndFName =
+                StorageUtils::getRelPropertyColumnStructureIDAndFName(directory, relLabel,
+                    nodeLabel, relDirection, property.name, false /* isForWALRecord */
+                );
             logger->debug(
                 "DIR {} nodeLabelForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
                 relDirection, nodeLabel, property.propertyID, property.dataType.typeID,
@@ -132,8 +134,8 @@ void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string
                 relDirection, nodeLabel, properties[propertyIdx].propertyID,
                 properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
             auto propertyList = ListsFactory::getLists(
-                StorageUtils::getRelPropertyListsStructureIDAndFName(
-                    directory, relLabel, nodeLabel, relDirection, properties[propertyIdx]),
+                StorageUtils::getRelPropertyListsStructureIDAndFName(directory, relLabel, nodeLabel,
+                    relDirection, properties[propertyIdx], false /* isForWALRecord */),
                 properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode,
                 wal);
             propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);

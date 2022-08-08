@@ -1,6 +1,7 @@
 #include "src/planner/include/enumerator.h"
 
 #include "src/binder/query/include/bound_regular_query.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
@@ -39,6 +40,8 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
         resultPlans.push_back(createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement));
     } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
         resultPlans.push_back(createCreateRelTablePlan((BoundCreateRelClause&)boundStatement));
+    } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
+        resultPlans.push_back(createCopyCSVPlan((BoundCopyCSV&)boundStatement));
     }
     return resultPlans;
 }
@@ -61,6 +64,8 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundState
         bestPlan = createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement);
     } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
         bestPlan = createCreateRelTablePlan((BoundCreateRelClause&)boundStatement);
+    } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
+        bestPlan = createCopyCSVPlan((BoundCopyCSV&)boundStatement);
     }
     return bestPlan;
 }
@@ -511,6 +516,12 @@ unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
     plan->appendOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getLabelName(),
         boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
         boundCreateRelClause.getSrcDstLabels()));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Enumerator::createCopyCSVPlan(BoundCopyCSV& boundCopyCSV) {
+    auto plan = make_unique<LogicalPlan>();
+    plan->appendOperator(make_shared<LogicalCopyCSV>(boundCopyCSV.getCSVDescription()));
     return plan;
 }
 

@@ -14,6 +14,7 @@ filegroup(
         "tinysnb/**",
         "tinysnb-variant/**",
         "unstructured-property-lists-updates-tests/**",
+        "copy_csv/**",
     ]),
     visibility = ["//visibility:public"],
 )

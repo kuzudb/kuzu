@@ -20,6 +20,10 @@ public:
     NodeOffsetsInfo(node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets_);
     NodeOffsetsInfo(NodeOffsetsInfo& other);
 
+    void init(node_offset_t maxNodeOffset_, const vector<node_offset_t>& deletedNodeOffsets_);
+
+    void setMaxNodeOffset(node_offset_t maxNodeOffset_);
+
 private:
     // This function assumes that it is being called right after ScanNodeID has obtained a morsel
     // and that the nodeID structs in nodeOffsetVector.values have consecutive node offsets and
@@ -76,6 +80,8 @@ public:
         adjListsAndColumns = adjListsAndColumns_;
     }
 
+    inline NodeOffsetsInfo* getNodeOffsetInfo() { return nodeOffsetsInfo.get(); }
+
 private:
     void errorIfNodeHasEdges(node_offset_t nodeOffset);
 
@@ -101,6 +107,10 @@ public:
 
     // Should be used ony by tests;
     explicit NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLabel_);
+
+    inline vector<unique_ptr<NodeMetadata>>* getNodesMetadataForWriteTrx() {
+        return nodeMetadataPerLabelForWriteTrx.get();
+    }
 
     inline NodeMetadata* getNodeMetadata(label_t label) const {
         return (*nodeMetadataPerLabelForReadOnlyTrx)[label].get();
@@ -165,7 +175,7 @@ public:
 
     // This function is only used by storageManager to construct relsStore during start-up, so we
     // can just safely return the maxNodeOffsetPerLabel for readOnlyVersion.
-    vector<node_offset_t> getMaxNodeOffsetPerLabel();
+    vector<node_offset_t> getMaxNodeOffsetPerLabel() const;
 
     void setDeletedNodeOffsetsForMorsel(
         Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, label_t labelID);

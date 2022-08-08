@@ -81,8 +81,8 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
     auto isNodeLabel = catalog.getReadOnlyVersion()->containNodeLabel(labelName);
     auto labelID = isNodeLabel ? catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName) :
                                  catalog.getReadOnlyVersion()->getRelLabelFromName(labelName);
-    return make_unique<BoundCopyCSV>(copyCSV.getCSVFileName(), labelID, isNodeLabel,
-        bindParsingOptions(copyCSV.getParsingOptions()));
+    return make_unique<BoundCopyCSV>(CSVDescription(copyCSV.getCSVFileName(), labelID, isNodeLabel,
+        bindParsingOptions(copyCSV.getParsingOptions())));
 }
 
 SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
@@ -96,15 +96,25 @@ SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
     return SrcDstLabels(move(srcNodeLabels), move(dstNodeLabels));
 }
 
-unordered_map<string, char> Binder::bindParsingOptions(
-    unordered_map<string, string> parsingOptions) {
-    unordered_map<string, char> boundParsingOptions = getDefaultParsingOptions();
+CSVReaderConfig Binder::bindParsingOptions(unordered_map<string, string> parsingOptions) {
+    CSVReaderConfig csvReaderConfig;
     for (auto& parsingOption : parsingOptions) {
         auto loadOptionName = parsingOption.first;
         validateParsingOptionName(loadOptionName);
-        boundParsingOptions[loadOptionName] = bindParsingOptionValue(parsingOption.second);
+        auto loadOptionValue = bindParsingOptionValue(parsingOption.second);
+        if (loadOptionName == "ESCAPE") {
+            csvReaderConfig.escapeChar = loadOptionValue;
+        } else if (loadOptionName == "DELIM") {
+            csvReaderConfig.tokenSeparator = loadOptionValue;
+        } else if (loadOptionName == "QUOTE") {
+            csvReaderConfig.quoteChar = loadOptionValue;
+        } else if (loadOptionName == "LIST_BEGIN") {
+            csvReaderConfig.listBeginChar = loadOptionValue;
+        } else if (loadOptionName == "LIST_END") {
+            csvReaderConfig.listEndChar = loadOptionValue;
+        }
     }
-    return boundParsingOptions;
+    return csvReaderConfig;
 }
 
 char Binder::bindParsingOptionValue(string parsingOptionValue) {

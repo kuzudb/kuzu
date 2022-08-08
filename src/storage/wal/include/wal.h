@@ -110,6 +110,8 @@ public:
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
+    void logCopyNodeCSVRecord(label_t labelID);
+
     // Removes the contents of WAL file.
     void clearWAL();
 

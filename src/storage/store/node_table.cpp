@@ -10,17 +10,17 @@ NodeTable::NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager,
         if (property.dataType.typeID != UNSTRUCTURED) {
             propertyColumns.push_back(ColumnFactory::getColumn(
                 StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
-                    wal->getDirectory(), property),
+                    wal->getDirectory(), property, false /* isForWALRecord */),
                 property.dataType, bufferManager, isInMemory, wal));
         }
     }
     unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
         StorageUtils::getUnstructuredNodePropertyListsStructureIDAndFName(
-            wal->getDirectory(), labelID),
+            wal->getDirectory(), labelID, false /* isForWALRecord */),
         bufferManager, isInMemory, wal);
-    IDIndex =
-        make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), labelID),
-            nodeLabel->getPrimaryKey().dataType, bufferManager, isInMemory);
+    IDIndex = make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(
+                                         wal->getDirectory(), labelID, false /* isForWALRecord */),
+        nodeLabel->getPrimaryKey().dataType, bufferManager, isInMemory);
 }
 
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {

@@ -216,6 +216,7 @@ enum WALRecordType : uint8_t {
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
     OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 6,
+    COPY_NODE_CSV_RECORD = 7,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -287,6 +288,17 @@ struct OverflowFileNextBytePosRecord {
     }
 };
 
+struct CopyNodeCSVRecord {
+    label_t labelID;
+    bool isNodeLabel;
+
+    CopyNodeCSVRecord() = default;
+
+    CopyNodeCSVRecord(label_t labelID) : labelID{labelID} {}
+
+    inline bool operator==(const CopyNodeCSVRecord& rhs) const { return labelID == rhs.labelID; }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
@@ -295,6 +307,7 @@ struct WALRecord {
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
         OverflowFileNextBytePosRecord overflowFileNextBytePosRecord;
+        CopyNodeCSVRecord copyCSVRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -325,6 +338,9 @@ struct WALRecord {
         case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return overflowFileNextBytePosRecord == rhs.overflowFileNextBytePosRecord;
         }
+        case COPY_NODE_CSV_RECORD: {
+            return copyCSVRecord == rhs.copyCSVRecord;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
@@ -343,6 +359,7 @@ struct WALRecord {
     static WALRecord newRelTableRecord(label_t labelID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
+    static WALRecord newCopyNodeCSVRecord(label_t labelID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

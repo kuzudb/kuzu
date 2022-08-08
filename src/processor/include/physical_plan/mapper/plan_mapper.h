@@ -17,9 +17,11 @@ namespace processor {
 class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(const StorageManager& storageManager, MemoryManager* memoryManager, Catalog* catalog)
+    PlanMapper(const StorageManager& storageManager, MemoryManager* memoryManager, Catalog* catalog,
+        BufferManager* bufferManager)
         : storageManager{storageManager}, memoryManager{memoryManager}, outerMapperContext{nullptr},
-          expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
+          expressionMapper{}, catalog{catalog}, bufferManager{bufferManager}, physicalOperatorID{
+                                                                                  0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
@@ -84,6 +86,8 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalCopyCSVToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
 
     unique_ptr<ResultCollector> appendResultCollector(expression_vector expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator,
@@ -111,6 +115,7 @@ public:
     const MapperContext* outerMapperContext;
     ExpressionMapper expressionMapper;
     Catalog* catalog;
+    BufferManager* bufferManager;
 
 private:
     uint32_t physicalOperatorID;

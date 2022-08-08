@@ -29,6 +29,8 @@ public:
         // TODO(Semih): When updates to other lists are called, we should call prepareToCommit on
         // other lists as well.
     }
+    inline string getDirectory() const { return wal->getDirectory(); }
+    inline WAL* getWAL() const { return wal; }
 
 private:
     shared_ptr<spdlog::logger> logger;

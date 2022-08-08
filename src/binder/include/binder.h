@@ -102,8 +102,7 @@ private:
 
     SrcDstLabels bindRelConnections(RelConnection relConnections) const;
 
-    static unordered_map<string, char> bindParsingOptions(
-        unordered_map<string, string> parsingOptions);
+    static CSVReaderConfig bindParsingOptions(unordered_map<string, string> parsingOptions);
 
     static char bindParsingOptionValue(string parsingOptionValue);
 

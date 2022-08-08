@@ -26,6 +26,17 @@ struct CSVReaderConfig {
     char listEndChar;
 };
 
+struct CSVDescription {
+    CSVDescription(const string filePath, label_t labelID, bool isNodeLabel,
+        const CSVReaderConfig csvReaderConfig)
+        : filePath{move(filePath)}, labelID{labelID}, isNodeLabel{isNodeLabel},
+          csvReaderConfig{move(csvReaderConfig)} {}
+    const string filePath;
+    label_t labelID;
+    bool isNodeLabel;
+    const CSVReaderConfig csvReaderConfig;
+};
+
 // TODO(Guodong): we should add a csv reader test to test edge cases and error messages.
 // Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
 // dataTypes.

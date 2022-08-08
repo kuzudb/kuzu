@@ -7,6 +7,7 @@
 namespace graphflow {
 namespace transaction {
 class TinySnbDDLTest;
+class TinySnbCopyCSVTest;
 } // namespace transaction
 } // namespace graphflow
 
@@ -17,6 +18,7 @@ class PreparedStatement {
     friend class Connection;
     friend class JOConnection;
     friend class graphflow::transaction::TinySnbDDLTest;
+    friend class graphflow::transaction::TinySnbCopyCSVTest;
 
 public:
     PreparedStatement() { querySummary = make_unique<QuerySummary>(); }

@@ -15,7 +15,7 @@ class RelsStore {
 
 public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
-        BufferManager& bufferManager, const string& directory, bool isInMemoryMode, WAL* wal);
+        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
     inline Column* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) const {

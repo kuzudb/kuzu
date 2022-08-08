@@ -252,6 +252,57 @@ cc_library(
 )
 
 cc_library(
+    name = "in_mem_storage_structure",
+    srcs = glob([
+        "physical_plan/operator/copy_csv/in_mem_storage_structure/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/copy_csv/in_mem_storage_structure/*.h",
+    ]),
+    deps = [
+        "//src/common:configs",
+        "//src/common:csv_reader",
+        "//src/common:type_utils",
+        "//src/storage/storage_structure:in_mem_file",
+        "//src/storage/storage_structure:lists",
+    ],
+)
+
+cc_library(
+    name = "in_mem_builder",
+    srcs = glob([
+        "physical_plan/operator/copy_csv/in_mem_builder/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/copy_csv/in_mem_builder/*.h",
+    ]),
+    deps = [
+        "in_mem_storage_structure",
+        "//src/catalog",
+        "//src/common:task_system",
+        "//src/loader:loader_task",
+        "//src/storage/index:hash_index",
+        "//src/storage/index:in_mem_hash_index",
+        "//src/storage/store",
+    ],
+)
+
+cc_library(
+    name = "copy_csv",
+    srcs = [
+        "physical_plan/operator/copy_csv/copy_node_csv.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/copy_csv/copy_node_csv.h",
+    ],
+    deps = [
+        "base_operator",
+        "in_mem_builder",
+        "source_operator",
+    ],
+)
+
+cc_library(
     name = "operator_impls",
     srcs = glob([
         "physical_plan/operator/*.cpp",
@@ -262,6 +313,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
+        "copy_csv",
         "ddl",
         "hash_join",
         "order_by",
@@ -320,7 +372,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
-        "ddl",
+        "copy_csv",
         "physical_plan",
         "result_collector",
         "//src/common:task_system",

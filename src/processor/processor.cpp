@@ -1,6 +1,7 @@
 #include "src/processor/include/processor.h"
 
 #include "src/processor/include/physical_plan/operator/aggregate/base_aggregate.h"
+#include "src/processor/include/physical_plan/operator/copy_csv/copy_node_csv.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/processor_task.h"
@@ -16,15 +17,22 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    auto lastOperator = physicalPlan->lastOperator.get();
-    auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
-    // The root pipeline(task) consists of operators and its prevOperator only, because we
-    // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
-    // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
-    auto task = make_shared<ProcessorTask>(resultCollector, context);
-    decomposePlanIntoTasks(lastOperator, lastOperator, task.get(), context);
-    taskScheduler->scheduleTaskAndWaitOrError(task);
-    return resultCollector->getResultFactorizedTable();
+    if (physicalPlan->lastOperator->getChild(0)->getOperatorType() != COPY_NODE_CSV) {
+        auto lastOperator = physicalPlan->lastOperator.get();
+        auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
+        // The root pipeline(task) consists of operators and its prevOperator only, because we
+        // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
+        // prevOperator in the same pipeline, and decompose build and its prevOperator into another
+        // one.
+        auto task = make_shared<ProcessorTask>(resultCollector, context);
+        decomposePlanIntoTasks(lastOperator, lastOperator, task.get(), context);
+        taskScheduler->scheduleTaskAndWaitOrError(task);
+        return resultCollector->getResultFactorizedTable();
+    } else {
+        auto copyCSV = (CopyNodeCSV*)physicalPlan->lastOperator->getChild(0);
+        copyCSV->execute(*taskScheduler);
+        return make_shared<FactorizedTable>(nullptr, make_unique<TableSchema>());
+    }
 }
 
 void QueryProcessor::decomposePlanIntoTasks(

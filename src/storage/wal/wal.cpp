@@ -59,6 +59,12 @@ void WAL::logNodeTableRecord(label_t labelID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRelTableRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
     lock_t lck{mtx};
@@ -67,9 +73,9 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logRelTableRecord(label_t labelID) {
+void WAL::logCopyNodeCSVRecord(label_t labelID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
+    WALRecord walRecord = WALRecord::newCopyNodeCSVRecord(labelID);
     addNewWALRecordNoLock(walRecord);
 }
 

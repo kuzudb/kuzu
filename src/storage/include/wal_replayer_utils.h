@@ -19,6 +19,9 @@ public:
     static void createEmptyDBFilesForNewNodeTable(
         Catalog* catalog, label_t labelID, string directory);
 
+    static void overwriteNodeColumnAndListFilesWithVersionFromWAL(
+        catalog::NodeLabel* nodeLabel, string directory);
+
 private:
     static void initLargeListPageListsAndSaveToFile(loader::InMemLists* inMemLists);
 

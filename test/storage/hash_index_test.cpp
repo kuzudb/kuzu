@@ -16,7 +16,7 @@ class HashIndexTest : public testing::Test {
 public:
     HashIndexTest()
         : storageStructureIdAndFName{StorageUtils::getNodeIndexIDAndFName(
-              "" /* dummy directory */, -1 /* dummy node label */)} {
+              "" /* dummy directory */, -1 /* dummy node label */, false /* isForWALRecord */)} {
         storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_ints.hindex";
         FileUtils::createDir(TEMP_INDEX_DIR);
     }
