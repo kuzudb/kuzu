@@ -22,7 +22,6 @@ serialized_graphs_path = {
 benchmark_server_dir = '/home/x74feng/CI/server'
 benchmark_log_dir = benchmark_server_dir + '/data/logs'
 benchmark_files = os.getenv("GITHUB_WORKSPACE") + '/benchmark/queries'
-graphflowDB_loader = os.getenv("GITHUB_WORKSPACE") + '/bazel-out/k8-fastbuild/bin/src/loader/loader_runner'
 graphflowDB_benchmark_tool = os.getenv(
     "GITHUB_WORKSPACE") + '/bazel-out/k8-fastbuild/bin/tools/benchmark/benchmark_tool'
 

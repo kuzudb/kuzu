@@ -9,10 +9,17 @@ namespace storage {
 
 RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
     label_t relLabel, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, relLabel{relLabel} {
-    initAdjColumnOrLists(
-        catalog, maxNodeOffsetsPerLabel, wal->getDirectory(), bufferManager, isInMemoryMode, wal);
-    initPropertyListsAndColumns(catalog, wal->getDirectory(), bufferManager, isInMemoryMode, wal);
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, relLabel{relLabel},
+      isInMemoryMode{isInMemoryMode}, wal{wal} {
+    loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerLabel, bufferManager);
+}
+
+// Todo(Ziyi): We should remove this function and put this back to constructor once we implement
+// transaction for copycsv.
+void RelTable::loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
+    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager) {
+    initAdjColumnOrLists(catalog, maxNodeOffsetsPerLabel, bufferManager);
+    initPropertyListsAndColumns(catalog, bufferManager);
 }
 
 vector<AdjLists*> RelTable::getAdjListsForNodeLabel(label_t nodeLabel) {
@@ -42,9 +49,10 @@ vector<AdjColumn*> RelTable::getAdjColumnsForNodeLabel(label_t nodeLabel) {
 }
 
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerLabel, const string& directory,
-    BufferManager& bufferManager, bool isInMemoryMode, WAL* wal) {
+    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", relLabel);
+    adjColumns = vector<label_adj_columns_map_t>{2};
+    adjLists = vector<label_adj_lists_map_t>{2};
     for (auto relDirection : REL_DIRECTIONS) {
         const auto& nodeLabels =
             catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection);
@@ -61,16 +69,16 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                     relLabel, relDirection)) {
                 // Add adj column.
                 auto storageStructureIDAndFName = StorageUtils::getAdjColumnStructureIDAndFName(
-                    directory, relLabel, nodeLabel, relDirection);
+                    wal->getDirectory(), relLabel, nodeLabel, relDirection);
                 auto adjColumn = make_unique<AdjColumn>(storageStructureIDAndFName, bufferManager,
                     nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjColumns[relDirection].emplace(nodeLabel, move(adjColumn));
             } else {
                 // Add adj list.
-                auto adjList =
-                    make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
-                                              directory, relLabel, nodeLabel, relDirection),
-                        bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
+                auto adjList = make_unique<AdjLists>(
+                    StorageUtils::getAdjListsStructureIDAndFName(
+                        wal->getDirectory(), relLabel, nodeLabel, relDirection),
+                    bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjLists[relDirection].emplace(nodeLabel, move(adjList));
             }
         }
@@ -78,26 +86,25 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     logger->info("Initializing AdjColumns and AdjLists for rel {} done.", relLabel);
 }
 
-void RelTable::initPropertyListsAndColumns(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, bool isInMemoryMode, WAL* wal) {
+void RelTable::initPropertyListsAndColumns(const Catalog& catalog, BufferManager& bufferManager) {
     logger->info("Initializing PropertyLists and PropertyColumns for rel {}.", relLabel);
+    propertyLists = vector<label_property_lists_map_t>{2};
+    propertyColumns = unordered_map<label_t, vector<unique_ptr<Column>>>{};
     if (!catalog.getReadOnlyVersion()->getRelProperties(relLabel).empty()) {
         for (auto relDirection : REL_DIRECTIONS) {
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     relLabel, relDirection)) {
-                initPropertyColumnsForRelLabel(
-                    catalog, directory, bufferManager, relDirection, isInMemoryMode, wal);
+                initPropertyColumnsForRelLabel(catalog, relDirection, bufferManager);
             } else {
-                initPropertyListsForRelLabel(
-                    catalog, directory, bufferManager, relDirection, isInMemoryMode, wal);
+                initPropertyListsForRelLabel(catalog, relDirection, bufferManager);
             }
         }
     }
     logger->info("Initializing PropertyLists and PropertyColumns for rel {} Done.", relLabel);
 }
 
-void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal) {
+void RelTable::initPropertyColumnsForRelLabel(
+    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
     for (auto& nodeLabel :
         catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
@@ -105,7 +112,7 @@ void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const stri
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                directory, relLabel, nodeLabel, relDirection, property.name);
+                wal->getDirectory(), relLabel, nodeLabel, relDirection, property.name);
             logger->debug(
                 "DIR {} nodeLabelForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
                 relDirection, nodeLabel, property.propertyID, property.dataType.typeID,
@@ -117,8 +124,8 @@ void RelTable::initPropertyColumnsForRelLabel(const Catalog& catalog, const stri
     logger->debug("Initializing PropertyColumns done.");
 }
 
-void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal) {
+void RelTable::initPropertyListsForRelLabel(
+    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager) {
     logger->debug("Initializing PropertyLists for rel {}", relLabel);
     for (auto& nodeLabel :
         catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
@@ -132,8 +139,8 @@ void RelTable::initPropertyListsForRelLabel(const Catalog& catalog, const string
                 relDirection, nodeLabel, properties[propertyIdx].propertyID,
                 properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
             auto propertyList = ListsFactory::getLists(
-                StorageUtils::getRelPropertyListsStructureIDAndFName(
-                    directory, relLabel, nodeLabel, relDirection, properties[propertyIdx]),
+                StorageUtils::getRelPropertyListsStructureIDAndFName(wal->getDirectory(), relLabel,
+                    nodeLabel, relDirection, properties[propertyIdx]),
                 properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode,
                 wal);
             propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);

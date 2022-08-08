@@ -10,7 +10,6 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/loader:graph_loader",
         "//src/main:graphflowdb",
         "@gtest",
         "@gtest//:gtest_main",

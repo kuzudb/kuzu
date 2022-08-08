@@ -237,7 +237,7 @@ public:
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
 
-    // Non-thread safe. This should only be called in the loader and never be called in parallel.
+    // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
     void flush();
 
 private:

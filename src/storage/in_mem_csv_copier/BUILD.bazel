@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "in_mem_csv_copier",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/processor:__pkg__",
+    ],
+    deps = [
+        "//src/catalog",
+        "//src/common:task_system",
+        "//src/storage/in_mem_storage_structure",
+        "//src/storage/index:hash_index",
+        "//src/storage/index:in_mem_hash_index",
+        "//src/storage/store",
+    ],
+)

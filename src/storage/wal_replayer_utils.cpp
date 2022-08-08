@@ -30,23 +30,22 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(label);
     for (auto& property : nodeLabel->structuredProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeLabel->labelId, property.propertyID);
-        loader::InMemColumnFactory::getInMemPropertyColumn(
-            fName, property.dataType, 0 /* numNodes */)
+            directory, nodeLabel->labelID, property.propertyID);
+        InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
             ->saveToFile();
     }
-    auto unstrPropertyLists = make_unique<loader::InMemUnstructuredLists>(
-        StorageUtils::getNodeUnstrPropertyListsFName(directory, nodeLabel->labelId),
+    auto unstrPropertyLists = make_unique<InMemUnstructuredLists>(
+        StorageUtils::getNodeUnstrPropertyListsFName(directory, nodeLabel->labelID),
         0 /* numNodes */);
     initLargeListPageListsAndSaveToFile(unstrPropertyLists.get());
     auto IDIndex =
-        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(directory, nodeLabel->labelId),
+        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(directory, nodeLabel->labelID),
             nodeLabel->getPrimaryKey().dataType);
     IDIndex->bulkReserve(0 /* numNodes */);
     IDIndex->flush();
 }
 
-void WALReplayerUtils::initLargeListPageListsAndSaveToFile(loader::InMemLists* inMemLists) {
+void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {
     inMemLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
     inMemLists->saveToFile();
 }
@@ -59,14 +58,14 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelLabel* relLabel, la
         auto propertyDataType = relLabel->properties[i].dataType;
         if (isForRelPropertyColumn) {
             auto fName = StorageUtils::getRelPropertyColumnFName(
-                directory, relLabel->labelId, nodeLabel, relDirection, propertyName);
-            loader::InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes)
+                directory, relLabel->labelID, nodeLabel, relDirection, propertyName);
+            InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes)
                 ->saveToFile();
         } else {
-            auto fName = StorageUtils::getRelPropertyListsFName(directory, relLabel->labelId,
+            auto fName = StorageUtils::getRelPropertyListsFName(directory, relLabel->labelID,
                 nodeLabel, relDirection, relLabel->properties[i].propertyID);
             auto inMemPropertyList =
-                loader::InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
+                InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
             initLargeListPageListsAndSaveToFile(inMemPropertyList.get());
         }
     }
@@ -80,8 +79,8 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<label_t>
         auto numNodes = maxNodeOffsetsPerLabel[nodeLabel] == UINT64_MAX ?
                             0 :
                             maxNodeOffsetsPerLabel[nodeLabel] + 1;
-        make_unique<loader::InMemAdjColumn>(
-            StorageUtils::getAdjColumnFName(directory, relLabel->labelId, nodeLabel, relDirection),
+        make_unique<InMemAdjColumn>(
+            StorageUtils::getAdjColumnFName(directory, relLabel->labelID, nodeLabel, relDirection),
             directionNodeIDCompressionScheme, numNodes)
             ->saveToFile();
         createEmptyDBFilesForRelProperties(relLabel, nodeLabel, directory, relDirection, numNodes,
@@ -97,8 +96,8 @@ void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<label_t>& 
         auto numNodes = maxNodeOffsetsPerLabel[nodeLabel] == UINT64_MAX ?
                             0 :
                             maxNodeOffsetsPerLabel[nodeLabel] + 1;
-        auto adjLists = make_unique<loader::InMemAdjLists>(
-            StorageUtils::getAdjListsFName(directory, relLabel->labelId, nodeLabel, relDirection),
+        auto adjLists = make_unique<InMemAdjLists>(
+            StorageUtils::getAdjListsFName(directory, relLabel->labelID, nodeLabel, relDirection),
             directionNodeIDCompressionScheme, numNodes);
         initLargeListPageListsAndSaveToFile(adjLists.get());
         createEmptyDBFilesForRelProperties(relLabel, nodeLabel, directory, relDirection, numNodes,

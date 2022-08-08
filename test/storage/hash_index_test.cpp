@@ -80,7 +80,7 @@ public:
         hashIndexBuilder.bulkReserve(numKeysInsertedToFile);
         ifstream inf(inputFName, ios_base::in);
         inf.seekg(0, ios_base::end);
-        auto numBlock = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
+        auto numBlock = 1 + (inf.tellg() / CopyCSVConfig::CSV_READING_BLOCK_SIZE);
         inf.close();
         for (auto i = 0u; i < numBlock; i++) {
             CSVReaderConfig config;

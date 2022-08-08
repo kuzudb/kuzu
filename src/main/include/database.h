@@ -60,6 +60,8 @@ public:
 
     ~Database() = default;
 
+    void initDBDirAndCoreFilesIfNecessary();
+
     void resizeBufferManager(uint64_t newSize);
 
     // TODO: interface below might need to be removed eventually

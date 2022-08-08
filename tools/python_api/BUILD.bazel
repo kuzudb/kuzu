@@ -6,20 +6,17 @@ pybind_library(
     srcs = [
         "py_connection.cpp",
         "py_database.cpp",
-        "py_loader.cpp",
         "py_query_result.cpp",
         "py_query_result_converter.cpp",
     ],
     hdrs = [
         "include/py_connection.h",
         "include/py_database.h",
-        "include/py_loader.h",
         "include/py_query_result.h",
         "include/py_query_result_converter.h",
         "include/pybind_include.h",
     ],
     deps = [
-        "//src/loader:graph_loader",
         "//src/main:graphflowdb",
     ],
 )
@@ -52,10 +49,10 @@ py_test(
     srcs = [
         "test/conftest.py",
         "test/test_datatype.py",
+        "test/test_df.py",
         "test/test_exception.py",
         "test/test_main.py",
         "test/test_parameter.py",
-        "test/test_df.py",
     ],
     data = [
         "//dataset",

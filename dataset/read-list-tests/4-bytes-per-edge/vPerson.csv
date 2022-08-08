@@ -1,5 +1,4 @@
 # This is the same as 2-bytes-per-edge dataset, except we add an additional 60K (from p60001 to 66000) more singletons.
-:ID
 0
 1
 2

@@ -34,8 +34,8 @@ public:
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         vector<string> unstrPropertyNames{"unstrIntProp"};
-        auto labelID =
-            catalog->getReadOnlyVersion()->addNodeLabel("person", "ID", move(personProperties));
+        auto labelID = catalog->getReadOnlyVersion()->addNodeLabel(
+            "person", 0 /* primaryKeyIdx */, move(personProperties));
         auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(labelID);
         nodeLabel->addUnstructuredProperties(unstrPropertyNames);
 

@@ -20,6 +20,8 @@ public:
     NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory, WAL* wal,
         NodeLabel* nodeLabel);
 
+    void loadColumnsAndListsFromDisk(NodeLabel* nodeLabel);
+
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
         return propertyColumns[propertyIdx].get();
     }
@@ -39,7 +41,6 @@ private:
 
 public:
     NodesMetadata* nodesMetadata;
-    label_t labelID;
 
 private:
     // This is for structured properties.
@@ -48,6 +49,10 @@ private:
     unique_ptr<UnstructuredPropertyLists> unstrPropertyLists;
     // The index for ID property.
     unique_ptr<HashIndex> IDIndex;
+    label_t labelID;
+    BufferManager& bufferManager;
+    bool isInMemory;
+    WAL* wal;
 };
 
 } // namespace storage

@@ -1,6 +1,5 @@
 # This dataset is used to test the multi-threading part of ORDER BY operators.
 # The batch size of scanNodeId is 2048 tuples. If we have 3000 rows, 2 threads will get work to do.
-:ID,studentID:INT64,balance:INT64
 0,2,-77736
 1,5,391315
 2,8,-84708

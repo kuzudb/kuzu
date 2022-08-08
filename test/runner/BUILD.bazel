@@ -108,7 +108,7 @@ cc_test(
 )
 
 cc_test(
-    name = "e2e_create_node_test",
+    name = "e2e_ddl_test",
     srcs = [
         "e2e_ddl_test.cpp",
     ],

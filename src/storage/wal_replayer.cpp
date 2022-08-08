@@ -80,7 +80,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // Since we log the NODE_TABLE_RECORD prior to logging CATALOG_RECORD, the catalog
             // file has not recovered yet. Thus, the catalog needs to read the catalog file for WAL
             // record.
-            auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+            auto catalogForCheckpointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), true /* isForWALRecord */);
             WALReplayerUtils::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
@@ -103,7 +103,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // See comments for NODE_TABLE_RECORD.
             auto nodesMetadataForCheckPointing = make_unique<NodesMetadata>(wal->getDirectory());
             auto maxNodeOffsetPerLabel = nodesMetadataForCheckPointing->getMaxNodeOffsetPerLabel();
-            auto catalogForCheckPointing = make_unique<catalog::Catalog>();
+            auto catalogForCheckPointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckPointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), true /* isForWALRecord */);
             WALReplayerUtils::createEmptyDBFilesForNewRelTable(catalogForCheckPointing.get(),

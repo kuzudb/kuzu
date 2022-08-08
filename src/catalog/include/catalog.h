@@ -27,7 +27,9 @@ namespace catalog {
 
 class CatalogContent {
 public:
+    // This constructor is only used for mock catalog testing only.
     CatalogContent();
+
     explicit CatalogContent(const string& directory);
 
     CatalogContent(const CatalogContent& other);
@@ -37,7 +39,7 @@ public:
     /**
      * Node and Rel label functions.
      */
-    label_t addNodeLabel(string labelName, string primaryKey,
+    label_t addNodeLabel(string labelName, uint32_t primaryKeyIdx,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
     label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
@@ -115,9 +117,7 @@ public:
     void saveToFile(const string& directory, bool isForWALRecord);
     void readFromFile(const string& directory, bool isForWALRecord);
 
-private:
-    static void verifyColDefinitionsForNodeLabel(
-        const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions);
+    uint64_t getNextRelID() const;
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -131,8 +131,10 @@ private:
 
 class Catalog {
 public:
+    // This constructor is only used for mock catalog testing only.
     Catalog();
-    explicit Catalog(const string& directory, WAL* wal);
+
+    explicit Catalog(WAL* wal);
 
     virtual ~Catalog() = default;
 
@@ -161,9 +163,14 @@ public:
         catalogContentForWriteTrx->saveToFile(move(directory), true /* isForWALRecord */);
     }
 
+    static inline void saveInitialCatalogToFile(const string& directory) {
+        make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(
+            directory, false /* isForWALRecord */);
+    }
+
     ExpressionType getFunctionType(const string& name) const;
 
-    label_t addNodeLabel(string labelName, string primaryKey,
+    label_t addNodeLabel(string labelName, uint32_t primaryKeyIdx,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
     label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,

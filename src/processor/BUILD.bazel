@@ -252,6 +252,21 @@ cc_library(
 )
 
 cc_library(
+    name = "copy_csv",
+    srcs = glob([
+        "physical_plan/operator/copy_csv/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/copy_csv/*.h",
+    ]),
+    deps = [
+        "base_operator",
+        "source_operator",
+        "//src/storage/in_mem_csv_copier",
+    ],
+)
+
+cc_library(
     name = "operator_impls",
     srcs = glob([
         "physical_plan/operator/*.cpp",
@@ -262,6 +277,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
+        "copy_csv",
         "ddl",
         "hash_join",
         "order_by",
@@ -320,7 +336,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "aggregate",
-        "ddl",
+        "copy_csv",
         "physical_plan",
         "result_collector",
         "//src/common:task_system",

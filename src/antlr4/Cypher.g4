@@ -19,7 +19,7 @@ oC_Cypher
         | SP ? gF_CopyCSV ( SP? ';' )? SP? EOF ;
         
 gF_CopyCSV
-    : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP '(' SP? gF_ParsingOptions SP? ')' )? ;
+    : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP? '(' SP? gF_ParsingOptions SP? ')' )? ;
 
 gF_ParsingOptions
     : gF_ParsingOption ( SP? ',' SP? gF_ParsingOption )* ;
@@ -53,7 +53,7 @@ gF_NodeLabels: oC_SchemaName ( SP? '|' SP ? oC_SchemaName )* ;
 
 gF_PropertyDefinitions : gF_PropertyDefinition ( SP? ',' SP? gF_PropertyDefinition )* ;
 
-gF_PropertyDefinition : oC_PropertyKeyName SP oC_SchemaName ;
+gF_PropertyDefinition : oC_PropertyKeyName SP gF_DataType ;
 
 gF_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
@@ -64,7 +64,15 @@ KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
 REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
 
 TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
-    
+
+gF_DataType 
+    : oC_SymbolicName 
+        | ( oC_SymbolicName gF_ListIdentifiers ) ;
+
+gF_ListIdentifiers : gF_ListIdentifier ( gF_ListIdentifier )* ;
+
+gF_ListIdentifier : '[' ']' ;
+        
 oC_AnyCypherOption
     : oC_Explain
         | oC_Profile ;

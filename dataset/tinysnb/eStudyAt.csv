@@ -1,4 +1,3 @@
-:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,year:INT64,places:STRING[]
 person,0,organisation,1,2021,[wwAewsdndweusd,wek]
 person,2,organisation,1,2020,[anew,jsdnwusklklklwewsd]
 person,8,organisation,1,2020,[awndsnjwejwen,isuhuwennjnuhuhuwewe]

@@ -1,3 +1,0 @@
-# The header of this file do not contain `ID` field that is not needed here, hence causes error.
-:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,:ID,date:INT64
-person,0,person,0,3425

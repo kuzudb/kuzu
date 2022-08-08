@@ -2,12 +2,10 @@
 
 using namespace graphflow::testing;
 
-class TinySnbUpdateTest : public BaseGraphLoadingTest {
+class TinySnbUpdateTest : public BaseGraphTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
-
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         createDBAndConn();
     }
 };

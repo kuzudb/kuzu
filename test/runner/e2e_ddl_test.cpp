@@ -5,25 +5,23 @@ using namespace graphflow::testing;
 namespace graphflow {
 namespace transaction {
 
-class TinySnbDDLTest : public BaseGraphLoadingTest {
+class TinySnbDDLTest : public BaseGraphTest {
 
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
-
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         createDBAndConn();
         catalog = conn->database->getCatalog();
     }
 
     void initWithoutLoadingGraph() {
-        createDBAndConn();
+        createDBAndConn(TransactionTestType::RECOVERY);
         catalog = conn->database->getCatalog();
     }
 
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
-    void createNodeTableCommitAndRecoveryTest(bool testRecovery) {
+    void createNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         auto preparedStatement =
             conn->prepareNoLock("CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE)");
         conn->beginTransactionNoLock(WRITE);
@@ -32,7 +30,7 @@ public:
         database->queryProcessor->execute(
             preparedStatement->physicalPlan.get(), executionContext.get());
         ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("EXAM_PAPER"), false);
-        if (testRecovery) {
+        if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeLabel("EXAM_PAPER"), false);
             ASSERT_EQ(database->getStorageManager()
@@ -58,7 +56,7 @@ public:
         }
     }
 
-    void createRelTableCommitAndRecoveryTest(bool testRecovery) {
+    void createRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         auto preparedStatement = conn->prepareNoLock(
             "CREATE REL likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
         conn->beginTransactionNoLock(WRITE);
@@ -67,7 +65,7 @@ public:
         database->queryProcessor->execute(
             preparedStatement->physicalPlan.get(), executionContext.get());
         ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), false);
-        if (testRecovery) {
+        if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containRelLabel("likes"), false);
             ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 4);
@@ -127,11 +125,11 @@ TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionErrorTest) {
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitTest) {
-    createNodeTableCommitAndRecoveryTest(false /* testRecovery */);
+    createNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecoveryTest) {
-    createNodeTableCommitAndRecoveryTest(true /* testRecovery */);
+    createNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, MultipleCreateRelTablesTest) {
@@ -154,9 +152,9 @@ TEST_F(TinySnbDDLTest, MultipleCreateRelTablesTest) {
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitTest) {
-    createRelTableCommitAndRecoveryTest(false /* testRecovery */);
+    createRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitRecoveryTest) {
-    createRelTableCommitAndRecoveryTest(true /* testRecovery */);
+    createRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }

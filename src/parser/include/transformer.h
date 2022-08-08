@@ -179,6 +179,10 @@ private:
 
     unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::GF_CreateRelContext& ctx);
 
+    string transformDataType(CypherParser::GF_DataTypeContext& ctx);
+
+    string transformListIdentifiers(CypherParser::GF_ListIdentifiersContext& ctx);
+
     string transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
         vector<pair<string, string>> propertyDefinitions);
 

@@ -49,7 +49,7 @@ void FileUtils::writeToFile(
 }
 
 void FileUtils::overwriteFile(const string& from, const string& to) {
-    if (!fileExists(from) || !fileExists(to))
+    if (!fileOrPathExists(from) || !fileOrPathExists(to))
         return;
     error_code errorCode;
     if (!filesystem::copy_file(from, to, filesystem::copy_options::overwrite_existing, errorCode)) {
@@ -81,7 +81,7 @@ void FileUtils::createDir(const string& dir) {
 
 void FileUtils::removeDir(const string& dir) {
     error_code removeErrorCode;
-    if (!fileExists(dir))
+    if (!fileOrPathExists(dir))
         return;
     if (!filesystem::remove_all(dir, removeErrorCode)) {
         throw Exception(
@@ -91,7 +91,7 @@ void FileUtils::removeDir(const string& dir) {
 }
 
 void FileUtils::removeFile(const string& path) {
-    if (!fileExists(path))
+    if (!fileOrPathExists(path))
         return;
     if (remove(path.c_str()) != 0) {
         throw Exception(StringUtils::string_format(

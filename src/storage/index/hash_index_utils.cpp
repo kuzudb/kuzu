@@ -49,7 +49,7 @@ in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(const DataTyp
         return equalsFuncForString;
     }
     default: {
-        throw LoaderException(
+        throw CopyCSVException(
             "Hash index equals is not supported for dataType other than INT64 and STRING.");
     }
     }

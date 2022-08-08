@@ -7,8 +7,10 @@ cc_library(
     ]),
     visibility = [
         "//src/binder:__subpackages__",
+        "//src/planner:__pkg__",
     ],
     deps = [
         "//src/binder/bound_statement",
+        "//src/common:csv_reader",
     ],
 )

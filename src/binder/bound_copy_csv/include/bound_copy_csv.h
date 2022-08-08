@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "src/binder/bound_statement/include/bound_statement.h"
+#include "src/common/include/csv_reader/csv_reader.h"
 #include "src/common/types/include/node_id_t.h"
 
 using namespace std;
@@ -14,21 +15,17 @@ namespace binder {
 
 class BoundCopyCSV : public BoundStatement {
 public:
-    BoundCopyCSV(string csvFileName, label_t labelID, bool isNodeLabel,
-        unordered_map<string, char> parsingOptions)
-        : BoundStatement{StatementType::COPY_CSV}, csvFileName{move(csvFileName)}, labelID{labelID},
-          isNodeLabel{isNodeLabel}, parsingOptions{move(parsingOptions)} {}
+    BoundCopyCSV(CSVDescription csvDescription, Label label)
+        : BoundStatement{StatementType::COPY_CSV},
+          csvDescription{move(csvDescription)}, label{move(label)} {}
 
-    inline string getCSVFileName() const { return csvFileName; }
-    inline label_t getLabelID() const { return labelID; }
-    inline bool getIsNodeLabel() const { return isNodeLabel; }
-    inline unordered_map<string, char> getParsingOptions() const { return parsingOptions; }
+    inline CSVDescription getCSVDescription() const { return csvDescription; }
+
+    inline Label getLabel() const { return label; }
 
 private:
-    string csvFileName;
-    label_t labelID;
-    bool isNodeLabel;
-    unordered_map<string, char> parsingOptions;
+    CSVDescription csvDescription;
+    Label label;
 };
 
 } // namespace binder

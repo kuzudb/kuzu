@@ -83,23 +83,16 @@ struct HashIndexConfig {
     static constexpr uint8_t SLOT_CAPACITY = (uint64_t)1 << SLOT_CAPACITY_LOG_2;
 };
 
-struct LoaderConfig {
-    // Size (in bytes) of the chunks to be read in GraphLoader.
+struct CopyCSVConfig {
+    // Size (in bytes) of the chunks to be read in InMemNode/RelCSVCopier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
     static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
-    static constexpr char PROPERTY_DATATYPE_SEPARATOR[] = ":";
-    static constexpr char DEFAULT_METADATA_JSON_FILENAME[] = "metadata.json";
     constexpr static char COMMENT_LINE_CHAR = '#';
 
     // mandatory fields in input CSV files
     // TODO(Ziyi): remove this field since the primary key may not necessarily be ID.
     static constexpr char ID_FIELD[] = "ID";
-    static constexpr char START_ID_FIELD[] = "START_ID";
-    static constexpr char END_ID_FIELD[] = "END_ID";
-    static constexpr char START_ID_LABEL_FIELD[] = "START_ID_LABEL";
-    static constexpr char END_ID_LABEL_FIELD[] = "END_ID_LABEL";
-    static constexpr char LIST_FIELD_SUFFIX[] = "[]";
 
     // Default configuration for csv file parsing
     static constexpr const char* CSV_PARSING_OPTIONS[5] = {
@@ -116,14 +109,6 @@ struct EnumeratorKnobs {
     static constexpr double RANDOM_LOOKUP_PENALTY = 1000;
     static constexpr double FLAT_PROBE_PENALTY = 10;
 };
-
-static inline std::unordered_map<std::string, char> getDefaultParsingOptions() {
-    return {{"ESCAPE", LoaderConfig::DEFAULT_ESCAPE_CHAR},
-        {"DELIM", LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
-        {"QUOTE", LoaderConfig::DEFAULT_QUOTE_CHAR},
-        {"LIST_BEGIN", LoaderConfig::DEFAULT_LIST_BEGIN_CHAR},
-        {"LIST_END", LoaderConfig::DEFAULT_LIST_END_CHAR}};
-}
 
 } // namespace common
 } // namespace graphflow

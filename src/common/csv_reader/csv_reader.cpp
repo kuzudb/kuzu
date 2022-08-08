@@ -9,8 +9,8 @@ namespace common {
 
 CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
     : CSVReader{fName, config} {
-    readingBlockStartOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * blockId;
-    readingBlockEndOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
+    readingBlockStartOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * blockId;
+    readingBlockEndOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;
     if (0 == readingBlockStartOffset) {
         isBeginningOfLine = true;
@@ -63,7 +63,11 @@ bool CSVReader::hasNextLine() {
     // else, read the next line. The function getline() will dynamically allocate a larger line and
     // update the lineCapacity accordingly if the length of the line exceeds the lineCapacity.
     lineLen = getline(&line, &lineCapacity, fd);
-    while (2 > lineLen || LoaderConfig::COMMENT_LINE_CHAR == line[0]) {
+    while (2 > lineLen || CopyCSVConfig::COMMENT_LINE_CHAR == line[0]) {
+        // Note: The getline function doesn't update the line if it reaches EOF. If a csv file only
+        // has comment lines and we don't reset line in each iteration, it will cause an infinite
+        // loop.
+        line[0] = '\0';
         lineLen = getline(&line, &lineCapacity, fd);
     };
     linePtrStart = linePtrEnd = -1;

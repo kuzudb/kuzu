@@ -1,3 +1,0 @@
-# The header of this file do not contain all the mandatory fields that is required to process rel files, hence causes error.
-:START_ID_LABEL,:START_ID,date:INT64
-person,0,person,0,3425

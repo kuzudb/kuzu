@@ -38,7 +38,7 @@ public:
 
     static void removeFile(const string& path);
     static void truncateFileToEmpty(FileInfo* fileInfo);
-    static inline bool fileExists(const string& path) { return filesystem::exists(path); }
+    static inline bool fileOrPathExists(const string& path) { return filesystem::exists(path); }
 
     static inline int64_t getFileSize(int fd) {
         struct stat s;

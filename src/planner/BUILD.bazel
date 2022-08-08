@@ -12,6 +12,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//src/binder/bound_copy_csv",
         "//src/binder/bound_ddl",
         "//src/binder/expression:expression_implementations",
         "//src/binder/query",

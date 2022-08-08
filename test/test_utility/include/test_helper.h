@@ -12,6 +12,11 @@ using ::testing::Test;
 namespace graphflow {
 namespace testing {
 
+enum class TransactionTestType : uint8_t {
+    NORMAL_EXECUTION = 0,
+    RECOVERY = 1,
+};
+
 struct TestQueryConfig {
     string name;
     string query;
@@ -42,49 +47,55 @@ private:
 
 // Loads a database from raw csv files and creates a disk-based DatabaseConfig. To have an in-memory
 // version, the databaseConfig field needs to be manually changed as in InMemoryDBLoadedTest.
-class BaseGraphLoadingTest : public Test {
+class BaseGraphTest : public Test {
 public:
     void SetUp() override {
         systemConfig = make_unique<SystemConfig>();
         databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
-        loadGraph();
     }
 
     void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
-    virtual string getInputCSVDir() = 0;
+    // The default behaviour of BaseGraphTest is to load tinySnb. Whoever inherit this class should
+    // implement their own initGraph().
+    virtual void initGraph();
 
-    void loadGraph();
-
-    inline void createDBAndConn() {
+    inline void createDBAndConn(
+        TransactionTestType transactionTestType = TransactionTestType::NORMAL_EXECUTION) {
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<Connection>(database.get());
+        if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
+            initGraph();
+        }
     }
 
-    void commitOrRollbackConnection(bool isCommit, bool testRecovery);
+    void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType);
 
 public:
     unique_ptr<SystemConfig> systemConfig;
     unique_ptr<DatabaseConfig> databaseConfig;
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;
+    string createNodeCmdPrefix = "CREATE NODE TABLE ";
+    string createRelCmdPrefix = "CREATE REL ";
 };
 
-class DBLoadedTest : public BaseGraphLoadingTest {
+class DBTest : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
     }
 };
 
-class InMemoryDBLoadedTest : public BaseGraphLoadingTest {
+class InMemoryDBTest : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
+        systemConfig->defaultPageBufferPoolSize = (1ul << 23);
         databaseConfig->inMemoryMode = true;
         createDBAndConn();
     }

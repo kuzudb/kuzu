@@ -17,8 +17,10 @@ class NodeOffsetsInfo {
     friend class NodesMetadata;
 
 public:
-    NodeOffsetsInfo(node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets_);
+    NodeOffsetsInfo(node_offset_t maxNodeOffset_, const vector<node_offset_t>& deletedNodeOffsets_);
     NodeOffsetsInfo(NodeOffsetsInfo& other);
+
+    void setMaxNodeOffset(node_offset_t maxNodeOffset_);
 
 private:
     // This function assumes that it is being called right after ScanNodeID has obtained a morsel
@@ -76,10 +78,12 @@ public:
         adjListsAndColumns = adjListsAndColumns_;
     }
 
+    inline NodeOffsetsInfo* getNodeOffsetInfo() { return nodeOffsetsInfo.get(); }
+
 private:
     void errorIfNodeHasEdges(node_offset_t nodeOffset);
 
-    inline vector<node_offset_t> getDeletedNodeOffsetsForWriteTrx() {
+    inline vector<node_offset_t> getDeletedNodeOffsets() {
         return nodeOffsetsInfo->getDeletedNodeOffsets();
     }
 
@@ -96,6 +100,8 @@ private:
 class NodesMetadata {
 
 public:
+    // Should only be used by database.cpp to start a database from an empty directory.
+    NodesMetadata();
     // Should be used when an already loaded database is started from a directory.
     NodesMetadata(const string& directory);
 
@@ -120,17 +126,16 @@ public:
         nodeMetadataPerLabelForWriteTrx.reset();
     }
 
+    static inline void saveInitialNodesMetadataToFile(const string& directory) {
+        make_unique<NodesMetadata>()->saveToFile(
+            directory, false /* isForWALRecord */, TransactionType::READ_ONLY);
+    }
+
     void readFromFile(const string& directory);
 
     void setAdjListsAndColumns(RelsStore* relsStore);
 
-    // Should be used by the loader to write an initial NodesMetadata with no deleted nodes.
-    static void saveToFile(const string& directory, vector<node_offset_t>& maxNodeOffsetsPerLabel,
-        shared_ptr<spdlog::logger>& logger);
-
-    static void saveToFile(const string& directory, bool isForWALRecord,
-        vector<node_offset_t>& maxNodeOffsetsPerLabel,
-        vector<vector<uint64_t>>& deletedNodeOffsetsPerLabel, shared_ptr<spdlog::logger>& logger);
+    void saveToFile(const string& directory, bool isForWALRecord, TransactionType transactionType);
 
     void initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
 
@@ -165,7 +170,7 @@ public:
 
     // This function is only used by storageManager to construct relsStore during start-up, so we
     // can just safely return the maxNodeOffsetPerLabel for readOnlyVersion.
-    vector<node_offset_t> getMaxNodeOffsetPerLabel();
+    vector<node_offset_t> getMaxNodeOffsetPerLabel() const;
 
     void setDeletedNodeOffsetsForMorsel(
         Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, label_t labelID);
@@ -180,7 +185,6 @@ public:
 private:
     mutex mtx;
     shared_ptr<spdlog::logger> logger;
-    string directory;
     unique_ptr<vector<unique_ptr<NodeMetadata>>> nodeMetadataPerLabelForReadOnlyTrx;
     unique_ptr<vector<unique_ptr<NodeMetadata>>> nodeMetadataPerLabelForWriteTrx;
 };

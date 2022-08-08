@@ -81,8 +81,9 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
     auto isNodeLabel = catalog.getReadOnlyVersion()->containNodeLabel(labelName);
     auto labelID = isNodeLabel ? catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName) :
                                  catalog.getReadOnlyVersion()->getRelLabelFromName(labelName);
-    return make_unique<BoundCopyCSV>(copyCSV.getCSVFileName(), labelID, isNodeLabel,
-        bindParsingOptions(copyCSV.getParsingOptions()));
+    return make_unique<BoundCopyCSV>(
+        CSVDescription(copyCSV.getCSVFileName(), bindParsingOptions(copyCSV.getParsingOptions())),
+        Label(labelName, labelID, isNodeLabel));
 }
 
 SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
@@ -96,15 +97,25 @@ SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
     return SrcDstLabels(move(srcNodeLabels), move(dstNodeLabels));
 }
 
-unordered_map<string, char> Binder::bindParsingOptions(
-    unordered_map<string, string> parsingOptions) {
-    unordered_map<string, char> boundParsingOptions = getDefaultParsingOptions();
+CSVReaderConfig Binder::bindParsingOptions(unordered_map<string, string> parsingOptions) {
+    CSVReaderConfig csvReaderConfig;
     for (auto& parsingOption : parsingOptions) {
-        auto loadOptionName = parsingOption.first;
-        validateParsingOptionName(loadOptionName);
-        boundParsingOptions[loadOptionName] = bindParsingOptionValue(parsingOption.second);
+        auto copyOptionName = parsingOption.first;
+        validateParsingOptionName(copyOptionName);
+        auto parsingOptionValue = bindParsingOptionValue(parsingOption.second);
+        if (copyOptionName == "ESCAPE") {
+            csvReaderConfig.escapeChar = parsingOptionValue;
+        } else if (copyOptionName == "DELIM") {
+            csvReaderConfig.tokenSeparator = parsingOptionValue;
+        } else if (copyOptionName == "QUOTE") {
+            csvReaderConfig.quoteChar = parsingOptionValue;
+        } else if (copyOptionName == "LIST_BEGIN") {
+            csvReaderConfig.listBeginChar = parsingOptionValue;
+        } else if (copyOptionName == "LIST_END") {
+            csvReaderConfig.listEndChar = parsingOptionValue;
+        }
     }
-    return boundParsingOptions;
+    return csvReaderConfig;
 }
 
 char Binder::bindParsingOptionValue(string parsingOptionValue) {
@@ -668,8 +679,8 @@ void Binder::validateLabelExist(string& labelName) const {
 }
 
 void Binder::validateParsingOptionName(string& parsingOptionName) {
-    for (auto i = 0; i < size(LoaderConfig::CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == LoaderConfig::CSV_PARSING_OPTIONS[i]) {
+    for (auto i = 0; i < size(CopyCSVConfig::CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyCSVConfig::CSV_PARSING_OPTIONS[i]) {
             return;
         }
     }

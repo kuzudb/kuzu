@@ -33,7 +33,7 @@ public:
     void setProperty(node_offset_t nodeOffset, uint32_t propertyKey, Value* value);
     void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey);
 
-    // Currently, used only in Loader tests.
+    // Currently, used only in CopyCSV tests.
     unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
 
     // Prepares all the db file changes necessary to update the "persistent" unstructured property

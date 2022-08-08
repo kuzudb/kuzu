@@ -703,9 +703,25 @@ vector<pair<string, string>> Transformer::transformPropertyDefinitions(
     for (auto property : ctx.gF_PropertyDefinition()) {
         propertyNameDataTypes.emplace_back(
             transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            transformSchemaName(*property->oC_SchemaName()));
+            transformDataType(*property->gF_DataType()));
     }
     return propertyNameDataTypes;
+}
+
+string Transformer::transformDataType(CypherParser::GF_DataTypeContext& ctx) {
+    auto dataType = transformSymbolicName(*ctx.oC_SymbolicName());
+    if (ctx.gF_ListIdentifiers()) {
+        dataType += transformListIdentifiers(*ctx.gF_ListIdentifiers());
+    }
+    return dataType;
+}
+
+string Transformer::transformListIdentifiers(CypherParser::GF_ListIdentifiersContext& ctx) {
+    string listIdentifiers;
+    for (auto& listIdentifier : ctx.gF_ListIdentifier()) {
+        listIdentifiers += listIdentifier->getText();
+    }
+    return listIdentifiers;
 }
 
 string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
@@ -748,12 +764,12 @@ unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
 
 unordered_map<string, string> Transformer::transformParsingOptions(
     CypherParser::GF_ParsingOptionsContext& ctx) {
-    unordered_map<string, string> loadOptions;
+    unordered_map<string, string> copyOptions;
     for (auto loadOption : ctx.gF_ParsingOption()) {
-        loadOptions.emplace(transformSymbolicName(*loadOption->oC_SymbolicName()),
+        copyOptions.emplace(transformSymbolicName(*loadOption->oC_SymbolicName()),
             transformStringLiteral(*loadOption->StringLiteral()));
     }
-    return loadOptions;
+    return copyOptions;
 }
 
 string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {

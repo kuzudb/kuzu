@@ -59,17 +59,17 @@ void WAL::logNodeTableRecord(label_t labelID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRelTableRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
     lock_t lck{mtx};
     WALRecord walRecord =
         WALRecord::newOverflowFileNextBytePosRecord(storageStructureID, prevNextByteToWriteTo);
-    addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logRelTableRecord(label_t labelID) {
-    lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
     addNewWALRecordNoLock(walRecord);
 }
 
