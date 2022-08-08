@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 

@@ -19,15 +19,14 @@ Benchmark::Benchmark(const string& benchmarkPath, Database* database, BenchmarkC
 }
 
 void Benchmark::loadBenchmark(const string& benchmarkPath) {
-    vector<testing::TestQueryConfig> queryConfigs =
-        testing::TestHelper::parseTestFile(benchmarkPath);
+    auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
     assert(queryConfigs.size() == 1);
-    testing::TestQueryConfig queryConfig = queryConfigs[0];
+    auto queryConfig = queryConfigs[0].get();
     query = config.enableProfile ? "PROFILE " : "";
-    query += queryConfig.query;
-    name = queryConfig.name;
-    expectedOutput = queryConfig.expectedTuples;
-    encodedJoin = queryConfig.encodedJoin;
+    query += queryConfig->query;
+    name = queryConfig->name;
+    expectedOutput = queryConfig->expectedTuples;
+    encodedJoin = queryConfig->encodedJoin;
 }
 
 unique_ptr<QueryResult> Benchmark::run() {

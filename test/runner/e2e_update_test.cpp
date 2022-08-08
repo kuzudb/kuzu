@@ -3,7 +3,6 @@
 using namespace graphflow::testing;
 
 class TinySnbUpdateTest : public BaseGraphLoadingTest {
-
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 

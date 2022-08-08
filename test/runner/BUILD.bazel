@@ -1,16 +1,16 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "tinysnb_read_test",
+    name = "e2e_read_test",
     srcs = [
-        "tinysnb_end_to_end_read_test.cpp",
+        "e2e_read_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
+        "//test/test_files:tinySNB_queries",
     ],
     deps = [
         "//test/test_utility:test_helper",
@@ -74,16 +74,16 @@ cc_test(
 #)
 
 cc_test(
-    name = "read_lists_end_to_end_test",
+    name = "e2e_read_list_test",
     srcs = [
-        "read_lists_end_to_end_test.cpp",
+        "e2e_read_list_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
+        "//test/test_files:read_list_queries",
     ],
     deps = [
         "//test/test_utility:test_helper",
@@ -91,16 +91,16 @@ cc_test(
 )
 
 cc_test(
-    name = "order_by_end_to_end_test",
+    name = "e2e_order_by_test",
     srcs = [
-        "order_by_end_to_end_test.cpp",
+        "e2e_order_by_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
+        "//test/test_files:order_by_queries",
     ],
     deps = [
         "//test/test_utility:test_helper",

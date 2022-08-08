@@ -128,6 +128,7 @@ public:
     // Used in test helper. Note: for our testing framework, we should not catch exception and
     // instead let IDE catch these exception
     std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
     std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
     // used in API test
     inline uint64_t getMaxNumThreadForExec() {
