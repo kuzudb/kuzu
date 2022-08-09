@@ -11,8 +11,8 @@ namespace processor {
 shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     probeState = make_unique<ProbeState>();
-    probeSideKeyDataChunk = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()];
-    probeSideKeyVector = probeSideKeyDataChunk->valueVectors[probeDataInfo.getKeyIDVectorPos()];
+    probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
+                             ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     for (auto pos : flatDataChunkPositions) {
         auto dataChunk = resultSet->dataChunks[pos];
         dataChunk->state = DataChunkState::getSingleValueDataChunkState();
@@ -32,57 +32,58 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
 }
 
 bool HashJoinProbe::getNextBatchOfMatchedTuples() {
-    if (probeState->nextMatchedTupleIdx < probeState->numMatchedTuples) {
+    if (probeState->nextMatchedTupleIdx < probeState->matchedSelVector->selectedSize) {
         return true;
     }
     auto keys = (nodeID_t*)probeSideKeyVector->values;
     do {
-        if (probeState->numMatchedTuples == 0) {
-            restoreSelVector(probeSideKeyDataChunk->state->selVector.get());
+        if (probeState->probeSelVector->selectedSize == 0) {
+            restoreSelVector(probeSideKeyVector->state->selVector.get());
             if (!children[0]->getNextTuples()) {
                 return false;
             }
-            saveSelVector(probeSideKeyDataChunk->state->selVector.get());
+            saveSelVector(probeSideKeyVector->state->selVector.get());
             sharedState->getHashTable()->probe(
                 *probeSideKeyVector, probeState->probedTuples.get(), *probeState->probeSelVector);
         }
         auto numMatchedTuples = 0;
         while (true) {
             if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY ||
-                probeState->probedTuples[0] == nullptr) {
-                // The logic behind checking on probedTuples[0]: when the probe side is flat, we
-                // always put the probed tuple into probedTuples[0], and chase the pointer until it
-                // reaches the end (nullptr); when the probe side is unflat, it is guaranteed that
-                // all probed tuples has no prev chained to it, so for probedTuples[0]. Thus, we
-                // only check on probedTuples[0] to see if we hit the end or not.
+                probeState->probeSelVector->selectedSize == 0) {
                 break;
             }
+            auto numNonNullProbedTuples = 0;
             for (auto i = 0u; i < probeState->probeSelVector->selectedSize; i++) {
                 auto pos = probeState->probeSelVector->selectedPositions[i];
                 auto currentTuple = probeState->probedTuples[i];
                 probeState->matchedTuples[numMatchedTuples] = currentTuple;
-                probeState->probeSelVector->selectedPositions[numMatchedTuples] = pos;
+                probeState->matchedSelVector->selectedPositions[numMatchedTuples] = pos;
                 numMatchedTuples += *(nodeID_t*)currentTuple == keys[pos];
-                probeState->probedTuples[i] =
+                probeState->probedTuples[numNonNullProbedTuples] =
                     *sharedState->getHashTable()->getPrevTuple(currentTuple);
+                probeState->probeSelVector->selectedPositions[numNonNullProbedTuples] = pos;
+                numNonNullProbedTuples +=
+                    probeState->probedTuples[numNonNullProbedTuples] != nullptr;
             }
+            probeState->probeSelVector->selectedSize = numNonNullProbedTuples;
         }
-        probeState->numMatchedTuples = numMatchedTuples;
+        probeState->matchedSelVector->selectedSize = numMatchedTuples;
         probeState->nextMatchedTupleIdx = 0;
-    } while (probeState->numMatchedTuples == 0);
+    } while (probeState->matchedSelVector->selectedSize == 0);
     return true;
 }
 
 uint64_t HashJoinProbe::populateResultSet() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
-    auto numTuplesToRead = probeSideKeyVector->state->isFlat() ? 1 : probeState->numMatchedTuples;
+    auto numTuplesToRead =
+        probeSideKeyVector->state->isFlat() ? 1 : probeState->matchedSelVector->selectedSize;
     if (!probeSideKeyVector->state->isFlat() &&
         probeSideKeyVector->state->selVector->selectedSize != numTuplesToRead) {
         // Update probeSideKeyVector's selectedPositions when the probe side is unflat and its
         // selected positions need to change (i.e., some keys has no matched tuples).
         auto keySelectedBuffer = probeSideKeyVector->state->selVector->getSelectedPositionsBuffer();
         for (auto i = 0u; i < numTuplesToRead; i++) {
-            keySelectedBuffer[i] = probeState->probeSelVector->selectedPositions[i];
+            keySelectedBuffer[i] = probeState->matchedSelVector->selectedPositions[i];
         }
         probeSideKeyVector->state->selVector->selectedSize = numTuplesToRead;
         probeSideKeyVector->state->selVector->resetSelectorToValuePosBuffer();

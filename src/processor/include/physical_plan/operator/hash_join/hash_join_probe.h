@@ -9,11 +9,13 @@ namespace graphflow {
 namespace processor {
 
 struct ProbeState {
-    explicit ProbeState() : numMatchedTuples{0}, nextMatchedTupleIdx{0} {
+    explicit ProbeState() : nextMatchedTupleIdx{0} {
         matchedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
         probedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
         probeSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
         probeSelVector->resetSelectorToValuePosBuffer();
+        matchedSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        matchedSelVector->resetSelectorToValuePosBuffer();
     }
 
     // Each key corresponds to a pointer with the same hash value from the ht directory.
@@ -22,7 +24,7 @@ struct ProbeState {
     unique_ptr<uint8_t*[]> matchedTuples;
     // Selective index mapping each probed tuple to its probe side key vector.
     unique_ptr<SelectionVector> probeSelVector;
-    sel_t numMatchedTuples;
+    unique_ptr<SelectionVector> matchedSelVector;
     sel_t nextMatchedTupleIdx;
 };
 
@@ -87,7 +89,6 @@ private:
     vector<shared_ptr<ValueVector>> vectorsToReadInto;
     vector<uint32_t> columnIdxsToReadFrom;
     shared_ptr<ValueVector> probeSideKeyVector;
-    shared_ptr<DataChunk> probeSideKeyDataChunk;
     unique_ptr<ProbeState> probeState;
 };
 } // namespace processor
