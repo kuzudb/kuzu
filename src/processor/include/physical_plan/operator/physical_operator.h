@@ -5,8 +5,6 @@
 #include "src/processor/include/physical_plan/result/result_set.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace processor {
 
@@ -35,6 +33,7 @@ enum PhysicalOperatorType : uint8_t {
     SCAN_NODE_ID,
     SCAN_STRUCTURED_PROPERTY,
     SCAN_UNSTRUCTURED_PROPERTY,
+    SEMI_MASKER,
     SET,
     SKIP,
     ORDER_BY,
@@ -51,8 +50,8 @@ const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLU
     "CREATE", "DELETE", "EXISTS", "FACTORIZED_TABLE_SCAN", "FILTER", "FLATTEN", "HASH_JOIN_BUILD",
     "HASH_JOIN_PROBE", "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND",
     "MULTIPLICITY_REDUCER", "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN",
-    "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SET", "SKIP",
-    "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN", "CREATE_NODE_TABLE",
+    "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET",
+    "SKIP", "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN", "CREATE_NODE_TABLE",
     "CREATE_REL_TABLE"};
 
 struct OperatorMetrics {
