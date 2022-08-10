@@ -10,6 +10,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_sink.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
 
 namespace graphflow {
@@ -349,6 +350,23 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
     plan.appendOperator(move(scanProperty));
+}
+
+void Enumerator::appendSink(LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto schemaBeforeSink = schema->copy();
+    schema->clear();
+    Enumerator::computeSchemaForSinkOperators(
+        schemaBeforeSink->getGroupsPosInScope(), *schemaBeforeSink, *schema);
+    vector<uint64_t> flatOutputGroupPositions;
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
+        if (schema->getGroup(i)->getIsFlat()) {
+            flatOutputGroupPositions.push_back(i);
+        }
+    }
+    auto sink = make_shared<LogicalSink>(schemaBeforeSink->getExpressionsInScope(),
+        flatOutputGroupPositions, move(schemaBeforeSink), plan.getLastOperator());
+    plan.appendOperator(sink);
 }
 
 unique_ptr<LogicalPlan> Enumerator::createUnionPlan(

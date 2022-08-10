@@ -84,6 +84,8 @@ private:
     void appendScanRelPropIfNecessary(shared_ptr<Expression>& expression, RelExpression& rel,
         RelDirection direction, LogicalPlan& plan);
 
+    static void appendSink(LogicalPlan& plan);
+
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 

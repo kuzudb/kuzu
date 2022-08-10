@@ -52,6 +52,8 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalSemiMaskerToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
@@ -114,6 +116,7 @@ public:
 
 private:
     uint32_t physicalOperatorID;
+    unordered_map<string, PhysicalOperator*> scanNodeIDsMap;
 };
 
 } // namespace processor

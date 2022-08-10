@@ -9,8 +9,9 @@ namespace graphflow {
 namespace planner {
 using namespace graphflow::binder;
 
-class LogicalHashJoin : public LogicalOperator {
+enum class HashJoinType : uint8_t { HASH_JOIN, S_JOIN, ASP_JOIN };
 
+class LogicalHashJoin : public LogicalOperator {
 public:
     // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
     LogicalHashJoin(shared_ptr<NodeExpression> joinNode, unique_ptr<Schema> buildSideSchema,
@@ -18,19 +19,24 @@ public:
         bool isOutputAFlatTuple, shared_ptr<LogicalOperator> probeSideChild,
         shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{move(probeSideChild), move(buildSideChild)}, joinNode(move(joinNode)),
-          buildSideSchema(move(buildSideSchema)), flatOutputGroupPositions{move(
-                                                      flatOutputGroupPositions)},
-          expressionsToMaterialize{move(expressionsToMaterialize)}, isOutputAFlatTuple{
-                                                                        isOutputAFlatTuple} {}
+          buildSideSchema(move(buildSideSchema)),
+          flatOutputGroupPositions{move(flatOutputGroupPositions)}, expressionsToMaterialize{move(
+                                                                        expressionsToMaterialize)},
+          isOutputAFlatTuple{isOutputAFlatTuple}, joinType{HashJoinType::HASH_JOIN} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
     }
 
-    string getExpressionsForPrinting() const override { return joinNode->getRawName(); }
-
-    inline expression_vector getExpressionsToMaterialize() const {
-        return expressionsToMaterialize;
+    string getExpressionsForPrinting() const override {
+        switch (joinType) {
+        case HashJoinType::ASP_JOIN:
+        case HashJoinType::S_JOIN: {
+            return "SEMI " + joinNode->getRawName();
+        }
+        default:
+            return joinNode->getRawName();
+        }
     }
 
     inline shared_ptr<NodeExpression> getJoinNode() const { return joinNode; }
@@ -38,10 +44,18 @@ public:
     inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
     inline bool getIsOutputAFlatTuple() const { return isOutputAFlatTuple; }
 
+    inline expression_vector getExpressionsToMaterialize() const {
+        return expressionsToMaterialize;
+    }
+    inline void setJoinType(HashJoinType hashJoinType) { joinType = hashJoinType; }
+    inline HashJoinType getJoinType() const { return joinType; }
+
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNode, buildSideSchema->copy(),
+        auto copiedHashJoin = make_unique<LogicalHashJoin>(joinNode, buildSideSchema->copy(),
             flatOutputGroupPositions, expressionsToMaterialize, isOutputAFlatTuple,
             children[0]->copy(), children[1]->copy());
+        copiedHashJoin->setJoinType(joinType);
+        return copiedHashJoin;
     }
 
 private:
@@ -51,6 +65,8 @@ private:
     vector<uint64_t> flatOutputGroupPositions;
     expression_vector expressionsToMaterialize;
     bool isOutputAFlatTuple;
+    HashJoinType joinType;
 };
+
 } // namespace planner
 } // namespace graphflow

@@ -71,6 +71,7 @@ private:
         }
     }
     void planHashJoin(uint32_t leftLevel, uint32_t rightLevel);
+
     // Filter push down for hash join.
     void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
 
@@ -78,8 +79,18 @@ private:
     void appendScanNodeID(shared_ptr<NodeExpression> queryNode, LogicalPlan& plan);
 
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
+
+    void planHashJoin(
+        shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendSemiMasker(shared_ptr<NodeExpression>& joinNode, LogicalPlan& plan);
+    void appendASPJoin(
+        shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendSJoin(
+        shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     void appendHashJoin(
-        const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    shared_ptr<LogicalOperator> createHashJoin(
+        shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     // AppendIntersect return false if a nodeID is flat in which case we should use filter.
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 

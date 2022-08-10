@@ -7,16 +7,19 @@ namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto logicalScan = (LogicalScanNodeID*)logicalOperator;
-    auto nodeExpression = logicalScan->getNodeExpression();
+    auto logicalScanNodeID = (LogicalScanNodeID*)logicalOperator;
+    auto nodeExpression = logicalScanNodeID->getNodeExpression();
     auto& nodesStore = storageManager.getNodesStore();
     auto sharedState = make_shared<ScanNodeIDSharedState>(
         &nodesStore.getNodesMetadata(), nodeExpression->getLabel());
     auto dataPos = mapperContext.getDataPos(nodeExpression->getIDProperty());
     mapperContext.addComputedExpressions(nodeExpression->getIDProperty());
-    return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
+    auto scanNodeID = make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
         nodesStore.getNode(nodeExpression->getLabel()), dataPos, sharedState, getOperatorID(),
-        logicalScan->getExpressionsForPrinting());
+        logicalScanNodeID->getExpressionsForPrinting());
+    assert(!scanNodeIDsMap.contains(nodeExpression->getUniqueName()));
+    scanNodeIDsMap.insert({nodeExpression->getUniqueName(), scanNodeID.get()});
+    return scanNodeID;
 }
 
 } // namespace processor

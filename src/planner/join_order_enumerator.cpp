@@ -7,6 +7,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
 
 namespace graphflow {
 namespace planner {
@@ -250,12 +251,12 @@ void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) 
                     auto rightPlanBuildCopy = rightPlan->shallowCopy();
                     auto leftPlanBuildCopy = leftPlan->shallowCopy();
                     auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                    appendHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                    planHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
                     planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
                     context->addPlan(newSubgraph, move(leftPlanProbeCopy));
                     // flip build and probe side to get another HashJoin plan
                     if (leftLevel != rightLevel) {
-                        appendHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                        planHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
                         planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                         context->addPlan(newSubgraph, move(rightPlanProbeCopy));
                     }
@@ -330,6 +331,49 @@ void JoinOrderEnumerator::appendExtend(
     plan.appendOperator(move(extend));
 }
 
+static void collectScanNodeIDRecursive(LogicalOperator* op, vector<LogicalOperator*>& scanNodeIDs) {
+    if (op->getLogicalOperatorType() == LOGICAL_SCAN_NODE_ID) {
+        scanNodeIDs.push_back(op);
+        return;
+    }
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
+        collectScanNodeIDRecursive(op->getChild(i).get(), scanNodeIDs);
+    }
+}
+
+static vector<LogicalOperator*> collectScanNodeID(LogicalOperator* op) {
+    vector<LogicalOperator*> result;
+    collectScanNodeIDRecursive(op, result);
+    return result;
+}
+
+static bool tryPassMask(NodeExpression* joinNode, vector<LogicalOperator*>& scanNodeIDs) {
+    for (auto& op : scanNodeIDs) {
+        assert(op->getLogicalOperatorType() == LOGICAL_SCAN_NODE_ID);
+        auto scanNodeID = (LogicalScanNodeID*)op;
+        if (scanNodeID->getNodeExpression()->getUniqueName() == joinNode->getUniqueName()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void JoinOrderEnumerator::planHashJoin(
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto buildSideScanNodeIDs = collectScanNodeID(buildPlan.getLastOperator().get());
+    bool canPassMaskFromProbeToBuild = tryPassMask(joinNode.get(), buildSideScanNodeIDs);
+    auto probeSideScanNodeIDs = collectScanNodeID(probePlan.getLastOperator().get());
+    bool canPassMaskFromBuildToProbe = tryPassMask(joinNode.get(), probeSideScanNodeIDs);
+    assert(!(canPassMaskFromProbeToBuild && canPassMaskFromBuildToProbe));
+    if (canPassMaskFromProbeToBuild) {
+        appendASPJoin(joinNode, probePlan, buildPlan);
+    } else if (canPassMaskFromBuildToProbe) {
+        appendSJoin(joinNode, probePlan, buildPlan);
+    } else {
+        appendHashJoin(joinNode, probePlan, buildPlan);
+    }
+}
+
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
     auto buildSchema = buildPlan.getSchema();
     auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
@@ -358,8 +402,39 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
     return true;
 }
 
+void JoinOrderEnumerator::appendSemiMasker(
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& plan) {
+    auto semiMasker = make_shared<LogicalSemiMasker>(joinNode, plan.getLastOperator());
+    plan.appendOperator(move(semiMasker));
+}
+
+void JoinOrderEnumerator::appendASPJoin(
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    appendSemiMasker(joinNode, probePlan);
+    Enumerator::appendSink(probePlan);
+    auto hashJoin =
+        static_pointer_cast<LogicalHashJoin>(createHashJoin(joinNode, probePlan, buildPlan));
+    hashJoin->setJoinType(HashJoinType::ASP_JOIN);
+    probePlan.appendOperator(move(hashJoin));
+}
+
+void JoinOrderEnumerator::appendSJoin(
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    appendSemiMasker(joinNode, buildPlan);
+    auto hashJoin =
+        static_pointer_cast<LogicalHashJoin>(createHashJoin(joinNode, probePlan, buildPlan));
+    hashJoin->setJoinType(HashJoinType::S_JOIN);
+    probePlan.appendOperator(move(hashJoin));
+}
+
 void JoinOrderEnumerator::appendHashJoin(
-    const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto hashJoin = createHashJoin(joinNode, probePlan, buildPlan);
+    probePlan.appendOperator(move(hashJoin));
+}
+
+shared_ptr<LogicalOperator> JoinOrderEnumerator::createHashJoin(
+    shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
     auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
@@ -429,10 +504,9 @@ void JoinOrderEnumerator::appendHashJoin(
             buildSideHasUnflatPayloads)) {
         isOutputAFlatTuple = true;
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
-        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(), isOutputAFlatTuple,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
-    probePlan.appendOperator(move(hashJoin));
+    return make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(), flatOutputGroupPositions,
+        buildSideSchema.getExpressionsInScope(), isOutputAFlatTuple, probePlan.getLastOperator(),
+        buildPlan.getLastOperator());
 }
 
 bool JoinOrderEnumerator::appendIntersect(

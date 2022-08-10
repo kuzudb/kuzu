@@ -13,15 +13,17 @@ public:
     LogicalScanNodeID(shared_ptr<NodeExpression> nodeExpression)
         : nodeExpression{move(nodeExpression)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
+    inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
 
-    string getExpressionsForPrinting() const override { return nodeExpression->getRawName(); }
+    inline string getExpressionsForPrinting() const override {
+        return nodeExpression->getRawName();
+    }
 
     inline shared_ptr<NodeExpression> getNodeExpression() const { return nodeExpression; }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanNodeID>(nodeExpression);
     }
 

@@ -21,7 +21,7 @@ public:
     bool getNextTuples() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        auto clonedSemiMasker = make_unique<SemiMasker>(
+        return make_unique<SemiMasker>(
             keyDataPos, scanNodeIDSharedState, children[0]->clone(), id, paramsString);
     }
 

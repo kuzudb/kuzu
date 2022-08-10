@@ -10,9 +10,6 @@ void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* tran
     }
     maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
     maxMorselIdx = maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
-    if (enableSemiMask) {
-        mask = make_unique<SemiMask>(maxNodeOffset, maxMorselIdx);
-    }
     initialized = true;
 }
 
@@ -34,6 +31,15 @@ pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     auto range = min(DEFAULT_VECTOR_CAPACITY, maxNodeOffset + 1 - currentNodeOffset);
     currentNodeOffset += range;
     return make_pair(startOffset, startOffset + range);
+}
+
+void ScanNodeIDSharedState::initSemiMask(graphflow::transaction::Transaction* transaction) {
+    unique_lock xLck{mtx};
+    if (mask == nullptr) {
+        auto maxNodeOffset_ = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+        auto maxMorselIdx_ = maxNodeOffset_ >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+        mask = make_unique<SemiMask>(maxNodeOffset_, maxMorselIdx_);
+    }
 }
 
 shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
@@ -63,9 +69,6 @@ bool ScanNodeID::getNextTuples() {
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
         setSelVector(startOffset, endOffset);
-        outDataChunk->state->selVector->resetSelectorToUnselected();
-        nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
-            transaction, outValueVector, nodeTable->getLabelID());
     } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
@@ -81,6 +84,8 @@ void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset
         sel_t numSelectedValues = 0;
         for (auto i = 0u; i < (endOffset - startOffset); i++) {
             outDataChunk->state->selVector->selectedPositions[numSelectedValues] = i;
+            // TODO(Guodong): sharedState->isNodeMasked(i + startOffset) doesn't guarantee to be 0/1
+            // on my platform.
             numSelectedValues += sharedState->isNodeMasked(i + startOffset);
         }
         outDataChunk->state->selVector->selectedSize = numSelectedValues;

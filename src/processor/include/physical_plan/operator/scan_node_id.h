@@ -23,17 +23,16 @@ public:
 };
 
 class ScanNodeIDSharedState {
-
 public:
-    explicit ScanNodeIDSharedState(
-        NodesMetadata* nodesMetadata, label_t labelID, bool enableSemiMask = false)
-        : initialized{false}, enableSemiMask{enableSemiMask}, nodesMetadata{nodesMetadata},
-          labelID{labelID}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{
-                                                                                     0} {}
+    explicit ScanNodeIDSharedState(NodesMetadata* nodesMetadata, label_t labelID)
+        : initialized{false}, nodesMetadata{nodesMetadata}, labelID{labelID},
+          maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0} {}
 
     void initialize(Transaction* transaction);
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
+
+    void initSemiMask(Transaction* transaction);
 
     // Notice: This function is not protected with a lock for concurrent writes because of the
     // special use case that there is no mixed reads and writes to the mask, and all writes to the
@@ -42,13 +41,12 @@ public:
         mask->morselMask[nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2] = true;
         mask->nodeMask[nodeOffset] = true;
     }
-    inline bool isSemiMaskEnabled() const { return enableSemiMask; }
+    inline bool isSemiMaskEnabled() const { return mask != nullptr; }
     inline bool isNodeMasked(node_offset_t nodeOffset) const { return mask->nodeMask[nodeOffset]; }
 
 private:
     mutex mtx;
     bool initialized;
-    bool enableSemiMask;
     NodesMetadata* nodesMetadata;
     label_t labelID;
     uint64_t maxNodeOffset;
@@ -69,6 +67,8 @@ public:
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
+
+    inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     bool getNextTuples() override;
 

@@ -96,6 +96,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_HASH_JOIN: {
         physicalOperator = mapLogicalHashJoinToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_SEMI_MASKER: {
+        physicalOperator = mapLogicalSemiMaskerToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     case LOGICAL_SCAN_NODE_PROPERTY: {
         physicalOperator =
             mapLogicalScanNodePropertyToPhysical(logicalOperator.get(), mapperContext);
