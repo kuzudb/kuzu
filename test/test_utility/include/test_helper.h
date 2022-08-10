@@ -13,32 +13,36 @@ namespace graphflow {
 namespace testing {
 
 struct TestQueryConfig {
-    uint64_t numThreads = 1;
     string name;
     string query;
-    uint64_t expectedNumTuples;
+    uint64_t numThreads = 1;
+    string encodedJoin;
+    uint64_t expectedNumTuples = 0;
     vector<string> expectedTuples;
-    string encodedJoin = "";
+    bool enumerate = false;
     bool checkOutputOrder = false;
 };
 
 class TestHelper {
-
 public:
     static constexpr char TEMP_TEST_DIR[] = "test/unittest_temp/";
 
-    static vector<TestQueryConfig> parseTestFile(const string& path, bool checkOutputOrder = false);
+    static vector<unique_ptr<TestQueryConfig>> parseTestFile(
+        const string& path, bool checkOutputOrder = false);
 
-    static bool runTest(const vector<TestQueryConfig>& testConfigs, Connection& conn);
+    static bool testQueries(vector<unique_ptr<TestQueryConfig>>& configs, Connection& conn);
 
     static vector<string> convertResultToString(
         QueryResult& queryResult, bool checkOutputOrder = false);
+
+private:
+    static void initializeConnection(TestQueryConfig* config, Connection& conn);
+    static bool testQuery(TestQueryConfig* config, Connection& conn);
 };
 
 // Loads a database from raw csv files and creates a disk-based DatabaseConfig. To have an in-memory
 // version, the databaseConfig field needs to be manually changed as in InMemoryDBLoadedTest.
 class BaseGraphLoadingTest : public Test {
-
 public:
     void SetUp() override {
         systemConfig = make_unique<SystemConfig>();
@@ -52,7 +56,10 @@ public:
 
     void loadGraph();
 
-    void createDBAndConn();
+    inline void createDBAndConn() {
+        database = make_unique<Database>(*databaseConfig, *systemConfig);
+        conn = make_unique<Connection>(database.get());
+    }
 
     void commitOrRollbackConnection(bool isCommit, bool testRecovery);
 

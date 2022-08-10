@@ -1,0 +1,82 @@
+-NAME ExistSubqueryTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5
+
+-NAME ExistSubqueryTest2
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-NAME ExistSubqueryTest3
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(c:organisation) RETURN a.ID } OR b.fName='Greg'  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-NAME ExistSubqueryTest4
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE a.fName='Alice' RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+# test our sub-plan should not contain hash join
+-NAME ExistSubqueryTest5
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person)-[:knows]->(e:person) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+-NAME NotExistSubqueryTest
+-QUERY MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-NAME ExistSubqueryMultiPartCyclicTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WITH a, b AS c MATCH (c)-[:knows]->(a) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+-NAME ExistsSubqueryColExtendTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-NAME ExistsSubqueryORTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) RETURN a.ID } OR EXISTS { MATCH (a)-[:workAt]->(c:organisation) RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-NAME NestedSubqueryTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE EXISTS { MATCH (b)-[:workAt]->(c:organisation) RETURN b.ID } RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+-NAME ExistSubqueryAliasTest1
+-QUERY MATCH (a:person) WITH a, a.fName AS newName WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE newName='Alice' RETURN a.ID } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-NAME ExistSubqueryAliasTest2
+-QUERY MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) RETURN c.ID } OR b.fName='Greg'  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-NAME ExistSubqueryReturnTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN a.ID } RETURN a.fName
+-ENUMERATE
+---- 5
+Alice
+Bob
+Carol
+Dan
+Elizabeth

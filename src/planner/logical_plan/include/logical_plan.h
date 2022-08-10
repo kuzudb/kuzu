@@ -49,6 +49,8 @@ public:
     inline void increaseCost(uint64_t costToIncrease) { cost += costToIncrease; }
     inline uint64_t getCost() const { return cost; }
 
+    inline string toString() const { return lastOperator->toString(); }
+
     unique_ptr<LogicalPlan> shallowCopy() const;
 
     unique_ptr<LogicalPlan> deepCopy() const;

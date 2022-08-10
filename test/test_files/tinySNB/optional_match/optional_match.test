@@ -1,0 +1,84 @@
+-NAME MixedMatchTest1
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+36
+
+-NAME MixedMatchTest2
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:studyAt]->(c:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-NAME MixedMatchTest3
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' MATCH (b)<-[:knows]-(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-NAME MixedMatchHashJoinTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) MATCH (c)-[:knows]->(d:person)-[:knows]->(e:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+324
+
+-NAME OptionalReadStringPropertyTest
+-QUERY MATCH (a:person) WHERE a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff' OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN a.fName, b.fName
+-ENUMERATE
+---- 3
+Elizabeth|Farooq
+Elizabeth|Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+
+-NAME OptionalReadUnstrPropertyTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Elizabeth' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN c.unstrNumericProp
+-ENUMERATE
+---- 2
+
+-12.500000
+
+-NAME OptionalReturnTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Alice' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN c.orgCode
+-ENUMERATE
+---- 3
+
+
+325
+
+-NAME OptionalReturnTest2
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' RETURN a.fName, b.fName
+-ENUMERATE
+---- 8
+Alice|
+Bob|
+Carol|
+Dan|
+Elizabeth|Farooq
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-NAME OptionalListExtendCountTest
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+17
+
+-NAME OptionalListExtendTest2
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+40
+
+-NAME OptionalColExtendTest
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:workAt]->(b:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+8
+
+-NAME MultipleOptionalCountTest
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+41

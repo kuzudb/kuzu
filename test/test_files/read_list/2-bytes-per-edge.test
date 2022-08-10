@@ -1,0 +1,24 @@
+-NAME NodeP0
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5001
+
+-NAME NodeP1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 1 RETURN b.ID
+-ENUMERATE
+---- 1
+5000
+
+-NAME NodeP5500
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 5500 RETURN b.ID
+-ENUMERATE
+---- 0
+
+-NAME EdgeID
+-QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN r._id
+-ENUMERATE
+---- 1
+10000

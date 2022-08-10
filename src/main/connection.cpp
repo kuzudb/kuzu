@@ -182,9 +182,16 @@ string Connection::getRelPropertyNames(const string& relLabelName) {
 vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
     lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery =
-        Binder(*database->catalog).bind(*reinterpret_cast<RegularQuery*>(parsedQuery.get()));
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getAllPlans(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
+unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& query) {
+    lock_t lck{mtx};
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getBestPlan(*database->catalog,
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 

@@ -1,0 +1,47 @@
+-NAME TriangleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
+---- 1
+24
+
+-NAME TriangleTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
+---- 1
+2
+
+-NAME SquareTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
+---- 1
+84
+
+-NAME SquareTest2
+-QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) RETURN COUNT(*)
+---- 1
+17
+
+-NAME NodeAggTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person) RETURN a, COUNT(*)
+---- 4
+0|Alice|1|True|False|35|5.000000|1900-01-01|9
+2|Bob|2|True|False|30|5.100000|1900-01-01|9
+3|Carol|1|False|True|45|5.000000|1940-06-22|9
+5|Dan|2|False|True|20|4.800000|1950-07-23|9
+
+-NAME TriangleFilterTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[e:knows]->(c) WHERE e.date=date('2000-01-01') RETURN COUNT(*)
+---- 1
+4
+
+-NAME TriangleFilterTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
+---- 1
+1
+
+-NAME SquareFilterTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[e2:knows]->(d) WHERE e1.date=e2.date AND e1.date=date('2000-01-01') RETURN COUNT(*)
+---- 1
+6
+
+-NAME SquareFilterTest2
+-QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE d.orgCode=934 RETURN COUNT(*)
+---- 1
+3
