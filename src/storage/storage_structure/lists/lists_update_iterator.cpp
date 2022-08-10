@@ -1,5 +1,3 @@
-#pragma once
-
 #include "src/storage/storage_structure/include/lists/lists_update_iterator.h"
 
 #include "src/storage/storage_structure/include/storage_structure_utils.h"

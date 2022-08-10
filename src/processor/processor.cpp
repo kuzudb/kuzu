@@ -32,7 +32,8 @@ void QueryProcessor::decomposePlanIntoTasks(
     switch (op->getOperatorType()) {
     case RESULT_COLLECTOR: {
         if (parent->getOperatorType() == UNION_ALL_SCAN ||
-            parent->getOperatorType() == FACTORIZED_TABLE_SCAN) {
+            parent->getOperatorType() == FACTORIZED_TABLE_SCAN ||
+            parent->getOperatorType() == HASH_JOIN_PROBE) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
             parentTask->addChildTask(move(childTask));
@@ -66,7 +67,8 @@ void QueryProcessor::decomposePlanIntoTasks(
         parentTask->addChildTask(move(childTask));
     } break;
     default: {
-        for (auto i = 0u; i < op->getNumChildren(); i++) {
+        // Schedule the right most side (e.g., build side of the hash join) first.
+        for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
             decomposePlanIntoTasks(op->getChild(i), op, parentTask, context);
         }
     } break;
