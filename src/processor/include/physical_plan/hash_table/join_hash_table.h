@@ -30,6 +30,7 @@ public:
     inline uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + colOffsetOfPrevPtrInTuple);
     }
+    inline bool hasUnflatColumns() { return factorizedTable->hasUnflatCol(); }
 
 private:
     uint8_t** findHashSlot(const nodeID_t& value) const;

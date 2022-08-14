@@ -74,9 +74,10 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
 }
 
 uint64_t HashJoinProbe::populateResultSet() {
-    // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
-    auto numTuplesToRead =
-        probeSideKeyVector->state->isFlat() ? 1 : probeState->matchedSelVector->selectedSize;
+    // Note: When the probe side is flat, and the build side: a) has no unflat columns; b) has no
+    // payloads in the key data chunk; c) has payloads required to read from hash table, we apply an
+    // optimization to unflat the probe side payloads in the resultSet.
+    auto numTuplesToRead = isOutputAFlatTuple ? 1 : probeState->matchedSelVector->selectedSize;
     if (!probeSideKeyVector->state->isFlat() &&
         probeSideKeyVector->state->selVector->selectedSize != numTuplesToRead) {
         // Update probeSideKeyVector's selectedPositions when the probe side is unflat and its

@@ -44,13 +44,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     // create hashJoin build
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
-    auto hashJoinBuild = make_unique<HashJoinBuild>(
-        sharedState, buildDataInfo, move(buildSidePrevOperator), getOperatorID(), paramsString);
+    auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
+        std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState,
-        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, move(probeSidePrevOperator),
-        move(hashJoinBuild), getOperatorID(), paramsString);
+        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, hashJoin->getIsOutputAFlatTuple(),
+        std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(), paramsString);
     return hashJoinProbe;
 }
 

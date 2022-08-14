@@ -48,7 +48,7 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
         Types::getDataTypeSize(INT64)));
     hashTable = make_unique<JoinHashTable>(
         *context->memoryManager, 0 /* empty table */, make_unique<TableSchema>(*tableSchema));
-    sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, move(tableSchema));
+    sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, std::move(tableSchema));
     return resultSet;
 }
 
