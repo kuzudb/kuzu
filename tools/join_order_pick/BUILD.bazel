@@ -7,6 +7,7 @@ cc_library(
         "include/jo_connection.h",
     ],
     visibility = [
+        "//examples:__pkg__",
         "//tools/benchmark:__pkg__",
     ],
     deps = [

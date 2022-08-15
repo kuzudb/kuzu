@@ -13,6 +13,10 @@ public:
     explicit JOConnection(Database* database) : Connection{database} {}
 
     unique_ptr<QueryResult> query(const string& query, const string& encodedJoin);
+    
+    inline unique_ptr<QueryResult> query(const string& query) {
+        return Connection::query(query);
+    }
 };
 
 } // namespace main
