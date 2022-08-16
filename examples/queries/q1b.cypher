@@ -1,0 +1,1 @@
+MATCH (a:Person)-[:knows]->(b:Person) WHERE a.X < 100000 RETURN MIN(a.X), MIN(b.birthday), MIN(b.X), MIN(b.ID)

@@ -20,7 +20,7 @@ GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t
       inputDirectory{std::move(inputDirectory)}, outputDirectory{std::move(outputDirectory)} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
     catalog = make_unique<Catalog>();
-    bufferManager = make_unique<BufferManager>(defaultPageBufferPoolSize, largePageBufferPoolSize);
+    bufferManager = make_unique<BufferManager>(1ul<<34, 1ul<<34);
 }
 
 GraphLoader::~GraphLoader() {

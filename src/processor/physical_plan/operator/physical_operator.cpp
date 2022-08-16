@@ -69,9 +69,7 @@ void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profil
 
 double PhysicalOperator::getExecutionTime(Profiler& profiler) const {
     double prevExecutionTime = 0.0;
-    for (auto i = 0u; i < getNumChildren(); i++) {
-        prevExecutionTime += profiler.sumAllTimeMetricsWithKey(children[i]->getTimeMetricKey());
-    }
+    prevExecutionTime += profiler.sumAllTimeMetricsWithKey(children[0]->getTimeMetricKey());
     return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
 }
 

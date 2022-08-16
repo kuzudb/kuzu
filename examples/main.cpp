@@ -43,8 +43,8 @@ void runQuery(const string& serializedPath, const string& queryPath, const strin
     DatabaseConfig databaseConfig(serializedPath);
     SystemConfig systemConfig;
     systemConfig.maxNumThreads = 8;
-    systemConfig.defaultPageBufferPoolSize = 1ull << 30;
-    systemConfig.largePageBufferPoolSize = 1ull << 30;
+    systemConfig.defaultPageBufferPoolSize = 1ull << 34;
+    systemConfig.largePageBufferPoolSize = 1ull << 34;
     auto database = make_unique<Database>(databaseConfig, systemConfig);
     auto conn = make_unique<JOConnection>(database.get());
     conn->setMaxNumThreadForExec(numThreads);
@@ -74,7 +74,11 @@ void runQuery(const string& serializedPath, const string& queryPath, const strin
 
     vector<double> runTimes(5);
     for (auto i = 0u; i < 5; i++) {
-        result = conn->query(query, encodedJoin);
+        if (encodedJoin == "optimizer") {
+            result = conn->query(profileQuery);
+        } else {
+            result = conn->query(profileQuery, encodedJoin);
+        }
         runTimes[i] = result->getQuerySummary()->getExecutionTime();
     }
     cout << "Cost: ";

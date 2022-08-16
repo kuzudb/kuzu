@@ -12,10 +12,10 @@ int main(int argc, char* argv[]) {
         parser, "", "Path to serialized db files.", {'i', "inputDir"}, args::Options::Required);
     // The default size of buffer pool for holding default page sizes is 1 GB
     args::ValueFlag<uint64_t> defaultPagedBPSizeInMBFlag(parser, "",
-        "Size of default paged buffer manager in megabytes", {'d', "defaultPageBPSize"}, 1024);
+        "Size of default paged buffer manager in megabytes", {'d', "defaultPageBPSize"}, 4096);
     // The default size of buffer pool for holding default page sizes is 512 MB
     args::ValueFlag<uint64_t> largePagedBPSizeInMBFlag(parser, "",
-        "Size of large paged buffer manager in megabytes", {'l', "largePageBPSize"}, 512);
+        "Size of large paged buffer manager in megabytes", {'l', "largePageBPSize"}, 4096);
     args::Flag inMemoryFlag(parser, "", "Runs the system in in-memory mode", {'m', "in-memory"});
     try {
         parser.ParseCLI(argc, argv);

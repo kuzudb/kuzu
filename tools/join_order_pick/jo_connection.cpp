@@ -17,6 +17,9 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         auto statement = Parser::parseQuery(query);
         assert(statement->getStatementType() == StatementType::QUERY);
         auto parsedQuery = (RegularQuery*)statement.get();
+        if (parsedQuery->isEnableProfile()) {
+            preparedStatement->enableProfile();
+        }
         auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
         auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
         unique_ptr<LogicalPlan> logicalPlan;
