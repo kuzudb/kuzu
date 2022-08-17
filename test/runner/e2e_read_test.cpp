@@ -3,12 +3,10 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class TinySnbReadTest : public BaseGraphLoadingTest {
+class TinySnbReadTest : public BaseGraphTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
-
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
     }

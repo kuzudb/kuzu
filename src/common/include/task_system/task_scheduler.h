@@ -50,7 +50,7 @@ public:
     explicit TaskScheduler(uint64_t numThreads);
     ~TaskScheduler();
 
-    // Functions for the users of the task scheduler, e.g., loader and processor to use.
+    // Functions for the users of the task scheduler, e.g., processor to use.
 
     // Schedules the dependencies of the given task and finally the task one after another (so
     // not concurrently), and throws an exception if any of the tasks errors. Regardless of
@@ -59,7 +59,7 @@ public:
     // thread will be working on the given task.
     void scheduleTaskAndWaitOrError(const shared_ptr<Task>& task);
 
-    // If a user, e.g., currently the loader, adds a set of tasks T1, ..., Tk, to the task scheduler
+    // If a user, e.g., currently the copier, adds a set of tasks T1, ..., Tk, to the task scheduler
     // without waiting for them to finish, the user needs to call waitAllTasksToCompleteOrError() if
     // it wants to catch the errors that may have happened in T1, ..., Tk. If this function is not
     // called and a T_i errors, there will be two side effects: (1) the user will never be aware

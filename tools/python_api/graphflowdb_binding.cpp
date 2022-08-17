@@ -1,10 +1,8 @@
 #include "include/py_connection.h"
 #include "include/py_database.h"
-#include "include/py_loader.h"
 #include "include/py_query_result_converter.h"
 
 void bind(py::module& m) {
-    PyLoader::initialize(m);
     PyDatabase::initialize(m);
     PyConnection::initialize(m);
     PyQueryResult::initialize(m);

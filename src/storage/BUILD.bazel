@@ -23,7 +23,6 @@ cc_library(
         "include/storage_utils.h",
     ],
     visibility = [
-        "//src/loader/in_mem_storage_structure:__pkg__",
         "//src/storage/buffer_manager:__pkg__",
         "//src/storage/storage_structure:__pkg__",
     ],
@@ -47,7 +46,7 @@ cc_library(
     ],
     deps = [
         "//src/catalog",
-        "//src/loader/in_mem_storage_structure",
+        "//src/storage/in_mem_storage_structure",
         "//src/storage/index:in_mem_hash_index",
     ],
 )

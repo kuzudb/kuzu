@@ -9,9 +9,9 @@
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 namespace graphflow {
-namespace loader {
-class LoaderEmptyListsTest;
-} // namespace loader
+namespace testing {
+class CopyCSVEmptyListsTest;
+} // namespace testing
 } // namespace graphflow
 
 namespace graphflow {
@@ -39,7 +39,7 @@ struct ListInfo {
  * actual physical location in the Lists file on disk.
  * */
 class Lists : public BaseColumnOrList {
-    friend class graphflow::loader::LoaderEmptyListsTest;
+    friend class graphflow::testing::CopyCSVEmptyListsTest;
 
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
@@ -140,7 +140,7 @@ public:
               bufferManager, false, isInMemory, wal},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
-    // Currently, used only in Loader tests.
+    // Currently, used only in copyCSV tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
 private:

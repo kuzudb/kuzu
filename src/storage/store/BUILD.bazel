@@ -19,7 +19,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/catalog",
-        "//src/loader/in_mem_storage_structure",
         "//src/storage/index:hash_index",
         "//src/storage/storage_structure:column",
         "//src/storage/storage_structure:lists",

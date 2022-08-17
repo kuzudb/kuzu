@@ -6,20 +6,36 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class EndToEndReadLists2BytesPerEdgeTest : public DBLoadedTest {
+class EndToEndReadLists2BytesPerEdgeTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/2-bytes-per-edge/"; }
+    void initGraph() {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/read-list-tests/2-bytes-per-edge/vPerson.csv\"");
+        conn->query(
+            createRelCmdPrefix + "knows (FROM person TO person, int64Prop INT64, MANY_MANY)");
+        conn->query("COPY knows FROM \"dataset/read-list-tests/2-bytes-per-edge/eKnows.csv\"");
+    }
 };
 
-class EndToEndReadLists4BytesPerEdgeTest : public DBLoadedTest {
+class EndToEndReadLists4BytesPerEdgeTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/4-bytes-per-edge/"; }
+    void initGraph() {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/read-list-tests/4-bytes-per-edge/vPerson.csv\"");
+        conn->query(createRelCmdPrefix + "knows (FROM person TO person, MANY_MANY)");
+        conn->query("COPY knows FROM \"dataset/read-list-tests/4-bytes-per-edge/eKnows.csv\"");
+    }
 };
 
-class EndToEndReadListsSubQueryTest : public DBLoadedTest {
+class EndToEndReadListsSubQueryTest : public DBTest {
 public:
-    string getInputCSVDir() override {
-        return "dataset/read-list-tests/large-list-sub-query-tests/";
+    void initGraph() {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM "
+                    "\"dataset/read-list-tests/large-list-sub-query-tests/vPerson.csv\"");
+        conn->query(createRelCmdPrefix + "knows (FROM person TO person, MANY_MANY)");
+        conn->query(
+            "COPY knows FROM \"dataset/read-list-tests/large-list-sub-query-tests/eKnows.csv\"");
     }
 };
 

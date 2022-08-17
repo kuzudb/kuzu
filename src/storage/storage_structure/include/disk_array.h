@@ -111,7 +111,7 @@ struct PIPUpdates {
 template<typename U>
 class BaseDiskArray {
 public:
-    // Used by builders
+    // Used by copiers.
     BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
     BaseDiskArray(

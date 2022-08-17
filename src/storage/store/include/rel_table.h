@@ -20,6 +20,9 @@ public:
         const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
+    void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager);
+
 public:
     inline Column* getPropertyColumn(label_t nodeLabel, uint64_t propertyIdx) {
         return propertyColumns.at(nodeLabel)[propertyIdx].get();
@@ -40,22 +43,22 @@ public:
 
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
-    void initPropertyListsAndColumns(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
-    void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal);
-    void initPropertyListsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal);
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager);
+    void initPropertyListsAndColumns(const catalog::Catalog& catalog, BufferManager& bufferManager);
+    void initPropertyColumnsForRelLabel(
+        const catalog::Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager);
+    void initPropertyListsForRelLabel(
+        const catalog::Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager);
 
 private:
     shared_ptr<spdlog::logger> logger;
     label_t relLabel;
     unordered_map<label_t, vector<unique_ptr<Column>>> propertyColumns;
-    vector<label_adj_columns_map_t> adjColumns{2};
-    vector<label_property_lists_map_t> propertyLists{2};
-    vector<label_adj_lists_map_t> adjLists{2};
+    vector<label_adj_columns_map_t> adjColumns;
+    vector<label_property_lists_map_t> propertyLists;
+    vector<label_adj_lists_map_t> adjLists;
+    bool isInMemoryMode;
+    WAL* wal;
 };
 
 } // namespace storage

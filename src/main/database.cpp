@@ -11,16 +11,31 @@ namespace main {
 Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig)
     : databaseConfig{databaseConfig},
       systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateSpdLogger("database")} {
+    initDBDirAndCoreFilesIfNecessary();
     bufferManager = make_unique<BufferManager>(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
     wal = make_unique<WAL>(databaseConfig.databasePath, *bufferManager);
     recoverIfNecessary();
     memoryManager = make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = make_unique<processor::QueryProcessor>(systemConfig.maxNumThreads);
-    catalog = make_unique<catalog::Catalog>(databaseConfig.databasePath, wal.get());
+    catalog = make_unique<catalog::Catalog>(wal.get());
     storageManager = make_unique<storage::StorageManager>(
         *catalog, *bufferManager, databaseConfig.inMemoryMode, wal.get());
     transactionManager = make_unique<transaction::TransactionManager>(*wal);
+}
+
+void Database::initDBDirAndCoreFilesIfNecessary() {
+    if (!FileUtils::fileOrPathExists(databaseConfig.databasePath)) {
+        FileUtils::createDir(databaseConfig.databasePath);
+    }
+    if (!FileUtils::fileOrPathExists(StorageUtils::getNodesMetadataFilePath(
+            databaseConfig.databasePath, false /* isForWALLog */))) {
+        NodesMetadata::saveInitialNodesMetadataToFile(databaseConfig.databasePath);
+    }
+    if (!FileUtils::fileOrPathExists(StorageUtils::getCatalogFilePath(
+            databaseConfig.databasePath, false /* isForWALRecord */))) {
+        Catalog::saveInitialCatalogToFile(databaseConfig.databasePath);
+    }
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {

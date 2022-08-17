@@ -6,7 +6,6 @@
 # nodes p1: has edges to [p2,p3,...,p2049,p2050].
 # all other nodes don't have any edges.
 # See "test/runner/queries/list-reading/large-list-sub-query.test" for an example test.
-:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID
 person,0,person,1
 person,0,person,2
 person,0,person,3

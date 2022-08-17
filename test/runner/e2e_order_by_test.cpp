@@ -2,15 +2,19 @@
 
 using namespace graphflow::testing;
 
-class OrderByTests : public BaseGraphLoadingTest {
+class OrderByTests : public BaseGraphTest {
 
 public:
-    string getInputCSVDir() override { return "dataset/order-by-tests/"; }
-
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
+    }
+
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix +
+                    "person (ID INT64, studentID INT64, balance INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/order-by-tests/vPerson.csv\"");
     }
 };
 

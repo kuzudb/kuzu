@@ -13,17 +13,24 @@ namespace common {
 
 struct CSVReaderConfig {
     CSVReaderConfig()
-        : escapeChar{LoaderConfig::DEFAULT_ESCAPE_CHAR},
-          tokenSeparator{LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
-          quoteChar{LoaderConfig::DEFAULT_QUOTE_CHAR},
-          listBeginChar{LoaderConfig::DEFAULT_LIST_BEGIN_CHAR},
-          listEndChar{LoaderConfig::DEFAULT_LIST_END_CHAR} {}
+        : escapeChar{CopyCSVConfig::DEFAULT_ESCAPE_CHAR},
+          tokenSeparator{CopyCSVConfig::DEFAULT_TOKEN_SEPARATOR},
+          quoteChar{CopyCSVConfig::DEFAULT_QUOTE_CHAR},
+          listBeginChar{CopyCSVConfig::DEFAULT_LIST_BEGIN_CHAR},
+          listEndChar{CopyCSVConfig::DEFAULT_LIST_END_CHAR} {}
 
     char escapeChar;
     char tokenSeparator;
     char quoteChar;
     char listBeginChar;
     char listEndChar;
+};
+
+struct CSVDescription {
+    CSVDescription(const string filePath, const CSVReaderConfig csvReaderConfig)
+        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)} {}
+    const string filePath;
+    const CSVReaderConfig csvReaderConfig;
 };
 
 // TODO(Guodong): we should add a csv reader test to test edge cases and error messages.

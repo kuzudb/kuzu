@@ -13,7 +13,12 @@ public:
     explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator, bool readOnly)
         : lastOperator{move(lastOperator)}, readOnly{readOnly} {}
 
-    bool isReadOnly() { return readOnly; }
+    inline bool isReadOnly() { return readOnly; }
+
+    inline bool isCopyCSV() {
+        return lastOperator->getChild(0)->getOperatorType() == COPY_REL_CSV ||
+               lastOperator->getChild(0)->getOperatorType() == COPY_NODE_CSV;
+    }
 
 public:
     unique_ptr<PhysicalOperator> lastOperator;

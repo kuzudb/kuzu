@@ -31,7 +31,7 @@ public:
     void writeValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& vectorToWriteFrom);
 
-    // Currently, used only in Loader tests.
+    // Currently, used only in CopyCSV tests.
     virtual Literal readValue(node_offset_t offset);
     // Used only for tests.
     bool isNull(node_offset_t nodeOffset);
@@ -78,7 +78,7 @@ public:
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    // Currently, used only in Loader tests.
+    // Currently, used only in CopyCSV tests.
     Literal readValue(node_offset_t offset) override;
 
     inline OverflowFile* getOverflowFile() { return &overflowFile; }

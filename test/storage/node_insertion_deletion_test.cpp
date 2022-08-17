@@ -7,16 +7,21 @@ using namespace graphflow::testing;
 
 // Note: ID and nodeOffset in this test are equal for each node, so we use nodeID and nodeOffset
 // interchangeably.
-class NodeInsertionDeletionTests : public BaseGraphLoadingTest {
+class NodeInsertionDeletionTests : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
-        initWithoutLoadingGraph();
+        BaseGraphTest::SetUp();
+        initDBAndConnection(TransactionTestType::NORMAL_EXECUTION);
     }
 
-    void initWithoutLoadingGraph() {
-        createDBAndConn();
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/node-insertion-deletion-tests/vPerson.csv\"");
+    }
+
+    void initDBAndConnection(TransactionTestType transactionTestType) {
+        createDBAndConn(transactionTestType);
         readConn = make_unique<Connection>(database.get());
         label_t personNodeLabel =
             database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
@@ -30,13 +35,12 @@ public:
         conn->beginWriteTransaction();
     }
 
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
-
-    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit, bool testRecovery) {
-        commitOrRollbackConnection(isCommit, testRecovery);
-        if (testRecovery) {
+    void commitOrRollbackConnectionAndInitDBIfNecessary(
+        bool isCommit, TransactionTestType transactionTestType) {
+        commitOrRollbackConnection(isCommit, transactionTestType);
+        if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
+            initDBAndConnection(transactionTestType);
         }
     }
 
@@ -120,7 +124,7 @@ public:
         }
     }
 
-    void testDeleteAllNodes(bool isCommit, bool testRecovery) {
+    void testDeleteAllNodes(bool isCommit, TransactionTestType transactionTestType) {
         for (node_offset_t nodeOffset = 0; nodeOffset <= 9999; ++nodeOffset) {
             personNodeTable->getNodesMetadata()->deleteNode(
                 personNodeTable->getLabelID(), nodeOffset);
@@ -129,7 +133,7 @@ public:
         ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
         ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
             ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
@@ -139,7 +143,7 @@ public:
         }
     }
 
-    void testSimpleAdd(bool isCommit, bool testRecovery) {
+    void testSimpleAdd(bool isCommit, TransactionTestType transactionTestType) {
         for (int i = 0; i < 3000; ++i) {
             addNode();
         }
@@ -154,7 +158,7 @@ public:
         ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
         ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
 
         if (isCommit) {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
@@ -215,37 +219,37 @@ TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTest) {
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitTest) {
-    testDeleteAllNodes(true /* is commit */, false /* not recovery test */);
+    testDeleteAllNodes(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitRecoveryTest) {
-    testDeleteAllNodes(true /* is commit */, true /* recovery test */);
+    testDeleteAllNodes(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackTest) {
-    testDeleteAllNodes(false /* is rollback */, false /* not recovery test */);
+    testDeleteAllNodes(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackRecoveryTest) {
-    testDeleteAllNodes(false /* is rollback */, true /* recovery test */);
+    testDeleteAllNodes(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 // TODO(Guodong): We need to extend these tests with queries that verify that the IDs are deleted,
 // added, and can be queried correctly.
 TEST_F(NodeInsertionDeletionTests, SimpleAddCommitTest) {
-    testSimpleAdd(true /* is commit */, false /* not recovery test */);
+    testSimpleAdd(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(NodeInsertionDeletionTests, SimpleAddCommitRecoveryTest) {
-    testSimpleAdd(true /* is commit */, true /* recovery test */);
+    testSimpleAdd(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackTest) {
-    testSimpleAdd(false /* is rollback */, false /* not recovery test */);
+    testSimpleAdd(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackRecoveryTest) {
-    testSimpleAdd(false /* is rollback */, true /* recovery test */);
+    testSimpleAdd(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {

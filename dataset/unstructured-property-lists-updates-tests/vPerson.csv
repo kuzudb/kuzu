@@ -3,7 +3,6 @@
 # (i) ui{nodeOffset} (for unstructured int)
 # (ii) us{nodeOffset} (for unstructured string)
 # Node 250 has 600*2=1200 unstructured properties (to facilitate testing with large lists).
-:ID
 0,ui0:INT64:123456,us0:STRING:abcdefghijklmn
 1,ui1:INT64:123456,us1:STRING:abcdefghijklmn
 2,ui2:INT64:123456,us2:STRING:abcdefghijklmn

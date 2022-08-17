@@ -3,8 +3,8 @@
 #include <string>
 
 #include "src/catalog/include/catalog.h"
-#include "src/loader/in_mem_storage_structure/include/in_mem_column.h"
-#include "src/loader/in_mem_storage_structure/include/in_mem_lists.h"
+#include "src/storage/in_mem_storage_structure/include/in_mem_column.h"
+#include "src/storage/in_mem_storage_structure/include/in_mem_lists.h"
 
 using namespace graphflow::catalog;
 
@@ -20,7 +20,7 @@ public:
         Catalog* catalog, label_t labelID, string directory);
 
 private:
-    static void initLargeListPageListsAndSaveToFile(loader::InMemLists* inMemLists);
+    static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
     static void createEmptyDBFilesForRelProperties(RelLabel* relLabel, label_t nodeLabel,
         const string& directory, RelDirection relDireciton, uint32_t numNodes,

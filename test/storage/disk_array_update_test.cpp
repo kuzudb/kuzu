@@ -1,7 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/overflow_buffer_utils.h"
-#include "src/storage/include/wal_replayer.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::testing;
@@ -12,27 +11,28 @@ using namespace graphflow::testing;
 // update the disk array and then checkpoint manually, and check that we obtain the correct version.
 // The updates we perform on the list do not correspond to a real update that would happen on the
 // database.
-class BaseDiskArrayUpdateTests : public BaseGraphLoadingTest {
+class BaseDiskArrayUpdateTests : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
-        initWithoutLoadingGraph();
+        BaseGraphTest::SetUp();
+        initWithoutLoadingGraph(TransactionTestType::NORMAL_EXECUTION);
     }
 
-    void initWithoutLoadingGraph() {
-        createDBAndConn();
+    void initWithoutLoadingGraph(TransactionTestType transactionTestType) {
+        createDBAndConn(transactionTestType);
         auto personNodeLabel =
             database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
         personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
         conn->beginWriteTransaction();
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit, bool testRecovery) {
-        commitOrRollbackConnection(isCommit, testRecovery);
-        if (testRecovery) {
+    void commitOrRollbackConnectionAndInitDBIfNecessary(
+        bool isCommit, TransactionTestType transactionTestType) {
+        commitOrRollbackConnection(isCommit, transactionTestType);
+        if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
+            initWithoutLoadingGraph(transactionTestType);
         }
     }
 
@@ -48,7 +48,7 @@ public:
         personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(0);
     }
 
-    void testBasicUpdate(bool isCommit, bool testRecovery) {
+    void testBasicUpdate(bool isCommit, TransactionTestType transactionTestType) {
         setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         // This is a simple test to test where we change each element i in a disk array with
         // value i and the verify that we are able to do this transactionally.
@@ -66,7 +66,7 @@ public:
             ASSERT_EQ(nodeOffset, headersDA->get(nodeOffset, TransactionType::WRITE));
         }
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         headersDA = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
         if (isCommit) {
             for (node_offset_t nodeOffset = 0; nodeOffset <= 999; ++nodeOffset) {
@@ -81,7 +81,7 @@ public:
         }
     }
 
-    void testBasicPushBack(bool isCommit, bool testRecovery) {
+    void testBasicPushBack(bool isCommit, TransactionTestType transactionTestType) {
         setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         auto headersDA =
             personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
@@ -98,7 +98,7 @@ public:
             FAIL();
         } catch (exception& e) {}
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
 
         headersDA = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
         if (isCommit) {
@@ -112,7 +112,8 @@ public:
         }
     }
 
-    void testPushBack(uint64_t sizeAfterPushing, bool isCommit, bool testRecovery) {
+    void testPushBack(
+        uint64_t sizeAfterPushing, bool isCommit, TransactionTestType transactionTestType) {
         setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         auto headersDA =
             personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
@@ -126,7 +127,7 @@ public:
         for (int arrayOff = prevNumElements; arrayOff < sizeAfterPushing; ++arrayOff) {
             ASSERT_EQ(arrayOff, headersDA->get(arrayOff, TransactionType::WRITE));
         }
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         headersDA = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
 
         if (isCommit) {
@@ -143,16 +144,16 @@ public:
         }
     }
 
-    void testTwoPushBackBatches(
-        bool isCommit, bool testRecovery, uint64_t sizeAfterPushingFirstPhase) {
+    void testTwoPushBackBatches(bool isCommit, TransactionTestType transactionTestType,
+        uint64_t sizeAfterPushingFirstPhase) {
         setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
         uint64_t sizeAfterPushing = sizeAfterPushingFirstPhase;
-        testPushBack(sizeAfterPushing, isCommit, testRecovery);
+        testPushBack(sizeAfterPushing, isCommit, transactionTestType);
         if (isCommit) {
             // If we have committed. We do another test and push back some more data (1 element
             // to be exact) and test that we can get read/write visibility correctly.
             sizeAfterPushing++;
-            testPushBack(sizeAfterPushing, isCommit, testRecovery);
+            testPushBack(sizeAfterPushing, isCommit, transactionTestType);
         }
     }
 
@@ -161,145 +162,152 @@ public:
 };
 
 class DiskArrayUpdateTests : public BaseDiskArrayUpdateTests {
+
 public:
-    string getInputCSVDir() override { return "dataset/non-empty-disk-array-db/"; }
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/non-empty-disk-array-db/vPerson.csv\"");
+    }
 };
 
 class DiskArrayUpdateEmptyDBTests : public BaseDiskArrayUpdateTests {
 
 public:
-    string getInputCSVDir() override { return "dataset/empty-db/"; }
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/empty-db/vPerson.csv\"");
+    }
 };
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestCommitNormalExecution) {
-    testBasicUpdate(true /* is commit */, false /* not recovering */);
+    testBasicUpdate(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestCommitRecovery) {
-    testBasicUpdate(true /* is commit */, true /* recovering */);
+    testBasicUpdate(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestRollbackNormalExecution) {
-    testBasicUpdate(false /* is rollback */, false /* not recovering */);
+    testBasicUpdate(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestRollbackRecovery) {
-    testBasicUpdate(false /* is rollback */, true /* recovering */);
+    testBasicUpdate(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicPushBackTestCommitNormalExecution) {
-    testBasicPushBack(true /* is commit */, false /* not recovering */);
+    testBasicPushBack(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicPushBackTestCommitRecovery) {
-    testBasicPushBack(true /* is commit */, true /* recovering */);
+    testBasicPushBack(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicPushBackTestRollbackNormalExecution) {
-    testBasicPushBack(false /* is rollback */, false /* not recovering */);
+    testBasicPushBack(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, BasicPushBackTestRollbackRecovery) {
-    testBasicPushBack(false /* is rollback */, true /* recovering */);
+    testBasicPushBack(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewAPTestCommitNormalExecution) {
-    testPushBack(1025, true /* is commit */, false /* not recovering */);
+    testPushBack(1025, true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewAPTestCommitRecovery) {
-    testPushBack(1025, true /* is commit */, true /* recovering */);
+    testPushBack(1025, true /* is commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewAPTestRollbackNormalExecution) {
-    testPushBack(1025, false /* is rollback */, false /* not recovering */);
+    testPushBack(1025, false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewAPTestRollbackRecovery) {
-    testPushBack(1025, false /* is rollback */, true /* recovering */);
+    testPushBack(1025, false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewPIPTestCommitNormalExecution) {
     // 1023*1024 + 1 requires adding a new PIP in the first batch.
-    testTwoPushBackBatches(true /* is commit */, false /* not recovering */,
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::NORMAL_EXECUTION,
         1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewPIPTestCommitRecovery) {
-    testTwoPushBackBatches(
-        true /* is commit */, true /* recovering */, 1023 * 1024 + 1 /* size after first batch */);
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::RECOVERY,
+        1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewPIPTestRollbackNormalExecution) {
-    testTwoPushBackBatches(false /* is rollback */, false /* not recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION,
         1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddNewPIPTestRollbackRecovery) {
-    testTwoPushBackBatches(false /* is rollback */, true /* recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::RECOVERY,
         1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillOnePIPTestCommitNormalExecution) {
     // 1023*1024 fills an entire PIP in the first batch.
-    testTwoPushBackBatches(
-        true /* is commit */, false /* not recovering */, 1023 * 1024 /* size after first batch */);
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::NORMAL_EXECUTION,
+        1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillOnePIPTestCommitRecovery) {
-    testTwoPushBackBatches(
-        true /* is commit */, true /* recovering */, 1023 * 1024 /* size after first batch */);
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::RECOVERY,
+        1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillOnePIPTestRollbackNormalExecution) {
-    testTwoPushBackBatches(false /* is rollback */, false /* not recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION,
         1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillOnePIPTestRollbackRecovery) {
-    testTwoPushBackBatches(
-        false /* is rollback */, true /* recovering */, 1023 * 1024 /* size after first batch */);
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::RECOVERY,
+        1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddTwoNewPIPsTestCommitNormalExecution) {
     // 2*1023*1024 + 1 requires adding two new PIPs in the first batch.
-    testTwoPushBackBatches(true /* is commit */, false /* not recovering */,
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::NORMAL_EXECUTION,
         2 * 1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddTwoNewPIPsTestCommitRecovery) {
-    testTwoPushBackBatches(true /* is commit */, true /* recovering */,
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::RECOVERY,
         2 * 1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddTwoNewPIPsTestRollbackNormalExecution) {
-    testTwoPushBackBatches(false /* is rollback */, false /* not recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION,
         2 * 1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToAddTwoNewPIPsTestRollbackRecovery) {
-    testTwoPushBackBatches(false /* is rollback */, true /* recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::RECOVERY,
         2 * 1023 * 1024 + 1 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillTwoPIPsTestCommitNormalExecution) {
     // 2*1023*1024 fills an entire PIP in the first batch.
-    testTwoPushBackBatches(true /* is commit */, false /* not recovering */,
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::NORMAL_EXECUTION,
         2 * 1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillTwoPIPsTestCommitRecovery) {
-    testTwoPushBackBatches(
-        true /* is commit */, true /* recovering */, 2 * 1023 * 1024 /* size after first batch */);
+    testTwoPushBackBatches(true /* is commit */, TransactionTestType::RECOVERY,
+        2 * 1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillTwoPIPsTestRollbackNormalExecution) {
-    testTwoPushBackBatches(false /* is rollback */, false /* not recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION,
         2 * 1023 * 1024 /* size after first batch */);
 }
 
 TEST_F(DiskArrayUpdateTests, PushBackEnoughToFillTwoPIPsTestRollbackRecovery) {
-    testTwoPushBackBatches(false /* is rollback */, true /* recovering */,
+    testTwoPushBackBatches(false /* is rollback */, TransactionTestType::RECOVERY,
         2 * 1023 * 1024 /* size after first batch */);
 }
 
@@ -321,7 +329,7 @@ TEST_F(DiskArrayUpdateEmptyDBTests, EmptyDiskArrayUpdatesTest) {
     ASSERT_EQ(0, headers->get(0, TransactionType::WRITE));
 
     commitOrRollbackConnectionAndInitDBIfNecessary(
-        true /* is commit */, false /* not recovering */);
+        true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 
     headers = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
     ASSERT_EQ(1, headers->getNumElements(TransactionType::READ_ONLY));

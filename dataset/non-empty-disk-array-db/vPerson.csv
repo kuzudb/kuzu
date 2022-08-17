@@ -3,7 +3,6 @@
 # a disk array that is non-empty and has predictable values in them, which is 0 because each list
 # is empty and starts at csrOffset 0 (see BaseListHeaders::getSmallListHeader function as of
 # July 26, 2022).
-:ID
 0
 1
 2

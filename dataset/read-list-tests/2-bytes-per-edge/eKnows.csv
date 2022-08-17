@@ -14,7 +14,6 @@
 # int64Prop:5. The only exceptions are 0->0, 0->1000, 0->2000,... 0->5000. These 6
 # edges have null int64prop values. For others the property is null.
 # This property is intended to test small and large property list reading.
-:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,int64Prop:INT64
 person,0,person,0,
 person,0,person,1,1
 person,0,person,2,2

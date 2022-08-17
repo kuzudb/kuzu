@@ -7,19 +7,19 @@ using namespace graphflow::testing;
 
 // Note: ID and nodeOffsetForPropKeys in this test are equal for each node, so we use nodeID and
 // nodeOffsetForPropKeys interchangeably.
-class UnstructuredPropertyListsUpdateTests : public BaseGraphLoadingTest {
+class UnstructuredPropertyListsUpdateTests : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
-        initWithoutLoadingGraph();
+        BaseGraphTest::SetUp();
+        initWithoutLoadingGraph(TransactionTestType::NORMAL_EXECUTION);
     }
 
-    void initWithoutLoadingGraph() {
+    void initWithoutLoadingGraph(TransactionTestType transactionTestType) {
         if (overflowBuffer) {
             overflowBuffer.reset();
         }
-        createDBAndConn();
+        createDBAndConn(transactionTestType);
         overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
         personNodeLabel =
@@ -46,16 +46,19 @@ public:
         conn->beginWriteTransaction();
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit, bool testRecovery) {
-        commitOrRollbackConnection(isCommit, testRecovery);
-        if (testRecovery) {
-            // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
-        }
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query(
+            "COPY person FROM \"dataset/unstructured-property-lists-updates-tests/vPerson.csv\"");
     }
 
-    string getInputCSVDir() override {
-        return "dataset/unstructured-property-lists-updates-tests/";
+    void commitOrRollbackConnectionAndInitDBIfNecessary(
+        bool isCommit, TransactionTestType transactionTestType) {
+        commitOrRollbackConnection(isCommit, transactionTestType);
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            // This creates a new database/conn/readConn and should run the recovery algorithm
+            initWithoutLoadingGraph(transactionTestType);
+        }
     }
 
     // TODO(Xiyang): Currently we are manually calling set in getUnstrPropertyLists. Once we have
@@ -115,14 +118,15 @@ public:
         }
     }
 
-    void updateExistingFixedLenPropertiesUseShortStringTest(bool isCommit, bool testRecovery) {
+    void updateExistingFixedLenPropertiesUseShortStringTest(
+        bool isCommit, TransactionTestType transactionTestType) {
         setPropertyOfNode(123, "ui123", intVal);
         setPropertyOfNode(123, "us123", shortStrVal);
         queryAndVerifyResults(123, "ui123", "us123", &intVal /* expected int for write trx */,
             &shortStrVal /* expected str for write trx */,
             &existingIntVal /* expected int for read trx */,
             &existingStrVal /* expected str for read trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             queryAndVerifyResults(123, "ui123", "us123", &intVal /* expected int for write trx */,
                 &shortStrVal /* expected str for write trx */,
@@ -137,14 +141,14 @@ public:
         }
     }
 
-    void updateLongStringPropertyTest(bool isCommit, bool testRecovery) {
+    void updateLongStringPropertyTest(bool isCommit, TransactionTestType transactionTestType) {
         setPropertyOfNode(123, "us123", longStrVal);
         queryAndVerifyResults(123, "ui123", "us123",
             &existingIntVal /* expected int for write trx */,
             &longStrVal /* expected str for write trx */,
             &existingIntVal /* expected int for read trx */,
             &existingStrVal /* expected str for write trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             queryAndVerifyResults(123, "ui123", "us123",
                 &existingIntVal /* expected int for write trx */,
@@ -160,13 +164,13 @@ public:
         }
     }
 
-    void insertNonExistingPropsTest(bool isCommit, bool testRecovery) {
+    void insertNonExistingPropsTest(bool isCommit, TransactionTestType transactionTestType) {
         setPropertyOfNode(123, "us125", longStrVal);
         setPropertyOfNode(123, "ui124", intVal);
         queryAndVerifyResults(123, "ui124", "us125", &intVal /* expected int for write trx */,
             &longStrVal /* expected str for write trx */, nullptr /*expected int for read trx */,
             nullptr /* expected str for read trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             queryAndVerifyResults(123, "ui124", "us125", &intVal /* expected int for write trx */,
                 &longStrVal /* expected str for write trx */,
@@ -179,14 +183,14 @@ public:
         }
     }
 
-    void removeExistingPropsTest(bool isCommit, bool testRecovery) {
+    void removeExistingPropsTest(bool isCommit, TransactionTestType transactionTestType) {
         removeProperty(123, "us123");
         removeProperty(123, "ui123");
         queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
             nullptr /* expected str for write trx */,
             &existingIntVal /*expected int for read trx */,
             &existingStrVal /* expected str for read trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
                 nullptr /* expected str for write trx */, nullptr /*expected int for read trx */,
@@ -200,7 +204,7 @@ public:
         }
     }
 
-    void removeNonExistingPropsTest(bool isCommit, bool testRecovery) {
+    void removeNonExistingPropsTest(bool isCommit, TransactionTestType transactionTestType) {
         removeProperty(123, "us125");
         removeProperty(123, "ui124");
         queryAndVerifyResults(123, "ui123", "us123",
@@ -208,7 +212,7 @@ public:
             &existingStrVal /* expected str for write trx */,
             &existingIntVal /* expected int for read trx */,
             &existingStrVal /* expected str for write trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         // Regardless of whether we are committing or rollbacking, because there is no change
         // the results should be the same.
         queryAndVerifyResults(123, "ui123", "us123",
@@ -234,7 +238,7 @@ public:
         ASSERT_TRUE(tuple->isNull(2));
     }
 
-    void removeNewlyAddedPropertiesTest(bool isCommit, bool testRecovery) {
+    void removeNewlyAddedPropertiesTest(bool isCommit, TransactionTestType transactionTestType) {
         setPropertyOfNode(123, "us125", longStrVal);
         removeProperty(123, "us125");
         setPropertyOfNode(123, "ui123", intVal);
@@ -246,7 +250,7 @@ public:
         auto readQResult = readConn->query(query);
         verifyReadOrRolledbackTrxForRemoveNewlyAddedPropertiesTest(move(readQResult));
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             writeQResult = conn->query(query);
             verifyWriteOrCommittedTrxForRemoveNewlyAddedPropertiesTest(move(writeQResult));
@@ -260,13 +264,14 @@ public:
         }
     }
 
-    void removeAllPropertiesBySetPropertyListEmptyTest(bool isCommit, bool testRecovery) {
+    void removeAllPropertiesBySetPropertyListEmptyTest(
+        bool isCommit, TransactionTestType transactionTestType) {
         personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(123);
         queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
             nullptr /* expected str for write trx */,
             &existingIntVal /* expected int for read trx */,
             &existingStrVal /* expected str for write trx */);
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
                 nullptr /* expected str for write trx */, nullptr /*expected int for read trx */,
@@ -314,7 +319,7 @@ public:
         }
     }
 
-    void removeAllPropertiesOfAllNodesTest(bool isCommit, bool testRecovery) {
+    void removeAllPropertiesOfAllNodesTest(bool isCommit, TransactionTestType transactionTestType) {
         // We blindly remove all unstructured properties from all nodes one by one
         for (uint64_t queryNodeOffset = 0; queryNodeOffset <= 600; queryNodeOffset++) {
             for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
@@ -327,7 +332,7 @@ public:
         verifyEmptyDB(conn.get());
         verifyInitialDBState(readConn.get());
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
 
         if (isCommit) {
             verifyEmptyDB(conn.get());
@@ -373,7 +378,8 @@ public:
         }
     }
 
-    void insertALargeNumberOfPropertiesTest(bool isCommit, bool testRecovery) {
+    void insertALargeNumberOfPropertiesTest(
+        bool isCommit, TransactionTestType transactionTestType) {
         for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
              ++nodeOffsetForPropKeys) {
             setPropertyOfNode(123, "ui" + to_string(nodeOffsetForPropKeys), intVal);
@@ -383,7 +389,7 @@ public:
         verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(conn.get());
         verifyReadOrRolledbackTrxInsertALargeNumberOfPropertiesTest(readConn.get());
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
 
         if (isCommit) {
             verifyWriteOrCommittedReadTrxInsertALargeNumberOfPropertiesTest(conn.get());
@@ -395,7 +401,8 @@ public:
     }
 
     // This function assumes that the current state of the db is empty.
-    void writeInitialDBStateTest(bool isInitialStateEmpty, bool isCommit, bool testRecovery) {
+    void writeInitialDBStateTest(
+        bool isInitialStateEmpty, bool isCommit, TransactionTestType transactionTestType) {
         for (uint64_t queryNodeOffset = 0; queryNodeOffset <= 600; queryNodeOffset++) {
             if (queryNodeOffset == 250) {
                 for (uint64_t nodeOffsetForPropKeys = 0; nodeOffsetForPropKeys <= 600;
@@ -419,7 +426,7 @@ public:
         } else {
             verifyInitialDBState(readConn.get());
         }
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
 
         if (isCommit) {
             verifyInitialDBState(conn.get());
@@ -435,18 +442,18 @@ public:
         }
     }
 
-    void removeAndWriteDataTwiceTest(bool isCommit, bool testRecovery) {
-        removeAllPropertiesOfAllNodesTest(isCommit, testRecovery);
+    void removeAndWriteDataTwiceTest(bool isCommit, TransactionTestType transactionTestType) {
+        removeAllPropertiesOfAllNodesTest(isCommit, transactionTestType);
         writeInitialDBStateTest(isCommit ? true /* initial state is empty db */ :
                                            false /* initial state is inital db state */,
-            isCommit, testRecovery);
-        removeAllPropertiesOfAllNodesTest(isCommit, testRecovery);
+            isCommit, transactionTestType);
+        removeAllPropertiesOfAllNodesTest(isCommit, transactionTestType);
         writeInitialDBStateTest(isCommit ? true /* initial state is empty db */ :
                                            false /* initial state is inital db state */,
-            isCommit, testRecovery);
+            isCommit, transactionTestType);
     }
 
-    void addNewListsTest(bool isCommit, bool testRecovery) {
+    void addNewListsTest(bool isCommit, TransactionTestType transactionTestType) {
         uint32_t unstrIntPropKey = database->getCatalog()
                                        ->getReadOnlyVersion()
                                        ->getNodeProperty(personNodeLabel, "ui0")
@@ -464,7 +471,7 @@ public:
                 nodeOffset, unstrStrPropKey, &existingStrVal);
         }
 
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, testRecovery);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
             // We test that the newly lists are inserted through callin ghte
             // readUnstructuredPropertiesOfNode(), which was a function designed for tests because
@@ -503,187 +510,190 @@ public:
 TEST_F(UnstructuredPropertyListsUpdateTests,
     ExistingFixedLenPropertiesShortStringCommitNormalExecution) {
     updateExistingFixedLenPropertiesUseShortStringTest(
-        true /* commit */, false /* normal execution */);
+        true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests,
     ExistingFixedLenPropertiesShortStringRollbackNormalExecution) {
     updateExistingFixedLenPropertiesUseShortStringTest(
-        false /* rollback */, false /* normal execution */);
+        false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, ExistingFixedLenPropertiesShortStringCommitRecovery) {
-    updateExistingFixedLenPropertiesUseShortStringTest(true /* commit */, true /* recovering */);
+    updateExistingFixedLenPropertiesUseShortStringTest(
+        true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(
     UnstructuredPropertyListsUpdateTests, ExistingFixedLenPropertiesShortStringRollbackRecovery) {
     updateExistingFixedLenPropertiesUseShortStringTest(
-        false /* is rollback */, true /* recovering */);
+        false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestCommitNormalExecution) {
-    updateLongStringPropertyTest(true /* commit */, false /* normal execution */);
+    updateLongStringPropertyTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestRollbackNormalExecution) {
-    updateLongStringPropertyTest(false /* rollback */, false /* normal execution */);
+    updateLongStringPropertyTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestCommitRecovery) {
-    updateLongStringPropertyTest(true /* commit */, true /* recovering */);
+    updateLongStringPropertyTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, LongStringPropTestRollbackRecovery) {
-    updateLongStringPropertyTest(false /* rollback */, true /* recovering */);
+    updateLongStringPropertyTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsCommitNormalExecution) {
-    insertNonExistingPropsTest(true /* commit */, false /* normal execution */);
+    insertNonExistingPropsTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsRollbackNormalExecution) {
-    insertNonExistingPropsTest(false /* rollback */, false /* normal execution */);
+    insertNonExistingPropsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsCommitRecovery) {
-    insertNonExistingPropsTest(true /* commit */, true /* recovery */);
+    insertNonExistingPropsTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertNonExistingPropsRollbackRecovery) {
-    insertNonExistingPropsTest(false /* rollback */, true /* recovery */);
+    insertNonExistingPropsTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesCommitNormalExecution) {
-    removeExistingPropsTest(true /* commit */, false /* normal execution */);
+    removeExistingPropsTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesRollbackNormalExecution) {
-    removeExistingPropsTest(false /* rollback */, false /* normal execution */);
+    removeExistingPropsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesCommitRecovery) {
-    removeExistingPropsTest(true /* commit */, true /* recovery */);
+    removeExistingPropsTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveExistingPropertiesRollbackRecovery) {
-    removeExistingPropsTest(false /* rollback */, true /* recovery */);
+    removeExistingPropsTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesCommitNormalExecution) {
-    removeNonExistingPropsTest(true /* commit */, false /* normal execution */);
+    removeNonExistingPropsTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesRollbackNormalExecution) {
-    removeNonExistingPropsTest(false /* rollback */, false /* normal execution */);
+    removeNonExistingPropsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesCommitRecovery) {
-    removeNonExistingPropsTest(true /* commit */, true /* recovery */);
+    removeNonExistingPropsTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNonExistingPropertiesRollbackRecovery) {
-    removeNonExistingPropsTest(false /* rollback */, true /* recovery */);
+    removeNonExistingPropsTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesCommitNormalExecution) {
-    removeNewlyAddedPropertiesTest(true /* commit */, false /* normal execution */);
+    removeNewlyAddedPropertiesTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesRollbackNormalExecution) {
-    removeNewlyAddedPropertiesTest(false /* rollback */, false /* normal execution */);
+    removeNewlyAddedPropertiesTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesCommitRecovery) {
-    removeNewlyAddedPropertiesTest(true /* commit */, true /* recovery */);
+    removeNewlyAddedPropertiesTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveNewlyAddedPropertiesRollbackRecovery) {
-    removeNewlyAddedPropertiesTest(false /* rollback */, true /* recovery */);
+    removeNewlyAddedPropertiesTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests,
     RemoveAllPropertiesBySetPropertyListEmptyCommitNormalExecution) {
-    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, false /* normal execution */);
+    removeAllPropertiesBySetPropertyListEmptyTest(
+        true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests,
     RemoveAllPropertiesBySetPropertyListEmptyRollbackNormalExecution) {
     removeAllPropertiesBySetPropertyListEmptyTest(
-        false /* rollback */, false /* normal execution */);
+        false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(
     UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesBySetPropertyListEmptyCommitRecovery) {
-    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, true /* recovery */);
+    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests,
     RemoveAllPropertiesBySetPropertyListEmptyRollbackRecovery) {
-    removeAllPropertiesBySetPropertyListEmptyTest(false /* rollback */, true /* recovery */);
+    removeAllPropertiesBySetPropertyListEmptyTest(
+        false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesCommitNormalExecution) {
-    insertALargeNumberOfPropertiesTest(true /* commit */, false /* normal execution */);
+    insertALargeNumberOfPropertiesTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(
     UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesRollbackNormalExecution) {
-    insertALargeNumberOfPropertiesTest(false /* rollback */, false /* normal execution */);
+    insertALargeNumberOfPropertiesTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesCommitRecovery) {
-    insertALargeNumberOfPropertiesTest(true /* commit */, true /* recovery */);
+    insertALargeNumberOfPropertiesTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, InsertALargeNumberOfPropertiesRollbackRecovery) {
-    insertALargeNumberOfPropertiesTest(false /* rollback */, true /* recovery */);
+    insertALargeNumberOfPropertiesTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitNormalExecution) {
-    removeAllPropertiesOfAllNodesTest(true /* commit */, false /* normal execution */);
+    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackNormalExecution) {
-    removeAllPropertiesOfAllNodesTest(false /* rollback */, false /* normal execution */);
+    removeAllPropertiesOfAllNodesTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitRecovery) {
-    removeAllPropertiesOfAllNodesTest(true /* commit */, true /* recovery */);
+    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackRecovery) {
-    removeAllPropertiesOfAllNodesTest(false /* rollback */, true /* recovery */);
+    removeAllPropertiesOfAllNodesTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitNormalExecution) {
-    removeAndWriteDataTwiceTest(true /* commit */, false /* normal execution */);
+    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackNormalExecution) {
-    removeAndWriteDataTwiceTest(false /* rollback */, false /* normal execution */);
+    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitRecovery) {
-    removeAndWriteDataTwiceTest(true /* commit */, true /* recovery */);
+    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackRecovery) {
-    removeAndWriteDataTwiceTest(false /* rollback */, true /* recovery */);
+    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitNormalExecution) {
-    addNewListsTest(true /* commit */, false /* normal execution */);
+    addNewListsTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackNormalExecution) {
-    addNewListsTest(false /* rollback */, false /* normal execution */);
+    addNewListsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitRecovery) {
-    addNewListsTest(true /* commit */, true /* recovery */);
+    addNewListsTest(true /* commit */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackRecovery) {
-    addNewListsTest(false /* rollback */, true /* recovery */);
+    addNewListsTest(false /* rollback */, TransactionTestType::RECOVERY);
 }

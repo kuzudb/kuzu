@@ -84,6 +84,8 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalCopyCSVToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
 
     unique_ptr<ResultCollector> appendResultCollector(expression_vector expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator,

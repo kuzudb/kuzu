@@ -6,6 +6,7 @@
 #include "src/binder/expression/include/property_expression.h"
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
@@ -25,6 +26,8 @@
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
+#include "src/processor/include/physical_plan/operator/copy_csv/copy_node_csv.h"
+#include "src/processor/include/physical_plan/operator/copy_csv/copy_rel_csv.h"
 #include "src/processor/include/physical_plan/operator/create_node_table.h"
 #include "src/processor/include/physical_plan/operator/create_rel_table.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
@@ -154,6 +157,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_CREATE_REL_TABLE: {
         physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_COPY_CSV: {
+        physicalOperator = mapLogicalCopyCSVToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:
         assert(false);
@@ -444,6 +450,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
         createRelTable.getPropertyNameDataTypes(), createRelTable.getRelMultiplicity(),
         createRelTable.getSrcDstLabels(), getOperatorID(),
         createRelTable.getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto& copyCSV = (LogicalCopyCSV&)*logicalOperator;
+    if (copyCSV.getLabel().isNodeLabel) {
+        return make_unique<CopyNodeCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
+            storageManager.getDirectory(), getOperatorID(), copyCSV.getExpressionsForPrinting(),
+            &storageManager.getNodesStore());
+    } else {
+        return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
+            storageManager.getDirectory(), &storageManager.getNodesStore().getNodesMetadata(),
+            getOperatorID(), copyCSV.getExpressionsForPrinting(), &storageManager.getRelsStore());
+    }
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(

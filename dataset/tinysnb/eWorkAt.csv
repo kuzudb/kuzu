@@ -1,4 +1,3 @@
-:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,year:INT64
 person,3,organisation,4,2015
 person,5,organisation,6,2010
 person,7,organisation,6,2015

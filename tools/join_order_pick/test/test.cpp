@@ -1,11 +1,8 @@
-#include "gtest/gtest.h"
+#include "test/test_utility/include/test_helper.h"
 #include "tools/join_order_pick/include/jo_connection.h"
 
-#include "src/loader/include/graph_loader.h"
-#include "src/main/include/graphflowdb.h"
-
-using namespace graphflow::loader;
 using namespace graphflow::main;
+using namespace graphflow::testing;
 using ::testing::Test;
 
 class JoinOrderPickTest : public Test {
@@ -13,14 +10,28 @@ public:
     void SetUp() override {
         auto systemConfig = make_unique<SystemConfig>();
         auto databaseConfig = make_unique<DatabaseConfig>(TEMP_DIR);
-        GraphLoader graphLoader("dataset/tinysnb/", TEMP_DIR, systemConfig->maxNumThreads,
-            systemConfig->defaultPageBufferPoolSize, systemConfig->largePageBufferPoolSize);
-        graphLoader.loadGraph();
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<JOConnection>(database.get());
+        initDB();
     }
 
     void TearDown() override { FileUtils::removeDir(TEMP_DIR); }
+
+    void initDB() {
+        auto regularConnection = make_unique<Connection>(database.get());
+        regularConnection->query(
+            "CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
+            "isWorker BOOLEAN, "
+            "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
+            "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
+            "PRIMARY "
+            "KEY (ID))");
+        regularConnection->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\"");
+        regularConnection->query(
+            "CREATE REL knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+            "validInterval INTERVAL, comments STRING[], MANY_MANY)");
+        regularConnection->query("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"");
+    }
 
 public:
     static constexpr char TEMP_DIR[] = "./temp/";

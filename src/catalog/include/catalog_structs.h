@@ -38,7 +38,7 @@ public:
     PropertyNameDataType(string name, DataType dataType)
         : name{move(name)}, dataType{move(dataType)} {};
 
-    inline bool isIDProperty() const { return name == LoaderConfig::ID_FIELD; }
+    inline bool isIDProperty() const { return name == CopyCSVConfig::ID_FIELD; }
 
 public:
     string name;
@@ -81,20 +81,22 @@ public:
 };
 
 struct Label {
-protected:
-    Label(string labelName, label_t labelId) : labelName{move(labelName)}, labelId{labelId} {}
+public:
+    Label(string labelName, label_t labelID, bool isNodeLabel)
+        : labelName{move(labelName)}, labelID{labelID}, isNodeLabel{isNodeLabel} {}
 
 public:
     string labelName;
-    label_t labelId;
+    label_t labelID;
+    bool isNodeLabel;
 };
 
 struct NodeLabel : Label {
     NodeLabel() : NodeLabel{"", UINT64_MAX, UINT64_MAX, vector<Property>{}} {}
     NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
         vector<Property> structuredProperties)
-        : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
-          structuredProperties{move(structuredProperties)} {}
+        : Label{move(labelName), labelId, true /* isNodeLabel */},
+          primaryPropertyId{primaryPropertyId}, structuredProperties{move(structuredProperties)} {}
 
     inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
     inline uint64_t getNumUnstructuredProperties() const { return unstructuredProperties.size(); }
@@ -118,16 +120,13 @@ struct NodeLabel : Label {
 
 struct RelLabel : Label {
     RelLabel()
-        : Label{"", UINT64_MAX}, relMultiplicity{MANY_MANY}, numGeneratedProperties{UINT32_MAX} {}
+        : Label{"", UINT64_MAX, false /* isNodeLabel */}, relMultiplicity{MANY_MANY},
+          numGeneratedProperties{UINT32_MAX}, numRels{0} {}
     RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
         vector<Property> properties, SrcDstLabels srcDstLabels);
 
-    inline void addRelIDDefinition() {
-        auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
-        properties.push_back(
-            Property::constructRelProperty(propertyNameDataType, properties.size(), labelId));
-        numGeneratedProperties++;
-    }
+    unordered_set<label_t> getAllNodeLabels() const;
+
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
             if (property.name == INTERNAL_ID_SUFFIX) {
@@ -142,6 +141,8 @@ struct RelLabel : Label {
         assert(properties.size() >= numGeneratedProperties);
         return properties.size() - numGeneratedProperties;
     }
+    inline uint64_t getNumRels() const { return numRels; }
+    inline void setNumRels(uint64_t newNumRels) { numRels = newNumRels; }
 
     RelMultiplicity relMultiplicity;
     uint32_t numGeneratedProperties;
@@ -149,6 +150,7 @@ struct RelLabel : Label {
     SrcDstLabels srcDstLabels;
     // Cardinality information
     vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel;
+    uint64_t numRels;
 };
 } // namespace catalog
 } // namespace graphflow

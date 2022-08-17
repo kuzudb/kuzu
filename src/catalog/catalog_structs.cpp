@@ -23,7 +23,7 @@ void NodeLabel::addUnstructuredProperties(vector<string>& unstructuredPropertyNa
         auto unstrPropertyId = unstructuredProperties.size();
         unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
         Property property = Property::constructUnstructuredNodeProperty(
-            unstrPropertyName, unstrPropertyId, labelId);
+            unstrPropertyName, unstrPropertyId, labelID);
         unstructuredProperties.emplace_back(property);
     }
 }
@@ -37,8 +37,9 @@ vector<Property> NodeLabel::getAllNodeProperties() const {
 
 RelLabel::RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
     vector<Property> properties, SrcDstLabels srcDstLabels)
-    : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity}, numGeneratedProperties{0},
-      properties{move(properties)}, srcDstLabels{move(srcDstLabels)} {
+    : Label{move(labelName), labelId, false /* isNodeLabel */}, relMultiplicity{relMultiplicity},
+      numGeneratedProperties{1}, properties{move(properties)},
+      srcDstLabels{move(srcDstLabels)}, numRels{0} {
     numRelsPerDirectionBoundLabel.resize(2);
     for (auto srcNodeLabel : this->srcDstLabels.srcNodeLabels) {
         numRelsPerDirectionBoundLabel[RelDirection::FWD].emplace(srcNodeLabel, 0);
@@ -46,6 +47,13 @@ RelLabel::RelLabel(string labelName, label_t labelId, RelMultiplicity relMultipl
     for (auto dstNodeLabel : this->srcDstLabels.dstNodeLabels) {
         numRelsPerDirectionBoundLabel[RelDirection::BWD].emplace(dstNodeLabel, 0);
     }
+}
+
+unordered_set<label_t> RelLabel::getAllNodeLabels() const {
+    unordered_set<label_t> allNodeLabels;
+    allNodeLabels.insert(srcDstLabels.srcNodeLabels.begin(), srcDstLabels.srcNodeLabels.end());
+    allNodeLabels.insert(srcDstLabels.dstNodeLabels.begin(), srcDstLabels.dstNodeLabels.end());
+    return allNodeLabels;
 }
 
 } // namespace catalog

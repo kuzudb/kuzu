@@ -7,18 +7,22 @@ from tools.python_api import _graphflowdb as gdb
 
 # Note conftest is the default file name for sharing fixture through multiple test files. Do not change file name.
 @pytest.fixture
-def load_tiny_snb(tmp_path):
-    tiny_snb_path = str("dataset/tinysnb")
+def init_tiny_snb(tmp_path):
+    if os.path.exists(tmp_path):
+        os.rmdir(tmp_path)
     output_path = str(tmp_path)
-    if os.path.exists(output_path):
-        os.removedirs(output_path)
-    loader = gdb.loader()
-    loader.load(tiny_snb_path, output_path)
+    db = gdb.database(output_path)
+    conn = gdb.connection(db)
+    conn.execute("CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, "
+                 "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
+                 "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
+                 "KEY (ID))")
+    conn.execute("COPY person FROM \"dataset/tinysnb/vPerson.csv\"")
     return output_path
 
 
 @pytest.fixture
-def establish_connection(load_tiny_snb):
-    db = gdb.database(load_tiny_snb)
+def establish_connection(init_tiny_snb):
+    db = gdb.database(init_tiny_snb)
     conn = gdb.connection(db)
     return conn, db

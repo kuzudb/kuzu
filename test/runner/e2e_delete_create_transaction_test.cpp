@@ -2,15 +2,18 @@
 
 using namespace graphflow::testing;
 
-class DeleteCreateTransactionTest : public BaseGraphLoadingTest {
+class DeleteCreateTransactionTest : public BaseGraphTest {
 
 public:
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
-
     void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
+        BaseGraphTest::SetUp();
         createDBAndConn();
         readConn = make_unique<Connection>(database.get());
+    }
+
+    void initGraph() override {
+        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
+        conn->query("COPY person FROM \"dataset/node-insertion-deletion-tests/vPerson.csv\"");
     }
 
     void checkNodeExists(Connection* connection, uint64_t nodeID) {
@@ -151,7 +154,7 @@ TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecoveryTest) {
     add100Nodes(conn.get());
     conn->commitButSkipCheckpointingForTestingRecovery();
     // This should run the recovery algorithm
-    createDBAndConn();
+    createDBAndConn(TransactionTestType::RECOVERY);
     string query = "MATCH (a:person) RETURN count(*)";
     ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
 }

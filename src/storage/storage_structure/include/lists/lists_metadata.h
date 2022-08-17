@@ -11,9 +11,9 @@ class logger;
 }
 
 namespace graphflow {
-namespace loader {
-class LoaderEmptyListsTest;
-} // namespace loader
+namespace testing {
+class CopyCSVEmptyListsTest;
+} // namespace testing
 } // namespace graphflow
 
 namespace graphflow {
@@ -43,7 +43,7 @@ protected:
 };
 
 class ListsMetadata : public BaseListsMetadata {
-    friend class graphflow::loader::LoaderEmptyListsTest;
+    friend class graphflow::testing::CopyCSVEmptyListsTest;
     friend class UnstructuredPropertyListsUpdateIterator;
 
 public:

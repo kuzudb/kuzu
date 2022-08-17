@@ -10,7 +10,6 @@ cc_library(
         "//tools/benchmark:__pkg__",
     ],
     deps = [
-        "//src/loader:graph_loader",
         "//src/main:graphflowdb",
         "//src/planner/logical_plan:logical_plan_util",
     ],
@@ -29,6 +28,7 @@ cc_test(
     ],
     deps = [
         "jo_connection",
+        "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

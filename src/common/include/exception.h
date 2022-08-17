@@ -39,9 +39,9 @@ public:
     explicit CSVReaderException(const string& msg) : Exception("CSVReader exception: " + msg){};
 };
 
-class LoaderException : public Exception {
+class CopyCSVException : public Exception {
 public:
-    explicit LoaderException(const string& msg) : Exception("Loader exception: " + msg){};
+    explicit CopyCSVException(const string& msg) : Exception("CopyCSV exception: " + msg){};
 };
 
 class CatalogException : public Exception {

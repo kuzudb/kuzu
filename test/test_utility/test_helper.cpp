@@ -4,11 +4,8 @@
 
 #include "spdlog/spdlog.h"
 
-#include "src/loader/include/graph_loader.h"
-
 using namespace std;
 using namespace graphflow::planner;
-using namespace graphflow::loader;
 
 namespace graphflow {
 namespace testing {
@@ -128,15 +125,34 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     return numPassedPlans == plans.size();
 }
 
-void BaseGraphLoadingTest::loadGraph() {
-    GraphLoader graphLoader(getInputCSVDir(), TestHelper::TEMP_TEST_DIR,
-        systemConfig->maxNumThreads, systemConfig->defaultPageBufferPoolSize,
-        systemConfig->largePageBufferPoolSize);
-    graphLoader.loadGraph();
+void BaseGraphTest::initGraph() {
+    conn->query(
+        createNodeCmdPrefix +
+        "person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, "
+        "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
+        "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
+        "KEY (ID))");
+    conn->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\"");
+    conn->query(createNodeCmdPrefix +
+                "organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, "
+                "history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))");
+    conn->query("COPY organisation FROM \"dataset/tinysnb/vOrganisation.csv\"");
+
+    conn->query(createRelCmdPrefix + "knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+                                     "validInterval INTERVAL, comments STRING[], MANY_MANY)");
+    conn->query("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"");
+    conn->query(createRelCmdPrefix +
+                "studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE)");
+    conn->query("COPY studyAt FROM \"dataset/tinysnb/eStudyAt.csv\"");
+    conn->query(createRelCmdPrefix + "workAt (FROM person TO organisation, year INT64, MANY_ONE)");
+    conn->query("COPY workAt FROM \"dataset/tinysnb/eWorkAt.csv\"");
+    conn->query(createRelCmdPrefix + "meets (FROM person TO person, MANY_ONE)");
+    conn->query("COPY meets FROM \"dataset/tinysnb/eMeets.csv\"");
 }
 
-void BaseGraphLoadingTest::commitOrRollbackConnection(bool isCommit, bool testRecovery) {
-    if (!testRecovery) {
+void BaseGraphTest::commitOrRollbackConnection(
+    bool isCommit, TransactionTestType transactionTestType) {
+    if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
         if (isCommit) {
             conn->commit();
         } else {

@@ -5,13 +5,22 @@ namespace storage {
 
 NodeTable::NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory,
     WAL* wal, NodeLabel* nodeLabel)
-    : nodesMetadata{nodesMetadata}, labelID{nodeLabel->labelId} {
-    for (const auto& property : nodeLabel->getAllNodeProperties()) {
+    : nodesMetadata{nodesMetadata}, labelID{nodeLabel->labelID}, bufferManager{bufferManager},
+      isInMemory{isInMemory}, wal{wal} {
+    loadColumnsAndListsFromDisk(nodeLabel);
+}
+
+// Todo(Ziyi): We should remove this function and put this back to constructor once we implement
+// transaction for copycsv.
+void NodeTable::loadColumnsAndListsFromDisk(NodeLabel* nodeLabel) {
+    propertyColumns.resize(nodeLabel->getAllNodeProperties().size());
+    for (auto i = 0u; i < nodeLabel->getAllNodeProperties().size(); i++) {
+        auto property = nodeLabel->getAllNodeProperties()[i];
         if (property.dataType.typeID != UNSTRUCTURED) {
-            propertyColumns.push_back(ColumnFactory::getColumn(
+            propertyColumns[i] = ColumnFactory::getColumn(
                 StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
                     wal->getDirectory(), property),
-                property.dataType, bufferManager, isInMemory, wal));
+                property.dataType, bufferManager, isInMemory, wal);
         }
     }
     unstrPropertyLists = make_unique<UnstructuredPropertyLists>(

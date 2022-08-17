@@ -59,7 +59,7 @@ bool ScanNodeID::getNextTuples() {
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
             nodeIDValues[i].offset = startOffset + i;
-            nodeIDValues[i].label = nodeTable->labelID;
+            nodeIDValues[i].label = nodeTable->getLabelID();
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
         setSelVector(startOffset, endOffset);
