@@ -38,8 +38,13 @@ public:
     // special use case that there is no mixed reads and writes to the mask, and all writes to the
     // mask try to set a position to true, thus it doesn't matter which thread succeeds.
     inline void setMask(uint64_t nodeOffset) {
-        mask->morselMask[nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2] = true;
-        mask->nodeMask[nodeOffset] = true;
+        auto morselIdx = nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+        if (!mask->morselMask[morselIdx]) {
+            mask->morselMask[morselIdx] = true;
+        }
+        if (!mask->nodeMask[nodeOffset]) {
+            mask->nodeMask[nodeOffset] = true;
+        }
     }
     inline bool isSemiMaskEnabled() const { return mask != nullptr; }
     inline bool isNodeMasked(node_offset_t nodeOffset) const { return mask->nodeMask[nodeOffset]; }
