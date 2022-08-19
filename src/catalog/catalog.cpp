@@ -196,7 +196,7 @@ CatalogContent::CatalogContent() {
 CatalogContent::CatalogContent(const string& directory) {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     logger->info("Initializing catalog.");
-    readFromFile(directory, false /* isForWALRecord */);
+    readFromFile(directory, DBFileType::ORIGINAL);
     logger->info("Initializing catalog done.");
 }
 
@@ -339,8 +339,8 @@ uint64_t CatalogContent::getNumRelsForDirectionBoundLabel(
         boundNodeLabel);
 }
 
-void CatalogContent::saveToFile(const string& directory, bool isForWALRecord) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(directory, isForWALRecord);
+void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     offset = SerDeser::serializeValue<uint64_t>(nodeLabels.size(), fileInfo.get(), offset);
@@ -354,8 +354,8 @@ void CatalogContent::saveToFile(const string& directory, bool isForWALRecord) {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-void CatalogContent::readFromFile(const string& directory, bool isForWALRecord) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(directory, isForWALRecord);
+void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType) {
+    auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
@@ -442,6 +442,19 @@ label_t Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         move(labelName), relMultiplicity, move(structuredPropertyDefinitions), move(srcDstLabels));
     wal->logRelTableRecord(labelID);
     return labelID;
+}
+
+void Catalog::setNumRelsPerDirectionBoundLabelOfRelLabel(
+    vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerLabel, label_t labelID) {
+    initCatalogContentForWriteTrxIfNecessary();
+    for (auto relDirection : REL_DIRECTIONS) {
+        for (auto boundNodeLabel :
+            getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelID, relDirection)) {
+            catalogContentForWriteTrx->getRelLabel(labelID)
+                ->numRelsPerDirectionBoundLabel[relDirection][boundNodeLabel] =
+                directionNumRelsPerLabel[relDirection]->operator[](boundNodeLabel).load();
+        }
+    }
 }
 
 } // namespace catalog

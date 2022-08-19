@@ -124,6 +124,23 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "e2e_copy_csv_transaction_test",
+    srcs = [
+        "e2e_copy_csv_transaction_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+    ],
+)
+
 filegroup(
     name = "testfiles",
     srcs = glob(["queries/**"]),

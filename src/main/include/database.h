@@ -12,6 +12,7 @@
 namespace graphflow {
 namespace transaction {
 class TinySnbDDLTest;
+class TinySnbCopyCSVTransactionTest;
 } // namespace transaction
 } // namespace graphflow
 
@@ -51,6 +52,7 @@ class Database {
     friend class Connection;
     friend class JOConnection;
     friend class graphflow::transaction::TinySnbDDLTest;
+    friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)

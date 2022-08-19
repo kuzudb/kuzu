@@ -191,12 +191,12 @@ NodesMetadata::NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLa
 }
 
 void NodesMetadata::writeNodesMetadataFileForWALRecord(const string& directory) {
-    saveToFile(directory, true /* is for wal record */, TransactionType::WRITE);
+    saveToFile(directory, DBFileType::WAL_VERSION, TransactionType::WRITE);
 }
 
 void NodesMetadata::readFromFile(const string& directory) {
     auto nodesMetadataPath =
-        StorageUtils::getNodesMetadataFilePath(directory, false /* isForWALRecord */);
+        StorageUtils::getNodesMetadataFilePath(directory, DBFileType::ORIGINAL);
     auto fileInfo = FileUtils::openFile(nodesMetadataPath, O_RDONLY);
     logger->info("Reading NodesMetadata from {}.", nodesMetadataPath);
     uint64_t offset = 0;
@@ -222,8 +222,8 @@ void NodesMetadata::setAdjListsAndColumns(RelsStore* relsStore) {
 }
 
 void NodesMetadata::saveToFile(
-    const string& directory, bool isForWALRecord, TransactionType transactionType) {
-    auto nodesMetadataPath = StorageUtils::getNodesMetadataFilePath(directory, isForWALRecord);
+    const string& directory, DBFileType dbFileType, TransactionType transactionType) {
+    auto nodesMetadataPath = StorageUtils::getNodesMetadataFilePath(directory, dbFileType);
     logger->info("Writing NodesMetadata to {}.", nodesMetadataPath);
     auto fileInfo = FileUtils::openFile(nodesMetadataPath, O_WRONLY | O_CREAT);
 

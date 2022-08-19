@@ -2,7 +2,6 @@
 
 #include "spdlog/spdlog.h"
 
-#include "src/catalog/include/catalog.h"
 #include "src/storage/include/storage_manager.h"
 #include "src/storage/include/storage_utils.h"
 #include "src/storage/include/wal_replayer_utils.h"
@@ -14,10 +13,10 @@ WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal
     init();
 }
 
-WALReplayer::WALReplayer(
-    WAL* wal, StorageManager* storageManager, BufferManager* bufferManager, bool isCheckpoint)
+WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
+    Catalog* catalog, bool isCheckpoint)
     : isRecovering{false}, isCheckpoint{isCheckpoint}, storageManager{storageManager},
-      bufferManager{bufferManager}, wal{wal} {
+      bufferManager{bufferManager}, wal{wal}, catalog{catalog} {
     init();
 }
 
@@ -41,16 +40,13 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 DEFAULT_PAGE_SIZE,
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile * DEFAULT_PAGE_SIZE);
         }
-        // If we are recovering there is nothing else to do and we can return
-        if (isRecovering) {
-            return;
+        if (!isRecovering) {
+            // 2: If we are not recovering, we do any in-memory checkpointing or rolling back work
+            // to make sure that the system's in-memory structures are consistent with what is on
+            // disk. For example, we update the BM's image of the pages or InMemDiskArrays used by
+            // lists or the WALVersion pageIdxs of pages for VersionedFileHandles.
+            checkpointOrRollbackVersionedFileHandleAndBufferManager(walRecord, storageStructureID);
         }
-
-        // 2: If we are not recovering, we do any in-memory checkpointing or rolling back work to
-        // make sure that the system's in-memory structures are consistent with what is on disk.
-        // For example, we update the BM's image of the pages or InMemDiskArrays used by lists or
-        // the WALVersion pageIdxs of pages for VersionedFileHandles.
-        checkpointOrRollbackVersionedFileHandleAndBufferManager(walRecord, storageStructureID);
     } break;
     case NODES_METADATA_RECORD: {
         if (isCheckpoint) {
@@ -82,7 +78,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // record.
             auto catalogForCheckpointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
-                wal->getDirectory(), true /* isForWALRecord */);
+                wal->getDirectory(), DBFileType::WAL_VERSION);
             WALReplayerUtils::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
                 walRecord.nodeTableRecord.labelID, wal->getDirectory());
             if (!isRecovering) {
@@ -105,7 +101,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             auto maxNodeOffsetPerLabel = nodesMetadataForCheckPointing->getMaxNodeOffsetPerLabel();
             auto catalogForCheckPointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckPointing->getReadOnlyVersion()->readFromFile(
-                wal->getDirectory(), true /* isForWALRecord */);
+                wal->getDirectory(), DBFileType::WAL_VERSION);
             WALReplayerUtils::createEmptyDBFilesForNewRelTable(catalogForCheckPointing.get(),
                 walRecord.relTableRecord.labelID, wal->getDirectory(), maxNodeOffsetPerLabel);
             if (!isRecovering) {
@@ -159,6 +155,69 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 walRecord.overflowFileNextBytePosRecord.prevNextBytePosToWriteTo);
         }
         overflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
+    } break;
+    case COPY_NODE_CSV_RECORD: {
+        if (isCheckpoint) {
+            auto labelID = walRecord.copyNodeCsvRecord.labelID;
+            if (!isRecovering) {
+                auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(labelID);
+                // If the WAL version of the file doesn't exist, we must have already replayed this
+                // WAL and successfully replaced the original DB file and deleted the WAL version
+                // but somehow WALReplayer must have failed/crashed before deleting the entire WAL
+                // (which is why the log record is still here). In that case the renaming has
+                // already happened, so we do not have to do anything, which is the behavior of
+                // replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version of the file does
+                // not exists, it will not do anything.
+                WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
+                    nodeLabel, wal->getDirectory());
+                // If we are not recovering, i.e., we are checkpointing during normal execution,
+                // then we need to update the nodeTable because the actual columns and lists files
+                // have been changed during changed during checkpoint. So the in memory fileHandles
+                // are obsolete and should be reconstructed (e.g. since the numPages have likely
+                // changed they need to reconstruct their page locks).
+                storageManager->getNodesStore().getNode(labelID)->loadColumnsAndListsFromDisk(
+                    nodeLabel, *bufferManager, wal);
+            } else {
+                auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+                catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
+                    wal->getDirectory(), DBFileType::ORIGINAL);
+                // See comments above.
+                WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
+                    catalogForCheckpointing->getReadOnlyVersion()->getNodeLabel(labelID),
+                    wal->getDirectory());
+            }
+        } else {
+            // Since COPY_CSV statements are single statements that are auto committed, it is
+            // impossible for users to roll back a COPY_CSV statement.
+        }
+    } break;
+    case COPY_REL_CSV_RECORD: {
+        if (isCheckpoint) {
+            auto labelID = walRecord.copyRelCsvRecord.labelID;
+            if (!isRecovering) {
+                // See comments for COPY_NODE_CSV_RECORD.
+                WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
+                    catalog->getReadOnlyVersion()->getRelLabel(labelID), wal->getDirectory(),
+                    catalog);
+                // See comments for COPY_NODE_CSV_RECORD.
+                storageManager->getRelsStore().getRel(labelID)->loadColumnsAndListsFromDisk(
+                    *catalog,
+                    storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffsetPerLabel(),
+                    *bufferManager, wal);
+                storageManager->getNodesStore().getNodesMetadata().setAdjListsAndColumns(
+                    &storageManager->getRelsStore());
+            } else {
+                auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+                catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
+                    wal->getDirectory(), DBFileType::ORIGINAL);
+                // See comments for COPY_NODE_CSV_RECORD.
+                WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
+                    catalogForCheckpointing->getReadOnlyVersion()->getRelLabel(labelID),
+                    wal->getDirectory(), catalogForCheckpointing.get());
+            }
+        } else {
+            // See comments for COPY_NODE_CSV_RECORD.
+        }
     } break;
     default:
         throw RuntimeException(

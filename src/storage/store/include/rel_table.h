@@ -21,7 +21,7 @@ public:
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
     void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager);
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal);
 
 public:
     inline Column* getPropertyColumn(label_t nodeLabel, uint64_t propertyIdx) {
@@ -43,12 +43,13 @@ public:
 
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager);
-    void initPropertyListsAndColumns(const catalog::Catalog& catalog, BufferManager& bufferManager);
-    void initPropertyColumnsForRelLabel(
-        const catalog::Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager);
-    void initPropertyListsForRelLabel(
-        const catalog::Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager);
+        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal);
+    void initPropertyListsAndColumns(
+        const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
+    void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, RelDirection relDirection,
+        BufferManager& bufferManager, WAL* wal);
+    void initPropertyListsForRelLabel(const catalog::Catalog& catalog, RelDirection relDirection,
+        BufferManager& bufferManager, WAL* wal);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -58,7 +59,6 @@ private:
     vector<label_property_lists_map_t> propertyLists;
     vector<label_adj_lists_map_t> adjLists;
     bool isInMemoryMode;
-    WAL* wal;
 };
 
 } // namespace storage

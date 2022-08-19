@@ -55,14 +55,12 @@ void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binde
         querySummary->isExplain = parsedQuery->isEnableExplain();
         querySummary->isProfile = parsedQuery->isEnableProfile();
         preparedStatement->parameterMap = binder.getParameterMap();
-        preparedStatement->isDDL = false;
+        preparedStatement->allowActiveTransaction = true;
     } break;
-    case StatementType::COPY_CSV: {
-        preparedStatement->isDDL = false;
-    } break;
+    case StatementType::COPY_CSV:
     case StatementType::CREATE_REL_CLAUSE:
     case StatementType::CREATE_NODE_CLAUSE: {
-        preparedStatement->isDDL = true;
+        preparedStatement->allowActiveTransaction = false;
     } break;
     default:
         assert(false);
@@ -252,9 +250,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         executingTimer.start();
         shared_ptr<FactorizedTable> table;
         try {
-            if (preparedStatement->isDDL && activeTransaction) {
+            if (!preparedStatement->allowActiveTransaction && activeTransaction) {
                 throw ConnectionException(
-                    "DDL statements are automatically wrapped in a "
+                    "DDL and CopyCSV statements are automatically wrapped in a "
                     "transaction and committed automatically. As such, they cannot be part of an "
                     "active transaction, please commit or rollback your previous transaction and "
                     "issue a ddl query without opening a transaction.");

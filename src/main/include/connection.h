@@ -18,6 +18,7 @@ using lock_t = unique_lock<mutex>;
 namespace graphflow {
 namespace transaction {
 class TinySnbDDLTest;
+class TinySnbCopyCSVTransactionTest;
 } // namespace transaction
 } // namespace graphflow
 
@@ -26,6 +27,7 @@ namespace main {
 
 class Connection {
     friend class graphflow::transaction::TinySnbDDLTest;
+    friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     /**

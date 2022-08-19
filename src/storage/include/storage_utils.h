@@ -75,7 +75,7 @@ public:
         case STRUCTURED_NODE_PROPERTY_COLUMN: {
             fName = getNodePropertyColumnFName(directory,
                 storageStructureID.structuredNodePropertyColumnID.nodeLabel,
-                storageStructureID.structuredNodePropertyColumnID.propertyID);
+                storageStructureID.structuredNodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
             if (storageStructureID.isOverflow) {
                 fName = getOverflowPagesFName(fName);
             }
@@ -95,19 +95,24 @@ public:
         return FileUtils::openFile(fName, O_RDWR);
     }
 
-    inline static string getNodeIndexFName(const string& directory, const label_t& nodeLabel) {
+    inline static string getNodeIndexFName(
+        const string& directory, const label_t& nodeLabel, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("n-%d", nodeLabel);
-        return FileUtils::joinPath(directory, fName + StorageConfig::INDEX_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::INDEX_FILE_SUFFIX), dbFileType);
     }
-    inline static string getNodePropertyColumnFName(
-        const string& directory, const label_t& nodeLabel, uint32_t propertyID) {
+
+    inline static string getNodePropertyColumnFName(const string& directory,
+        const label_t& nodeLabel, uint32_t propertyID, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("n-%d-%d", nodeLabel, propertyID);
-        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
 
     inline static StorageStructureIDAndFName getStructuredNodePropertyColumnStructureIDAndFName(
         const string& directory, const catalog::Property& property) {
-        auto fName = getNodePropertyColumnFName(directory, property.label, property.propertyID);
+        auto fName = getNodePropertyColumnFName(
+            directory, property.label, property.propertyID, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyMainColumnID(
                                               property.label, property.propertyID),
             fName);
@@ -115,7 +120,7 @@ public:
 
     inline static StorageStructureIDAndFName getNodeIndexIDAndFName(
         const string& directory, label_t nodeLabel) {
-        auto fName = getNodeIndexFName(directory, nodeLabel);
+        auto fName = getNodeIndexFName(directory, nodeLabel, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(StorageStructureID::newNodeIndexID(nodeLabel), fName);
     }
 
@@ -123,7 +128,7 @@ public:
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     inline static StorageStructureIDAndFName getUnstructuredNodePropertyListsStructureIDAndFName(
         const string& directory, label_t nodeLabel) {
-        auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
+        auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(StorageStructureID::newUnstructuredNodePropertyListsID(
                                               nodeLabel, ListFileType::BASE_LISTS),
             fName);
@@ -133,7 +138,7 @@ public:
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     inline static StorageStructureIDAndFName getAdjListsStructureIDAndFName(
         const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir) {
-        auto fName = getAdjListsFName(directory, relLabel, srcNodeLabel, dir);
+        auto fName = getAdjListsFName(directory, relLabel, srcNodeLabel, dir, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(StorageStructureID::newAdjListsID(relLabel, srcNodeLabel,
                                               dir, ListFileType::BASE_LISTS),
             fName);
@@ -144,8 +149,8 @@ public:
     inline static StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
         const string& directory, label_t relLabel, label_t srcNodeLabel, RelDirection dir,
         const catalog::Property& property) {
-        auto fName =
-            getRelPropertyListsFName(directory, relLabel, srcNodeLabel, dir, property.propertyID);
+        auto fName = getRelPropertyListsFName(
+            directory, relLabel, srcNodeLabel, dir, property.propertyID, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
             StorageStructureID::newRelPropertyListsID(
                 relLabel, srcNodeLabel, dir, property.propertyID, ListFileType::BASE_LISTS),
@@ -153,15 +158,17 @@ public:
     }
 
     inline static string getNodeUnstrPropertyListsFName(
-        const string& directory, const label_t& nodeLabel) {
+        const string& directory, const label_t& nodeLabel, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("n-%d", nodeLabel);
-        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX), dbFileType);
     }
 
     inline static string getAdjColumnFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection) {
+        const label_t& nodeLabel, const RelDirection& relDirection, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, relDirection);
-        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
 
     // TODO(Semih): Warning: We currently do not support updates on adj columns or their
@@ -171,22 +178,26 @@ public:
     inline static StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
         const string& directory, const label_t& relLabel, const label_t& nodeLabel,
         const RelDirection& relDirection) {
-        auto fName = getAdjColumnFName(directory, relLabel, nodeLabel, relDirection);
+        auto fName =
+            getAdjColumnFName(directory, relLabel, nodeLabel, relDirection, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
             StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, -1), fName);
     }
 
     inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection) {
+        const label_t& nodeLabel, const RelDirection& relDirection, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, relDirection);
-        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX), dbFileType);
     }
 
     inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName) {
+        const label_t& nodeLabel, const RelDirection& relDirection, const string& propertyName,
+        DBFileType dbFileType) {
         auto fName = StringUtils::string_format(
             "r-%d-%d-%d-%s", relLabel, nodeLabel, relDirection, propertyName.data());
-        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
     // TODO(Semih): Warning: We currently do not support updates on adj columns or their
     // properties so we construct a dummy and wrong StorageStructureIDAndFName here. Later we should
@@ -195,25 +206,27 @@ public:
     inline static StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const string& directory, const label_t& relLabel, const label_t& nodeLabel,
         const RelDirection& relDirection, const string& propertyName) {
-        auto fName =
-            getRelPropertyColumnFName(directory, relLabel, nodeLabel, relDirection, propertyName);
+        auto fName = getRelPropertyColumnFName(
+            directory, relLabel, nodeLabel, relDirection, propertyName, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
             StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, -1), fName);
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const RelDirection& relDirection, const uint32_t propertyID) {
+        const label_t& nodeLabel, const RelDirection& relDirection, const uint32_t propertyID,
+        DBFileType dbFileType) {
         auto fName = StringUtils::string_format(
             "r-%d-%d-%d-%d", relLabel, nodeLabel, relDirection, propertyID);
-        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
+        return appendWALFileSuffixIfNecessary(
+            FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX), dbFileType);
     }
 
     inline static string getListHeadersFName(string baseListFName) {
-        return baseListFName + ".headers";
+        return appendSuffixOrInsertBeforeWALSuffix(baseListFName, ".headers");
     }
 
     inline static string getListMetadataFName(string baseListFName) {
-        return baseListFName + ".metadata";
+        return appendSuffixOrInsertBeforeWALSuffix(baseListFName, ".metadata");
     }
 
     inline static string getListFName(
@@ -222,8 +235,8 @@ public:
         ListFileID listFileID = storageStructureID.listFileID;
         switch (listFileID.listType) {
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            baseFName = getNodeUnstrPropertyListsFName(
-                directory, listFileID.unstructuredNodePropertyListsID.nodeLabel);
+            baseFName = getNodeUnstrPropertyListsFName(directory,
+                listFileID.unstructuredNodePropertyListsID.nodeLabel, DBFileType::ORIGINAL);
         } break;
         default: {
             throw RuntimeException(
@@ -253,22 +266,19 @@ public:
     }
 
     inline static string getOverflowPagesFName(const string& fName) {
-        return fName + StorageConfig::OVERFLOW_FILE_SUFFIX;
-    }
-
-    static inline void removeNodesMetadataFileForWALIfExists(const string& directory) {
-        FileUtils::removeFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */));
+        return appendSuffixOrInsertBeforeWALSuffix(fName, StorageConfig::OVERFLOW_FILE_SUFFIX);
     }
 
     static inline void overwriteNodesMetadataFileWithVersionFromWAL(const string& directory) {
-        FileUtils::overwriteFile(getNodesMetadataFilePath(directory, true /* isForWALRecord */),
-            getNodesMetadataFilePath(directory, false /* original nodes metadata file */));
+        FileUtils::overwriteFile(getNodesMetadataFilePath(directory, DBFileType::WAL_VERSION),
+            getNodesMetadataFilePath(directory, DBFileType::ORIGINAL));
     }
 
-    static inline string getNodesMetadataFilePath(const string& directory, bool isForWALRecord) {
+    static inline string getNodesMetadataFilePath(const string& directory, DBFileType dbFileType) {
         return FileUtils::joinPath(
-            directory, isForWALRecord ? common::StorageConfig::NODES_METADATA_FILE_NAME_FOR_WAL :
-                                        common::StorageConfig::NODES_METADATA_FILE_NAME);
+            directory, dbFileType == DBFileType::ORIGINAL ?
+                           common::StorageConfig::NODES_METADATA_FILE_NAME :
+                           common::StorageConfig::NODES_METADATA_FILE_NAME_FOR_WAL);
     }
 
     static inline uint64_t getNumChunks(node_offset_t numNodes) {
@@ -291,25 +301,48 @@ public:
         return ((chunkIdx + 1) << ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2) - 1;
     }
 
-    static inline void removeCatalogFileForWALIfExists(const string& directory) {
-        FileUtils::removeFile(getCatalogFilePath(directory, true /* isForWALRecord */));
-    }
-
     static inline void overwriteCatalogFileWithVersionFromWAL(const string& directory) {
-        FileUtils::overwriteFile(getCatalogFilePath(directory, true /* isForWALRecord */),
-            getCatalogFilePath(directory, false /* original catalog file */));
+        FileUtils::overwriteFile(getCatalogFilePath(directory, DBFileType::WAL_VERSION),
+            getCatalogFilePath(directory, DBFileType::ORIGINAL));
     }
 
-    static inline string getCatalogFilePath(const string& directory, bool isForWALRecord) {
-        return FileUtils::joinPath(directory, isForWALRecord ?
-                                                  common::StorageConfig::CATALOG_FILE_NAME_FOR_WAL :
-                                                  common::StorageConfig::CATALOG_FILE_NAME);
+    static inline string getCatalogFilePath(const string& directory, DBFileType dbFileType) {
+        return FileUtils::joinPath(directory, dbFileType == DBFileType::ORIGINAL ?
+                                                  common::StorageConfig::CATALOG_FILE_NAME :
+                                                  common::StorageConfig::CATALOG_FILE_NAME_FOR_WAL);
     }
 
-    // Note: This is a relatively slow function because of division and mod and making pair. It is
-    // not meant to be used in performance critical code path.
+    // Note: This is a relatively slow function because of division and mod and making pair.
+    // It is not meant to be used in performance critical code path.
     inline static pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {
         return make_pair(i / divisor, i % divisor);
+    }
+
+    inline static void removeAllWALFiles(const string& directory) {
+        for (auto& folderIter : filesystem::directory_iterator(directory)) {
+            if (folderIter.path().extension() == StorageConfig::WAL_FILE_SUFFIX) {
+                filesystem::remove(folderIter.path());
+            }
+        }
+    }
+
+    inline static string appendWALFileSuffixIfNecessary(string fileName, DBFileType dbFileType) {
+        return dbFileType == DBFileType::WAL_VERSION ? appendWALFileSuffix(fileName) : fileName;
+    }
+
+    inline static string appendWALFileSuffix(string fileName) {
+        assert(fileName.find(StorageConfig::WAL_FILE_SUFFIX) == string::npos);
+        return fileName + StorageConfig::WAL_FILE_SUFFIX;
+    }
+
+private:
+    inline static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix) {
+        auto pos = fileName.find(StorageConfig::WAL_FILE_SUFFIX);
+        if (pos == string::npos) {
+            return fileName + suffix;
+        } else {
+            return fileName.substr(0, pos) + suffix + StorageConfig::WAL_FILE_SUFFIX;
+        }
     }
 };
 

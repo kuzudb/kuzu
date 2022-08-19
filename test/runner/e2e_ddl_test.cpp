@@ -119,7 +119,8 @@ TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionErrorTest) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING, REGISTER_TIME DATE)");
     ASSERT_EQ(result->getErrorMessage(),
-        "DDL statements are automatically wrapped in a transaction and committed automatically. "
+        "DDL and CopyCSV statements are automatically wrapped in a transaction and committed "
+        "automatically. "
         "As such, they cannot be part of an active transaction, please commit or rollback your "
         "previous transaction and issue a ddl query without opening a transaction.");
 }

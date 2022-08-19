@@ -9,17 +9,19 @@ namespace graphflow {
 namespace storage {
 
 InMemNodeCSVCopier::InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog, label_t labelID)
+    TaskScheduler& taskScheduler, Catalog& catalog, label_t labelID, NodesMetadata* nodesMetadata)
     : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
-      nodeLabel{catalog.getReadOnlyVersion()->getNodeLabel(labelID)}, numNodes{UINT64_MAX} {}
+      numNodes{UINT64_MAX}, nodesMetadata{nodesMetadata} {
+    nodeLabel = catalog.getReadOnlyVersion()->getNodeLabel(labelID);
+}
 
-uint64_t InMemNodeCSVCopier::copy() {
+void InMemNodeCSVCopier::copy() {
     logger->info("Copying node {} with label {}.", nodeLabel->labelName, nodeLabel->labelID);
     calculateNumBlocks(csvDescription.filePath, nodeLabel->labelName);
     auto unstructuredPropertyNames =
         countLinesPerBlockAndParseUnstrPropertyNames(nodeLabel->getNumStructuredProperties());
+    catalog.setUnstructuredPropertiesOfNodeLabel(unstructuredPropertyNames, nodeLabel->labelID);
     numNodes = calculateNumRows();
-    nodeLabel->addUnstructuredProperties(unstructuredPropertyNames);
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured
     // lists.
@@ -27,8 +29,8 @@ uint64_t InMemNodeCSVCopier::copy() {
     calcUnstrListsHeadersAndMetadata();
     populateUnstrPropertyLists();
     saveToFile();
+    nodesMetadata->setMaxNodeOffsetForLabel(nodeLabel->labelID, numNodes - 1);
     logger->info("Done copying node {} with label {}.", nodeLabel->labelName, nodeLabel->labelID);
-    return numNodes;
 }
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {
@@ -36,12 +38,13 @@ void InMemNodeCSVCopier::initializeColumnsAndList() {
     structuredColumns.resize(nodeLabel->getNumStructuredProperties());
     for (auto& property : nodeLabel->structuredProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
-            outputDirectory, nodeLabel->labelID, property.propertyID);
+            outputDirectory, nodeLabel->labelID, property.propertyID, DBFileType::WAL_VERSION);
         structuredColumns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }
     unstrPropertyLists = make_unique<InMemUnstructuredLists>(
-        StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel->labelID),
+        StorageUtils::getNodeUnstrPropertyListsFName(
+            outputDirectory, nodeLabel->labelID, DBFileType::WAL_VERSION),
         numNodes);
     logger->info("Done initializing in memory structured columns and unstructured list.");
 }
@@ -78,9 +81,10 @@ vector<string> InMemNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
 
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
     logger->info("Populating structured properties and Counting unstructured properties.");
-    auto IDIndex = make_unique<InMemHashIndex>(
-        StorageUtils::getNodeIndexFName(this->outputDirectory, nodeLabel->labelID),
-        nodeLabel->getPrimaryKey().dataType);
+    auto IDIndex =
+        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(this->outputDirectory,
+                                        nodeLabel->labelID, DBFileType::WAL_VERSION),
+            nodeLabel->getPrimaryKey().dataType);
     IDIndex->bulkReserve(numNodes);
     uint32_t IDColumnIdx = UINT32_MAX;
     for (auto i = 0u; i < nodeLabel->getNumStructuredProperties(); i++) {
@@ -212,7 +216,9 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     auto bufferOffset = 0u;
     PageByteCursor overflowPagesCursor;
-    auto unstrPropertiesNameToIdMap = copier->nodeLabel->unstrPropertiesNameToIdMap;
+    auto unstrPropertiesNameToIdMap = copier->catalog.getWriteVersion()
+                                          ->getNodeLabel(copier->nodeLabel->labelID)
+                                          ->unstrPropertiesNameToIdMap;
     while (reader.hasNextLine()) {
         for (auto i = 0u; i < copier->nodeLabel->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();

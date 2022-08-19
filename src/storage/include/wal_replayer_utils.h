@@ -19,6 +19,12 @@ public:
     static void createEmptyDBFilesForNewNodeTable(
         Catalog* catalog, label_t labelID, string directory);
 
+    static void replaceNodeFilesWithVersionFromWALIfExists(
+        catalog::NodeLabel* nodeLabel, string directory);
+
+    static void replaceRelPropertyFilesWithVersionFromWALIfExists(
+        catalog::RelLabel* relLabel, string directory, const catalog::Catalog* catalog);
+
 private:
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
@@ -35,6 +41,14 @@ private:
         const vector<uint64_t>& maxNodeOffsetsPerLabel, RelDirection relDirection,
         const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
         RelLabel* relLabel);
+
+    static void replaceOriginalColumnFilesWithWALVersionIfExists(string originalColFileName);
+
+    static void replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName);
+
+    static void replaceRelPropertyFilesWithVersionFromWAL(catalog::RelLabel* relLabel,
+        label_t nodeLabel, const string& directory, RelDirection relDirection,
+        bool isColumnProperty);
 };
 
 } // namespace storage

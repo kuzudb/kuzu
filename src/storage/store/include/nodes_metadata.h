@@ -128,14 +128,21 @@ public:
 
     static inline void saveInitialNodesMetadataToFile(const string& directory) {
         make_unique<NodesMetadata>()->saveToFile(
-            directory, false /* isForWALRecord */, TransactionType::READ_ONLY);
+            directory, DBFileType::ORIGINAL, TransactionType::READ_ONLY);
+    }
+
+    inline void setMaxNodeOffsetForLabel(label_t label, node_offset_t nodeOffset) {
+        initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
+        (*nodeMetadataPerLabelForWriteTrx)[label]->getNodeOffsetInfo()->setMaxNodeOffset(
+            nodeOffset);
     }
 
     void readFromFile(const string& directory);
 
     void setAdjListsAndColumns(RelsStore* relsStore);
 
-    void saveToFile(const string& directory, bool isForWALRecord, TransactionType transactionType);
+    void saveToFile(
+        const string& directory, DBFileType dbFileType, TransactionType transactionType);
 
     void initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
 
