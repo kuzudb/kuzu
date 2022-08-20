@@ -195,9 +195,18 @@ unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& quer
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 
+unique_ptr<planner::LogicalPlan> Connection::getThreeHopPlan(const std::string& query) {
+    lock_t lck{mtx};
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getThreeHopPlan(*database->catalog,
+                                    database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
+    preparedStatement->enableProfile();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
     auto mapper =
         PlanMapper(*database->storageManager, database->getMemoryManager(), database->getCatalog());

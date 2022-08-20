@@ -63,10 +63,10 @@ private:
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
+    ScanNodeID(string nodeID, unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
         const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
+        : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)}, nodeID{move(nodeID)},
           nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
@@ -79,15 +79,18 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
+            nodeID, resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
         return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
-
+    
 private:
     void setSelVector(node_offset_t startOffset, node_offset_t endOffset);
+
+public:
+    string nodeID;
 
 private:
     NodeTable* nodeTable;

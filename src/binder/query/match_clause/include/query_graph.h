@@ -100,10 +100,10 @@ public:
     inline bool containsQueryRel(const string& queryRelName) const {
         return queryRelNameToPosMap.contains(queryRelName);
     }
-    inline RelExpression* getQueryRel(const string& queryRelName) const {
-        return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
+    inline shared_ptr<RelExpression> getQueryRel(const string& queryRelName) const {
+        return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    inline RelExpression* getQueryRel(uint32_t relPos) const { return queryRels[relPos].get(); }
+    inline shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const { return queryRels[relPos]; }
     inline uint32_t getQueryRelPos(const string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }

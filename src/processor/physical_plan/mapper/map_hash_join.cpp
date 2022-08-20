@@ -2,8 +2,25 @@
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/semi_masker.h"
+
 namespace graphflow {
 namespace processor {
+
+static void collectScanNodeIDRecursive(PhysicalOperator* op, vector<PhysicalOperator*>& scanNodeIDs) {
+    if (op->getOperatorType() == SCAN_NODE_ID) {
+        scanNodeIDs.push_back(op);
+    }
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
+        collectScanNodeIDRecursive(op->getChild(i), scanNodeIDs);
+    }
+}
+
+static vector<PhysicalOperator*> collectScanNodeID(PhysicalOperator* op) {
+    vector<PhysicalOperator*> result;
+    collectScanNodeIDRecursive(op, result);
+    return result;
+}
 
 static void mapASPJoin(HashJoinProbe* hashJoinProbe) {
     auto tableScan = hashJoinProbe->getChild(0);
@@ -28,10 +45,41 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     switch (hashJoin->getJoinType()) {
     case HashJoinType::S_JOIN: {
         probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
+        ScanNodeID* scanNodeID = nullptr;
+        for (auto& op : collectScanNodeID(probeSidePrevOperator.get())) {
+            auto s = (ScanNodeID*)op;
+            if (s->nodeID == hashJoin->getJoinNode()->getIDProperty()) {
+                assert(scanNodeID == nullptr);
+                scanNodeID = s;
+            }
+        }
+        assert(scanNodeID != nullptr);
         buildSidePrevOperator =
             mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);
+        assert(buildSidePrevOperator->getOperatorType() == SEMI_MASKER);
+        auto semiMask = (SemiMasker*)buildSidePrevOperator.get();
+        semiMask->setSharedState(scanNodeID->getSharedState());
     } break;
-    case HashJoinType::ASP_JOIN:
+    case HashJoinType::ASP_JOIN: {
+        buildSidePrevOperator =
+            mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);
+        ScanNodeID* scanNodeID = nullptr;
+        for (auto& op : collectScanNodeID(buildSidePrevOperator.get())) {
+            auto s = (ScanNodeID*)op;
+            if (s->nodeID == hashJoin->getJoinNode()->getIDProperty()) {
+                assert(scanNodeID == nullptr);
+                scanNodeID = s;
+            }
+        }
+        assert(scanNodeID != nullptr);
+        probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
+        PhysicalOperator* op = probeSidePrevOperator.get();
+        while (op->getOperatorType() != SEMI_MASKER) {
+            op = op->getChild(0);
+        }
+        auto semiMask = (SemiMasker*)op;
+        semiMask->setSharedState(scanNodeID->getSharedState());
+    } break;
     default: {
         buildSidePrevOperator =
             mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);

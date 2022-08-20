@@ -12,11 +12,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto node = logicalSemiMasker->getNode();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto keyDataPos = mapperContext.getDataPos(node->getIDProperty());
-    assert(scanNodeIDsMap.contains(node->getUniqueName()));
-    assert(scanNodeIDsMap.at(node->getUniqueName())->getOperatorType() == SCAN_NODE_ID);
-    auto scanNodeIDSharedState =
-        ((ScanNodeID*)scanNodeIDsMap.at(node->getUniqueName()))->getSharedState();
-    return make_unique<SemiMasker>(keyDataPos, scanNodeIDSharedState, move(prevOperator),
+    return make_unique<SemiMasker>(keyDataPos, move(prevOperator),
         getOperatorID(), logicalSemiMasker->getExpressionsForPrinting());
 }
 

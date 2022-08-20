@@ -16,11 +16,15 @@ namespace planner {
 void ProjectionEnumerator::enumerateProjectionBody(
     const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
-        enumerateAggregate(projectionBody, *plan);
-        enumerateOrderBy(projectionBody, *plan);
-        enumerateProjection(projectionBody, *plan);
-        enumerateSkipAndLimit(projectionBody, *plan);
+        enumerateProjectionBody(projectionBody, *plan);
     }
+}
+
+void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
+    enumerateAggregate(projectionBody, plan);
+    enumerateOrderBy(projectionBody, plan);
+    enumerateProjection(projectionBody, plan);
+    enumerateSkipAndLimit(projectionBody, plan);
 }
 
 void ProjectionEnumerator::enumerateAggregate(
@@ -153,13 +157,13 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
         }
         Enumerator::appendFlattensButOne(groupByPoses, plan);
 
-        unordered_set<uint32_t> aggPoses;
-        for (auto& expressionToAggregate : expressionsToAggregate) {
-            auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
-            aggPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
-        }
-        Enumerator::appendFlattensButOne(aggPoses, plan);
+//        unordered_set<uint32_t> aggPoses;
+//        for (auto& expressionToAggregate : expressionsToAggregate) {
+//            auto dependentGroupsPos =
+//                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+//            aggPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
+//        }
+//        Enumerator::appendFlattensButOne(aggPoses, plan);
     }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, schema->copy(), plan.getLastOperator());

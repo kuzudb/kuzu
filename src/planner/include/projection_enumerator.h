@@ -22,7 +22,8 @@ public:
 
     void enumerateProjectionBody(
         const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans);
-
+    void enumerateProjectionBody(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    
 private:
     void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
     void enumerateOrderBy(const BoundProjectionBody& projectionBody, LogicalPlan& plan);

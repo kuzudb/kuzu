@@ -116,7 +116,6 @@ public:
 
 private:
     uint32_t physicalOperatorID;
-    unordered_map<string, PhysicalOperator*> scanNodeIDsMap;
 };
 
 } // namespace processor

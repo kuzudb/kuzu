@@ -5,6 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> SemiMasker::init(graphflow::processor::ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
+    assert(scanNodeIDSharedState != nullptr);
     scanNodeIDSharedState->initSemiMask(transaction);
     keyValueVector = resultSet->getValueVector(keyDataPos);
     assert(keyValueVector->dataType.typeID == NODE_ID);

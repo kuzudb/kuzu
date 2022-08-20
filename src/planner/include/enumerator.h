@@ -23,7 +23,16 @@ public:
     explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesMetadata, this},
           projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
-
+    
+    unique_ptr<LogicalPlan> getThreeHopPlan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS1Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS3Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS4Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS5Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
+//    unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
+    
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
     unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement);
@@ -127,6 +136,14 @@ private:
 
     static unique_ptr<LogicalPlan> createCreateRelTablePlan(
         BoundCreateRelClause& boundCreateRelClause);
+
+private:
+    NormalizedQueryPart* extractQueryPart(const BoundStatement& statement);
+
+    unique_ptr<LogicalPlan> createRelScanPlan(shared_ptr<RelExpression> rel,
+        shared_ptr<NodeExpression>& boundNode, expression_vector& predicates, bool isScanNodeTable);
+    void compileHashJoinWithNode(
+        LogicalPlan& plan, shared_ptr<NodeExpression>& node, expression_vector& predicates);
 
 private:
     const Catalog& catalog;

@@ -9,20 +9,23 @@ namespace processor {
 class SemiMasker : public PhysicalOperator {
 
 public:
-    SemiMasker(const DataPos& keyDataPos, ScanNodeIDSharedState* scanNodeIDSharedState,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, keyDataPos{keyDataPos},
-          scanNodeIDSharedState{scanNodeIDSharedState} {}
+    SemiMasker(const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString) 
+        : PhysicalOperator{std::move(child), id, paramsString}, keyDataPos{keyDataPos} {}
 
     inline PhysicalOperatorType getOperatorType() override { return SEMI_MASKER; }
+
+    inline void setSharedState(ScanNodeIDSharedState* state) { scanNodeIDSharedState = state; }
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<SemiMasker>(
-            keyDataPos, scanNodeIDSharedState, children[0]->clone(), id, paramsString);
+        auto clonedSemiMasker =
+            make_unique<SemiMasker>(keyDataPos, children[0]->clone(), id, paramsString);
+        clonedSemiMasker->setSharedState(scanNodeIDSharedState);
+        return clonedSemiMasker;
     }
 
 private:

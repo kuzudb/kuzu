@@ -36,6 +36,17 @@ static string ReadFile(const string& file_path) {
     return str;
 }
 
+unique_ptr<QueryResult> run(JOConnection* conn, const string& profiledQuery, const string& encodedJoin) {
+    if (encodedJoin == "optimizer") {
+        return conn->query(profiledQuery);
+    } else if (encodedJoin == "3hop"){
+        auto plan = conn->getThreeHopPlan(profiledQuery);
+        return conn->executePlan(move(plan));
+    }else {
+        return conn->query(profiledQuery, encodedJoin);
+    }
+}
+
 void runQuery(const string& serializedPath, const string& queryPath, const string& encodedJoin,
     uint64_t numThreads) {
     assert(numThreads <= 8);
@@ -44,17 +55,12 @@ void runQuery(const string& serializedPath, const string& queryPath, const strin
     SystemConfig systemConfig;
     systemConfig.maxNumThreads = 8;
     systemConfig.defaultPageBufferPoolSize = 1ull << 34;
-    systemConfig.largePageBufferPoolSize = 1ull << 34;
+    systemConfig.largePageBufferPoolSize = 1ull << 35;
     auto database = make_unique<Database>(databaseConfig, systemConfig);
     auto conn = make_unique<JOConnection>(database.get());
     conn->setMaxNumThreadForExec(numThreads);
     auto profileQuery = "PROFILE " + query;
-    unique_ptr<QueryResult> result;
-    if (encodedJoin == "optimizer") {
-        result = conn->query(profileQuery);
-    } else {
-        result = conn->query(profileQuery, encodedJoin);
-    }
+    unique_ptr<QueryResult> result = run(conn.get(), profileQuery, encodedJoin);
     if (!result->isSuccess()) {
         cout << "Error: " << result->getErrorMessage() << endl;
         return;
@@ -71,14 +77,10 @@ void runQuery(const string& serializedPath, const string& queryPath, const strin
     } else {
         cout << "No profiling available." << endl;
     }
-
     vector<double> runTimes(5);
     for (auto i = 0u; i < 5; i++) {
-        if (encodedJoin == "optimizer") {
-            result = conn->query(profileQuery);
-        } else {
-            result = conn->query(profileQuery, encodedJoin);
-        }
+        result.reset();
+        result = run(conn.get(), profileQuery, encodedJoin);
         runTimes[i] = result->getQuerySummary()->getExecutionTime();
     }
     cout << "Cost: ";

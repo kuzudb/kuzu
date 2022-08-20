@@ -1,0 +1,1 @@
+MATCH (a:Person)-[:likes_comment]->(b:Comment) WHERE a.X < 10000 RETURN MIN(a.X), MIN(b.length)

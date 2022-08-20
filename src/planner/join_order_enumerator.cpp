@@ -365,13 +365,13 @@ void JoinOrderEnumerator::planHashJoin(
     auto probeSideScanNodeIDs = collectScanNodeID(probePlan.getLastOperator().get());
     bool canPassMaskFromBuildToProbe = tryPassMask(joinNode.get(), probeSideScanNodeIDs);
     assert(!(canPassMaskFromProbeToBuild && canPassMaskFromBuildToProbe));
-    if (canPassMaskFromProbeToBuild) {
-        appendASPJoin(joinNode, probePlan, buildPlan);
-    } else if (canPassMaskFromBuildToProbe) {
-        appendSJoin(joinNode, probePlan, buildPlan);
-    } else {
+//    if (canPassMaskFromProbeToBuild) {
+//        appendASPJoin(joinNode, probePlan, buildPlan);
+//    } else if (canPassMaskFromBuildToProbe) {
+//        appendSJoin(joinNode, probePlan, buildPlan);
+//    } else {
         appendHashJoin(joinNode, probePlan, buildPlan);
-    }
+//    }
 }
 
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {

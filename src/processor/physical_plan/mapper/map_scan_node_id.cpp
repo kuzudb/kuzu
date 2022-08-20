@@ -14,11 +14,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
         &nodesStore.getNodesMetadata(), nodeExpression->getLabel());
     auto dataPos = mapperContext.getDataPos(nodeExpression->getIDProperty());
     mapperContext.addComputedExpressions(nodeExpression->getIDProperty());
-    auto scanNodeID = make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        nodesStore.getNode(nodeExpression->getLabel()), dataPos, sharedState, getOperatorID(),
-        logicalScanNodeID->getExpressionsForPrinting());
-    assert(!scanNodeIDsMap.contains(nodeExpression->getUniqueName()));
-    scanNodeIDsMap.insert({nodeExpression->getUniqueName(), scanNodeID.get()});
+    auto scanNodeID =
+        make_unique<ScanNodeID>(logicalScanNodeID->getNodeExpression()->getIDProperty(),
+            mapperContext.getResultSetDescriptor()->copy(),
+            nodesStore.getNode(nodeExpression->getLabel()), dataPos, sharedState, getOperatorID(),
+            logicalScanNodeID->getExpressionsForPrinting());
     return scanNodeID;
 }
 

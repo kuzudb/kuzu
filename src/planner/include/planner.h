@@ -6,8 +6,12 @@ namespace graphflow {
 namespace planner {
 
 class Planner {
-
 public:
+    static inline unique_ptr<LogicalPlan> getThreeHopPlan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getThreeHopPlan(statement);
+    }
+    
     static unique_ptr<LogicalPlan> getBestPlan(
         const Catalog& catalog, const NodesMetadata& nodesMetadata, const BoundStatement& query);
 
