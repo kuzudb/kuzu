@@ -19,6 +19,15 @@ public:
     }
 };
 
+TEST_F(TinySnbReadTest, play) {
+    auto query = "MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) WHERE a.ID = 0 RETURN COUNT(*)";
+    auto p = conn->getThreeHopPlan(query);
+    auto s = p->getLastOperator()->toString();
+    auto r = conn->executePlan(move(p));
+    auto rStr = TestHelper::convertResultToString(*r, false);
+    auto k =1 ;
+}
+
 TEST_F(TinySnbReadTest, MatchExecute) {
     runTest("test/test_files/tinySNB/match/node.test");
     runTest("test/test_files/tinySNB/match/one_hop.test");

@@ -20,31 +20,98 @@ static expression_vector extractPredicatesForNode(
     return result;
 }
 
-//unique_ptr<LogicalPlan> Enumerator::getIS1Plan(const BoundStatement& statement) {
-//    auto queryPart = extractQueryPart(statement);
-//    auto queryGraph = queryPart->getQueryGraph(0);
-//    auto predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
-//    auto p = queryGraph->getQueryNode(0);
-//    assert(p->getRawName() == "p");
-//    auto pl = queryGraph->getQueryNode(1);
-//    assert(b->getRawName() == "b");
-//}
-//
-//unique_ptr<LogicalPlan> Enumerator::getIS2Plan(const BoundStatement& statement) {
-//    
-//}
-//
-//unique_ptr<LogicalPlan> Enumerator::getIS3Plan(const BoundStatement& statement) {
-//    
-//}
-//
-//unique_ptr<LogicalPlan> Enumerator::getIS4Plan(const BoundStatement& statement) {
-//    
-//}
-//
-//unique_ptr<LogicalPlan> Enumerator::getIS5Plan(const BoundStatement& statement) {
-//    
-//}
+unique_ptr<LogicalPlan> Enumerator::getIS2Plan(const BoundStatement& statement) {
+    auto queryPart = extractQueryPart(statement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    auto predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    auto p = queryGraph->getQueryNode(0);
+    assert(p->getRawName() == "p");
+    auto c = queryGraph->getQueryNode(1);
+    assert(c->getRawName() == "c");
+    auto post = queryGraph->getQueryNode(2);
+    assert(post->getRawName() == "post");
+    auto op = queryGraph->getQueryNode(3);
+    assert(op->getRawName() == "op");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+
+    auto plan = createRelScanPlan(e1, p, predicates, true);
+    compileHashJoinWithNode(*plan, c, predicates);
+    auto scanE2Plan = createRelScanPlan(e2, c, predicates, false);
+    joinOrderEnumerator.appendASPJoin(c, *plan, *scanE2Plan);
+    auto scanE3Plan = createRelScanPlan(e3, post, predicates, false);
+    joinOrderEnumerator.appendASPJoin(post, *plan, *scanE3Plan);
+    compileHashJoinWithNode(*plan, op, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Enumerator::getIS6Plan(const BoundStatement& statement) {
+    auto queryPart = extractQueryPart(statement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    auto predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    auto comment = queryGraph->getQueryNode(0);
+    assert(comment->getRawName() == "comment");
+    auto post = queryGraph->getQueryNode(1);
+    assert(post->getRawName() == "post");
+    auto f = queryGraph->getQueryNode(2);
+    assert(f->getRawName() == "f");
+    auto p = queryGraph->getQueryNode(3);
+    assert(p->getRawName() == "p");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+    
+    auto plan = createRelScanPlan(e1, comment, predicates, true);
+    auto scanE2Plan = createRelScanPlan(e2, post, predicates, false);
+    joinOrderEnumerator.appendASPJoin(post, *plan, *scanE2Plan);
+    compileHashJoinWithNode(*plan, f, predicates);
+    auto scanE3Plan = createRelScanPlan(e3, f, predicates, false);
+    joinOrderEnumerator.appendASPJoin(f, *plan, *scanE3Plan);
+    compileHashJoinWithNode(*plan, p, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Enumerator::getIS7Plan(const BoundStatement& statement) {
+    auto queryPart = extractQueryPart(statement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    auto predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    auto mAuth = queryGraph->getQueryNode(0);
+    assert(mAuth->getRawName() == "mAuth");
+    auto cmt0 = queryGraph->getQueryNode(1);
+    assert(cmt0->getRawName() == "cmt0");
+    auto cmt1 = queryGraph->getQueryNode(2);
+    assert(cmt1->getRawName() == "cmt1");
+    auto rAuth = queryGraph->getQueryNode(3);
+    assert(rAuth->getRawName() == "rAuth");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+
+    auto plan = createRelScanPlan(e1, cmt0, predicates, true);
+    joinOrderEnumerator.appendExtend(
+        *e2, e2->getSrcNodeName() == cmt0->getUniqueName() ? FWD : BWD, *plan);
+    compileHashJoinWithNode(*plan, cmt1, predicates);
+    auto scanE3Plan = createRelScanPlan(e3, cmt1, predicates, false);
+    joinOrderEnumerator.appendASPJoin(cmt1, *plan, *scanE3Plan);
+    compileHashJoinWithNode(*plan, rAuth, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
 
 // (a)-[e1]->(b)-[e2]->(c)-[e3]->(d)
 unique_ptr<LogicalPlan> Enumerator::getThreeHopPlan(const BoundStatement& statement) {
@@ -66,14 +133,15 @@ unique_ptr<LogicalPlan> Enumerator::getThreeHopPlan(const BoundStatement& statem
     auto e3 = queryGraph->getQueryRel(2);
     assert(e3->getRawName() == "e3");
     //******* plan compilation ************
-    
+
     // compile a-e1-b-e2-c
     auto plan = createRelScanPlan(e1, b, predicates, true);
     compileHashJoinWithNode(*plan, a, predicates);
-    joinOrderEnumerator.appendExtend(*e2, e2->getSrcNodeName() == b->getUniqueName() ? FWD : BWD, *plan);
+    joinOrderEnumerator.appendExtend(
+        *e2, e2->getSrcNodeName() == b->getUniqueName() ? FWD : BWD, *plan);
     compileHashJoinWithNode(*plan, c, predicates);
     // hash join with e3
-    auto scanE3Plan= createRelScanPlan(e3, c, predicates, false);
+    auto scanE3Plan = createRelScanPlan(e3, c, predicates, false);
     if (ENABLE_ASP) {
         joinOrderEnumerator.appendASPJoin(c, *plan, *scanE3Plan);
     } else {

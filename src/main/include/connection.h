@@ -129,6 +129,9 @@ public:
     // instead let IDE catch these exceptions.
     std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
     unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS02Plan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS06Plan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS07Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getThreeHopPlan(const std::string& query);
     std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
     // used in API test

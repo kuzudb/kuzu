@@ -36,13 +36,23 @@ static string ReadFile(const string& file_path) {
     return str;
 }
 
-unique_ptr<QueryResult> run(JOConnection* conn, const string& profiledQuery, const string& encodedJoin) {
+unique_ptr<QueryResult> run(
+    JOConnection* conn, const string& profiledQuery, const string& encodedJoin) {
     if (encodedJoin == "optimizer") {
         return conn->query(profiledQuery);
-    } else if (encodedJoin == "3hop"){
+    } else if (encodedJoin == "3hop") {
         auto plan = conn->getThreeHopPlan(profiledQuery);
         return conn->executePlan(move(plan));
-    }else {
+    } else if (encodedJoin == "IS02") {
+        auto plan = conn->getIS02Plan(profiledQuery);
+        return conn->executePlan(move(plan));
+    } else if (encodedJoin == "IS06") {
+        auto plan = conn->getIS06Plan(profiledQuery);
+        return conn->executePlan(move(plan));
+    } else if (encodedJoin == "IS07") {
+        auto plan = conn->getIS07Plan(profiledQuery);
+        return conn->executePlan(move(plan));
+    } else {
         return conn->query(profiledQuery, encodedJoin);
     }
 }
@@ -55,7 +65,7 @@ void runQuery(const string& serializedPath, const string& queryPath, const strin
     SystemConfig systemConfig;
     systemConfig.maxNumThreads = 8;
     systemConfig.defaultPageBufferPoolSize = 1ull << 34;
-    systemConfig.largePageBufferPoolSize = 1ull << 35;
+    systemConfig.largePageBufferPoolSize = 1ull << 34;
     auto database = make_unique<Database>(databaseConfig, systemConfig);
     auto conn = make_unique<JOConnection>(database.get());
     conn->setMaxNumThreadForExec(numThreads);

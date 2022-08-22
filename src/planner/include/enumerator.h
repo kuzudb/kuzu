@@ -25,13 +25,9 @@ public:
           projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
     
     unique_ptr<LogicalPlan> getThreeHopPlan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS1Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS3Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS4Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS5Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
-//    unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
     
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
