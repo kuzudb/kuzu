@@ -29,11 +29,11 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
         FileUtils::createDir(databaseConfig.databasePath);
     }
     if (!FileUtils::fileOrPathExists(StorageUtils::getNodesMetadataFilePath(
-            databaseConfig.databasePath, false /* isForWALLog */))) {
+            databaseConfig.databasePath, DBFileType::ORIGINAL))) {
         NodesMetadata::saveInitialNodesMetadataToFile(databaseConfig.databasePath);
     }
-    if (!FileUtils::fileOrPathExists(StorageUtils::getCatalogFilePath(
-            databaseConfig.databasePath, false /* isForWALRecord */))) {
+    if (!FileUtils::fileOrPathExists(
+            StorageUtils::getCatalogFilePath(databaseConfig.databasePath, DBFileType::ORIGINAL))) {
         Catalog::saveInitialCatalogToFile(databaseConfig.databasePath);
     }
 }
@@ -69,7 +69,7 @@ void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpo
         (isRecovering ? "recovery." : "normal db execution (i.e., not recovering)."));
     WALReplayer walReplayer = isRecovering ? WALReplayer(wal.get()) :
                                              WALReplayer(wal.get(), storageManager.get(),
-                                                 bufferManager.get(), isCheckpoint);
+                                                 bufferManager.get(), catalog.get(), isCheckpoint);
     walReplayer.replay();
     logger->info(
         "Finished " +

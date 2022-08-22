@@ -25,6 +25,8 @@ class logger;
 namespace graphflow {
 namespace catalog {
 
+typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
+
 class CatalogContent {
 public:
     // This constructor is only used for mock catalog testing only.
@@ -114,8 +116,8 @@ public:
     virtual uint64_t getNumRelsForDirectionBoundLabel(
         label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const;
 
-    void saveToFile(const string& directory, bool isForWALRecord);
-    void readFromFile(const string& directory, bool isForWALRecord);
+    void saveToFile(const string& directory, DBFileType dbFileType);
+    void readFromFile(const string& directory, DBFileType dbFileType);
 
     uint64_t getNextRelID() const;
 
@@ -160,12 +162,11 @@ public:
     }
 
     inline void writeCatalogForWALRecord(string directory) {
-        catalogContentForWriteTrx->saveToFile(move(directory), true /* isForWALRecord */);
+        catalogContentForWriteTrx->saveToFile(move(directory), DBFileType::WAL_VERSION);
     }
 
     static inline void saveInitialCatalogToFile(const string& directory) {
-        make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(
-            directory, false /* isForWALRecord */);
+        make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(directory, DBFileType::ORIGINAL);
     }
 
     ExpressionType getFunctionType(const string& name) const;
@@ -175,6 +176,21 @@ public:
 
     label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels);
+
+    inline void setUnstructuredPropertiesOfNodeLabel(
+        vector<string>& unstructuredProperties, label_t labelID) {
+        initCatalogContentForWriteTrxIfNecessary();
+        catalogContentForWriteTrx->getNodeLabel(labelID)->addUnstructuredProperties(
+            unstructuredProperties);
+    }
+
+    inline void setNumRelsOfRelLabel(uint64_t numRels, label_t labelID) {
+        initCatalogContentForWriteTrxIfNecessary();
+        catalogContentForWriteTrx->getRelLabel(labelID)->setNumRels(numRels);
+    }
+
+    void setNumRelsPerDirectionBoundLabelOfRelLabel(
+        vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerLabel, label_t labelID);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;

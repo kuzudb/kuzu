@@ -109,10 +109,9 @@ TEST_F(CatalogTest, AddLabelsTest) {
 }
 
 TEST_F(CatalogTest, SaveAndReadTest) {
-    catalog->getReadOnlyVersion()->saveToFile(CATALOG_TEMP_DIRECTORY, false /* isForWALRecord */);
+    catalog->getReadOnlyVersion()->saveToFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     auto newCatalog = make_unique<Catalog>();
-    newCatalog->getReadOnlyVersion()->readFromFile(
-        CATALOG_TEMP_DIRECTORY, false /* isForWALRecord */);
+    newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     ASSERT_TRUE(newCatalog->getReadOnlyVersion()->getStructuredNodeProperties(0)[0].isIDProperty());
     // Test getting label id from string
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeLabel("person"));

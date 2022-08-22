@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/catalog/include/catalog.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
 #include "src/storage/wal/include/wal.h"
@@ -21,8 +22,8 @@ public:
     // doesn't take in storageManager and bufferManager.
     WALReplayer(WAL* wal);
 
-    WALReplayer(
-        WAL* wal, StorageManager* storageManager, BufferManager* bufferManager, bool isCheckpoint);
+    WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
+        catalog::Catalog* catalog, bool isCheckpoint);
 
     void replay();
 
@@ -47,6 +48,7 @@ private:
     unique_ptr<uint8_t[]> pageBuffer;
     shared_ptr<spdlog::logger> logger;
     WAL* wal;
+    catalog::Catalog* catalog;
 };
 
 } // namespace storage

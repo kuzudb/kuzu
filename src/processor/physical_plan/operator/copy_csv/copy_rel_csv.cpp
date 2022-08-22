@@ -6,17 +6,13 @@ namespace graphflow {
 namespace processor {
 
 void CopyRelCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) {
-    auto relCSVCopier = make_unique<InMemRelCSVCopier>(csvDescription, outputDirectory,
+    auto relCSVCopier = make_unique<InMemRelCSVCopier>(csvDescription, wal->getDirectory(),
         taskScheduler, *catalog, nodesMetadata->getMaxNodeOffsetPerLabel(),
         executionContext->bufferManager, label.labelID);
+    // Note: This copy function will update the numRelsPerDirectionBoundLabel and numRels
+    // information in Catalog for this relLabel.
     relCSVCopier->copy();
-    // Todo(Ziyi): these function calls can be removed once we implement the transaction for
-    // CopyCSV.
-    relsStore->getRel(label.labelID)
-        ->loadColumnsAndListsFromDisk(
-            *catalog, nodesMetadata->getMaxNodeOffsetPerLabel(), *executionContext->bufferManager);
-    nodesMetadata->setAdjListsAndColumns(relsStore);
-    catalog->getReadOnlyVersion()->saveToFile(outputDirectory, false /* isForWALRecord */);
+    wal->logCopyRelCSVRecord(label.labelID);
 }
 
 } // namespace processor

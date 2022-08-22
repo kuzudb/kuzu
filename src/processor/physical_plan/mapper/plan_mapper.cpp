@@ -457,11 +457,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
     auto& copyCSV = (LogicalCopyCSV&)*logicalOperator;
     if (copyCSV.getLabel().isNodeLabel) {
         return make_unique<CopyNodeCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
-            storageManager.getDirectory(), getOperatorID(), copyCSV.getExpressionsForPrinting(),
+            storageManager.getWAL(), getOperatorID(), copyCSV.getExpressionsForPrinting(),
             &storageManager.getNodesStore());
     } else {
         return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
-            storageManager.getDirectory(), &storageManager.getNodesStore().getNodesMetadata(),
+            storageManager.getWAL(), &storageManager.getNodesStore().getNodesMetadata(),
             getOperatorID(), copyCSV.getExpressionsForPrinting(), &storageManager.getRelsStore());
     }
 }

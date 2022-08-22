@@ -35,7 +35,6 @@ private:
 
     void populateAdjColumnsAndCountRelsInAdjLists();
     void populateAdjAndPropertyLists();
-    void populateNumRels();
     void sortOverflowValues();
 
     uint64_t getNumTasksOfInitializingAdjAndPropertyListsMetadata();

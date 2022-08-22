@@ -5,14 +5,12 @@ namespace storage {
 
 NodeTable::NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory,
     WAL* wal, NodeLabel* nodeLabel)
-    : nodesMetadata{nodesMetadata}, labelID{nodeLabel->labelID}, bufferManager{bufferManager},
-      isInMemory{isInMemory}, wal{wal} {
-    loadColumnsAndListsFromDisk(nodeLabel);
+    : nodesMetadata{nodesMetadata}, labelID{nodeLabel->labelID}, isInMemory{isInMemory} {
+    loadColumnsAndListsFromDisk(nodeLabel, bufferManager, wal);
 }
 
-// Todo(Ziyi): We should remove this function and put this back to constructor once we implement
-// transaction for copycsv.
-void NodeTable::loadColumnsAndListsFromDisk(NodeLabel* nodeLabel) {
+void NodeTable::loadColumnsAndListsFromDisk(
+    NodeLabel* nodeLabel, BufferManager& bufferManager, WAL* wal) {
     propertyColumns.resize(nodeLabel->getAllNodeProperties().size());
     for (auto i = 0u; i < nodeLabel->getAllNodeProperties().size(); i++) {
         auto property = nodeLabel->getAllNodeProperties()[i];

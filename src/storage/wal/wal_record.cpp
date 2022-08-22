@@ -111,6 +111,20 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
+WALRecord WALRecord::newCopyNodeCSVRecord(label_t labelID) {
+    WALRecord retVal;
+    retVal.recordType = COPY_NODE_CSV_RECORD;
+    retVal.copyNodeCsvRecord = CopyNodeCSVRecord(labelID);
+    return retVal;
+}
+
+WALRecord WALRecord::newCopyRelCSVRecord(label_t labelID) {
+    WALRecord retVal;
+    retVal.recordType = COPY_REL_CSV_RECORD;
+    retVal.copyRelCsvRecord = CopyRelCSVRecord(labelID);
+    return retVal;
+}
+
 void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
     ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
     offset += sizeof(WALRecord);

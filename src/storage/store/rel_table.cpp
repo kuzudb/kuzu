@@ -10,16 +10,16 @@ namespace storage {
 RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
     label_t relLabel, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, relLabel{relLabel},
-      isInMemoryMode{isInMemoryMode}, wal{wal} {
-    loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerLabel, bufferManager);
+      isInMemoryMode{isInMemoryMode} {
+    loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerLabel, bufferManager, wal);
 }
 
 // Todo(Ziyi): We should remove this function and put this back to constructor once we implement
 // transaction for copycsv.
 void RelTable::loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager) {
-    initAdjColumnOrLists(catalog, maxNodeOffsetsPerLabel, bufferManager);
-    initPropertyListsAndColumns(catalog, bufferManager);
+    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal) {
+    initAdjColumnOrLists(catalog, maxNodeOffsetsPerLabel, bufferManager, wal);
+    initPropertyListsAndColumns(catalog, bufferManager, wal);
 }
 
 vector<AdjLists*> RelTable::getAdjListsForNodeLabel(label_t nodeLabel) {
@@ -49,7 +49,7 @@ vector<AdjColumn*> RelTable::getAdjColumnsForNodeLabel(label_t nodeLabel) {
 }
 
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager) {
+    const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", relLabel);
     adjColumns = vector<label_adj_columns_map_t>{2};
     adjLists = vector<label_adj_lists_map_t>{2};
@@ -86,7 +86,8 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     logger->info("Initializing AdjColumns and AdjLists for rel {} done.", relLabel);
 }
 
-void RelTable::initPropertyListsAndColumns(const Catalog& catalog, BufferManager& bufferManager) {
+void RelTable::initPropertyListsAndColumns(
+    const Catalog& catalog, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing PropertyLists and PropertyColumns for rel {}.", relLabel);
     propertyLists = vector<label_property_lists_map_t>{2};
     propertyColumns = unordered_map<label_t, vector<unique_ptr<Column>>>{};
@@ -94,9 +95,9 @@ void RelTable::initPropertyListsAndColumns(const Catalog& catalog, BufferManager
         for (auto relDirection : REL_DIRECTIONS) {
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     relLabel, relDirection)) {
-                initPropertyColumnsForRelLabel(catalog, relDirection, bufferManager);
+                initPropertyColumnsForRelLabel(catalog, relDirection, bufferManager, wal);
             } else {
-                initPropertyListsForRelLabel(catalog, relDirection, bufferManager);
+                initPropertyListsForRelLabel(catalog, relDirection, bufferManager, wal);
             }
         }
     }
@@ -104,7 +105,7 @@ void RelTable::initPropertyListsAndColumns(const Catalog& catalog, BufferManager
 }
 
 void RelTable::initPropertyColumnsForRelLabel(
-    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager) {
+    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager, WAL* wal) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
     for (auto& nodeLabel :
         catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
@@ -125,7 +126,7 @@ void RelTable::initPropertyColumnsForRelLabel(
 }
 
 void RelTable::initPropertyListsForRelLabel(
-    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager) {
+    const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager, WAL* wal) {
     logger->debug("Initializing PropertyLists for rel {}", relLabel);
     for (auto& nodeLabel :
         catalog.getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {

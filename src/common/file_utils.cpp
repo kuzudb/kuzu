@@ -90,6 +90,19 @@ void FileUtils::removeDir(const string& dir) {
     }
 }
 
+void FileUtils::renameFileIfExists(const string& oldName, const string& newName) {
+    // If the oldName file doesn't exist, this function does not do anything.
+    if (!fileOrPathExists(oldName))
+        return;
+    error_code errorCode;
+    filesystem::rename(oldName, newName, errorCode);
+    if (errorCode.value() != 0) {
+        throw Exception(
+            StringUtils::string_format("Error replacing file %s to %s.  ErrorMessage: %s",
+                oldName.c_str(), newName.c_str(), errorCode.message().c_str()));
+    }
+}
+
 void FileUtils::removeFile(const string& path) {
     if (!fileOrPathExists(path))
         return;

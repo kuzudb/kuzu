@@ -73,13 +73,24 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logCopyNodeCSVRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newCopyNodeCSVRecord(labelID);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logCopyRelCSVRecord(label_t labelID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newCopyRelCSVRecord(labelID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     // We remove the nodeMetadata back up file if necessary.
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
-    StorageUtils::removeNodesMetadataFileForWALIfExists(directory);
-    StorageUtils::removeCatalogFileForWALIfExists(directory);
+    StorageUtils::removeAllWALFiles(directory);
 }
 
 void WAL::flushAllPages() {
