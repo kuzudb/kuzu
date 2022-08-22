@@ -35,11 +35,11 @@
 ---- 1
 3
 
--NAME ExistSubqueryMultiPartCyclicTest
--QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WITH a, b AS c MATCH (c)-[:knows]->(a) RETURN a.ID } RETURN COUNT(*)
--ENUMERATE
----- 1
-4
+#-NAME ExistSubqueryMultiPartCyclicTest
+#-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WITH a, b AS c MATCH (c)-[:knows]->(a) RETURN a.ID } RETURN COUNT(*)
+#-ENUMERATE
+#---- 1
+#4
 
 -NAME ExistsSubqueryColExtendTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) RETURN a.ID } RETURN COUNT(*)

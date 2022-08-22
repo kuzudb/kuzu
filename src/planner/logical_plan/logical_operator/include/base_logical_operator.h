@@ -1,9 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <unordered_set>
-#include <vector>
+#include "schema.h"
 
 using namespace std;
 
@@ -33,7 +30,7 @@ enum LogicalOperatorType : uint8_t {
     LOGICAL_CREATE,
     LOGICAL_SET,
     LOGICAL_DELETE,
-    LOGICAL_SINK,
+    LOGICAL_ACCUMULATE,
     LOGICAL_STATIC_TABLE_SCAN,
     LOGICAL_CREATE_NODE_TABLE,
     LOGICAL_CREATE_REL_TABLE,
@@ -46,11 +43,10 @@ const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE_ID", "LOGICAL_SELE
     "LOGICAL_HASH_JOIN", "LOGICAL_MULTIPLICITY_REDUCER", "LOGICAL_LIMIT", "LOGICAL_SKIP",
     "LOGICAL_AGGREGATE", "LOGICAL_ORDER_BY", "LOGICAL_EXISTS", "LOGICAL_LEFT_NESTED_LOOP_JOIN",
     "LOGICAL_UNION_ALL", "LOGICAL_DISTINCT", "LOGICAL_CREATE", "LOGICAL_SET", "LOGICAL_DELETE",
-    "LOGICAL_SINK", "LOGICAL_STATIC_TABLE_SCAN", "LOGICAL_CREATE_NODE_TABLE",
+    "LOGICAL_ACCUMULATE", "LOGICAL_STATIC_TABLE_SCAN", "LOGICAL_CREATE_NODE_TABLE",
     "LOGICAL_CREATE_REL_TABLE", "LOGICAL_COPY_CSV"};
 
 class LogicalOperator {
-
 public:
     // Leaf operator.
     LogicalOperator() = default;
@@ -58,6 +54,7 @@ public:
     LogicalOperator(shared_ptr<LogicalOperator> child);
     // Binary operator.
     LogicalOperator(shared_ptr<LogicalOperator> left, shared_ptr<LogicalOperator> right);
+    LogicalOperator(vector<shared_ptr<LogicalOperator>> children);
 
     virtual ~LogicalOperator() = default;
 

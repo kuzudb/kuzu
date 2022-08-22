@@ -5,10 +5,12 @@ cc_library(
     srcs = [
         "base_logical_operator.cpp",
         "schema.cpp",
+        "sink_util.cpp",
     ],
     hdrs = [
         "include/base_logical_operator.h",
         "include/schema.h",
+        "include/sink_util.h",
     ],
     visibility = [
         "//src/planner:__subpackages__",

@@ -29,7 +29,7 @@ public:
     inline void insertExpression(const shared_ptr<Expression>& expression) {
         expressions.push_back(expression);
     }
-    inline shared_ptr<Expression> getAnyExpression() const {
+    inline shared_ptr<Expression> getFirstExpression() const {
         assert(!expressions.empty());
         return expressions[0];
     }
@@ -44,6 +44,10 @@ private:
 class Schema {
 public:
     inline uint32_t getNumGroups() const { return groups.size(); }
+
+    inline FactorizationGroup* getGroup(shared_ptr<Expression> expression) const {
+        return getGroup(getGroupPos(expression->getUniqueName()));
+    }
 
     inline FactorizationGroup* getGroup(const string& expressionName) const {
         return getGroup(getGroupPos(expressionName));
@@ -66,6 +70,10 @@ public:
     inline expression_vector getExpressionsInScope() const { return expressionsInScope; }
 
     expression_vector getExpressionsInScope(uint32_t pos) const;
+
+    expression_vector getSubExpressionsInScope(const shared_ptr<Expression>& expression);
+
+    unordered_set<uint32_t> getDependentGroupsPos(const shared_ptr<Expression>& expression);
 
     inline void clearExpressionsInScope() { expressionsInScope.clear(); }
 

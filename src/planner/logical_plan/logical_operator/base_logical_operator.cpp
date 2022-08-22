@@ -13,6 +13,12 @@ LogicalOperator::LogicalOperator(
     children.push_back(move(right));
 }
 
+LogicalOperator::LogicalOperator(vector<shared_ptr<LogicalOperator>> children) {
+    for (auto& child : children) {
+        this->children.push_back(child);
+    }
+}
+
 bool LogicalOperator::descendantsContainType(
     const unordered_set<LogicalOperatorType>& types) const {
     if (types.contains(getLogicalOperatorType())) {

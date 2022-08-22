@@ -9,7 +9,6 @@ namespace graphflow {
 namespace planner {
 
 class LogicalOrderBy : public LogicalOperator {
-
 public:
     LogicalOrderBy(expression_vector expressionsToOrderBy, vector<bool> sortOrders,
         expression_vector expressionsToMaterialize, unique_ptr<Schema> schemaBeforeOrderBy,
@@ -18,18 +17,15 @@ public:
           isAscOrders{move(sortOrders)}, expressionsToMaterialize{move(expressionsToMaterialize)},
           schemaBeforeOrderBy{move(schemaBeforeOrderBy)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
+    inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_ORDER_BY;
     }
 
     string getExpressionsForPrinting() const override;
 
     inline expression_vector getExpressionsToOrderBy() const { return expressionsToOrderBy; }
-
     inline vector<bool> getIsAscOrders() const { return isAscOrders; }
-
     inline Schema* getSchemaBeforeOrderBy() const { return schemaBeforeOrderBy.get(); }
-
     inline expression_vector getExpressionsToMaterialize() const {
         return expressionsToMaterialize;
     }

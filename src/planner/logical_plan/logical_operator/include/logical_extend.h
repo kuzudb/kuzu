@@ -10,24 +10,36 @@ using namespace graphflow::binder;
 
 class LogicalExtend : public LogicalOperator {
 public:
-    LogicalExtend(shared_ptr<NodeExpression> boundNodeExpression,
-        shared_ptr<NodeExpression> nbrNodeExpression, label_t relLabel, RelDirection direction,
-        bool isColumn, uint8_t lowerBound, uint8_t upperBound, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, boundNodeExpression{move(boundNodeExpression)},
-          nbrNodeExpression{move(nbrNodeExpression)}, relLabel{relLabel}, direction{direction},
-          isColumn{isColumn}, lowerBound{lowerBound}, upperBound{upperBound} {}
+    LogicalExtend(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+        label_t relLabel, RelDirection direction, bool isColumn, uint8_t lowerBound,
+        uint8_t upperBound, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, boundNode{move(boundNode)}, nbrNode{move(nbrNode)},
+          relLabel{relLabel}, direction{direction}, isColumn{isColumn}, lowerBound{lowerBound},
+          upperBound{upperBound} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_EXTEND;
     }
 
     string getExpressionsForPrinting() const override {
-        return boundNodeExpression->getRawName() + (direction == RelDirection::FWD ? "->" : "<-") +
-               nbrNodeExpression->getRawName();
+        return boundNode->getRawName() + (direction == RelDirection::FWD ? "->" : "<-") +
+               nbrNode->getRawName();
     }
 
-    inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNodeExpression; }
-    inline shared_ptr<NodeExpression> getNbrNodeExpression() const { return nbrNodeExpression; }
+    inline void computeSchema(Schema& schema) {
+        auto boundGroupPos = schema.getGroupPos(boundNode->getIDProperty());
+        uint32_t nbrGroupPos = 0u;
+        if (isColumn) {
+            nbrGroupPos = boundGroupPos;
+        } else {
+            assert(schema.getGroup(boundGroupPos)->getIsFlat());
+            nbrGroupPos = schema.createGroup();
+        }
+        schema.insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), nbrGroupPos);
+    }
+
+    inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNode; }
+    inline shared_ptr<NodeExpression> getNbrNodeExpression() const { return nbrNode; }
     inline label_t getRelLabel() const { return relLabel; }
     inline RelDirection getDirection() const { return direction; }
     inline bool getIsColumn() const { return isColumn; }
@@ -35,13 +47,13 @@ public:
     inline uint8_t getUpperBound() const { return upperBound; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExtend>(boundNodeExpression, nbrNodeExpression, relLabel,
-            direction, isColumn, lowerBound, upperBound, children[0]->copy());
+        return make_unique<LogicalExtend>(boundNode, nbrNode, relLabel, direction, isColumn,
+            lowerBound, upperBound, children[0]->copy());
     }
 
 private:
-    shared_ptr<NodeExpression> boundNodeExpression;
-    shared_ptr<NodeExpression> nbrNodeExpression;
+    shared_ptr<NodeExpression> boundNode;
+    shared_ptr<NodeExpression> nbrNode;
     label_t relLabel;
     RelDirection direction;
     bool isColumn;

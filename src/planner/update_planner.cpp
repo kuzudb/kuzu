@@ -2,11 +2,12 @@
 
 #include "include/enumerator.h"
 
+#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_sink.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_static_table_scan.h"
+#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
 namespace planner {
@@ -18,18 +19,18 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
         if (plan.isEmpty()) {
             appendTableScan(createClause, plan);
         } else {
-            appendSink(plan);
+            appendAccumulate(plan);
         }
         appendCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
-        appendSink(plan);
+        appendAccumulate(plan);
         appendSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
-        appendSink(plan);
+        appendAccumulate(plan);
         appendDelete((BoundDeleteClause&)updatingClause, plan);
         return;
     }
@@ -41,7 +42,7 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
 void UpdatePlanner::planPropertyUpdateInfo(
     shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto dependentGroupsPos = Enumerator::getDependentGroupsPos(target, *schema);
+    auto dependentGroupsPos = schema->getDependentGroupsPos(target);
     auto targetPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
     // TODO: xiyang solve together with issue #325
     auto isTargetFlat = targetPos == UINT32_MAX || schema->getGroup(targetPos)->getIsFlat();
@@ -55,19 +56,17 @@ void UpdatePlanner::planPropertyUpdateInfo(
     }
 }
 
-void UpdatePlanner::appendSink(LogicalPlan& plan) {
+void UpdatePlanner::appendAccumulate(LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
-    schema->clear();
-    Enumerator::computeSchemaForSinkOperators(
-        schemaBeforeSink->getGroupsPosInScope(), *schemaBeforeSink, *schema);
+    SinkOperatorUtil::reComputeSchema(*schemaBeforeSink, *schema);
     vector<uint64_t> flatOutputGroupPositions;
     for (auto i = 0u; i < schema->getNumGroups(); ++i) {
         if (schema->getGroup(i)->getIsFlat()) {
             flatOutputGroupPositions.push_back(i);
         }
     }
-    auto sink = make_shared<LogicalSink>(schemaBeforeSink->getExpressionsInScope(),
+    auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
         flatOutputGroupPositions, move(schemaBeforeSink), plan.getLastOperator());
     plan.appendOperator(sink);
 }

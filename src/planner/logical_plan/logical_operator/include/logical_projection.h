@@ -10,12 +10,11 @@ namespace graphflow {
 namespace planner {
 
 class LogicalProjection : public LogicalOperator {
-
 public:
-    explicit LogicalProjection(expression_vector expressionsToProject,
+    explicit LogicalProjection(expression_vector expressions,
         unordered_set<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressionsToProject{move(expressionsToProject)},
-          discardedGroupsPos{move(discardedGroupsPos)} {}
+        : LogicalOperator{move(child)}, expressions{move(expressions)}, discardedGroupsPos{move(
+                                                                            discardedGroupsPos)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_PROJECTION;
@@ -23,17 +22,16 @@ public:
 
     string getExpressionsForPrinting() const override;
 
-    inline expression_vector getExpressionsToProject() const { return expressionsToProject; }
+    inline expression_vector getExpressionsToProject() const { return expressions; }
 
     inline unordered_set<uint32_t> getDiscardedGroupsPos() const { return discardedGroupsPos; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(
-            expressionsToProject, discardedGroupsPos, children[0]->copy());
+        return make_unique<LogicalProjection>(expressions, discardedGroupsPos, children[0]->copy());
     }
 
 private:
-    expression_vector expressionsToProject;
+    expression_vector expressions;
     unordered_set<uint32_t> discardedGroupsPos;
 };
 

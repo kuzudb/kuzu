@@ -27,6 +27,8 @@ public:
 
     inline uint64_t getUpperBound() const { return upperBound; }
 
+    inline bool isVariableLength() const { return !(lowerBound == 1 && upperBound == 1); }
+
 private:
     label_t label;
     shared_ptr<NodeExpression> srcNode;
