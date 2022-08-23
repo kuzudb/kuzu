@@ -1,0 +1,1 @@
+COPY person FROM "dataset/node-insertion-deletion-tests/vPerson.csv"

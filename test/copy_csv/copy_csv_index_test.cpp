@@ -5,7 +5,9 @@ using namespace graphflow::common;
 using namespace graphflow::storage;
 using namespace graphflow::testing;
 
-class TinySnbIndexTest : public InMemoryDBTest {};
+class TinySnbIndexTest : public InMemoryDBTest {
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+};
 
 TEST_F(TinySnbIndexTest, PersonNodeIDIndex) {
     auto storageManager = database->getStorageManager();

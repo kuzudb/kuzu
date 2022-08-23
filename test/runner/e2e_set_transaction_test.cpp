@@ -3,14 +3,15 @@
 using namespace graphflow::testing;
 
 // Test manual transaction. Auto transaction is tested in update test.
-class SetTransactionTest : public BaseGraphTest {
+class SetTransactionTest : public DBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        createDBAndConn();
+        DBTest::SetUp();
         readConn = make_unique<Connection>(database.get());
     }
+
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 
     void checkResult(vector<string>& result, vector<string>& groundTruth) {
         ASSERT_EQ(result.size(), groundTruth.size());

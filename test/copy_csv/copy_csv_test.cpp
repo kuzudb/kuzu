@@ -14,86 +14,37 @@ namespace testing {
 
 class CopyNodeCSVPropertyTest : public InMemoryDBTest {
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, randomString STRING, PRIMARY "
-                                          "KEY (ID))");
-        conn->query("COPY person FROM \"dataset/copy-csv-node-property-test/vPerson.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/copy-csv-node-property-test/"; }
 };
 
 class CopyCSVSpecialCharTest : public InMemoryDBTest {
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix +
-                    "person (ID INT64, randomString STRING, date DATE, PRIMARY "
-                    "KEY (ID))");
-        conn->query("COPY person FROM \"dataset/copy-csv-special-char-test/vPerson.csv\" (ESCAPE = "
-                    "\"#\", QUOTE = \"-\", DELIM=\"|\")");
-        conn->query(createNodeCmdPrefix +
-                    "organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE,score INT64, "
-                    "history STRING, licenseValidInterval INTERVAL, PRIMARY KEY (ID))");
-        conn->query(
-            "COPY organisation FROM \"dataset/copy-csv-special-char-test/vOrganisation.csv\" "
-            "(ESCAPE = \"#\", QUOTE = \"=\", DELIM=\",\")");
-        conn->query(createRelCmdPrefix + "workAt (FROM person TO organisation, length STRING, "
-                                         "MANY_ONE)");
-        conn->query("COPY workAt FROM \"dataset/copy-csv-special-char-test/eWorkAt.csv\" (ESCAPE "
-                    "= \"#\", QUOTE = \"=\", DELIM=\"|\")");
-    }
+    string getInputCSVDir() override { return "dataset/copy-csv-special-char-test/"; }
 };
 
 class CopyCSVReadLists2BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/read-list-tests/2-bytes-per-edge/vPerson.csv\"");
-        conn->query(
-            createRelCmdPrefix + "knows (FROM person TO person, int64Prop INT64, MANY_MANY)");
-        conn->query("COPY knows FROM \"dataset/read-list-tests/2-bytes-per-edge/eKnows.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/read-list-tests/2-bytes-per-edge/"; }
 };
 
 class CopyCSVReadLists3BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "animal (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY animal FROM \"dataset/read-list-tests/3-bytes-per-edge/vAnimal.csv\"");
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/read-list-tests/3-bytes-per-edge/vPerson.csv\"");
-        conn->query(createRelCmdPrefix + "knows (FROM animal|person TO animal|person, MANY_MANY)");
-        conn->query("COPY knows FROM \"dataset/read-list-tests/3-bytes-per-edge/eKnows.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/read-list-tests/3-bytes-per-edge/"; }
 };
 
 class CopyCSVReadLists4BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    void initGraph() {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/read-list-tests/4-bytes-per-edge/vPerson.csv\"");
-        conn->query(createRelCmdPrefix + "knows (FROM person TO person, MANY_MANY)");
-        conn->query("COPY knows FROM \"dataset/read-list-tests/4-bytes-per-edge/eKnows.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/read-list-tests/4-bytes-per-edge/"; }
 };
 
 class CopyCSVReadLists5BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    void initGraph() {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/read-list-tests/5-bytes-per-edge/vPerson.csv\"");
-        conn->query(createNodeCmdPrefix + "animal (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY animal FROM \"dataset/read-list-tests/5-bytes-per-edge/vAnimal.csv\"");
-        conn->query(
-            createRelCmdPrefix + "knows (FROM animal | person TO person | animal, MANY_MANY)");
-        conn->query("COPY knows FROM \"dataset/read-list-tests/5-bytes-per-edge/eKnows.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/read-list-tests/5-bytes-per-edge/"; }
 };
 
 class CopyCSVEmptyListsTest : public InMemoryDBTest {
 public:
-    void initGraph() {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/copy-csv-empty-lists-test/vPerson.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/copy-csv-empty-lists-test/"; }
     // The test is here because accessing protected/private members of Lists and ListsMetadata
     // requires the code to be inside CopyCSVEmptyListsTest class, which is a friend class to
     // Lists and ListsMetadata.

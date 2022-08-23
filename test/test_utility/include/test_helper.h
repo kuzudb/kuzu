@@ -40,13 +40,16 @@ public:
     static vector<string> convertResultToString(
         QueryResult& queryResult, bool checkOutputOrder = false);
 
+    static void executeCypherScript(const string& path, Connection& conn);
+
+    static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
+    static constexpr char COPY_CSV_FILE_NAME[] = "copy_csv.cypher";
+
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
     static bool testQuery(TestQueryConfig* config, Connection& conn);
 };
 
-// Loads a database from raw csv files and creates a disk-based DatabaseConfig. To have an in-memory
-// version, the databaseConfig field needs to be manually changed as in InMemoryDBLoadedTest.
 class BaseGraphTest : public Test {
 public:
     void SetUp() override {
@@ -54,20 +57,16 @@ public:
         databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
     }
 
+    virtual string getInputCSVDir() = 0;
+
     void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
-    // The default behaviour of BaseGraphTest is to load tinySnb. Whoever inherit this class should
-    // implement their own initGraph().
-    virtual void initGraph();
-
-    inline void createDBAndConn(
-        TransactionTestType transactionTestType = TransactionTestType::NORMAL_EXECUTION) {
+    inline void createDBAndConn() {
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<Connection>(database.get());
-        if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
-            initGraph();
-        }
     }
+
+    void initGraph();
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType);
 
@@ -76,10 +75,14 @@ public:
     unique_ptr<DatabaseConfig> databaseConfig;
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;
-    string createNodeCmdPrefix = "CREATE NODE TABLE ";
-    string createRelCmdPrefix = "CREATE REL ";
 };
 
+// This class starts database without initializing graph.
+class EmptyDBTest : public BaseGraphTest {
+    string getInputCSVDir() override { assert(false); }
+};
+
+// This class starts database in on-disk mode.
 class DBTest : public BaseGraphTest {
 
 public:
@@ -87,17 +90,19 @@ public:
         BaseGraphTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
+        initGraph();
     }
 };
 
+// This class starts database in in-memory mode.
 class InMemoryDBTest : public BaseGraphTest {
 
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
-        systemConfig->defaultPageBufferPoolSize = (1ul << 23);
         databaseConfig->inMemoryMode = true;
         createDBAndConn();
+        initGraph();
     }
 };
 

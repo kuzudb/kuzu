@@ -1,0 +1,1 @@
+COPY person FROM "dataset/copy-csv-empty-lists-test/vPerson.csv"

@@ -24,6 +24,7 @@ public:
         }
         return true;
     }
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets
