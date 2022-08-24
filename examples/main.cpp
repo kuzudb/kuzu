@@ -91,6 +91,7 @@ void runQuery(const string& serializedPath, const string& queryPath, string& enc
         cout << tuple->toString(widths, "|") << endl;
     }
     auto querySummary = result->getQuerySummary();
+    cout << "Time: " << querySummary->getExecutionTime() << " ms." << endl;
     if (querySummary->getIsProfile()) {
         querySummary->printPlanToStdOut();
     } else {
@@ -108,7 +109,7 @@ void runQuery(const string& serializedPath, const string& queryPath, string& enc
         cout << runTimes[i] << " ";
         sumTime += runTimes[i];
     }
-    cout << "Avg: " << sumTime / (double)5 << endl;
+    cout << "Avg: " << sumTime / (double)5 << " ms." << endl;
 }
 
 void planEnumerator(const string& query) {

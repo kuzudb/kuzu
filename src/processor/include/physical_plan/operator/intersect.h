@@ -8,13 +8,12 @@ namespace processor {
 
 class IntersectProbe {
 public:
-    IntersectProbe(shared_ptr<HashJoinSharedState> joinSharedState, DataPos probeKeyVectorPos,
-                   unique_ptr<IntersectProbe> childProbe, PhysicalOperator* nextOp)
+    IntersectProbe(shared_ptr<HashJoinSharedState> joinSharedState,
+        const DataPos& probeKeyVectorPos, unique_ptr<IntersectProbe> childProbe,
+        PhysicalOperator* nextOp)
         : probeKeyVectorPos{probeKeyVectorPos}, probeKeyVector{nullptr},
           joinSharedState{move(joinSharedState)}, prevProbeKey{UINT64_MAX, UINT64_MAX},
-          isCachingAvailable{false}, childProbe{move(childProbe)}, nextOp{nextOp} {
-        probeResult = make_shared<ValueVector>(NODE_ID);
-        probeResult->state = make_shared<DataChunkState>();
+          childProbe{move(childProbe)}, nextOp{nextOp}, currentProbeKey{UINT64_MAX, UINT64_MAX} {
         probeState = make_unique<ProbeState>();
     }
 
@@ -28,44 +27,43 @@ public:
     bool probe();
 
 private:
-    bool getChildNextTuples();
+    bool getChildNextTuples() const;
     void fetchFromHT();
-    void probeHT(const nodeID_t& probeKey);
-    void setPrevKeyForCacheIfNecessary(const nodeID_t& probeKey);
+    void probeHT(const nodeID_t& probeKey) const;
 
 public:
     DataPos probeKeyVectorPos;
     shared_ptr<ValueVector> probeKeyVector;
-    shared_ptr<ValueVector> probeResult;
     unique_ptr<ProbeState> probeState;
+    overflow_value_t probedResult;
     shared_ptr<HashJoinSharedState> joinSharedState;
     nodeID_t prevProbeKey;
-    bool isCachingAvailable;
     unique_ptr<IntersectProbe> childProbe;
     PhysicalOperator* nextOp;
+    nodeID_t currentProbeKey;
 };
 
 class Intersect : public PhysicalOperator {
 
 public:
     Intersect(const DataPos& outputVectorPos, vector<DataPos> probeSideKeyVectorsPos,
-              vector<shared_ptr<HashJoinSharedState>> sharedStates,
-              vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
+        vector<shared_ptr<HashJoinSharedState>> sharedStates,
+        vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(children), id, paramsString}, outputVectorPos{outputVectorPos},
           probeSideKeyVectorsPos{move(probeSideKeyVectorsPos)}, sharedStates{move(sharedStates)} {
-        // For regular join without sip, this should always be true.
-//        assert(this->sharedStates.size() == this->children.size() - 1);
         probeResults.resize(this->sharedStates.size());
+        currentProbeKeys.resize(this->sharedStates.size());
         prober = createIntersectProber(0);
     }
 
     inline unique_ptr<IntersectProbe> createIntersectProber(uint32_t branchIdx) {
         auto childProbe = branchIdx == this->sharedStates.size() - 1 ?
-                          nullptr :
-                          createIntersectProber(branchIdx + 1);
+                              nullptr :
+                              createIntersectProber(branchIdx + 1);
         auto intersectProbe = make_unique<IntersectProbe>(this->sharedStates[branchIdx],
-                                                          probeSideKeyVectorsPos[branchIdx], move(childProbe), children[0].get());
-        probeResults[branchIdx] = intersectProbe->probeResult;
+            probeSideKeyVectorsPos[branchIdx], move(childProbe), children[0].get());
+        probeResults[branchIdx] = &intersectProbe->probedResult;
+        currentProbeKeys[branchIdx] = &intersectProbe->currentProbeKey;
         return intersectProbe;
     }
 
@@ -79,15 +77,13 @@ public:
             clonedChildren.push_back(child->clone());
         }
         return make_unique<Intersect>(outputVectorPos, probeSideKeyVectorsPos, sharedStates,
-                                      move(clonedChildren), id, paramsString);
+            move(clonedChildren), id, paramsString);
     }
 
 private:
-    static bool isCurrentIntersectDone(
-        const vector<shared_ptr<ValueVector>>& vectors, const vector<sel_t>& positions);
-    static nodeID_t getMaxNodeOffset(
-        const vector<shared_ptr<ValueVector>>& vectors, const vector<sel_t>& positions);
-
+    // Left is the smaller one.
+    void twoWayIntersect(
+        uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues, uint64_t rightSize);
     void kWayIntersect();
 
 private:
@@ -96,7 +92,8 @@ private:
     shared_ptr<ValueVector> outputVector;
     unique_ptr<IntersectProbe> prober;
     vector<shared_ptr<HashJoinSharedState>> sharedStates;
-    vector<shared_ptr<ValueVector>> probeResults;
+    vector<overflow_value_t*> probeResults;
+    vector<nodeID_t*> currentProbeKeys;
 };
 
 } // namespace processor

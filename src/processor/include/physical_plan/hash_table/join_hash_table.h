@@ -30,6 +30,9 @@ public:
     inline uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + colOffsetOfPrevPtrInTuple);
     }
+    inline uint32_t getColumnOffset(uint32_t columnIdx) const {
+        return factorizedTable->getTableSchema()->getColOffset(columnIdx);
+    }
     inline bool hasUnflatColumns() { return factorizedTable->hasUnflatCol(); }
 
 private:

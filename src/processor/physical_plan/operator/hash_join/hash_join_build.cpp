@@ -53,13 +53,13 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {
-    auto timer = make_unique<TimeMetric>(true);
-    timer->start();
+//    auto timer = make_unique<TimeMetric>(true);
+//    timer->start();
     auto numTuples = sharedState->getHashTable()->getNumTuples();
     sharedState->getHashTable()->allocateHashSlots(numTuples);
     sharedState->getHashTable()->buildHashSlots();
-    timer->stop();
-    printf("HashJoin Build finalize time: %f\n", timer->getElapsedTimeMS());
+//    timer->stop();
+//    printf("HashJoin Build finalize time: %f\n", timer->getElapsedTimeMS());
 }
 
 void HashJoinBuild::appendVectors() {

@@ -1,0 +1,1 @@
+MATCH (a:Person)-[e1:knows]->(b:Person)-[e2:knows]->(c:Person), (a)-[e3:knows]->(c) RETURN MIN(b.birthday), MIN(c.birthday)
