@@ -293,6 +293,7 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
     compileIntersectWithNode(*plan, sp1BuildPlans, c, sp1HashNodes);
 
     // intersect subplan: SP1-e3-d, b-e6-d, d-e4-c
+    compileHashJoinWithNode(*plan, c, predicates);
     appendFlattenIfNecessary(plan->getSchema()->getGroupPos(c->getIDProperty()), *plan);
     // build sides: a-e3->d, b-e6->d, c<-e4-d
     auto ae3 = createRelScanPlan(e3, a, predicates, false);
