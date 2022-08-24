@@ -1,0 +1,3 @@
+SELECT COUNT(*) FROM person a, knows e1, person b, knows e2, person c, knows e3, person d, knows e4 WHERE a.id=e1.p1id and e1.p2id=b.id and b.id=e2.p1id and e2.p2id=c.id and a.id=e3.p1id and e3.p2id=d.id and d.id=e4.p1id and e4.p2id=c.id
+
+Match (a:Person)-[e1:knows]->(b:Person)-[e2:knows]->(c:Person), (a)-[e3:knows]->(d:Person)-[e4:knows]->(c) WHERE a.X < 10000 RETURN MIN(a.X), MIN(b.birthday), MIN(b.X), MIN(c.birthday), MIN(c.X), MIN(d.birthday), MIN(d.X)

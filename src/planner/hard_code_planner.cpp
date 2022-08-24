@@ -198,6 +198,119 @@ unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundS
     return plan;
 }
 
+// a-[e1]->b-[e2]->c, a-[e3]->d-[e4]->c
+unique_ptr<LogicalPlan> Enumerator::getCyclePlan(
+    const graphflow::binder::BoundStatement& boundStatement) {
+    auto queryPart = extractQueryPart(boundStatement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    expression_vector predicates;
+    if (queryPart->getQueryGraphPredicate(0)) {
+        predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    }
+    auto a = queryGraph->getQueryNode(0);
+    assert(a->getRawName() == "a");
+    auto b = queryGraph->getQueryNode(1);
+    assert(b->getRawName() == "b");
+    auto c = queryGraph->getQueryNode(2);
+    assert(c->getRawName() == "c");
+    auto d = queryGraph->getQueryNode(3);
+    assert(d->getRawName() == "d");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+    auto e4 = queryGraph->getQueryRel(3);
+    assert(e4->getRawName() == "e4");
+
+    // probe side: d-e3-a-e1-b
+    auto plan = createRelScanPlan(e1, a, predicates, true);
+    compileHashJoinWithNode(*plan, b, predicates);
+    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(b->getIDProperty()), *plan);
+    joinOrderEnumerator.appendExtend(
+        *e3, e3->getDstNodeName() == d->getUniqueName() ? FWD : BWD, *plan);
+    compileHashJoinWithNode(*plan, d, predicates);
+    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(d->getIDProperty()), *plan);
+
+    // build sides: d-e4, b-e2
+    auto de4 = createRelScanPlan(e4, d, predicates, false);
+    appendSorter(c, *de4);
+    auto be2 = createRelScanPlan(e2, b, predicates, false);
+    appendSorter(c, *be2);
+    auto buildPlans = vector<LogicalPlan*>{de4.get(), be2.get()};
+    auto hashNodes = vector<shared_ptr<NodeExpression>>{d, b};
+    compileIntersectWithNode(*plan, buildPlans, c, hashNodes);
+
+    compileHashJoinWithNode(*plan, c, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
+// a-[e1]->b-[e2]->c, a-[e3]->d-[e4]->c, a-[e5]->c, b-[e6]->d
+unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
+    const graphflow::binder::BoundStatement& boundStatement) {
+    auto queryPart = extractQueryPart(boundStatement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    expression_vector predicates;
+    if (queryPart->getQueryGraphPredicate(0)) {
+        predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    }
+    auto a = queryGraph->getQueryNode(0);
+    assert(a->getRawName() == "a");
+    auto b = queryGraph->getQueryNode(1);
+    assert(b->getRawName() == "b");
+    auto c = queryGraph->getQueryNode(2);
+    assert(c->getRawName() == "c");
+    auto d = queryGraph->getQueryNode(3);
+    assert(d->getRawName() == "d");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+    auto e4 = queryGraph->getQueryRel(3);
+    assert(e4->getRawName() == "e4");
+    auto e5 = queryGraph->getQueryRel(4);
+    assert(e5->getRawName() == "e5");
+    auto e6 = queryGraph->getQueryRel(5);
+    assert(e6->getRawName() == "e6");
+
+    // intersect subplan SP1: a-e1-b-e2-c, a-e5-c
+    // probe side: a-e1-b
+    auto plan = createRelScanPlan(e1, a, predicates, true);
+    compileHashJoinWithNode(*plan, b, predicates);
+    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(b->getIDProperty()), *plan);
+    // build sides: b-e2-c, a-e5-c
+    auto be2 = createRelScanPlan(e2, b, predicates, false);
+    appendSorter(c, *be2);
+    auto ae5 = createRelScanPlan(e5, a, predicates, false);
+    appendSorter(c, *ae5);
+    auto sp1BuildPlans = vector<LogicalPlan*>{be2.get(), ae5.get()};
+    auto sp1HashNodes = vector<shared_ptr<NodeExpression>>{b, a};
+    compileIntersectWithNode(*plan, sp1BuildPlans, c, sp1HashNodes);
+
+    // intersect subplan: SP1-e3-d, b-e6-d, d-e4-c
+    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(c->getIDProperty()), *plan);
+    // build sides: a-e3->d, b-e6->d, c<-e4-d
+    auto ae3 = createRelScanPlan(e3, a, predicates, false);
+    appendSorter(d, *ae3);
+    auto be6 = createRelScanPlan(e6, b, predicates, false);
+    appendSorter(d, *be6);
+    auto ce4 = createRelScanPlan(e4, c, predicates, false);
+    appendSorter(d, *ce4);
+    auto buildPlans = vector<LogicalPlan*>{ae3.get(), be6.get(), ce4.get()};
+    auto hashNodes = vector<shared_ptr<NodeExpression>>{a, b, c};
+    compileIntersectWithNode(*plan, buildPlans, d, hashNodes);
+
+    compileHashJoinWithNode(*plan, d, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
 NormalizedQueryPart* Enumerator::extractQueryPart(const BoundStatement& statement) {
     assert(statement.getStatementType() == StatementType::QUERY);
     auto& regularQuery = (BoundRegularQuery&)statement;

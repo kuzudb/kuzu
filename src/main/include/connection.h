@@ -134,6 +134,8 @@ public:
     unique_ptr<planner::LogicalPlan> getIS07Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getThreeHopPlan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getTrianglePlan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getCyclePlan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getCliquePlan(const std::string& query);
     std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
     // used in API test
     inline uint64_t getMaxNumThreadForExec() {

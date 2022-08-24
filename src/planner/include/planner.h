@@ -15,6 +15,14 @@ public:
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getTrianglePlan(statement);
     }
+    static inline unique_ptr<LogicalPlan> getCyclePlan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getCyclePlan(statement);
+    }
+    static inline unique_ptr<LogicalPlan> getCliquePlan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getCliquePlan(statement);
+    }
     static inline unique_ptr<LogicalPlan> getIS02Plan(const Catalog& catalog,
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getIS2Plan(statement);

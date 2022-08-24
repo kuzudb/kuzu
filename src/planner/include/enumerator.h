@@ -29,6 +29,8 @@ public:
     unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getCyclePlan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getCliquePlan(const BoundStatement& statement);
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -144,7 +146,7 @@ private:
     void compileIntersectWithNode(LogicalPlan& plan, vector<LogicalPlan*>& buildPlans,
         shared_ptr<NodeExpression>& intersectNode, vector<shared_ptr<NodeExpression>>& hashNodes);
     void appendSorter(shared_ptr<NodeExpression> expressionToSort, LogicalPlan& plan);
-    
+
 private:
     const Catalog& catalog;
     expression_vector propertiesToScan;

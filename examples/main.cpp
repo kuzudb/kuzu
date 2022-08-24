@@ -36,31 +36,37 @@ static string ReadFile(const string& file_path) {
     return str;
 }
 
-unique_ptr<QueryResult> run(
-    JOConnection* conn, const string& profiledQuery, const string& encodedJoin) {
+unique_ptr<QueryResult> run(JOConnection* conn, const string& profiledQuery, string& encodedJoin) {
+    StringUtils::toLower(encodedJoin);
     if (encodedJoin == "optimizer") {
         return conn->query(profiledQuery);
     } else if (encodedJoin == "3hop") {
         auto plan = conn->getThreeHopPlan(profiledQuery);
         return conn->executePlan(move(plan));
-    } else if (encodedJoin == "IS02") {
+    } else if (encodedJoin == "is02") {
         auto plan = conn->getIS02Plan(profiledQuery);
         return conn->executePlan(move(plan));
-    } else if (encodedJoin == "IS06") {
+    } else if (encodedJoin == "is06") {
         auto plan = conn->getIS06Plan(profiledQuery);
         return conn->executePlan(move(plan));
-    } else if (encodedJoin == "IS07") {
+    } else if (encodedJoin == "is07") {
         auto plan = conn->getIS07Plan(profiledQuery);
         return conn->executePlan(move(plan));
     } else if (encodedJoin == "triangle") {
         auto plan = conn->getTrianglePlan(profiledQuery);
+        return conn->executePlan(move(plan));
+    } else if (encodedJoin == "cycle") {
+        auto plan = conn->getCyclePlan(profiledQuery);
+        return conn->executePlan(move(plan));
+    } else if (encodedJoin == "clique") {
+        auto plan = conn->getCliquePlan(profiledQuery);
         return conn->executePlan(move(plan));
     } else {
         return conn->query(profiledQuery, encodedJoin);
     }
 }
 
-void runQuery(const string& serializedPath, const string& queryPath, const string& encodedJoin,
+void runQuery(const string& serializedPath, const string& queryPath, string& encodedJoin,
     uint64_t numThreads) {
     assert(numThreads <= 8);
     auto query = ReadFile(queryPath);
