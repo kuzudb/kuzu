@@ -20,7 +20,7 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
     if (physicalPlan->isCopyCSV()) {
         auto copyCSV = (CopyCSV*)physicalPlan->lastOperator->getChild(0);
         copyCSV->execute(*taskScheduler, context);
-        return make_shared<FactorizedTable>(nullptr, make_unique<TableSchema>());
+        return make_shared<FactorizedTable>(nullptr, make_unique<FactorizedTableSchema>());
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
         auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);

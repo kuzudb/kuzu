@@ -10,18 +10,18 @@ namespace binder {
 
 class BoundDDL : public BoundStatement {
 public:
-    explicit BoundDDL(StatementType statementType, string labelName,
+    explicit BoundDDL(StatementType statementType, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes)
-        : BoundStatement{statementType}, labelName{move(labelName)}, propertyNameDataTypes{move(
+        : BoundStatement{statementType}, tableName{move(tableName)}, propertyNameDataTypes{move(
                                                                          propertyNameDataTypes)} {}
 
-    inline string getLabelName() const { return labelName; }
+    inline string getTableName() const { return tableName; }
     inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 private:
-    string labelName;
+    string tableName;
     vector<PropertyNameDataType> propertyNameDataTypes;
 };
 

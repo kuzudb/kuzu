@@ -81,7 +81,7 @@ public:
             valueVector}; // all columns including orderBy and payload columns
         vector<bool> isAscOrder{isAsc};
 
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
@@ -131,7 +131,7 @@ public:
         vector<shared_ptr<ValueVector>> orderByVectors;
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
@@ -424,7 +424,7 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(make_unique<ColumnSchema>(
         false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)));
     tableSchema->appendColumn(make_unique<ColumnSchema>(

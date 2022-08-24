@@ -82,7 +82,8 @@ private:
         const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
-    uint64_t getExtensionRate(label_t boundNodeLabel, label_t relLabel, RelDirection relDirection);
+    uint64_t getExtensionRate(
+        table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);
 
 private:
     const catalog::Catalog& catalog;

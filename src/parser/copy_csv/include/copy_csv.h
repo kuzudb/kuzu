@@ -14,17 +14,17 @@ using namespace std;
 class CopyCSV : public Statement {
 public:
     explicit CopyCSV(
-        string csvFileName, string labelName, unordered_map<string, string> parsingOptions)
+        string csvFileName, string tableName, unordered_map<string, string> parsingOptions)
         : Statement{StatementType::COPY_CSV}, csvFileName{move(csvFileName)},
-          labelName{move(labelName)}, parsingOptions{move(parsingOptions)} {}
+          tableName{move(tableName)}, parsingOptions{move(parsingOptions)} {}
 
     inline string getCSVFileName() const { return csvFileName; }
-    inline string getLabelName() const { return labelName; }
+    inline string getTableName() const { return tableName; }
     inline unordered_map<string, string> getParsingOptions() const { return parsingOptions; }
 
 private:
     string csvFileName;
-    string labelName;
+    string tableName;
     unordered_map<string, string> parsingOptions;
 };
 

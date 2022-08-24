@@ -18,42 +18,42 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
 }
 
-void NodeLabel::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
+void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
     for (auto& unstrPropertyName : unstructuredPropertyNames) {
         auto unstrPropertyId = unstructuredProperties.size();
         unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
         Property property = Property::constructUnstructuredNodeProperty(
-            unstrPropertyName, unstrPropertyId, labelID);
+            unstrPropertyName, unstrPropertyId, tableID);
         unstructuredProperties.emplace_back(property);
     }
 }
 
-vector<Property> NodeLabel::getAllNodeProperties() const {
+vector<Property> NodeTableSchema::getAllNodeProperties() const {
     auto allProperties = structuredProperties;
     allProperties.insert(
         allProperties.end(), unstructuredProperties.begin(), unstructuredProperties.end());
     return allProperties;
 }
 
-RelLabel::RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
-    vector<Property> properties, SrcDstLabels srcDstLabels)
-    : Label{move(labelName), labelId, false /* isNodeLabel */}, relMultiplicity{relMultiplicity},
-      numGeneratedProperties{1}, properties{move(properties)},
-      srcDstLabels{move(srcDstLabels)}, numRels{0} {
-    numRelsPerDirectionBoundLabel.resize(2);
-    for (auto srcNodeLabel : this->srcDstLabels.srcNodeLabels) {
-        numRelsPerDirectionBoundLabel[RelDirection::FWD].emplace(srcNodeLabel, 0);
+RelTableSchema::RelTableSchema(string tableName, table_id_t tableID,
+    RelMultiplicity relMultiplicity, vector<Property> properties, SrcDstTableIDs srcDstTableIDs)
+    : TableSchema{move(tableName), tableID, false /* isNodeTable */},
+      relMultiplicity{relMultiplicity}, numGeneratedProperties{1}, properties{move(properties)},
+      srcDstTableIDs{move(srcDstTableIDs)}, numRels{0} {
+    numRelsPerDirectionBoundTableID.resize(2);
+    for (auto srcTableID : this->srcDstTableIDs.srcTableIDs) {
+        numRelsPerDirectionBoundTableID[RelDirection::FWD].emplace(srcTableID, 0);
     }
-    for (auto dstNodeLabel : this->srcDstLabels.dstNodeLabels) {
-        numRelsPerDirectionBoundLabel[RelDirection::BWD].emplace(dstNodeLabel, 0);
+    for (auto dstTableID : this->srcDstTableIDs.dstTableIDs) {
+        numRelsPerDirectionBoundTableID[RelDirection::BWD].emplace(dstTableID, 0);
     }
 }
 
-unordered_set<label_t> RelLabel::getAllNodeLabels() const {
-    unordered_set<label_t> allNodeLabels;
-    allNodeLabels.insert(srcDstLabels.srcNodeLabels.begin(), srcDstLabels.srcNodeLabels.end());
-    allNodeLabels.insert(srcDstLabels.dstNodeLabels.begin(), srcDstLabels.dstNodeLabels.end());
-    return allNodeLabels;
+unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
+    unordered_set<table_id_t> allNodeTableIDs;
+    allNodeTableIDs.insert(srcDstTableIDs.srcTableIDs.begin(), srcDstTableIDs.srcTableIDs.end());
+    allNodeTableIDs.insert(srcDstTableIDs.dstTableIDs.begin(), srcDstTableIDs.dstTableIDs.end());
+    return allNodeTableIDs;
 }
 
 } // namespace catalog

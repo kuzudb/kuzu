@@ -6,7 +6,7 @@ namespace graphflow {
 namespace processor {
 
 void HashJoinSharedState::initEmptyHashTableIfNecessary(
-    MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema) {
+    MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) {
     unique_lock lck(hashJoinSharedStateMutex);
     if (hashTable == nullptr) {
         hashTable = make_unique<JoinHashTable>(memoryManager, 0 /* numTuples */, move(tableSchema));
@@ -20,7 +20,7 @@ void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
 
 shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
     tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
@@ -46,8 +46,8 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
     tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
         Types::getDataTypeSize(INT64)));
-    hashTable = make_unique<JoinHashTable>(
-        *context->memoryManager, 0 /* empty table */, make_unique<TableSchema>(*tableSchema));
+    hashTable = make_unique<JoinHashTable>(*context->memoryManager, 0 /* empty table */,
+        make_unique<FactorizedTableSchema>(*tableSchema));
     sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, std::move(tableSchema));
     return resultSet;
 }

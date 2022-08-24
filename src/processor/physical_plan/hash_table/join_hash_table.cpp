@@ -6,7 +6,7 @@ namespace graphflow {
 namespace processor {
 
 JoinHashTable::JoinHashTable(
-    MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema)
+    MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager} {
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(numTuples * 2);
     bitmask = maxNumHashSlots - 1;

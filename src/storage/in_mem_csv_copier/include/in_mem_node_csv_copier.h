@@ -12,7 +12,7 @@ class InMemNodeCSVCopier : public InMemStructuresCSVCopier {
 
 public:
     InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog, label_t labelID,
+        TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
         NodesMetadata* nodesMetadata);
 
     ~InMemNodeCSVCopier() override = default;
@@ -51,7 +51,7 @@ private:
         uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeCSVCopier* copier);
 
 private:
-    NodeLabel* nodeLabel;
+    NodeTableSchema* nodeTableSchema;
     uint64_t numNodes;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;

@@ -141,9 +141,9 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(shellCommand.BUILT_IN_FUNCTIONS) == 0) {
             printf("%s", conn->getBuiltInFunctionNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
-            printf("%s", conn->getNodeLabelNames().c_str());
+            printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
-            printf("%s", conn->getRelLabelNames().c_str());
+            printf("%s", conn->getRelTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.SHOW_NODE) == 0) {
             printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
         } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
@@ -194,15 +194,15 @@ static inline string ltrim(const string& input) {
     return s;
 }
 
-void EmbeddedShell::printNodeSchema(const string& nodeLabelName) {
-    auto name = ltrim(nodeLabelName);
+void EmbeddedShell::printNodeSchema(const string& tableName) {
+    auto name = ltrim(tableName);
     try {
         printf("%s\n", conn->getNodePropertyNames(name).c_str());
     } catch (Exception& e) { printf("%s\n", e.what()); }
 }
 
-void EmbeddedShell::printRelSchema(const string& relLabelName) {
-    auto name = ltrim(relLabelName);
+void EmbeddedShell::printRelSchema(const string& tableName) {
+    auto name = ltrim(tableName);
     try {
         printf("%s\n", conn->getRelPropertyNames(name).c_str());
     } catch (Exception& e) { printf("%s\n", e.what()); }
@@ -219,10 +219,10 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sdebug information about the buffer manager\n", TAB,
         shellCommand.BUFFER_MANAGER_DEBUG_INFO.c_str(), TAB);
     printf("%s%s %slist built-in functions\n", TAB, shellCommand.BUILT_IN_FUNCTIONS.c_str(), TAB);
-    printf("%s%s %slist all node labels\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
-    printf("%s%s %slist all rel labels\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
-    printf("%s%s %s[label_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
-    printf("%s%s %s[label_name] show rel schema\n", TAB, shellCommand.SHOW_REL.c_str(), TAB);
+    printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
+    printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
+    printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
+    printf("%s%s %s[table_name] show rel schema\n", TAB, shellCommand.SHOW_REL.c_str(), TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {

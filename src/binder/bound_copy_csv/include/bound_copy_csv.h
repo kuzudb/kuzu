@@ -15,17 +15,17 @@ namespace binder {
 
 class BoundCopyCSV : public BoundStatement {
 public:
-    BoundCopyCSV(CSVDescription csvDescription, Label label)
-        : BoundStatement{StatementType::COPY_CSV},
-          csvDescription{move(csvDescription)}, label{move(label)} {}
+    BoundCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
+        : BoundStatement{StatementType::COPY_CSV}, csvDescription{move(csvDescription)},
+          tableSchema{move(tableSchema)} {}
 
     inline CSVDescription getCSVDescription() const { return csvDescription; }
 
-    inline Label getLabel() const { return label; }
+    inline TableSchema getTableSchema() const { return tableSchema; }
 
 private:
     CSVDescription csvDescription;
-    Label label;
+    TableSchema tableSchema;
 };
 
 } // namespace binder

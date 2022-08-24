@@ -11,10 +11,10 @@ using namespace graphflow::binder;
 class LogicalScanRelProperty : public LogicalOperator {
 public:
     LogicalScanRelProperty(shared_ptr<NodeExpression> boundNodeExpression,
-        shared_ptr<NodeExpression> nbrNodeExpression, label_t relLabel, RelDirection direction,
+        shared_ptr<NodeExpression> nbrNodeExpression, table_id_t relTableID, RelDirection direction,
         string propertyName, uint32_t propertyKey, bool isColumn, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, boundNodeExpression{move(boundNodeExpression)},
-          nbrNodeExpression{move(nbrNodeExpression)}, relLabel{relLabel}, direction{direction},
+          nbrNodeExpression{move(nbrNodeExpression)}, relTableID{relTableID}, direction{direction},
           propertyName{move(propertyName)}, propertyKey{propertyKey}, isColumn{isColumn} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -25,21 +25,21 @@ public:
 
     inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNodeExpression; }
     inline shared_ptr<NodeExpression> getNbrNodeExpression() const { return nbrNodeExpression; }
-    inline label_t getRelLabel() const { return relLabel; }
+    inline table_id_t getRelTableID() const { return relTableID; }
     inline RelDirection getDirection() const { return direction; }
     inline string getPropertyName() const { return propertyName; }
     inline uint32_t getPropertyKey() const { return propertyKey; }
     inline bool getIsColumn() const { return isColumn; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalScanRelProperty>(boundNodeExpression, nbrNodeExpression, relLabel,
-            direction, propertyName, propertyKey, isColumn, children[0]->copy());
+        return make_unique<LogicalScanRelProperty>(boundNodeExpression, nbrNodeExpression,
+            relTableID, direction, propertyName, propertyKey, isColumn, children[0]->copy());
     }
 
 private:
     shared_ptr<NodeExpression> boundNodeExpression;
     shared_ptr<NodeExpression> nbrNodeExpression;
-    label_t relLabel;
+    table_id_t relTableID;
     RelDirection direction;
     string propertyName;
     uint32_t propertyKey;

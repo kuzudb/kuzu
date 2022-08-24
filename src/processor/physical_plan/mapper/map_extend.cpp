@@ -23,7 +23,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto paramsString = extend->getExpressionsForPrinting();
     if (extend->getIsColumn()) {
         auto adjColumn = relsStore.getAdjColumn(
-            extend->getDirection(), boundNode->getLabel(), extend->getRelLabel());
+            extend->getDirection(), boundNode->getTableID(), extend->getRelTableID());
         if (lowerBound == 1 && lowerBound == upperBound) {
             return make_unique<AdjColumnExtend>(inDataPos, outDataPos, adjColumn,
                 move(prevOperator), getOperatorID(), paramsString);
@@ -33,7 +33,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         }
     } else {
         auto adjLists = relsStore.getAdjLists(
-            extend->getDirection(), boundNode->getLabel(), extend->getRelLabel());
+            extend->getDirection(), boundNode->getTableID(), extend->getRelTableID());
         if (lowerBound == 1 && lowerBound == upperBound) {
             return make_unique<AdjListExtend>(
                 inDataPos, outDataPos, adjLists, move(prevOperator), getOperatorID(), paramsString);

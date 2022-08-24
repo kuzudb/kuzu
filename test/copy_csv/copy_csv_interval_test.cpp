@@ -17,9 +17,9 @@ class TinySnbCopyCSVIntervalTest : public InMemoryDBTest {
 TEST_F(TinySnbCopyCSVIntervalTest, NodePropertyColumnWithInterval) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "lastJobDuration");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
+    auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
         col->readValue(0).val.intervalVal);

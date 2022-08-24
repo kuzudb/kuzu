@@ -49,20 +49,20 @@ public:
     }
 
     void validateNodeColumnAndListFilesExistence(
-        label_t labelID, DBFileType dbFileType, bool existence) {
-        auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(labelID);
-        for (auto& property : nodeLabel->structuredProperties) {
+        table_id_t tableID, DBFileType dbFileType, bool existence) {
+        auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+        for (auto& property : nodeTableSchema->structuredProperties) {
             validateColumnFilesExistence(
                 StorageUtils::getNodePropertyColumnFName(
-                    databaseConfig->databasePath, labelID, property.propertyID, dbFileType),
+                    databaseConfig->databasePath, tableID, property.propertyID, dbFileType),
                 existence, containsOverflowFile(property.dataType.typeID));
         }
         validateListFilesExistence(StorageUtils::getNodeUnstrPropertyListsFName(
-                                       databaseConfig->databasePath, labelID, dbFileType),
+                                       databaseConfig->databasePath, tableID, dbFileType),
             existence, true /* hasOverflow */, true /* hasHeader */);
         validateColumnFilesExistence(
-            StorageUtils::getNodeIndexFName(databaseConfig->databasePath, labelID, dbFileType),
-            existence, containsOverflowFile(nodeLabel->getPrimaryKey().dataType.typeID));
+            StorageUtils::getNodeIndexFName(databaseConfig->databasePath, tableID, dbFileType),
+            existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));
     }
 
     void validateTinysnbPersonAgeProperty() {
@@ -76,34 +76,34 @@ public:
         ASSERT_EQ(expectedResult, actualResult);
     }
 
-    void validateDatabaseStateBeforeCheckPointCopyNodeCSV(label_t labelID) {
+    void validateDatabaseStateBeforeCheckPointCopyNodeCSV(table_id_t tableID) {
         // Before checkPointing, we should have two versions of node column and list files. The
         // updates to maxNodeOffset should be invisible to read-only transactions.
         validateNodeColumnAndListFilesExistence(
-            labelID, DBFileType::WAL_VERSION, true /* existence */);
+            tableID, DBFileType::WAL_VERSION, true /* existence */);
         validateNodeColumnAndListFilesExistence(
-            labelID, DBFileType::ORIGINAL, true /* existence */);
+            tableID, DBFileType::ORIGINAL, true /* existence */);
         ASSERT_EQ(make_unique<Connection>(database.get())
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
             0);
         ASSERT_EQ(database->storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffset(
-                      TransactionType::READ_ONLY, labelID),
+                      TransactionType::READ_ONLY, tableID),
             UINT64_MAX);
     }
 
-    void validateDatabaseStateAfterCheckPointCopyNodeCSV(label_t labelID) {
+    void validateDatabaseStateAfterCheckPointCopyNodeCSV(table_id_t tableID) {
         // After checkPointing, we should only have one version of node column and list
         // files(original version). The updates to maxNodeOffset should be visible to read-only
         // transaction;
         validateNodeColumnAndListFilesExistence(
-            labelID, DBFileType::WAL_VERSION, false /* existence */);
+            tableID, DBFileType::WAL_VERSION, false /* existence */);
         validateNodeColumnAndListFilesExistence(
-            labelID, DBFileType::ORIGINAL, true /* existence */);
+            tableID, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
         ASSERT_EQ(
             database->getStorageManager()->getNodesStore().getNodesMetadata().getMaxNodeOffset(
-                TransactionType::READ_ONLY, labelID),
+                TransactionType::READ_ONLY, tableID),
             7);
     }
 
@@ -113,16 +113,16 @@ public:
         conn->beginTransactionNoLock(WRITE);
         database->queryProcessor->execute(
             preparedStatement->physicalPlan.get(), nullptr /* executionContext */);
-        auto labelID = catalog->getReadOnlyVersion()->getNodeLabelFromName("person");
-        validateDatabaseStateBeforeCheckPointCopyNodeCSV(labelID);
+        auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
-            validateDatabaseStateBeforeCheckPointCopyNodeCSV(labelID);
+            validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCheckPointCopyNodeCSV(labelID);
+            validateDatabaseStateAfterCheckPointCopyNodeCSV(tableID);
         } else {
             conn->commit();
-            validateDatabaseStateAfterCheckPointCopyNodeCSV(labelID);
+            validateDatabaseStateAfterCheckPointCopyNodeCSV(tableID);
         }
     }
 
@@ -151,68 +151,68 @@ public:
         ASSERT_EQ(expectedResult, actualResult);
     }
 
-    void validateRelPropertyFiles(catalog::RelLabel* relLabel, label_t nodeLabel,
+    void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema, table_id_t tableID,
         RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
-        for (auto i = 0u; i < relLabel->getNumProperties(); ++i) {
-            auto property = relLabel->properties[i];
+        for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
+            auto property = relTableSchema->properties[i];
             auto hasOverflow = containsOverflowFile(property.dataType.typeID);
             if (isColumnProperty) {
                 validateColumnFilesExistence(
                     StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
-                        relLabel->labelID, nodeLabel, relDirection, property.name, dbFileType),
+                        relTableSchema->tableID, tableID, relDirection, property.name, dbFileType),
                     existence, hasOverflow);
             } else {
                 validateListFilesExistence(
                     StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath,
-                        relLabel->labelID, nodeLabel, relDirection,
-                        relLabel->properties[i].propertyID, dbFileType),
+                        relTableSchema->tableID, tableID, relDirection,
+                        relTableSchema->properties[i].propertyID, dbFileType),
                     existence, hasOverflow, false /* hasHeader */);
             }
         }
     }
 
     void validateRelColumnAndListFilesExistence(
-        label_t labelID, DBFileType dbFileType, bool existence) {
-        auto relLabel = catalog->getReadOnlyVersion()->getRelLabel(labelID);
+        table_id_t tableID, DBFileType dbFileType, bool existence) {
+        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
         for (auto relDirection : REL_DIRECTIONS) {
-            auto nodeLabels = catalog->getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(
-                labelID, relDirection);
+            auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+                tableID, relDirection);
             if (catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(
-                    labelID, relDirection)) {
-                for (auto nodeLabel : nodeLabels) {
+                    tableID, relDirection)) {
+                for (auto nodeTableID : nodeTableIDs) {
                     validateColumnFilesExistence(
-                        StorageUtils::getAdjColumnFName(databaseConfig->databasePath, labelID,
-                            nodeLabel, relDirection, dbFileType),
+                        StorageUtils::getAdjColumnFName(databaseConfig->databasePath, tableID,
+                            nodeTableID, relDirection, dbFileType),
                         existence, false /* hasOverflow */);
-                    validateRelPropertyFiles(relLabel, nodeLabel, relDirection,
+                    validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
                         true /* isColumnProperty */, dbFileType, existence);
                 }
             } else {
-                for (auto nodeLabel : nodeLabels) {
+                for (auto nodeTableID : nodeTableIDs) {
                     validateListFilesExistence(
-                        StorageUtils::getAdjListsFName(databaseConfig->databasePath, labelID,
-                            nodeLabel, relDirection, dbFileType),
+                        StorageUtils::getAdjListsFName(databaseConfig->databasePath, tableID,
+                            nodeTableID, relDirection, dbFileType),
                         existence, false /* hasOverflow */, true /* hasHeader */);
-                    validateRelPropertyFiles(relLabel, nodeLabel, relDirection,
+                    validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
                         false /* isColumnProperty */, dbFileType, existence);
                 }
             }
         }
     }
 
-    void validateDatabaseStateBeforeCheckPointCopyRelCSV(label_t labelID) {
+    void validateDatabaseStateBeforeCheckPointCopyRelCSV(table_id_t tableID) {
         // Before checkPointing, we should have two versions of rel column and list files.
         validateRelColumnAndListFilesExistence(
-            labelID, DBFileType::WAL_VERSION, true /* existence */);
-        validateRelColumnAndListFilesExistence(labelID, DBFileType::ORIGINAL, true /* existence */);
+            tableID, DBFileType::WAL_VERSION, true /* existence */);
+        validateRelColumnAndListFilesExistence(tableID, DBFileType::ORIGINAL, true /* existence */);
     }
 
-    void validateDatabaseStateAfterCheckPointCopyRelCSV(label_t labelID) {
+    void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t tableID) {
         // After checkPointing, we should only have one version of rel column and list
         // files(original version).
         validateRelColumnAndListFilesExistence(
-            labelID, DBFileType::WAL_VERSION, false /* existence */);
-        validateRelColumnAndListFilesExistence(labelID, DBFileType::ORIGINAL, true /* existence */);
+            tableID, DBFileType::WAL_VERSION, false /* existence */);
+        validateRelColumnAndListFilesExistence(tableID, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
     }
 
@@ -230,16 +230,16 @@ public:
             1, profiler.get(), nullptr /* memoryManager */, bufferManager.get());
         database->queryProcessor->execute(
             preparedStatement->physicalPlan.get(), executionContext.get());
-        auto labelID = catalog->getReadOnlyVersion()->getRelLabelFromName("knows");
-        validateDatabaseStateBeforeCheckPointCopyRelCSV(labelID);
+        auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
+        validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
-            validateDatabaseStateBeforeCheckPointCopyRelCSV(labelID);
+            validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCheckPointCopyRelCSV(labelID);
+            validateDatabaseStateAfterCheckPointCopyRelCSV(tableID);
         } else {
             conn->commit();
-            validateDatabaseStateAfterCheckPointCopyRelCSV(labelID);
+            validateDatabaseStateAfterCheckPointCopyRelCSV(tableID);
         }
     }
 

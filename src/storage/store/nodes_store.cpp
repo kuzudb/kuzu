@@ -6,10 +6,10 @@ namespace storage {
 NodesStore::NodesStore(
     const Catalog& catalog, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
     : nodesMetadata{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
-    nodeTables.resize(catalog.getReadOnlyVersion()->getNumNodeLabels());
-    for (auto label = 0u; label < catalog.getReadOnlyVersion()->getNumNodeLabels(); label++) {
-        nodeTables[label] = make_unique<NodeTable>(&nodesMetadata, bufferManager, isInMemoryMode,
-            wal, catalog.getReadOnlyVersion()->getNodeLabel(label));
+    nodeTables.resize(catalog.getReadOnlyVersion()->getNumNodeTables());
+    for (auto tableID = 0u; tableID < catalog.getReadOnlyVersion()->getNumNodeTables(); tableID++) {
+        nodeTables[tableID] = make_unique<NodeTable>(&nodesMetadata, bufferManager, isInMemoryMode,
+            wal, catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
 }
 

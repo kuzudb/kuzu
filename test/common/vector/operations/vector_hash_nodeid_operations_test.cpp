@@ -24,7 +24,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < 1000; i++) {
-        nodeData[i].label = 100;
+        nodeData[i].tableID = 100;
         nodeData[i].offset = i * 10 + 1;
     }
 
@@ -50,7 +50,7 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
 
     auto nodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
     for (auto i = 0u; i < 1000; i++) {
-        ((nodeID_t*)nodeVector->values)[i].label = 100;
+        ((nodeID_t*)nodeVector->values)[i].tableID = 100;
         ((nodeID_t*)nodeVector->values)[i].offset = 10 + i;
     }
     dataChunk->insert(0, nodeVector);

@@ -8,27 +8,28 @@ namespace processor {
 class CreateRelTable : public DDL {
 
 public:
-    CreateRelTable(Catalog* catalog, string labelName,
+    CreateRelTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        SrcDstLabels srcDstLabels, uint32_t id, const string& paramsString)
-        : DDL{catalog, move(labelName), move(propertyNameDataTypes), id, paramsString},
-          relMultiplicity{relMultiplicity}, srcDstLabels{move(srcDstLabels)} {}
+        SrcDstTableIDs srcDstTableIDs, uint32_t id, const string& paramsString)
+        : DDL{catalog, move(tableName), move(propertyNameDataTypes), id, paramsString},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
 
     PhysicalOperatorType getOperatorType() override { return CREATE_REL_TABLE; }
 
     bool getNextTuples() override {
-        catalog->addRelLabel(labelName, relMultiplicity, propertyNameDataTypes, srcDstLabels);
+        catalog->addRelTableSchema(
+            tableName, relMultiplicity, propertyNameDataTypes, srcDstTableIDs);
         return false;
     }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateRelTable>(catalog, labelName, propertyNameDataTypes,
-            relMultiplicity, srcDstLabels, id, paramsString);
+        return make_unique<CreateRelTable>(catalog, tableName, propertyNameDataTypes,
+            relMultiplicity, srcDstTableIDs, id, paramsString);
     }
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstLabels srcDstLabels;
+    SrcDstTableIDs srcDstTableIDs;
 };
 
 } // namespace processor

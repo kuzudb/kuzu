@@ -10,10 +10,10 @@ namespace processor {
 class CreateNodeTable : public DDL {
 
 public:
-    CreateNodeTable(Catalog* catalog, string labelName,
+    CreateNodeTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx, uint32_t id,
         const string& paramsString, NodesMetadata* nodesMetadata)
-        : DDL{catalog, move(labelName), move(propertyNameDataTypes), id, paramsString},
+        : DDL{catalog, move(tableName), move(propertyNameDataTypes), id, paramsString},
           primaryKeyIdx{primaryKeyIdx}, nodesMetadata{nodesMetadata} {}
 
     PhysicalOperatorType getOperatorType() override { return CREATE_NODE_TABLE; }
@@ -21,7 +21,7 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateNodeTable>(catalog, labelName, propertyNameDataTypes,
+        return make_unique<CreateNodeTable>(catalog, tableName, propertyNameDataTypes,
             primaryKeyIdx, id, paramsString, nodesMetadata);
     }
 

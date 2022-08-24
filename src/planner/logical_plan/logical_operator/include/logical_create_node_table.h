@@ -9,9 +9,9 @@ namespace planner {
 class LogicalCreateNodeTable : public LogicalDDL {
 
 public:
-    LogicalCreateNodeTable(string labelName, vector<PropertyNameDataType> propertyNameDataTypes,
+    LogicalCreateNodeTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
         uint32_t primaryKeyIdx)
-        : LogicalDDL{move(labelName), move(propertyNameDataTypes)}, primaryKeyIdx{primaryKeyIdx} {}
+        : LogicalDDL{move(tableName), move(propertyNameDataTypes)}, primaryKeyIdx{primaryKeyIdx} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LOGICAL_CREATE_NODE_TABLE;
@@ -20,7 +20,7 @@ public:
     inline uint32_t getPrimaryKeyIdx() const { return primaryKeyIdx; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreateNodeTable>(labelName, propertyNameDataTypes, primaryKeyIdx);
+        return make_unique<LogicalCreateNodeTable>(tableName, propertyNameDataTypes, primaryKeyIdx);
     }
 
 private:

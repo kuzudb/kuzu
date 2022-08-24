@@ -16,13 +16,13 @@ ColumnSchema::ColumnSchema(const ColumnSchema& other) {
     mayContainNulls = other.mayContainNulls;
 }
 
-TableSchema::TableSchema(const TableSchema& other) {
+FactorizedTableSchema::FactorizedTableSchema(const FactorizedTableSchema& other) {
     for (auto& column : other.columns) {
         appendColumn(make_unique<ColumnSchema>(*column));
     }
 }
 
-void TableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
+void FactorizedTableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
     numBytesForDataPerTuple += column->getNumBytes();
     columns.push_back(move(column));
     colOffsets.push_back(
@@ -31,7 +31,7 @@ void TableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
     numBytesPerTuple = numBytesForDataPerTuple + numBytesForNullMapPerTuple;
 }
 
-bool TableSchema::operator==(const TableSchema& other) const {
+bool FactorizedTableSchema::operator==(const FactorizedTableSchema& other) const {
     if (columns.size() != other.columns.size()) {
         return false;
     }
@@ -44,7 +44,8 @@ bool TableSchema::operator==(const TableSchema& other) const {
            other.numBytesForNullMapPerTuple;
 }
 
-FactorizedTable::FactorizedTable(MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema)
+FactorizedTable::FactorizedTable(
+    MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema)
     : memoryManager{memoryManager}, tableSchema{move(tableSchema)}, numTuples{0}, numTuplesPerBlock{
                                                                                       0} {
     assert(this->tableSchema->getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
@@ -367,7 +368,7 @@ overflow_value_t FactorizedTable::appendUnFlatVectorToOverflowBlocks(
     auto numFlatTuplesInVector = vector.state->selVector->selectedSize;
     auto numBytesForData = vector.getNumBytesPerValue() * numFlatTuplesInVector;
     auto overflowBlockBuffer = allocateOverflowBlocks(
-        numBytesForData + TableSchema::getNumBytesForNullBuffer(numFlatTuplesInVector));
+        numBytesForData + FactorizedTableSchema::getNumBytesForNullBuffer(numFlatTuplesInVector));
     if (vector.state->selVector->isUnfiltered()) {
         if (vector.hasNoNullsGuarantee()) {
             auto dstDataBuffer = overflowBlockBuffer;

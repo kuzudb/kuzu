@@ -7,12 +7,12 @@ namespace processor {
 
 void CopyRelCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) {
     auto relCSVCopier = make_unique<InMemRelCSVCopier>(csvDescription, wal->getDirectory(),
-        taskScheduler, *catalog, nodesMetadata->getMaxNodeOffsetPerLabel(),
-        executionContext->bufferManager, label.labelID);
-    // Note: This copy function will update the numRelsPerDirectionBoundLabel and numRels
-    // information in Catalog for this relLabel.
+        taskScheduler, *catalog, nodesMetadata->getMaxNodeOffsetPerTable(),
+        executionContext->bufferManager, tableSchema.tableID);
+    // Note: This copy function will update the numRelsPerDirectionBoundTablID and numRels
+    // information in Catalog for this relTable.
     relCSVCopier->copy();
-    wal->logCopyRelCSVRecord(label.labelID);
+    wal->logCopyRelCSVRecord(tableSchema.tableID);
 }
 
 } // namespace processor

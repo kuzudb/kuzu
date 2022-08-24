@@ -14,10 +14,10 @@ class TinySnbCopyCSVDateTest : public InMemoryDBTest {
 // ID 1, so on and so forth).
 TEST_F(TinySnbCopyCSVDateTest, NodePropertyColumnWithDate) {
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "birthdate");
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
     auto col = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
-        label, propertyIdx.propertyID);
+        tableID, propertyIdx.propertyID);
     ASSERT_FALSE(col->isNull(0));
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, col->readValue(0).val.dateVal.days);
     ASSERT_FALSE(col->isNull(1));

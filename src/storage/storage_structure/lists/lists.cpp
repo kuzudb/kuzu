@@ -149,12 +149,12 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     bufferPtr = buffer.get();
     while (sizeLeftToDecompress) {
         nodeID_t nodeID(0, 0);
-        memcpy(&nodeID.label, bufferPtr, nodeIDCompressionScheme.getNumBytesForLabel());
-        bufferPtr += nodeIDCompressionScheme.getNumBytesForLabel();
+        memcpy(&nodeID.tableID, bufferPtr, nodeIDCompressionScheme.getNumBytesForTableID());
+        bufferPtr += nodeIDCompressionScheme.getNumBytesForTableID();
         memcpy(&nodeID.offset, bufferPtr, nodeIDCompressionScheme.getNumBytesForOffset());
         bufferPtr += nodeIDCompressionScheme.getNumBytesForOffset();
         retVal->emplace_back(nodeID);
-        sizeLeftToDecompress -= nodeIDCompressionScheme.getNumTotalBytes();
+        sizeLeftToDecompress -= nodeIDCompressionScheme.getTotalNumBytes();
     }
     return retVal;
 }

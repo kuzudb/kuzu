@@ -130,7 +130,7 @@ py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& d
     }
     case NODE_ID: {
         auto nodeVal = *(nodeID_t*)val;
-        return py::cast(make_pair(nodeVal.label, nodeVal.offset));
+        return py::cast(make_pair(nodeVal.tableID, nodeVal.offset));
     }
     default:
         throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));

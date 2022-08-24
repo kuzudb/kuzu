@@ -10,9 +10,9 @@ namespace processor {
 class CopyNodeCSV : public CopyCSV {
 
 public:
-    CopyNodeCSV(Catalog* catalog, CSVDescription csvDescription, Label label, WAL* wal, uint32_t id,
-        const string& paramsString, NodesStore* nodesStore)
-        : CopyCSV(catalog, move(csvDescription), move(label), wal, id, paramsString),
+    CopyNodeCSV(Catalog* catalog, CSVDescription csvDescription, TableSchema tableSchema, WAL* wal,
+        uint32_t id, const string& paramsString, NodesStore* nodesStore)
+        : CopyCSV(catalog, move(csvDescription), move(tableSchema), wal, id, paramsString),
           nodesStore{nodesStore} {}
 
     void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) override;
@@ -21,7 +21,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CopyNodeCSV>(
-            catalog, csvDescription, label, wal, id, paramsString, nodesStore);
+            catalog, csvDescription, tableSchema, wal, id, paramsString, nodesStore);
     }
 
 private:

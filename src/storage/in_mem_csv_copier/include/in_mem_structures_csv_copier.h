@@ -22,7 +22,7 @@ public:
     virtual void saveToFile() = 0;
 
 protected:
-    void calculateNumBlocks(const string& filePath, string labelName);
+    void calculateNumBlocks(const string& filePath, string tableName);
 
     uint64_t calculateNumRows();
 

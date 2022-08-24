@@ -20,54 +20,55 @@ enum ListFileType : uint8_t {
 };
 
 struct UnstructuredNodePropertyListsID {
-    label_t nodeLabel;
+    table_id_t tableID;
     UnstructuredNodePropertyListsID() = default;
 
-    UnstructuredNodePropertyListsID(label_t nodeLabel) : nodeLabel{nodeLabel} {}
+    UnstructuredNodePropertyListsID(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const UnstructuredNodePropertyListsID& rhs) const {
-        return nodeLabel == rhs.nodeLabel;
+        return tableID == rhs.tableID;
     }
 };
 
-struct RelNodeLabelAndDir {
-    label_t relLabel;
-    label_t srcNodeLabel;
+struct RelNodeTableAndDir {
+    table_id_t relTableID;
+    table_id_t srcNodeTableID;
     RelDirection dir;
 
-    RelNodeLabelAndDir() = default;
+    RelNodeTableAndDir() = default;
 
-    RelNodeLabelAndDir(label_t relLabel, label_t srcNodeLabel, RelDirection dir)
-        : relLabel{relLabel}, srcNodeLabel{srcNodeLabel}, dir{dir} {}
+    RelNodeTableAndDir(table_id_t relTableID, table_id_t srcNodeTableID, RelDirection dir)
+        : relTableID{relTableID}, srcNodeTableID{srcNodeTableID}, dir{dir} {}
 
-    inline bool operator==(const RelNodeLabelAndDir& rhs) const {
-        return relLabel == rhs.relLabel && srcNodeLabel == rhs.srcNodeLabel && dir == rhs.dir;
+    inline bool operator==(const RelNodeTableAndDir& rhs) const {
+        return relTableID == rhs.relTableID && srcNodeTableID == rhs.srcNodeTableID &&
+               dir == rhs.dir;
     }
 };
 
 struct AdjListsID {
-    RelNodeLabelAndDir relLabelAndDir;
+    RelNodeTableAndDir relNodeTableAndDir;
 
     AdjListsID() = default;
 
-    AdjListsID(RelNodeLabelAndDir relLabelAndDir) : relLabelAndDir{relLabelAndDir} {}
+    AdjListsID(RelNodeTableAndDir relNodeTableAndDir) : relNodeTableAndDir{relNodeTableAndDir} {}
 
     inline bool operator==(const AdjListsID& rhs) const {
-        return relLabelAndDir == rhs.relLabelAndDir;
+        return relNodeTableAndDir == rhs.relNodeTableAndDir;
     }
 };
 
 struct RelPropertyListID {
-    RelNodeLabelAndDir relLabelAndDir;
+    RelNodeTableAndDir relNodeTableAndDir;
     uint32_t propertyID;
 
     RelPropertyListID() = default;
 
-    RelPropertyListID(RelNodeLabelAndDir relLabelAndDir, uint32_t propertyID)
-        : relLabelAndDir{relLabelAndDir}, propertyID{propertyID} {}
+    RelPropertyListID(RelNodeTableAndDir relNodeTableAndDir, uint32_t propertyID)
+        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
     inline bool operator==(const RelPropertyListID& rhs) const {
-        return relLabelAndDir == rhs.relLabelAndDir && propertyID == rhs.propertyID;
+        return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
     }
 };
 
@@ -117,26 +118,26 @@ struct ListFileID {
 };
 
 struct NodeIndexID {
-    label_t nodeLabel;
+    table_id_t tableID;
 
     NodeIndexID() = default;
 
-    NodeIndexID(label_t nodeLabel) : nodeLabel{nodeLabel} {}
+    NodeIndexID(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const NodeIndexID& rhs) const { return nodeLabel == rhs.nodeLabel; }
+    inline bool operator==(const NodeIndexID& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct StructuredNodePropertyColumnID {
-    label_t nodeLabel;
+    table_id_t tableID;
     uint32_t propertyID;
 
     StructuredNodePropertyColumnID() = default;
 
-    StructuredNodePropertyColumnID(label_t nodeLabel, uint32_t propertyID)
-        : nodeLabel{nodeLabel}, propertyID{propertyID} {}
+    StructuredNodePropertyColumnID(table_id_t tableID, uint32_t propertyID)
+        : tableID{tableID}, propertyID{propertyID} {}
 
     inline bool operator==(const StructuredNodePropertyColumnID& rhs) const {
-        return nodeLabel == rhs.nodeLabel && propertyID == rhs.propertyID;
+        return tableID == rhs.tableID && propertyID == rhs.propertyID;
     }
 };
 
@@ -181,29 +182,28 @@ struct StorageStructureID {
     }
 
     inline static StorageStructureID newStructuredNodePropertyMainColumnID(
-        label_t nodeLabel, uint32_t propertyID) {
-        return newStructuredNodePropertyColumnID(nodeLabel, propertyID, false /* is main file */);
+        table_id_t tableID, uint32_t propertyID) {
+        return newStructuredNodePropertyColumnID(tableID, propertyID, false /* is main file */);
     }
 
     inline static StorageStructureID newStructuredNodePropertyColumnOverflowPagesID(
-        label_t nodeLabel, uint32_t propertyID) {
-        return newStructuredNodePropertyColumnID(
-            nodeLabel, propertyID, true /* is overflow file */);
+        table_id_t tableID, uint32_t propertyID) {
+        return newStructuredNodePropertyColumnID(tableID, propertyID, true /* is overflow file */);
     }
-    static StorageStructureID newNodeIndexID(label_t nodeLabel);
+    static StorageStructureID newNodeIndexID(table_id_t tableID);
 
     static StorageStructureID newUnstructuredNodePropertyListsID(
-        label_t nodeLabel, ListFileType listFileType);
+        table_id_t tableID, ListFileType listFileType);
 
     static StorageStructureID newAdjListsID(
-        label_t relLabel, label_t srcNodeLabel, RelDirection dir, ListFileType listFileType);
+        table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType);
 
-    static StorageStructureID newRelPropertyListsID(label_t relLabel, label_t srcNodeLabel,
+    static StorageStructureID newRelPropertyListsID(table_id_t nodeTableID, table_id_t relTableID,
         RelDirection dir, uint32_t propertyID, ListFileType listFileType);
 
 private:
     static StorageStructureID newStructuredNodePropertyColumnID(
-        label_t nodeLabel, uint32_t propertyID, bool isOverflow);
+        table_id_t tableID, uint32_t propertyID, bool isOverflow);
 };
 
 enum WALRecordType : uint8_t {
@@ -254,23 +254,23 @@ struct CommitRecord {
 };
 
 struct NodeTableRecord {
-    label_t labelID;
+    table_id_t tableID;
 
     NodeTableRecord() = default;
 
-    NodeTableRecord(label_t labelID) : labelID{labelID} {}
+    NodeTableRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const NodeTableRecord& rhs) const { return labelID == rhs.labelID; }
+    inline bool operator==(const NodeTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct RelTableRecord {
-    label_t labelID;
+    table_id_t tableID;
 
     RelTableRecord() = default;
 
-    RelTableRecord(label_t labelID) : labelID{labelID} {}
+    RelTableRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const RelTableRecord& rhs) const { return labelID == rhs.labelID; }
+    inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct OverflowFileNextBytePosRecord {
@@ -290,23 +290,23 @@ struct OverflowFileNextBytePosRecord {
 };
 
 struct CopyNodeCSVRecord {
-    label_t labelID;
+    table_id_t tableID;
 
     CopyNodeCSVRecord() = default;
 
-    CopyNodeCSVRecord(label_t labelID) : labelID{labelID} {}
+    CopyNodeCSVRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyNodeCSVRecord& rhs) const { return labelID == rhs.labelID; }
+    inline bool operator==(const CopyNodeCSVRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct CopyRelCSVRecord {
-    label_t labelID;
+    table_id_t tableID;
 
     CopyRelCSVRecord() = default;
 
-    CopyRelCSVRecord(label_t labelID) : labelID{labelID} {}
+    CopyRelCSVRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyRelCSVRecord& rhs) const { return labelID == rhs.labelID; }
+    inline bool operator==(const CopyRelCSVRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct WALRecord {
@@ -369,12 +369,12 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newNodeMetadataRecord();
     static WALRecord newCatalogRecord();
-    static WALRecord newNodeTableRecord(label_t labelID);
-    static WALRecord newRelTableRecord(label_t labelID);
+    static WALRecord newNodeTableRecord(table_id_t tableID);
+    static WALRecord newRelTableRecord(table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeCSVRecord(label_t labelID);
-    static WALRecord newCopyRelCSVRecord(label_t labelID);
+    static WALRecord newCopyNodeCSVRecord(table_id_t tableID);
+    static WALRecord newCopyRelCSVRecord(table_id_t tableID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

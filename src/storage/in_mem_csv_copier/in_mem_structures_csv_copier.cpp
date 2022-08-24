@@ -14,8 +14,8 @@ InMemStructuresCSVCopier::InMemStructuresCSVCopier(CSVDescription& csvDescriptio
       outputDirectory{move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog} {}
 
-void InMemStructuresCSVCopier::calculateNumBlocks(const string& filePath, string labelName) {
-    logger->info("Chunking csv into blocks for label {}.", labelName);
+void InMemStructuresCSVCopier::calculateNumBlocks(const string& filePath, string tableName) {
+    logger->info("Chunking csv into blocks for table {}.", tableName);
     ifstream inf(filePath, ios_base::in);
     if (!inf.is_open()) {
         throw CopyCSVException("Cannot open file " + filePath + ".");
@@ -23,7 +23,7 @@ void InMemStructuresCSVCopier::calculateNumBlocks(const string& filePath, string
     inf.seekg(0, ios_base::end);
     numBlocks = 1 + (inf.tellg() / CopyCSVConfig::CSV_READING_BLOCK_SIZE);
     inf.close();
-    logger->info("Done chunking csv into blocks for label {}.", labelName);
+    logger->info("Done chunking csv into blocks for table {}.", tableName);
 }
 
 uint64_t InMemStructuresCSVCopier::calculateNumRows() {

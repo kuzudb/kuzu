@@ -21,8 +21,8 @@ private:
 
     void setBufferMangerSize(const string& bufferManagerSizeString);
 
-    void printNodeSchema(const string& nodeLabelName);
-    void printRelSchema(const string& relLabelName);
+    void printNodeSchema(const string& tableName);
+    void printRelSchema(const string& tableName);
 
     static void printHelp();
 

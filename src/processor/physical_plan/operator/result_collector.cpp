@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 void FTableSharedState::initTableIfNecessary(
-    MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema) {
+    MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) {
     lock_guard<mutex> lck{mtx};
     if (table == nullptr) {
         nextTupleIdxToScan = 0u;
@@ -22,7 +22,7 @@ unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize
 
 shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     for (auto& vectorToCollectInfo : vectorsToCollectInfo) {
         auto dataPos = vectorToCollectInfo.first;
         auto vector =
@@ -34,7 +34,7 @@ shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
                                              (uint32_t)sizeof(overflow_value_t)));
     }
     localTable = make_unique<FactorizedTable>(
-        context->memoryManager, make_unique<TableSchema>(*tableSchema));
+        context->memoryManager, make_unique<FactorizedTableSchema>(*tableSchema));
     sharedState->initTableIfNecessary(context->memoryManager, move(tableSchema));
     return resultSet;
 }

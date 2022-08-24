@@ -40,23 +40,22 @@ public:
     }
 
     WALRecord constructExampleStructuredNodePropertyMainFilePageUpdateRecord() {
-        label_t nodeLabel = 4;
+        table_id_t tableID = 4;
         uint32_t propertyID = 89;
         uint64_t pageIdxInOriginalFile = 1455304;
         uint64_t pageIdxInWAL = 3;
         return WALRecord::newPageUpdateRecord(
-            StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, propertyID),
+            StorageStructureID::newStructuredNodePropertyMainColumnID(tableID, propertyID),
             pageIdxInOriginalFile, pageIdxInWAL);
     }
 
     WALRecord constructExampleStructuredNodePropertyOverflowFilePageUpdateRecord() {
-        label_t nodeLabel = 0;
+        table_id_t tableID = 0;
         uint32_t propertyID = 2463;
         uint64_t pageIdxInOriginalFile = 44436;
         uint64_t pageIdxInWAL = 1234;
         return WALRecord::newPageUpdateRecord(
-            StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(
-                nodeLabel, propertyID),
+            StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(tableID, propertyID),
             pageIdxInOriginalFile, pageIdxInWAL);
     }
 

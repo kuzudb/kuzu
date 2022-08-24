@@ -14,28 +14,28 @@ namespace common {
 class NodeIDCompressionScheme {
 
 public:
-    NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
-        const vector<node_offset_t>& maxNodeOffsetsPerLabel);
+    NodeIDCompressionScheme(const unordered_set<table_id_t>& nbrNodeTableIDs,
+        const vector<node_offset_t>& maxNodeOffsetsPerTable);
     NodeIDCompressionScheme() : NodeIDCompressionScheme(0, 8){};
 
 private:
-    NodeIDCompressionScheme(uint32_t numBytesForLabel, uint32_t numBytesForOffset)
-        : numBytesForLabel(numBytesForLabel), numBytesForOffset(numBytesForOffset),
-          commonLabel(UINT64_MAX) {}
+    NodeIDCompressionScheme(uint32_t numBytesForTableID, uint32_t numBytesForOffset)
+        : numBytesForTableID(numBytesForTableID), numBytesForOffset(numBytesForOffset),
+          commonTableID(UINT64_MAX) {}
 
 public:
-    inline uint32_t getNumBytesForLabel() const { return numBytesForLabel; };
+    inline uint32_t getNumBytesForTableID() const { return numBytesForTableID; };
     inline uint32_t getNumBytesForOffset() const { return numBytesForOffset; };
-    inline uint32_t getNumTotalBytes() const { return numBytesForLabel + numBytesForOffset; };
-    inline label_t getCommonLabel() const { return commonLabel; };
+    inline uint32_t getTotalNumBytes() const { return numBytesForTableID + numBytesForOffset; };
+    inline table_id_t getCommonTableID() const { return commonTableID; };
 
 private:
     static uint32_t getNumBytesForEncoding(uint64_t maxValToEncode, uint8_t minNumBytes);
 
 private:
-    uint32_t numBytesForLabel;
+    uint32_t numBytesForTableID;
     uint32_t numBytesForOffset;
-    label_t commonLabel;
+    table_id_t commonTableID;
 };
 
 } // namespace common

@@ -25,7 +25,7 @@ public:
         : nonKeyDataPosesDataTypes{move(nonKeyDataPosesDataTypes)} {}
 
     void initEmptyHashTableIfNecessary(
-        MemoryManager& memoryManager, unique_ptr<TableSchema> tableSchema);
+        MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
 

@@ -26,9 +26,9 @@ public:
         createDBAndConn();
         overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
-        personNodeLabel =
-            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
-        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
+        personTableID =
+            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personTableID);
 
         existingStrVal.dataType = DataType(DataTypeID::STRING);
         string existingStr = "abcdefghijklmn";
@@ -64,7 +64,7 @@ public:
     void setPropertyOfNode(node_offset_t nodeOffset, string propKey, Value& newVal) {
         uint32_t unstrPropKey = database->getCatalog()
                                     ->getReadOnlyVersion()
-                                    ->getNodeProperty(personNodeLabel, propKey)
+                                    ->getNodeProperty(personTableID, propKey)
                                     .propertyID;
         personNodeTable->getUnstrPropertyLists()->setProperty(nodeOffset, unstrPropKey, &newVal);
     }
@@ -72,7 +72,7 @@ public:
     void removeProperty(node_offset_t nodeOffset, string propKey) {
         uint32_t unstrPropKey = database->getCatalog()
                                     ->getReadOnlyVersion()
-                                    ->getNodeProperty(personNodeLabel, propKey)
+                                    ->getNodeProperty(personTableID, propKey)
                                     .propertyID;
         personNodeTable->getUnstrPropertyLists()->removeProperty(nodeOffset, unstrPropKey);
     }
@@ -454,11 +454,11 @@ public:
     void addNewListsTest(bool isCommit, TransactionTestType transactionTestType) {
         uint32_t unstrIntPropKey = database->getCatalog()
                                        ->getReadOnlyVersion()
-                                       ->getNodeProperty(personNodeLabel, "ui0")
+                                       ->getNodeProperty(personTableID, "ui0")
                                        .propertyID;
         uint32_t unstrStrPropKey = database->getCatalog()
                                        ->getReadOnlyVersion()
-                                       ->getNodeProperty(personNodeLabel, "us0")
+                                       ->getNodeProperty(personTableID, "us0")
                                        .propertyID;
         // Inserting until 1100 ensures that chunk 1 is filled and a new chunk 2 is started
         for (node_offset_t nodeOffset = 601; nodeOffset < 1100; ++nodeOffset) {
@@ -501,7 +501,7 @@ public:
     NodeTable* personNodeTable;
     // Overflow is needed to update unstructured properties with long strings
     unique_ptr<OverflowBuffer> overflowBuffer;
-    label_t personNodeLabel;
+    table_id_t personTableID;
     Value existingStrVal, existingIntVal, shortStrVal, longStrVal, intVal;
 };
 

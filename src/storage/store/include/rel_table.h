@@ -9,55 +9,55 @@
 namespace graphflow {
 namespace storage {
 
-using label_adj_columns_map_t = unordered_map<label_t, unique_ptr<AdjColumn>>;
-using label_property_lists_map_t = unordered_map<label_t, vector<unique_ptr<Lists>>>;
-using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<AdjLists>>;
+using table_adj_columns_map_t = unordered_map<table_id_t, unique_ptr<AdjColumn>>;
+using table_property_lists_map_t = unordered_map<table_id_t, vector<unique_ptr<Lists>>>;
+using table_adj_lists_map_t = unordered_map<table_id_t, unique_ptr<AdjLists>>;
 
 class RelTable {
 
 public:
     explicit RelTable(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, label_t relLabel,
+        const vector<uint64_t>& maxNodeOffsetsPerTable, table_id_t tableID,
         BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
     void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal);
+        const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal);
 
 public:
-    inline Column* getPropertyColumn(label_t nodeLabel, uint64_t propertyIdx) {
-        return propertyColumns.at(nodeLabel)[propertyIdx].get();
+    inline Column* getPropertyColumn(table_id_t tableID, uint64_t propertyIdx) {
+        return propertyColumns.at(tableID)[propertyIdx].get();
     }
     inline Lists* getPropertyLists(
-        RelDirection relDirection, label_t nodeLabel, uint64_t propertyIdx) {
-        return propertyLists[relDirection].at(nodeLabel)[propertyIdx].get();
+        RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
+        return propertyLists[relDirection].at(tableID)[propertyIdx].get();
     }
-    inline AdjColumn* getAdjColumn(RelDirection relDirection, label_t nodeLabel) {
-        return adjColumns[relDirection].at(nodeLabel).get();
+    inline AdjColumn* getAdjColumn(RelDirection relDirection, table_id_t tableID) {
+        return adjColumns[relDirection].at(tableID).get();
     }
-    inline AdjLists* getAdjLists(RelDirection relDirection, label_t nodeLabel) {
-        return adjLists[relDirection].at(nodeLabel).get();
+    inline AdjLists* getAdjLists(RelDirection relDirection, table_id_t tableID) {
+        return adjLists[relDirection].at(tableID).get();
     }
 
-    vector<AdjLists*> getAdjListsForNodeLabel(label_t nodeLabel);
-    vector<AdjColumn*> getAdjColumnsForNodeLabel(label_t nodeLabel);
+    vector<AdjLists*> getAdjListsForNodeTable(table_id_t tableID);
+    vector<AdjColumn*> getAdjColumnsForNodeTable(table_id_t tableID);
 
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, BufferManager& bufferManager, WAL* wal);
+        const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal);
     void initPropertyListsAndColumns(
         const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
-    void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, RelDirection relDirection,
+    void initPropertyColumnsForRelTable(const catalog::Catalog& catalog, RelDirection relDirection,
         BufferManager& bufferManager, WAL* wal);
-    void initPropertyListsForRelLabel(const catalog::Catalog& catalog, RelDirection relDirection,
+    void initPropertyListsForRelTable(const catalog::Catalog& catalog, RelDirection relDirection,
         BufferManager& bufferManager, WAL* wal);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    label_t relLabel;
-    unordered_map<label_t, vector<unique_ptr<Column>>> propertyColumns;
-    vector<label_adj_columns_map_t> adjColumns;
-    vector<label_property_lists_map_t> propertyLists;
-    vector<label_adj_lists_map_t> adjLists;
+    table_id_t tableID;
+    unordered_map<table_id_t, vector<unique_ptr<Column>>> propertyColumns;
+    vector<table_adj_columns_map_t> adjColumns;
+    vector<table_property_lists_map_t> propertyLists;
+    vector<table_adj_lists_map_t> adjLists;
     bool isInMemoryMode;
 };
 

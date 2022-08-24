@@ -333,7 +333,7 @@ void Enumerator::appendScanNodePropIfNecessary(
         return;
     }
     auto scanNodeProperty =
-        make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getLabel(),
+        make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getTableID(),
             move(propertyNames), move(propertyKeys), !isStructured, plan.getLastOperator());
     plan.appendOperator(move(scanNodeProperty));
 }
@@ -347,10 +347,10 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
     auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
     auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
     auto isColumn =
-        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getLabel(), direction);
+        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getTableID(), direction);
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getLabel(),
+    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getTableID(),
         direction, property->getUniqueName(), property->getPropertyKey(), isColumn,
         plan.getLastOperator());
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
@@ -456,7 +456,7 @@ vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlan
 unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
     const BoundCreateNodeClause& boundCreateNodeClause) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getLabelName(),
+    plan->appendOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getTableName(),
         boundCreateNodeClause.getPropertyNameDataTypes(),
         boundCreateNodeClause.getPrimaryKeyIdx()));
     return plan;
@@ -465,16 +465,16 @@ unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
 unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
     const BoundCreateRelClause& boundCreateRelClause) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getLabelName(),
+    plan->appendOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getTableName(),
         boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
-        boundCreateRelClause.getSrcDstLabels()));
+        boundCreateRelClause.getSrcDstTableIDs()));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Enumerator::createCopyCSVPlan(const BoundCopyCSV& boundCopyCSV) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(
-        make_shared<LogicalCopyCSV>(boundCopyCSV.getCSVDescription(), boundCopyCSV.getLabel()));
+    plan->appendOperator(make_shared<LogicalCopyCSV>(
+        boundCopyCSV.getCSVDescription(), boundCopyCSV.getTableSchema()));
     return plan;
 }
 

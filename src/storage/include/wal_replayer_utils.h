@@ -13,41 +13,41 @@ namespace storage {
 
 class WALReplayerUtils {
 public:
-    static void createEmptyDBFilesForNewRelTable(Catalog* catalog, label_t labelID,
-        const string& directory, const vector<uint64_t>& maxNodeOffsetsPerLabel);
+    static void createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
+        const string& directory, const vector<uint64_t>& maxNodeOffsetsPerTable);
 
     static void createEmptyDBFilesForNewNodeTable(
-        Catalog* catalog, label_t labelID, string directory);
+        Catalog* catalog, table_id_t tableID, string directory);
 
     static void replaceNodeFilesWithVersionFromWALIfExists(
-        catalog::NodeLabel* nodeLabel, string directory);
+        catalog::NodeTableSchema* nodeTableSchema, string directory);
 
     static void replaceRelPropertyFilesWithVersionFromWALIfExists(
-        catalog::RelLabel* relLabel, string directory, const catalog::Catalog* catalog);
+        catalog::RelTableSchema* relTableSchema, string directory, const catalog::Catalog* catalog);
 
 private:
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
-    static void createEmptyDBFilesForRelProperties(RelLabel* relLabel, label_t nodeLabel,
-        const string& directory, RelDirection relDireciton, uint32_t numNodes,
+    static void createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
+        table_id_t tableID, const string& directory, RelDirection relDireciton, uint32_t numNodes,
         bool isForRelPropertyColumn);
 
-    static void createEmptyDBFilesForColumns(const unordered_set<label_t>& nodeLabels,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, RelDirection relDirection,
+    static void createEmptyDBFilesForColumns(const unordered_set<table_id_t>& nodeTableIDs,
+        const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
         const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-        RelLabel* relLabel);
+        RelTableSchema* relTableSchema);
 
-    static void createEmptyDBFilesForLists(const unordered_set<label_t>& nodeLabels,
-        const vector<uint64_t>& maxNodeOffsetsPerLabel, RelDirection relDirection,
+    static void createEmptyDBFilesForLists(const unordered_set<table_id_t>& nodeTableIDs,
+        const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
         const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-        RelLabel* relLabel);
+        RelTableSchema* relTableSchema);
 
     static void replaceOriginalColumnFilesWithWALVersionIfExists(string originalColFileName);
 
     static void replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName);
 
-    static void replaceRelPropertyFilesWithVersionFromWAL(catalog::RelLabel* relLabel,
-        label_t nodeLabel, const string& directory, RelDirection relDirection,
+    static void replaceRelPropertyFilesWithVersionFromWAL(catalog::RelTableSchema* relTableSchema,
+        table_id_t tableID, const string& directory, RelDirection relDirection,
         bool isColumnProperty);
 };
 

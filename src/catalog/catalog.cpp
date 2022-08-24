@@ -63,8 +63,7 @@ uint64_t SerDeser::serializeValue<Property>(
     offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
     offset = SerDeser::serializeValue<uint32_t>(value.propertyID, fileInfo, offset);
-    offset = SerDeser::serializeValue<label_t>(value.label, fileInfo, offset);
-    offset = SerDeser::serializeValue<bool>(value.isNodeLabel, fileInfo, offset);
+    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     return SerDeser::serializeValue<bool>(value.isIDProperty(), fileInfo, offset);
 }
 
@@ -74,18 +73,17 @@ uint64_t SerDeser::deserializeValue<Property>(
     offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint32_t>(value.propertyID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<label_t>(value.label, fileInfo, offset);
-    offset = SerDeser::deserializeValue<bool>(value.isNodeLabel, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     bool isIDProperty = value.isIDProperty();
     return SerDeser::deserializeValue<bool>(isIDProperty, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::serializeValue(
-    const unordered_map<label_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
+    const unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<uint64_t>(value.size(), fileInfo, offset);
     for (auto& entry : value) {
-        offset = SerDeser::serializeValue<label_t>(entry.first, fileInfo, offset);
+        offset = SerDeser::serializeValue<table_id_t>(entry.first, fileInfo, offset);
         offset = SerDeser::serializeValue<uint64_t>(entry.second, fileInfo, offset);
     }
     return offset;
@@ -93,15 +91,15 @@ uint64_t SerDeser::serializeValue(
 
 template<>
 uint64_t SerDeser::deserializeValue(
-    unordered_map<label_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
+    unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
     uint64_t numEntries = 0;
     offset = SerDeser::deserializeValue<uint64_t>(numEntries, fileInfo, offset);
     for (auto i = 0u; i < numEntries; i++) {
-        label_t label;
+        table_id_t tableID;
         uint64_t num;
-        offset = SerDeser::deserializeValue<label_t>(label, fileInfo, offset);
+        offset = SerDeser::deserializeValue<table_id_t>(tableID, fileInfo, offset);
         offset = SerDeser::deserializeValue<uint64_t>(num, fileInfo, offset);
-        value.emplace(label, num);
+        value.emplace(tableID, num);
     }
     return offset;
 }
@@ -130,57 +128,58 @@ uint64_t SerDeser::deserializeVector<vector<uint64_t>>(
 }
 
 template<>
-uint64_t SerDeser::serializeValue<NodeLabel>(
-    const NodeLabel& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<string>(value.labelName, fileInfo, offset);
-    offset = SerDeser::serializeValue<label_t>(value.labelID, fileInfo, offset);
+uint64_t SerDeser::serializeValue<NodeTableSchema>(
+    const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
+    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
-    return SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
+    return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<NodeLabel>(
-    NodeLabel& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<string>(value.labelName, fileInfo, offset);
-    offset = SerDeser::deserializeValue<label_t>(value.labelID, fileInfo, offset);
+uint64_t SerDeser::deserializeValue<NodeTableSchema>(
+    NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
-    return SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
+    offset =
+        SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
+    return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue<RelLabel>(
-    const RelLabel& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<string>(value.labelName, fileInfo, offset);
-    offset = SerDeser::serializeValue<label_t>(value.labelID, fileInfo, offset);
+uint64_t SerDeser::serializeValue<RelTableSchema>(
+    const RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
+    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(
-        value.srcDstLabels.srcNodeLabels, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(
-        value.srcDstLabels.dstNodeLabels, fileInfo, offset);
-    return SerDeser::serializeVector<unordered_map<label_t, uint64_t>>(
-        value.numRelsPerDirectionBoundLabel, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<table_id_t>(
+        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<table_id_t>(
+        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::serializeVector<unordered_map<table_id_t, uint64_t>>(
+        value.numRelsPerDirectionBoundTableID, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<RelLabel>(
-    RelLabel& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<string>(value.labelName, fileInfo, offset);
-    offset = SerDeser::deserializeValue<label_t>(value.labelID, fileInfo, offset);
+uint64_t SerDeser::deserializeValue<RelTableSchema>(
+    RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(
-        value.srcDstLabels.srcNodeLabels, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(
-        value.srcDstLabels.dstNodeLabels, fileInfo, offset);
-    return SerDeser::deserializeVector<unordered_map<label_t, uint64_t>>(
-        value.numRelsPerDirectionBoundLabel, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<table_id_t>(
+        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<table_id_t>(
+        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::deserializeVector<unordered_map<table_id_t, uint64_t>>(
+        value.numRelsPerDirectionBoundTableID, fileInfo, offset);
 }
 
 } // namespace common
@@ -201,68 +200,68 @@ CatalogContent::CatalogContent(const string& directory) {
 }
 
 CatalogContent::CatalogContent(const CatalogContent& other) {
-    for (auto& nodeLabel : other.nodeLabels) {
-        nodeLabels.push_back(make_unique<NodeLabel>(*nodeLabel));
+    for (auto& nodeTableSchema : other.nodeTableSchemas) {
+        nodeTableSchemas.push_back(make_unique<NodeTableSchema>(*nodeTableSchema));
     }
-    for (auto& relLabel : other.relLabels) {
-        relLabels.push_back(make_unique<RelLabel>(*relLabel));
+    for (auto& relTableSchema : other.relTableSchemas) {
+        relTableSchemas.push_back(make_unique<RelTableSchema>(*relTableSchema));
     }
-    nodeLabelNameToIdMap = other.nodeLabelNameToIdMap;
-    relLabelNameToIdMap = other.relLabelNameToIdMap;
+    nodeTableNameToIDMap = other.nodeTableNameToIDMap;
+    relTableNameToIDMap = other.relTableNameToIDMap;
 }
 
-label_t CatalogContent::addNodeLabel(string labelName, uint32_t primaryKeyIdx,
+table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
-    label_t labelId = getNumNodeLabels();
+    table_id_t tableID = getNumNodeTables();
     vector<Property> structuredProperties;
     for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
         auto& propertyDefinition = structuredPropertyDefinitions[i];
         structuredProperties.push_back(
-            Property::constructStructuredNodeProperty(propertyDefinition, i, labelId));
+            Property::constructStructuredNodeProperty(propertyDefinition, i, tableID));
     }
-    auto nodeLabel =
-        make_unique<NodeLabel>(move(labelName), labelId, primaryKeyIdx, move(structuredProperties));
-    nodeLabelNameToIdMap[nodeLabel->labelName] = labelId;
-    nodeLabels.push_back(move(nodeLabel));
-    return labelId;
+    auto nodeTableSchema = make_unique<NodeTableSchema>(
+        move(tableName), tableID, primaryKeyIdx, move(structuredProperties));
+    nodeTableNameToIDMap[nodeTableSchema->tableName] = tableID;
+    nodeTableSchemas.push_back(move(nodeTableSchema));
+    return tableID;
 }
 
-label_t CatalogContent::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels) {
-    label_t labelId = relLabels.size();
-    for (auto& nodeLabelId : srcDstLabels.srcNodeLabels) {
-        nodeLabels[nodeLabelId]->addFwdRelLabel(labelId);
+table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
+    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    table_id_t tableID = relTableSchemas.size();
+    for (auto& srcTableID : srcDstTableIDs.srcTableIDs) {
+        nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     }
-    for (auto& nodeLabelId : srcDstLabels.dstNodeLabels) {
-        nodeLabels[nodeLabelId]->addBwdRelLabel(labelId);
+    for (auto& dstTableID : srcDstTableIDs.dstTableIDs) {
+        nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     }
     vector<Property> structuredProperties;
     auto propertyId = 0;
     for (auto& propertyDefinition : structuredPropertyDefinitions) {
         structuredProperties.push_back(
-            Property::constructRelProperty(propertyDefinition, propertyId++, labelId));
+            Property::constructRelProperty(propertyDefinition, propertyId++, tableID));
     }
     auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
     structuredProperties.push_back(
-        Property::constructRelProperty(propertyNameDataType, propertyId++, labelId));
-    auto relLabel = make_unique<RelLabel>(
-        move(labelName), labelId, relMultiplicity, move(structuredProperties), move(srcDstLabels));
-    relLabelNameToIdMap[relLabel->labelName] = labelId;
-    relLabels.push_back(move(relLabel));
-    return labelId;
+        Property::constructRelProperty(propertyNameDataType, propertyId++, tableID));
+    auto relTableSchema = make_unique<RelTableSchema>(move(tableName), tableID, relMultiplicity,
+        move(structuredProperties), move(srcDstTableIDs));
+    relTableNameToIDMap[relTableSchema->tableName] = tableID;
+    relTableSchemas.push_back(move(relTableSchema));
+    return tableID;
 }
 
-bool CatalogContent::containNodeProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : nodeLabels[labelId]->structuredProperties) {
+bool CatalogContent::containNodeProperty(table_id_t tableID, const string& propertyName) const {
+    for (auto& property : nodeTableSchemas[tableID]->structuredProperties) {
         if (propertyName == property.name) {
             return true;
         }
     }
-    return nodeLabels[labelId]->unstrPropertiesNameToIdMap.contains(propertyName);
+    return nodeTableSchemas[tableID]->unstrPropertiesNameToIdMap.contains(propertyName);
 }
 
-bool CatalogContent::containRelProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : relLabels[labelId]->properties) {
+bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
+    for (auto& property : relTableSchemas[tableID]->properties) {
         if (propertyName == property.name) {
             return true;
         }
@@ -270,18 +269,20 @@ bool CatalogContent::containRelProperty(label_t labelId, const string& propertyN
     return false;
 }
 
-const Property& CatalogContent::getNodeProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : nodeLabels[labelId]->structuredProperties) {
+const Property& CatalogContent::getNodeProperty(
+    table_id_t tableID, const string& propertyName) const {
+    for (auto& property : nodeTableSchemas[tableID]->structuredProperties) {
         if (propertyName == property.name) {
             return property;
         }
     }
-    auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(labelId).at(propertyName);
-    return getUnstructuredNodeProperties(labelId)[unstrPropertyIdx];
+    auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(tableID).at(propertyName);
+    return getUnstructuredNodeProperties(tableID)[unstrPropertyIdx];
 }
 
-const Property& CatalogContent::getRelProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : relLabels[labelId]->properties) {
+const Property& CatalogContent::getRelProperty(
+    table_id_t tableID, const string& propertyName) const {
+    for (auto& property : relTableSchemas[tableID]->properties) {
         if (propertyName == property.name) {
             return property;
         }
@@ -289,40 +290,40 @@ const Property& CatalogContent::getRelProperty(label_t labelId, const string& pr
     assert(false);
 }
 
-const Property& CatalogContent::getNodePrimaryKeyProperty(label_t nodeLabel) const {
-    auto primaryKeyId = nodeLabels[nodeLabel]->primaryPropertyId;
-    return nodeLabels[nodeLabel]->structuredProperties[primaryKeyId];
+const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
+    auto primaryKeyId = nodeTableSchemas[tableID]->primaryPropertyId;
+    return nodeTableSchemas[tableID]->structuredProperties[primaryKeyId];
 }
 
-vector<Property> CatalogContent::getAllNodeProperties(label_t nodeLabel) const {
-    return nodeLabels[nodeLabel]->getAllNodeProperties();
+vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
+    return nodeTableSchemas[tableID]->getAllNodeProperties();
 }
 
-const unordered_set<label_t>& CatalogContent::getRelLabelsForNodeLabelDirection(
-    label_t nodeLabel, RelDirection direction) const {
-    if (nodeLabel >= nodeLabels.size()) {
-        throw CatalogException("Node label " + to_string(nodeLabel) + " is out of bounds.");
+const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
+    table_id_t tableID, RelDirection direction) const {
+    if (tableID >= nodeTableSchemas.size()) {
+        throw CatalogException("Node table " + to_string(tableID) + " is out of bounds.");
     }
     if (FWD == direction) {
-        return nodeLabels[nodeLabel]->fwdRelLabelIdSet;
+        return nodeTableSchemas[tableID]->fwdRelTableIDSet;
     }
-    return nodeLabels[nodeLabel]->bwdRelLabelIdSet;
+    return nodeTableSchemas[tableID]->bwdRelTableIDSet;
 }
 
-const unordered_set<label_t>& CatalogContent::getNodeLabelsForRelLabelDirection(
-    label_t relLabel, RelDirection direction) const {
-    if (relLabel >= relLabels.size()) {
-        throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
+const unordered_set<table_id_t>& CatalogContent::getNodeTableIDsForRelTableDirection(
+    table_id_t tableID, RelDirection direction) const {
+    if (tableID >= relTableSchemas.size()) {
+        throw CatalogException("Rel table " + to_string(tableID) + " is out of bounds.");
     }
     if (FWD == direction) {
-        return relLabels[relLabel]->srcDstLabels.srcNodeLabels;
+        return relTableSchemas[tableID]->srcDstTableIDs.srcTableIDs;
     }
-    return relLabels[relLabel]->srcDstLabels.dstNodeLabels;
+    return relTableSchemas[tableID]->srcDstTableIDs.dstTableIDs;
 }
 
 bool CatalogContent::isSingleMultiplicityInDirection(
-    label_t relLabel, RelDirection direction) const {
-    auto relMultiplicity = relLabels[relLabel]->relMultiplicity;
+    table_id_t tableID, RelDirection direction) const {
+    auto relMultiplicity = relTableSchemas[tableID]->relMultiplicity;
     if (FWD == direction) {
         return ONE_ONE == relMultiplicity || MANY_ONE == relMultiplicity;
     } else {
@@ -330,26 +331,28 @@ bool CatalogContent::isSingleMultiplicityInDirection(
     }
 }
 
-uint64_t CatalogContent::getNumRelsForDirectionBoundLabel(
-    label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const {
-    if (relLabel >= relLabels.size()) {
-        throw CatalogException("Rel label " + to_string(relLabel) + " is out of bounds.");
+uint64_t CatalogContent::getNumRelsForDirectionBoundTableID(
+    table_id_t tableID, RelDirection relDirection, table_id_t boundNodeTableID) const {
+    if (tableID >= relTableSchemas.size()) {
+        throw CatalogException("Rel table " + to_string(tableID) + " is out of bounds.");
     }
-    return relLabels[relLabel]->numRelsPerDirectionBoundLabel[FWD == relDirection ? 0 : 1].at(
-        boundNodeLabel);
+    return relTableSchemas[tableID]
+        ->numRelsPerDirectionBoundTableID[FWD == relDirection ? 0 : 1]
+        .at(boundNodeTableID);
 }
 
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
-    offset = SerDeser::serializeValue<uint64_t>(nodeLabels.size(), fileInfo.get(), offset);
-    offset = SerDeser::serializeValue<uint64_t>(relLabels.size(), fileInfo.get(), offset);
-    for (auto& nodeLabel : nodeLabels) {
-        offset = SerDeser::serializeValue<NodeLabel>(*nodeLabel, fileInfo.get(), offset);
+    offset = SerDeser::serializeValue<uint64_t>(nodeTableSchemas.size(), fileInfo.get(), offset);
+    offset = SerDeser::serializeValue<uint64_t>(relTableSchemas.size(), fileInfo.get(), offset);
+    for (auto& nodeTableSchema : nodeTableSchemas) {
+        offset =
+            SerDeser::serializeValue<NodeTableSchema>(*nodeTableSchema, fileInfo.get(), offset);
     }
-    for (auto& relLabel : relLabels) {
-        offset = SerDeser::serializeValue<RelLabel>(*relLabel, fileInfo.get(), offset);
+    for (auto& relTableSchema : relTableSchemas) {
+        offset = SerDeser::serializeValue<RelTableSchema>(*relTableSchema, fileInfo.get(), offset);
     }
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -359,40 +362,41 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
-    uint64_t numNodeLabels, numRelLabels;
-    offset = SerDeser::deserializeValue<uint64_t>(numNodeLabels, fileInfo.get(), offset);
-    offset = SerDeser::deserializeValue<uint64_t>(numRelLabels, fileInfo.get(), offset);
-    nodeLabels.resize(numNodeLabels);
-    relLabels.resize(numRelLabels);
-    for (auto labelId = 0u; labelId < numNodeLabels; labelId++) {
-        nodeLabels[labelId] = make_unique<NodeLabel>();
-        offset =
-            SerDeser::deserializeValue<NodeLabel>(*nodeLabels[labelId], fileInfo.get(), offset);
+    uint64_t numNodeTables, numRelTables;
+    offset = SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
+    offset = SerDeser::deserializeValue<uint64_t>(numRelTables, fileInfo.get(), offset);
+    nodeTableSchemas.resize(numNodeTables);
+    relTableSchemas.resize(numRelTables);
+    for (auto tableID = 0u; tableID < numNodeTables; tableID++) {
+        nodeTableSchemas[tableID] = make_unique<NodeTableSchema>();
+        offset = SerDeser::deserializeValue<NodeTableSchema>(
+            *nodeTableSchemas[tableID], fileInfo.get(), offset);
     }
-    for (auto labelId = 0u; labelId < numRelLabels; labelId++) {
-        relLabels[labelId] = make_unique<RelLabel>();
-        offset = SerDeser::deserializeValue<RelLabel>(*relLabels[labelId], fileInfo.get(), offset);
+    for (auto tableID = 0u; tableID < numRelTables; tableID++) {
+        relTableSchemas[tableID] = make_unique<RelTableSchema>();
+        offset = SerDeser::deserializeValue<RelTableSchema>(
+            *relTableSchemas[tableID], fileInfo.get(), offset);
     }
-    // construct the labelNameToIdMap and label's unstrPropertiesNameToIdMap
-    for (auto& label : nodeLabels) {
-        nodeLabelNameToIdMap[label->labelName] = label->labelID;
-        for (auto i = 0u; i < label->unstructuredProperties.size(); i++) {
-            auto& property = label->unstructuredProperties[i];
+    // construct the tableNameToIdMap and table's unstrPropertiesNameToIdMap
+    for (auto& nodeTableSchema : nodeTableSchemas) {
+        nodeTableNameToIDMap[nodeTableSchema->tableName] = nodeTableSchema->tableID;
+        for (auto i = 0u; i < nodeTableSchema->unstructuredProperties.size(); i++) {
+            auto& property = nodeTableSchema->unstructuredProperties[i];
             if (property.dataType.typeID == UNSTRUCTURED) {
-                label->unstrPropertiesNameToIdMap[property.name] = property.propertyID;
+                nodeTableSchema->unstrPropertiesNameToIdMap[property.name] = property.propertyID;
             }
         }
     }
-    for (auto& label : relLabels) {
-        relLabelNameToIdMap[label->labelName] = label->labelID;
+    for (auto& relTableSchema : relTableSchemas) {
+        relTableNameToIDMap[relTableSchema->tableName] = relTableSchema->tableID;
     }
     FileUtils::closeFile(fileInfo->fd);
 }
 
 uint64_t CatalogContent::getNextRelID() const {
     auto nextRelID = 0ull;
-    for (auto& relLabel : relLabels) {
-        nextRelID += relLabel->getNumRels();
+    for (auto& relTableSchema : relTableSchemas) {
+        nextRelID += relTableSchema->getNumRels();
     }
     return nextRelID;
 }
@@ -426,33 +430,33 @@ ExpressionType Catalog::getFunctionType(const string& name) const {
     }
 }
 
-label_t Catalog::addNodeLabel(string labelName, uint32_t primaryKeyIdx,
+table_id_t Catalog::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto labelID = catalogContentForWriteTrx->addNodeLabel(
-        move(labelName), primaryKeyIdx, move(structuredPropertyDefinitions));
-    wal->logNodeTableRecord(labelID);
-    return labelID;
+    auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
+        move(tableName), primaryKeyIdx, move(structuredPropertyDefinitions));
+    wal->logNodeTableRecord(tableID);
+    return tableID;
 }
 
-label_t Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels) {
+table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
+    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto labelID = catalogContentForWriteTrx->addRelLabel(
-        move(labelName), relMultiplicity, move(structuredPropertyDefinitions), move(srcDstLabels));
-    wal->logRelTableRecord(labelID);
-    return labelID;
+    auto tableID = catalogContentForWriteTrx->addRelTableSchema(move(tableName), relMultiplicity,
+        move(structuredPropertyDefinitions), move(srcDstTableIDs));
+    wal->logRelTableRecord(tableID);
+    return tableID;
 }
 
-void Catalog::setNumRelsPerDirectionBoundLabelOfRelLabel(
-    vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerLabel, label_t labelID) {
+void Catalog::setNumRelsPerDirectionBoundTableIDOfRelTableSchema(
+    vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable, table_id_t tableID) {
     initCatalogContentForWriteTrxIfNecessary();
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto boundNodeLabel :
-            getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelID, relDirection)) {
-            catalogContentForWriteTrx->getRelLabel(labelID)
-                ->numRelsPerDirectionBoundLabel[relDirection][boundNodeLabel] =
-                directionNumRelsPerLabel[relDirection]->operator[](boundNodeLabel).load();
+        for (auto boundNodeTableID :
+            getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
+            catalogContentForWriteTrx->getRelTableSchema(tableID)
+                ->numRelsPerDirectionBoundTableID[relDirection][boundNodeTableID] =
+                directionNumRelsPerTable[relDirection]->operator[](boundNodeTableID).load();
         }
     }
 }

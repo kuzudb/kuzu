@@ -55,7 +55,7 @@ TEST_F(SyntaxErrorTest, InvalidNotEqualOperator) {
     ASSERT_STREQ(expectedException.c_str(), getParsingError(input).c_str());
 }
 
-TEST_F(SyntaxErrorTest, EmptyLabel) {
+TEST_F(SyntaxErrorTest, EmptyTable) {
     string expectedException =
         "Parser exception: '' is not a valid token name. Token names cannot be empty or "
         "contain any null-bytes (line: 1, offset: 9)\n";

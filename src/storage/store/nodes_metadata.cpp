@@ -39,7 +39,7 @@ void NodeOffsetsInfo::setMaxNodeOffset(node_offset_t maxNodeOffset_) {
 
 // This function assumes that it is being called right after ScanNodeID has obtained a morsel
 // and that the nodeID structs in nodeOffsetVector.values have consecutive node offsets and
-// the same labels.
+// the same table.
 void NodeOffsetsInfo::setDeletedNodeOffsetsForMorsel(
     const shared_ptr<ValueVector>& nodeOffsetVector) {
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
@@ -125,9 +125,9 @@ bool NodeOffsetsInfo::isDeleted(node_offset_t nodeOffset, uint64_t morselIdx) {
     return false;
 }
 
-NodeMetadata::NodeMetadata(
-    label_t labelID, node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets)
-    : labelID{labelID} {
+NodeMetadata::NodeMetadata(table_id_t tableID, node_offset_t maxNodeOffset,
+    const vector<node_offset_t>& deletedNodeOffsets)
+    : tableID{tableID} {
     nodeOffsetsInfo = make_unique<NodeOffsetsInfo>(maxNodeOffset, deletedNodeOffsets);
 }
 
@@ -136,18 +136,18 @@ void NodeMetadata::errorIfNodeHasEdges(node_offset_t nodeOffset) {
         auto listInfo = adjList->getListInfo(nodeOffset);
         if (!listInfo.isEmpty()) {
             throw RuntimeException(StringUtils::string_format(
-                "Currently deleting a node with edges is not supported. node label %d nodeOffset "
+                "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d has %d (one-to-many or many-to-many) edges for edge file: %s.",
-                labelID, nodeOffset, listInfo.listLen,
+                tableID, nodeOffset, listInfo.listLen,
                 adjList->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }
     for (AdjColumn* adjColumn : adjListsAndColumns.second) {
         if (!adjColumn->isNull(nodeOffset)) {
             throw RuntimeException(StringUtils::string_format(
-                "Currently deleting a node with edges is not supported. node label %d nodeOffset "
+                "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d  has a 1-1 edge for edge file: %s.",
-                labelID, nodeOffset, adjColumn->getFileHandle()->getFileInfo()->path.c_str()));
+                tableID, nodeOffset, adjColumn->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }
 }
@@ -160,9 +160,9 @@ void NodeMetadata::deleteNode(node_offset_t nodeOffset) {
     if (nodeOffsetsInfo->maxNodeOffset == UINT64_MAX ||
         nodeOffset > nodeOffsetsInfo->maxNodeOffset) {
         throw RuntimeException(
-            StringUtils::string_format("Cannot delete nodeOffset %d in nodeLabel %d. maxNodeOffset "
+            StringUtils::string_format("Cannot delete nodeOffset %d in nodeTable %d. maxNodeOffset "
                                        "is either -1 or nodeOffset is > maxNodeOffset: %d.",
-                nodeOffset, labelID, nodeOffsetsInfo->maxNodeOffset));
+                nodeOffset, tableID, nodeOffsetsInfo->maxNodeOffset));
     }
     errorIfNodeHasEdges(nodeOffset);
     nodeOffsetsInfo->deleteNode(nodeOffset);
@@ -171,22 +171,22 @@ void NodeMetadata::deleteNode(node_offset_t nodeOffset) {
 NodesMetadata::NodesMetadata() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     logger->info("Initializing NodesMetadata.");
-    nodeMetadataPerLabelForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
+    nodeMetadataPerTableForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
     logger->info("Initialized NodesMetadata.");
 }
 
 NodesMetadata::NodesMetadata(const string& directory) {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     logger->info("Initializing NodesMetadata.");
-    nodeMetadataPerLabelForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
+    nodeMetadataPerTableForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
     readFromFile(directory);
     logger->info("Initialized NodesMetadata.");
 }
 
-NodesMetadata::NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerLabel_) {
-    nodeMetadataPerLabelForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
-    for (auto& nodeMetadata : nodeMetadataPerLabel_) {
-        nodeMetadataPerLabelForReadOnlyTrx->push_back(move(nodeMetadata));
+NodesMetadata::NodesMetadata(vector<unique_ptr<NodeMetadata>>& nodeMetadataPerTable_) {
+    nodeMetadataPerTableForReadOnlyTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
+    for (auto& nodeMetadata : nodeMetadataPerTable_) {
+        nodeMetadataPerTableForReadOnlyTrx->push_back(move(nodeMetadata));
     }
 }
 
@@ -200,24 +200,23 @@ void NodesMetadata::readFromFile(const string& directory) {
     auto fileInfo = FileUtils::openFile(nodesMetadataPath, O_RDONLY);
     logger->info("Reading NodesMetadata from {}.", nodesMetadataPath);
     uint64_t offset = 0;
-    uint64_t numNodeLabels;
-    offset = SerDeser::deserializeValue<uint64_t>(numNodeLabels, fileInfo.get(), offset);
-    for (auto labelID = 0u; labelID < numNodeLabels; labelID++) {
+    uint64_t numNodeTables;
+    offset = SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
+    for (auto tableID = 0u; tableID < numNodeTables; tableID++) {
         node_offset_t maxNodeOffset;
         offset = SerDeser::deserializeValue<node_offset_t>(maxNodeOffset, fileInfo.get(), offset);
         vector<node_offset_t> deletedNodeIDs;
         offset = SerDeser::deserializeVector(deletedNodeIDs, fileInfo.get(), offset);
-        nodeMetadataPerLabelForReadOnlyTrx->push_back(
-            make_unique<NodeMetadata>(labelID, maxNodeOffset, deletedNodeIDs));
+        nodeMetadataPerTableForReadOnlyTrx->push_back(
+            make_unique<NodeMetadata>(tableID, maxNodeOffset, deletedNodeIDs));
     }
     FileUtils::closeFile(fileInfo->fd);
 }
 
 void NodesMetadata::setAdjListsAndColumns(RelsStore* relsStore) {
-    for (label_t nodeLabel = 0u; nodeLabel < nodeMetadataPerLabelForReadOnlyTrx->size();
-         ++nodeLabel) {
-        (*nodeMetadataPerLabelForReadOnlyTrx)[nodeLabel]->setAdjListsAndColumns(
-            relsStore->getAdjListsAndColumns(nodeLabel));
+    for (auto tableID = 0u; tableID < nodeMetadataPerTableForReadOnlyTrx->size(); ++tableID) {
+        (*nodeMetadataPerTableForReadOnlyTrx)[tableID]->setAdjListsAndColumns(
+            relsStore->getAdjListsAndColumns(tableID));
     }
 }
 
@@ -228,13 +227,13 @@ void NodesMetadata::saveToFile(
     auto fileInfo = FileUtils::openFile(nodesMetadataPath, O_WRONLY | O_CREAT);
 
     uint64_t offset = 0;
-    auto& nodeMetadataPerLabel = (transactionType == TransactionType::READ_ONLY ||
-                                     nodeMetadataPerLabelForWriteTrx == nullptr) ?
-                                     nodeMetadataPerLabelForReadOnlyTrx :
-                                     nodeMetadataPerLabelForWriteTrx;
-    offset = SerDeser::serializeValue(nodeMetadataPerLabel->size(), fileInfo.get(), offset);
-    for (label_t label = 0; label < nodeMetadataPerLabel->size(); ++label) {
-        auto& nodeMetadata = (*nodeMetadataPerLabel)[label];
+    auto& nodeMetadataPerTable = (transactionType == TransactionType::READ_ONLY ||
+                                     nodeMetadataPerTableForWriteTrx == nullptr) ?
+                                     nodeMetadataPerTableForReadOnlyTrx :
+                                     nodeMetadataPerTableForWriteTrx;
+    offset = SerDeser::serializeValue(nodeMetadataPerTable->size(), fileInfo.get(), offset);
+    for (auto tableID = 0; tableID < nodeMetadataPerTable->size(); ++tableID) {
+        auto& nodeMetadata = (*nodeMetadataPerTable)[tableID];
         offset = SerDeser::serializeValue(nodeMetadata->getMaxNodeOffset(), fileInfo.get(), offset);
         offset = SerDeser::serializeVector(
             nodeMetadata->getDeletedNodeOffsets(), fileInfo.get(), offset);
@@ -243,46 +242,46 @@ void NodesMetadata::saveToFile(
     logger->info("Wrote NodesMetadata to {}.", nodesMetadataPath);
 }
 
-void NodesMetadata::initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock() {
-    if (!nodeMetadataPerLabelForWriteTrx) {
-        nodeMetadataPerLabelForWriteTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
-        for (auto& nodeMetadata : *nodeMetadataPerLabelForReadOnlyTrx) {
-            nodeMetadataPerLabelForWriteTrx->push_back(make_unique<NodeMetadata>(*nodeMetadata));
+void NodesMetadata::initNodeMetadataPerTableForWriteTrxIfNecessaryNoLock() {
+    if (!nodeMetadataPerTableForWriteTrx) {
+        nodeMetadataPerTableForWriteTrx = make_unique<vector<unique_ptr<NodeMetadata>>>();
+        for (auto& nodeMetadata : *nodeMetadataPerTableForReadOnlyTrx) {
+            nodeMetadataPerTableForWriteTrx->push_back(make_unique<NodeMetadata>(*nodeMetadata));
         }
     }
 }
 
-vector<node_offset_t> NodesMetadata::getMaxNodeOffsetPerLabel() const {
+vector<node_offset_t> NodesMetadata::getMaxNodeOffsetPerTable() const {
     vector<node_offset_t> retVal;
-    for (label_t label = 0u; label < nodeMetadataPerLabelForReadOnlyTrx->size(); ++label) {
-        retVal.push_back((*nodeMetadataPerLabelForReadOnlyTrx)[label]->getMaxNodeOffset());
+    for (table_id_t tableID = 0u; tableID < nodeMetadataPerTableForReadOnlyTrx->size(); ++tableID) {
+        retVal.push_back((*nodeMetadataPerTableForReadOnlyTrx)[tableID]->getMaxNodeOffset());
     }
     return retVal;
 }
 
 void NodesMetadata::setDeletedNodeOffsetsForMorsel(
-    Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, label_t labelID) {
+    Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
-    // 1) During the phases when nodeMetadataPerLabelForReadOnlyTrx change, which is during
+    // 1) During the phases when nodeMetadataPerTableForReadOnlyTrx change, which is during
     // checkpointing, this function, which is called during scans, cannot be called.
     // 2) In a read-only transaction, the same morsel cannot be scanned concurrently.
     // 3) A write transaction cannot have two concurrent pipelines where one is writing and the
-    // other is reading nodeMetadataPerLabelForWriteTrx. That is the pipeline in a query where
+    // other is reading nodeMetadataPerTableForWriteTrx. That is the pipeline in a query where
     // scans/reads happen in a write transaction cannot run concurrently with the pipeline that
     // performs an add/delete node.
     lock_t lck{mtx};
-    (transaction->isReadOnly() || !nodeMetadataPerLabelForWriteTrx) ?
-        (*nodeMetadataPerLabelForReadOnlyTrx)[labelID]->setDeletedNodeOffsetsForMorsel(
+    (transaction->isReadOnly() || !nodeMetadataPerTableForWriteTrx) ?
+        (*nodeMetadataPerTableForReadOnlyTrx)[tableID]->setDeletedNodeOffsetsForMorsel(
             nodeOffsetVector) :
-        (*nodeMetadataPerLabelForWriteTrx)[labelID]->setDeletedNodeOffsetsForMorsel(
+        (*nodeMetadataPerTableForWriteTrx)[tableID]->setDeletedNodeOffsetsForMorsel(
             nodeOffsetVector);
 }
 
-void NodesMetadata::addNodeMetadata(NodeLabel* nodeLabel) {
-    initNodeMetadataPerLabelForWriteTrxIfNecessaryNoLock();
+void NodesMetadata::addNodeMetadata(NodeTableSchema* tableSchema) {
+    initNodeMetadataPerTableForWriteTrxIfNecessaryNoLock();
     // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
-    nodeMetadataPerLabelForWriteTrx->push_back(
-        make_unique<NodeMetadata>(nodeLabel->labelID, UINT64_MAX /* maxNodeOffset */));
+    nodeMetadataPerTableForWriteTrx->push_back(
+        make_unique<NodeMetadata>(tableSchema->tableID, UINT64_MAX /* maxNodeOffset */));
 }
 
 } // namespace storage

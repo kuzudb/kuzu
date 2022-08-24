@@ -3,26 +3,27 @@
 namespace graphflow {
 namespace storage {
 
-RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerLabel,
+RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
     : isInMemoryMode{isInMemoryMode} {
-    relTables.resize(catalog.getReadOnlyVersion()->getNumRelLabels());
-    for (auto label = 0u; label < catalog.getReadOnlyVersion()->getNumRelLabels(); label++) {
-        relTables[label] = make_unique<RelTable>(
-            catalog, maxNodeOffsetsPerLabel, label, bufferManager, isInMemoryMode, wal);
+    relTables.resize(catalog.getReadOnlyVersion()->getNumRelTables());
+    for (auto relTableID = 0u; relTableID < catalog.getReadOnlyVersion()->getNumRelTables();
+         relTableID++) {
+        relTables[relTableID] = make_unique<RelTable>(
+            catalog, maxNodeOffsetsPerTable, relTableID, bufferManager, isInMemoryMode, wal);
     }
 }
 
 pair<vector<AdjLists*>, vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
-    const label_t nodeLabel) const {
+    const table_id_t tableID) const {
     vector<AdjLists*> adjListsRetVal;
     for (uint64_t i = 0; i < relTables.size(); ++i) {
-        auto adjListsForRel = relTables[i]->getAdjListsForNodeLabel(nodeLabel);
+        auto adjListsForRel = relTables[i]->getAdjListsForNodeTable(tableID);
         adjListsRetVal.insert(adjListsRetVal.end(), adjListsForRel.begin(), adjListsForRel.end());
     }
     vector<AdjColumn*> adjColumnsRetVal;
     for (uint64_t i = 0; i < relTables.size(); ++i) {
-        auto adjColumnsForRel = relTables[i]->getAdjColumnsForNodeLabel(nodeLabel);
+        auto adjColumnsForRel = relTables[i]->getAdjColumnsForNodeTable(tableID);
         adjColumnsRetVal.insert(
             adjColumnsRetVal.end(), adjColumnsForRel.begin(), adjColumnsForRel.end());
     }

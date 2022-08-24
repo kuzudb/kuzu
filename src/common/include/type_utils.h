@@ -19,7 +19,7 @@ public:
     static inline string toString(int64_t val) { return to_string(val); }
     static inline string toString(double val) { return to_string(val); }
     static inline string toString(const nodeID_t& val) {
-        return to_string(val.label) + ":" + to_string(val.offset);
+        return to_string(val.tableID) + ":" + to_string(val.offset);
     }
     static inline string toString(const date_t& val) { return Date::toString(val); }
     static inline string toString(const timestamp_t& val) { return Timestamp::toString(val); }

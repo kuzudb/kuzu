@@ -99,7 +99,7 @@ inline void Hash::operation(const interval_t& key, hash_t& result) {
 
 template<>
 inline void Hash::operation(const nodeID_t& key, hash_t& result) {
-    result = murmurhash64(key.offset) ^ murmurhash64(key.label);
+    result = murmurhash64(key.offset) ^ murmurhash64(key.tableID);
 }
 
 template<>

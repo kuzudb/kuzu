@@ -7,17 +7,18 @@
 namespace graphflow {
 namespace storage {
 
-using label_adj_in_mem_columns_map_t = unordered_map<label_t, unique_ptr<InMemAdjColumn>>;
-using label_property_in_mem_lists_map_t = unordered_map<label_t, vector<unique_ptr<InMemLists>>>;
-using label_adj_in_mem_lists_map_t = unordered_map<label_t, unique_ptr<InMemAdjLists>>;
-using label_property_in_mem_columns_map_t = unordered_map<label_t, vector<unique_ptr<InMemColumn>>>;
+using table_adj_in_mem_columns_map_t = unordered_map<table_id_t, unique_ptr<InMemAdjColumn>>;
+using table_property_in_mem_lists_map_t = unordered_map<table_id_t, vector<unique_ptr<InMemLists>>>;
+using table_adj_in_mem_lists_map_t = unordered_map<table_id_t, unique_ptr<InMemAdjLists>>;
+using table_property_in_mem_columns_map_t =
+    unordered_map<table_id_t, vector<unique_ptr<InMemColumn>>>;
 
 class InMemRelCSVCopier : public InMemStructuresCSVCopier {
 
 public:
     InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeLabel,
-        BufferManager* bufferManager, label_t labelID);
+        TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeTable,
+        BufferManager* bufferManager, table_id_t tableID);
 
     ~InMemRelCSVCopier() override = default;
 
@@ -38,17 +39,17 @@ private:
     void sortOverflowValues();
 
     uint64_t getNumTasksOfInitializingAdjAndPropertyListsMetadata();
-    static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
+    static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-        Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadLabels);
+        Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadTables);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
-        vector<label_property_in_mem_columns_map_t>& directionLabelPropertyColumns,
+        vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs);
     static void putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
-        vector<label_property_in_mem_lists_map_t>& directionLabelPropertyLists,
-        vector<label_adj_in_mem_lists_map_t>& directionLabelAdjLists,
+        vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
+        vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
         const vector<uint64_t>& reversePos);
@@ -74,19 +75,19 @@ private:
         InMemOverflowFile* orderedStringOverflowPages);
 
 private:
-    const vector<uint64_t> maxNodeOffsetsPerNodeLabel;
+    const vector<uint64_t> maxNodeOffsetsPerTable;
     uint64_t startRelID;
-    RelLabel* relLabel;
+    RelTableSchema* relTableSchema;
 
     unique_ptr<Transaction> tmpReadTransaction;
     vector<unique_ptr<HashIndex>> IDIndexes;
-    vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};
-    vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerLabel{2};
+    vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
+    vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerTable{2};
     vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};
-    vector<label_adj_in_mem_columns_map_t> directionLabelAdjColumns{2};
-    vector<label_property_in_mem_columns_map_t> directionLabelPropertyColumns{2};
-    vector<label_adj_in_mem_lists_map_t> directionLabelAdjLists{2};
-    vector<label_property_in_mem_lists_map_t> directionLabelPropertyLists{2};
+    vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
+    vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};
+    vector<table_adj_in_mem_lists_map_t> directionTableAdjLists{2};
+    vector<table_property_in_mem_lists_map_t> directionTablePropertyLists{2};
     vector<unique_ptr<InMemOverflowFile>> propertyColumnsOverflowFiles;
     vector<unique_ptr<InMemOverflowFile>> propertyListsOverflowFiles;
 };

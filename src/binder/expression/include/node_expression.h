@@ -8,10 +8,10 @@ namespace binder {
 class NodeExpression : public Expression {
 
 public:
-    NodeExpression(const string& uniqueName, label_t label)
-        : Expression{VARIABLE, NODE, uniqueName}, label{label} {}
+    NodeExpression(const string& uniqueName, table_id_t tableID)
+        : Expression{VARIABLE, NODE, uniqueName}, tableID{tableID} {}
 
-    inline label_t getLabel() const { return label; }
+    inline table_id_t getTableID() const { return tableID; }
 
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
@@ -21,7 +21,7 @@ public:
     }
 
 private:
-    label_t label;
+    table_id_t tableID;
 };
 
 } // namespace binder

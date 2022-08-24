@@ -24,7 +24,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
         auto nodeExpression = static_pointer_cast<NodeExpression>(propertyExpression->getChild(0));
         nodeIDVectorPositions.push_back(mapperContext.getDataPos(nodeExpression->getIDProperty()));
         propertyColumns.push_back(nodeStore.getNodePropertyColumn(
-            nodeExpression->getLabel(), propertyExpression->getPropertyKey()));
+            nodeExpression->getTableID(), propertyExpression->getPropertyKey()));
         expressionEvaluators.push_back(expressionMapper.mapExpression(target, mapperContext));
     }
     return make_unique<SetNodeStructuredProperty>(move(nodeIDVectorPositions),

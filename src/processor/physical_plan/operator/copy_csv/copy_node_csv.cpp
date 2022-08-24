@@ -7,11 +7,11 @@ namespace processor {
 
 void CopyNodeCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) {
     auto nodeCSVCopier = make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(),
-        taskScheduler, *catalog, label.labelID, &nodesStore->getNodesMetadata());
-    // Note: This copy function will update the unstructured properties of the nodeLabel and the
+        taskScheduler, *catalog, tableSchema.tableID, &nodesStore->getNodesMetadata());
+    // Note: This copy function will update the unstructured properties of the nodeTable and the
     // maxNodeOffset in nodesMetadata.
     nodeCSVCopier->copy();
-    wal->logCopyNodeCSVRecord(label.labelID);
+    wal->logCopyNodeCSVRecord(tableSchema.tableID);
 }
 
 } // namespace processor

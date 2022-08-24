@@ -8,20 +8,20 @@ namespace planner {
 class LogicalDDL : public LogicalOperator {
 
 public:
-    LogicalDDL(string labelName, vector<PropertyNameDataType> propertyNameDataTypes)
-        : LogicalOperator{}, labelName{move(labelName)}, propertyNameDataTypes{
+    LogicalDDL(string tableName, vector<PropertyNameDataType> propertyNameDataTypes)
+        : LogicalOperator{}, tableName{move(tableName)}, propertyNameDataTypes{
                                                              move(propertyNameDataTypes)} {}
 
-    inline string getExpressionsForPrinting() const override { return labelName; }
+    inline string getExpressionsForPrinting() const override { return tableName; }
 
-    inline string getLabelName() const { return labelName; }
+    inline string getTableName() const { return tableName; }
 
     inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 protected:
-    string labelName;
+    string tableName;
     vector<PropertyNameDataType> propertyNameDataTypes;
 };
 

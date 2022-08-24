@@ -8,17 +8,17 @@ namespace parser {
 using namespace std;
 
 struct RelConnection {
-    RelConnection(vector<string> srcNodeLabels, vector<string> dstNodeLabels)
-        : srcNodeLabels{move(srcNodeLabels)}, dstNodeLabels{move(dstNodeLabels)} {}
-    vector<string> srcNodeLabels;
-    vector<string> dstNodeLabels;
+    RelConnection(vector<string> srcTableNames, vector<string> dstTableNames)
+        : srcTableNames{move(srcTableNames)}, dstTableNames{move(dstTableNames)} {}
+    vector<string> srcTableNames;
+    vector<string> dstTableNames;
 };
 
 class CreateRelClause : public DDL {
 public:
-    explicit CreateRelClause(string labelName, vector<pair<string, string>> propertyNameDataTypes,
+    explicit CreateRelClause(string tableName, vector<pair<string, string>> propertyNameDataTypes,
         string relMultiplicity, RelConnection relConnection)
-        : DDL{StatementType::CREATE_REL_CLAUSE, move(labelName), move(propertyNameDataTypes)},
+        : DDL{StatementType::CREATE_REL_CLAUSE, move(tableName), move(propertyNameDataTypes)},
           relMultiplicity{move(relMultiplicity)}, relConnection{move(relConnection)} {}
 
     inline string getRelMultiplicity() const { return relMultiplicity; }

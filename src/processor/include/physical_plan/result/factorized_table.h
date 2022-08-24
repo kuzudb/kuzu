@@ -79,13 +79,14 @@ private:
     bool mayContainNulls;
 };
 
-class TableSchema {
+class FactorizedTableSchema {
 public:
-    TableSchema() = default;
+    FactorizedTableSchema() = default;
 
-    TableSchema(const TableSchema& other);
+    FactorizedTableSchema(const FactorizedTableSchema& other);
 
-    explicit TableSchema(vector<unique_ptr<ColumnSchema>> columns) : columns{move(columns)} {}
+    explicit FactorizedTableSchema(vector<unique_ptr<ColumnSchema>> columns)
+        : columns{move(columns)} {}
 
     void appendColumn(unique_ptr<ColumnSchema> column);
 
@@ -110,8 +111,8 @@ public:
 
     inline bool isEmpty() const { return columns.empty(); }
 
-    bool operator==(const TableSchema& other) const;
-    inline bool operator!=(const TableSchema& other) const { return !(*this == other); }
+    bool operator==(const FactorizedTableSchema& other) const;
+    inline bool operator!=(const FactorizedTableSchema& other) const { return !(*this == other); }
 
 private:
     vector<unique_ptr<ColumnSchema>> columns;
@@ -128,7 +129,7 @@ class FactorizedTable {
     friend class JoinHashTable;
 
 public:
-    FactorizedTable(MemoryManager* memoryManager, unique_ptr<TableSchema> tableSchema);
+    FactorizedTable(MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
 
     void append(const vector<shared_ptr<ValueVector>>& vectors);
 
@@ -167,7 +168,7 @@ public:
     uint64_t getNumFlatTuples(uint64_t tupleIdx) const;
 
     inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() { return tupleDataBlocks; }
-    inline const TableSchema* getTableSchema() const { return tableSchema.get(); }
+    inline const FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
 
     template<typename TYPE>
     inline TYPE getData(uint32_t blockIdx, uint32_t blockOffset, uint32_t colOffset) const {
@@ -238,7 +239,7 @@ private:
     }
 
     MemoryManager* memoryManager;
-    unique_ptr<TableSchema> tableSchema;
+    unique_ptr<FactorizedTableSchema> tableSchema;
     uint64_t numTuples;
     uint32_t numTuplesPerBlock;
     vector<unique_ptr<DataBlock>> tupleDataBlocks;

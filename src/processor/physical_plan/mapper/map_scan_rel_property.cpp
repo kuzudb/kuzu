@@ -20,13 +20,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto paramsString = scanRelProperty->getExpressionsForPrinting();
     if (scanRelProperty->getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(
-            scanRelProperty->getRelLabel(), boundNode->getLabel(), propertyKey);
+            scanRelProperty->getRelTableID(), boundNode->getTableID(), propertyKey);
         return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
             vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
             getOperatorID(), paramsString);
     }
     auto lists = relStore.getRelPropertyLists(scanRelProperty->getDirection(),
-        boundNode->getLabel(), scanRelProperty->getRelLabel(), propertyKey);
+        boundNode->getTableID(), scanRelProperty->getRelTableID(), propertyKey);
     return make_unique<ReadRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
         lists, move(prevOperator), getOperatorID(), paramsString);
 }

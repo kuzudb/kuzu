@@ -8,7 +8,7 @@ void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* tran
     if (initialized) {
         return;
     }
-    maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+    maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, tableID);
     maxMorselIdx = maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
     if (enableSemiMask) {
         mask = make_unique<SemiMask>(maxNodeOffset, maxMorselIdx);
@@ -59,13 +59,13 @@ bool ScanNodeID::getNextTuples() {
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
             nodeIDValues[i].offset = startOffset + i;
-            nodeIDValues[i].label = nodeTable->getLabelID();
+            nodeIDValues[i].tableID = nodeTable->getTableID();
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
         setSelVector(startOffset, endOffset);
         outDataChunk->state->selVector->resetSelectorToUnselected();
         nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
-            transaction, outValueVector, nodeTable->getLabelID());
+            transaction, outValueVector, nodeTable->getTableID());
     } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
@@ -90,7 +90,7 @@ void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset
     }
     // Apply changes to the selVector from nodes metadata.
     nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
-        transaction, outValueVector, nodeTable->getLabelID());
+        transaction, outValueVector, nodeTable->getTableID());
 }
 
 } // namespace processor
