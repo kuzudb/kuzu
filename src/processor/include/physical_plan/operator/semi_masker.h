@@ -9,9 +9,10 @@ namespace processor {
 class SemiMasker : public PhysicalOperator {
 
 public:
-    SemiMasker(const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString) 
-        : PhysicalOperator{std::move(child), id, paramsString}, keyDataPos{keyDataPos} {}
+    SemiMasker(string nodeID, const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{std::move(child), id, paramsString}, nodeID{move(nodeID)},
+          keyDataPos{keyDataPos} {}
 
     inline PhysicalOperatorType getOperatorType() override { return SEMI_MASKER; }
 
@@ -23,10 +24,13 @@ public:
 
     inline unique_ptr<PhysicalOperator> clone() override {
         auto clonedSemiMasker =
-            make_unique<SemiMasker>(keyDataPos, children[0]->clone(), id, paramsString);
+            make_unique<SemiMasker>(nodeID, keyDataPos, children[0]->clone(), id, paramsString);
         clonedSemiMasker->setSharedState(scanNodeIDSharedState);
         return clonedSemiMasker;
     }
+
+public:
+    string nodeID;
 
 private:
     DataPos keyDataPos;

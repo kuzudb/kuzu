@@ -2,12 +2,26 @@
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
+#include "src/processor/include/physical_plan/operator/semi_masker.h"
 
 using namespace graphflow::planner;
 using namespace graphflow::processor;
 
 namespace graphflow {
 namespace processor {
+
+
+static void mapASPIntersect(Intersect* intersect) {
+    auto tableScan = intersect->getChild(0);
+    while (tableScan->getOperatorType() != FACTORIZED_TABLE_SCAN) {
+        assert(tableScan->getNumChildren() != 0);
+        tableScan = tableScan->getChild(0);
+    }
+    assert(tableScan->getChild(0)->getOperatorType() == RESULT_COLLECTOR);
+    auto resultCollector = tableScan->moveUnaryChild();
+    assert(tableScan->getNumChildren() == 0);
+    intersect->addChild(move(resultCollector));
+}
 
 // Input logical plan
 //            Intersect
@@ -26,7 +40,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     vector<unique_ptr<PhysicalOperator>> children;
     vector<shared_ptr<HashJoinSharedState>> sharedStates;
     children.push_back(mapLogicalOperatorToPhysical(logicalIntersect->getChild(0), mapperContext));
+    auto probeSidePrevOperator = children[0].get();
     vector<DataPos> probeSideKeyVectorsPos;
+    auto numBuild = logicalIntersect->getNumChildren() - 1;
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); ++i) {
         auto logicalBuildChild = logicalIntersect->getChild(i);
         auto logicalBuildInfo = logicalIntersect->getBuildInfo(i - 1);
@@ -37,6 +53,25 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         // map build child plan
         auto buildSidePrevOperator =
             mapLogicalOperatorToPhysical(logicalBuildChild, buildSideMapperContext);
+        if (logicalIntersect->getIntersectType() == IntersectType::ASP_MW_JOIN) { // config semi masker
+            auto scanNodeIDs = collectScanNodeID(buildSidePrevOperator.get());
+            assert(scanNodeIDs.size() == 1);
+            auto scanNodeID = (ScanNodeID*)*scanNodeIDs.begin();
+            
+            auto op = probeSidePrevOperator;
+            while (op->getOperatorType() != SEMI_MASKER) {
+                op = op->getChild(0);
+            }
+            auto buildIdx = i - 1;
+            for (auto j = 0; j < numBuild - buildIdx - 1; ++j) {
+                op = op->getChild(0);
+            }
+            assert(op->getOperatorType() == SEMI_MASKER);
+            auto semiMasker = (SemiMasker*)op;
+            assert(semiMasker->nodeID == scanNodeID->nodeID);
+            semiMasker->setSharedState(scanNodeID->getSharedState());
+        }
+        
         auto keyDataPos = buildSideMapperContext.getDataPos(key->getIDProperty());
         assert(keyDataPos.dataChunkPos == 0 && keyDataPos.valueVectorPos == 0);
         // add build on top. Note: payload refers to non-key in map_hash_join.cpp
@@ -69,8 +104,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     }
     auto outputVectorPos =
         mapperContext.getDataPos(logicalIntersect->getIntersectNode()->getIDProperty());
-    return make_unique<Intersect>(outputVectorPos, probeSideKeyVectorsPos, move(sharedStates),
+    auto intersect = make_unique<Intersect>(outputVectorPos, probeSideKeyVectorsPos, move(sharedStates),
                                   move(children), getOperatorID(), logicalIntersect->getIntersectNode()->getUniqueName());
+    if (logicalIntersect->getIntersectType() == planner::IntersectType::ASP_MW_JOIN) {
+        mapASPIntersect(intersect.get());
+    }
+    return intersect;
 }
 
 } // namespace processor

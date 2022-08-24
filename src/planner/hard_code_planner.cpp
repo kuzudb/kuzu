@@ -7,7 +7,7 @@
 namespace graphflow {
 namespace planner {
 
-static const bool ENABLE_ASP = false;
+static const bool ENABLE_ASP = true;
 
 static expression_vector extractPredicatesForNode(
     expression_vector& predicates, NodeExpression& node) {
@@ -181,7 +181,6 @@ unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundS
     auto plan = createRelScanPlan(e1, a, predicates, true);
     compileHashJoinWithNode(*plan, b, predicates);
     auto bGroupPos = plan->getSchema()->getGroupPos(b->getIDProperty());
-    appendFlattenIfNecessary(bGroupPos, *plan);
 
     // compile closing with b-e2, a-e3
     auto be2 = createRelScanPlan(e2, b, predicates, false);
@@ -356,7 +355,22 @@ void Enumerator::compileHashJoinWithNode(
 
 void Enumerator::compileIntersectWithNode(LogicalPlan& plan, vector<LogicalPlan*>& buildPlans,
     shared_ptr<NodeExpression>& intersectNode, vector<shared_ptr<NodeExpression>>& hashNodes) {
+    auto intersectType = IntersectType::MW_JOIN;
+    if (ENABLE_ASP) {
+        intersectType = IntersectType::ASP_MW_JOIN;
+        for (auto i = 0u; i < buildPlans.size(); ++i) {
+            auto hashNode = hashNodes[i];
+            joinOrderEnumerator.appendSemiMasker(hashNode, plan);
+        }
+        appendSink(plan);
+    }
+    for (auto i = 0u; i < buildPlans.size(); ++i) {
+        auto hashNode = hashNodes[i];
+        auto hashGroupPos = plan.getSchema()->getGroupPos(hashNode->getIDProperty());
+        appendFlattenIfNecessary(hashGroupPos, plan);
+    }
     auto intersect = make_shared<LogicalIntersect>(intersectNode, plan.getLastOperator());
+    intersect->setIntersectType(intersectType);
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         auto hashNode = hashNodes[i];
         auto buildPlan = buildPlans[i];

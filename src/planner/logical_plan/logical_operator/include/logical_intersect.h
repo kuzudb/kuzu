@@ -23,6 +23,8 @@ struct BuildInfo {
     expression_vector expressionsToMaterialize;
 };
 
+enum class IntersectType : uint8_t { MW_JOIN, ASP_MW_JOIN };
+
 class LogicalIntersect : public LogicalOperator {
 
 public:
@@ -33,7 +35,15 @@ public:
         return LogicalOperatorType::LOGICAL_INTERSECT;
     }
 
-    string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }
+    string getExpressionsForPrinting() const override {
+        switch (intersectType) {
+        case IntersectType::ASP_MW_JOIN: {
+            return "SEMI " + intersectNode->getRawName();
+        }
+        default:
+            return intersectNode->getRawName();
+        }
+    }
 
     inline void addChild(shared_ptr<LogicalOperator> op, unique_ptr<BuildInfo> buildInfo) {
         children.push_back(move(op));
@@ -42,17 +52,22 @@ public:
     inline shared_ptr<NodeExpression> getIntersectNode() const { return intersectNode; }
     inline BuildInfo* getBuildInfo(uint32_t idx) const { return buildInfos[idx].get(); }
 
+    inline void setIntersectType(IntersectType type) { intersectType = type; }
+    inline IntersectType getIntersectType() { return intersectType; }
+
     unique_ptr<LogicalOperator> copy() override {
         auto result = make_unique<LogicalIntersect>(intersectNode, children[0]->copy());
         for (auto i = 1u; i < children.size(); ++i) {
             result->addChild(children[i]->copy(), buildInfos[i]->copy());
         }
+        result->setIntersectType(intersectType);
         return result;
     }
 
 private:
     shared_ptr<NodeExpression> intersectNode;
     vector<unique_ptr<BuildInfo>> buildInfos;
+    IntersectType intersectType;
 };
 
 } // namespace planner

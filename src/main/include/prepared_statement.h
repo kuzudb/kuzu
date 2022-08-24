@@ -36,7 +36,7 @@ public:
     inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
     
     inline void enableProfile() {querySummary->isProfile = true;}
-
+    
 private:
     bool isDDL;
     bool success = true;

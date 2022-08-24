@@ -12,7 +12,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto node = logicalSemiMasker->getNode();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto keyDataPos = mapperContext.getDataPos(node->getIDProperty());
-    return make_unique<SemiMasker>(keyDataPos, move(prevOperator),
+    return make_unique<SemiMasker>(node->getIDProperty(), keyDataPos, move(prevOperator),
         getOperatorID(), logicalSemiMasker->getExpressionsForPrinting());
 }
 

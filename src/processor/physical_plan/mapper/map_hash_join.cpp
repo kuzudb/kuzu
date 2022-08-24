@@ -7,21 +7,6 @@
 namespace graphflow {
 namespace processor {
 
-static void collectScanNodeIDRecursive(PhysicalOperator* op, vector<PhysicalOperator*>& scanNodeIDs) {
-    if (op->getOperatorType() == SCAN_NODE_ID) {
-        scanNodeIDs.push_back(op);
-    }
-    for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        collectScanNodeIDRecursive(op->getChild(i), scanNodeIDs);
-    }
-}
-
-static vector<PhysicalOperator*> collectScanNodeID(PhysicalOperator* op) {
-    vector<PhysicalOperator*> result;
-    collectScanNodeIDRecursive(op, result);
-    return result;
-}
-
 static void mapASPJoin(HashJoinProbe* hashJoinProbe) {
     auto tableScan = hashJoinProbe->getChild(0);
     while (tableScan->getOperatorType() != FACTORIZED_TABLE_SCAN) {

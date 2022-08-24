@@ -36,6 +36,10 @@ string LogicalOperator::toString(uint64_t depth) const {
     } else if (children.size() == 2) {
         result += "\n" + padding + "LEFT:\n" + children[0]->toString(depth + 1);
         result += "\n" + padding + "RIGHT:\n" + children[1]->toString(depth + 1);
+    } else {
+        for (auto& child : children) {
+            result += "\n" + padding + "CHILD:\n" + child->toString(depth + 1);
+        }
     }
     return result;
 }

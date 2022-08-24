@@ -54,7 +54,7 @@ public:
         : PhysicalOperator{move(children), id, paramsString}, outputVectorPos{outputVectorPos},
           probeSideKeyVectorsPos{move(probeSideKeyVectorsPos)}, sharedStates{move(sharedStates)} {
         // For regular join without sip, this should always be true.
-        assert(this->sharedStates.size() == this->children.size() - 1);
+//        assert(this->sharedStates.size() == this->children.size() - 1);
         probeResults.resize(this->sharedStates.size());
         prober = createIntersectProber(0);
     }
