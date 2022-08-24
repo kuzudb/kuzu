@@ -52,6 +52,9 @@ unique_ptr<QueryResult> run(
     } else if (encodedJoin == "IS07") {
         auto plan = conn->getIS07Plan(profiledQuery);
         return conn->executePlan(move(plan));
+    } else if (encodedJoin == "triangle") {
+        auto plan = conn->getTrianglePlan(profiledQuery);
+        return conn->executePlan(move(plan));
     } else {
         return conn->query(profiledQuery, encodedJoin);
     }

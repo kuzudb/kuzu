@@ -23,12 +23,13 @@ public:
     explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesMetadata, this},
           projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
-    
+
     unique_ptr<LogicalPlan> getThreeHopPlan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getTrianglePlan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
-    
+
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
     unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement);
@@ -140,7 +141,10 @@ private:
         shared_ptr<NodeExpression>& boundNode, expression_vector& predicates, bool isScanNodeTable);
     void compileHashJoinWithNode(
         LogicalPlan& plan, shared_ptr<NodeExpression>& node, expression_vector& predicates);
-
+    void compileIntersectWithNode(LogicalPlan& plan, vector<LogicalPlan*>& buildPlans,
+        shared_ptr<NodeExpression>& intersectNode, vector<shared_ptr<NodeExpression>>& hashNodes);
+    void appendSorter(shared_ptr<NodeExpression> expressionToSort, LogicalPlan& plan);
+    
 private:
     const Catalog& catalog;
     expression_vector propertiesToScan;

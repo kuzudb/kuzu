@@ -91,8 +91,6 @@ private:
         shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     shared_ptr<LogicalOperator> createHashJoin(
         shared_ptr<NodeExpression> joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
-    // AppendIntersect return false if a nodeID is flat in which case we should use filter.
-    bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
 
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(label_t boundNodeLabel, label_t relLabel, RelDirection relDirection);

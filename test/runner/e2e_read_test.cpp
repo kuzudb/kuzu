@@ -20,10 +20,12 @@ public:
 };
 
 TEST_F(TinySnbReadTest, play) {
-    auto query = "MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) WHERE a.ID = 0 RETURN COUNT(*)";
-    auto p = conn->getThreeHopPlan(query);
+    auto b = 1;
+    auto query = "MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) RETURN COUNT(*)";
+    auto p = conn->getTrianglePlan(query);
     auto s = p->getLastOperator()->toString();
     auto r = conn->executePlan(move(p));
+    r->getQuerySummary()->printPlanToStdOut();
     auto rStr = TestHelper::convertResultToString(*r, false);
     auto k =1 ;
 }

@@ -1,76 +1,153 @@
 #include "src/processor/include/physical_plan/operator/intersect.h"
 
-#include <algorithm>
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
+bool IntersectProbe::getChildNextTuples() {
+    if (childProbe) {
+        if (!childProbe->probe()) {
+            return false;
+        }
+    } else {
+        if (!nextOp->getNextTuples()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void IntersectProbe::probeHT(const nodeID_t& probeKey) {
+    assert(probeKeyVector->state->isFlat());
+    joinSharedState->getHashTable()->probe(
+        *probeKeyVector, probeState->probedTuples.get(), *probeState->probeSelVector);
+    if (probeState->probeSelVector->selectedSize == 0) {
+        probeState->matchedSelVector->selectedSize = 0;
+        probeState->nextMatchedTupleIdx = 0;
+    }
+    auto numMatchedTuples = 0;
+    while (true) {
+        if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY || probeState->probedTuples[0] == nullptr) {
+            break;
+        }
+        auto currentTuple = probeState->probedTuples[0];
+        probeState->matchedTuples[numMatchedTuples] = currentTuple;
+        numMatchedTuples += *(nodeID_t*)currentTuple == probeKey;
+        probeState->probedTuples[0] = *joinSharedState->getHashTable()->getPrevTuple(currentTuple);
+    }
+    probeState->matchedSelVector->selectedSize = numMatchedTuples;
+    probeState->nextMatchedTupleIdx = 0;
+    probeState->probeSelVector->selectedSize = numMatchedTuples == 0 ? 0 : 1;
+}
+
+void IntersectProbe::setPrevKeyForCacheIfNecessary(const nodeID_t& probeKey) {
+    if (probeState->matchedSelVector->selectedSize == 1) {
+        isCachingAvailable = true;
+        prevProbeKey = probeKey;
+    }
+}
+
+bool IntersectProbe::probe() {
+    if (probeState->nextMatchedTupleIdx < probeState->matchedSelVector->selectedSize) {
+        fetchFromHT();
+        return true;
+    }
+    if (!getChildNextTuples()) {
+        return false;
+    }
+    auto probeKey =
+        ((nodeID_t*)probeKeyVector->values)[probeKeyVector->state->getPositionOfCurrIdx()];
+    if (isCachingAvailable && probeKey == prevProbeKey) {
+        return true;
+    }
+    probeHT(probeKey);
+    setPrevKeyForCacheIfNecessary(probeKey);
+    fetchFromHT();
+    return true;
+}
+
+void IntersectProbe::fetchFromHT() {
+    if (probeState->matchedSelVector->selectedSize == 0) {
+        isCachingAvailable = false;
+        probeResult->state->selVector->selectedSize = 0;
+        return;
+    }
+    vector<shared_ptr<ValueVector>> vectorsToReadInto = {probeResult};
+    vector<uint32_t> columnIdxsToReadFrom = {1};
+    joinSharedState->getHashTable()->lookup(vectorsToReadInto, columnIdxsToReadFrom,
+                                            probeState->matchedTuples.get(), probeState->nextMatchedTupleIdx, 1);
+    probeState->nextMatchedTupleIdx++;
+}
+
+shared_ptr<ResultSet> Intersect::init(graphflow::processor::ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    leftDataChunk = resultSet->dataChunks[leftDataPos.dataChunkPos];
-    leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
-    rightDataChunk = resultSet->dataChunks[rightDataPos.dataChunkPos];
-    rightValueVector = rightDataChunk->valueVectors[rightDataPos.valueVectorPos];
-    selVectorsToSaveRestore.push_back(leftValueVector->state->selVector.get());
-    selVectorsToSaveRestore.push_back(rightValueVector->state->selVector.get());
+    auto outputDataChunk = resultSet->dataChunks[outputVectorPos.dataChunkPos];
+    outputVector = make_shared<ValueVector>(NODE_ID);
+    outputDataChunk->insert(0, outputVector);
+    prober->init(*resultSet);
     return resultSet;
 }
 
-void Intersect::reInitToRerunSubPlan() {
-    children[0]->reInitToRerunSubPlan();
-    FilteringOperator::reInitToRerunSubPlan();
+bool Intersect::isCurrentIntersectDone(
+    const vector<shared_ptr<ValueVector>>& vectors, const vector<sel_t>& positions) {
+    for (auto i = 0u; i < vectors.size(); i++) {
+        if (positions[i] == vectors[i]->state->selVector->selectedSize) {
+            return true;
+        }
+    }
+    return false;
 }
 
-static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
-    auto selVector = nodeIDVector->state->selVector.get();
-    auto size = selVector->selectedSize;
-    auto selectedPos = selVector->getSelectedPositionsBuffer();
-    if (selVector->isUnfiltered()) {
-        memcpy(selectedPos, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
-        selVector->resetSelectorToValuePosBuffer();
+nodeID_t Intersect::getMaxNodeOffset(
+    const vector<shared_ptr<ValueVector>>& vectors, const vector<sel_t>& positions) {
+    nodeID_t currentMaxVal{0, 0};
+    for (auto i = 0u; i < vectors.size(); i++) {
+        auto val = ((nodeID_t*)vectors[i]->values)[positions[i]];
+        if (val.offset > currentMaxVal.offset) {
+            currentMaxVal = val;
+        }
     }
-    sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
-        return nodeIDVector->readNodeOffset(left) < nodeIDVector->readNodeOffset(right);
-    });
+    return currentMaxVal;
+}
+
+void Intersect::kWayIntersect() {
+    vector<sel_t> inputValuePositions(2, 0);
+    sel_t outputValuePosition = 0;
+    auto outputValues = (nodeID_t*)outputVector->values;
+    while (!isCurrentIntersectDone(probeResults, inputValuePositions)) {
+        auto currentMaxNodeID = getMaxNodeOffset(probeResults, inputValuePositions);
+        auto numEqualVectors = 0;
+        for (auto i = 0u; i < probeResults.size(); i++) {
+            auto currentValInVector = ((nodeID_t*)probeResults[i]->values)[inputValuePositions[i]];
+            if (currentValInVector.offset < currentMaxNodeID.offset) {
+                inputValuePositions[i]++;
+            } else if (currentValInVector.offset == currentMaxNodeID.offset) {
+                numEqualVectors++;
+            } else {
+                assert(false); // This should never happen unless vectors are not sorted.
+            }
+        }
+        if (numEqualVectors == probeResults.size()) {
+            outputValues[outputValuePosition++] = currentMaxNodeID;
+            for (auto i = 0u; i < probeResults.size(); i++) {
+                inputValuePositions[i]++;
+            }
+        }
+    }
+    outputVector->state->selVector->selectedSize = outputValuePosition;
 }
 
 bool Intersect::getNextTuples() {
     metrics->executionTime.start();
-    auto numSelectedValues = 0u;
     do {
-        restoreSelVectors(selVectorsToSaveRestore);
-        if (!children[0]->getNextTuples()) {
+        if (!prober->probe()) {
             metrics->executionTime.stop();
             return false;
         }
-        assert(!leftValueVector->state->isFlat());
-        assert(!rightValueVector->state->isFlat());
-        saveSelVectors(selVectorsToSaveRestore);
-        sortSelectedPos(leftValueVector);
-        sortSelectedPos(rightValueVector);
-        auto leftSelVector = leftValueVector->state->selVector.get();
-        auto rightSelVector = rightValueVector->state->selVector.get();
-        auto leftIdx = 0;
-        auto rightIdx = 0;
-        while (leftIdx < leftSelVector->selectedSize && rightIdx < rightSelVector->selectedSize) {
-            auto leftPos = leftSelVector->selectedPositions[leftIdx];
-            auto leftNodeOffset = leftValueVector->readNodeOffset(leftPos);
-            auto rightPos = rightSelVector->selectedPositions[rightIdx];
-            auto rightNodeOffset = rightValueVector->readNodeOffset(rightPos);
-            if (leftNodeOffset > rightNodeOffset) {
-                rightIdx++;
-            } else if (leftNodeOffset < rightNodeOffset) {
-                leftIdx++;
-            } else {
-                leftSelVector->getSelectedPositionsBuffer()[numSelectedValues++] = leftPos;
-                leftIdx++;
-                rightIdx++;
-            }
-        }
-        leftSelVector->selectedSize = numSelectedValues;
-    } while (numSelectedValues == 0);
-    // TODO: open an issue about this
-    rightValueVector->state->selVector->selectedSize = 1;
+        kWayIntersect();
+    } while (outputVector->state->selVector->selectedSize == 0);
+    metrics->numOutputTuple.increase(outputVector->state->selVector->selectedSize);
     metrics->executionTime.stop();
     return true;
 }

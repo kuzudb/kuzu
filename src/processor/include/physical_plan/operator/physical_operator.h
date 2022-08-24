@@ -26,6 +26,7 @@ enum PhysicalOperatorType : uint8_t {
     LIMIT,
     LIST_EXTEND,
     MULTIPLICITY_REDUCER,
+    MW_INTERSECT,
     PROJECTION,
     READ_REL_PROPERTY,
     RESULT_COLLECTOR,
@@ -36,6 +37,7 @@ enum PhysicalOperatorType : uint8_t {
     SEMI_MASKER,
     SET,
     SKIP,
+    SORTER,
     ORDER_BY,
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,
@@ -49,10 +51,10 @@ enum PhysicalOperatorType : uint8_t {
 const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",
     "CREATE", "DELETE", "EXISTS", "FACTORIZED_TABLE_SCAN", "FILTER", "FLATTEN", "HASH_JOIN_BUILD",
     "HASH_JOIN_PROBE", "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND",
-    "MULTIPLICITY_REDUCER", "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN",
-    "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET",
-    "SKIP", "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN", "CREATE_NODE_TABLE",
-    "CREATE_REL_TABLE"};
+    "MULTIPLICITY_REDUCER", "MW_INTERSECT", "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR",
+    "RESULT_SCAN", "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY",
+    "SEMI_MASKER", "SET", "SKIP", "SORTER", "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN",
+    "UNION_ALL_SCAN", "CREATE_NODE_TABLE", "CREATE_REL_TABLE"};
 
 struct OperatorMetrics {
 
@@ -76,7 +78,7 @@ public:
     // Binary operator
     PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
         uint32_t id, const string& paramsString);
-    // This constructor is used by UnionAllScan only since it may have multiple children.
+    // Multi-way operator
     PhysicalOperator(
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString);
 

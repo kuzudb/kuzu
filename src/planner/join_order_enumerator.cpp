@@ -183,16 +183,6 @@ void JoinOrderEnumerator::planRelINLJoin(const SubqueryGraph& prevSubgraph, uint
                 planPropertyScansForRel(*tmpRel, direction, *plan);
                 context->addPlan(newSubgraph, move(plan));
             }
-            for (auto& prevPlan : prevPlans) { // intersect-based solution
-                auto plan = prevPlan->shallowCopy();
-                appendExtend(*tmpRel, direction, *plan);
-                planFiltersForRel(predicates, *tmpRel, direction, *plan);
-                planPropertyScansForRel(*tmpRel, direction, *plan);
-                if (appendIntersect(
-                        closeNode->getIDProperty(), tmpCloseNode->getIDProperty(), *plan)) {
-                    context->addPlan(newSubgraph, move(plan));
-                }
-            }
         }
     } else {
         auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
@@ -507,22 +497,6 @@ shared_ptr<LogicalOperator> JoinOrderEnumerator::createHashJoin(
     return make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(), flatOutputGroupPositions,
         buildSideSchema.getExpressionsInScope(), isOutputAFlatTuple, probePlan.getLastOperator(),
         buildPlan.getLastOperator());
-}
-
-bool JoinOrderEnumerator::appendIntersect(
-    const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto leftGroupPos = schema->getGroupPos(leftNodeID);
-    auto rightGroupPos = schema->getGroupPos(rightNodeID);
-    auto& leftGroup = *schema->getGroup(leftGroupPos);
-    auto& rightGroup = *schema->getGroup(rightGroupPos);
-    if (leftGroup.getIsFlat() || rightGroup.getIsFlat()) {
-        // We should use filter close cycle if any group is flat.
-        return false;
-    }
-    auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.getLastOperator());
-    plan.appendOperator(move(intersect));
-    return true;
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(

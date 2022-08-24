@@ -224,6 +224,14 @@ unique_ptr<planner::LogicalPlan> Connection::getThreeHopPlan(const std::string& 
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 
+unique_ptr<planner::LogicalPlan> Connection::getTrianglePlan(const std::string& query) {
+    lock_t lck{mtx};
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getTrianglePlan(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();

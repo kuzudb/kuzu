@@ -2,11 +2,12 @@
 
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_sorter.h"
 
 namespace graphflow {
 namespace planner {
 
-static const bool ENABLE_ASP = true;
+static const bool ENABLE_ASP = false;
 
 static expression_vector extractPredicatesForNode(
     expression_vector& predicates, NodeExpression& node) {
@@ -69,7 +70,7 @@ unique_ptr<LogicalPlan> Enumerator::getIS6Plan(const BoundStatement& statement) 
     assert(e2->getRawName() == "e2");
     auto e3 = queryGraph->getQueryRel(2);
     assert(e3->getRawName() == "e3");
-    
+
     auto plan = createRelScanPlan(e1, comment, predicates, true);
     auto scanE2Plan = createRelScanPlan(e2, post, predicates, false);
     joinOrderEnumerator.appendASPJoin(post, *plan, *scanE2Plan);
@@ -153,6 +154,50 @@ unique_ptr<LogicalPlan> Enumerator::getThreeHopPlan(const BoundStatement& statem
     return plan;
 }
 
+// (a)-[e1]->(b)-[e2]->(c), (a)-[e3]->(c)
+unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundStatement) {
+    auto queryPart = extractQueryPart(boundStatement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    expression_vector predicates;
+    if (queryPart->getQueryGraphPredicate(0)) {
+        predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    }
+    auto a = queryGraph->getQueryNode(0);
+    assert(a->getRawName() == "a");
+    auto b = queryGraph->getQueryNode(1);
+    assert(b->getRawName() == "b");
+    auto c = queryGraph->getQueryNode(2);
+    assert(c->getRawName() == "c");
+    auto e1 = queryGraph->getQueryRel(0);
+    assert(e1->getRawName() == "e1");
+    auto e2 = queryGraph->getQueryRel(1);
+    assert(e2->getRawName() == "e2");
+    auto e3 = queryGraph->getQueryRel(2);
+    assert(e3->getRawName() == "e3");
+
+    //******* plan compilation ************
+
+    // compile a-e1-b
+    auto plan = createRelScanPlan(e1, a, predicates, true);
+    compileHashJoinWithNode(*plan, b, predicates);
+    auto bGroupPos = plan->getSchema()->getGroupPos(b->getIDProperty());
+    appendFlattenIfNecessary(bGroupPos, *plan);
+
+    // compile closing with b-e2, a-e3
+    auto be2 = createRelScanPlan(e2, b, predicates, false);
+    appendSorter(c, *be2);
+    auto ae3 = createRelScanPlan(e3, a, predicates, false);
+    appendSorter(c, *ae3);
+    auto buildPlans = vector<LogicalPlan*>{be2.get(), ae3.get()};
+    auto hashNodes = vector<shared_ptr<NodeExpression>>{b, a};
+    compileIntersectWithNode(*plan, buildPlans, c, hashNodes);
+
+    compileHashJoinWithNode(*plan, c, predicates);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
 NormalizedQueryPart* Enumerator::extractQueryPart(const BoundStatement& statement) {
     assert(statement.getStatementType() == StatementType::QUERY);
     auto& regularQuery = (BoundRegularQuery&)statement;
@@ -193,6 +238,35 @@ void Enumerator::compileHashJoinWithNode(
     } else {
         joinOrderEnumerator.appendHashJoin(node, plan, *buildPlan);
     }
+}
+
+void Enumerator::compileIntersectWithNode(LogicalPlan& plan, vector<LogicalPlan*>& buildPlans,
+    shared_ptr<NodeExpression>& intersectNode, vector<shared_ptr<NodeExpression>>& hashNodes) {
+    auto intersect = make_shared<LogicalIntersect>(intersectNode, plan.getLastOperator());
+    for (auto i = 0u; i < buildPlans.size(); ++i) {
+        auto hashNode = hashNodes[i];
+        auto buildPlan = buildPlans[i];
+        auto buildSideSchema = buildPlan->getSchema();
+        assert(buildSideSchema->getNumGroups() == 2);
+        auto keyGroupPos = buildSideSchema->getGroupPos(hashNode->getIDProperty());
+        assert(keyGroupPos == 0);
+        auto payloadGroupPos = buildSideSchema->getGroupPos(intersectNode->getIDProperty());
+        assert(payloadGroupPos == 1);
+        // No edge property.
+        assert(buildSideSchema->getExpressionsInScope(payloadGroupPos).size() == 1);
+        auto buildInfo = make_unique<BuildInfo>(
+            hashNode, buildSideSchema->copy(), buildSideSchema->getExpressionsInScope());
+        intersect->addChild(buildPlan->getLastOperator(), move(buildInfo));
+    }
+    auto schema = plan.getSchema();
+    auto outputGroupPos = schema->createGroup();
+    schema->insertToGroupAndScope(intersectNode->getNodeIDPropertyExpression(), outputGroupPos);
+    plan.appendOperator(move(intersect));
+}
+
+void Enumerator::appendSorter(shared_ptr<NodeExpression> expressionToSort, LogicalPlan& plan) {
+    auto sorter = make_shared<LogicalSorter>(expressionToSort, plan.getLastOperator());
+    plan.appendOperator(move(sorter));
 }
 
 } // namespace planner

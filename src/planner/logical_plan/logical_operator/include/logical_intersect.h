@@ -1,40 +1,58 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "schema.h"
+
+#include "src/binder/expression/include/node_expression.h"
 
 namespace graphflow {
 namespace planner {
+using namespace graphflow::binder;
 
-/**
- * LogicalIntersect takes two nodeID with different names but representing the same query node and
- * intersect them. We assume leftNodeID has the original name while rightNodeID is the one being
- * created temporarily to break cycle.
- */
+struct BuildInfo {
+    BuildInfo(
+        shared_ptr<NodeExpression> key, unique_ptr<Schema> schema, expression_vector expressions)
+        : key{move(key)}, schema{move(schema)}, expressionsToMaterialize{move(expressions)} {}
+
+    inline unique_ptr<BuildInfo> copy() {
+        return make_unique<BuildInfo>(key, schema->copy(), expressionsToMaterialize);
+    }
+
+    shared_ptr<NodeExpression> key;
+    unique_ptr<Schema> schema;
+    expression_vector expressionsToMaterialize;
+};
+
 class LogicalIntersect : public LogicalOperator {
 
 public:
-    LogicalIntersect(string leftNodeID, string rightNodeID, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, leftNodeID{move(leftNodeID)}, rightNodeID{
-                                                                          move(rightNodeID)} {}
+    LogicalIntersect(shared_ptr<NodeExpression> intersectNode, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, intersectNode{move(intersectNode)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_INTERSECT;
     }
 
-    string getExpressionsForPrinting() const override { return leftNodeID + ", " + rightNodeID; }
+    string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }
 
-    inline string getLeftNodeID() const { return leftNodeID; }
-
-    inline string getRightNodeID() const { return rightNodeID; }
+    inline void addChild(shared_ptr<LogicalOperator> op, unique_ptr<BuildInfo> buildInfo) {
+        children.push_back(move(op));
+        buildInfos.push_back(move(buildInfo));
+    }
+    inline shared_ptr<NodeExpression> getIntersectNode() const { return intersectNode; }
+    inline BuildInfo* getBuildInfo(uint32_t idx) const { return buildInfos[idx].get(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalIntersect>(leftNodeID, rightNodeID, children[0]->copy());
+        auto result = make_unique<LogicalIntersect>(intersectNode, children[0]->copy());
+        for (auto i = 1u; i < children.size(); ++i) {
+            result->addChild(children[i]->copy(), buildInfos[i]->copy());
+        }
+        return result;
     }
 
 private:
-    string leftNodeID;
-    // Right node ID should be the temporary node ID
-    string rightNodeID;
+    shared_ptr<NodeExpression> intersectNode;
+    vector<unique_ptr<BuildInfo>> buildInfos;
 };
 
 } // namespace planner

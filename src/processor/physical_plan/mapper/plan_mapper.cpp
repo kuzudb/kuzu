@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include "src/processor/include/physical_plan/operator/sorter.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_sorter.h"
 #include "src/binder/expression/include/function_expression.h"
 #include "src/binder/expression/include/property_expression.h"
 #include "src/function/aggregate/include/aggregate_function.h"
@@ -158,6 +160,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_CREATE_REL_TABLE: {
         physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_SORTER: {
+        physicalOperator = mapLogicalSorterToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     default:
         assert(false);
     }
@@ -204,16 +209,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.expression, mapperContext);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         getOperatorID(), logicalFilter.getExpressionsForPrinting());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalIntersect = (const LogicalIntersect&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto leftDataPos = mapperContext.getDataPos(logicalIntersect.getLeftNodeID());
-    auto rightDataPos = mapperContext.getDataPos(logicalIntersect.getRightNodeID());
-    return make_unique<Intersect>(leftDataPos, rightDataPos, move(prevOperator), getOperatorID(),
-        logicalIntersect.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
@@ -438,6 +433,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
         createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKeyIdx(),
         getOperatorID(), createNodeTable.getExpressionsForPrinting(),
         &storageManager.getNodesStore().getNodesMetadata());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSorterToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto& sorter = (LogicalSorter&)*logicalOperator;
+    auto pos = mapperContext.getDataPos(sorter.expressionToSort->getIDProperty());
+    return make_unique<Sorter>(
+        pos, move(prevOperator), getOperatorID(), sorter.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(

@@ -11,6 +11,10 @@ public:
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getThreeHopPlan(statement);
     }
+    static inline unique_ptr<LogicalPlan> getTrianglePlan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getTrianglePlan(statement);
+    }
     static inline unique_ptr<LogicalPlan> getIS02Plan(const Catalog& catalog,
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getIS2Plan(statement);
