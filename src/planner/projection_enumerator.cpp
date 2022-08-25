@@ -9,6 +9,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
+#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
 namespace planner {
@@ -81,9 +82,10 @@ void ProjectionEnumerator::appendProjection(
     vector<uint32_t> groupsPosToWrite;
     for (auto& expression : expressionsToProject) {
         enumerator->planSubqueryIfNecessary(expression, plan);
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
-        groupsPosToWrite.push_back(enumerator->appendFlattensButOne(dependentGroupsPos, plan));
+        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+        groupsPosToWrite.push_back(Enumerator::appendFlattensButOne(dependentGroupsPos, plan));
     }
+
     auto groupsPosInScopeBeforeProjection = schema->getGroupsPosInScope();
     schema->clearExpressionsInScope();
     for (auto i = 0u; i < expressionsToProject.size(); ++i) {
@@ -106,7 +108,7 @@ void ProjectionEnumerator::appendDistinct(
     const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     for (auto& expression : expressionsToDistinct) {
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
+        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
         enumerator->appendFlattens(dependentGroupsPos, plan);
     }
     auto distinct =
@@ -131,32 +133,28 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
     }
     if (hasDistinctFunc) {
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
             enumerator->appendFlattens(dependentGroupsPos, plan);
         }
         for (auto& expressionToAggregate : expressionsToAggregate) {
             assert(isExpressionAggregate(expressionToAggregate->expressionType));
             auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
             if (functionExpression.isDistinct()) {
-                auto dependentGroupsPos =
-                    Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+                auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
                 enumerator->appendFlattens(dependentGroupsPos, plan);
             }
         }
     } else {
         unordered_set<uint32_t> groupByPoses;
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
             groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
         }
         Enumerator::appendFlattensButOne(groupByPoses, plan);
 
         unordered_set<uint32_t> aggPoses;
         for (auto& expressionToAggregate : expressionsToAggregate) {
-            auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
             aggPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
         }
         Enumerator::appendFlattensButOne(aggPoses, plan);
@@ -193,14 +191,12 @@ void ProjectionEnumerator::appendOrderBy(
         // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
         // cannot read back a flat column into an unflat vector.
         if (schema->getNumGroups() > 1) {
-            auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
-            enumerator->appendFlattens(dependentGroupsPos, plan);
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+            Enumerator::appendFlattens(dependentGroupsPos, plan);
         }
     }
     auto schemaBeforeOrderBy = schema->copy();
-    schema->clear();
-    Enumerator::computeSchemaForSinkOperators(
-        schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *schema);
+    SinkOperatorUtil::reComputeSchema(*schemaBeforeOrderBy, *schema);
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),
         plan.getLastOperator());

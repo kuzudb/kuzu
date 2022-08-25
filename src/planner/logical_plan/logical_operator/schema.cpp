@@ -45,6 +45,28 @@ expression_vector Schema::getExpressionsInScope(uint32_t pos) const {
     return result;
 }
 
+expression_vector Schema::getSubExpressionsInScope(const shared_ptr<Expression>& expression) {
+    expression_vector results;
+    if (isExpressionInScope(*expression)) {
+        results.push_back(expression);
+        return results;
+    }
+    for (auto& child : expression->getChildren()) {
+        for (auto& subExpression : getSubExpressionsInScope(child)) {
+            results.push_back(subExpression);
+        }
+    }
+    return results;
+}
+
+unordered_set<uint32_t> Schema::getDependentGroupsPos(const shared_ptr<Expression>& expression) {
+    unordered_set<uint32_t> result;
+    for (auto& subExpression : getSubExpressionsInScope(expression)) {
+        result.insert(getGroupPos(subExpression->getUniqueName()));
+    }
+    return result;
+}
+
 unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
     unordered_set<uint32_t> result;
     for (auto& expressionInScope : expressionsInScope) {

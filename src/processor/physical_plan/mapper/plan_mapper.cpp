@@ -136,8 +136,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_UNION_ALL: {
         physicalOperator = mapLogicalUnionAllToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SINK: {
-        physicalOperator = mapLogicalSinkToPhysical(logicalOperator.get(), mapperContext);
+    case LOGICAL_ACCUMULATE: {
+        physicalOperator = mapLogicalAccumulateToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_STATIC_TABLE_SCAN: {
         physicalOperator = mapLogicalTableScanToPhysical(logicalOperator.get(), mapperContext);
@@ -191,12 +191,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& flatten = (const LogicalFlatten&)*logicalOperator;
+    auto flatten = (LogicalFlatten*)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto dataChunkPos =
-        mapperContext.getDataPos(flatten.getExpressionToFlatten()->getUniqueName()).dataChunkPos;
+        mapperContext.getDataPos(flatten->getExpression()->getUniqueName()).dataChunkPos;
     return make_unique<Flatten>(
-        dataChunkPos, move(prevOperator), getOperatorID(), flatten.getExpressionsForPrinting());
+        dataChunkPos, move(prevOperator), getOperatorID(), flatten->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(

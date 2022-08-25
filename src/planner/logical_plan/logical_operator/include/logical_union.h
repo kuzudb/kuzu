@@ -7,9 +7,11 @@ namespace graphflow {
 namespace planner {
 
 class LogicalUnion : public LogicalOperator {
-
 public:
-    explicit LogicalUnion(expression_vector expressions) : expressionsToUnion{move(expressions)} {}
+    LogicalUnion(expression_vector expressions, vector<unique_ptr<Schema>> schemasBeforeUnion,
+        vector<shared_ptr<LogicalOperator>> children)
+        : LogicalOperator{move(children)}, expressionsToUnion{move(expressions)},
+          schemasBeforeUnion{move(schemasBeforeUnion)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_UNION_ALL;
@@ -19,11 +21,17 @@ public:
 
     inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
 
-    inline void addSchema(unique_ptr<Schema> schema) { schemasBeforeUnion.push_back(move(schema)); }
     inline Schema* getSchemaBeforeUnion(uint32_t idx) { return schemasBeforeUnion[idx].get(); }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalUnion>(expressionsToUnion);
+        vector<unique_ptr<Schema>> copiedSchemas;
+        vector<shared_ptr<LogicalOperator>> copiedChildren;
+        for (auto i = 0u; i < getNumChildren(); ++i) {
+            copiedSchemas.push_back(schemasBeforeUnion[i]->copy());
+            copiedChildren.push_back(getChild(i)->copy());
+        }
+        return make_unique<LogicalUnion>(
+            expressionsToUnion, move(copiedSchemas), move(copiedChildren));
     }
 
 private:

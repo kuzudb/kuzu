@@ -7,7 +7,6 @@ namespace graphflow {
 namespace planner {
 
 class LogicalAggregate : public LogicalOperator {
-
 public:
     LogicalAggregate(expression_vector expressionsToGroupBy,
         expression_vector expressionsToAggregate, unique_ptr<Schema> schemaBeforeAggregate,
@@ -16,18 +15,15 @@ public:
           expressionsToAggregate{move(expressionsToAggregate)}, schemaBeforeAggregate{
                                                                     move(schemaBeforeAggregate)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
+    inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_AGGREGATE;
     }
 
     string getExpressionsForPrinting() const override;
 
     inline bool hasExpressionsToGroupBy() const { return !expressionsToGroupBy.empty(); }
-
     inline expression_vector getExpressionsToGroupBy() const { return expressionsToGroupBy; }
-
     inline expression_vector getExpressionsToAggregate() const { return expressionsToAggregate; }
-
     inline Schema* getSchemaBeforeAggregate() const { return schemaBeforeAggregate.get(); }
 
     unique_ptr<LogicalOperator> copy() override {

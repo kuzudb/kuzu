@@ -3,13 +3,10 @@
 #include "base_logical_operator.h"
 #include "schema.h"
 
-using namespace graphflow::binder;
-
 namespace graphflow {
 namespace planner {
 
 class LogicalDistinct : public LogicalOperator {
-
 public:
     LogicalDistinct(expression_vector expressionsToDistinct,
         unique_ptr<Schema> schemaBeforeDistinct, shared_ptr<LogicalOperator> child)
@@ -21,7 +18,6 @@ public:
     string getExpressionsForPrinting() const override;
 
     inline expression_vector getExpressionsToDistinct() const { return expressionsToDistinct; }
-
     inline Schema* getSchemaBeforeDistinct() const { return schemaBeforeDistinct.get(); }
 
     unique_ptr<LogicalOperator> copy() override {

@@ -12,6 +12,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
+#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
 namespace planner {
@@ -159,8 +160,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     auto outerPlanSchema = outerPlan.getSchema();
     expression_vector expressionsToScanFromOuter;
     if (queryGraphPredicate) {
-        expressionsToScanFromOuter =
-            getSubExpressionsInSchema(queryGraphPredicate, *outerPlanSchema);
+        expressionsToScanFromOuter = outerPlanSchema->getSubExpressionsInScope(queryGraphPredicate);
     }
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
         if (outerPlanSchema->isExpressionInScope(*nodeIDExpression)) {
@@ -216,7 +216,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
 void Enumerator::planExistsSubquery(
     const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
     auto expressionsToScanFromOuter =
-        getSubExpressionsInSchema(subqueryExpression, *outerPlan.getSchema());
+        outerPlan.getSchema()->getSubExpressionsInScope(subqueryExpression);
     // We flatten all dependent groups for subquery and the result of subquery evaluation can be
     // appended to any flat dependent group.
     auto groupPosToWrite = UINT32_MAX;
@@ -276,20 +276,22 @@ uint32_t Enumerator::appendFlattensButOne(
     return unFlatGroupsPos[0];
 }
 
-void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
-    auto& group = *plan.getSchema()->getGroup(groupPos);
-    if (group.getIsFlat()) {
+void Enumerator::appendFlattenIfNecessary(shared_ptr<Expression> expression, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto group = schema->getGroup(expression);
+    if (group->getIsFlat()) {
         return;
     }
-    plan.getSchema()->flattenGroup(groupPos);
-    plan.multiplyCardinality(group.getMultiplier());
-    auto flatten = make_shared<LogicalFlatten>(group.getAnyExpression(), plan.getLastOperator());
+    auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
+    flatten->computeSchema(*schema);
     plan.appendOperator(move(flatten));
+    // update cardinality estimation info
+    plan.multiplyCardinality(group->getMultiplier());
 }
 
 void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     planSubqueryIfNecessary(expression, plan);
-    auto dependentGroupsPos = getDependentGroupsPos(expression, *plan.getSchema());
+    auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
@@ -380,14 +382,16 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     }
     // we compute the schema based on first child
     auto plan = make_unique<LogicalPlan>();
-    auto logicalUnion = make_shared<LogicalUnion>(firstChildSchema->getExpressionsInScope());
-    Enumerator::computeSchemaForSinkOperators(
-        firstChildSchema->getGroupsPosInScope(), *firstChildSchema, *plan->getSchema());
+    SinkOperatorUtil::reComputeSchema(*firstChildSchema, *plan->getSchema());
+    vector<unique_ptr<Schema>> schemaBeforeUnion;
+    vector<shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {
         plan->increaseCost(childPlan->getCost());
-        logicalUnion->addChild(childPlan->getLastOperator());
-        logicalUnion->addSchema(childPlan->getSchema()->copy());
+        schemaBeforeUnion.push_back(childPlan->getSchema()->copy());
+        children.push_back(childPlan->getLastOperator());
     }
+    auto logicalUnion = make_shared<LogicalUnion>(
+        firstChildSchema->getExpressionsInScope(), move(schemaBeforeUnion), move(children));
     plan->appendOperator(logicalUnion);
     if (!isUnionAll) {
         projectionEnumerator.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
@@ -421,58 +425,6 @@ expression_vector Enumerator::getPropertiesForRel(RelExpression& rel) {
         }
     }
     return result;
-}
-
-unordered_set<uint32_t> Enumerator::getDependentGroupsPos(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
-    unordered_set<uint32_t> dependentGroupsPos;
-    for (auto& subExpression : getSubExpressionsInSchema(expression, schema)) {
-        dependentGroupsPos.insert(schema.getGroupPos(subExpression->getUniqueName()));
-    }
-    return dependentGroupsPos;
-}
-
-expression_vector Enumerator::getSubExpressionsInSchema(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
-    expression_vector results;
-    if (schema.isExpressionInScope(*expression)) {
-        results.push_back(expression);
-        return results;
-    }
-    for (auto& child : expression->getChildren()) {
-        for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
-            results.push_back(subExpression);
-        }
-    }
-    return results;
-}
-
-void Enumerator::computeSchemaForSinkOperators(
-    const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
-    Schema& schemaAfterSink) {
-    auto flatVectorsOutputPos = UINT32_MAX;
-    auto isAllVectorsFlat = true;
-    for (auto& groupToMaterializePos : groupsToMaterializePos) {
-        auto groupToMaterialize = schemaBeforeSink.getGroup(groupToMaterializePos);
-        if (groupToMaterialize->getIsFlat()) {
-            if (flatVectorsOutputPos == UINT32_MAX) {
-                flatVectorsOutputPos = schemaAfterSink.createGroup();
-            }
-            schemaAfterSink.insertToGroupAndScope(
-                schemaBeforeSink.getExpressionsInScope(groupToMaterializePos),
-                flatVectorsOutputPos);
-        } else {
-            isAllVectorsFlat = false;
-            auto groupPos = schemaAfterSink.createGroup();
-            auto group = schemaAfterSink.getGroup(groupPos);
-            schemaAfterSink.insertToGroupAndScope(
-                schemaBeforeSink.getExpressionsInScope(groupToMaterializePos), groupPos);
-            group->setMultiplier(groupToMaterialize->getMultiplier());
-        }
-    }
-    if (!isAllVectorsFlat && flatVectorsOutputPos != UINT32_MAX) {
-        schemaAfterSink.flattenGroup(flatVectorsOutputPos);
-    }
 }
 
 vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlans(

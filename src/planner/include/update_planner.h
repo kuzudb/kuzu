@@ -29,7 +29,7 @@ private:
     void planPropertyUpdateInfo(
         shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan);
 
-    void appendSink(LogicalPlan& plan);
+    void appendAccumulate(LogicalPlan& plan);
     void appendTableScan(BoundCreateClause& createClause, LogicalPlan& plan);
     void appendCreate(BoundCreateClause& createClause, LogicalPlan& plan);
     void appendSet(BoundSetClause& setClause, LogicalPlan& plan);

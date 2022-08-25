@@ -10,7 +10,6 @@ namespace graphflow {
 namespace planner {
 
 class LogicalFlatten : public LogicalOperator {
-
 public:
     LogicalFlatten(shared_ptr<Expression> expression, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, expression{move(expression)} {}
@@ -19,9 +18,15 @@ public:
         return LogicalOperatorType::LOGICAL_FLATTEN;
     }
 
-    string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
 
-    inline shared_ptr<Expression> getExpressionToFlatten() const { return expression; }
+    inline shared_ptr<Expression> getExpression() const { return expression; }
+
+    inline void computeSchema(Schema& schema) {
+        auto group = schema.getGroup(expression);
+        assert(!group->getIsFlat());
+        group->setIsFlat(true);
+    }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalFlatten>(expression, children[0]->copy());

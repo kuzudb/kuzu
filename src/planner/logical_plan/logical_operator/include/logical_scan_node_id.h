@@ -10,23 +10,27 @@ using namespace graphflow::binder;
 
 class LogicalScanNodeID : public LogicalOperator {
 public:
-    LogicalScanNodeID(shared_ptr<NodeExpression> nodeExpression)
-        : nodeExpression{move(nodeExpression)} {}
+    explicit LogicalScanNodeID(shared_ptr<NodeExpression> node) : node{move(node)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
+    inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
 
-    string getExpressionsForPrinting() const override { return nodeExpression->getRawName(); }
+    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getNodeExpression() const { return nodeExpression; }
+    inline void computeSchema(Schema& schema) {
+        auto groupPos = schema.createGroup();
+        schema.insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
+    }
 
-    unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalScanNodeID>(nodeExpression);
+    inline shared_ptr<NodeExpression> getNodeExpression() const { return node; }
+
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalScanNodeID>(node);
     }
 
 private:
-    shared_ptr<NodeExpression> nodeExpression;
+    shared_ptr<NodeExpression> node;
 };
 
 } // namespace planner

@@ -1,12 +1,12 @@
 #include "src/planner/include/join_order_enumerator.h"
 
-#include "src/binder/expression/include/function_expression.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
 namespace planner {
@@ -16,13 +16,6 @@ static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgr
 static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
     const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
     const expression_vector& expressions);
-static shared_ptr<Expression> createNodeIDComparison(const shared_ptr<Expression>& left,
-    const shared_ptr<Expression>& right, BuiltInVectorOperations* builtInFunctions);
-
-// Rewrite a query rel that closes a cycle as a regular query rel for extend. This requires giving a
-// different identifier to the node that will close the cycle. This identifier is created as rel
-// name + node name.
-static shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst);
 
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
@@ -160,51 +153,16 @@ void JoinOrderEnumerator::planRelINLJoin(const SubqueryGraph& prevSubgraph, uint
     auto rel = context->mergedQueryGraph->getQueryRel(relPos);
     auto predicates =
         getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-    // Note isClosingRel check is different from checking src&dst connectivity.
-    // Consider triangle query example (a)-[e1]->(b)-[e2]->(c), a-[e3]->(c), and prevSubgraph 'sg'
-    // is a-e1-b-e2, a rel neighbour for 'sg' is e3. e3 is connected to 'sg' on node 'a' but not
-    // node 'c' since 'c' is not part of 'sg'. However, we need to treat e3 as a closing edge. So
-    // isClosingRel checks only for rel and ignoring whether a node has been matched or not.
-    if (prevSubgraph.isClosingRel(relPos)) {
-        for (auto direction : REL_DIRECTIONS) { // closing direction
-            auto isCloseOnDst = direction == FWD;
-            auto tmpRel = rewriteQueryRel(*rel, isCloseOnDst); // break cycle
-            auto closeNode = isCloseOnDst ? rel->getDstNode() : rel->getSrcNode();
-            auto tmpCloseNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
-            for (auto& prevPlan : prevPlans) { // filter-based solution
-                auto plan = prevPlan->shallowCopy();
-                appendExtend(*tmpRel, direction, *plan);
-                auto idComparison = createNodeIDComparison(closeNode->getNodeIDPropertyExpression(),
-                    tmpCloseNode->getNodeIDPropertyExpression(),
-                    catalog.getBuiltInScalarFunctions());
-                enumerator->appendFilter(idComparison, *plan);
-                planFiltersForRel(predicates, *tmpRel, direction, *plan);
-                planPropertyScansForRel(*tmpRel, direction, *plan);
-                context->addPlan(newSubgraph, move(plan));
-            }
-            for (auto& prevPlan : prevPlans) { // intersect-based solution
-                auto plan = prevPlan->shallowCopy();
-                appendExtend(*tmpRel, direction, *plan);
-                planFiltersForRel(predicates, *tmpRel, direction, *plan);
-                planPropertyScansForRel(*tmpRel, direction, *plan);
-                if (appendIntersect(
-                        closeNode->getIDProperty(), tmpCloseNode->getIDProperty(), *plan)) {
-                    context->addPlan(newSubgraph, move(plan));
-                }
-            }
-        }
-    } else {
-        auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
-        auto isDstConnected = prevSubgraph.isDstConnected(relPos);
-        assert(isSrcConnected || isDstConnected);
-        auto direction = isSrcConnected ? FWD : BWD;
-        for (auto& prevPlan : prevPlans) {
-            auto plan = prevPlan->shallowCopy();
-            appendExtend(*rel, direction, *plan);
-            planFiltersForRel(predicates, *rel, direction, *plan);
-            planPropertyScansForRel(*rel, direction, *plan);
-            context->addPlan(newSubgraph, move(plan));
-        }
+    auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
+    auto isDstConnected = prevSubgraph.isDstConnected(relPos);
+    assert(isSrcConnected || isDstConnected);
+    auto direction = isSrcConnected ? FWD : BWD;
+    for (auto& prevPlan : prevPlans) {
+        auto plan = prevPlan->shallowCopy();
+        appendExtend(rel, direction, *plan);
+        planFiltersForRel(predicates, *rel, direction, *plan);
+        planPropertyScansForRel(*rel, direction, *plan);
+        context->addPlan(newSubgraph, move(plan));
     }
 }
 
@@ -284,50 +242,40 @@ void JoinOrderEnumerator::appendResultScan(
     plan.appendOperator(move(resultScan));
 }
 
-void JoinOrderEnumerator::appendScanNodeID(
-    shared_ptr<NodeExpression> queryNode, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
+void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(queryNode->getNodeIDPropertyExpression(), groupPos);
-    auto numNodes = nodesMetadata.getNodeMetadata(queryNode->getLabel())->getMaxNodeOffset() + 1;
-    auto scan = make_shared<LogicalScanNodeID>(move(queryNode));
-    schema->getGroup(groupPos)->setMultiplier(numNodes);
+    auto schema = plan.getSchema();
+    auto scan = make_shared<LogicalScanNodeID>(node);
+    scan->computeSchema(*schema);
     plan.appendOperator(move(scan));
+    // update cardinality estimation info
+    auto numNodes = nodesMetadata.getNodeMetadata(node->getLabel())->getMaxNodeOffset() + 1;
+    schema->getGroup(node->getIDProperty())->setMultiplier(numNodes);
 }
 
 void JoinOrderEnumerator::appendExtend(
-    const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan) {
+    shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto boundNode = FWD == direction ? queryRel.getSrcNode() : queryRel.getDstNode();
-    auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
-    auto boundNodeID = boundNode->getIDProperty();
-    auto nbrNodeID = nbrNode->getIDProperty();
-    auto isColumnExtend = catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
-        queryRel.getLabel(), direction);
-    auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
-    uint32_t nbrGroupPos;
-    // If the join is a single (1-hop) fixed-length column extend (e.g., over a relationship with
-    // one-to-one multiplicity), then we put the nbrNode vector into the same
-    // datachunk/factorization group as the boundNodeId. Otherwise (including a var-length join over
-    // a column extend) to a separate data chunk, which will be unflat. However, note that a
-    // var-length column join can still write a single value to this unflat nbrNode vector (i.e.,
-    // the vector in this case can be an unflat vector with a single value in it).
-    if (isColumnExtend && (queryRel.getLowerBound() == 1) &&
-        (queryRel.getLowerBound() == queryRel.getUpperBound())) {
-        nbrGroupPos = boundNodeGroupPos;
-    } else {
-        Enumerator::appendFlattenIfNecessary(boundNodeGroupPos, plan);
-        nbrGroupPos = schema->createGroup();
-        auto nbrNodeGroup = schema->getGroup(nbrGroupPos);
-        nbrNodeGroup->setMultiplier(
-            getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction));
+    auto boundNode = FWD == direction ? rel->getSrcNode() : rel->getDstNode();
+    auto nbrNode = FWD == direction ? rel->getDstNode() : rel->getSrcNode();
+    auto isManyToOne =
+        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getLabel(), direction);
+    // Note that a var-length column join writes a single value to unflat nbrNode
+    // vector (i.e., this vector is an unflat vector with a single value in it).
+    auto isColumn = isManyToOne && !rel->isVariableLength();
+    if (!isColumn) {
+        Enumerator::appendFlattenIfNecessary(boundNode->getNodeIDPropertyExpression(), plan);
     }
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, queryRel.getLabel(), direction,
-        isColumnExtend, queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
-    schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), nbrGroupPos);
-    plan.increaseCost(plan.getCardinality());
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getLabel(), direction,
+        isColumn, rel->getLowerBound(), rel->getUpperBound(), plan.getLastOperator());
+    extend->computeSchema(*schema);
     plan.appendOperator(move(extend));
+    // update cardinality estimation info
+    if (!isColumn) {
+        auto extensionRate = getExtensionRate(boundNode->getLabel(), rel->getLabel(), direction);
+        schema->getGroup(nbrNode->getIDProperty())->setMultiplier(extensionRate);
+    }
+    plan.increaseCost(plan.getCardinality());
 }
 
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
@@ -358,11 +306,29 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
     return true;
 }
 
+static bool buildSideHasNoPayload(const Schema& buildSchema) {
+    return buildSchema.getExpressionsInScope().size() == 1;
+}
+
+static bool buildSideHasUnFlatPayload(const string& key, const Schema& buildSchema) {
+    for (auto groupPos : SinkOperatorUtil::getGroupsPosIgnoringKeyGroup(buildSchema, key)) {
+        if (!buildSchema.getGroup(groupPos)->getIsFlat()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Key group contains expressions other than key, i.e. more than one expression.
+static bool buildSideKeyGroupIsNotTrivial(const string& key, const Schema& buildSchema) {
+    auto keyGroupPos = buildSchema.getGroupPos(key);
+    return buildSchema.getExpressionsInScope(keyGroupPos).size() > 1;
+}
+
 void JoinOrderEnumerator::appendHashJoin(
     const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
     auto& buildSideSchema = *buildPlan.getSchema();
-    auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
     auto probeSideSchema = probePlan.getSchema();
     auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNodeID);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
@@ -377,78 +343,33 @@ void JoinOrderEnumerator::appendHashJoin(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
         probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
     }
-    // Merge key group from build side into probe side.
-    for (auto& expression : buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos)) {
-        if (expression->getUniqueName() == joinNodeID) {
-            continue;
-        }
-        probeSideSchema->insertToGroupAndScope(expression, probeSideKeyGroupPos);
+    // Analyze if we can scan multiple rows or not when the probe key if flat.
+    // TODO(Guodong): some of the follwing logics are ideally being replaced by duplicating probing
+    // key as in vectorized processing. Also, we might get rid of flattening probe key logic.
+    bool isScanOneRow = false;
+    if (probeSideSchema->getGroup(probeSideKeyGroupPos)->getIsFlat()) {
+        // If there is no payload, we can't represent more than one match in an unFlat vector, i.e.
+        // the multiplicity information is lost in the output.
+        isScanOneRow |= buildSideHasNoPayload(buildSideSchema);
+        // Factorization structure limitation.
+        isScanOneRow |= buildSideHasUnFlatPayload(joinNodeID, buildSideSchema);
+        // If key group is non-trivial, i.e. contains payload vectors along side with key vector, we
+        // cannot guarantee these payload vectors has 1-1 mapping with the key (e.g. edge
+        // properties). Therefore, we cannot scan multiple rows for a single key.
+        isScanOneRow |= buildSideKeyGroupIsNotTrivial(joinNodeID, buildSideSchema);
     }
-    // Merge build side payload groups to the result.
-    unordered_set<uint32_t> buildSidePayloadGroupsPos;
-    bool buildSideHasUnflatPayloads = false;
-    for (auto& groupPos : buildSideSchema.getGroupsPosInScope()) {
-        if (groupPos == buildSideKeyGroupPos) {
-            continue;
-        }
-        buildSidePayloadGroupsPos.insert(groupPos);
-        if (!buildSideSchema.getGroup(groupPos)->getIsFlat()) {
-            buildSideHasUnflatPayloads = true;
-        }
-    }
-    auto resultSchema = probeSideSchema;
-    auto numGroupsBefore = resultSchema->getNumGroups();
-    Enumerator::computeSchemaForSinkOperators(
-        buildSidePayloadGroupsPos, buildSideSchema, *resultSchema);
-    // When the build side payload has no unflat groups, and build side key has more than 1 vectors,
-    // we flatten newly added groups from the build side in the output. This is because we cannot
-    // guarantee a 1-1 mapping between the key and other payloads within the key data chunk (take
-    // rel properties as an example). Notice that if there is any unflat groups in the build side,
-    // they are already flatten in previous call `computeSchemaForSinkOperators`. Otherwise, they
-    // may still stay unflat. Thus, we further apply this rule.
-    bool flattenBuildSideOutput =
-        !buildSideHasUnflatPayloads &&
-        buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos).size() > 1;
+    auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
+    SinkOperatorUtil::mergeSchema(buildSideSchema, *probeSideSchema, joinNodeID, isScanOneRow);
     vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = numGroupsBefore; i < resultSchema->getNumGroups(); ++i) {
-        if (resultSchema->getGroup(i)->getIsFlat()) {
+    for (auto i = numGroupsBeforeMerging; i < probeSideSchema->getNumGroups(); ++i) {
+        if (probeSideSchema->getGroup(i)->getIsFlat()) {
             flatOutputGroupPositions.push_back(i);
-        } else if (flattenBuildSideOutput) {
-            flatOutputGroupPositions.push_back(i);
-            resultSchema->flattenGroup(i);
         }
-    }
-    // Here, for flat probe side key, we decide for the operator if the final output is a flat
-    // tuple. Three cases are considered: 1) build side output is already flat, then the output is
-    // also flat; 2) build side has no payloads, we also need to output a flat tuple because we lose
-    // the multiplicity information from the build side in the final output; 3) build side contains
-    // unflat payload, we must output a flat tuple for form a correct f-structure.
-    bool isOutputAFlatTuple = false;
-    if (probeSideSchema->getGroup(probeSideKeyGroupPos)->getIsFlat() &&
-        (flattenBuildSideOutput || buildSidePayloadGroupsPos.empty() ||
-            buildSideHasUnflatPayloads)) {
-        isOutputAFlatTuple = true;
     }
     auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
-        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(), isOutputAFlatTuple,
+        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(), isScanOneRow,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
-}
-
-bool JoinOrderEnumerator::appendIntersect(
-    const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto leftGroupPos = schema->getGroupPos(leftNodeID);
-    auto rightGroupPos = schema->getGroupPos(rightNodeID);
-    auto& leftGroup = *schema->getGroup(leftGroupPos);
-    auto& rightGroup = *schema->getGroup(rightGroupPos);
-    if (leftGroup.getIsFlat() || rightGroup.getIsFlat()) {
-        // We should use filter close cycle if any group is flat.
-        return false;
-    }
-    auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.getLastOperator());
-    plan.appendOperator(move(intersect));
-    return true;
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(
@@ -497,30 +418,6 @@ expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph
         }
     }
     return newMatchedExpressions;
-}
-
-shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst) {
-    auto& nodeToRewrite = isRewriteDst ? *queryRel.getDstNode() : *queryRel.getSrcNode();
-    auto tmpNode = make_shared<NodeExpression>(
-        nodeToRewrite.getUniqueName() + "_" + queryRel.getUniqueName(), nodeToRewrite.getLabel());
-    return make_shared<RelExpression>(queryRel.getUniqueName(), queryRel.getLabel(),
-        isRewriteDst ? queryRel.getSrcNode() : tmpNode,
-        isRewriteDst ? tmpNode : queryRel.getDstNode(), queryRel.getLowerBound(),
-        queryRel.getUpperBound());
-}
-
-shared_ptr<Expression> createNodeIDComparison(const shared_ptr<Expression>& left,
-    const shared_ptr<Expression>& right, BuiltInVectorOperations* builtInFunctions) {
-    expression_vector children;
-    children.push_back(left);
-    children.push_back(right);
-    vector<DataType> childrenTypes;
-    childrenTypes.push_back(left->dataType);
-    childrenTypes.push_back(right->dataType);
-    auto function = builtInFunctions->matchFunction(EQUALS_FUNC_NAME, childrenTypes);
-    auto uniqueName = ScalarFunctionExpression::getUniqueName(EQUALS_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(EQUALS, DataType(BOOL), move(children),
-        function->execFunc, function->selectFunc, uniqueName);
 }
 
 } // namespace planner

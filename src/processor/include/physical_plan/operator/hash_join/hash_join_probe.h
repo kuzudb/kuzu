@@ -51,22 +51,22 @@ class HashJoinProbe : public PhysicalOperator, FilteringOperator {
 public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
-        bool isOutputAFlatTuple, unique_ptr<PhysicalOperator> probeChild,
+        bool isScanOneRow, unique_ptr<PhysicalOperator> probeChild,
         unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
           FilteringOperator{1 /* numStatesToSave */}, sharedState{std::move(sharedState)},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo},
-          isOutputAFlatTuple{isOutputAFlatTuple} {}
+          isScanOneRow{isScanOneRow} {}
 
     // This constructor is used for cloning only.
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
-        bool isOutputAFlatTuple, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
+        bool isScanOneRow, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         const string& paramsString)
         : PhysicalOperator{std::move(probeChild), id, paramsString},
           FilteringOperator{1 /* numStatesToSave */}, sharedState{std::move(sharedState)},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo},
-          isOutputAFlatTuple{isOutputAFlatTuple} {}
+          isScanOneRow{isScanOneRow} {}
 
     PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
@@ -77,7 +77,7 @@ public:
     // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinProbe>(sharedState, flatDataChunkPositions, probeDataInfo,
-            isOutputAFlatTuple, children[0]->clone(), id, paramsString);
+            isScanOneRow, children[0]->clone(), id, paramsString);
     }
 
 private:
@@ -93,7 +93,7 @@ private:
     vector<uint32_t> columnIdxsToReadFrom;
     shared_ptr<ValueVector> probeSideKeyVector;
     unique_ptr<ProbeState> probeState;
-    bool isOutputAFlatTuple;
+    bool isScanOneRow;
 };
 } // namespace processor
 } // namespace graphflow

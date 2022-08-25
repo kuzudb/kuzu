@@ -5,7 +5,7 @@ namespace planner {
 
 string LogicalProjection::getExpressionsForPrinting() const {
     auto result = string();
-    for (auto& expression : expressionsToProject) {
+    for (auto& expression : expressions) {
         result += expression->getUniqueName() + ", ";
     }
     return result;

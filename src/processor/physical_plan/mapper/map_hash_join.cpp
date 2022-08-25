@@ -49,7 +49,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     // create hashJoin probe
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState,
-        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, hashJoin->getIsOutputAFlatTuple(),
+        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, hashJoin->getIsScanOneRow(),
         std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(), paramsString);
     return hashJoinProbe;
 }
