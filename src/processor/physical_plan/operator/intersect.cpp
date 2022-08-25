@@ -112,7 +112,7 @@ nodeID_t Intersect::getMaxNodeOffset(
 }
 
 void Intersect::kWayIntersect() {
-    vector<sel_t> inputValuePositions(2, 0);
+    vector<sel_t> inputValuePositions(probeResults.size(), 0);
     sel_t outputValuePosition = 0;
     auto outputValues = (nodeID_t*)outputVector->values;
     while (!isCurrentIntersectDone(probeResults, inputValuePositions)) {

@@ -180,7 +180,6 @@ unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundS
     // compile a-e1-b
     auto plan = createRelScanPlan(e1, a, predicates, true);
     compileHashJoinWithNode(*plan, b, predicates);
-    auto bGroupPos = plan->getSchema()->getGroupPos(b->getIDProperty());
 
     // compile closing with b-e2, a-e3
     auto be2 = createRelScanPlan(e2, b, predicates, false);
@@ -226,11 +225,9 @@ unique_ptr<LogicalPlan> Enumerator::getCyclePlan(
     // probe side: d-e3-a-e1-b
     auto plan = createRelScanPlan(e1, a, predicates, true);
     compileHashJoinWithNode(*plan, b, predicates);
-    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(b->getIDProperty()), *plan);
     joinOrderEnumerator.appendExtend(
         *e3, e3->getDstNodeName() == d->getUniqueName() ? FWD : BWD, *plan);
     compileHashJoinWithNode(*plan, d, predicates);
-    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(d->getIDProperty()), *plan);
 
     // build sides: d-e4, b-e2
     auto de4 = createRelScanPlan(e4, d, predicates, false);
@@ -281,7 +278,6 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
     // probe side: a-e1-b
     auto plan = createRelScanPlan(e1, a, predicates, true);
     compileHashJoinWithNode(*plan, b, predicates);
-    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(b->getIDProperty()), *plan);
     // build sides: b-e2-c, a-e5-c
     auto be2 = createRelScanPlan(e2, b, predicates, false);
     appendSorter(c, *be2);
@@ -293,7 +289,6 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
 
     // intersect subplan: SP1-e3-d, b-e6-d, d-e4-c
     compileHashJoinWithNode(*plan, c, predicates);
-    appendFlattenIfNecessary(plan->getSchema()->getGroupPos(c->getIDProperty()), *plan);
     // build sides: a-e3->d, b-e6->d, c<-e4-d
     auto ae3 = createRelScanPlan(e3, a, predicates, false);
     appendSorter(d, *ae3);
