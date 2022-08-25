@@ -26,6 +26,14 @@ vector<unique_ptr<LogicalPlan>>& SubPlansTable::getSubgraphPlans(
     return subqueryGraphPlansMap->at(subqueryGraph);
 }
 
+vector<SubqueryGraph> SubPlansTable::getSubqueryGraphs(uint32_t level) {
+    vector<SubqueryGraph> result;
+    for (auto& [subGraph, plans] : *subPlans[level]) {
+        result.push_back(subGraph);
+    }
+    return result;
+}
+
 void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan) {
     assert(subPlans[subqueryGraph.getTotalNumVariables()]);
     auto subgraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();

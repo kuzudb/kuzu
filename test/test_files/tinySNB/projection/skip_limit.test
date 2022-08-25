@@ -72,11 +72,11 @@ Carol
 Dan
 
 -NAME KnowsOneHopWithSkipLimitTest1
--QUERY MATCH (a:person) WHERE a.age>20 WITH a SKIP 2 MATCH (a)-[e:knows]->(b:person) RETURN b.fName LIMIT 2
+-QUERY MATCH (a:person) WHERE a.age>20 WITH a ORDER BY a.ID SKIP 2 MATCH (a)-[e:knows]->(b:person) RETURN a.fName, b.fName ORDER BY b.fName LIMIT 2
 -ENUMERATE
 ---- 2
-Alice
-Bob
+Carol|Alice
+Carol|Bob
 
 -NAME KnowsOneHopWithSkipLimitTest2
 -QUERY MATCH (a:person) WHERE a.age>20 WITH a SKIP 1 LIMIT 1 MATCH (a)-[e:knows]->(b:person) RETURN b.fName

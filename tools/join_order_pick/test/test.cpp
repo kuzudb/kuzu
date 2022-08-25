@@ -41,8 +41,8 @@ public:
 
 TEST_F(JoinOrderPickTest, OneHop) {
     auto queryStr = "MATCH (a:person)-[:knows]->(b:person) RETURN a.ID";
-    ASSERT_TRUE(conn->query(queryStr, "E(b)S(a)")->isSuccess());
-    ASSERT_TRUE(conn->query(queryStr, "E(a)S(b)")->isSuccess());
+    ASSERT_FALSE(conn->query(queryStr, "E(b)S(a)")->isSuccess());
+    ASSERT_FALSE(conn->query(queryStr, "E(a)S(b)")->isSuccess());
     ASSERT_TRUE(conn->query(queryStr, "HJ(b){E(b)S(a)}{S(b)}")->isSuccess());
 }
 

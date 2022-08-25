@@ -20,9 +20,6 @@ public:
 
     inline expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
-    inline SubqueryGraphPlansMap* getSubqueryGraphPlansMap(uint32_t level) const {
-        return subPlansTable->getSubqueryGraphPlansMap(level);
-    }
     inline bool containPlans(const SubqueryGraph& subqueryGraph) const {
         return subPlansTable->containSubgraphPlans(subqueryGraph);
     }

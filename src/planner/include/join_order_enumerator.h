@@ -40,37 +40,48 @@ private:
 
     void planResultScan();
 
-    // Initial internal ID scan for node table.
+    inline void planTableScan() {
+        planNodeScan();
+        planRelScan();
+    }
+
     void planNodeScan();
     // Filter push down for node table.
     void planFiltersForNode(expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
     // Property push down for node table.
     void planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan);
 
-    void planCurrentLevel();
-
-    // Plan index nested loop join.
-    void planINLJoin();
-    // Node table index nested loop join (random access).
-    void planNodeINLJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
-        vector<unique_ptr<LogicalPlan>>& prevPlans);
-    // Edge table index nested join.
-    void planRelINLJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
-        vector<unique_ptr<LogicalPlan>>& prevPlans);
+    void planRelScan();
+    inline void planRelExtendFiltersAndProperties(shared_ptr<RelExpression>& rel,
+        RelDirection direction, expression_vector& predicates, LogicalPlan& plan) {
+        appendExtend(rel, direction, plan);
+        planFiltersForRel(predicates, *rel, direction, plan);
+        planPropertyScansForRel(*rel, direction, plan);
+    }
     // Filter push down for rel table.
     void planFiltersForRel(expression_vector& predicates, RelExpression& rel,
         RelDirection direction, LogicalPlan& plan);
     // Property push down for rel table.
     void planPropertyScansForRel(RelExpression& rel, RelDirection direction, LogicalPlan& plan);
 
-    inline void planHashJoin() {
-        auto maxLeftLevel = floor(context->currentLevel / 2.0);
-        for (auto leftLevel = 1; leftLevel <= maxLeftLevel; ++leftLevel) {
-            auto rightLevel = context->currentLevel - leftLevel;
-            planHashJoin(leftLevel, rightLevel);
+    inline void planLevel(uint32_t level) {
+        assert(level > 1);
+        auto maxLeftLevel = floor(level / 2.0);
+        for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
+            auto rightLevel = level - leftLevel;
+            planJoin(leftLevel, rightLevel);
         }
+        context->subPlansTable->finalizeLevel(level);
     }
-    void planHashJoin(uint32_t leftLevel, uint32_t rightLevel);
+
+    void planJoin(uint32_t leftLevel, uint32_t rightLevel);
+
+    bool canApplyINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+        shared_ptr<NodeExpression> joinNode);
+    void planINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+        shared_ptr<NodeExpression> joinNode);
+    void planHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+        shared_ptr<NodeExpression> joinNode, bool flipPlan);
     // Filter push down for hash join.
     void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
 
