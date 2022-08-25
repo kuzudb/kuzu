@@ -1,0 +1,1 @@
+create node table person (ID INT64, fName STRING, gender INT64, PRIMARY KEY (ID));

@@ -3,18 +3,14 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class TinySnbReadTest : public BaseGraphTest {
+class TinySnbReadTest : public DBTest {
 public:
-    void SetUp() override {
-        BaseGraphTest::SetUp();
-        systemConfig->largePageBufferPoolSize = (1ull << 23);
-        createDBAndConn();
-    }
-
     inline void runTest(const string& queryFile) {
         auto queryConfigs = TestHelper::parseTestFile(queryFile);
         ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
     }
+
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
 TEST_F(TinySnbReadTest, MatchExecute) {

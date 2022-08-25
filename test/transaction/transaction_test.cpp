@@ -4,18 +4,20 @@
 
 using namespace graphflow::testing;
 
-class TransactionTests : public BaseGraphTest {
+class TransactionTests : public DBTest {
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        initWithoutLoadingGraph(TransactionTestType::NORMAL_EXECUTION);
+        DBTest::SetUp();
+        initWithoutLoadingGraph();
     }
 
-    void initWithoutLoadingGraph(TransactionTestType transactionTestType) {
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+
+    void initWithoutLoadingGraph() {
         systemConfig->largePageBufferPoolSize = (1ull << 22);
         // Note we do not actually use the connection field in these tests. We only need the
         // database.
-        createDBAndConn(transactionTestType);
+        createDBAndConn();
         writeTrx = database->getTransactionManager()->beginWriteTransaction();
         readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
 
@@ -157,7 +159,7 @@ public:
         // initWithoutLoadingGraph will construct a completely new databse, writeTrx, readTrx,
         // and personAgeColumn, and personEyeSightColumn classes. We could use completely
         // different variables here but we would need to duplicate this construction code.
-        initWithoutLoadingGraph(TransactionTestType::RECOVERY);
+        initWithoutLoadingGraph();
         if (committingTransaction) {
             assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
             assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());

@@ -5,7 +5,9 @@ using namespace graphflow::common;
 using namespace graphflow::storage;
 using namespace graphflow::testing;
 
-class TinySnbCopyCSVDateTest : public InMemoryDBTest {};
+class TinySnbCopyCSVDateTest : public InMemoryDBTest {
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+};
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person

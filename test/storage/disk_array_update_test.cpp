@@ -11,16 +11,16 @@ using namespace graphflow::testing;
 // update the disk array and then checkpoint manually, and check that we obtain the correct version.
 // The updates we perform on the list do not correspond to a real update that would happen on the
 // database.
-class BaseDiskArrayUpdateTests : public BaseGraphTest {
+class BaseDiskArrayUpdateTests : public DBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        initWithoutLoadingGraph(TransactionTestType::NORMAL_EXECUTION);
+        DBTest::SetUp();
+        initWithoutLoadingGraph();
     }
 
-    void initWithoutLoadingGraph(TransactionTestType transactionTestType) {
-        createDBAndConn(transactionTestType);
+    void initWithoutLoadingGraph() {
+        createDBAndConn();
         auto personNodeLabel =
             database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
         personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
@@ -32,7 +32,7 @@ public:
         commitOrRollbackConnection(isCommit, transactionTestType);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph(transactionTestType);
+            initWithoutLoadingGraph();
         }
     }
 
@@ -164,19 +164,13 @@ public:
 class DiskArrayUpdateTests : public BaseDiskArrayUpdateTests {
 
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/non-empty-disk-array-db/vPerson.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/non-empty-disk-array-db/"; }
 };
 
 class DiskArrayUpdateEmptyDBTests : public BaseDiskArrayUpdateTests {
 
 public:
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/empty-db/vPerson.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/empty-db/"; }
 };
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestCommitNormalExecution) {

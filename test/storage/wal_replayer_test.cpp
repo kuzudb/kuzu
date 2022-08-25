@@ -5,7 +5,9 @@
 using namespace graphflow::storage;
 using namespace graphflow::testing;
 
-class WALReplayerTests : public DBTest {};
+class WALReplayerTests : public DBTest {
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+};
 
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {
     auto walIterator = database->getWAL()->getIterator();

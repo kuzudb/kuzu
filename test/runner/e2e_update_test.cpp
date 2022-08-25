@@ -2,12 +2,9 @@
 
 using namespace graphflow::testing;
 
-class TinySnbUpdateTest : public BaseGraphTest {
+class TinySnbUpdateTest : public DBTest {
 public:
-    void SetUp() override {
-        BaseGraphTest::SetUp();
-        createDBAndConn();
-    }
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
 TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {

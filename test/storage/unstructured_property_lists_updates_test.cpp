@@ -7,19 +7,23 @@ using namespace graphflow::testing;
 
 // Note: ID and nodeOffsetForPropKeys in this test are equal for each node, so we use nodeID and
 // nodeOffsetForPropKeys interchangeably.
-class UnstructuredPropertyListsUpdateTests : public BaseGraphTest {
+class UnstructuredPropertyListsUpdateTests : public DBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        initWithoutLoadingGraph(TransactionTestType::NORMAL_EXECUTION);
+        DBTest::SetUp();
+        initWithoutLoadingGraph();
     }
 
-    void initWithoutLoadingGraph(TransactionTestType transactionTestType) {
+    string getInputCSVDir() override {
+        return "dataset/unstructured-property-lists-updates-tests/";
+    }
+
+    void initWithoutLoadingGraph() {
         if (overflowBuffer) {
             overflowBuffer.reset();
         }
-        createDBAndConn(transactionTestType);
+        createDBAndConn();
         overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
         personNodeLabel =
@@ -46,18 +50,12 @@ public:
         conn->beginWriteTransaction();
     }
 
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query(
-            "COPY person FROM \"dataset/unstructured-property-lists-updates-tests/vPerson.csv\"");
-    }
-
     void commitOrRollbackConnectionAndInitDBIfNecessary(
         bool isCommit, TransactionTestType transactionTestType) {
         commitOrRollbackConnection(isCommit, transactionTestType);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph(transactionTestType);
+            initWithoutLoadingGraph();
         }
     }
 

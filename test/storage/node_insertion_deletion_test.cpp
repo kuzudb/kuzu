@@ -7,21 +7,18 @@ using namespace graphflow::testing;
 
 // Note: ID and nodeOffset in this test are equal for each node, so we use nodeID and nodeOffset
 // interchangeably.
-class NodeInsertionDeletionTests : public BaseGraphTest {
+class NodeInsertionDeletionTests : public DBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        initDBAndConnection(TransactionTestType::NORMAL_EXECUTION);
+        DBTest::SetUp();
+        initDBAndConnection();
     }
 
-    void initGraph() override {
-        conn->query(createNodeCmdPrefix + "person (ID INT64, PRIMARY KEY (ID))");
-        conn->query("COPY person FROM \"dataset/node-insertion-deletion-tests/vPerson.csv\"");
-    }
+    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
 
-    void initDBAndConnection(TransactionTestType transactionTestType) {
-        createDBAndConn(transactionTestType);
+    void initDBAndConnection() {
+        createDBAndConn();
         readConn = make_unique<Connection>(database.get());
         label_t personNodeLabel =
             database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
@@ -40,7 +37,7 @@ public:
         commitOrRollbackConnection(isCommit, transactionTestType);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
-            initDBAndConnection(transactionTestType);
+            initDBAndConnection();
         }
     }
 

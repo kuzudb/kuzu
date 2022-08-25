@@ -7,16 +7,14 @@ using namespace graphflow::testing;
 namespace graphflow {
 namespace transaction {
 
-class TinySnbCopyCSVTransactionTest : public BaseGraphTest {
+class TinySnbCopyCSVTransactionTest : public EmptyDBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
+        EmptyDBTest::SetUp();
         createDBAndConn();
         catalog = conn->database->getCatalog();
     }
-
-    void initGraph() override {}
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
@@ -221,8 +219,7 @@ public:
     void copyRelCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCmd);
         conn->query(copyPersonTableCmd);
-        conn->query(createRelCmdPrefix +
-                    "knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+        conn->query("create rel knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
                     "validInterval INTERVAL, comments STRING[], MANY_MANY)");
         auto preparedStatement =
             conn->prepareNoLock("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"");
@@ -248,8 +245,8 @@ public:
 
     Catalog* catalog;
     string createPersonTableCmd =
-        createNodeCmdPrefix +
-        "person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, "
+        "create node table person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
+        "isWorker BOOLEAN, "
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY KEY (ID))";

@@ -4,15 +4,18 @@
 
 using namespace graphflow::testing;
 
-class ApiTest : public BaseGraphTest {
+class ApiTest : public EmptyDBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
+        EmptyDBTest::SetUp();
         systemConfig->defaultPageBufferPoolSize = (1ull << 26);
         systemConfig->largePageBufferPoolSize = (1ull << 26);
         createDBAndConn();
+        initGraph();
     }
+
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 
     static void assertMatchPersonCountStar(Connection* conn) {
         auto result = conn->query("MATCH (a:person) RETURN COUNT(*)");

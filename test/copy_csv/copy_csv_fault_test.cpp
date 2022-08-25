@@ -5,39 +5,51 @@
 using namespace graphflow::testing;
 using namespace std;
 
-class CopyCSVLongStringTest : public InMemoryDBTest {
-    void initGraph() override {}
+class CopyCSVFaultTest : public EmptyDBTest {
+public:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        databaseConfig->inMemoryMode = true;
+        createDBAndConn();
+    }
+
+    string getCopyCSVException() {
+        try {
+            initGraph();
+        } catch (Exception& e) { return e.what(); }
+    }
 };
 
-class CopyCSVDuplicateIDTest : public InMemoryDBTest {
-    void initGraph() override {}
+class CopyCSVLongStringTest : public CopyCSVFaultTest {
+    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
 };
 
-class CopyNodeCSVUnmatchedColumnTypeTest : public InMemoryDBTest {
-    void initGraph() override {}
+class CopyCSVDuplicateIDTest : public CopyCSVFaultTest {
+    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/duplicate-ids/"; }
+};
+
+class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
+    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
 };
 
 TEST_F(CopyCSVLongStringTest, LongStringError) {
-    conn->query(
-        createNodeCmdPrefix + "person (ID INT64, fName STRING, gender INT64, PRIMARY KEY (ID))");
-    auto result =
-        conn->query("COPY person FROM \"dataset/copy-csv-fault-tests/long-string/vPerson.csv\"");
-    ASSERT_EQ(result->getErrorMessage(), "CSVReader exception: Maximum length of strings is "
-                                         "4096. Input string's length is 5625.");
+    ASSERT_EQ(getCopyCSVException(),
+        "Failed to execute statement: COPY person FROM "
+        "\"dataset/copy-csv-fault-tests/long-string/vPerson.csv\".\nError: CSVReader "
+        "exception: Maximum length of strings is 4096. Input string's length is 5625.");
 }
 
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
-    conn->query(createNodeCmdPrefix + "person (ID INT64, fName STRING, PRIMARY KEY (ID))");
-    auto result =
-        conn->query("COPY person FROM \"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\"");
-    ASSERT_EQ(result->getErrorMessage(), "CopyCSV exception: ID value 10 violates the uniqueness "
-                                         "constraint for the ID property.");
+    ASSERT_EQ(getCopyCSVException(),
+        "Failed to execute statement: COPY person FROM "
+        "\"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\".\nError: CopyCSV exception: ID "
+        "value 10 violates the uniqueness constraint for the ID property.");
 }
 
 TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
     conn->query(
-        createNodeCmdPrefix +
-        "person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, "
+        "create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, "
+        "isWorker BOOLEAN, "
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY "

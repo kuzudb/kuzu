@@ -5,19 +5,20 @@ using namespace graphflow::testing;
 namespace graphflow {
 namespace transaction {
 
-class TinySnbDDLTest : public BaseGraphTest {
+class TinySnbDDLTest : public DBTest {
 
 public:
     void SetUp() override {
-        BaseGraphTest::SetUp();
-        createDBAndConn();
+        DBTest::SetUp();
         catalog = conn->database->getCatalog();
     }
 
     void initWithoutLoadingGraph() {
-        createDBAndConn(TransactionTestType::RECOVERY);
+        createDBAndConn();
         catalog = conn->database->getCatalog();
     }
+
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
