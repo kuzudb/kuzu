@@ -8,10 +8,10 @@ namespace storage {
 
 InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeTable,
-    BufferManager* bufferManager, table_id_t tableID)
+    BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics)
     : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
-      maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)} {
-    startRelID = catalog.getReadOnlyVersion()->getNextRelID();
+      maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)}, relsStatistics{relsStatistics} {
+    startRelID = relsStatistics->getNextRelID();
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     IDIndexes.resize(catalog.getReadOnlyVersion()->getNumNodeTables());
@@ -43,7 +43,7 @@ void InMemRelCSVCopier::copy() {
         sortOverflowValues();
     }
     saveToFile();
-    catalog.setNumRelsOfRelTableSchema(numRels, relTableSchema->tableID);
+    relsStatistics->setNumRelsForTable(relTableSchema->tableID, numRels);
     logger->info(
         "Done copying rel {} with table {}.", relTableSchema->tableName, relTableSchema->tableID);
 }
@@ -150,8 +150,8 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjLists() {
         blockStartOffset += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    catalog.setNumRelsPerDirectionBoundTableIDOfRelTableSchema(
-        directionNumRelsPerTable, relTableSchema->tableID);
+    relsStatistics->setNumRelsPerDirectionBoundTableID(
+        relTableSchema->tableID, directionNumRelsPerTable);
     logger->info("Done populating adj columns and rel property columns for rel {}.",
         relTableSchema->tableName);
 }

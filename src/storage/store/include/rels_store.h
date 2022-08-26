@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rels_statistics.h"
+
 #include "src/catalog/include/catalog.h"
 #include "src/common/include/file_utils.h"
 #include "src/storage/store/include/rel_table.h"
@@ -54,8 +56,11 @@ public:
 
     inline RelTable* getRel(table_id_t tableID) const { return relTables[tableID].get(); }
 
+    inline RelsStatistics& getRelsStatistics() { return relsStatistics; }
+
 private:
     vector<unique_ptr<RelTable>> relTables;
+    RelsStatistics relsStatistics;
     bool isInMemoryMode;
 };
 

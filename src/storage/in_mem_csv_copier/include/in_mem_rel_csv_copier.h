@@ -3,6 +3,7 @@
 #include "in_mem_structures_csv_copier.h"
 
 #include "src/storage/index/include/hash_index.h"
+#include "src/storage/store/include/rels_statistics.h"
 
 namespace graphflow {
 namespace storage {
@@ -18,7 +19,7 @@ class InMemRelCSVCopier : public InMemStructuresCSVCopier {
 public:
     InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
         TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeTable,
-        BufferManager* bufferManager, table_id_t tableID);
+        BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics);
 
     ~InMemRelCSVCopier() override = default;
 
@@ -78,7 +79,7 @@ private:
     const vector<uint64_t> maxNodeOffsetsPerTable;
     uint64_t startRelID;
     RelTableSchema* relTableSchema;
-
+    RelsStatistics* relsStatistics;
     unique_ptr<Transaction> tmpReadTransaction;
     vector<unique_ptr<HashIndex>> IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};

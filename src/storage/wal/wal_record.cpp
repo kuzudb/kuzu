@@ -76,9 +76,10 @@ WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
     return retVal;
 }
 
-WALRecord WALRecord::newNodeMetadataRecord() {
+WALRecord WALRecord::newTableStatisticsRecord(bool isNodeTable) {
     WALRecord retVal;
-    retVal.recordType = NODES_METADATA_RECORD;
+    retVal.recordType = TABLE_STATISTICS_RECORD;
+    retVal.tableStatisticsRecord = TableStatisticsRecord(isNodeTable);
     return retVal;
 }
 

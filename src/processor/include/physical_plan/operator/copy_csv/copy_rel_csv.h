@@ -11,22 +11,24 @@ class CopyRelCSV : public CopyCSV {
 
 public:
     CopyRelCSV(Catalog* catalog, CSVDescription csvDescription, TableSchema tableSchema, WAL* wal,
-        NodesMetadata* nodesMetadata, uint32_t id, const string& paramsString, RelsStore* relsStore)
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, uint32_t id,
+        const string& paramsString, RelsStatistics* relsStatistics)
         : CopyCSV(catalog, move(csvDescription), move(tableSchema), wal, id, paramsString),
-          nodesMetadata{nodesMetadata}, relsStore{relsStore} {}
+          nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, relsStatistics{
+                                                                          relsStatistics} {}
 
     void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) override;
 
     PhysicalOperatorType getOperatorType() override { return COPY_REL_CSV; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CopyRelCSV>(
-            catalog, csvDescription, tableSchema, wal, nodesMetadata, id, paramsString, relsStore);
+        return make_unique<CopyRelCSV>(catalog, csvDescription, tableSchema, wal,
+            nodesStatisticsAndDeletedIDs, id, paramsString, relsStatistics);
     }
 
 private:
-    NodesMetadata* nodesMetadata;
-    RelsStore* relsStore;
+    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    RelsStatistics* relsStatistics;
 };
 
 } // namespace processor

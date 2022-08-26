@@ -15,10 +15,10 @@ StorageManager::StorageManager(
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, catalog{catalog}, wal{wal} {
     logger->info("Initializing StorageManager from directory: " + wal->getDirectory());
     nodesStore = make_unique<NodesStore>(catalog, bufferManager, isInMemoryMode, wal);
-    relsStore =
-        make_unique<RelsStore>(catalog, nodesStore->getNodesMetadata().getMaxNodeOffsetPerTable(),
-            bufferManager, isInMemoryMode, wal);
-    nodesStore->getNodesMetadata().setAdjListsAndColumns(relsStore.get());
+    relsStore = make_unique<RelsStore>(catalog,
+        nodesStore->getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable(), bufferManager,
+        isInMemoryMode, wal);
+    nodesStore->getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(relsStore.get());
     logger->info("Done.");
 }
 

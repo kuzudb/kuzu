@@ -117,13 +117,8 @@ public:
 
     virtual bool isSingleMultiplicityInDirection(table_id_t tableID, RelDirection direction) const;
 
-    virtual uint64_t getNumRelsForDirectionBoundTableID(
-        table_id_t tableID, RelDirection relDirection, table_id_t boundNodeTableID) const;
-
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
-
-    uint64_t getNextRelID() const;
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -187,14 +182,6 @@ public:
         catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
             unstructuredProperties);
     }
-
-    inline void setNumRelsOfRelTableSchema(uint64_t numRels, table_id_t tableID) {
-        initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->getRelTableSchema(tableID)->setNumRels(numRels);
-    }
-
-    void setNumRelsPerDirectionBoundTableIDOfRelTableSchema(
-        vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable, table_id_t tableID);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;

@@ -4,17 +4,21 @@ cc_library(
     name = "store",
     srcs = [
         "node_table.cpp",
-        "nodes_metadata.cpp",
+        "nodes_statistics_and_deleted_ids.cpp",
         "nodes_store.cpp",
         "rel_table.cpp",
+        "rels_statistics.cpp",
         "rels_store.cpp",
+        "table_statistics.cpp",
     ],
     hdrs = [
         "include/node_table.h",
-        "include/nodes_metadata.h",
+        "include/nodes_statistics_and_deleted_ids.h",
         "include/nodes_store.h",
         "include/rel_table.h",
+        "include/rels_statistics.h",
         "include/rels_store.h",
+        "include/table_statistics.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

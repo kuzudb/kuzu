@@ -4,7 +4,7 @@
 #include "src/storage/index/include/hash_index.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
-#include "src/storage/store/include/nodes_metadata.h"
+#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 #include "src/storage/wal/include/wal.h"
 
 namespace spdlog {
@@ -17,8 +17,8 @@ namespace storage {
 class NodeTable {
 
 public:
-    NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        NodeTableSchema* nodeTableSchema);
+    NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
+        BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema);
 
     void loadColumnsAndListsFromDisk(
         NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal);
@@ -31,7 +31,9 @@ public:
     }
     inline HashIndex* getIDIndex() const { return IDIndex.get(); }
 
-    inline NodesMetadata* getNodesMetadata() const { return nodesMetadata; }
+    inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
+        return nodesStatisticsAndDeletedIDs;
+    }
 
     inline table_id_t getTableID() const { return tableID; }
 
@@ -41,7 +43,7 @@ private:
     void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 public:
-    NodesMetadata* nodesMetadata;
+    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
 
 private:
     // This is for structured properties.

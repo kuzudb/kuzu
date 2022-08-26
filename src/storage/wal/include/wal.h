@@ -99,7 +99,7 @@ public:
 
     void logCommit(uint64_t transactionID);
 
-    void logNodeMetadataRecord();
+    void logTableStatisticsRecord(bool isNodeTable);
 
     void logCatalogRecord();
 

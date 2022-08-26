@@ -46,10 +46,10 @@ public:
         // structured columns, unstructured property lists, adjacency lists, and adj columns of a
         // newly added node should be informed that a new node is being inserted, so these data
         // structures either write values or NULLs or empty lists etc. Within the scope of these
-        // tests we only have an ID column and we are manually from outside NodesMetadata adding
-        // a NULL value for the ID. This should change later.
-        node_offset_t nodeOffset =
-            personNodeTable->getNodesMetadata()->addNode(personNodeTable->getTableID());
+        // tests we only have an ID column and we are manually from outside
+        // NodesStatisticsAndDeletedIDs adding a NULL value for the ID. This should change later.
+        node_offset_t nodeOffset = personNodeTable->getNodeStatisticsAndDeletedIDs()->addNode(
+            personNodeTable->getTableID());
         auto dataChunk = make_shared<DataChunk>(2);
         // Flatten the data chunk
         dataChunk->state->currIdx = 0;
@@ -80,11 +80,11 @@ public:
         checkNodeWithIDExists(conn.get(), 10);
         auto tableID = personNodeTable->getTableID();
         // Delete 2 from morsel 0 and 1 from morsel 3
-        personNodeTable->getNodesMetadata()->deleteNode(
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             tableID, 10 /* offset of person w/ ID 10, who has no edges */);
-        personNodeTable->getNodesMetadata()->deleteNode(
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             tableID, 1400 /* offset of person w/ ID 1400, who has no edges */);
-        personNodeTable->getNodesMetadata()->deleteNode(
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             tableID, 6000 /* offset of person w/ ID 6000, who has no edges */);
 
         checkNodeWithIDExists(readConn.get(), 10);
@@ -123,7 +123,7 @@ public:
 
     void testDeleteAllNodes(bool isCommit, TransactionTestType transactionTestType) {
         for (node_offset_t nodeOffset = 0; nodeOffset <= 9999; ++nodeOffset) {
-            personNodeTable->getNodesMetadata()->deleteNode(
+            personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
                 personNodeTable->getTableID(), nodeOffset);
         }
         string query = "MATCH (a:person) RETURN count(DISTINCT a.ID)";
@@ -145,11 +145,11 @@ public:
             addNode();
         }
         auto tableID = personNodeTable->getTableID();
-        ASSERT_EQ(personNodeTable->getNodesMetadata()->getMaxNodeOffset(
+        ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
                       TransactionType::READ_ONLY, tableID),
             9999);
-        ASSERT_EQ(
-            personNodeTable->getNodesMetadata()->getMaxNodeOffset(TransactionType::WRITE, tableID),
+        ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
+                      TransactionType::WRITE, tableID),
             12999);
         string query = "MATCH (a:person) RETURN count(*)";
         ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
@@ -160,19 +160,19 @@ public:
         if (isCommit) {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
             ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
-            ASSERT_EQ(personNodeTable->getNodesMetadata()->getMaxNodeOffset(
+            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
                           TransactionType::READ_ONLY, tableID),
                 12999);
-            ASSERT_EQ(personNodeTable->getNodesMetadata()->getMaxNodeOffset(
+            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
                           TransactionType::WRITE, tableID),
                 12999);
         } else {
             ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
             ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
-            ASSERT_EQ(personNodeTable->getNodesMetadata()->getMaxNodeOffset(
+            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
                           TransactionType::READ_ONLY, tableID),
                 9999);
-            ASSERT_EQ(personNodeTable->getNodesMetadata()->getMaxNodeOffset(
+            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
                           TransactionType::WRITE, tableID),
                 9999);
         }
@@ -185,10 +185,10 @@ public:
 };
 
 TEST_F(NodeInsertionDeletionTests, DeletingSameNodeOffsetErrorsTest) {
-    personNodeTable->getNodesMetadata()->deleteNode(
+    personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
         personNodeTable->getTableID(), 3 /* person w/ offset/ID 3 */);
     try {
-        personNodeTable->getNodesMetadata()->deleteNode(personNodeTable->getTableID(),
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(personNodeTable->getTableID(),
             3 /* person w/ offset/ID 3 again, which should error  */);
         FAIL();
     } catch (RuntimeException& e) {
@@ -205,7 +205,8 @@ TEST_F(NodeInsertionDeletionTests, ScanAfterRolledbackDeletionTest) {
 
 TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTest) {
     for (node_offset_t nodeOffset = 2048; nodeOffset < 4096; ++nodeOffset) {
-        personNodeTable->getNodesMetadata()->deleteNode(personNodeTable->getTableID(), nodeOffset);
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
+            personNodeTable->getTableID(), nodeOffset);
     }
     string query = "MATCH (a:person) WHERE a.ID >= 2048 AND a.ID < 4096 RETURN count(*)";
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
@@ -251,7 +252,8 @@ TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackRecoveryTest) {
 
 TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     for (node_offset_t nodeOffset = 1000; nodeOffset < 9000; ++nodeOffset) {
-        personNodeTable->getNodesMetadata()->deleteNode(personNodeTable->getTableID(), nodeOffset);
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
+            personNodeTable->getTableID(), nodeOffset);
     }
     for (int i = 0; i < 8000; ++i) {
         auto nodeOffset = addNode();
@@ -273,7 +275,8 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10010);
 
     for (node_offset_t nodeOffset = 0; nodeOffset < 10010; ++nodeOffset) {
-        personNodeTable->getNodesMetadata()->deleteNode(personNodeTable->getTableID(), nodeOffset);
+        personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
+            personNodeTable->getTableID(), nodeOffset);
     }
 
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);

@@ -48,14 +48,28 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             checkpointOrRollbackVersionedFileHandleAndBufferManager(walRecord, storageStructureID);
         }
     } break;
-    case NODES_METADATA_RECORD: {
+    case TABLE_STATISTICS_RECORD: {
         if (isCheckpoint) {
-            StorageUtils::overwriteNodesMetadataFileWithVersionFromWAL(wal->getDirectory());
-            if (!isRecovering) {
-                storageManager->getNodesStore().getNodesMetadata().checkpointInMemoryIfNecessary();
+            if (walRecord.tableStatisticsRecord.isNodeTable) {
+                StorageUtils::overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
+                    wal->getDirectory());
+                if (!isRecovering) {
+                    storageManager->getNodesStore()
+                        .getNodesStatisticsAndDeletedIDs()
+                        .checkpointInMemoryIfNecessary();
+                }
+            } else {
+                StorageUtils::overwriteRelsStatisticsFileWithVersionFromWAL(wal->getDirectory());
+                if (!isRecovering) {
+                    storageManager->getRelsStore()
+                        .getRelsStatistics()
+                        .checkpointInMemoryIfNecessary();
+                }
             }
         } else {
-            storageManager->getNodesStore().getNodesMetadata().rollbackInMemoryIfNecessary();
+            storageManager->getNodesStore()
+                .getNodesStatisticsAndDeletedIDs()
+                .rollbackInMemoryIfNecessary();
         }
     } break;
     case COMMIT_RECORD: {
@@ -97,8 +111,10 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case REL_TABLE_RECORD: {
         if (isCheckpoint) {
             // See comments for NODE_TABLE_RECORD.
-            auto nodesMetadataForCheckPointing = make_unique<NodesMetadata>(wal->getDirectory());
-            auto maxNodeOffsetPerTable = nodesMetadataForCheckPointing->getMaxNodeOffsetPerTable();
+            auto nodesStatisticsAndDeletedIDsForCheckPointing =
+                make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+            auto maxNodeOffsetPerTable =
+                nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
             auto catalogForCheckPointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckPointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), DBFileType::WAL_VERSION);
@@ -202,10 +218,13 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // See comments for COPY_NODE_CSV_RECORD.
                 storageManager->getRelsStore().getRel(tableID)->loadColumnsAndListsFromDisk(
                     *catalog,
-                    storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffsetPerTable(),
+                    storageManager->getNodesStore()
+                        .getNodesStatisticsAndDeletedIDs()
+                        .getMaxNodeOffsetPerTable(),
                     *bufferManager, wal);
-                storageManager->getNodesStore().getNodesMetadata().setAdjListsAndColumns(
-                    &storageManager->getRelsStore());
+                storageManager->getNodesStore()
+                    .getNodesStatisticsAndDeletedIDs()
+                    .setAdjListsAndColumns(&storageManager->getRelsStore());
             } else {
                 auto catalogForCheckpointing = make_unique<catalog::Catalog>();
                 catalogForCheckpointing->getReadOnlyVersion()->readFromFile(

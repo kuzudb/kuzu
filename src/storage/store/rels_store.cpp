@@ -5,12 +5,11 @@ namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
-    : isInMemoryMode{isInMemoryMode} {
+    : relsStatistics{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
     relTables.resize(catalog.getReadOnlyVersion()->getNumRelTables());
-    for (auto relTableID = 0u; relTableID < catalog.getReadOnlyVersion()->getNumRelTables();
-         relTableID++) {
-        relTables[relTableID] = make_unique<RelTable>(
-            catalog, maxNodeOffsetsPerTable, relTableID, bufferManager, isInMemoryMode, wal);
+    for (auto tableID = 0u; tableID < catalog.getReadOnlyVersion()->getNumRelTables(); tableID++) {
+        relTables[tableID] = make_unique<RelTable>(
+            catalog, maxNodeOffsetsPerTable, tableID, bufferManager, isInMemoryMode, wal);
     }
 }
 

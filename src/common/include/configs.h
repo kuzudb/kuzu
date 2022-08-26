@@ -53,8 +53,12 @@ struct StorageConfig {
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char NODES_METADATA_FILE_NAME[] = "nodes.metadata";
-    static constexpr char NODES_METADATA_FILE_NAME_FOR_WAL[] = "nodes.metadata.wal";
+    static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
+        "nodes.statistics_and_deleted.ids";
+    static constexpr char NODES_STATISTICS_FILE_NAME_FOR_WAL[] =
+        "nodes.statistics_and_deleted.ids.wal";
+    static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
+    static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
     constexpr static double ARRAY_RESIZING_FACTOR = 1.2;

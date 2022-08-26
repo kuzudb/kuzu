@@ -5,7 +5,7 @@
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/source_operator.h"
-#include "src/storage/store/include/nodes_metadata.h"
+#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
 using namespace graphflow::catalog;
 

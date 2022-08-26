@@ -36,23 +36,23 @@ public:
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"), false);
             ASSERT_EQ(database->getStorageManager()
                           ->getNodesStore()
-                          .getNodesMetadata()
-                          .getNumNodeMetadataPerTable(),
+                          .getNodesStatisticsAndDeletedIDs()
+                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 2);
             initWithoutLoadingGraph();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"), true);
             ASSERT_EQ(database->getStorageManager()
                           ->getNodesStore()
-                          .getNodesMetadata()
-                          .getNumNodeMetadataPerTable(),
+                          .getNodesStatisticsAndDeletedIDs()
+                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
         } else {
             conn->commit();
             ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"), true);
             ASSERT_EQ(database->getStorageManager()
                           ->getNodesStore()
-                          .getNodesMetadata()
-                          .getNumNodeMetadataPerTable(),
+                          .getNodesStatisticsAndDeletedIDs()
+                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
         }
     }

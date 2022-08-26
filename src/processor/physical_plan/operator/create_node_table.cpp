@@ -5,7 +5,8 @@ namespace processor {
 
 bool CreateNodeTable::getNextTuples() {
     auto newTableID = catalog->addNodeTableSchema(tableName, primaryKeyIdx, propertyNameDataTypes);
-    nodesMetadata->addNodeMetadata(catalog->getWriteVersion()->getNodeTableSchema(newTableID));
+    nodesStatisticsAndDeletedIDs->addNodeStatisticsAndDeletedIDs(
+        catalog->getWriteVersion()->getNodeTableSchema(newTableID));
     return false;
 }
 

@@ -3,9 +3,10 @@
 namespace graphflow {
 namespace storage {
 
-NodeTable::NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory,
-    WAL* wal, NodeTableSchema* nodeTableSchema)
-    : nodesMetadata{nodesMetadata}, tableID{nodeTableSchema->tableID}, isInMemory{isInMemory} {
+NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
+    BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema)
+    : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{nodeTableSchema->tableID},
+      isInMemory{isInMemory} {
     loadColumnsAndListsFromDisk(nodeTableSchema, bufferManager, wal);
 }
 
@@ -47,7 +48,7 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
 void NodeTable::deleteNode(
     ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const {
     auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-    nodesMetadata->deleteNode(tableID, nodeOffset);
+    nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     // TODO(Guodong): delete primary key index
 }
 

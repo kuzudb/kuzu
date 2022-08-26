@@ -208,7 +208,7 @@ private:
 
 enum WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 0,
-    NODES_METADATA_RECORD = 1,
+    TABLE_STATISTICS_RECORD = 1,
     COMMIT_RECORD = 2,
     CATALOG_RECORD = 3,
     NODE_TABLE_RECORD = 4,
@@ -309,6 +309,18 @@ struct CopyRelCSVRecord {
     inline bool operator==(const CopyRelCSVRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
+struct TableStatisticsRecord {
+    bool isNodeTable;
+
+    TableStatisticsRecord() = default;
+
+    TableStatisticsRecord(bool isNodeTable) : isNodeTable{isNodeTable} {}
+
+    inline bool operator==(const TableStatisticsRecord& rhs) const {
+        return isNodeTable == rhs.isNodeTable;
+    }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
@@ -319,6 +331,7 @@ struct WALRecord {
         OverflowFileNextBytePosRecord overflowFileNextBytePosRecord;
         CopyNodeCSVRecord copyNodeCsvRecord;
         CopyRelCSVRecord copyRelCsvRecord;
+        TableStatisticsRecord tableStatisticsRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -332,9 +345,8 @@ struct WALRecord {
         case COMMIT_RECORD: {
             return commitRecord == rhs.commitRecord;
         }
-        case NODES_METADATA_RECORD: {
-            // NodesMetadataRecords are empty so are always equal
-            return true;
+        case TABLE_STATISTICS_RECORD: {
+            return tableStatisticsRecord == rhs.tableStatisticsRecord;
         }
         case CATALOG_RECORD: {
             // CatalogRecords are empty so are always equal
@@ -367,7 +379,7 @@ struct WALRecord {
     static WALRecord newPageInsertRecord(StorageStructureID storageStructureID_,
         uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
-    static WALRecord newNodeMetadataRecord();
+    static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(table_id_t tableID);
     static WALRecord newRelTableRecord(table_id_t tableID);

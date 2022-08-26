@@ -87,8 +87,9 @@ public:
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
             0);
-        ASSERT_EQ(database->storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffset(
-                      TransactionType::READ_ONLY, tableID),
+        ASSERT_EQ(database->storageManager->getNodesStore()
+                      .getNodesStatisticsAndDeletedIDs()
+                      .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
             UINT64_MAX);
     }
 
@@ -101,9 +102,10 @@ public:
         validateNodeColumnAndListFilesExistence(
             tableID, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
-        ASSERT_EQ(
-            database->getStorageManager()->getNodesStore().getNodesMetadata().getMaxNodeOffset(
-                TransactionType::READ_ONLY, tableID),
+        ASSERT_EQ(database->getStorageManager()
+                      ->getNodesStore()
+                      .getNodesStatisticsAndDeletedIDs()
+                      .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
             7);
     }
 
@@ -205,6 +207,7 @@ public:
         validateRelColumnAndListFilesExistence(
             tableID, DBFileType::WAL_VERSION, true /* existence */);
         validateRelColumnAndListFilesExistence(tableID, DBFileType::ORIGINAL, true /* existence */);
+        ASSERT_EQ(database->storageManager->getRelsStore().getRelsStatistics().getNextRelID(), 0);
     }
 
     void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t tableID) {
@@ -214,6 +217,13 @@ public:
             tableID, DBFileType::WAL_VERSION, false /* existence */);
         validateRelColumnAndListFilesExistence(tableID, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
+        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        ASSERT_EQ(relsStatistics.getNextRelID(), 14);
+        ASSERT_EQ(relsStatistics.getReadOnlyVersion()->size(), 1);
+        auto knowsRelStatistics = (RelStatistics*)((*relsStatistics.getReadOnlyVersion())[0].get());
+        ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
+        ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::FWD, 0), 14);
+        ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::BWD, 0), 14);
     }
 
     void copyRelCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
