@@ -17,11 +17,11 @@ protected:
     void addStructuredNodePropertyMainFilePageRecord(
         vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
-            label_t nodeLabel = 4;
+            table_id_t tableID = 4;
             uint32_t propertyID = 89;
             uint64_t pageIdxInOriginalFile = 1455304;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyMainColumnID(nodeLabel, propertyID),
+                StorageStructureID::newStructuredNodePropertyMainColumnID(tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
@@ -43,12 +43,12 @@ protected:
     void addStructuredNodePropertyOveflowFilePageRecord(
         vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
-            label_t nodeLabel = 0;
+            table_id_t tableID = 0;
             uint32_t propertyID = 2463;
             uint64_t pageIdxInOriginalFile = 44436;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
                 StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(
-                    nodeLabel, propertyID),
+                    tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }

@@ -131,7 +131,7 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
         assert(expression->dataType.typeID == NODE);
         auto& nodeExpression = (NodeExpression&)*expression;
         auto pk =
-            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(nodeExpression.getLabel());
+            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(nodeExpression.getTableID());
         auto pkExpression =
             make_shared<PropertyExpression>(pk.dataType, pk.name, pk.propertyID, expression);
         enumerator->appendScanNodePropIfNecessarySwitch(pkExpression, nodeExpression, plan);

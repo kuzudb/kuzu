@@ -730,18 +730,18 @@ string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintCon
 }
 
 RelConnection Transformer::transformRelConnection(CypherParser::GF_RelConnectionsContext& ctx) {
-    vector<string> srcNodeLabels, dstNodeLabels;
+    vector<string> srcTableNames, dstTableNames;
     if (!ctx.gF_RelConnection().empty()) {
         for (auto& relConnection : ctx.gF_RelConnection()) {
-            auto newSrcNodeLabels = transformNodeLabels(*relConnection->gF_NodeLabels()[0]);
-            auto newDstNodeLabels = transformNodeLabels(*relConnection->gF_NodeLabels()[1]);
-            srcNodeLabels.insert(
-                srcNodeLabels.end(), newSrcNodeLabels.begin(), newSrcNodeLabels.end());
-            dstNodeLabels.insert(
-                dstNodeLabels.end(), newDstNodeLabels.begin(), newDstNodeLabels.end());
+            auto newSrcTableNames = transformNodeLabels(*relConnection->gF_NodeLabels()[0]);
+            auto newDstTableNames = transformNodeLabels(*relConnection->gF_NodeLabels()[1]);
+            srcTableNames.insert(
+                srcTableNames.end(), newSrcTableNames.begin(), newSrcTableNames.end());
+            dstTableNames.insert(
+                dstTableNames.end(), newDstTableNames.begin(), newDstTableNames.end());
         }
     }
-    return RelConnection(move(srcNodeLabels), move(dstNodeLabels));
+    return RelConnection(move(srcTableNames), move(dstTableNames));
 }
 
 vector<string> Transformer::transformNodeLabels(CypherParser::GF_NodeLabelsContext& ctx) {
@@ -755,11 +755,11 @@ vector<string> Transformer::transformNodeLabels(CypherParser::GF_NodeLabelsConte
 unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
     auto& ctx = *root.gF_CopyCSV();
     auto csvFileName = transformStringLiteral(*ctx.StringLiteral());
-    auto labelName = transformSchemaName(*ctx.oC_SchemaName());
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = ctx.gF_ParsingOptions() ?
                               transformParsingOptions(*ctx.gF_ParsingOptions()) :
                               unordered_map<string, string>();
-    return make_unique<CopyCSV>(move(csvFileName), move(labelName), move(parsingOptions));
+    return make_unique<CopyCSV>(move(csvFileName), move(tableName), move(parsingOptions));
 }
 
 unordered_map<string, string> Transformer::transformParsingOptions(

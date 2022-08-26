@@ -17,26 +17,26 @@ class NodesStore {
 public:
     NodesStore(const Catalog& catalog, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
-    inline Column* getNodePropertyColumn(label_t nodeLabel, uint64_t propertyIdx) const {
-        return nodeTables[nodeLabel]->getPropertyColumn(propertyIdx);
+    inline Column* getNodePropertyColumn(table_id_t tableID, uint64_t propertyIdx) const {
+        return nodeTables[tableID]->getPropertyColumn(propertyIdx);
     }
-    inline UnstructuredPropertyLists* getNodeUnstrPropertyLists(label_t nodeLabel) const {
-        return nodeTables[nodeLabel]->getUnstrPropertyLists();
+    inline UnstructuredPropertyLists* getNodeUnstrPropertyLists(table_id_t tableID) const {
+        return nodeTables[tableID]->getUnstrPropertyLists();
     }
-    inline HashIndex* getIDIndex(label_t nodeLabel) { return nodeTables[nodeLabel]->getIDIndex(); }
+    inline HashIndex* getIDIndex(table_id_t tableID) { return nodeTables[tableID]->getIDIndex(); }
 
     inline NodesMetadata& getNodesMetadata() { return nodesMetadata; }
 
     // TODO: rename to getNodeTable
-    inline NodeTable* getNode(label_t nodeLabel) const { return nodeTables[nodeLabel].get(); }
+    inline NodeTable* getNode(table_id_t tableID) const { return nodeTables[tableID].get(); }
 
     // Since ddl statements are wrapped in a single auto-committed transaction, we don't need to
     // maintain a write-only version of nodeTables. We just need to add the actual nodeTable to
     // nodeStore when checkpointing and not in recovery mode.
     inline void createNodeTable(
-        label_t labelID, BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
+        table_id_t tableID, BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
         nodeTables.push_back(make_unique<NodeTable>(&nodesMetadata, *bufferManager, isInMemoryMode,
-            wal, catalog->getReadOnlyVersion()->getNodeLabel(labelID)));
+            wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)));
     }
 
     void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {

@@ -248,7 +248,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     }
     auto& nodeStore = storageManager.getNodesStore();
     if (scanProperty.getIsUnstructured()) {
-        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getNodeLabel());
+        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getTableID());
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
             move(outputPropertyVectorsPos), scanProperty.getPropertyKeys(), lists,
             move(prevOperator), getOperatorID(), paramsString);
@@ -256,7 +256,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     vector<Column*> propertyColumns;
     for (auto& propertyKey : scanProperty.getPropertyKeys()) {
         propertyColumns.push_back(
-            nodeStore.getNodePropertyColumn(scanProperty.getNodeLabel(), propertyKey));
+            nodeStore.getNodePropertyColumn(scanProperty.getTableID(), propertyKey));
     }
     return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, move(outputPropertyVectorsPos),
         move(propertyColumns), move(prevOperator), getOperatorID(), paramsString);
@@ -437,7 +437,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& createNodeTable = (LogicalCreateNodeTable&)*logicalOperator;
-    return make_unique<CreateNodeTable>(catalog, createNodeTable.getLabelName(),
+    return make_unique<CreateNodeTable>(catalog, createNodeTable.getTableName(),
         createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKeyIdx(),
         getOperatorID(), createNodeTable.getExpressionsForPrinting(),
         &storageManager.getNodesStore().getNodesMetadata());
@@ -446,23 +446,24 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& createRelTable = (LogicalCreateRelTable&)*logicalOperator;
-    return make_unique<CreateRelTable>(catalog, createRelTable.getLabelName(),
+    return make_unique<CreateRelTable>(catalog, createRelTable.getTableName(),
         createRelTable.getPropertyNameDataTypes(), createRelTable.getRelMultiplicity(),
-        createRelTable.getSrcDstLabels(), getOperatorID(),
+        createRelTable.getSrcDstTableIDs(), getOperatorID(),
         createRelTable.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& copyCSV = (LogicalCopyCSV&)*logicalOperator;
-    if (copyCSV.getLabel().isNodeLabel) {
-        return make_unique<CopyNodeCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
-            storageManager.getWAL(), getOperatorID(), copyCSV.getExpressionsForPrinting(),
-            &storageManager.getNodesStore());
+    if (copyCSV.getTableSchema().isNodeTable) {
+        return make_unique<CopyNodeCSV>(catalog, copyCSV.getCSVDescription(),
+            copyCSV.getTableSchema(), storageManager.getWAL(), getOperatorID(),
+            copyCSV.getExpressionsForPrinting(), &storageManager.getNodesStore());
     } else {
-        return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(), copyCSV.getLabel(),
-            storageManager.getWAL(), &storageManager.getNodesStore().getNodesMetadata(),
-            getOperatorID(), copyCSV.getExpressionsForPrinting(), &storageManager.getRelsStore());
+        return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(),
+            copyCSV.getTableSchema(), storageManager.getWAL(),
+            &storageManager.getNodesStore().getNodesMetadata(), getOperatorID(),
+            copyCSV.getExpressionsForPrinting(), &storageManager.getRelsStore());
     }
 }
 

@@ -39,82 +39,86 @@ public:
     virtual ~CatalogContent() = default;
 
     /**
-     * Node and Rel label functions.
+     * Node and Rel table functions.
      */
-    label_t addNodeLabel(string labelName, uint32_t primaryKeyIdx,
+    table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
-    label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels);
+    table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
 
-    virtual inline string getNodeLabelName(label_t labelId) const {
-        return nodeLabels[labelId]->labelName;
+    virtual inline string getNodeTableName(table_id_t tableID) const {
+        return nodeTableSchemas[tableID]->tableName;
     }
-    virtual inline string getRelLabelName(label_t labelId) const {
-        return relLabels[labelId]->labelName;
-    }
-
-    inline NodeLabel* getNodeLabel(label_t labelId) const { return nodeLabels[labelId].get(); }
-    inline RelLabel* getRelLabel(label_t labelId) const { return relLabels[labelId].get(); }
-
-    inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
-    inline uint64_t getNumRelLabels() const { return relLabels.size(); }
-
-    virtual inline bool containNodeLabel(const string& label) const {
-        return end(nodeLabelNameToIdMap) != nodeLabelNameToIdMap.find(label);
-    }
-    virtual inline bool containRelLabel(const string& label) const {
-        return end(relLabelNameToIdMap) != relLabelNameToIdMap.find(label);
+    virtual inline string getRelTableName(table_id_t tableID) const {
+        return relTableSchemas[tableID]->tableName;
     }
 
-    virtual inline label_t getNodeLabelFromName(const string& label) const {
-        return nodeLabelNameToIdMap.at(label);
+    inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
+        return nodeTableSchemas[tableID].get();
     }
-    virtual inline label_t getRelLabelFromName(const string& label) const {
-        return relLabelNameToIdMap.at(label);
+    inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
+        return relTableSchemas[tableID].get();
+    }
+
+    inline uint64_t getNumNodeTables() const { return nodeTableSchemas.size(); }
+    inline uint64_t getNumRelTables() const { return relTableSchemas.size(); }
+
+    virtual inline bool containNodeTable(const string& tableName) const {
+        return end(nodeTableNameToIDMap) != nodeTableNameToIDMap.find(tableName);
+    }
+    virtual inline bool containRelTable(const string& tableName) const {
+        return end(relTableNameToIDMap) != relTableNameToIDMap.find(tableName);
+    }
+
+    virtual inline table_id_t getNodeTableIDFromName(const string& tableName) const {
+        return nodeTableNameToIDMap.at(tableName);
+    }
+    virtual inline table_id_t getRelTableIDFromName(const string& tableName) const {
+        return relTableNameToIDMap.at(tableName);
     }
 
     /**
      * Node and Rel property functions.
      */
-    virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
-    virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
+    virtual bool containNodeProperty(table_id_t tableID, const string& propertyName) const;
+    virtual bool containRelProperty(table_id_t tableID, const string& propertyName) const;
 
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    virtual const Property& getNodeProperty(label_t labelId, const string& propertyName) const;
-    virtual const Property& getRelProperty(label_t labelId, const string& propertyName) const;
+    virtual const Property& getNodeProperty(table_id_t tableID, const string& propertyName) const;
+    virtual const Property& getRelProperty(table_id_t tableID, const string& propertyName) const;
 
-    const Property& getNodePrimaryKeyProperty(label_t nodeLabel) const;
+    const Property& getNodePrimaryKeyProperty(table_id_t tableID) const;
 
-    vector<Property> getAllNodeProperties(label_t nodeLabel) const;
-    inline const vector<Property>& getStructuredNodeProperties(label_t nodeLabel) const {
-        return nodeLabels[nodeLabel]->structuredProperties;
+    vector<Property> getAllNodeProperties(table_id_t tableID) const;
+    inline const vector<Property>& getStructuredNodeProperties(table_id_t tableID) const {
+        return nodeTableSchemas[tableID]->structuredProperties;
     }
-    inline const vector<Property>& getUnstructuredNodeProperties(label_t nodeLabel) const {
-        return nodeLabels[nodeLabel]->unstructuredProperties;
+    inline const vector<Property>& getUnstructuredNodeProperties(table_id_t tableID) const {
+        return nodeTableSchemas[tableID]->unstructuredProperties;
     }
-    inline const vector<Property>& getRelProperties(label_t relLabel) const {
-        return relLabels[relLabel]->properties;
+    inline const vector<Property>& getRelProperties(table_id_t tableID) const {
+        return relTableSchemas[tableID]->properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
-        label_t nodeLabel) const {
-        return nodeLabels[nodeLabel]->unstrPropertiesNameToIdMap;
+        table_id_t tableID) const {
+        return nodeTableSchemas[tableID]->unstrPropertiesNameToIdMap;
     }
 
     /**
      * Graph topology functions.
      */
 
-    const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
-        label_t relLabel, RelDirection direction) const;
-    virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
-        label_t nodeLabel, RelDirection direction) const;
+    const unordered_set<table_id_t>& getNodeTableIDsForRelTableDirection(
+        table_id_t tableID, RelDirection direction) const;
+    virtual const unordered_set<table_id_t>& getRelTableIDsForNodeTableDirection(
+        table_id_t tableID, RelDirection direction) const;
 
-    virtual bool isSingleMultiplicityInDirection(label_t relLabel, RelDirection direction) const;
+    virtual bool isSingleMultiplicityInDirection(table_id_t tableID, RelDirection direction) const;
 
-    virtual uint64_t getNumRelsForDirectionBoundLabel(
-        label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const;
+    virtual uint64_t getNumRelsForDirectionBoundTableID(
+        table_id_t tableID, RelDirection relDirection, table_id_t boundNodeTableID) const;
 
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
@@ -123,12 +127,12 @@ public:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    vector<unique_ptr<NodeLabel>> nodeLabels;
-    vector<unique_ptr<RelLabel>> relLabels;
+    vector<unique_ptr<NodeTableSchema>> nodeTableSchemas;
+    vector<unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
-    unordered_map<string, label_t> nodeLabelNameToIdMap;
-    unordered_map<string, label_t> relLabelNameToIdMap;
+    unordered_map<string, table_id_t> nodeTableNameToIDMap;
+    unordered_map<string, table_id_t> relTableNameToIDMap;
 };
 
 class Catalog {
@@ -171,26 +175,26 @@ public:
 
     ExpressionType getFunctionType(const string& name) const;
 
-    label_t addNodeLabel(string labelName, uint32_t primaryKeyIdx,
+    table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
-    label_t addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstLabels srcDstLabels);
+    table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
+        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
 
-    inline void setUnstructuredPropertiesOfNodeLabel(
-        vector<string>& unstructuredProperties, label_t labelID) {
+    inline void setUnstructuredPropertiesOfNodeTableSchema(
+        vector<string>& unstructuredProperties, table_id_t tableID) {
         initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->getNodeLabel(labelID)->addUnstructuredProperties(
+        catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
             unstructuredProperties);
     }
 
-    inline void setNumRelsOfRelLabel(uint64_t numRels, label_t labelID) {
+    inline void setNumRelsOfRelTableSchema(uint64_t numRels, table_id_t tableID) {
         initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->getRelLabel(labelID)->setNumRels(numRels);
+        catalogContentForWriteTrx->getRelTableSchema(tableID)->setNumRels(numRels);
     }
 
-    void setNumRelsPerDirectionBoundLabelOfRelLabel(
-        vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerLabel, label_t labelID);
+    void setNumRelsPerDirectionBoundTableIDOfRelTableSchema(
+        vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable, table_id_t tableID);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;

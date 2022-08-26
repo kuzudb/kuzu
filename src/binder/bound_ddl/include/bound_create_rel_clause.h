@@ -8,19 +8,19 @@ namespace binder {
 
 class BoundCreateRelClause : public BoundDDL {
 public:
-    explicit BoundCreateRelClause(string labelName,
+    explicit BoundCreateRelClause(string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        SrcDstLabels srcDstLabels)
-        : BoundDDL{StatementType::CREATE_REL_CLAUSE, move(labelName), move(propertyNameDataTypes)},
-          relMultiplicity{relMultiplicity}, srcDstLabels{move(srcDstLabels)} {}
+        SrcDstTableIDs srcDstTableIDs)
+        : BoundDDL{StatementType::CREATE_REL_CLAUSE, move(tableName), move(propertyNameDataTypes)},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
 
     RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    SrcDstLabels getSrcDstLabels() const { return srcDstLabels; }
+    SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstLabels srcDstLabels;
+    SrcDstTableIDs srcDstTableIDs;
 };
 
 } // namespace binder

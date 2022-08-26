@@ -139,8 +139,8 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
     uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
     uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)vector->values;
-    auto labelSize = compressionScheme.getNumBytesForLabel();
-    auto offsetSize = compressionScheme.getNumBytesForOffset();
+    auto numBytesForTableID = compressionScheme.getNumBytesForTableID();
+    auto numBytesForOffset = compressionScheme.getNumBytesForOffset();
     auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
@@ -151,14 +151,14 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
     auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
     for (auto i = 0u; i < numValuesToRead; i++) {
         nodeID_t nodeID{0, 0};
-        if (labelSize == 0) {
-            nodeID.label = compressionScheme.getCommonLabel();
+        if (numBytesForTableID == 0) {
+            nodeID.tableID = compressionScheme.getCommonTableID();
         } else {
-            memcpy(&nodeID.label, currentFrameHead, labelSize);
-            currentFrameHead += labelSize;
+            memcpy(&nodeID.tableID, currentFrameHead, numBytesForTableID);
+            currentFrameHead += numBytesForTableID;
         }
-        memcpy(&nodeID.offset, currentFrameHead, offsetSize);
-        currentFrameHead += offsetSize;
+        memcpy(&nodeID.offset, currentFrameHead, numBytesForOffset);
+        currentFrameHead += numBytesForOffset;
         nodeValues[vectorStartPos + i] = nodeID;
     }
     bufferManager.unpin(fileHandle, physicalPageIdx);

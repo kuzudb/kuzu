@@ -11,19 +11,19 @@ namespace graphflow {
 namespace parser {
 
 /**
- * NodePattern represents "(nodeName:NodeLabel {p1:v1, p2:v2, ...})"
+ * NodePattern represents "(nodeName:NodeTable {p1:v1, p2:v2, ...})"
  */
 class NodePattern {
 public:
-    NodePattern(
-        string name, string label, vector<pair<string, unique_ptr<ParsedExpression>>> properties)
-        : name{move(name)}, label{move(label)}, properties{move(properties)} {}
+    NodePattern(string name, string tableName,
+        vector<pair<string, unique_ptr<ParsedExpression>>> properties)
+        : variableName{move(name)}, tableName{move(tableName)}, properties{move(properties)} {}
 
     ~NodePattern() = default;
 
-    inline string getName() const { return name; }
+    inline string getVariableName() const { return variableName; }
 
-    inline string getLabel() const { return label; }
+    inline string getTableName() const { return tableName; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
@@ -31,7 +31,7 @@ public:
     }
 
     bool operator==(const NodePattern& other) const {
-        if (!(name == other.name && label == other.label &&
+        if (!(variableName == other.variableName && tableName == other.tableName &&
                 properties.size() == other.properties.size())) {
             return false;
         }
@@ -48,8 +48,8 @@ public:
     bool operator!=(const NodePattern& other) const { return !operator==(other); }
 
 private:
-    string name;
-    string label;
+    string variableName;
+    string tableName;
     vector<pair<string, unique_ptr<ParsedExpression>>> properties;
 };
 

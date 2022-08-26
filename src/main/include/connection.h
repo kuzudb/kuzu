@@ -122,10 +122,10 @@ public:
     }
     string getBuiltInScalarFunctionNames();
     string getBuiltInAggregateFunctionNames();
-    string getNodeLabelNames();
-    string getRelLabelNames();
-    string getNodePropertyNames(const string& nodeLabelName);
-    string getRelPropertyNames(const string& relLabelName);
+    string getNodeTableNames();
+    string getRelTableNames();
+    string getNodePropertyNames(const string& tableName);
+    string getRelPropertyNames(const string& relTableName);
 
     // Used in test helper. Note: for our testing framework, we should not catch exception and
     // instead let IDE catch these exceptions.

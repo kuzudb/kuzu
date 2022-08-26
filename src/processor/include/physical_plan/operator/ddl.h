@@ -14,10 +14,10 @@ namespace processor {
 class DDL : public PhysicalOperator, public SourceOperator {
 
 public:
-    DDL(Catalog* catalog, string labelName, vector<PropertyNameDataType> propertyNameDataTypes,
+    DDL(Catalog* catalog, string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{nullptr}, catalog{catalog},
-          labelName{move(labelName)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
+          tableName{move(tableName)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override { return nullptr; };
 
@@ -27,7 +27,7 @@ public:
 
 protected:
     Catalog* catalog;
-    string labelName;
+    string tableName;
     vector<PropertyNameDataType> propertyNameDataTypes;
 };
 

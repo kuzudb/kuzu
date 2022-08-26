@@ -12,7 +12,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalTableScanToPhysical(
     auto& logicalTableScan = (LogicalStaticTableScan&)*logicalOperator;
     auto sharedState = make_shared<FTableSharedState>();
     // populate static table
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     vector<shared_ptr<ValueVector>> vectors;
     for (auto& expression : logicalTableScan.getExpressions()) {
         tableSchema->appendColumn(make_unique<ColumnSchema>(false,

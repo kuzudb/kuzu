@@ -103,16 +103,16 @@ public:
 
     void logCatalogRecord();
 
-    void logNodeTableRecord(label_t labelID);
+    void logNodeTableRecord(table_id_t tableID);
 
-    void logRelTableRecord(label_t labelID);
+    void logRelTableRecord(table_id_t tableID);
 
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeCSVRecord(label_t labelID);
+    void logCopyNodeCSVRecord(table_id_t tableID);
 
-    void logCopyRelCSVRecord(label_t labelID);
+    void logCopyRelCSVRecord(table_id_t tableID);
 
     // Removes the contents of WAL file.
     void clearWAL();

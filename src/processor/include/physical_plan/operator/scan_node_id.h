@@ -26,9 +26,9 @@ class ScanNodeIDSharedState {
 
 public:
     explicit ScanNodeIDSharedState(
-        NodesMetadata* nodesMetadata, label_t labelID, bool enableSemiMask = false)
+        NodesMetadata* nodesMetadata, table_id_t tableID, bool enableSemiMask = false)
         : initialized{false}, enableSemiMask{enableSemiMask}, nodesMetadata{nodesMetadata},
-          labelID{labelID}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{
+          tableID{tableID}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{
                                                                                      0} {}
 
     void initialize(Transaction* transaction);
@@ -50,7 +50,7 @@ private:
     bool initialized;
     bool enableSemiMask;
     NodesMetadata* nodesMetadata;
-    label_t labelID;
+    table_id_t tableID;
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
     uint64_t currentNodeOffset;

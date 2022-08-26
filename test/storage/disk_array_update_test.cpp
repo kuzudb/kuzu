@@ -21,9 +21,9 @@ public:
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        auto personNodeLabel =
-            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
-        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personNodeLabel);
+        auto personTableID =
+            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personTableID);
         conn->beginWriteTransaction();
     }
 

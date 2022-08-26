@@ -10,24 +10,24 @@ namespace planner {
 class LogicalCopyCSV : public LogicalOperator {
 
 public:
-    LogicalCopyCSV(CSVDescription csvDescription, Label label)
-        : LogicalOperator{}, csvDescription{move(csvDescription)}, label{move(label)} {}
+    LogicalCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
+        : LogicalOperator{}, csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_COPY_CSV; }
 
-    inline string getExpressionsForPrinting() const override { return label.labelName; }
+    inline string getExpressionsForPrinting() const override { return tableSchema.tableName; }
 
     inline CSVDescription getCSVDescription() const { return csvDescription; }
 
-    inline Label getLabel() const { return label; }
+    inline TableSchema getTableSchema() const { return tableSchema; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyCSV>(csvDescription, label);
+        return make_unique<LogicalCopyCSV>(csvDescription, tableSchema);
     }
 
 private:
     CSVDescription csvDescription;
-    Label label;
+    TableSchema tableSchema;
 };
 
 } // namespace planner

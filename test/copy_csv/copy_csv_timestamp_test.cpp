@@ -15,9 +15,9 @@ class TinySnbTimestampTest : public InMemoryDBTest {
 TEST_F(TinySnbTimestampTest, NodePropertyColumnWithTimestamp) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "registerTime");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
+    auto table = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(table, "registerTime");
+    auto col = graph->getNodesStore().getNodePropertyColumn(table, propertyIdx.propertyID);
     EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(2011, 8, 20), Time::FromTime(11, 25, 30)),
         col->readValue(0).val.timestampVal);
     EXPECT_EQ(

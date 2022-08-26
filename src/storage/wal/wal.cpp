@@ -53,15 +53,15 @@ void WAL::logCatalogRecord() {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logNodeTableRecord(label_t labelID) {
+void WAL::logNodeTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newNodeTableRecord(labelID);
+    WALRecord walRecord = WALRecord::newNodeTableRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logRelTableRecord(label_t labelID) {
+void WAL::logRelTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRelTableRecord(labelID);
+    WALRecord walRecord = WALRecord::newRelTableRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -73,15 +73,15 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyNodeCSVRecord(label_t labelID) {
+void WAL::logCopyNodeCSVRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyNodeCSVRecord(labelID);
+    WALRecord walRecord = WALRecord::newCopyNodeCSVRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyRelCSVRecord(label_t labelID) {
+void WAL::logCopyRelCSVRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyRelCSVRecord(labelID);
+    WALRecord walRecord = WALRecord::newCopyRelCSVRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

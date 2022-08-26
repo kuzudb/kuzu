@@ -10,8 +10,8 @@ using namespace std;
 class CreateNodeClause : public DDL {
 public:
     explicit CreateNodeClause(
-        string labelName, vector<pair<string, string>> propertyNameDataTypes, string primaryKey)
-        : DDL{StatementType::CREATE_NODE_CLAUSE, move(labelName), move(propertyNameDataTypes)},
+        string tableName, vector<pair<string, string>> propertyNameDataTypes, string primaryKey)
+        : DDL{StatementType::CREATE_NODE_CLAUSE, move(tableName), move(propertyNameDataTypes)},
           primaryKey{move(primaryKey)} {}
 
     inline string getPrimaryKey() const { return primaryKey; }

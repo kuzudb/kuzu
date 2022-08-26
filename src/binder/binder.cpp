@@ -49,52 +49,52 @@ unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery
 
 unique_ptr<BoundCreateNodeClause> Binder::bindCreateNodeClause(
     const CreateNodeClause& createNodeClause) {
-    auto labelName = createNodeClause.getLabelName();
-    if (catalog.getReadOnlyVersion()->containNodeLabel(labelName)) {
-        throw BinderException("Node " + labelName + " already exists.");
+    auto tableName = createNodeClause.getTableName();
+    if (catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
+        throw BinderException("Node " + tableName + " already exists.");
     }
     auto boundPropertyNameDataTypes =
         bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeClause.getPrimaryKey(), createNodeClause.getPropertyNameDataTypes());
     return make_unique<BoundCreateNodeClause>(
-        labelName, move(boundPropertyNameDataTypes), primaryKeyIdx);
+        tableName, move(boundPropertyNameDataTypes), primaryKeyIdx);
 }
 
 unique_ptr<BoundCreateRelClause> Binder::bindCreateRelClause(
     const CreateRelClause& createRelClause) {
-    auto labelName = createRelClause.getLabelName();
-    if (catalog.getReadOnlyVersion()->containRelLabel(labelName)) {
-        throw BinderException("Rel " + labelName + " already exists.");
+    auto tableName = createRelClause.getTableName();
+    if (catalog.getReadOnlyVersion()->containRelTable(tableName)) {
+        throw BinderException("Rel " + tableName + " already exists.");
     }
     auto propertyNameDataTypes =
         bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    auto srcDstLabels = bindRelConnections(createRelClause.getRelConnection());
+    auto srcDstTableIDs = bindRelConnections(createRelClause.getRelConnection());
     return make_unique<BoundCreateRelClause>(
-        labelName, move(propertyNameDataTypes), relMultiplicity, move(srcDstLabels));
+        tableName, move(propertyNameDataTypes), relMultiplicity, move(srcDstTableIDs));
 }
 
 unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
-    auto labelName = copyCSV.getLabelName();
-    validateLabelExist(labelName);
-    auto isNodeLabel = catalog.getReadOnlyVersion()->containNodeLabel(labelName);
-    auto labelID = isNodeLabel ? catalog.getReadOnlyVersion()->getNodeLabelFromName(labelName) :
-                                 catalog.getReadOnlyVersion()->getRelLabelFromName(labelName);
+    auto tableName = copyCSV.getTableName();
+    validateTableExist(tableName);
+    auto isNodeTable = catalog.getReadOnlyVersion()->containNodeTable(tableName);
+    auto tableID = isNodeTable ? catalog.getReadOnlyVersion()->getNodeTableIDFromName(tableName) :
+                                 catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
     return make_unique<BoundCopyCSV>(
         CSVDescription(copyCSV.getCSVFileName(), bindParsingOptions(copyCSV.getParsingOptions())),
-        Label(labelName, labelID, isNodeLabel));
+        TableSchema(tableName, tableID, isNodeTable));
 }
 
-SrcDstLabels Binder::bindRelConnections(RelConnection relConnections) const {
-    unordered_set<label_t> srcNodeLabels, dstNodeLabels;
-    for (auto& srcNodeLabel : relConnections.srcNodeLabels) {
-        for (auto& dstNodeLabel : relConnections.dstNodeLabels) {
-            srcNodeLabels.insert(bindNodeLabel(srcNodeLabel));
-            dstNodeLabels.insert(bindNodeLabel(dstNodeLabel));
+SrcDstTableIDs Binder::bindRelConnections(RelConnection relConnections) const {
+    unordered_set<table_id_t> srcTableIDs, dstTableIDs;
+    for (auto& srcTableName : relConnections.srcTableNames) {
+        for (auto& dstTableName : relConnections.dstTableNames) {
+            srcTableIDs.insert(bindNodeTableName(srcTableName));
+            dstTableIDs.insert(bindNodeTableName(dstTableName));
         }
     }
-    return SrcDstLabels(move(srcNodeLabels), move(dstNodeLabels));
+    return SrcDstTableIDs(move(srcTableIDs), move(dstTableIDs));
 }
 
 CSVReaderConfig Binder::bindParsingOptions(unordered_map<string, string> parsingOptions) {
@@ -202,7 +202,7 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
                 make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
         }
         validateNodeCreateHasPrimaryKeyInput(*nodeUpdateInfo,
-            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getLabel()));
+            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getTableID()));
         boundCreateClause->addNodeUpdateInfo(move(nodeUpdateInfo));
     }
     return boundCreateClause;
@@ -306,7 +306,7 @@ expression_vector Binder::rewriteProjectionExpressions(const expression_vector& 
 expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getLabel())) {
+    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getTableID())) {
         auto propertyExpression = make_shared<PropertyExpression>(
             property.dataType, property.name, property.propertyID, expression);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
@@ -318,7 +318,7 @@ expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression
 expression_vector Binder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getLabel())) {
+    for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getTableID())) {
         auto propertyExpression = make_shared<PropertyExpression>(
             property.dataType, property.name, property.propertyID, expression);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
@@ -398,24 +398,24 @@ unique_ptr<QueryGraph> Binder::bindQueryGraph(
 
 void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
     const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph) {
-    auto parsedName = relPattern.getName();
+    auto parsedName = relPattern.getVariableName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
-    auto relLabel = bindRelLabel(relPattern.getLabel());
-    if (ANY_LABEL == relLabel) {
+    auto tableID = bindRelTable(relPattern.getTableName());
+    if (ANY_TABLE_ID == tableID) {
         throw BinderException(
-            "Any-label is not supported. " + parsedName + " does not have a label.");
+            "Any-table is not supported. " + parsedName + " does not have a table.");
     }
     // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    validateNodeAndRelLabelIsConnected(
-        catalog, relLabel, leftNode->getLabel(), isLeftNodeSrc ? FWD : BWD);
-    validateNodeAndRelLabelIsConnected(
-        catalog, relLabel, rightNode->getLabel(), isLeftNodeSrc ? BWD : FWD);
+    validateNodeAndRelTableIsConnected(
+        catalog, tableID, leftNode->getTableID(), isLeftNodeSrc ? FWD : BWD);
+    validateNodeAndRelTableIsConnected(
+        catalog, tableID, rightNode->getTableID(), isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
     // bind variable length
@@ -430,7 +430,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         throw BinderException("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
     auto queryRel = make_shared<RelExpression>(
-        getUniqueExpressionName(parsedName), relLabel, srcNode, dstNode, lowerBound, upperBound);
+        getUniqueExpressionName(parsedName), tableID, srcNode, dstNode, lowerBound, upperBound);
     queryRel->setAlias(parsedName);
     queryRel->setRawName(parsedName);
     if (!parsedName.empty()) {
@@ -445,17 +445,17 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         // E.g. MATCH (a:person {p1:v1}) is not supported.
         throw BinderException("Node pattern with properties in MATCH clause is not supported.");
     }
-    auto parsedName = nodePattern.getName();
+    auto parsedName = nodePattern.getVariableName();
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto otherLabel = bindNodeLabel(nodePattern.getLabel());
-        GF_ASSERT(queryNode->getLabel() != ANY_LABEL);
-        if (otherLabel != ANY_LABEL && queryNode->getLabel() != otherLabel) {
+        auto otherTableID = bindNodeTableName(nodePattern.getTableName());
+        GF_ASSERT(queryNode->getTableID() != ANY_TABLE_ID);
+        if (otherTableID != ANY_TABLE_ID && queryNode->getTableID() != otherTableID) {
             throw BinderException(
-                "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
+                "Multi-table is not supported. Node " + parsedName + " is given multiple tables.");
         }
     } else {
         queryNode = createQueryNode(nodePattern);
@@ -465,14 +465,14 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 }
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
-    auto parsedName = nodePattern.getName();
-    auto nodeLabel = bindNodeLabel(nodePattern.getLabel());
-    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
+    auto parsedName = nodePattern.getVariableName();
+    auto tableID = bindNodeTableName(nodePattern.getTableName());
+    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableID);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
-    if (ANY_LABEL == nodeLabel) {
+    if (ANY_TABLE_ID == tableID) {
         throw BinderException(
-            "Any-label is not supported. " + parsedName + " does not have a label.");
+            "Any-table is not supported. " + parsedName + " does not have a table.");
     }
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryNode});
@@ -480,24 +480,24 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     return queryNode;
 }
 
-label_t Binder::bindRelLabel(const string& parsed_label) const {
-    if (parsed_label.empty()) {
-        return ANY_LABEL;
+table_id_t Binder::bindRelTable(const string& tableName) const {
+    if (tableName.empty()) {
+        return ANY_TABLE_ID;
     }
-    if (!catalog.getReadOnlyVersion()->containRelLabel(parsed_label)) {
-        throw BinderException("Rel label " + parsed_label + " does not exist.");
+    if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
+        throw BinderException("Rel table " + tableName + " does not exist.");
     }
-    return catalog.getReadOnlyVersion()->getRelLabelFromName(parsed_label);
+    return catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
 }
 
-label_t Binder::bindNodeLabel(const string& parsed_label) const {
-    if (parsed_label.empty()) {
-        return ANY_LABEL;
+table_id_t Binder::bindNodeTableName(const string& tableName) const {
+    if (tableName.empty()) {
+        return ANY_TABLE_ID;
     }
-    if (!catalog.getReadOnlyVersion()->containNodeLabel(parsed_label)) {
-        throw BinderException("Node label " + parsed_label + " does not exist.");
+    if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
+        throw BinderException("Node table " + tableName + " does not exist.");
     }
-    return catalog.getReadOnlyVersion()->getNodeLabelFromName(parsed_label);
+    return catalog.getReadOnlyVersion()->getNodeTableIDFromName(tableName);
 }
 
 uint32_t Binder::bindPrimaryKey(
@@ -529,21 +529,21 @@ void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     }
 }
 
-void Binder::validateNodeAndRelLabelIsConnected(
-    const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction) {
-    assert(relLabel != ANY_LABEL);
-    assert(nodeLabel != ANY_LABEL);
-    auto connectedRelLabels =
-        catalog_.getReadOnlyVersion()->getRelLabelsForNodeLabelDirection(nodeLabel, direction);
-    for (auto& connectedRelLabel : connectedRelLabels) {
-        if (relLabel == connectedRelLabel) {
+void Binder::validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_id_t relTableID,
+    table_id_t nodeTableID, RelDirection direction) {
+    assert(relTableID != ANY_TABLE_ID);
+    assert(nodeTableID != ANY_TABLE_ID);
+    auto connectedRelTableIDs =
+        catalog_.getReadOnlyVersion()->getRelTableIDsForNodeTableDirection(nodeTableID, direction);
+    for (auto& connectedRelTableID : connectedRelTableIDs) {
+        if (relTableID == connectedRelTableID) {
             return;
         }
     }
-    throw BinderException("Node label " +
-                          catalog_.getReadOnlyVersion()->getNodeLabelName(nodeLabel) +
-                          " doesn't connect to rel label " +
-                          catalog_.getReadOnlyVersion()->getRelLabelName(relLabel) + ".");
+    throw BinderException("Node table " +
+                          catalog_.getReadOnlyVersion()->getNodeTableName(nodeTableID) +
+                          " doesn't connect to rel table " +
+                          catalog_.getReadOnlyVersion()->getRelTableName(relTableID) + ".");
 }
 
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
@@ -671,10 +671,10 @@ void Binder::validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, stri
     }
 }
 
-void Binder::validateLabelExist(string& labelName) const {
-    if (!catalog.getReadOnlyVersion()->containNodeLabel(labelName) &&
-        !catalog.getReadOnlyVersion()->containRelLabel(labelName)) {
-        throw BinderException("Node/Rel " + labelName + " does not exist.");
+void Binder::validateTableExist(string& tableName) const {
+    if (!catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
+        !catalog.getReadOnlyVersion()->containRelTable(tableName)) {
+        throw BinderException("Node/Rel " + tableName + " does not exist.");
     }
 }
 

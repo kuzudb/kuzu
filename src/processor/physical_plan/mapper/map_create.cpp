@@ -15,7 +15,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateToPhysical(
     for (auto i = 0u; i < logicalCreate.getNumCreateItems(); ++i) {
         auto [expression, setItems] = logicalCreate.getCreateItem(i);
         auto& node = (NodeExpression&)*expression;
-        nodeTables.push_back(nodesStore.getNode(node.getLabel()));
+        nodeTables.push_back(nodesStore.getNode(node.getTableID()));
     }
     return make_unique<CreateNode>(move(nodeTables), move(prevOperator), getOperatorID(),
         logicalCreate.getExpressionsForPrinting());

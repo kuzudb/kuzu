@@ -38,15 +38,15 @@ TEST_F(BinderErrorTest, DisconnectedGraph2) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, NodeLabelNotExist) {
-    string expectedException = "Binder exception: Node label PERSON does not exist.";
+TEST_F(BinderErrorTest, NodeTableNotExist) {
+    string expectedException = "Binder exception: Node table PERSON does not exist.";
     auto input = "MATCH (a:PERSON) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, NodeRelNotConnect) {
     string expectedException =
-        "Binder exception: Node label person doesn't connect to rel label workAt.";
+        "Binder exception: Node table person doesn't connect to rel table workAt.";
     auto input = "MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -356,7 +356,7 @@ TEST_F(BinderErrorTest, CreateRelTableUsedName) {
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidNodeTableName) {
-    string expectedException = "Binder exception: Node label post does not exist.";
+    string expectedException = "Binder exception: Node table post does not exist.";
     auto input = "CREATE REL knows_post ( FROM person TO post);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

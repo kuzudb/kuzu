@@ -4,16 +4,16 @@ namespace graphflow {
 namespace storage {
 
 NodeTable::NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory,
-    WAL* wal, NodeLabel* nodeLabel)
-    : nodesMetadata{nodesMetadata}, labelID{nodeLabel->labelID}, isInMemory{isInMemory} {
-    loadColumnsAndListsFromDisk(nodeLabel, bufferManager, wal);
+    WAL* wal, NodeTableSchema* nodeTableSchema)
+    : nodesMetadata{nodesMetadata}, tableID{nodeTableSchema->tableID}, isInMemory{isInMemory} {
+    loadColumnsAndListsFromDisk(nodeTableSchema, bufferManager, wal);
 }
 
 void NodeTable::loadColumnsAndListsFromDisk(
-    NodeLabel* nodeLabel, BufferManager& bufferManager, WAL* wal) {
-    propertyColumns.resize(nodeLabel->getAllNodeProperties().size());
-    for (auto i = 0u; i < nodeLabel->getAllNodeProperties().size(); i++) {
-        auto property = nodeLabel->getAllNodeProperties()[i];
+    NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal) {
+    propertyColumns.resize(nodeTableSchema->getAllNodeProperties().size());
+    for (auto i = 0u; i < nodeTableSchema->getAllNodeProperties().size(); i++) {
+        auto property = nodeTableSchema->getAllNodeProperties()[i];
         if (property.dataType.typeID != UNSTRUCTURED) {
             propertyColumns[i] = ColumnFactory::getColumn(
                 StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
@@ -23,11 +23,11 @@ void NodeTable::loadColumnsAndListsFromDisk(
     }
     unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
         StorageUtils::getUnstructuredNodePropertyListsStructureIDAndFName(
-            wal->getDirectory(), labelID),
+            wal->getDirectory(), tableID),
         bufferManager, isInMemory, wal);
     IDIndex =
-        make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), labelID),
-            nodeLabel->getPrimaryKey().dataType, bufferManager, isInMemory);
+        make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
+            nodeTableSchema->getPrimaryKey().dataType, bufferManager, isInMemory);
 }
 
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
@@ -47,7 +47,7 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
 void NodeTable::deleteNode(
     ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const {
     auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-    nodesMetadata->deleteNode(labelID, nodeOffset);
+    nodesMetadata->deleteNode(tableID, nodeOffset);
     // TODO(Guodong): delete primary key index
 }
 

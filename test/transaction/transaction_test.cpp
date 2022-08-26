@@ -21,15 +21,15 @@ public:
         writeTrx = database->getTransactionManager()->beginWriteTransaction();
         readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
 
-        label_t personNodeLabel =
-            database->getCatalog()->getReadOnlyVersion()->getNodeLabelFromName("person");
+        table_id_t personTableID =
+            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
         uint32_t agePropertyID = database->getCatalog()
                                      ->getReadOnlyVersion()
-                                     ->getNodeProperty(personNodeLabel, "age")
+                                     ->getNodeProperty(personTableID, "age")
                                      .propertyID;
         uint32_t eyeSightPropertyID = database->getCatalog()
                                           ->getReadOnlyVersion()
-                                          ->getNodeProperty(personNodeLabel, "eyeSight")
+                                          ->getNodeProperty(personTableID, "eyeSight")
                                           .propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
@@ -46,10 +46,10 @@ public:
         dataChunk->insert(2, eyeSightVectorToReadDataInto);
 
         personAgeColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
-            personNodeLabel, agePropertyID);
+            personTableID, agePropertyID);
 
         personEyeSightColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
-            personNodeLabel, eyeSightPropertyID);
+            personTableID, eyeSightPropertyID);
     }
 
     void readAndAssertAgePropertyNode(

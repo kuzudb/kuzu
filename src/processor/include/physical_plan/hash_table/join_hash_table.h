@@ -13,8 +13,8 @@ namespace processor {
 
 class JoinHashTable : public BaseHashTable {
 public:
-    JoinHashTable(
-        MemoryManager& memoryManager, uint64_t numTuples, unique_ptr<TableSchema> tableSchema);
+    JoinHashTable(MemoryManager& memoryManager, uint64_t numTuples,
+        unique_ptr<FactorizedTableSchema> tableSchema);
 
     void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);

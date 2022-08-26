@@ -16,7 +16,7 @@ StorageManager::StorageManager(
     logger->info("Initializing StorageManager from directory: " + wal->getDirectory());
     nodesStore = make_unique<NodesStore>(catalog, bufferManager, isInMemoryMode, wal);
     relsStore =
-        make_unique<RelsStore>(catalog, nodesStore->getNodesMetadata().getMaxNodeOffsetPerLabel(),
+        make_unique<RelsStore>(catalog, nodesStore->getNodesMetadata().getMaxNodeOffsetPerTable(),
             bufferManager, isInMemoryMode, wal);
     nodesStore->getNodesMetadata().setAdjListsAndColumns(relsStore.get());
     logger->info("Done.");

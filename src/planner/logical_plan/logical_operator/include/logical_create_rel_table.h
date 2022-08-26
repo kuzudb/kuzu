@@ -9,10 +9,10 @@ namespace planner {
 class LogicalCreateRelTable : public LogicalDDL {
 
 public:
-    LogicalCreateRelTable(string labelName, vector<PropertyNameDataType> propertyNameDataTypes,
-        RelMultiplicity relMultiplicity, SrcDstLabels srcDstLabels)
-        : LogicalDDL{move(labelName), move(propertyNameDataTypes)},
-          relMultiplicity{relMultiplicity}, srcDstLabels{move(srcDstLabels)} {}
+    LogicalCreateRelTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
+        RelMultiplicity relMultiplicity, SrcDstTableIDs srcDstTableIDs)
+        : LogicalDDL{move(tableName), move(propertyNameDataTypes)},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LOGICAL_CREATE_REL_TABLE;
@@ -20,16 +20,16 @@ public:
 
     inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    inline SrcDstLabels getSrcDstLabels() const { return srcDstLabels; }
+    inline SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
 
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateRelTable>(
-            labelName, propertyNameDataTypes, relMultiplicity, srcDstLabels);
+            tableName, propertyNameDataTypes, relMultiplicity, srcDstTableIDs);
     }
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstLabels srcDstLabels;
+    SrcDstTableIDs srcDstTableIDs;
 };
 
 } // namespace planner

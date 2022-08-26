@@ -90,9 +90,9 @@ private:
         const NodePattern& nodePattern, QueryGraph& queryGraph);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
 
-    label_t bindRelLabel(const string& parsed_label) const;
+    table_id_t bindRelTable(const string& tableName) const;
 
-    label_t bindNodeLabel(const string& parsed_label) const;
+    table_id_t bindNodeTableName(const string& tableName) const;
 
     static uint32_t bindPrimaryKey(
         string primaryKey, vector<pair<string, string>> propertyNameDataTypes);
@@ -100,7 +100,7 @@ private:
     static vector<PropertyNameDataType> bindPropertyNameDataTypes(
         vector<pair<string, string>> propertyNameDataTypes);
 
-    SrcDstLabels bindRelConnections(RelConnection relConnections) const;
+    SrcDstTableIDs bindRelConnections(RelConnection relConnections) const;
 
     static CSVReaderConfig bindParsingOptions(unordered_map<string, string> parsingOptions);
 
@@ -113,8 +113,8 @@ private:
     static void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
 
     // E.g. MATCH (:person)-[:studyAt]->(:person) ...
-    static void validateNodeAndRelLabelIsConnected(
-        const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction);
+    static void validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_id_t relTableID,
+        table_id_t nodeTableID, RelDirection direction);
 
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
@@ -141,7 +141,7 @@ private:
 
     static void validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
 
-    void validateLabelExist(string& schemaName) const;
+    void validateTableExist(string& tableName) const;
 
     static void validateParsingOptionName(string& parsingOptionName);
 

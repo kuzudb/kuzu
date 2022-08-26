@@ -4,47 +4,47 @@ namespace graphflow {
 namespace storage {
 
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
-    label_t nodeLabel, uint32_t propertyID, bool isOverflow) {
+    table_id_t tableID, uint32_t propertyID, bool isOverflow) {
     StorageStructureID retVal;
     retVal.storageStructureType = STRUCTURED_NODE_PROPERTY_COLUMN;
     retVal.isOverflow = isOverflow;
-    retVal.structuredNodePropertyColumnID = StructuredNodePropertyColumnID(nodeLabel, propertyID);
+    retVal.structuredNodePropertyColumnID = StructuredNodePropertyColumnID(tableID, propertyID);
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newNodeIndexID(label_t nodeLabel) {
+StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
     StorageStructureID retVal;
     retVal.storageStructureType = NODE_INDEX;
-    retVal.nodeIndexID = NodeIndexID(nodeLabel);
+    retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
 }
 
 StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
-    label_t nodeLabel, ListFileType listFileType) {
+    table_id_t tableID, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
-    retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(nodeLabel));
+    retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(tableID));
     return retVal;
 }
 
 StorageStructureID StorageStructureID::newAdjListsID(
-    label_t relLabel, label_t srcNodeLabel, RelDirection dir, ListFileType listFileType) {
+    table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
     retVal.listFileID =
-        ListFileID(listFileType, AdjListsID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir)));
+        ListFileID(listFileType, AdjListsID(RelNodeTableAndDir(tableID, srcNodeTableID, dir)));
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newRelPropertyListsID(label_t relLabel, label_t srcNodeLabel,
-    RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
+StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTableID,
+    table_id_t relTableID, RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = LISTS;
     retVal.listFileID = ListFileID(listFileType,
-        RelPropertyListID(RelNodeLabelAndDir(relLabel, srcNodeLabel, dir), propertyID));
+        RelPropertyListID(RelNodeTableAndDir(nodeTableID, relTableID, dir), propertyID));
     return retVal;
 }
 
@@ -88,17 +88,17 @@ WALRecord WALRecord::newCatalogRecord() {
     return retVal;
 }
 
-WALRecord WALRecord::newNodeTableRecord(label_t labelID) {
+WALRecord WALRecord::newNodeTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = NODE_TABLE_RECORD;
-    retVal.nodeTableRecord = NodeTableRecord(labelID);
+    retVal.nodeTableRecord = NodeTableRecord(tableID);
     return retVal;
 }
 
-WALRecord WALRecord::newRelTableRecord(label_t labelID) {
+WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = REL_TABLE_RECORD;
-    retVal.relTableRecord = RelTableRecord(labelID);
+    retVal.relTableRecord = RelTableRecord(tableID);
     return retVal;
 }
 
@@ -111,17 +111,17 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newCopyNodeCSVRecord(label_t labelID) {
+WALRecord WALRecord::newCopyNodeCSVRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = COPY_NODE_CSV_RECORD;
-    retVal.copyNodeCsvRecord = CopyNodeCSVRecord(labelID);
+    retVal.copyNodeCsvRecord = CopyNodeCSVRecord(tableID);
     return retVal;
 }
 
-WALRecord WALRecord::newCopyRelCSVRecord(label_t labelID) {
+WALRecord WALRecord::newCopyRelCSVRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = COPY_REL_CSV_RECORD;
-    retVal.copyRelCsvRecord = CopyRelCSVRecord(labelID);
+    retVal.copyRelCsvRecord = CopyRelCSVRecord(tableID);
     return retVal;
 }
 

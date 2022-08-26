@@ -15,10 +15,10 @@ namespace processor {
 class CopyCSV : public PhysicalOperator {
 
 public:
-    CopyCSV(Catalog* catalog, CSVDescription csvDescription, Label label, WAL* wal, uint32_t id,
-        const string& paramsString)
+    CopyCSV(Catalog* catalog, CSVDescription csvDescription, TableSchema tableSchema, WAL* wal,
+        uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, catalog{catalog},
-          csvDescription{move(csvDescription)}, label{move(label)}, wal{wal} {}
+          csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)}, wal{wal} {}
 
     virtual void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) = 0;
 
@@ -31,7 +31,7 @@ public:
 protected:
     Catalog* catalog;
     CSVDescription csvDescription;
-    Label label;
+    TableSchema tableSchema;
     WAL* wal;
 };
 

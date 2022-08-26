@@ -34,35 +34,35 @@ public:
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         vector<string> unstrPropertyNames{"unstrIntProp"};
-        auto labelID = catalog->getReadOnlyVersion()->addNodeLabel(
+        auto tableID = catalog->getReadOnlyVersion()->addNodeTableSchema(
             "person", 0 /* primaryKeyIdx */, move(personProperties));
-        auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(labelID);
-        nodeLabel->addUnstructuredProperties(unstrPropertyNames);
+        auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+        nodeTableSchema->addUnstructuredProperties(unstrPropertyNames);
 
         vector<PropertyNameDataType> knowsProperties;
-        knowsProperties.emplace_back("START_ID_LABEL", STRING);
+        knowsProperties.emplace_back("START_ID_TABLE", STRING);
         knowsProperties.emplace_back("START_ID", INT64);
-        knowsProperties.emplace_back("END_ID_LABEL", STRING);
+        knowsProperties.emplace_back("END_ID_TABLE", STRING);
         knowsProperties.emplace_back("END_ID", INT64);
         knowsProperties.emplace_back("date", DATE);
         knowsProperties.emplace_back("meetTime", TIMESTAMP);
         knowsProperties.emplace_back("validInterval", INTERVAL);
-        catalog->getReadOnlyVersion()->addRelLabel("knows", MANY_MANY, knowsProperties,
-            SrcDstLabels{unordered_set<label_t>{0}, unordered_set<label_t>{0}});
+        catalog->getReadOnlyVersion()->addRelTableSchema("knows", MANY_MANY, knowsProperties,
+            SrcDstTableIDs{unordered_set<table_id_t>{0}, unordered_set<table_id_t>{0}});
     }
 
 public:
     unique_ptr<Catalog> catalog;
 };
 
-TEST_F(CatalogTest, AddLabelsTest) {
-    // Test getting label id from string
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeLabel("person"));
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeLabel("organisation"));
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelLabel("knows"));
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelLabel("likes"));
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeLabelFromName("person"), 0);
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getRelLabelFromName("knows"), 0);
+TEST_F(CatalogTest, AddTablesTest) {
+    // Test getting table id from string
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("person"));
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
+    ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeTableIDFromName("person"), 0);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->getRelTableIDFromName("knows"), 0);
     // Test rel single relMultiplicity
     ASSERT_FALSE(catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(0, FWD));
     // Test property definition
@@ -113,11 +113,11 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     auto newCatalog = make_unique<Catalog>();
     newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     ASSERT_TRUE(newCatalog->getReadOnlyVersion()->getStructuredNodeProperties(0)[0].isIDProperty());
-    // Test getting label id from string
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeLabel("person"));
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeLabel("organisation"));
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelLabel("knows"));
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelLabel("likes"));
+    // Test getting table id from string
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("person"));
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
     ASSERT_EQ(
         catalog->getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
 }

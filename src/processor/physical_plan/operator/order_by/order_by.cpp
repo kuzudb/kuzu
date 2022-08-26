@@ -8,7 +8,7 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
 
     // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     vector<DataType> dataTypes;
     // Loop through all columns to initialize the factorizedTable.
     // We need to store all columns(including keys and payload) in the factorizedTable.

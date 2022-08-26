@@ -50,9 +50,9 @@ public:
     // Lists and ListsMetadata.
     void testCopyCSVEmptyListsTest() {
         auto& catalog = *database->getCatalog();
-        label_t pLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+        table_id_t pTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
         auto unstrPropLists =
-            database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pLabel);
+            database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pTableID);
         // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk
         // idx 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
         // point to UINT32_MAX (representing null), while chunk 2 should point to 0.
@@ -80,7 +80,7 @@ public:
         uint64_t maxPersonOffset = database->getStorageManager()
                                        ->getNodesStore()
                                        .getNodesMetadata()
-                                       .getNodeMetadata(pLabel)
+                                       .getNodeMetadata(pTableID)
                                        ->getMaxNodeOffset();
         EXPECT_EQ(1999, maxPersonOffset);
         for (node_offset_t nodeOffset = 0; nodeOffset < maxPersonOffset; ++nodeOffset) {
@@ -91,39 +91,39 @@ public:
     }
 };
 
-struct KnowsLabelPLabelPKnowsLists {
-    label_t knowsRelLabel;
-    label_t pNodeLabel;
+struct KnowsTablePTablePKnowsLists {
+    table_id_t knowsRelTableID;
+    table_id_t pNodeTableID;
     AdjLists* fwdPKnowsLists;
     AdjLists* bwdPKnowsLists;
 };
 
-struct ALabelAKnowsLists {
-    label_t aNodeLabel;
+struct ATableAKnowsLists {
+    table_id_t aNodeTableID;
     AdjLists* fwdAKnowsLists;
     AdjLists* bwdAKnowsLists;
 };
 
-KnowsLabelPLabelPKnowsLists getKnowsLabelPLabelPKnowsLists(
+KnowsTablePTablePKnowsLists getKnowsTablePTablePKnowsLists(
     const Catalog& catalog, StorageManager* graph) {
-    KnowsLabelPLabelPKnowsLists retVal;
-    retVal.pNodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    retVal.knowsRelLabel = catalog.getReadOnlyVersion()->getRelLabelFromName("knows");
+    KnowsTablePTablePKnowsLists retVal;
+    retVal.pNodeTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    retVal.knowsRelTableID = catalog.getReadOnlyVersion()->getRelTableIDFromName("knows");
     retVal.fwdPKnowsLists =
-        graph->getRelsStore().getAdjLists(FWD, retVal.pNodeLabel, retVal.knowsRelLabel);
+        graph->getRelsStore().getAdjLists(FWD, retVal.pNodeTableID, retVal.knowsRelTableID);
     retVal.bwdPKnowsLists =
-        graph->getRelsStore().getAdjLists(BWD, retVal.pNodeLabel, retVal.knowsRelLabel);
+        graph->getRelsStore().getAdjLists(BWD, retVal.pNodeTableID, retVal.knowsRelTableID);
     return retVal;
 }
 
-ALabelAKnowsLists getALabelAKnowsLists(const Catalog& catalog, StorageManager* storageManager) {
-    ALabelAKnowsLists retVal;
-    retVal.aNodeLabel = catalog.getReadOnlyVersion()->getNodeLabelFromName("animal");
-    auto knowsRelLabel = catalog.getReadOnlyVersion()->getRelLabelFromName("knows");
+ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* storageManager) {
+    ATableAKnowsLists retVal;
+    retVal.aNodeTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("animal");
+    auto knowsRelTableID = catalog.getReadOnlyVersion()->getRelTableIDFromName("knows");
     retVal.fwdAKnowsLists =
-        storageManager->getRelsStore().getAdjLists(FWD, retVal.aNodeLabel, knowsRelLabel);
+        storageManager->getRelsStore().getAdjLists(FWD, retVal.aNodeTableID, knowsRelTableID);
     retVal.bwdAKnowsLists =
-        storageManager->getRelsStore().getAdjLists(BWD, retVal.aNodeLabel, knowsRelLabel);
+        storageManager->getRelsStore().getAdjLists(BWD, retVal.aNodeTableID, knowsRelTableID);
     return retVal;
 }
 } // namespace testing
@@ -132,10 +132,10 @@ ALabelAKnowsLists getALabelAKnowsLists(const Catalog& catalog, StorageManager* s
 TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "randomString");
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
-        graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID));
+        graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
     string fName = "dataset/copy-csv-node-property-test/vPerson.csv";
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
@@ -160,10 +160,11 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
 TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
     auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
-        graph->getNodesStore().getNodeUnstrPropertyLists(label));
-    auto& propertyNameToIdMap = catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(label);
+        graph->getNodesStore().getNodeUnstrPropertyLists(tableID));
+    auto& propertyNameToIdMap =
+        catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(tableID);
     for (int i = 0; i < 1000; ++i) {
         auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
         if (i == 300 || i == 400 || i == 500) {
@@ -192,114 +193,115 @@ TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
     }
 }
 
-void verifyP0ToP5999(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists) {
+void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     // p0 has 5001 fwd edges to p0...p5000
     node_offset_t p0Offset = 0;
-    auto pOFwdList = knowsLabelPLabelPKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p0Offset);
+    auto pOFwdList = knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p0Offset);
     EXPECT_EQ(5001, pOFwdList->size());
     for (int nodeOffset = 0; nodeOffset <= 5000; ++nodeOffset) {
-        nodeID_t nodeIDPi(nodeOffset, knowsLabelPLabelPKnowsLists.pNodeLabel);
+        nodeID_t nodeIDPi(nodeOffset, knowsTablePTablePKnowsLists.pNodeTableID);
         auto nbrNodeID = pOFwdList->at(nodeOffset);
         EXPECT_EQ(nodeIDPi, nbrNodeID);
     }
     // p0 has only 1 bwd edge, which from itself
-    auto p0BwdList = knowsLabelPLabelPKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(p0Offset);
+    auto p0BwdList = knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(p0Offset);
     EXPECT_EQ(1, p0BwdList->size());
-    nodeID_t p0NodeID(p0Offset, knowsLabelPLabelPKnowsLists.pNodeLabel);
+    nodeID_t p0NodeID(p0Offset, knowsTablePTablePKnowsLists.pNodeTableID);
     EXPECT_EQ(p0NodeID, pOFwdList->at(0));
 
     // p1,p2,...,p5000 have a single fwd edge to p5000 and 1 bwd edge from node p0
-    nodeID_t nodeIDP5000(5000ul, knowsLabelPLabelPKnowsLists.pNodeLabel);
+    nodeID_t nodeIDP5000(5000ul, knowsTablePTablePKnowsLists.pNodeTableID);
     for (node_offset_t nodeOffset = 1; nodeOffset <= 5000; ++nodeOffset) {
         auto fwdAdjList =
-            knowsLabelPLabelPKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset);
+            knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset);
         EXPECT_EQ(1, fwdAdjList->size());
         EXPECT_EQ(nodeIDP5000, fwdAdjList->at(0));
         auto bwdAdjList =
-            knowsLabelPLabelPKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(nodeOffset);
+            knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(nodeOffset);
         EXPECT_EQ(1, fwdAdjList->size());
         EXPECT_EQ(p0NodeID, bwdAdjList->at(0));
     }
 
     // p5001 to p6000 are singletons
     for (node_offset_t nodeOffset = 5001; nodeOffset < 6000; ++nodeOffset) {
-        EXPECT_TRUE(knowsLabelPLabelPKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
+        EXPECT_TRUE(knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
                         ->empty());
-        EXPECT_TRUE(knowsLabelPLabelPKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
+        EXPECT_TRUE(knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
                         ->empty());
     }
 }
 
-void verifya0Andp6000(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists,
+void verifya0Andp6000(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists,
     const Catalog& catalog, StorageManager* storageManager) {
-    auto aLabelAKnowsLists = getALabelAKnowsLists(catalog, storageManager);
+    auto aTableAKnowsLists = getATableAKnowsLists(catalog, storageManager);
     // a0 has 1 fwd edge to p6000, and no backward edges.
     node_offset_t a0NodeOffset = 0;
     node_offset_t p6000NodeOffset = 6000;
-    auto a0FwdList = aLabelAKnowsLists.fwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
+    auto a0FwdList = aTableAKnowsLists.fwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
     EXPECT_EQ(1, a0FwdList->size());
-    nodeID_t p6000NodeID(p6000NodeOffset, knowsLabelPLabelPKnowsLists.pNodeLabel);
+    nodeID_t p6000NodeID(p6000NodeOffset, knowsTablePTablePKnowsLists.pNodeTableID);
     EXPECT_EQ(p6000NodeID, a0FwdList->at(0));
-    auto a0BwdList = aLabelAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
-    EXPECT_TRUE(aLabelAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset)->empty());
+    auto a0BwdList = aTableAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
+    EXPECT_TRUE(aTableAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset)->empty());
 
     // p6000 has no fwd edges and 1 bwd edge from a0
-    EXPECT_TRUE(knowsLabelPLabelPKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset)
+    EXPECT_TRUE(knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset)
                     ->empty());
     auto p6000BwdList =
-        knowsLabelPLabelPKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset);
-    nodeID_t a0NodeID(a0NodeOffset, aLabelAKnowsLists.aNodeLabel);
+        knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset);
+    nodeID_t a0NodeID(a0NodeOffset, aTableAKnowsLists.aNodeTableID);
     EXPECT_EQ(1, p6000BwdList->size());
     EXPECT_EQ(a0NodeID, p6000BwdList->at(0));
 }
 
-void verifyP6001ToP65999(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists) {
+void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     for (node_offset_t node_offset_t = 6001; node_offset_t < 66000; ++node_offset_t) {
         EXPECT_TRUE(
-            knowsLabelPLabelPKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
+            knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
                 ->empty());
         EXPECT_TRUE(
-            knowsLabelPLabelPKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
+            knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
                 ->empty());
     }
 }
 
 TEST_F(CopyCSVReadLists2BytesPerEdgeTest, ReadLists2BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists =
-        getKnowsLabelPLabelPKnowsLists(*database->getCatalog(), database->getStorageManager());
-    verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
+    auto knowsTablePTablePKnowsLists =
+        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+    verifyP0ToP5999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists3BytesPerEdgeTest, ReadLists3BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists =
-        getKnowsLabelPLabelPKnowsLists(*database->getCatalog(), database->getStorageManager());
-    verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
+    auto knowsTablePTablePKnowsLists =
+        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+    verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsLabelPLabelPKnowsLists, *database->getCatalog(), database->getStorageManager());
+        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
 }
 
 TEST_F(CopyCSVReadLists4BytesPerEdgeTest, ReadLists4BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists =
-        getKnowsLabelPLabelPKnowsLists(*database->getCatalog(), database->getStorageManager());
-    verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
-    verifyP6001ToP65999(knowsLabelPLabelPKnowsLists);
+    auto knowsTablePTablePKnowsLists =
+        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+    verifyP0ToP5999(knowsTablePTablePKnowsLists);
+    verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists =
-        getKnowsLabelPLabelPKnowsLists(*database->getCatalog(), database->getStorageManager());
-    verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
+    auto knowsTablePTablePKnowsLists =
+        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+    verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsLabelPLabelPKnowsLists, *database->getCatalog(), database->getStorageManager());
-    verifyP6001ToP65999(knowsLabelPLabelPKnowsLists);
+        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
+    verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     auto storageManager = database->getStorageManager();
     auto& catalog = *database->getCatalog();
-    auto label = catalog.getReadOnlyVersion()->getNodeLabelFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "randomString");
-    auto col = storageManager->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto col =
+        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
     EXPECT_EQ("this is |the first line", col->readValue(0).strVal);
     EXPECT_EQ("the \" should be ignored", col->readValue(1).strVal);
@@ -309,9 +311,9 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("this is a ##plain## #string", col->readValue(5).strVal);
     EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6).strVal);
 
-    label = catalog.getReadOnlyVersion()->getNodeLabelFromName("organisation");
-    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(label, "name");
-    col = storageManager->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
+    tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("organisation");
+    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "name");
+    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);

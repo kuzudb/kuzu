@@ -18,9 +18,10 @@ class NodeTable {
 
 public:
     NodeTable(NodesMetadata* nodesMetadata, BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        NodeLabel* nodeLabel);
+        NodeTableSchema* nodeTableSchema);
 
-    void loadColumnsAndListsFromDisk(NodeLabel* nodeLabel, BufferManager& bufferManager, WAL* wal);
+    void loadColumnsAndListsFromDisk(
+        NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal);
 
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
         return propertyColumns[propertyIdx].get();
@@ -32,7 +33,7 @@ public:
 
     inline NodesMetadata* getNodesMetadata() const { return nodesMetadata; }
 
-    inline label_t getLabelID() const { return labelID; }
+    inline table_id_t getTableID() const { return tableID; }
 
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
@@ -49,7 +50,7 @@ private:
     unique_ptr<UnstructuredPropertyLists> unstrPropertyLists;
     // The index for ID property.
     unique_ptr<HashIndex> IDIndex;
-    label_t labelID;
+    table_id_t tableID;
     bool isInMemory;
 };
 

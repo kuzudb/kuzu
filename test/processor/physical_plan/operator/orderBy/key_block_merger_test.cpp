@@ -67,7 +67,7 @@ public:
         vector<shared_ptr<ValueVector>> allVectors{
             valueVector}; // all columns including orderBy and payload columns
 
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
 
@@ -144,7 +144,7 @@ public:
 
     OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t factorizedTableIdx,
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk,
-        unique_ptr<TableSchema> tableSchema) {
+        unique_ptr<FactorizedTableSchema> tableSchema) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
             orderByVectors.emplace_back(dataChunk->getValueVector(i));
@@ -210,7 +210,7 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)));
         tableSchema->appendColumn(make_unique<ColumnSchema>(
@@ -239,12 +239,12 @@ public:
         vector<shared_ptr<FactorizedTable>> factorizedTables;
         for (auto i = 0; i < 4; i++) {
             factorizedTables.emplace_back(make_unique<FactorizedTable>(
-                memoryManager.get(), make_unique<TableSchema>(*tableSchema)));
+                memoryManager.get(), make_unique<FactorizedTableSchema>(*tableSchema)));
         }
-        auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
-            4 /* ftIdx */, factorizedTables, dataChunk2, make_unique<TableSchema>(*tableSchema));
-        auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(
-            5 /* ftIdx */, factorizedTables, dataChunk1, make_unique<TableSchema>(*tableSchema));
+        auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(4 /* ftIdx */, factorizedTables,
+            dataChunk2, make_unique<FactorizedTableSchema>(*tableSchema));
+        auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(5 /* ftIdx */, factorizedTables,
+            dataChunk1, make_unique<FactorizedTableSchema>(*tableSchema));
 
         vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
         vector<uint64_t> expectedFactorizedTableIdxOrder = {4, 5, 5, 4, 5, 4, 4};
@@ -300,7 +300,7 @@ public:
             dataChunk->getValueVector(1), dataChunk->getValueVector(2),
             dataChunk->getValueVector(3)};
 
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
         tableSchema->appendColumn(make_unique<ColumnSchema>(

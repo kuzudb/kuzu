@@ -41,7 +41,6 @@ enum DataTypeID : uint8_t {
     REL = 11,
 
     // physical fixed size types
-    LABEL = 20,
     NODE_ID = 21,
     BOOL = 22,
     INT64 = 23,
@@ -76,8 +75,8 @@ public:
         return vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
     }
     static inline vector<DataTypeID> getAllValidTypeIDs() {
-        return vector<DataTypeID>{LABEL, NODE_ID, BOOL, INT64, DOUBLE, STRING, UNSTRUCTURED, DATE,
-            TIMESTAMP, INTERVAL, LIST};
+        return vector<DataTypeID>{
+            NODE_ID, BOOL, INT64, DOUBLE, STRING, UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL, LIST};
     }
 
     DataType& operator=(const DataType& other);

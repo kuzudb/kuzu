@@ -5,21 +5,21 @@
 namespace graphflow {
 namespace common {
 
-NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
-    const vector<node_offset_t>& maxNodeOffsetsPerLabel)
-    : commonLabel(0) {
+NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<table_id_t>& nbrNodeTableIDs,
+    const vector<node_offset_t>& maxNodeOffsetsPerTable)
+    : commonTableID(0) {
     uint64_t maxNumNodeOffsetToFit = 0;
-    for (auto nodeLabel : nbrNodeLabels) {
-        if (maxNodeOffsetsPerLabel[nodeLabel] + 1 > maxNumNodeOffsetToFit) {
-            maxNumNodeOffsetToFit = maxNodeOffsetsPerLabel[nodeLabel] + 1;
+    for (auto nbrNodeTableID : nbrNodeTableIDs) {
+        if (maxNodeOffsetsPerTable[nbrNodeTableID] + 1 > maxNumNodeOffsetToFit) {
+            maxNumNodeOffsetToFit = maxNodeOffsetsPerTable[nbrNodeTableID] + 1;
         }
     }
-    if (nbrNodeLabels.size() == 1) {
-        numBytesForLabel = 0;
-        commonLabel = *nbrNodeLabels.begin();
+    if (nbrNodeTableIDs.size() == 1) {
+        numBytesForTableID = 0;
+        commonTableID = *nbrNodeTableIDs.begin();
     } else {
-        numBytesForLabel =
-            getNumBytesForEncoding(maxNodeOffsetsPerLabel.size() - 1, 1 /* min num bytes */);
+        numBytesForTableID =
+            getNumBytesForEncoding(maxNodeOffsetsPerTable.size() - 1, 1 /* min num bytes */);
     }
     numBytesForOffset = getNumBytesForEncoding(maxNumNodeOffsetToFit, 2 /*min num bytes*/);
 }

@@ -40,7 +40,7 @@ public:
         auto vectorB2Data = (double*)vectorB2->values;
         for (auto i = 0u; i < 100; i++) {
             if (i % 15) {
-                vectorA1Data[i].label = 18;
+                vectorA1Data[i].tableID = 18;
                 vectorA1Data[i].offset = (uint64_t)i;
             } else {
                 vectorA1->setNull(i, true);
@@ -48,7 +48,7 @@ public:
 
             if (i % 10) {
                 vectorA2Data[i] = i << 1;
-                vectorB1Data[i].label = 28;
+                vectorB1Data[i].tableID = 28;
                 vectorB1Data[i].offset = (uint64_t)(i);
             } else {
                 vectorA2->setNull(i, true);
@@ -62,7 +62,7 @@ public:
 
     unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) {
         // Prepare the factorizedTable and unflat vectors (A1, B1).
-        unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+        unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
         tableSchema->appendColumn(make_unique<ColumnSchema>(
@@ -91,7 +91,7 @@ public:
                 if (i % 15) {
                     ASSERT_EQ(resultFlatTuple.nullMask[0], false);
                     auto val = resultFlatTuple.getValue(0)->val.nodeID;
-                    ASSERT_EQ(val.label, 18);
+                    ASSERT_EQ(val.tableID, 18);
                     ASSERT_EQ(val.offset, i);
                 } else {
                     ASSERT_EQ(resultFlatTuple.nullMask[0], true);
@@ -99,7 +99,7 @@ public:
                 if (j % 10) {
                     ASSERT_EQ(resultFlatTuple.nullMask[1], false);
                     auto val = resultFlatTuple.getValue(1)->val.nodeID;
-                    ASSERT_EQ(val.label, 28);
+                    ASSERT_EQ(val.tableID, 28);
                     ASSERT_EQ(val.offset, j);
                 } else {
                     ASSERT_EQ(resultFlatTuple.nullMask[1], true);
@@ -116,7 +116,7 @@ public:
 
 TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     // Prepare the factorizedTable and vector B1 (flat), A2(unflat).
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(
         make_unique<ColumnSchema>(false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)));
     tableSchema->appendColumn(make_unique<ColumnSchema>(
@@ -158,7 +158,7 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 1);
         if (i % 10) {
             ASSERT_EQ(vectorB1->isNull(i), false);
-            ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].label, 28);
+            ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].tableID, 28);
             ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].offset, (uint64_t)i);
         } else {
             ASSERT_EQ(vectorB1->isNull(i), true);
@@ -198,7 +198,7 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 100);
         if (i % 15) {
             ASSERT_EQ(vectorA1->isNull(0), false);
-            ASSERT_EQ(vectorA1Data[0].label, 18);
+            ASSERT_EQ(vectorA1Data[0].tableID, 18);
             ASSERT_EQ(vectorA1Data[0].offset, (uint64_t)i);
         } else {
             ASSERT_EQ(vectorA1->isNull(0), true);
@@ -208,7 +208,7 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
         for (auto j = 0u; j < 100; j++) {
             if (j % 10) {
                 ASSERT_EQ(vectorB1->isNull(j), false);
-                ASSERT_EQ(vectorB1Data[j].label, 28);
+                ASSERT_EQ(vectorB1Data[j].tableID, 28);
                 ASSERT_EQ(vectorB1Data[j].offset, (uint64_t)j);
             } else {
                 ASSERT_EQ(vectorB1->isNull(j), true);
@@ -251,11 +251,11 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     for (auto i = 0u; i < numRowsToAppend; i++) {
         strValueVector->addString(i, to_string(i) + "with long string overflow");
     }
-    unique_ptr<TableSchema> tableSchema = make_unique<TableSchema>();
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(
         make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
-    auto factorizedTable =
-        make_unique<FactorizedTable>(memoryManager.get(), make_unique<TableSchema>(*tableSchema));
+    auto factorizedTable = make_unique<FactorizedTable>(
+        memoryManager.get(), make_unique<FactorizedTableSchema>(*tableSchema));
     auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
 
     // Append same testing data to factorizedTable and factorizedTable1.

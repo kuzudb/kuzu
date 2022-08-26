@@ -120,58 +120,58 @@ string Connection::getBuiltInAggregateFunctionNames() {
     return result;
 }
 
-string Connection::getNodeLabelNames() {
+string Connection::getNodeTableNames() {
     lock_t lck{mtx};
-    string result = "Node labels: \n";
-    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumNodeLabels(); ++i) {
-        result += "\t" + database->catalog->getReadOnlyVersion()->getNodeLabelName(i) + "\n";
+    string result = "Node tables: \n";
+    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumNodeTables(); ++i) {
+        result += "\t" + database->catalog->getReadOnlyVersion()->getNodeTableName(i) + "\n";
     }
     return result;
 }
 
-string Connection::getRelLabelNames() {
+string Connection::getRelTableNames() {
     lock_t lck{mtx};
-    string result = "Rel labels: \n";
-    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumRelLabels(); ++i) {
-        result += "\t" + database->catalog->getReadOnlyVersion()->getRelLabelName(i) + "\n";
+    string result = "Rel tables: \n";
+    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumRelTables(); ++i) {
+        result += "\t" + database->catalog->getReadOnlyVersion()->getRelTableName(i) + "\n";
     }
     return result;
 }
 
-string Connection::getNodePropertyNames(const string& nodeLabelName) {
+string Connection::getNodePropertyNames(const string& tableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
-    if (!catalog->getReadOnlyVersion()->containNodeLabel(nodeLabelName)) {
-        throw Exception("Cannot find node label " + nodeLabelName);
+    if (!catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
+        throw Exception("Cannot find node table " + tableName);
     }
-    string result = nodeLabelName + " properties: \n";
-    auto labelId = catalog->getReadOnlyVersion()->getNodeLabelFromName(nodeLabelName);
-    for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(labelId)) {
+    string result = tableName + " properties: \n";
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName(tableName);
+    for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
         result += property.isIDProperty() ? "(ID PROPERTY)\n" : "\n";
     }
     return result;
 }
 
-string Connection::getRelPropertyNames(const string& relLabelName) {
+string Connection::getRelPropertyNames(const string& relTableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
-    if (!catalog->getReadOnlyVersion()->containRelLabel(relLabelName)) {
-        throw Exception("Cannot find rel label " + relLabelName);
+    if (!catalog->getReadOnlyVersion()->containRelTable(relTableName)) {
+        throw Exception("Cannot find rel table " + relTableName);
     }
-    auto labelId = catalog->getReadOnlyVersion()->getRelLabelFromName(relLabelName);
-    string result = relLabelName + " src nodes: \n";
-    for (auto& nodeLabelId :
-        catalog->getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelId, FWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getNodeLabelName(nodeLabelId) + "\n";
+    auto relTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName(relTableName);
+    string result = relTableName + " src nodes: \n";
+    for (auto& nodeTableID :
+        catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, FWD)) {
+        result += "\t" + catalog->getReadOnlyVersion()->getNodeTableName(nodeTableID) + "\n";
     }
-    result += relLabelName + " dst nodes: \n";
-    for (auto& nodeLabelId :
-        catalog->getReadOnlyVersion()->getNodeLabelsForRelLabelDirection(labelId, BWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getNodeLabelName(nodeLabelId) + "\n";
+    result += relTableName + " dst nodes: \n";
+    for (auto& nodeTableID :
+        catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, BWD)) {
+        result += "\t" + catalog->getReadOnlyVersion()->getNodeTableName(nodeTableID) + "\n";
     }
-    result += relLabelName + " properties: \n";
-    for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(labelId)) {
+    result += relTableName + " properties: \n";
+    for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
     }
     return result;

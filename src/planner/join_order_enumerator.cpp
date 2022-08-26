@@ -249,7 +249,7 @@ void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, Log
     scan->computeSchema(*schema);
     plan.appendOperator(move(scan));
     // update cardinality estimation info
-    auto numNodes = nodesMetadata.getNodeMetadata(node->getLabel())->getMaxNodeOffset() + 1;
+    auto numNodes = nodesMetadata.getNodeMetadata(node->getTableID())->getMaxNodeOffset() + 1;
     schema->getGroup(node->getIDProperty())->setMultiplier(numNodes);
 }
 
@@ -259,20 +259,21 @@ void JoinOrderEnumerator::appendExtend(
     auto boundNode = FWD == direction ? rel->getSrcNode() : rel->getDstNode();
     auto nbrNode = FWD == direction ? rel->getDstNode() : rel->getSrcNode();
     auto isManyToOne =
-        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getLabel(), direction);
+        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getTableID(), direction);
     // Note that a var-length column join writes a single value to unflat nbrNode
     // vector (i.e., this vector is an unflat vector with a single value in it).
     auto isColumn = isManyToOne && !rel->isVariableLength();
     if (!isColumn) {
         Enumerator::appendFlattenIfNecessary(boundNode->getNodeIDPropertyExpression(), plan);
     }
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getLabel(), direction,
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getTableID(), direction,
         isColumn, rel->getLowerBound(), rel->getUpperBound(), plan.getLastOperator());
     extend->computeSchema(*schema);
     plan.appendOperator(move(extend));
     // update cardinality estimation info
     if (!isColumn) {
-        auto extensionRate = getExtensionRate(boundNode->getLabel(), rel->getLabel(), direction);
+        auto extensionRate =
+            getExtensionRate(boundNode->getTableID(), rel->getTableID(), direction);
         schema->getGroup(nbrNode->getIDProperty())->setMultiplier(extensionRate);
     }
     plan.increaseCost(plan.getCardinality());
@@ -385,11 +386,11 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 }
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
-    label_t boundNodeLabel, label_t relLabel, RelDirection relDirection) {
-    auto numRels = catalog.getReadOnlyVersion()->getNumRelsForDirectionBoundLabel(
-        relLabel, relDirection, boundNodeLabel);
+    table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection) {
+    auto numRels = catalog.getReadOnlyVersion()->getNumRelsForDirectionBoundTableID(
+        relTableID, relDirection, boundTableID);
     return ceil(
-        (double)numRels / nodesMetadata.getNodeMetadata(boundNodeLabel)->getMaxNodeOffset() + 1);
+        (double)numRels / nodesMetadata.getNodeMetadata(boundTableID)->getMaxNodeOffset() + 1);
 }
 
 expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,

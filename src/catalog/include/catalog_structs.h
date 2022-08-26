@@ -11,12 +11,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace catalog {
 
-struct SrcDstLabels {
-    SrcDstLabels(unordered_set<label_t> srcNodeLabels, unordered_set<label_t> dstNodeLabels)
-        : srcNodeLabels{move(srcNodeLabels)}, dstNodeLabels{move(dstNodeLabels)} {}
-    SrcDstLabels() = default;
-    unordered_set<label_t> srcNodeLabels;
-    unordered_set<label_t> dstNodeLabels;
+struct SrcDstTableIDs {
+    SrcDstTableIDs(unordered_set<table_id_t> srcTableIDs, unordered_set<table_id_t> dstTableIDs)
+        : srcTableIDs{move(srcTableIDs)}, dstTableIDs{move(dstTableIDs)} {}
+    SrcDstTableIDs() = default;
+    unordered_set<table_id_t> srcTableIDs;
+    unordered_set<table_id_t> dstTableIDs;
 };
 
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
@@ -48,62 +48,56 @@ public:
 struct Property : PropertyNameDataType {
 
 private:
-    Property(string name, DataType dataType, uint32_t propertyID, label_t label, bool isNodeLabel)
-        : PropertyNameDataType{name, dataType}, propertyID{propertyID}, label{label},
-          isNodeLabel{isNodeLabel} {}
+    Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
+        : PropertyNameDataType{name, dataType}, propertyID{propertyID}, tableID{tableID} {}
 
 public:
     // This constructor is needed for ser/deser functions
     Property() {}
 
     static Property constructUnstructuredNodeProperty(
-        string name, uint32_t propertyID, label_t nodeLabel) {
-        return Property(
-            name, DataType(UNSTRUCTURED), propertyID, nodeLabel, true /* is node label */);
+        string name, uint32_t propertyID, table_id_t tableID) {
+        return Property(name, DataType(UNSTRUCTURED), propertyID, tableID);
     }
 
     static Property constructStructuredNodeProperty(
-        PropertyNameDataType nameDataType, uint32_t propertyID, label_t nodeLabel) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, nodeLabel,
-            true /* is node label */);
+        PropertyNameDataType nameDataType, uint32_t propertyID, table_id_t tableID) {
+        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
     static inline Property constructRelProperty(
-        PropertyNameDataType nameDataType, uint32_t propertyID, label_t relLabel) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, relLabel,
-            false /* is node label */);
+        PropertyNameDataType nameDataType, uint32_t propertyID, table_id_t tableID) {
+        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
 public:
     uint32_t propertyID;
-    label_t label;
-    bool isNodeLabel;
+    table_id_t tableID;
 };
 
-struct Label {
+struct TableSchema {
 public:
-    Label(string labelName, label_t labelID, bool isNodeLabel)
-        : labelName{move(labelName)}, labelID{labelID}, isNodeLabel{isNodeLabel} {}
+    TableSchema(string tableName, table_id_t tableID, bool isNodeTable)
+        : tableName{move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable} {}
 
 public:
-    string labelName;
-    label_t labelID;
-    bool isNodeLabel;
+    string tableName;
+    table_id_t tableID;
+    bool isNodeTable;
 };
 
-struct NodeLabel : Label {
-    NodeLabel() : NodeLabel{"", UINT64_MAX, UINT64_MAX, vector<Property>{}} {}
-    NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
+struct NodeTableSchema : TableSchema {
+    NodeTableSchema() : NodeTableSchema{"", UINT64_MAX, UINT64_MAX, vector<Property>{}} {}
+    NodeTableSchema(string tableName, table_id_t tableID, uint64_t primaryPropertyId,
         vector<Property> structuredProperties)
-        : Label{move(labelName), labelId, true /* isNodeLabel */},
+        : TableSchema{move(tableName), tableID, true /* isNodeTable */},
           primaryPropertyId{primaryPropertyId}, structuredProperties{move(structuredProperties)} {}
 
     inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
-    inline uint64_t getNumUnstructuredProperties() const { return unstructuredProperties.size(); }
     void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
 
-    inline void addFwdRelLabel(label_t relLabelId) { fwdRelLabelIdSet.insert(relLabelId); }
-    inline void addBwdRelLabel(label_t relLabelId) { bwdRelLabelIdSet.insert(relLabelId); }
+    inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
+    inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
     inline Property getPrimaryKey() const { return structuredProperties[primaryPropertyId]; }
 
@@ -111,21 +105,21 @@ struct NodeLabel : Label {
 
     uint64_t primaryPropertyId;
     vector<Property> structuredProperties, unstructuredProperties;
-    unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel
-    unordered_set<label_t> bwdRelLabelIdSet; // dstNode->rel
+    unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
+    unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel
     // This map is maintained as a cache for unstructured properties. It is not serialized to the
     // catalog file, but is re-constructed when reading from the catalog file.
     unordered_map<string, uint64_t> unstrPropertiesNameToIdMap;
 };
 
-struct RelLabel : Label {
-    RelLabel()
-        : Label{"", UINT64_MAX, false /* isNodeLabel */}, relMultiplicity{MANY_MANY},
+struct RelTableSchema : TableSchema {
+    RelTableSchema()
+        : TableSchema{"", UINT64_MAX, false /* isNodeTable */}, relMultiplicity{MANY_MANY},
           numGeneratedProperties{UINT32_MAX}, numRels{0} {}
-    RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
-        vector<Property> properties, SrcDstLabels srcDstLabels);
+    RelTableSchema(string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
+        vector<Property> properties, SrcDstTableIDs srcDstTableIDs);
 
-    unordered_set<label_t> getAllNodeLabels() const;
+    unordered_set<table_id_t> getAllNodeTableIDs() const;
 
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
@@ -147,9 +141,9 @@ struct RelLabel : Label {
     RelMultiplicity relMultiplicity;
     uint32_t numGeneratedProperties;
     vector<Property> properties;
-    SrcDstLabels srcDstLabels;
+    SrcDstTableIDs srcDstTableIDs;
     // Cardinality information
-    vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel;
+    vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTableID;
     uint64_t numRels;
 };
 } // namespace catalog

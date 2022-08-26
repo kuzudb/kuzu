@@ -80,13 +80,13 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), DBFileType::WAL_VERSION);
             WALReplayerUtils::createEmptyDBFilesForNewNodeTable(catalogForCheckpointing.get(),
-                walRecord.nodeTableRecord.labelID, wal->getDirectory());
+                walRecord.nodeTableRecord.tableID, wal->getDirectory());
             if (!isRecovering) {
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
                 // then we need to create the NodeTable object for the newly created node table.
                 // Therefore, this effectively fixe the in-memory data structures (i.e., performs
                 // the in-memory checkpointing).
-                storageManager->getNodesStore().createNodeTable(walRecord.nodeTableRecord.labelID,
+                storageManager->getNodesStore().createNodeTable(walRecord.nodeTableRecord.tableID,
                     bufferManager, wal, catalogForCheckpointing.get());
             }
         } else {
@@ -98,16 +98,16 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         if (isCheckpoint) {
             // See comments for NODE_TABLE_RECORD.
             auto nodesMetadataForCheckPointing = make_unique<NodesMetadata>(wal->getDirectory());
-            auto maxNodeOffsetPerLabel = nodesMetadataForCheckPointing->getMaxNodeOffsetPerLabel();
+            auto maxNodeOffsetPerTable = nodesMetadataForCheckPointing->getMaxNodeOffsetPerTable();
             auto catalogForCheckPointing = make_unique<catalog::Catalog>(wal);
             catalogForCheckPointing->getReadOnlyVersion()->readFromFile(
                 wal->getDirectory(), DBFileType::WAL_VERSION);
             WALReplayerUtils::createEmptyDBFilesForNewRelTable(catalogForCheckPointing.get(),
-                walRecord.relTableRecord.labelID, wal->getDirectory(), maxNodeOffsetPerLabel);
+                walRecord.relTableRecord.tableID, wal->getDirectory(), maxNodeOffsetPerTable);
             if (!isRecovering) {
                 // See comments for NODE_TABLE_RECORD.
-                storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.labelID,
-                    maxNodeOffsetPerLabel, bufferManager, wal, catalogForCheckPointing.get());
+                storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.tableID,
+                    maxNodeOffsetPerTable, bufferManager, wal, catalogForCheckPointing.get());
             }
         } else {
             // See comments for NODE_TABLE_RECORD.
@@ -128,7 +128,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         switch (storageStructureID.storageStructureType) {
         case STRUCTURED_NODE_PROPERTY_COLUMN: {
             Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-                storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+                storageStructureID.structuredNodePropertyColumnID.tableID,
                 storageStructureID.structuredNodePropertyColumnID.propertyID);
             // TODO: We are explicitly assuming that if the log record's storageStructureID is an
             // overflow file, then the storage structure is a StringPropertyColumn. This should
@@ -140,7 +140,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             assert(storageStructureID.listFileID.listType == UNSTRUCTURED_NODE_PROPERTY_LISTS);
             UnstructuredPropertyLists* unstructuredPropertyLists =
                 storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    storageStructureID.listFileID.unstructuredNodePropertyListsID.nodeLabel);
+                    storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
             overflowFile = &unstructuredPropertyLists->overflowFile;
             assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
         } break;
@@ -158,9 +158,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case COPY_NODE_CSV_RECORD: {
         if (isCheckpoint) {
-            auto labelID = walRecord.copyNodeCsvRecord.labelID;
+            auto tableID = walRecord.copyNodeCsvRecord.tableID;
             if (!isRecovering) {
-                auto nodeLabel = catalog->getReadOnlyVersion()->getNodeLabel(labelID);
+                auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
                 // If the WAL version of the file doesn't exist, we must have already replayed this
                 // WAL and successfully replaced the original DB file and deleted the WAL version
                 // but somehow WALReplayer must have failed/crashed before deleting the entire WAL
@@ -169,21 +169,21 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version of the file does
                 // not exists, it will not do anything.
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
-                    nodeLabel, wal->getDirectory());
+                    nodeTableSchema, wal->getDirectory());
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
                 // then we need to update the nodeTable because the actual columns and lists files
                 // have been changed during changed during checkpoint. So the in memory fileHandles
                 // are obsolete and should be reconstructed (e.g. since the numPages have likely
                 // changed they need to reconstruct their page locks).
-                storageManager->getNodesStore().getNode(labelID)->loadColumnsAndListsFromDisk(
-                    nodeLabel, *bufferManager, wal);
+                storageManager->getNodesStore().getNode(tableID)->loadColumnsAndListsFromDisk(
+                    nodeTableSchema, *bufferManager, wal);
             } else {
                 auto catalogForCheckpointing = make_unique<catalog::Catalog>();
                 catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
                     wal->getDirectory(), DBFileType::ORIGINAL);
                 // See comments above.
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
-                    catalogForCheckpointing->getReadOnlyVersion()->getNodeLabel(labelID),
+                    catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
             }
         } else {
@@ -193,16 +193,16 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case COPY_REL_CSV_RECORD: {
         if (isCheckpoint) {
-            auto labelID = walRecord.copyRelCsvRecord.labelID;
+            auto tableID = walRecord.copyRelCsvRecord.tableID;
             if (!isRecovering) {
                 // See comments for COPY_NODE_CSV_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
-                    catalog->getReadOnlyVersion()->getRelLabel(labelID), wal->getDirectory(),
+                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory(),
                     catalog);
                 // See comments for COPY_NODE_CSV_RECORD.
-                storageManager->getRelsStore().getRel(labelID)->loadColumnsAndListsFromDisk(
+                storageManager->getRelsStore().getRel(tableID)->loadColumnsAndListsFromDisk(
                     *catalog,
-                    storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffsetPerLabel(),
+                    storageManager->getNodesStore().getNodesMetadata().getMaxNodeOffsetPerTable(),
                     *bufferManager, wal);
                 storageManager->getNodesStore().getNodesMetadata().setAdjListsAndColumns(
                     &storageManager->getRelsStore());
@@ -212,7 +212,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     wal->getDirectory(), DBFileType::ORIGINAL);
                 // See comments for COPY_NODE_CSV_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
-                    catalogForCheckpointing->getReadOnlyVersion()->getRelLabel(labelID),
+                    catalogForCheckpointing->getReadOnlyVersion()->getRelTableSchema(tableID),
                     wal->getDirectory(), catalogForCheckpointing.get());
             }
         } else {
@@ -269,7 +269,7 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     switch (storageStructureID.storageStructureType) {
     case STRUCTURED_NODE_PROPERTY_COLUMN: {
         Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-            storageStructureID.structuredNodePropertyColumnID.nodeLabel,
+            storageStructureID.structuredNodePropertyColumnID.tableID,
             storageStructureID.structuredNodePropertyColumnID.propertyID);
         // TODO: We are explicitly assuming that if the log record's storageStructureID is an
         // overflow file, then the storage structure is a StringPropertyColumn. This should
@@ -283,7 +283,7 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
             UnstructuredPropertyLists* unstructuredPropertyLists =
                 storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    storageStructureID.listFileID.unstructuredNodePropertyListsID.nodeLabel);
+                    storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
             switch (storageStructureID.listFileID.listFileType) {
             case BASE_LISTS: {
                 return storageStructureID.isOverflow ?
@@ -345,7 +345,7 @@ void WALReplayer::replay() {
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
             auto unstructuredPropertyLists =
                 storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    listFileID.unstructuredNodePropertyListsID.nodeLabel);
+                    listFileID.unstructuredNodePropertyListsID.tableID);
             if (isCheckpoint) {
                 unstructuredPropertyLists->checkpointInMemoryIfNecessary();
             } else {
