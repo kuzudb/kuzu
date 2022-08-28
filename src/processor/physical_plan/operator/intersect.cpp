@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/intersect.h"
 
-#include <iostream>
-
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -52,6 +50,7 @@ bool IntersectProbe::probe() {
     }
     auto probeKey =
         ((nodeID_t*)probeKeyVector->values)[probeKeyVector->state->getPositionOfCurrIdx()];
+    currentProbeKey = probeKey;
     if (probeKey == prevProbeKey) {
         probeState->nextMatchedTupleIdx = 0;
     } else {
@@ -81,15 +80,17 @@ shared_ptr<ResultSet> Intersect::init(graphflow::processor::ExecutionContext* co
     return resultSet;
 }
 
-void Intersect::twoWayIntersect(
-    uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues, uint64_t rightSize) {
+uint64_t Intersect::twoWayIntersect(uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues,
+    uint64_t rightSize, uint8_t* output) {
     sel_t leftPosition = 0;
     sel_t rightPosition = 0;
     sel_t outputValuePosition = 0;
-    auto outputValues = (nodeID_t*)outputVector->values;
+    auto outputValues = (nodeID_t*)output;
+    auto leftNodeIDs = (nodeID_t*)leftValues;
+    auto rightNodeIDs = (nodeID_t*)rightValues;
     while (leftPosition < leftSize && rightPosition < rightSize) {
-        auto leftVal = ((nodeID_t*)leftValues)[leftPosition];
-        auto rightVal = ((nodeID_t*)rightValues)[rightPosition];
+        auto leftVal = leftNodeIDs[leftPosition];
+        auto rightVal = rightNodeIDs[rightPosition];
         if (leftVal.offset < rightVal.offset) {
             leftPosition++;
         } else if (leftVal.offset > rightVal.offset) {
@@ -100,7 +101,7 @@ void Intersect::twoWayIntersect(
             outputValues[outputValuePosition++] = leftVal;
         }
     }
-    outputVector->state->selVector->selectedSize = outputValuePosition;
+    return outputValuePosition;
 }
 
 static uint32_t findSmallest(const vector<overflow_value_t*>& probeResults) {
@@ -117,17 +118,42 @@ static uint32_t findSmallest(const vector<overflow_value_t*>& probeResults) {
 }
 
 void Intersect::kWayIntersect() {
-    auto smallestIdx = findSmallest(probeResults);
-    if (smallestIdx != 0) {
-        swap(probeResults[smallestIdx], probeResults[0]);
-    }
-    twoWayIntersect(probeResults[0]->value, probeResults[0]->numElements, probeResults[1]->value,
-        probeResults[1]->numElements);
-    uint64_t nextToIntersect = 2;
-    while (nextToIntersect < probeResults.size()) {
-        twoWayIntersect(outputVector->values, outputVector->state->selVector->selectedSize,
-            probeResults[nextToIntersect]->value, probeResults[nextToIntersect]->numElements);
-        nextToIntersect++;
+    if (probeResults.size() == 2) {
+        auto smallestIdx = findSmallest(probeResults);
+        if (smallestIdx != 0) {
+            swap(probeResults[smallestIdx], probeResults[0]);
+        }
+        outputVector->state->selVector->selectedSize =
+            twoWayIntersect(probeResults[0]->value, probeResults[0]->numElements,
+                probeResults[1]->value, probeResults[1]->numElements, outputVector->values);
+    } else if (probeResults.size() == 3) {
+        if (probeStates[0]->matchedSelVector->selectedSize != 1 ||
+            probeStates[1]->matchedSelVector->selectedSize != 1 ||
+            currentProbeKeys[0]->offset != prefix[0] || currentProbeKeys[1]->offset != prefix[1]) {
+            cachedVector->state->selVector->selectedSize =
+                twoWayIntersect(probeResults[0]->value, probeResults[0]->numElements,
+                    probeResults[1]->value, probeResults[1]->numElements, cachedVector->values);
+            prefix[0] = currentProbeKeys[0]->offset;
+            prefix[1] = currentProbeKeys[1]->offset;
+        }
+        outputVector->state->selVector->selectedSize =
+            twoWayIntersect(cachedVector->values, cachedVector->state->selVector->selectedSize,
+                probeResults[2]->value, probeResults[2]->numElements, outputVector->values);
+    } else {
+        auto smallestIdx = findSmallest(probeResults);
+        if (smallestIdx != 0) {
+            swap(probeResults[smallestIdx], probeResults[0]);
+        }
+        outputVector->state->selVector->selectedSize =
+            twoWayIntersect(probeResults[0]->value, probeResults[0]->numElements,
+                probeResults[1]->value, probeResults[1]->numElements, outputVector->values);
+        uint64_t nextToIntersect = 2;
+        while (nextToIntersect < probeResults.size()) {
+            outputVector->state->selVector->selectedSize = twoWayIntersect(outputVector->values,
+                outputVector->state->selVector->selectedSize, probeResults[nextToIntersect]->value,
+                probeResults[nextToIntersect]->numElements, outputVector->values);
+            nextToIntersect++;
+        }
     }
 }
 

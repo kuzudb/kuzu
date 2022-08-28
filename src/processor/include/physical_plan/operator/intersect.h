@@ -52,8 +52,13 @@ public:
         : PhysicalOperator{move(children), id, paramsString}, outputVectorPos{outputVectorPos},
           probeSideKeyVectorsPos{move(probeSideKeyVectorsPos)}, sharedStates{move(sharedStates)} {
         probeResults.resize(this->sharedStates.size());
+        probeStates.resize(this->sharedStates.size());
         currentProbeKeys.resize(this->sharedStates.size());
         prober = createIntersectProber(0);
+        prefix = {UINT64_MAX, UINT64_MAX};
+        cachedVector = make_unique<ValueVector>(NODE_ID);
+        cachedState = make_shared<DataChunkState>();
+        cachedVector->state = cachedState;
     }
 
     inline unique_ptr<IntersectProbe> createIntersectProber(uint32_t branchIdx) {
@@ -63,6 +68,7 @@ public:
         auto intersectProbe = make_unique<IntersectProbe>(this->sharedStates[branchIdx],
             probeSideKeyVectorsPos[branchIdx], move(childProbe), children[0].get());
         probeResults[branchIdx] = &intersectProbe->probedResult;
+        probeStates[branchIdx] = intersectProbe->probeState.get();
         currentProbeKeys[branchIdx] = &intersectProbe->currentProbeKey;
         return intersectProbe;
     }
@@ -82,8 +88,8 @@ public:
 
 private:
     // Left is the smaller one.
-    void twoWayIntersect(
-        uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues, uint64_t rightSize);
+    static uint64_t twoWayIntersect(uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues,
+        uint64_t rightSize, uint8_t* output);
     void kWayIntersect();
 
 private:
@@ -93,7 +99,11 @@ private:
     unique_ptr<IntersectProbe> prober;
     vector<shared_ptr<HashJoinSharedState>> sharedStates;
     vector<overflow_value_t*> probeResults;
+    vector<ProbeState*> probeStates;
     vector<nodeID_t*> currentProbeKeys;
+    vector<node_offset_t> prefix;
+    unique_ptr<ValueVector> cachedVector;
+    shared_ptr<DataChunkState> cachedState;
 };
 
 } // namespace processor
