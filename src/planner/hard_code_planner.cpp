@@ -183,9 +183,9 @@ unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundS
 
     // compile closing with b-e2, a-e3
     auto be2 = createRelScanPlan(e2, b, predicates, false);
-    appendSorter(c, *be2);
+    //    appendSorter(c, *be2);
     auto ae3 = createRelScanPlan(e3, a, predicates, false);
-    appendSorter(c, *ae3);
+    //    appendSorter(c, *ae3);
     auto buildPlans = vector<LogicalPlan*>{be2.get(), ae3.get()};
     auto hashNodes = vector<shared_ptr<NodeExpression>>{b, a};
     compileIntersectWithNode(*plan, buildPlans, c, hashNodes);

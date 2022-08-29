@@ -3,7 +3,6 @@
 #include "src/common/include/utils.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/hash_table/base_hash_table.h"
-#include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
 using namespace graphflow::function::operation;
@@ -30,10 +29,6 @@ public:
     inline uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + colOffsetOfPrevPtrInTuple);
     }
-    inline uint32_t getColumnOffset(uint32_t columnIdx) const {
-        return factorizedTable->getTableSchema()->getColOffset(columnIdx);
-    }
-    inline bool hasUnflatColumns() { return factorizedTable->hasUnflatCol(); }
 
 private:
     uint8_t** findHashSlot(const nodeID_t& value) const;

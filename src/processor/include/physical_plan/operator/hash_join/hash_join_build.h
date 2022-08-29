@@ -74,7 +74,6 @@ public:
     void execute(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;
 
-    inline HashJoinSharedState* getJoinSharedState() { return sharedState.get(); }
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinBuild>(
             sharedState, buildDataInfo, children[0]->clone(), id, paramsString);

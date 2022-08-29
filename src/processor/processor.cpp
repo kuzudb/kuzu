@@ -53,7 +53,8 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(move(childTask));
     } break;
-    case HASH_JOIN_BUILD: {
+    case HASH_JOIN_BUILD:
+    case INTERSECT_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(move(childTask));
