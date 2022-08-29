@@ -13,8 +13,8 @@ public:
         vector<DataPos> probeSideKeyVectorsPos, vector<shared_ptr<IntersectHashTable>> sharedHTs,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(children), id, paramsString}, keyLabel{keyLabel},
-          outputVectorPos{outputVectorPos},
-          probeSideKeyVectorsPos{move(probeSideKeyVectorsPos)}, sharedHTs{move(sharedHTs)} {
+          outputVectorPos{outputVectorPos}, probeSideKeyVectorsPos{move(probeSideKeyVectorsPos)},
+          sharedHTs{move(sharedHTs)}, tempResultSize{0}, currentIdxInTempResult{0} {
         probeSideKeyVectors.resize(this->probeSideKeyVectorsPos.size());
         probedLists.resize(this->sharedHTs.size());
     }
@@ -47,6 +47,9 @@ private:
     shared_ptr<ValueVector> outputVector;
     vector<shared_ptr<IntersectHashTable>> sharedHTs;
     vector<overflow_value_t> probedLists;
+    unique_ptr<nodeID_t[]> tempIntersectedResult;
+    uint32_t tempResultSize;
+    uint32_t currentIdxInTempResult;
     //    vector<nodeID_t*> currentProbeKeys;
     //    vector<node_offset_t> prefix;
     //    unique_ptr<ValueVector> cachedVector;

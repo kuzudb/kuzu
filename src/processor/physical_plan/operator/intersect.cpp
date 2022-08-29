@@ -85,9 +85,16 @@ void Intersect::kWayIntersect() {
     if (smallestIdx != 0) {
         swap(probedLists[smallestIdx], probedLists[0]);
     }
-    outputVector->state->selVector->selectedSize =
-        twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
-            probedLists[1].numElements, outputVector->values, keyLabel);
+    if (probedLists[0].numElements < DEFAULT_VECTOR_CAPACITY) {
+        outputVector->state->selVector->selectedSize =
+            twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
+                probedLists[1].numElements, outputVector->values, keyLabel);
+    } else {
+        tempIntersectedResult = make_unique<nodeID_t[]>(probedLists[0].numElements);
+        tempResultSize =
+            twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
+                probedLists[1].numElements, (uint8_t*)tempIntersectedResult.get(), keyLabel);
+    }
     //    uint64_t nextToIntersect = 2;
     //    while (nextToIntersect < probedLists.size()) {
     //        outputVector->state->selVector->selectedSize = twoWayIntersect(outputVector->values,
@@ -101,6 +108,15 @@ void Intersect::kWayIntersect() {
 bool Intersect::getNextTuples() {
     metrics->executionTime.start();
     do {
+        if (currentIdxInTempResult < tempResultSize) {
+            auto numToCopy =
+                min((uint32_t)DEFAULT_VECTOR_CAPACITY, tempResultSize - currentIdxInTempResult);
+            memcpy(outputVector->values,
+                tempIntersectedResult.get() + (currentIdxInTempResult * sizeof(nodeID_t)),
+                numToCopy * sizeof(nodeID_t));
+            outputVector->state->selVector->selectedSize = numToCopy;
+            currentIdxInTempResult += numToCopy;
+        }
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
