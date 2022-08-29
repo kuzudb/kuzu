@@ -49,7 +49,7 @@ void IntersectBuild::appendPayloadToBlock(IntersectSlot* slot) {
     }
     auto numValuesToAppend = payloadVector->state->selVector->selectedSize;
     auto& currentBlockToAppend = blocks[currentBlockIdx];
-    if (currentBlockToAppend->freeSize > (numValuesToAppend * sizeof(node_offset_t))) {
+    if (currentBlockToAppend->freeSize >= (numValuesToAppend * sizeof(node_offset_t))) {
         // Current block has free size.
         auto dataInBlockToAppend = currentBlockToAppend->getData() +
                                    currentBlockToAppend->numTuples * sizeof(node_offset_t);
@@ -62,9 +62,13 @@ void IntersectBuild::appendPayloadToBlock(IntersectSlot* slot) {
         currentBlockToAppend->freeSize -= (numValuesToAppend * sizeof(node_offset_t));
     } else {
         // Allocate a new block.
-        assert(numValuesToAppend * sizeof(node_offset_t) < LARGE_PAGE_SIZE);
         auto block = make_unique<DataBlock>(mm);
         auto numExistingBytes = slot->numValues * sizeof(node_offset_t);
+        assert(numExistingBytes + (numValuesToAppend * sizeof(node_offset_t)) <= LARGE_PAGE_SIZE);
+        if (numExistingBytes + (numValuesToAppend * sizeof(node_offset_t)) > LARGE_PAGE_SIZE) {
+            cout << "Out of bound for block with size: "
+                 << (numExistingBytes + (numValuesToAppend * sizeof(node_offset_t))) << endl;
+        }
         if (numExistingBytes > 0) {
             memcpy(block->getData(), slot->data, numExistingBytes);
         }

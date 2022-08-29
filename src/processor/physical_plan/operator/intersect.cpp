@@ -30,25 +30,14 @@ void Intersect::probe() {
     //    cout << "]" << endl;
 }
 
-uint64_t Intersect::twoWayIntersect(uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues,
-    uint64_t rightSize, uint8_t* output, label_t keyLabel) {
+uint64_t Intersect::twoWayOffsetIntersect(uint8_t* leftValues, uint64_t leftSize,
+    uint8_t* rightValues, uint64_t rightSize, uint8_t* output, label_t keyLabel) {
     sel_t leftPosition = 0;
     sel_t rightPosition = 0;
     uint64_t outputValuePosition = 0;
     auto outputValues = (nodeID_t*)output;
     auto leftNodeOffsets = (node_offset_t*)leftValues;
     auto rightNodeOffsets = (node_offset_t*)rightValues;
-    //    cout << "Intersect:" << endl;
-    //    cout << "L(" << leftSize << "): [";
-    //    for (auto i = 0u; i < leftSize; i++) {
-    //        cout << leftNodeOffsets[i] << ",";
-    //    }
-    //    cout << "]" << endl;
-    //    cout << "R(" << rightSize << "): [";
-    //    for (auto i = 0u; i < rightSize; i++) {
-    //        cout << rightNodeOffsets[i] << ",";
-    //    }
-    //    cout << "]" << endl;
     while (leftPosition < leftSize && rightPosition < rightSize) {
         auto leftVal = leftNodeOffsets[leftPosition];
         auto rightVal = rightNodeOffsets[rightPosition];
@@ -61,6 +50,31 @@ uint64_t Intersect::twoWayIntersect(uint8_t* leftValues, uint64_t leftSize, uint
             rightPosition++;
             outputValues[outputValuePosition].label = keyLabel;
             outputValues[outputValuePosition].offset = leftVal;
+            outputValuePosition++;
+        }
+    }
+    return outputValuePosition;
+}
+
+uint64_t Intersect::twoWayNodeIDAndOffsetIntersect(uint8_t* leftValues, uint64_t leftSize,
+    uint8_t* rightValues, uint64_t rightSize, uint8_t* output) {
+    sel_t leftPosition = 0;
+    sel_t rightPosition = 0;
+    uint64_t outputValuePosition = 0;
+    auto outputValues = (nodeID_t*)output;
+    auto leftNodeIDs = (nodeID_t*)leftValues;
+    auto rightNodeOffsets = (node_offset_t*)rightValues;
+    while (leftPosition < leftSize && rightPosition < rightSize) {
+        auto leftNodeID = leftNodeIDs[leftPosition];
+        auto rightNodeOffset = rightNodeOffsets[rightPosition];
+        if (leftNodeID.offset < rightNodeOffset) {
+            leftPosition++;
+        } else if (leftNodeID.offset > rightNodeOffset) {
+            rightPosition++;
+        } else {
+            leftPosition++;
+            rightPosition++;
+            outputValues[outputValuePosition] = leftNodeID;
             outputValuePosition++;
         }
     }
@@ -87,30 +101,37 @@ void Intersect::kWayIntersect() {
     }
     tempResultSize = 0;
     currentIdxInTempResult = 0;
-    if (probedLists[0].numElements < DEFAULT_VECTOR_CAPACITY) {
+    if (probedLists[0].numElements <= DEFAULT_VECTOR_CAPACITY) {
         outputVector->state->selVector->selectedSize =
-            twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
-                probedLists[1].numElements, outputVector->values, keyLabel);
-        assert(outputVector->state->selVector->selectedSize < DEFAULT_VECTOR_CAPACITY);
+            twoWayOffsetIntersect(probedLists[0].value, probedLists[0].numElements,
+                probedLists[1].value, probedLists[1].numElements, outputVector->values, keyLabel);
+        assert(outputVector->state->selVector->selectedSize <= DEFAULT_VECTOR_CAPACITY);
+        uint64_t nextToIntersect = 2;
+        while (nextToIntersect < probedLists.size()) {
+            outputVector->state->selVector->selectedSize = twoWayNodeIDAndOffsetIntersect(
+                outputVector->values, outputVector->state->selVector->selectedSize,
+                probedLists[nextToIntersect].value, probedLists[nextToIntersect].numElements,
+                outputVector->values);
+            nextToIntersect++;
+        }
     } else {
         tempIntersectedResult = make_unique<nodeID_t[]>(probedLists[0].numElements);
-        tempResultSize =
-            twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
-                probedLists[1].numElements, (uint8_t*)tempIntersectedResult.get(), keyLabel);
+        tempResultSize = twoWayOffsetIntersect(probedLists[0].value, probedLists[0].numElements,
+            probedLists[1].value, probedLists[1].numElements, (uint8_t*)tempIntersectedResult.get(),
+            keyLabel);
+        uint64_t nextToIntersect = 2;
+        while (nextToIntersect < probedLists.size()) {
+            tempResultSize = twoWayNodeIDAndOffsetIntersect((uint8_t*)tempIntersectedResult.get(),
+                tempResultSize, probedLists[nextToIntersect].value,
+                probedLists[nextToIntersect].numElements, (uint8_t*)tempIntersectedResult.get());
+            nextToIntersect++;
+        }
         auto numToCopy = min((uint32_t)DEFAULT_VECTOR_CAPACITY, tempResultSize);
         memcpy(outputVector->values, (uint8_t*)tempIntersectedResult.get(),
             numToCopy * sizeof(nodeID_t));
         currentIdxInTempResult = numToCopy;
         outputVector->state->selVector->selectedSize = numToCopy;
     }
-    //    uint64_t nextToIntersect = 2;
-    //    while (nextToIntersect < probedLists.size()) {
-    //        outputVector->state->selVector->selectedSize = twoWayIntersect(outputVector->values,
-    //            outputVector->state->selVector->selectedSize, probedLists[nextToIntersect].value,
-    //            probedLists[nextToIntersect].numElements, outputVector->values, keyLabel);
-    //        nextToIntersect++;
-    //    }
-    //    cout << "Intersect result size: " << outputVector->state->selVector->selectedSize << endl;
 }
 
 bool Intersect::getNextTuples() {

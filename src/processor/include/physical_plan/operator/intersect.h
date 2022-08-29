@@ -35,8 +35,10 @@ public:
 private:
     void probe();
     // Left is the smaller one.
-    static uint64_t twoWayIntersect(uint8_t* leftValues, uint64_t leftSize, uint8_t* rightValues,
-        uint64_t rightSize, uint8_t* output, label_t keyLabel);
+    static uint64_t twoWayOffsetIntersect(uint8_t* leftValues, uint64_t leftSize,
+        uint8_t* rightValues, uint64_t rightSize, uint8_t* output, label_t keyLabel);
+    static uint64_t twoWayNodeIDAndOffsetIntersect(uint8_t* leftValues, uint64_t leftSize,
+        uint8_t* rightValues, uint64_t rightSize, uint8_t* output);
     void kWayIntersect();
 
 private:

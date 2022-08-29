@@ -183,9 +183,7 @@ unique_ptr<LogicalPlan> Enumerator::getTrianglePlan(const BoundStatement& boundS
 
     // compile closing with b-e2, a-e3
     auto be2 = createRelScanPlan(e2, b, predicates, false);
-    //    appendSorter(c, *be2);
     auto ae3 = createRelScanPlan(e3, a, predicates, false);
-    //    appendSorter(c, *ae3);
     auto buildPlans = vector<LogicalPlan*>{be2.get(), ae3.get()};
     auto hashNodes = vector<shared_ptr<NodeExpression>>{b, a};
     compileIntersectWithNode(*plan, buildPlans, c, hashNodes);
@@ -231,9 +229,7 @@ unique_ptr<LogicalPlan> Enumerator::getCyclePlan(
 
     // build sides: d-e4, b-e2
     auto de4 = createRelScanPlan(e4, d, predicates, false);
-    appendSorter(c, *de4);
     auto be2 = createRelScanPlan(e2, b, predicates, false);
-    appendSorter(c, *be2);
     auto buildPlans = vector<LogicalPlan*>{de4.get(), be2.get()};
     auto hashNodes = vector<shared_ptr<NodeExpression>>{d, b};
     compileIntersectWithNode(*plan, buildPlans, c, hashNodes);
@@ -280,9 +276,7 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
     compileHashJoinWithNode(*plan, b, predicates);
     // build sides: b-e2-c, a-e5-c
     auto be2 = createRelScanPlan(e2, b, predicates, false);
-    appendSorter(c, *be2);
     auto ae5 = createRelScanPlan(e5, a, predicates, false);
-    appendSorter(c, *ae5);
     auto sp1BuildPlans = vector<LogicalPlan*>{be2.get(), ae5.get()};
     auto sp1HashNodes = vector<shared_ptr<NodeExpression>>{b, a};
     compileIntersectWithNode(*plan, sp1BuildPlans, c, sp1HashNodes);
@@ -291,11 +285,8 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
     compileHashJoinWithNode(*plan, c, predicates);
     // build sides: a-e3->d, b-e6->d, c<-e4-d
     auto ae3 = createRelScanPlan(e3, a, predicates, false);
-    appendSorter(d, *ae3);
     auto be6 = createRelScanPlan(e6, b, predicates, false);
-    appendSorter(d, *be6);
     auto ce4 = createRelScanPlan(e4, c, predicates, false);
-    appendSorter(d, *ce4);
     auto buildPlans = vector<LogicalPlan*>{ae3.get(), be6.get(), ce4.get()};
     auto hashNodes = vector<shared_ptr<NodeExpression>>{a, b, c};
     compileIntersectWithNode(*plan, buildPlans, d, hashNodes);

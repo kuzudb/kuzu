@@ -26,7 +26,7 @@ public:
     inline IntersectSlot* getSlot(uint64_t slotIdx) {
         auto blockIdx = slotIdx >> numSlotsPerBlockLog2;
         auto idxInBlock = slotIdx - (blockIdx << numSlotsPerBlockLog2);
-        return (IntersectSlot*)hashSlotsBlocks[blockIdx]->getData() + idxInBlock;
+        return ((IntersectSlot*)hashSlotsBlocks[blockIdx]->getData()) + idxInBlock;
     }
 
 public:
