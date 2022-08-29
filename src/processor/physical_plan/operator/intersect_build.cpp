@@ -50,6 +50,7 @@ void IntersectBuild::appendPayloadToBlock(IntersectSlot* slot) {
     auto numValuesToAppend = payloadVector->state->selVector->selectedSize;
     auto& currentBlockToAppend = blocks[currentBlockIdx];
     if (currentBlockToAppend->freeSize > (numValuesToAppend * sizeof(node_offset_t))) {
+        // Current block has free size.
         auto dataInBlockToAppend = currentBlockToAppend->getData() +
                                    currentBlockToAppend->numTuples * sizeof(node_offset_t);
         copyFromVectorToBlock(payloadVector.get(), dataInBlockToAppend);
@@ -60,14 +61,15 @@ void IntersectBuild::appendPayloadToBlock(IntersectSlot* slot) {
         currentBlockToAppend->numTuples += numValuesToAppend;
         currentBlockToAppend->freeSize -= (numValuesToAppend * sizeof(node_offset_t));
     } else {
+        // Allocate a new block.
         assert(numValuesToAppend * sizeof(node_offset_t) < LARGE_PAGE_SIZE);
         auto block = make_unique<DataBlock>(mm);
-        auto numBytesPadding = slot->numValues * sizeof(node_offset_t);
-        if (numBytesPadding > 0) {
-            memcpy(block->getData(), slot->data, numBytesPadding);
+        auto numExistingBytes = slot->numValues * sizeof(node_offset_t);
+        if (numExistingBytes > 0) {
+            memcpy(block->getData(), slot->data, numExistingBytes);
         }
-        auto listStart = block->getData() + numBytesPadding;
-        copyFromVectorToBlock(payloadVector.get(), listStart);
+        auto listStart = block->getData();
+        copyFromVectorToBlock(payloadVector.get(), listStart + numExistingBytes);
         slot->data = listStart;
         slot->numValues += numValuesToAppend;
         sortInBlock((node_offset_t*)listStart, slot->numValues);

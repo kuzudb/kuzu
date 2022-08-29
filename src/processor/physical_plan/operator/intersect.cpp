@@ -85,15 +85,23 @@ void Intersect::kWayIntersect() {
     if (smallestIdx != 0) {
         swap(probedLists[smallestIdx], probedLists[0]);
     }
+    tempResultSize = 0;
+    currentIdxInTempResult = 0;
     if (probedLists[0].numElements < DEFAULT_VECTOR_CAPACITY) {
         outputVector->state->selVector->selectedSize =
             twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
                 probedLists[1].numElements, outputVector->values, keyLabel);
+        assert(outputVector->state->selVector->selectedSize < DEFAULT_VECTOR_CAPACITY);
     } else {
         tempIntersectedResult = make_unique<nodeID_t[]>(probedLists[0].numElements);
         tempResultSize =
             twoWayIntersect(probedLists[0].value, probedLists[0].numElements, probedLists[1].value,
                 probedLists[1].numElements, (uint8_t*)tempIntersectedResult.get(), keyLabel);
+        auto numToCopy = min((uint32_t)DEFAULT_VECTOR_CAPACITY, tempResultSize);
+        memcpy(outputVector->values, (uint8_t*)tempIntersectedResult.get(),
+            numToCopy * sizeof(nodeID_t));
+        currentIdxInTempResult = numToCopy;
+        outputVector->state->selVector->selectedSize = numToCopy;
     }
     //    uint64_t nextToIntersect = 2;
     //    while (nextToIntersect < probedLists.size()) {
@@ -112,10 +120,11 @@ bool Intersect::getNextTuples() {
             auto numToCopy =
                 min((uint32_t)DEFAULT_VECTOR_CAPACITY, tempResultSize - currentIdxInTempResult);
             memcpy(outputVector->values,
-                tempIntersectedResult.get() + (currentIdxInTempResult * sizeof(nodeID_t)),
+                (uint8_t*)tempIntersectedResult.get() + (currentIdxInTempResult * sizeof(nodeID_t)),
                 numToCopy * sizeof(nodeID_t));
             outputVector->state->selVector->selectedSize = numToCopy;
             currentIdxInTempResult += numToCopy;
+            return true;
         }
         if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
