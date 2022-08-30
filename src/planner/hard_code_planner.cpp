@@ -270,28 +270,28 @@ unique_ptr<LogicalPlan> Enumerator::getCliquePlan(
     auto e6 = queryGraph->getQueryRel(5);
     assert(e6->getRawName() == "e6");
 
-    // intersect subplan SP1: a-e1-b-e2-c, a-e5-c
-    // probe side: a-e1-b
+    // intersect subplan SP1: a-e1->b-e6->d, a-e3->d
+    // probe side: a-e1->b
     auto plan = createRelScanPlan(e1, a, predicates, true);
     compileHashJoinWithNode(*plan, b, predicates);
-    // build sides: b-e2-c, a-e5-c
-    auto be2 = createRelScanPlan(e2, b, predicates, false);
-    auto ae5 = createRelScanPlan(e5, a, predicates, false);
-    auto sp1BuildPlans = vector<LogicalPlan*>{be2.get(), ae5.get()};
+    // build sides: b-e6->d, a-e3->d
+    auto be6 = createRelScanPlan(e6, b, predicates, false);
+    auto ae3 = createRelScanPlan(e3, a, predicates, false);
+    auto sp1BuildPlans = vector<LogicalPlan*>{be6.get(), ae3.get()};
     auto sp1HashNodes = vector<shared_ptr<NodeExpression>>{b, a};
-    compileIntersectWithNode(*plan, sp1BuildPlans, c, sp1HashNodes);
+    compileIntersectWithNode(*plan, sp1BuildPlans, d, sp1HashNodes);
+    compileHashJoinWithNode(*plan, d, predicates);
 
     // intersect subplan: SP1-e3-d, b-e6-d, d-e4-c
+    // build sides: a-e5->c, b-e2->c, d-e4->c
+    auto ae5 = createRelScanPlan(e5, a, predicates, false);
+    auto be2 = createRelScanPlan(e2, b, predicates, false);
+    auto de4 = createRelScanPlan(e4, d, predicates, false);
+    auto buildPlans = vector<LogicalPlan*>{ae5.get(), be2.get(), de4.get()};
+    auto hashNodes = vector<shared_ptr<NodeExpression>>{a, b, d};
+    compileIntersectWithNode(*plan, buildPlans, c, hashNodes);
     compileHashJoinWithNode(*plan, c, predicates);
-    // build sides: a-e3->d, b-e6->d, c<-e4-d
-    auto ae3 = createRelScanPlan(e3, a, predicates, false);
-    auto be6 = createRelScanPlan(e6, b, predicates, false);
-    auto ce4 = createRelScanPlan(e4, c, predicates, false);
-    auto buildPlans = vector<LogicalPlan*>{ae3.get(), be6.get(), ce4.get()};
-    auto hashNodes = vector<shared_ptr<NodeExpression>>{a, b, c};
-    compileIntersectWithNode(*plan, buildPlans, d, hashNodes);
 
-    compileHashJoinWithNode(*plan, d, predicates);
     projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
     plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
     return plan;
