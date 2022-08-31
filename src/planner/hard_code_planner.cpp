@@ -7,7 +7,7 @@
 namespace graphflow {
 namespace planner {
 
-static const bool ENABLE_ASP = false;
+static const bool ENABLE_ASP = true;
 
 static expression_vector extractPredicatesForNode(
     expression_vector& predicates, NodeExpression& node) {

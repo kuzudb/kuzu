@@ -6,6 +6,8 @@
 #include "src/processor/include/physical_plan/operator/source_operator.h"
 #include "src/storage/store/include/node_table.h"
 
+#define ENABLE_NODE_MASK true
+
 namespace graphflow {
 namespace processor {
 
@@ -13,13 +15,17 @@ struct SemiMask {
 public:
     SemiMask(node_offset_t maxNodeOffset, uint64_t maxMorselIdx) {
         morselMask = make_unique<bool[]>(maxMorselIdx + 1);
-        nodeMask = make_unique<bool[]>(maxNodeOffset + 1);
         fill(morselMask.get(), morselMask.get() + maxMorselIdx + 1, false);
+#if ENABLE_NODE_MASK
+        nodeMask = make_unique<bool[]>(maxNodeOffset + 1);
         fill(nodeMask.get(), nodeMask.get() + maxNodeOffset + 1, false);
+#endif
     }
 
     unique_ptr<bool[]> morselMask;
+#if ENABLE_NODE_MASK
     unique_ptr<bool[]> nodeMask;
+#endif
 };
 
 class ScanNodeIDSharedState {
@@ -42,12 +48,16 @@ public:
         if (!mask->morselMask[morselIdx]) {
             mask->morselMask[morselIdx] = true;
         }
+#if ENABLE_NODE_MASK
         if (!mask->nodeMask[nodeOffset]) {
             mask->nodeMask[nodeOffset] = true;
         }
+#endif
     }
     inline bool isSemiMaskEnabled() const { return mask != nullptr; }
+#if ENABLE_NODE_MASK
     inline bool isNodeMasked(node_offset_t nodeOffset) const { return mask->nodeMask[nodeOffset]; }
+#endif
 
 private:
     mutex mtx;
@@ -63,11 +73,12 @@ private:
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(string nodeID, unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)}, nodeID{move(nodeID)},
-          nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
+    ScanNodeID(string nodeID, unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        NodeTable* nodeTable, const DataPos& outDataPos,
+        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
+        : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
+          nodeID{move(nodeID)}, nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(
+                                                                                  sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -78,14 +89,14 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(
-            nodeID, resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(nodeID, resultSetDescriptor->copy(), nodeTable, outDataPos,
+            sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
         return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
-    
+
 private:
     void setSelVector(node_offset_t startOffset, node_offset_t endOffset);
 

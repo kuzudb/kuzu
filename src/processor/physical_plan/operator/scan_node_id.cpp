@@ -76,6 +76,7 @@ bool ScanNodeID::getNextTuples() {
 }
 
 void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset) {
+#if ENABLE_NODE_MASK
     if (sharedState->isSemiMaskEnabled()) {
         outDataChunk->state->selVector->resetSelectorToValuePosBuffer();
         // Fill selected positions based on node mask for nodes between the given startOffset and
@@ -93,6 +94,7 @@ void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset
         // By default, the selected positions is set to the const incremental pos array.
         outDataChunk->state->selVector->resetSelectorToUnselected();
     }
+#endif
     // Apply changes to the selVector from nodes metadata.
     nodeTable->getNodesMetadata()->setDeletedNodeOffsetsForMorsel(
         transaction, outValueVector, nodeTable->getLabelID());

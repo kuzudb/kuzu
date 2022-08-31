@@ -265,15 +265,12 @@ vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numTupl
 
 uint8_t* FactorizedTable::allocateOverflowBlocks(uint32_t numBytes) {
     assert(numBytes < LARGE_PAGE_SIZE);
-    for (auto& dataBlock : vectorOverflowBlocks) {
-        if (dataBlock->freeSize > numBytes) {
-            dataBlock->freeSize -= numBytes;
-            return dataBlock->getData() + LARGE_PAGE_SIZE - dataBlock->freeSize - numBytes;
-        }
+    if (vectorOverflowBlocks.empty() || vectorOverflowBlocks.back()->freeSize < numBytes) {
+        vectorOverflowBlocks.push_back(make_unique<DataBlock>(memoryManager));
     }
-    vectorOverflowBlocks.push_back(make_unique<DataBlock>(memoryManager));
-    vectorOverflowBlocks.back()->freeSize -= numBytes;
-    return vectorOverflowBlocks.back()->getData();
+    auto& block = vectorOverflowBlocks.back();
+    block->freeSize -= numBytes;
+    return block->getData() + LARGE_PAGE_SIZE - block->freeSize - numBytes;
 }
 
 void FactorizedTable::copyFlatVectorToFlatColumn(
