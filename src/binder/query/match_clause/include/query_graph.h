@@ -40,8 +40,12 @@ struct SubqueryGraph {
         queryNodesSelector |= other.queryNodesSelector;
     }
 
+    inline uint32_t getNumQueryRels() const { return queryRelsSelector.count(); }
     inline uint32_t getTotalNumVariables() const {
         return queryNodesSelector.count() + queryRelsSelector.count();
+    }
+    inline bool isSingleRel() const {
+        return queryRelsSelector.count() == 1 && queryNodesSelector.count() == 0;
     }
 
     bool containAllVariables(unordered_set<string>& variables) const;

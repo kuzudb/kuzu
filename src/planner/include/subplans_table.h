@@ -12,10 +12,9 @@ using namespace graphflow::binder;
 namespace graphflow {
 namespace planner {
 
-typedef unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>
-    SubqueryGraphPlansMap;
-
 class SubPlansTable {
+    typedef unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>
+        SubqueryGraphPlansMap;
 
 public:
     void resize(uint32_t newSize);
@@ -24,9 +23,7 @@ public:
 
     vector<unique_ptr<LogicalPlan>>& getSubgraphPlans(const SubqueryGraph& subqueryGraph);
 
-    SubqueryGraphPlansMap* getSubqueryGraphPlansMap(uint32_t level) {
-        return subPlans[level].get();
-    }
+    vector<SubqueryGraph> getSubqueryGraphs(uint32_t level);
 
     void addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
     void finalizeLevel(uint32_t level);

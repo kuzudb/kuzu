@@ -48,8 +48,8 @@ TEST_F(EndToEndReadLists2BytesPerEdgeTest, PropLists4BytesPerEdgeTest) {
 //    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
 //}
 
-TEST_F(EndToEndReadListsSubQueryTest, LargeListSubQueryTest) {
-    auto queryConfigs =
-        TestHelper::parseTestFile("test/test_files/read_list/large-list-sub-query.test");
-    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
-}
+// TEST_F(EndToEndReadListsSubQueryTest, LargeListSubQueryTest) {
+//    auto queryConfigs =
+//        TestHelper::parseTestFile("test/test_files/read_list/large-list-sub-query.test");
+//    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+//}

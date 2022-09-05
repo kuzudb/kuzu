@@ -21,11 +21,11 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
     vector<unique_ptr<LogicalPlan>> prevPlans) {
     context->init(queryGraph, queryGraphPredicate, move(prevPlans));
-    context->hasExpressionsToScanFromOuter() ? planResultScan() : planNodeScan();
+    assert(!context->hasExpressionsToScanFromOuter());
+    planTableScan();
     context->currentLevel++;
     while (context->currentLevel < context->maxLevel) {
-        planCurrentLevel();
-        context->currentLevel++;
+        planLevel(context->currentLevel++);
     }
     return move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
@@ -64,20 +64,18 @@ void JoinOrderEnumerator::planResultScan() {
 }
 
 void JoinOrderEnumerator::planNodeScan() {
-    auto emptySubgraph = context->getEmptySubqueryGraph();
-    if (context->getMatchedQueryNodes().count() == 1) {
-        // If only single node has been previously enumerated, then join order is decided
-        return;
-    }
     auto queryGraph = context->getQueryGraph();
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
+        if (context->matchedQueryNodes[nodePos]) {
+            continue;
+        }
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
         auto node = queryGraph->getQueryNode(nodePos);
         appendScanNodeID(node, *plan);
-        auto predicates =
-            getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions());
+        auto predicates = getNewMatchedExpressions(
+            context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
         planFiltersForNode(predicates, *node, *plan);
         planPropertyScansForNode(*node, *plan);
         context->addPlan(newSubgraph, move(plan));
@@ -98,71 +96,24 @@ void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, Logical
     enumerator->appendScanNodePropIfNecessarySwitch(properties, node, plan);
 }
 
-void JoinOrderEnumerator::planCurrentLevel() {
-    assert(context->currentLevel > 1);
-    planINLJoin();
-    planHashJoin();
-    context->subPlansTable->finalizeLevel(context->currentLevel);
-}
-
-void JoinOrderEnumerator::planINLJoin() {
-    auto prevLevel = context->currentLevel - 1;
-    for (auto& [subgraph, plans] : *context->subPlansTable->getSubqueryGraphPlansMap(prevLevel)) {
-        auto nodeNbrPositions = subgraph.getNodeNbrPositions();
-        for (auto& nodePos : nodeNbrPositions) {
-            planNodeINLJoin(subgraph, nodePos, plans);
+void JoinOrderEnumerator::planRelScan() {
+    auto queryGraph = context->getQueryGraph();
+    for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
+        if (context->matchedQueryRels[relPos]) {
+            continue;
         }
-        auto relNbrPositions = subgraph.getRelNbrPositions();
-        for (auto& relPos : relNbrPositions) {
-            planRelINLJoin(subgraph, relPos, plans);
+        auto rel = queryGraph->getQueryRel(relPos);
+        auto newSubgraph = context->getEmptySubqueryGraph();
+        newSubgraph.addQueryRel(relPos);
+        auto predicates = getNewMatchedExpressions(
+            context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+        for (auto direction : REL_DIRECTIONS) {
+            auto plan = make_unique<LogicalPlan>();
+            auto boundNode = direction == FWD ? rel->getSrcNode() : rel->getDstNode();
+            appendScanNodeID(boundNode, *plan);
+            planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
+            context->addPlan(newSubgraph, move(plan));
         }
-    }
-}
-
-void JoinOrderEnumerator::planNodeINLJoin(const SubqueryGraph& prevSubgraph, uint32_t nodePos,
-    vector<unique_ptr<LogicalPlan>>& prevPlans) {
-    auto newSubgraph = prevSubgraph;
-    newSubgraph.addQueryNode(nodePos);
-    auto node = context->mergedQueryGraph->getQueryNode(nodePos);
-    auto predicates =
-        getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-    for (auto& prevPlan : prevPlans) {
-        auto plan = prevPlan->shallowCopy();
-        planFiltersForNode(predicates, *node, *plan);
-        planPropertyScansForNode(*node, *plan);
-        plan->multiplyCost(EnumeratorKnobs::RANDOM_LOOKUP_PENALTY);
-        context->addPlan(newSubgraph, move(plan));
-    }
-}
-
-void JoinOrderEnumerator::planRelINLJoin(const SubqueryGraph& prevSubgraph, uint32_t relPos,
-    vector<unique_ptr<LogicalPlan>>& prevPlans) {
-    // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
-    // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
-    // First MATCH is enumerated normally. When enumerating second MATCH,
-    // we first merge graph as (a)-[r1]->(b)-[r2]->(c)-[r3]->(d)->[r4]->(e)-[r5]->(f) and
-    // enumerate from level 0 again. If we hit a query rel that has been previously matched
-    // i.e. r1 & r2 & r3, we skip the plan. This guarantees DP only enumerate query rels in
-    // the second MATCH. Note this is different from fully merged, since we don't generate
-    // plans like build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
-    if (context->matchedQueryRels[relPos]) {
-        return;
-    }
-    auto newSubgraph = prevSubgraph;
-    newSubgraph.addQueryRel(relPos);
-    auto rel = context->mergedQueryGraph->getQueryRel(relPos);
-    auto predicates =
-        getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-    auto isSrcConnected = prevSubgraph.isSrcConnected(relPos);
-    auto isDstConnected = prevSubgraph.isDstConnected(relPos);
-    assert(isSrcConnected || isDstConnected);
-    auto direction = isSrcConnected ? FWD : BWD;
-    for (auto& prevPlan : prevPlans) {
-        auto plan = prevPlan->shallowCopy();
-        appendExtend(rel, direction, *plan);
-        planFiltersForRel(predicates, *rel, direction, *plan);
-        planPropertyScansForRel(*rel, direction, *plan);
-        context->addPlan(newSubgraph, move(plan));
     }
 }
 
@@ -181,10 +132,9 @@ void JoinOrderEnumerator::planPropertyScansForRel(
     enumerator->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
 }
 
-void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) {
+void JoinOrderEnumerator::planJoin(uint32_t leftLevel, uint32_t rightLevel) {
     assert(leftLevel <= rightLevel);
-    auto rightSubgraphPlansMap = context->subPlansTable->getSubqueryGraphPlansMap(rightLevel);
-    for (auto& [rightSubgraph, rightPlans] : *rightSubgraphPlansMap) {
+    for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
         for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
             // Consider previous example in enumerateExtend(), when enumerating second MATCH, and
             // current level = 4 we get left subgraph as f, d, e (size = 2), and try to find a
@@ -197,27 +147,111 @@ void JoinOrderEnumerator::planHashJoin(uint32_t leftLevel, uint32_t rightLevel) 
             auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
             assert(joinNodePositions.size() == 1);
             auto joinNode = context->mergedQueryGraph->getQueryNode(joinNodePositions[0]);
-            auto& leftPlans = context->getPlans(nbrSubgraph);
-            auto newSubgraph = rightSubgraph;
-            newSubgraph.addSubqueryGraph(nbrSubgraph);
-            auto predicates = getNewMatchedExpressions(
-                nbrSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
-            for (auto& leftPlan : leftPlans) {
-                for (auto& rightPlan : rightPlans) {
-                    auto leftPlanProbeCopy = leftPlan->shallowCopy();
-                    auto rightPlanBuildCopy = rightPlan->shallowCopy();
-                    auto leftPlanBuildCopy = leftPlan->shallowCopy();
-                    auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                    appendHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
-                    planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
-                    context->addPlan(newSubgraph, move(leftPlanProbeCopy));
-                    // flip build and probe side to get another HashJoin plan
-                    if (leftLevel != rightLevel) {
-                        appendHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
-                        planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
-                        context->addPlan(newSubgraph, move(rightPlanProbeCopy));
-                    }
-                }
+            // If index nested loop (INL) join is possible, we prune hash join plans
+            if (canApplyINLJoin(rightSubgraph, nbrSubgraph, joinNode)) {
+                planINLJoin(rightSubgraph, nbrSubgraph, joinNode);
+            } else if (canApplyINLJoin(nbrSubgraph, rightSubgraph, joinNode)) {
+                planINLJoin(nbrSubgraph, rightSubgraph, joinNode);
+            } else {
+                planHashJoin(rightSubgraph, nbrSubgraph, joinNode, leftLevel != rightLevel);
+            }
+        }
+    }
+}
+
+static LogicalOperator* getCurrentPipelineSourceOperator(LogicalPlan& plan) {
+    auto op = plan.getLastOperator().get();
+    while (
+        op->getNumChildren() == 1) { // We break pipeline for any operator with more than one child
+        op = op->getChild(0).get();
+    }
+    assert(op != nullptr);
+    return op;
+}
+
+// Return the node whose ID has sequential guarantee on the plan.
+static shared_ptr<NodeExpression> getSequentialNode(LogicalPlan& plan) {
+    auto pipelineSource = getCurrentPipelineSourceOperator(plan);
+    if (pipelineSource->getLogicalOperatorType() != LOGICAL_SCAN_NODE_ID) {
+        // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
+        // and we loose any sequential guarantees.
+        return nullptr;
+    }
+    return ((LogicalScanNodeID*)pipelineSource)->getNodeExpression();
+}
+
+// Check whether given node ID has sequential guarantee on the plan.
+static bool isNodeSequential(LogicalPlan& plan, NodeExpression* node) {
+    auto sequentialNode = getSequentialNode(plan);
+    return sequentialNode != nullptr && sequentialNode->getUniqueName() == node->getUniqueName();
+}
+
+// We apply index nested loop join if the following to conditions are satisfied
+// - otherSubgraph is an edge; and
+// - join node is sequential on at least one plan corresponding to subgraph. (Otherwise INLJ will
+// trigger non-sequential read).
+bool JoinOrderEnumerator::canApplyINLJoin(const SubqueryGraph& subgraph,
+    const SubqueryGraph& otherSubgraph, shared_ptr<NodeExpression> joinNode) {
+    if (!otherSubgraph.isSingleRel()) {
+        return false;
+    }
+    for (auto& plan : context->getPlans(subgraph)) {
+        if (isNodeSequential(*plan, joinNode.get())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static uint32_t extractJoinRelPos(const SubqueryGraph& subgraph, const QueryGraph& queryGraph) {
+    for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
+        if (subgraph.queryRelsSelector[relPos]) {
+            return relPos;
+        }
+    }
+    assert(false);
+}
+
+void JoinOrderEnumerator::planINLJoin(const SubqueryGraph& subgraph,
+    const SubqueryGraph& otherSubgraph, shared_ptr<NodeExpression> joinNode) {
+    assert(otherSubgraph.getNumQueryRels() == 1);
+    auto queryGraph = context->getQueryGraph();
+    auto relPos = extractJoinRelPos(otherSubgraph, *queryGraph);
+    auto rel = queryGraph->getQueryRel(relPos);
+    auto newSubgraph = subgraph;
+    newSubgraph.addQueryRel(relPos);
+    auto predicates =
+        getNewMatchedExpressions(subgraph, newSubgraph, context->getWhereExpressions());
+    for (auto& prevPlan : context->getPlans(subgraph)) {
+        if (isNodeSequential(*prevPlan, joinNode.get())) {
+            auto plan = prevPlan->shallowCopy();
+            auto direction = joinNode->getUniqueName() == rel->getSrcNodeName() ? FWD : BWD;
+            planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
+            context->addPlan(newSubgraph, move(plan));
+        }
+    }
+}
+
+void JoinOrderEnumerator::planHashJoin(const SubqueryGraph& subgraph,
+    const SubqueryGraph& otherSubgraph, shared_ptr<NodeExpression> joinNode, bool flipPlan) {
+    auto newSubgraph = subgraph;
+    newSubgraph.addSubqueryGraph(otherSubgraph);
+    auto predicates = getNewMatchedExpressions(
+        subgraph, otherSubgraph, newSubgraph, context->getWhereExpressions());
+    for (auto& leftPlan : context->getPlans(subgraph)) {
+        for (auto& rightPlan : context->getPlans(otherSubgraph)) {
+            auto leftPlanProbeCopy = leftPlan->shallowCopy();
+            auto rightPlanBuildCopy = rightPlan->shallowCopy();
+            auto leftPlanBuildCopy = leftPlan->shallowCopy();
+            auto rightPlanProbeCopy = rightPlan->shallowCopy();
+            appendHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+            planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
+            context->addPlan(newSubgraph, move(leftPlanProbeCopy));
+            // flip build and probe side to get another HashJoin plan
+            if (flipPlan) {
+                appendHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
+                context->addPlan(newSubgraph, move(rightPlanProbeCopy));
             }
         }
     }
