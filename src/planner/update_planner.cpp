@@ -2,7 +2,6 @@
 
 #include "include/enumerator.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
@@ -19,18 +18,18 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
         if (plan.isEmpty()) {
             appendTableScan(createClause, plan);
         } else {
-            appendAccumulate(plan);
+            Enumerator::appendAccumulate(plan);
         }
         appendCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
-        appendAccumulate(plan);
+        Enumerator::appendAccumulate(plan);
         appendSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
-        appendAccumulate(plan);
+        Enumerator::appendAccumulate(plan);
         appendDelete((BoundDeleteClause&)updatingClause, plan);
         return;
     }
@@ -54,21 +53,6 @@ void UpdatePlanner::planPropertyUpdateInfo(
     if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
         Enumerator::appendFlattenIfNecessary(originGroupPos, plan);
     }
-}
-
-void UpdatePlanner::appendAccumulate(LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto schemaBeforeSink = schema->copy();
-    SinkOperatorUtil::reComputeSchema(*schemaBeforeSink, *schema);
-    vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        if (schema->getGroup(i)->getIsFlat()) {
-            flatOutputGroupPositions.push_back(i);
-        }
-    }
-    auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
-        flatOutputGroupPositions, move(schemaBeforeSink), plan.getLastOperator());
-    plan.appendOperator(sink);
 }
 
 void UpdatePlanner::appendTableScan(BoundCreateClause& createClause, LogicalPlan& plan) {

@@ -103,5 +103,10 @@ protected:
     expression_vector children;
 };
 
+class ExpressionUtil {
+public:
+    static bool allExpressionsHaveDataType(expression_vector& expressions, DataTypeID dataTypeID);
+};
+
 } // namespace binder
 } // namespace graphflow

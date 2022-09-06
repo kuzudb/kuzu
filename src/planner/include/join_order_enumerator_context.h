@@ -40,9 +40,19 @@ public:
         mergedQueryGraph->merge(queryGraph);
     }
     inline QueryGraph* getQueryGraph() { return mergedQueryGraph.get(); }
-    inline const bitset<MAX_NUM_VARIABLES>& getMatchedQueryRels() const { return matchedQueryRels; }
-    inline const bitset<MAX_NUM_VARIABLES>& getMatchedQueryNodes() const {
-        return matchedQueryNodes;
+    inline bool isNodeMatched(NodeExpression* node) {
+        return matchedNodes.contains(node->getUniqueName());
+    }
+    inline void addMatchedNode(NodeExpression* node) {
+        assert(!isNodeMatched(node));
+        matchedNodes.insert(node->getUniqueName());
+    }
+    inline bool isRelMatched(RelExpression* rel) {
+        return matchedRels.contains(rel->getUniqueName());
+    }
+    inline void addMatchedRel(RelExpression* rel) {
+        assert(!isRelMatched(rel));
+        matchedRels.insert(rel->getUniqueName());
     }
 
     inline void setExpressionsToScanFromOuter(expression_vector expressions) {
@@ -64,10 +74,9 @@ private:
 
     unique_ptr<SubPlansTable> subPlansTable;
     unique_ptr<QueryGraph> mergedQueryGraph;
-    // We keep track of query nodes and rels matched in previous query graph so that new query part
-    // enumeration does not enumerate a rel that exist in previous query parts
-    bitset<MAX_NUM_VARIABLES> matchedQueryRels;
-    bitset<MAX_NUM_VARIABLES> matchedQueryNodes;
+    // Avoid scan the same table twice.
+    unordered_set<string> matchedNodes;
+    unordered_set<string> matchedRels;
 
     expression_vector expressionsToScanFromOuter;
 };

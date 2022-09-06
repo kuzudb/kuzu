@@ -51,12 +51,12 @@ TEST_F(TinySnbReadTest, Projection) {
 }
 
 // TEST_F(TinySnbReadTest, Subquery) {
-//    runTest("test/test_files/tinySNB/subquery/subquery.test");
+//    runTest("test/test_files/tinySNB/subquery/exists.test");
 //}
-//
-// TEST_F(TinySnbReadTest, OptionalMatch) {
-//    runTest("test/test_files/tinySNB/optional_match/optional_match.test");
-//}
+
+TEST_F(TinySnbReadTest, OptionalMatch) {
+    runTest("test/test_files/tinySNB/optional_match/optional_match.test");
+}
 
 TEST_F(TinySnbReadTest, OrderBy) {
     auto queryConfigs = TestHelper::parseTestFile(

@@ -9,8 +9,6 @@ void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
         queryGraphPredicate ? queryGraphPredicate->splitOnAND() : expression_vector();
     // merge new query graph
     auto fullyMatchedSubqueryGraph = getFullyMatchedSubqueryGraph();
-    matchedQueryRels = fullyMatchedSubqueryGraph.queryRelsSelector;
-    matchedQueryNodes = fullyMatchedSubqueryGraph.queryNodesSelector;
     mergeQueryGraph(queryGraph);
     // clear and resize subPlansTable
     subPlansTable->clear();

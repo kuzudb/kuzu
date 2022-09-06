@@ -93,7 +93,6 @@ private:
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
     void appendHashJoin(
         const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
-
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
         table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);

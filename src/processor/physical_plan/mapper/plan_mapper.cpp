@@ -11,7 +11,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
@@ -27,7 +26,6 @@
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
-#include "src/processor/include/physical_plan/operator/left_nested_loop_join.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by.h"
@@ -118,10 +116,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_EXISTS: {
         physicalOperator = mapLogicalExistsToPhysical(logicalOperator.get(), mapperContext);
-    } break;
-    case LOGICAL_LEFT_NESTED_LOOP_JOIN: {
-        physicalOperator =
-            mapLogicalLeftNestedLoopJoinToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_ORDER_BY: {
         physicalOperator = mapLogicalOrderByToPhysical(logicalOperator.get(), mapperContext);
@@ -360,36 +354,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     auto outDataPos = mapperContext.getDataPos(logicalExists.subqueryExpression->getUniqueName());
     return make_unique<Exists>(outDataPos, move(prevOperator), move(subPlanLastOperator),
         getOperatorID(), logicalExists.getExpressionsForPrinting());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalLeftNestedLoopJoin = (LogicalLeftNestedLoopJoin&)*logicalOperator;
-    auto& subPlanSchema = *logicalLeftNestedLoopJoin.subPlanSchema;
-    auto subPlanMapperContext = MapperContext(make_unique<ResultSetDescriptor>(subPlanSchema));
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto prevMapperContext = enterSubquery(&mapperContext);
-    auto subPlanLastOperator =
-        mapLogicalOperatorToPhysical(logicalLeftNestedLoopJoin.getChild(1), subPlanMapperContext);
-    exitSubquery(prevMapperContext);
-    vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
-    // Populate data position mapping for merging sub-plan result set
-    for (auto i = 0u; i < subPlanSchema.getNumGroups(); ++i) {
-        auto& group = *subPlanSchema.getGroup(i);
-        for (auto& expression : group.getExpressions()) {
-            auto expressionName = expression->getUniqueName();
-            if (mapperContext.expressionHasComputed(expressionName)) {
-                continue;
-            }
-            auto innerPos = subPlanMapperContext.getDataPos(expressionName);
-            auto outerPos = mapperContext.getDataPos(expressionName);
-            subPlanVectorsToRefPosMapping.emplace_back(innerPos, outerPos);
-            mapperContext.addComputedExpressions(expressionName);
-        }
-    }
-    return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping), move(prevOperator),
-        move(subPlanLastOperator), getOperatorID(),
-        logicalLeftNestedLoopJoin.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(

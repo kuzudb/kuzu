@@ -72,5 +72,15 @@ bool Expression::hasSubExpressionOfType(
     return false;
 }
 
+bool ExpressionUtil::allExpressionsHaveDataType(
+    expression_vector& expressions, DataTypeID dataTypeID) {
+    for (auto& expression : expressions) {
+        if (expression->dataType.typeID != dataTypeID) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace binder
 } // namespace graphflow

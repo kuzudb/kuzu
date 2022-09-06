@@ -34,37 +34,34 @@ public:
     unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement);
 
 private:
-    // See logical_plan.h for detailed description of our sub-plan limitation.
-    vector<unique_ptr<LogicalPlan>> getValidSubPlans(vector<unique_ptr<LogicalPlan>> plans);
-
     unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const NormalizedSingleQuery& singleQuery);
 
     unique_ptr<LogicalPlan> getBestPlan(const NormalizedSingleQuery& singleQuery) {
-        return getBestPlan(enumeratePlans(singleQuery));
+        return getBestPlan(enumerateSingleQuery(singleQuery));
     }
 
-    vector<unique_ptr<LogicalPlan>> enumeratePlans(const NormalizedSingleQuery& singleQuery);
+    vector<unique_ptr<LogicalPlan>> enumerateSingleQuery(const NormalizedSingleQuery& singleQuery);
 
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
     void planOptionalMatch(const QueryGraph& queryGraph,
-        const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
+        shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
 
     void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
         LogicalPlan& outerPlan);
 
     void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+    static void appendAccumulate(LogicalPlan& plan);
 
+    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.
     static uint32_t appendFlattensButOne(
         const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-
     static void appendFlattenIfNecessary(shared_ptr<Expression> expression, LogicalPlan& plan);
     static inline void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
         auto expression = plan.getSchema()->getGroup(groupPos)->getFirstExpression();
