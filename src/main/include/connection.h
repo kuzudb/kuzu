@@ -129,7 +129,10 @@ public:
     // instead let IDE catch these exceptions.
     std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
     unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS01Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS02Plan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS03Plan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS05Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS06Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS07Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getThreeHopPlan(const std::string& query);

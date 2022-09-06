@@ -3,12 +3,18 @@
 namespace graphflow {
 namespace processor {
 
-void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* transaction) {
+void ScanNodeIDSharedState::initialize(
+    graphflow::transaction::Transaction* transaction, node_offset_t filter) {
     unique_lock uLck{mtx};
     if (initialized) {
         return;
     }
-    maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+    if (filter == UINT64_MAX) {
+        maxNodeOffset = nodesMetadata->getMaxNodeOffset(transaction, labelID);
+    } else {
+        maxNodeOffset = filter;
+        currentNodeOffset = filter;
+    }
     maxMorselIdx = maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
     initialized = true;
 }
@@ -49,7 +55,7 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outValueVector->setSequential();
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    sharedState->initialize(transaction);
+    sharedState->initialize(transaction, filter);
     return resultSet;
 }
 

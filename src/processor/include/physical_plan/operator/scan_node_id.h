@@ -34,7 +34,7 @@ public:
         : initialized{false}, nodesMetadata{nodesMetadata}, labelID{labelID},
           maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0} {}
 
-    void initialize(Transaction* transaction);
+    void initialize(Transaction* transaction, node_offset_t filter);
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
@@ -73,12 +73,13 @@ private:
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(string nodeID, unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        NodeTable* nodeTable, const DataPos& outDataPos,
-        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
+    ScanNodeID(string nodeID, node_offset_t filter,
+        unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
+        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
+        const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
-          nodeID{move(nodeID)}, nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(
-                                                                                  sharedState)} {}
+          nodeID{move(nodeID)}, filter{filter}, nodeTable{nodeTable}, outDataPos{outDataPos},
+          sharedState{std::move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -89,8 +90,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(nodeID, resultSetDescriptor->copy(), nodeTable, outDataPos,
-            sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(nodeID, filter, resultSetDescriptor->copy(), nodeTable,
+            outDataPos, sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -104,6 +105,7 @@ public:
     string nodeID;
 
 private:
+    node_offset_t filter;
     NodeTable* nodeTable;
     DataPos outDataPos;
     shared_ptr<ScanNodeIDSharedState> sharedState;

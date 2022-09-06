@@ -10,8 +10,10 @@ using namespace graphflow::binder;
 
 class LogicalScanNodeID : public LogicalOperator {
 public:
-    LogicalScanNodeID(shared_ptr<NodeExpression> nodeExpression)
-        : nodeExpression{move(nodeExpression)} {}
+    explicit LogicalScanNodeID(shared_ptr<NodeExpression> nodeExpression)
+        : nodeExpression{move(nodeExpression)}, filter{UINT64_MAX} {}
+    LogicalScanNodeID(shared_ptr<NodeExpression> nodeExpression, node_offset_t filter)
+        : nodeExpression{move(nodeExpression)}, filter{filter} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
@@ -20,6 +22,7 @@ public:
     inline string getExpressionsForPrinting() const override {
         return nodeExpression->getRawName();
     }
+    inline node_offset_t getFilter() const { return filter; }
 
     inline shared_ptr<NodeExpression> getNodeExpression() const { return nodeExpression; }
 
@@ -29,6 +32,7 @@ public:
 
 private:
     shared_ptr<NodeExpression> nodeExpression;
+    node_offset_t filter;
 };
 
 } // namespace planner

@@ -23,9 +23,21 @@ public:
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getCliquePlan(statement);
     }
+    static inline unique_ptr<LogicalPlan> getIS01Plan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getIS1Plan(statement);
+    }
     static inline unique_ptr<LogicalPlan> getIS02Plan(const Catalog& catalog,
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getIS2Plan(statement);
+    }
+    static inline unique_ptr<LogicalPlan> getIS03Plan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getIS3Plan(statement);
+    }
+    static inline unique_ptr<LogicalPlan> getIS05Plan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getIS5Plan(statement);
     }
     static inline unique_ptr<LogicalPlan> getIS06Plan(const Catalog& catalog,
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {

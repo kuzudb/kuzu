@@ -195,10 +195,31 @@ unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& quer
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 
+unique_ptr<planner::LogicalPlan> Connection::getIS01Plan(const std::string& query) {
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getIS01Plan(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
 unique_ptr<planner::LogicalPlan> Connection::getIS02Plan(const std::string& query) {
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getIS02Plan(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
+unique_ptr<planner::LogicalPlan> Connection::getIS03Plan(const std::string& query) {
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getIS03Plan(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
+unique_ptr<planner::LogicalPlan> Connection::getIS05Plan(const std::string& query) {
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getIS05Plan(*database->catalog,
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 

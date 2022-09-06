@@ -26,7 +26,11 @@ public:
 
     unique_ptr<LogicalPlan> getThreeHopPlan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getTrianglePlan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS1Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS2Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS3Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS4Plan(const BoundStatement& statement);
+    unique_ptr<LogicalPlan> getIS5Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS6Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getIS7Plan(const BoundStatement& statement);
     unique_ptr<LogicalPlan> getCyclePlan(const BoundStatement& statement);
@@ -141,6 +145,9 @@ private:
 
     unique_ptr<LogicalPlan> createRelScanPlan(shared_ptr<RelExpression> rel,
         shared_ptr<NodeExpression>& boundNode, expression_vector& predicates, bool isScanNodeTable);
+    unique_ptr<LogicalPlan> createRelScanPlan(shared_ptr<RelExpression> rel,
+        shared_ptr<NodeExpression>& boundNode, node_offset_t boundNodeID,
+        expression_vector& predicates, bool isScanNodeTable);
     void compileHashJoinWithNode(
         LogicalPlan& plan, shared_ptr<NodeExpression>& node, expression_vector& predicates);
     void compileIntersectWithNode(LogicalPlan& plan, vector<LogicalPlan*>& buildPlans,

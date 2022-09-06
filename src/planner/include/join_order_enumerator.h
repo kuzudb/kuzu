@@ -77,6 +77,8 @@ private:
 
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(shared_ptr<NodeExpression> queryNode, LogicalPlan& plan);
+    void appendScanNodeID(
+        shared_ptr<NodeExpression> queryNode, node_offset_t filter, LogicalPlan& plan);
 
     void appendExtend(const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan);
 

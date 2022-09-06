@@ -287,6 +287,18 @@ void JoinOrderEnumerator::appendScanNodeID(
     plan.appendOperator(move(scan));
 }
 
+void JoinOrderEnumerator::appendScanNodeID(
+    shared_ptr<NodeExpression> queryNode, node_offset_t filter, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    assert(plan.isEmpty());
+    auto groupPos = schema->createGroup();
+    schema->insertToGroupAndScope(queryNode->getNodeIDPropertyExpression(), groupPos);
+    auto numNodes = nodesMetadata.getNodeMetadata(queryNode->getLabel())->getMaxNodeOffset() + 1;
+    auto scan = make_shared<LogicalScanNodeID>(move(queryNode), filter);
+    schema->getGroup(groupPos)->setMultiplier(numNodes);
+    plan.appendOperator(move(scan));
+}
+
 void JoinOrderEnumerator::appendExtend(
     const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
