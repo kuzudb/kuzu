@@ -45,7 +45,7 @@ Elizabeth
 # Node 3,7,8,9 can extend 3,4 levels and generate 8 paths (by using the above formulas). Node 0,2,5,10 don't have
 # such paths, the optional match will put 'null' in the b valueVector for Node 0,2,5,10. In total, we have 12 output
 # tuples.
--NAME KnowsWithOptionalMatch
--QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
----- 1
-12
+# -NAME KnowsWithOptionalMatch
+# -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
+# ---- 1
+# 12

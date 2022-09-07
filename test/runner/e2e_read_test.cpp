@@ -5,11 +5,6 @@ using namespace graphflow::testing;
 
 class TinySnbReadTest : public DBTest {
 public:
-    inline void runTest(const string& queryFile) {
-        auto queryConfigs = TestHelper::parseTestFile(queryFile);
-        ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
-    }
-
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
@@ -76,13 +71,7 @@ TEST_F(TinySnbReadTest, Union) {
     runTest("test/test_files/tinySNB/union/union.test");
 }
 
-// TODO(Ziyi): variable length join consumes way too much memory than it should.
-// TEST_F(TinySnbReadTest, VarLengthAdjListExtendTests) {
-//    vector<TestQueryConfig> queryConfigs;
-//    queryConfigs = TestHelper::parseTestFile(
-//        "test/runner/queries/var_length_extend/var_length_adj_list_extend.test");
-//    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
-//    queryConfigs = TestHelper::parseTestFile(
-//        "test/runner/queries/var_length_extend/var_length_column_extend.test");
-//    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
-//}
+TEST_F(TinySnbReadTest, VarLengthExtendTests) {
+    runTest("test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test");
+    runTest("test/test_files/tinySNB/var_length_extend/var_length_column_extend.test");
+}

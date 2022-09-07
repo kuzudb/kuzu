@@ -92,6 +92,11 @@ public:
         createDBAndConn();
         initGraph();
     }
+
+    inline void runTest(const string& queryFile) {
+        auto queryConfigs = TestHelper::parseTestFile(queryFile);
+        ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    }
 };
 
 // This class starts database in in-memory mode.

@@ -38,12 +38,12 @@ bool VarLengthColumnExtend::getNextTuples() {
                 !dfsLevelInfo->hasBeenOutput) {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
-                memcpy(nbrNodeValueVector->values,
+                auto elementSize = Types::getDataTypeSize(dfsLevelInfo->children->dataType);
+                memcpy(nbrNodeValueVector->values +
+                           elementSize * nbrNodeValueVector->state->getPositionOfCurrIdx(),
                     dfsLevelInfo->children->values +
-                        Types::getDataTypeSize(dfsLevelInfo->children->dataType) *
-                            dfsLevelInfo->children->state->getPositionOfCurrIdx(),
-                    Types::getDataTypeSize(dfsLevelInfo->children->dataType));
-                nbrNodeValueVector->state->selVector->selectedSize = 1;
+                        elementSize * dfsLevelInfo->children->state->getPositionOfCurrIdx(),
+                    elementSize);
                 dfsLevelInfo->hasBeenOutput = true;
                 metrics->executionTime.stop();
                 return true;
