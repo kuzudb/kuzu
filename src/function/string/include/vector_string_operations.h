@@ -55,6 +55,10 @@ struct StartsWithVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct EndsWithVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct ConcatVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };

@@ -291,6 +291,7 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert(
         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
     vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
