@@ -23,7 +23,7 @@ struct BlockAppendingInfo {
 
 // This struct allocates and holds one bmBackedBlock when constructed. The bmBackedBlock will be
 // released when this struct goes out of scope.
-struct DataBlock {
+class DataBlock {
 public:
     explicit DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
         block = memoryManager->allocateBlock(true);
@@ -34,9 +34,16 @@ public:
 
     ~DataBlock() { memoryManager->freeBlock(block->pageIdx); }
 
-    uint8_t* getData() const { return block->data; }
+    inline uint8_t* getData() const { return block->data; }
+    inline void resetNumTuplesAndFreeSize() {
+        freeSize = LARGE_PAGE_SIZE;
+        numTuples = 0;
+    }
+    inline void resetToZero() { memset(block->data, 0, LARGE_PAGE_SIZE); }
 
-    void resetToZero() { memset(block->data, 0, LARGE_PAGE_SIZE); }
+    static void copyTuples(DataBlock* blockToCopyFrom, uint32_t tupleIdxToCopyFrom,
+        DataBlock* blockToCopyInto, uint32_t tupleIdxToCopyInfo, uint32_t numTuplesToCopy,
+        uint32_t numBytesPerTuple);
 
 public:
     uint64_t freeSize;
@@ -45,6 +52,31 @@ public:
 
 private:
     unique_ptr<MemoryBlock> block;
+};
+
+class DataBlockCollection {
+public:
+    // This interface is used for unflat tuple blocks, for which numBytesPerTuple and
+    // numTuplesPerBlock are useless.
+    DataBlockCollection() : numBytesPerTuple{UINT32_MAX}, numTuplesPerBlock{UINT32_MAX} {}
+    DataBlockCollection(uint32_t numBytesPerTuple, uint32_t numTuplesPerBlock)
+        : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{numTuplesPerBlock} {}
+
+    inline void append(unique_ptr<DataBlock> otherBlock) { blocks.push_back(move(otherBlock)); }
+    inline void append(vector<unique_ptr<DataBlock>> otherBlocks) {
+        move(begin(otherBlocks), end(otherBlocks), back_inserter(blocks));
+    }
+    inline void append(unique_ptr<DataBlockCollection> other) { append(move(other->blocks)); }
+    inline bool isEmpty() { return blocks.empty(); }
+    inline vector<unique_ptr<DataBlock>>& getBlocks() { return blocks; }
+    inline DataBlock* getBlock(uint32_t blockIdx) { return blocks[blockIdx].get(); }
+
+    void merge(DataBlockCollection& other);
+
+private:
+    uint32_t numBytesPerTuple;
+    uint32_t numTuplesPerBlock;
+    vector<unique_ptr<DataBlock>> blocks;
 };
 
 class ColumnSchema {
@@ -167,7 +199,9 @@ public:
     uint64_t getTotalNumFlatTuples() const;
     uint64_t getNumFlatTuples(uint64_t tupleIdx) const;
 
-    inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() { return tupleDataBlocks; }
+    inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() {
+        return flatTupleBlockCollection->getBlocks();
+    }
     inline const FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
 
     template<typename TYPE>
@@ -201,15 +235,15 @@ private:
     uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
 
     inline uint8_t* getCell(uint32_t blockIdx, uint32_t blockOffset, uint32_t colOffset) const {
-        return tupleDataBlocks[blockIdx]->getData() +
+        return flatTupleBlockCollection->getBlock(blockIdx)->getData() +
                blockOffset * tableSchema->getNumBytesPerTuple() + colOffset;
     }
     inline pair<uint64_t, uint64_t> getBlockIdxAndTupleIdxInBlock(uint64_t tupleIdx) const {
         return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
-    vector<BlockAppendingInfo> allocateTupleBlocks(uint64_t numTuplesToAppend);
-    uint8_t* allocateOverflowBlocks(uint32_t numBytes);
+    vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);
+    uint8_t* allocateUnflatTupleBlock(uint32_t numBytes);
     void copyFlatVectorToFlatColumn(
         const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, uint32_t colIdx);
     void copyUnflatVectorToFlatColumn(const ValueVector& vector,
@@ -224,7 +258,7 @@ private:
         const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, uint32_t colIdx);
     void copyVectorToColumn(const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
         uint64_t numAppendedTuples, uint32_t colIdx);
-    overflow_value_t appendUnFlatVectorToOverflowBlocks(const ValueVector& vector, uint32_t colIdx);
+    overflow_value_t appendVectorToUnflatTupleBlocks(const ValueVector& vector, uint32_t colIdx);
 
     void readUnflatCol(uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const;
     void readFlatColToFlatVector(
@@ -242,8 +276,8 @@ private:
     unique_ptr<FactorizedTableSchema> tableSchema;
     uint64_t numTuples;
     uint32_t numTuplesPerBlock;
-    vector<unique_ptr<DataBlock>> tupleDataBlocks;
-    vector<unique_ptr<DataBlock>> vectorOverflowBlocks;
+    unique_ptr<DataBlockCollection> flatTupleBlockCollection;
+    unique_ptr<DataBlockCollection> unflatTupleBlockCollection;
     unique_ptr<OverflowBuffer> overflowBuffer;
 };
 
