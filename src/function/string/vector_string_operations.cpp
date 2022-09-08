@@ -3,6 +3,7 @@
 #include "operations/include/array_extract_operation.h"
 #include "operations/include/concat_operation.h"
 #include "operations/include/contains_operation.h"
+#include "operations/include/ends_with_operation.h"
 #include "operations/include/left_operation.h"
 #include "operations/include/length_operation.h"
 #include "operations/include/lpad_operation.h"
@@ -10,7 +11,6 @@
 #include "operations/include/right_operation.h"
 #include "operations/include/rpad_operation.h"
 #include "operations/include/starts_with_operation.h"
-#include "operations/include/ends_with_operation.h"
 #include "operations/include/substr_operation.h"
 
 namespace graphflow {
@@ -36,13 +36,13 @@ vector<unique_ptr<VectorOperationDefinition>> StartsWithVectorOperation::getDefi
     return definitions;
 }
 
-vector<unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefinitions(){
+vector<unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ENDS_WITH_FUNC_NAME,
-	vector<DataTypeID>{STRING, STRING}, BOOL,
-	BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::EndsWith>, 
-	BinarySelectFunction<gf_string_t, gf_string_t, operation::EndsWith>,
-	false /* isVarLength */));
+        vector<DataTypeID>{STRING, STRING}, BOOL,
+        BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::EndsWith>,
+        BinarySelectFunction<gf_string_t, gf_string_t, operation::EndsWith>,
+        false /* isVarLength */));
     return definitions;
 }
 
@@ -98,7 +98,6 @@ vector<unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::getDefiniti
         false /* isVarLength */));
     return definitions;
 }
-
 
 vector<unique_ptr<VectorOperationDefinition>> LeftVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
