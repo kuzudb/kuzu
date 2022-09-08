@@ -503,3 +503,23 @@ D
 -QUERY MATCH (o:organisation) WHERE o.unstrStr < "Test string" RETURN count(*)
 ---- 1
 3
+
+-NAME SuffixMatch
+-QUERY MATCH (o:organisation) RETURN suffix(o.name, "Work")
+---- 3
+False
+True
+True
+
+-NAME SuffixFull
+-QUERY MATCH (p:person) RETURN suffix(p.fName, "Carol")
+---- 8
+False
+False
+True
+False
+False
+False
+False
+False
+
