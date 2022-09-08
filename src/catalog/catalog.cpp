@@ -161,10 +161,8 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(
         value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<table_id_t>(
+    return SerDeser::serializeUnorderedSet<table_id_t>(
         value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
-    return SerDeser::serializeVector<unordered_map<table_id_t, uint64_t>>(
-        value.numRelsPerDirectionBoundTableID, fileInfo, offset);
 }
 
 template<>
@@ -176,10 +174,8 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::deserializeUnorderedSet<table_id_t>(
         value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<table_id_t>(
+    return SerDeser::deserializeUnorderedSet<table_id_t>(
         value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
-    return SerDeser::deserializeVector<unordered_map<table_id_t, uint64_t>>(
-        value.numRelsPerDirectionBoundTableID, fileInfo, offset);
 }
 
 } // namespace common
@@ -331,16 +327,6 @@ bool CatalogContent::isSingleMultiplicityInDirection(
     }
 }
 
-uint64_t CatalogContent::getNumRelsForDirectionBoundTableID(
-    table_id_t tableID, RelDirection relDirection, table_id_t boundNodeTableID) const {
-    if (tableID >= relTableSchemas.size()) {
-        throw CatalogException("Rel table " + to_string(tableID) + " is out of bounds.");
-    }
-    return relTableSchemas[tableID]
-        ->numRelsPerDirectionBoundTableID[FWD == relDirection ? 0 : 1]
-        .at(boundNodeTableID);
-}
-
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
@@ -393,14 +379,6 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     FileUtils::closeFile(fileInfo->fd);
 }
 
-uint64_t CatalogContent::getNextRelID() const {
-    auto nextRelID = 0ull;
-    for (auto& relTableSchema : relTableSchemas) {
-        nextRelID += relTableSchema->getNumRels();
-    }
-    return nextRelID;
-}
-
 Catalog::Catalog() {
     catalogContentForReadOnlyTrx = make_unique<CatalogContent>();
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
@@ -446,19 +424,6 @@ table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMulti
         move(structuredPropertyDefinitions), move(srcDstTableIDs));
     wal->logRelTableRecord(tableID);
     return tableID;
-}
-
-void Catalog::setNumRelsPerDirectionBoundTableIDOfRelTableSchema(
-    vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable, table_id_t tableID) {
-    initCatalogContentForWriteTrxIfNecessary();
-    for (auto relDirection : REL_DIRECTIONS) {
-        for (auto boundNodeTableID :
-            getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
-            catalogContentForWriteTrx->getRelTableSchema(tableID)
-                ->numRelsPerDirectionBoundTableID[relDirection][boundNodeTableID] =
-                directionNumRelsPerTable[relDirection]->operator[](boundNodeTableID).load();
-        }
-    }
 }
 
 } // namespace catalog

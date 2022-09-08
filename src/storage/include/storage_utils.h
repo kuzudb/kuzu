@@ -272,16 +272,31 @@ public:
         return appendSuffixOrInsertBeforeWALSuffix(fName, StorageConfig::OVERFLOW_FILE_SUFFIX);
     }
 
-    static inline void overwriteNodesMetadataFileWithVersionFromWAL(const string& directory) {
-        FileUtils::overwriteFile(getNodesMetadataFilePath(directory, DBFileType::WAL_VERSION),
-            getNodesMetadataFilePath(directory, DBFileType::ORIGINAL));
+    static inline void overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
+        const string& directory) {
+        FileUtils::overwriteFile(
+            getNodesStatisticsAndDeletedIDsFilePath(directory, DBFileType::WAL_VERSION),
+            getNodesStatisticsAndDeletedIDsFilePath(directory, DBFileType::ORIGINAL));
     }
 
-    static inline string getNodesMetadataFilePath(const string& directory, DBFileType dbFileType) {
+    static inline string getNodesStatisticsAndDeletedIDsFilePath(
+        const string& directory, DBFileType dbFileType) {
         return FileUtils::joinPath(
             directory, dbFileType == DBFileType::ORIGINAL ?
-                           common::StorageConfig::NODES_METADATA_FILE_NAME :
-                           common::StorageConfig::NODES_METADATA_FILE_NAME_FOR_WAL);
+                           common::StorageConfig::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
+                           common::StorageConfig::NODES_STATISTICS_FILE_NAME_FOR_WAL);
+    }
+
+    static inline void overwriteRelsStatisticsFileWithVersionFromWAL(const string& directory) {
+        FileUtils::overwriteFile(getRelsStatisticsFilePath(directory, DBFileType::WAL_VERSION),
+            getRelsStatisticsFilePath(directory, DBFileType::ORIGINAL));
+    }
+
+    static inline string getRelsStatisticsFilePath(const string& directory, DBFileType dbFileType) {
+        return FileUtils::joinPath(
+            directory, dbFileType == DBFileType::ORIGINAL ?
+                           common::StorageConfig::RELS_METADATA_FILE_NAME :
+                           common::StorageConfig::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
     static inline uint64_t getNumChunks(node_offset_t numNodes) {

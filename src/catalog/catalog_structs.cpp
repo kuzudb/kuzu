@@ -35,20 +35,6 @@ vector<Property> NodeTableSchema::getAllNodeProperties() const {
     return allProperties;
 }
 
-RelTableSchema::RelTableSchema(string tableName, table_id_t tableID,
-    RelMultiplicity relMultiplicity, vector<Property> properties, SrcDstTableIDs srcDstTableIDs)
-    : TableSchema{move(tableName), tableID, false /* isNodeTable */},
-      relMultiplicity{relMultiplicity}, numGeneratedProperties{1}, properties{move(properties)},
-      srcDstTableIDs{move(srcDstTableIDs)}, numRels{0} {
-    numRelsPerDirectionBoundTableID.resize(2);
-    for (auto srcTableID : this->srcDstTableIDs.srcTableIDs) {
-        numRelsPerDirectionBoundTableID[RelDirection::FWD].emplace(srcTableID, 0);
-    }
-    for (auto dstTableID : this->srcDstTableIDs.dstTableIDs) {
-        numRelsPerDirectionBoundTableID[RelDirection::BWD].emplace(dstTableID, 0);
-    }
-}
-
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
     unordered_set<table_id_t> allNodeTableIDs;
     allNodeTableIDs.insert(srcDstTableIDs.srcTableIDs.begin(), srcDstTableIDs.srcTableIDs.end());

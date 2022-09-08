@@ -21,8 +21,11 @@ class Enumerator {
     friend class UpdatePlanner;
 
 public:
-    explicit Enumerator(const Catalog& catalog, const NodesMetadata& nodesMetadata)
-        : catalog{catalog}, joinOrderEnumerator{catalog, nodesMetadata, this},
+    explicit Enumerator(const Catalog& catalog,
+        const NodesStatisticsAndDeletedIDs& nodesStatisticsAndDeletedIDs,
+        const RelsStatistics& relsStatistics)
+        : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,
+                                relsStatistics, this},
           projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);

@@ -6,10 +6,11 @@ namespace graphflow {
 namespace processor {
 
 void CopyNodeCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) {
-    auto nodeCSVCopier = make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(),
-        taskScheduler, *catalog, tableSchema.tableID, &nodesStore->getNodesMetadata());
+    auto nodeCSVCopier =
+        make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(), taskScheduler,
+            *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
     // Note: This copy function will update the unstructured properties of the nodeTable and the
-    // maxNodeOffset in nodesMetadata.
+    // maxNodeOffset in nodesStatisticsAndDeletedIDs.
     nodeCSVCopier->copy();
     wal->logCopyNodeCSVRecord(tableSchema.tableID);
 }

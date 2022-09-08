@@ -10,9 +10,9 @@ namespace storage {
 
 InMemNodeCSVCopier::InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
-    NodesMetadata* nodesMetadata)
+    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
     : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
-      numNodes{UINT64_MAX}, nodesMetadata{nodesMetadata} {
+      numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
     nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 }
 
@@ -32,7 +32,7 @@ void InMemNodeCSVCopier::copy() {
     calcUnstrListsHeadersAndMetadata();
     populateUnstrPropertyLists();
     saveToFile();
-    nodesMetadata->setMaxNodeOffsetForTable(nodeTableSchema->tableID, numNodes - 1);
+    nodesStatisticsAndDeletedIDs->setMaxNodeOffsetForTable(nodeTableSchema->tableID, numNodes - 1);
     logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
         nodeTableSchema->tableID);
 }

@@ -440,7 +440,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
     return make_unique<CreateNodeTable>(catalog, createNodeTable.getTableName(),
         createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKeyIdx(),
         getOperatorID(), createNodeTable.getExpressionsForPrinting(),
-        &storageManager.getNodesStore().getNodesMetadata());
+        &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
@@ -449,7 +449,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
     return make_unique<CreateRelTable>(catalog, createRelTable.getTableName(),
         createRelTable.getPropertyNameDataTypes(), createRelTable.getRelMultiplicity(),
         createRelTable.getSrcDstTableIDs(), getOperatorID(),
-        createRelTable.getExpressionsForPrinting());
+        createRelTable.getExpressionsForPrinting(),
+        &storageManager.getRelsStore().getRelsStatistics());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
@@ -462,8 +463,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
     } else {
         return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(),
             copyCSV.getTableSchema(), storageManager.getWAL(),
-            &storageManager.getNodesStore().getNodesMetadata(), getOperatorID(),
-            copyCSV.getExpressionsForPrinting(), &storageManager.getRelsStore());
+            &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(), getOperatorID(),
+            copyCSV.getExpressionsForPrinting(),
+            &storageManager.getRelsStore().getRelsStatistics());
     }
 }
 

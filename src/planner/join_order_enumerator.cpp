@@ -283,7 +283,9 @@ void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, Log
     scan->computeSchema(*schema);
     plan.appendOperator(move(scan));
     // update cardinality estimation info
-    auto numNodes = nodesMetadata.getNodeMetadata(node->getTableID())->getMaxNodeOffset() + 1;
+    auto numNodes = nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(node->getTableID())
+                        ->getMaxNodeOffset() +
+                    1;
     schema->getGroup(node->getIDProperty())->setMultiplier(numNodes);
 }
 
@@ -421,10 +423,12 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
     table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection) {
-    auto numRels = catalog.getReadOnlyVersion()->getNumRelsForDirectionBoundTableID(
-        relTableID, relDirection, boundTableID);
+    auto numRels = ((RelStatistics*)((*relsStatistics.getReadOnlyVersion())[relTableID].get()))
+                       ->getNumRelsForDirectionBoundTable(relDirection, boundTableID);
     return ceil(
-        (double)numRels / nodesMetadata.getNodeMetadata(boundTableID)->getMaxNodeOffset() + 1);
+        (double)numRels / nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(boundTableID)
+                              ->getMaxNodeOffset() +
+        1);
 }
 
 expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,

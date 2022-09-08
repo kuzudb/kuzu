@@ -49,7 +49,8 @@ struct Property : PropertyNameDataType {
 
 private:
     Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
-        : PropertyNameDataType{name, dataType}, propertyID{propertyID}, tableID{tableID} {}
+        : PropertyNameDataType{move(name), move(dataType)}, propertyID{propertyID}, tableID{
+                                                                                        tableID} {}
 
 public:
     // This constructor is needed for ser/deser functions
@@ -57,7 +58,7 @@ public:
 
     static Property constructUnstructuredNodeProperty(
         string name, uint32_t propertyID, table_id_t tableID) {
-        return Property(name, DataType(UNSTRUCTURED), propertyID, tableID);
+        return Property(move(name), DataType(UNSTRUCTURED), propertyID, tableID);
     }
 
     static Property constructStructuredNodeProperty(
@@ -115,9 +116,12 @@ struct NodeTableSchema : TableSchema {
 struct RelTableSchema : TableSchema {
     RelTableSchema()
         : TableSchema{"", UINT64_MAX, false /* isNodeTable */}, relMultiplicity{MANY_MANY},
-          numGeneratedProperties{UINT32_MAX}, numRels{0} {}
+          numGeneratedProperties{UINT32_MAX} {}
     RelTableSchema(string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
-        vector<Property> properties, SrcDstTableIDs srcDstTableIDs);
+        vector<Property> properties, SrcDstTableIDs srcDstTableIDs)
+        : TableSchema{move(tableName), tableID, false /* isNodeTable */},
+          relMultiplicity{relMultiplicity}, numGeneratedProperties{0}, properties{move(properties)},
+          srcDstTableIDs{move(srcDstTableIDs)} {}
 
     unordered_set<table_id_t> getAllNodeTableIDs() const;
 
@@ -130,21 +134,18 @@ struct RelTableSchema : TableSchema {
         assert(false);
     }
 
+    inline SrcDstTableIDs getSrcDstTableIDs() { return srcDstTableIDs; }
+
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline uint32_t getNumPropertiesToReadFromCSV() const {
         assert(properties.size() >= numGeneratedProperties);
         return properties.size() - numGeneratedProperties;
     }
-    inline uint64_t getNumRels() const { return numRels; }
-    inline void setNumRels(uint64_t newNumRels) { numRels = newNumRels; }
 
     RelMultiplicity relMultiplicity;
     uint32_t numGeneratedProperties;
     vector<Property> properties;
     SrcDstTableIDs srcDstTableIDs;
-    // Cardinality information
-    vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTableID;
-    uint64_t numRels;
 };
 } // namespace catalog
 } // namespace graphflow

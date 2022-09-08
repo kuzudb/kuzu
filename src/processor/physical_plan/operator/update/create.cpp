@@ -15,7 +15,7 @@ bool CreateNode::getNextTuples() {
         return false;
     }
     for (auto& nodeTable : nodeTables) {
-        nodeTable->getNodesMetadata()->addNode(nodeTable->getTableID());
+        nodeTable->getNodeStatisticsAndDeletedIDs()->addNode(nodeTable->getTableID());
     }
     metrics->executionTime.stop();
     return true;

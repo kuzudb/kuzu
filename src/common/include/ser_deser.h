@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -25,12 +26,39 @@ public:
         return offset + sizeof(T);
     }
 
+    template<typename A, typename B>
+    static uint64_t serializeUnorderedMap(
+        const unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
+        uint64_t mapSize = values.size();
+        offset = serializeValue<uint64_t>(mapSize, fileInfo, offset);
+        for (auto& value : values) {
+            offset = serializeValue<A>(value.first, fileInfo, offset);
+            offset = serializeValue<B>(value.second, fileInfo, offset);
+        }
+        return offset;
+    }
+
     template<typename T>
     static uint64_t serializeVector(const vector<T>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t vectorSize = values.size();
         offset = serializeValue<uint64_t>(vectorSize, fileInfo, offset);
         for (auto& value : values) {
             offset = serializeValue<T>(value, fileInfo, offset);
+        }
+        return offset;
+    }
+
+    template<typename A, typename B>
+    static uint64_t deserializeUnorderedMap(
+        unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
+        uint64_t mapSize;
+        offset = deserializeValue<uint64_t>(mapSize, fileInfo, offset);
+        for (auto i = 0u; i < mapSize; i++) {
+            uint64_t labelID;
+            uint64_t numRels;
+            offset = deserializeValue<A>(labelID, fileInfo, offset);
+            offset = deserializeValue<B>(numRels, fileInfo, offset);
+            values.emplace(labelID, numRels);
         }
         return offset;
     }

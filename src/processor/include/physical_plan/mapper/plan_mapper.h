@@ -6,7 +6,7 @@
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/storage/include/storage_manager.h"
-#include "src/storage/store/include/nodes_metadata.h"
+#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::planner;

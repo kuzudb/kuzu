@@ -18,13 +18,16 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         assert(statement->getStatementType() == StatementType::QUERY);
         auto parsedQuery = (RegularQuery*)statement.get();
         auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
-        auto& nodesMetadata = database->storageManager->getNodesStore().getNodesMetadata();
+        auto& nodesStatisticsAndDeletedIDs =
+            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
+        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
         unique_ptr<LogicalPlan> logicalPlan;
         if (encodedJoin.empty()) {
-            logicalPlan = Planner::getBestPlan(*database->catalog, nodesMetadata, *boundQuery);
+            logicalPlan = Planner::getBestPlan(
+                *database->catalog, nodesStatisticsAndDeletedIDs, relsStatistics, *boundQuery);
         } else {
-            for (auto& plan :
-                Planner::getAllPlans(*database->catalog, nodesMetadata, *boundQuery)) {
+            for (auto& plan : Planner::getAllPlans(*database->catalog, nodesStatisticsAndDeletedIDs,
+                     relsStatistics, *boundQuery)) {
                 if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
                     logicalPlan = move(plan);
                 }

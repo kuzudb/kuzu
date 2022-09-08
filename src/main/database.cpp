@@ -28,9 +28,14 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
     if (!FileUtils::fileOrPathExists(databaseConfig.databasePath)) {
         FileUtils::createDir(databaseConfig.databasePath);
     }
-    if (!FileUtils::fileOrPathExists(StorageUtils::getNodesMetadataFilePath(
+    if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
             databaseConfig.databasePath, DBFileType::ORIGINAL))) {
-        NodesMetadata::saveInitialNodesMetadataToFile(databaseConfig.databasePath);
+        NodesStatisticsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(
+            databaseConfig.databasePath);
+    }
+    if (!FileUtils::fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(
+            databaseConfig.databasePath, DBFileType::ORIGINAL))) {
+        RelsStatistics::saveInitialRelsStatisticsToFile(databaseConfig.databasePath);
     }
     if (!FileUtils::fileOrPathExists(
             StorageUtils::getCatalogFilePath(databaseConfig.databasePath, DBFileType::ORIGINAL))) {

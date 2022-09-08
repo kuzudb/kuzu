@@ -41,9 +41,9 @@ void WAL::logCommit(uint64_t transactionID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logNodeMetadataRecord() {
+void WAL::logTableStatisticsRecord(bool isNodeTable) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newNodeMetadataRecord();
+    WALRecord walRecord = WALRecord::newTableStatisticsRecord(isNodeTable);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -86,7 +86,6 @@ void WAL::logCopyRelCSVRecord(table_id_t tableID) {
 }
 
 void WAL::clearWAL() {
-    // We remove the nodeMetadata back up file if necessary.
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();

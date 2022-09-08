@@ -3,7 +3,7 @@
 #include "in_mem_structures_csv_copier.h"
 
 #include "src/storage/index/include/in_mem_hash_index.h"
-#include "src/storage/store/include/nodes_metadata.h"
+#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
 namespace graphflow {
 namespace storage {
@@ -13,7 +13,7 @@ class InMemNodeCSVCopier : public InMemStructuresCSVCopier {
 public:
     InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
         TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
-        NodesMetadata* nodesMetadata);
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs);
 
     ~InMemNodeCSVCopier() override = default;
 
@@ -55,7 +55,7 @@ private:
     uint64_t numNodes;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;
-    NodesMetadata* nodesMetadata;
+    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
 };
 
 } // namespace storage

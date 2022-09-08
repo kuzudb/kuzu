@@ -91,18 +91,29 @@ public:
     // skipCheckpointForTestingRecovery is used to simulate a failure before checkpointing in tests.
     inline void commitAndCheckpointOrRollback(transaction::Transaction* writeTransaction,
         bool isCommit, bool skipCheckpointForTestingRecovery = false) {
-        // Irrespective of whether we are checkpointing or rolling back we add a nodes_metadata
-        // record if there has been updates to NodesMetadata. This is because we need to
-        // commit or rollback the in-memory state of NodesMetadata, which is done during wal
-        // replaying and committing/rollingback each record, so a NODES_METADATA_RECORD needs to
-        // appear in the log.
-        if (storageManager->getNodesStore().getNodesMetadata().hasUpdates()) {
-            wal->logNodeMetadataRecord();
-            // If we are committing, we also need to write the WAL file for NodesMetadata.
+        // Irrespective of whether we are checkpointing or rolling back we add a
+        // nodesStatisticsAndDeletedIDs/relStatistics record if there has been updates to
+        // nodesStatisticsAndDeletedIDs/relStatistics. This is because we need to commit or rollback
+        // the in-memory state of NodesStatisticsAndDeletedIDs/relStatistics, which is done during
+        // wal replaying and committing/rollingback each record, so a TABLE_STATISTICS_RECORD needs
+        // to appear in the log.
+        bool nodeTableHasUpdates =
+            storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().hasUpdates();
+        bool relTableHasUpdates = storageManager->getRelsStore().getRelsStatistics().hasUpdates();
+        if (nodeTableHasUpdates || relTableHasUpdates) {
+            wal->logTableStatisticsRecord(nodeTableHasUpdates /* isNodeTable */);
+            // If we are committing, we also need to write the WAL file for
+            // NodesStatisticsAndDeletedIDs/relStatistics.
             if (isCommit) {
-                storageManager->getNodesStore()
-                    .getNodesMetadata()
-                    .writeNodesMetadataFileForWALRecord(databaseConfig.databasePath);
+                if (nodeTableHasUpdates) {
+                    storageManager->getNodesStore()
+                        .getNodesStatisticsAndDeletedIDs()
+                        .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+                } else {
+                    storageManager->getRelsStore()
+                        .getRelsStatistics()
+                        .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+                }
             }
         }
         if (catalog->hasUpdates()) {

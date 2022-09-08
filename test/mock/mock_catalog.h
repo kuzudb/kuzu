@@ -59,9 +59,6 @@ public:
     MOCK_METHOD(string, getNodeTableName, (table_id_t tableID), (const, override));
     MOCK_METHOD(string, getRelTableName, (table_id_t tableID), (const, override));
     MOCK_METHOD(uint64_t, getNumNodes, (table_id_t tableID), (const override));
-    MOCK_METHOD(uint64_t, getNumRelsForDirectionBoundTableID,
-        (table_id_t relTableID, RelDirection relDirection, table_id_t nodeTableID),
-        (const override));
 };
 
 /**
@@ -90,7 +87,6 @@ public:
         setActionForGetRelTableFromString();
         setActionForGetNodeTableName();
         setActionForGetRelTableName();
-        setActionForGetNumRelsForDirectionBoundTableID();
     }
 
 private:
@@ -228,19 +224,6 @@ private:
         PropertyNameDataType knowsDatePropertyDefinition(KNOWSDATE_PROPERTY_KEY_STR, DATE);
         knowsDateProperty = Property::constructRelProperty(
             knowsDatePropertyDefinition, KNOWSDATE_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
-    }
-
-    void setActionForGetNumRelsForDirectionBoundTableID() {
-        ON_CALL(*this, getNumRelsForDirectionBoundTableID(_, _, _))
-            .WillByDefault(Throw(invalid_argument("Should never happen.")));
-        ON_CALL(*this, getNumRelsForDirectionBoundTableID(0, FWD, 0))
-            .WillByDefault(Return(10 * NUM_PERSON_NODES));
-        ON_CALL(*this, getNumRelsForDirectionBoundTableID(0, BWD, 0))
-            .WillByDefault(Return(20 * NUM_PERSON_NODES));
-        ON_CALL(*this, getNumRelsForDirectionBoundTableID(0, FWD, 1))
-            .WillByDefault(Return(1 * NUM_PERSON_NODES));
-        ON_CALL(*this, getNumRelsForDirectionBoundTableID(1, BWD, 1))
-            .WillByDefault(Return(100 * NUM_ORGANISATION_NODES));
     }
 
     vector<unordered_set<table_id_t>> srcNodeIDToRelIDs, dstNodeIDToRelIDs;

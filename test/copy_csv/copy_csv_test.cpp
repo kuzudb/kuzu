@@ -79,8 +79,8 @@ public:
         EXPECT_EQ(0, unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.numElements);
         uint64_t maxPersonOffset = database->getStorageManager()
                                        ->getNodesStore()
-                                       .getNodesMetadata()
-                                       .getNodeMetadata(pTableID)
+                                       .getNodesStatisticsAndDeletedIDs()
+                                       .getNodeStatisticsAndDeletedIDs(pTableID)
                                        ->getMaxNodeOffset();
         EXPECT_EQ(1999, maxPersonOffset);
         for (node_offset_t nodeOffset = 0; nodeOffset < maxPersonOffset; ++nodeOffset) {
