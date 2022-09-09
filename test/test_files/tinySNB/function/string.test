@@ -524,7 +524,7 @@ True
 
 
 -NAME SuffixSelect
--QUERY MATCH (p:person) WHERE suffix(p.fName, "C") RETURN p.fName
+-QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
 --- 1
 Carol
 
