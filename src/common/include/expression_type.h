@@ -124,6 +124,7 @@ const string RIGHT_FUNC_NAME = "RIGHT";
 const string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
 const string UCASE_FUNC_NAME = "UCASE";
 const string PREFIX_FUNC_NAME = "PREFIX";
+const string SUFFIX_FUNC_NAME = "SUFFIX";
 
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";
