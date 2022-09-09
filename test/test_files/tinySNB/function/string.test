@@ -504,14 +504,14 @@ D
 ---- 1
 3
 
--NAME SuffixStructured
+-NAME SuffixStructuredStr
 -QUERY MATCH (o:organisation) RETURN suffix(o.name, "Work")
 ---- 3
 False
 True
 True
 
--NAME SuffixUnstructured
+-NAME SuffixUnstructuredStr
 -QUERY MATCH (p:person) RETURN suffix(p.label1, "od")
 ---- 8
 True
