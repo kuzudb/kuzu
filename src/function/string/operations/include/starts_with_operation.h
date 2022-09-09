@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 #include "src/common/types/include/gf_string.h"
 
 using namespace graphflow::common;

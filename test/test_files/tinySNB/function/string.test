@@ -504,22 +504,27 @@ D
 ---- 1
 3
 
--NAME SuffixMatch
+-NAME SuffixStructured
 -QUERY MATCH (o:organisation) RETURN suffix(o.name, "Work")
 ---- 3
 False
 True
 True
 
--NAME SuffixFull
--QUERY MATCH (p:person) RETURN suffix(p.fName, "Carol")
----- 8
-False
+-NAME SuffixUnstructured
+-QUERY MATCH (p:person) RETURN suffix(p.label1, "od")
+--- 8
+True
+
+
+True
+
 False
 True
-False
-False
-False
-False
-False
+
+
+-NAME SuffixSelect
+-QUERY MATCH (p:person) WHERE suffix(p.fName, "C") RETURN p.fName
+--- 1
+Carol
 
