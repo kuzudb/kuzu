@@ -39,7 +39,7 @@ Greg
 # Based on the above formula, the VAR_LENGTH_EXTEND will generate 144 tuples. However, if no matches are found on a
 # particular node, the optional match will fill null for the missing part of the pattern (b in this case). Thus, the
 # optional match will fill null for Node 7,8,9,10 that don't have matching pattern.
--NAME KnowsWithOptionalMatch
--QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
----- 1
-148
+# -NAME KnowsWithOptionalMatch
+# -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
+# ---- 1
+# 148

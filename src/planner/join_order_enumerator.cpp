@@ -294,12 +294,9 @@ void JoinOrderEnumerator::appendExtend(
     auto schema = plan.getSchema();
     auto boundNode = FWD == direction ? rel->getSrcNode() : rel->getDstNode();
     auto nbrNode = FWD == direction ? rel->getDstNode() : rel->getSrcNode();
-    auto isManyToOne =
+    auto isColumn =
         catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getTableID(), direction);
-    // Note that a var-length column join writes a single value to unflat nbrNode
-    // vector (i.e., this vector is an unflat vector with a single value in it).
-    auto isColumn = isManyToOne && !rel->isVariableLength();
-    if (!isColumn) {
+    if (rel->isVariableLength() || !isColumn) {
         Enumerator::appendFlattenIfNecessary(boundNode->getNodeIDPropertyExpression(), plan);
     }
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getTableID(), direction,

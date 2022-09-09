@@ -24,29 +24,20 @@ public:
 };
 
 TEST_F(EndToEndReadLists2BytesPerEdgeTest, AdjLists2BytesPerEdgeTest) {
-    auto queryConfigs =
-        TestHelper::parseTestFile("test/test_files/read_list/2-bytes-per-edge.test");
-    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    runTest("test/test_files/read_list/2-bytes-per-edge.test");
 }
 
 TEST_F(EndToEndReadLists4BytesPerEdgeTest, AdjLists4BytesPerEdgeTest) {
-    auto queryConfigs =
-        TestHelper::parseTestFile("test/test_files/read_list/4-bytes-per-edge.test");
-    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    runTest("test/test_files/read_list/4-bytes-per-edge.test");
 }
 
 TEST_F(EndToEndReadLists2BytesPerEdgeTest, PropLists4BytesPerEdgeTest) {
-    auto queryConfigs = TestHelper::parseTestFile(
-        "test/test_files/read_list/small-large-property-list-reading.test");
-    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    runTest("test/test_files/read_list/small-large-property-list-reading.test");
 }
 
-// TODO(Ziyi): variable length join consumes way too much memory than it should.
-// TEST_F(EndToEndReadLists2BytesPerEdgeTest, VarLengthExtendLargeAdjListTest) {
-//    auto queryConfigs = TestHelper::parseTestFile(
-//        "test/test_files/read_list/var_length_large_adj_list_extend.test");
-//    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
-//}
+TEST_F(EndToEndReadLists2BytesPerEdgeTest, VarLengthExtendLargeAdjListTest) {
+    runTest("test/test_files/read_list/var_length_large_adj_list_extend.test");
+}
 
 // TEST_F(EndToEndReadListsSubQueryTest, LargeListSubQueryTest) {
 //    auto queryConfigs =
