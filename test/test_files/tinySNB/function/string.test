@@ -513,7 +513,7 @@ True
 
 -NAME SuffixUnstructured
 -QUERY MATCH (p:person) RETURN suffix(p.label1, "od")
---- 8
+---- 8
 True
 
 
@@ -525,6 +525,6 @@ True
 
 -NAME SuffixSelect
 -QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
---- 1
+---- 1
 Carol
 
