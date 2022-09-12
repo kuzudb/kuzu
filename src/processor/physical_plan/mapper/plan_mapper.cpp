@@ -6,9 +6,6 @@
 #include "src/binder/expression/include/property_expression.h"
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -26,10 +23,6 @@
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
-#include "src/processor/include/physical_plan/operator/copy_csv/copy_node_csv.h"
-#include "src/processor/include/physical_plan/operator/copy_csv/copy_rel_csv.h"
-#include "src/processor/include/physical_plan/operator/create_node_table.h"
-#include "src/processor/include/physical_plan/operator/create_rel_table.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
@@ -160,6 +153,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_COPY_CSV: {
         physicalOperator = mapLogicalCopyCSVToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_DROP_TABLE: {
+        physicalOperator = mapLogicalDropTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:
         assert(false);
@@ -432,41 +428,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
         outputDataPoses, orderBySharedState, move(orderByMerge), getOperatorID(), paramsString);
     return orderByScan;
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& createNodeTable = (LogicalCreateNodeTable&)*logicalOperator;
-    return make_unique<CreateNodeTable>(catalog, createNodeTable.getTableName(),
-        createNodeTable.getPropertyNameDataTypes(), createNodeTable.getPrimaryKeyIdx(),
-        getOperatorID(), createNodeTable.getExpressionsForPrinting(),
-        &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& createRelTable = (LogicalCreateRelTable&)*logicalOperator;
-    return make_unique<CreateRelTable>(catalog, createRelTable.getTableName(),
-        createRelTable.getPropertyNameDataTypes(), createRelTable.getRelMultiplicity(),
-        createRelTable.getSrcDstTableIDs(), getOperatorID(),
-        createRelTable.getExpressionsForPrinting(),
-        &storageManager.getRelsStore().getRelsStatistics());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& copyCSV = (LogicalCopyCSV&)*logicalOperator;
-    if (copyCSV.getTableSchema().isNodeTable) {
-        return make_unique<CopyNodeCSV>(catalog, copyCSV.getCSVDescription(),
-            copyCSV.getTableSchema(), storageManager.getWAL(), getOperatorID(),
-            copyCSV.getExpressionsForPrinting(), &storageManager.getNodesStore());
-    } else {
-        return make_unique<CopyRelCSV>(catalog, copyCSV.getCSVDescription(),
-            copyCSV.getTableSchema(), storageManager.getWAL(),
-            &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(), getOperatorID(),
-            copyCSV.getExpressionsForPrinting(),
-            &storageManager.getRelsStore().getRelsStatistics());
-    }
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(

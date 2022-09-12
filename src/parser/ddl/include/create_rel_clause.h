@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/parser/ddl/include/ddl.h"
+#include "src/parser/ddl/include/create_table.h"
 
 namespace graphflow {
 namespace parser {
@@ -14,11 +14,12 @@ struct RelConnection {
     vector<string> dstTableNames;
 };
 
-class CreateRelClause : public DDL {
+class CreateRelClause : public CreateTable {
 public:
     explicit CreateRelClause(string tableName, vector<pair<string, string>> propertyNameDataTypes,
         string relMultiplicity, RelConnection relConnection)
-        : DDL{StatementType::CREATE_REL_CLAUSE, move(tableName), move(propertyNameDataTypes)},
+        : CreateTable{StatementType::CREATE_REL_CLAUSE, move(tableName),
+              move(propertyNameDataTypes)},
           relMultiplicity{move(relMultiplicity)}, relConnection{move(relConnection)} {}
 
     inline string getRelMultiplicity() const { return relMultiplicity; }

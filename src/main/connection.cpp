@@ -59,7 +59,8 @@ void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binde
     } break;
     case StatementType::COPY_CSV:
     case StatementType::CREATE_REL_CLAUSE:
-    case StatementType::CREATE_NODE_CLAUSE: {
+    case StatementType::CREATE_NODE_CLAUSE:
+    case StatementType::DROP_TABLE: {
         preparedStatement->allowActiveTransaction = false;
     } break;
     default:

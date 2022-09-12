@@ -28,7 +28,8 @@ public:
         readConn = make_unique<Connection>(database.get());
         personTableID =
             database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personTableID);
+        personNodeTable =
+            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
 
         existingStrVal.dataType = DataType(DataTypeID::STRING);
         string existingStr = "abcdefghijklmn";

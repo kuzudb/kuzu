@@ -22,7 +22,8 @@ public:
         readConn = make_unique<Connection>(database.get());
         table_id_t personTableID =
             database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personTableID);
+        personNodeTable =
+            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
         uint32_t idPropertyID = database->getCatalog()
                                     ->getReadOnlyVersion()
                                     ->getNodeProperty(personTableID, "ID")

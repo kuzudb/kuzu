@@ -54,6 +54,10 @@ public:
         initTableStatisticPerTableForWriteTrxIfNecessary();
         tableStatisticPerTableForWriteTrx->push_back(constructTableStatistic(tableSchema));
     }
+    inline void deleteTableStatistic(table_id_t tableID) {
+        tableStatisticPerTableForReadOnlyTrx->erase(
+            tableStatisticPerTableForReadOnlyTrx->begin() + tableID);
+    }
 
 protected:
     virtual inline string getTableTypeForPrinting() const = 0;

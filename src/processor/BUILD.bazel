@@ -238,11 +238,13 @@ cc_library(
     name = "ddl",
     srcs = [
         "physical_plan/operator/create_node_table.cpp",
+        "physical_plan/operator/drop_table.cpp",
     ],
     hdrs = [
         "include/physical_plan/operator/create_node_table.h",
         "include/physical_plan/operator/create_rel_table.h",
         "include/physical_plan/operator/ddl.h",
+        "include/physical_plan/operator/drop_table.h",
     ],
     deps = [
         "base_operator",

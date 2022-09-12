@@ -33,7 +33,8 @@ FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
 gF_DDL
     : gF_CreateNode
-        | gF_CreateRel;
+        | gF_CreateRel
+        | gF_DropTable;
 
 gF_CreateNode
     : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint )? SP? ')' ;
@@ -44,6 +45,11 @@ TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 gF_CreateRel
     : CREATE SP REL SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ; 
+   
+gF_DropTable
+    : DROP SP TABLE SP oC_SchemaName ;
+    
+DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
     
 gF_RelConnections : gF_RelConnection ( SP? ',' SP? gF_RelConnection )* ;
 

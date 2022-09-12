@@ -10,10 +10,10 @@
 #include "src/common/types/include/types_include.h"
 #include "src/storage/wal/include/wal_record.h"
 
-using namespace graphflow::common;
-
 namespace graphflow {
 namespace storage {
+
+using namespace graphflow::common;
 
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)

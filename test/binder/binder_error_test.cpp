@@ -372,3 +372,9 @@ TEST_F(BinderErrorTest, CreateRelTableInvalidDataType) {
     auto input = "CREATE REL knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, DropNotExistsTable) {
+    string expectedException = "Binder exception: Node/Rel person1 does not exist.";
+    auto input = "DROP TABLE person1;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

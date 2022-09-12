@@ -103,7 +103,7 @@ void FileUtils::renameFileIfExists(const string& oldName, const string& newName)
     }
 }
 
-void FileUtils::removeFile(const string& path) {
+void FileUtils::removeFileIfExists(const string& path) {
     if (!fileOrPathExists(path))
         return;
     if (remove(path.c_str()) != 0) {

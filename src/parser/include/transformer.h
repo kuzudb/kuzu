@@ -4,6 +4,7 @@
 #include "src/parser/copy_csv/include/copy_csv.h"
 #include "src/parser/ddl/include/create_node_clause.h"
 #include "src/parser/ddl/include/create_rel_clause.h"
+#include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
@@ -178,6 +179,8 @@ private:
     unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::GF_CreateNodeContext& ctx);
 
     unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::GF_CreateRelContext& ctx);
+
+    unique_ptr<DropTable> transformDropTable(CypherParser::GF_DropTableContext& ctx);
 
     string transformDataType(CypherParser::GF_DataTypeContext& ctx);
 

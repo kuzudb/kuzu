@@ -160,3 +160,30 @@ TEST_F(TinySnbDDLTest, CreateRelTableCommitTest) {
 TEST_F(TinySnbDDLTest, CreateRelTableCommitRecoveryTest) {
     createRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
+
+TEST_F(TinySnbDDLTest, MultipleDropTablesTest) {
+    auto result = conn->query("DROP TABLE studyAt");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelTable("studyAt"), false);
+    result = conn->query("DROP TABLE workAt");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelTable("workAt"), false);
+    result = conn->query("DROP TABLE organisation");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeTable("organisation"), false);
+    result = conn->query(
+        "create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score "
+        "INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID));");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containNodeTable("organisation"), true);
+    result = conn->query("create rel studyAt (FROM person TO organisation, year INT64, places "
+                         "STRING[], MANY_ONE);");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->containRelTable("studyAt"), true);
+    result = conn->query("match (o:organisation) return o.name");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("match (:person)-[s:studyAt]->(:organisation) return s.year");
+    ASSERT_EQ(result->isSuccess(), true);
+    ASSERT_EQ(result->getNumTuples(), 0);
+}

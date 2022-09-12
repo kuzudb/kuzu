@@ -4,6 +4,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -43,6 +44,8 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
         resultPlans.push_back(createCreateRelTablePlan((BoundCreateRelClause&)boundStatement));
     } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
         resultPlans.push_back(createCopyCSVPlan((BoundCopyCSV&)boundStatement));
+    } else if (boundStatement.getStatementType() == StatementType::DROP_TABLE) {
+        resultPlans.push_back(createDropTablePlan((BoundDropTable&)boundStatement));
     }
     return resultPlans;
 }
@@ -67,6 +70,8 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundState
         bestPlan = createCreateRelTablePlan((BoundCreateRelClause&)boundStatement);
     } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
         bestPlan = createCopyCSVPlan((BoundCopyCSV&)boundStatement);
+    } else if (boundStatement.getStatementType() == StatementType::DROP_TABLE) {
+        bestPlan = createDropTablePlan((BoundDropTable&)boundStatement);
     }
     return bestPlan;
 }
@@ -475,6 +480,12 @@ unique_ptr<LogicalPlan> Enumerator::createCopyCSVPlan(const BoundCopyCSV& boundC
     auto plan = make_unique<LogicalPlan>();
     plan->appendOperator(make_shared<LogicalCopyCSV>(
         boundCopyCSV.getCSVDescription(), boundCopyCSV.getTableSchema()));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Enumerator::createDropTablePlan(const BoundDropTable& boundDropTable) {
+    auto plan = make_unique<LogicalPlan>();
+    plan->appendOperator(make_shared<LogicalDropTable>(boundDropTable.getTableSchema()));
     return plan;
 }
 
