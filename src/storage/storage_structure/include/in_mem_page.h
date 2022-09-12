@@ -6,7 +6,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/null_mask.h"
 #include "src/common/types/include/node_id_t.h"
-#include "src/storage/include/compression_scheme.h"
+#include "src/storage/include/node_id_compression_scheme.h"
 
 using namespace graphflow::common;
 
@@ -20,7 +20,7 @@ public:
     InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries);
 
     uint8_t* write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
-        const NodeIDCompressionScheme& compressionScheme);
+        const NodeIDCompressionScheme& nodeIDCompressionScheme);
     uint8_t* write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
         uint32_t numBytesForElem);
 

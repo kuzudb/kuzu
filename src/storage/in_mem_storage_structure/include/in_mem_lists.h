@@ -72,10 +72,11 @@ protected:
 class InMemAdjLists : public InMemLists {
 
 public:
-    InMemAdjLists(string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numNodes)
-        : InMemLists{move(fName), DataType(NODE_ID), compressionScheme.getTotalNumBytes(),
-              numNodes},
-          compressionScheme{compressionScheme} {
+    InMemAdjLists(
+        string fName, const NodeIDCompressionScheme& nodeIDCompressionScheme, uint64_t numNodes)
+        : InMemLists{move(fName), DataType(NODE_ID),
+              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), numNodes},
+          nodeIDCompressionScheme{nodeIDCompressionScheme} {
         listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };
 
@@ -89,7 +90,7 @@ public:
 
 private:
     unique_ptr<ListHeadersBuilder> listHeadersBuilder;
-    NodeIDCompressionScheme compressionScheme;
+    NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
 class InMemStringLists : public InMemListsWithOverflow {

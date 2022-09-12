@@ -3,10 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "compression_scheme",
     srcs = [
-        "compression_scheme.cpp",
+        "node_id_compression_scheme.cpp",
     ],
     hdrs = [
-        "include/compression_scheme.h",
+        "include/node_id_compression_scheme.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

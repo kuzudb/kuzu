@@ -135,7 +135,7 @@ public:
         BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
         bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(NODE_ID),
-              nodeIDCompressionScheme.getTotalNumBytes(),
+              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(),
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
               bufferManager, false, isInMemory, wal},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};

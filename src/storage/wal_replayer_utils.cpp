@@ -13,8 +13,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_
             tableID, relDirection);
         auto directionNodeIDCompressionScheme = NodeIDCompressionScheme(
             catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                tableID, !relDirection),
-            maxNodeOffsetsPerTable);
+                tableID, !relDirection));
         if (catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(tableID, relDirection)) {
             createEmptyDBFilesForColumns(nodeTableIDs, maxNodeOffsetsPerTable, relDirection,
                 directory, directionNodeIDCompressionScheme, relTableSchema);

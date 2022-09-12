@@ -40,7 +40,8 @@ void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->getPage(cursor.pageIdx)
-        ->write(node, cursor.posInPage * numBytesForElement, cursor.posInPage, compressionScheme);
+        ->write(
+            node, cursor.posInPage * numBytesForElement, cursor.posInPage, nodeIDCompressionScheme);
 }
 
 unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/storage/include/compression_scheme.h"
+#include "src/storage/include/node_id_compression_scheme.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
 namespace graphflow {
@@ -59,17 +59,17 @@ class InMemAdjColumn : public InMemColumn {
 
 public:
     InMemAdjColumn(
-        string fName, const NodeIDCompressionScheme& compressionScheme, uint64_t numElements)
-        : InMemColumn{move(fName), DataType(NODE_ID), compressionScheme.getTotalNumBytes(),
-              numElements},
-          compressionScheme{compressionScheme} {};
+        string fName, const NodeIDCompressionScheme& nodeIDCompressionScheme, uint64_t numElements)
+        : InMemColumn{move(fName), DataType(NODE_ID),
+              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), numElements},
+          nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     ~InMemAdjColumn() override = default;
 
     void setElement(node_offset_t offset, const uint8_t* val) override;
 
 private:
-    NodeIDCompressionScheme compressionScheme;
+    NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
 class InMemStringColumn : public InMemColumnWithOverflow {

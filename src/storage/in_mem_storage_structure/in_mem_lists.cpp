@@ -55,8 +55,8 @@ void InMemAdjLists::setElement(
         nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
-        ->write(node, cursor.posInPage * compressionScheme.getTotalNumBytes(), cursor.posInPage,
-            compressionScheme);
+        ->write(
+            node, cursor.posInPage * numBytesForElement, cursor.posInPage, nodeIDCompressionScheme);
 }
 
 void InMemAdjLists::saveToFile() {
