@@ -121,7 +121,7 @@ void AdjLists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInf
 unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     // We read the adjacency list of a node in 2 steps: i) we read all the bytes from the pages
     // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on the
-    // ID compression scheme into a vector of nodeID_t.
+    // nodeIDCompressionScheme into a vector of nodeID_t.
     node_offset_t nodeOffset) {
     // Step 1
     auto info = getListInfo(nodeOffset);
@@ -149,12 +149,10 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     bufferPtr = buffer.get();
     while (sizeLeftToDecompress) {
         nodeID_t nodeID(0, 0);
-        memcpy(&nodeID.tableID, bufferPtr, nodeIDCompressionScheme.getNumBytesForTableID());
-        bufferPtr += nodeIDCompressionScheme.getNumBytesForTableID();
-        memcpy(&nodeID.offset, bufferPtr, nodeIDCompressionScheme.getNumBytesForOffset());
-        bufferPtr += nodeIDCompressionScheme.getNumBytesForOffset();
+        nodeIDCompressionScheme.readNodeID(bufferPtr, &nodeID);
+        bufferPtr += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
         retVal->emplace_back(nodeID);
-        sizeLeftToDecompress -= nodeIDCompressionScheme.getTotalNumBytes();
+        sizeLeftToDecompress -= nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
     }
     return retVal;
 }

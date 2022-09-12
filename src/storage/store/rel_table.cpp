@@ -61,13 +61,10 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
             catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 tableID, !relDirection);
         for (auto nodeTableID : nodeTableIDs) {
-            NodeIDCompressionScheme nodeIDCompressionScheme(
-                nbrNodeTableIDs, maxNodeOffsetsPerTable);
+            NodeIDCompressionScheme nodeIDCompressionScheme(nbrNodeTableIDs);
             logger->debug("DIRECTION {} nodeTableForAdjColumnAndProperties {} relTable {} "
-                          "compressionScheme {},{},{}",
-                relDirection, nodeTableID, tableID, nodeIDCompressionScheme.getNumBytesForTableID(),
-                nodeIDCompressionScheme.getNumBytesForOffset(),
-                nodeIDCompressionScheme.getCommonTableID());
+                          "nodeIDCompressionScheme: commonTableID: {}",
+                relDirection, nodeTableID, tableID, nodeIDCompressionScheme.getCommonTableID());
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     tableID, relDirection)) {
                 // Add adj column.

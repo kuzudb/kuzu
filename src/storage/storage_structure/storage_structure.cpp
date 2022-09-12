@@ -93,7 +93,7 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
 void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-    NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
+    NodeIDCompressionScheme nodeIDCompressionScheme, bool isAdjLists) {
     uint64_t numValuesToRead = valueVector->state->originalSize;
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
@@ -101,7 +101,7 @@ void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
         readNodeIDsFromAPageBySequentialCopy(valueVector, vectorPos, physicalPageId,
-            cursor.posInPage, numValuesToReadInPage, compressionScheme, isAdjLists);
+            cursor.posInPage, numValuesToReadInPage, nodeIDCompressionScheme, isAdjLists);
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
     }
@@ -110,7 +110,7 @@ void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>
 void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
     const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-    NodeIDCompressionScheme compressionScheme) {
+    NodeIDCompressionScheme nodeIDCompressionScheme) {
     auto selectedState = vector->state;
     uint64_t numValuesToRead = vector->state->originalSize;
     uint64_t selectedStatePos = 0;
@@ -122,7 +122,8 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
                 vectorPos + numValuesToReadInPage)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
             readNodeIDsFromAPageBySequentialCopy(vector, vectorPos, physicalPageIdx,
-                cursor.posInPage, numValuesToReadInPage, compressionScheme, false /* isAdjList */);
+                cursor.posInPage, numValuesToReadInPage, nodeIDCompressionScheme,
+                false /* isAdjList */);
         }
         vectorPos += numValuesToReadInPage;
         while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
@@ -137,10 +138,8 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
 
 void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
     uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-    uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
+    uint64_t numValuesToRead, NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)vector->values;
-    auto numBytesForTableID = compressionScheme.getNumBytesForTableID();
-    auto numBytesForOffset = compressionScheme.getNumBytesForOffset();
     auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
@@ -151,14 +150,8 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
     auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
     for (auto i = 0u; i < numValuesToRead; i++) {
         nodeID_t nodeID{0, 0};
-        if (numBytesForTableID == 0) {
-            nodeID.tableID = compressionScheme.getCommonTableID();
-        } else {
-            memcpy(&nodeID.tableID, currentFrameHead, numBytesForTableID);
-            currentFrameHead += numBytesForTableID;
-        }
-        memcpy(&nodeID.offset, currentFrameHead, numBytesForOffset);
-        currentFrameHead += numBytesForOffset;
+        nodeIDCompressionScheme.readNodeID(currentFrameHead, &nodeID);
+        currentFrameHead += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
         nodeValues[vectorStartPos + i] = nodeID;
     }
     bufferManager.unpin(fileHandle, physicalPageIdx);

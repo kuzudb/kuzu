@@ -63,8 +63,7 @@ void InMemRelCSVCopier::initializeColumnsAndLists() {
     for (auto relDirection : REL_DIRECTIONS) {
         directionNodeIDCompressionScheme[relDirection] = NodeIDCompressionScheme(
             catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                relTableSchema->tableID, !relDirection),
-            maxNodeOffsetsPerTable);
+                relTableSchema->tableID, !relDirection));
         directionNumRelsPerTable[relDirection] =
             make_unique<atomic_uint64_vec_t>(catalog.getReadOnlyVersion()->getNumNodeTables());
         directionTableListSizes[relDirection].resize(
@@ -427,7 +426,8 @@ void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
 void InMemRelCSVCopier::initAdjListsHeaders() {
     logger->debug("Initializing AdjListHeaders for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto numBytesPerNode = directionNodeIDCompressionScheme[relDirection].getTotalNumBytes();
+        auto numBytesPerNode =
+            directionNodeIDCompressionScheme[relDirection].getNumBytesForNodeIDAfterCompression();
         for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                 calculateListHeadersTask, maxNodeOffsetsPerTable[tableID] + 1, numBytesPerNode,
@@ -439,16 +439,6 @@ void InMemRelCSVCopier::initAdjListsHeaders() {
     logger->debug("Done initializing AdjListHeaders for rel {}.", relTableSchema->tableName);
 }
 
-uint64_t InMemRelCSVCopier::getNumTasksOfInitializingAdjAndPropertyListsMetadata() {
-    auto numTasks = 0;
-    for (auto relDirection : REL_DIRECTIONS) {
-        numTasks +=
-            directionTableAdjLists[relDirection].size() +
-            directionTableAdjLists[relDirection].size() * relTableSchema->getNumProperties();
-    }
-    return numTasks;
-}
-
 void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", relTableSchema->tableName);
@@ -458,8 +448,10 @@ void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
             auto listSizes = directionTableListSizes[relDirection][tableID].get();
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                 calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
-                directionNodeIDCompressionScheme[relDirection].getTotalNumBytes(), listSizes,
-                adjList->getListHeadersBuilder(), adjList.get(), false /*hasNULLBytes*/, logger));
+                directionNodeIDCompressionScheme[relDirection]
+                    .getNumBytesForNodeIDAfterCompression(),
+                listSizes, adjList->getListHeadersBuilder(), adjList.get(), false /*hasNULLBytes*/,
+                logger));
             for (auto& property : relTableSchema->properties) {
                 taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,

@@ -147,8 +147,9 @@ class AdjColumn : public Column {
 public:
     AdjColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory, WAL* wal)
-        : Column{structureIDAndFName, DataType(NODE_ID), nodeIDCompressionScheme.getTotalNumBytes(),
-              bufferManager, isInMemory, wal},
+        : Column{structureIDAndFName, DataType(NODE_ID),
+              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), bufferManager,
+              isInMemory, wal},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:

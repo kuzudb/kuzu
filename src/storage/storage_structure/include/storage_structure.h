@@ -4,7 +4,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
-#include "src/storage/include/compression_scheme.h"
+#include "src/storage/include/node_id_compression_scheme.h"
 #include "src/storage/include/storage_utils.h"
 #include "src/storage/storage_structure/include/storage_structure_utils.h"
 #include "src/storage/wal/include/wal.h"
@@ -92,16 +92,17 @@ protected:
     void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-        NodeIDCompressionScheme compressionScheme, bool isAdjLists);
+        NodeIDCompressionScheme nodeIDCompressionScheme, bool isAdjLists);
 
     void readNodeIDsBySequentialCopyWithSelState(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-        NodeIDCompressionScheme compressionScheme);
+        NodeIDCompressionScheme nodeIDCompressionScheme);
 
     void readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
         uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t numValuesToRead, NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
+        uint64_t numValuesToRead, NodeIDCompressionScheme& nodeIDCompressionScheme,
+        bool isAdjLists);
 
     void readSingleNullBit(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector) const;

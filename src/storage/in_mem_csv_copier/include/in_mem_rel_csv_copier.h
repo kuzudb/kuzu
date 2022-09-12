@@ -39,7 +39,6 @@ private:
     void populateAdjAndPropertyLists();
     void sortOverflowValues();
 
-    uint64_t getNumTasksOfInitializingAdjAndPropertyListsMetadata();
     static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
         Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadTables);
