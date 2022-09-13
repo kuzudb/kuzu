@@ -8,9 +8,9 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace binder {
 
-class BoundDDL : public BoundStatement {
+class BoundCreateTable : public BoundStatement {
 public:
-    explicit BoundDDL(StatementType statementType, string tableName,
+    explicit BoundCreateTable(StatementType statementType, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes)
         : BoundStatement{statementType}, tableName{move(tableName)}, propertyNameDataTypes{move(
                                                                          propertyNameDataTypes)} {}

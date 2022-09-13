@@ -23,7 +23,8 @@ public:
         createDBAndConn();
         auto personTableID =
             database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable = database->getStorageManager()->getNodesStore().getNode(personTableID);
+        personNodeTable =
+            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
         conn->beginWriteTransaction();
     }
 

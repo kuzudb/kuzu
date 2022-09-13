@@ -106,6 +106,8 @@ public:
         return nodeTableSchemas[tableID]->unstrPropertiesNameToIdMap;
     }
 
+    void removeTableSchema(TableSchema* tableSchema);
+
     /**
      * Graph topology functions.
      */
@@ -181,6 +183,12 @@ public:
         initCatalogContentForWriteTrxIfNecessary();
         catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
             unstructuredProperties);
+    }
+
+    // TODO(Ziyi): we should delete tableSchema from write version of the catalog after the
+    // transaction for drop table has been implemented.
+    inline void removeTableSchema(TableSchema* tableSchema) {
+        catalogContentForReadOnlyTrx->removeTableSchema(tableSchema);
     }
 
 protected:

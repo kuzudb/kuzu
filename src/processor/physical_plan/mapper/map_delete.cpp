@@ -19,7 +19,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteToPhysical(
         auto nodeIDExpression = nodeExpression.getNodeIDPropertyExpression();
         nodeIDVectorPositions.push_back(
             mapperContext.getDataPos(nodeIDExpression->getUniqueName()));
-        nodeTables.push_back(nodesStore.getNode(nodeExpression.getTableID()));
+        nodeTables.push_back(nodesStore.getNodeTable(nodeExpression.getTableID()));
         auto primaryKeyExpression = logicalDelete.getPrimaryKeyExpression(i);
         primaryKeyVectorPositions.push_back(
             mapperContext.getDataPos(primaryKeyExpression->getUniqueName()));

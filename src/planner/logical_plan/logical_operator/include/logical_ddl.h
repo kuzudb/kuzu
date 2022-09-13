@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "base_logical_operator.h"
 
 namespace graphflow {

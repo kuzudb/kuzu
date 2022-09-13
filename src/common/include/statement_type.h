@@ -10,6 +10,7 @@ enum class StatementType : uint8_t {
     CREATE_NODE_CLAUSE = 1,
     CREATE_REL_CLAUSE = 2,
     COPY_CSV = 3,
+    DROP_TABLE = 4,
 };
 
 } // namespace common

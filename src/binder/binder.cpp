@@ -23,6 +23,9 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::COPY_CSV: {
         return bindCopyCSV((const CopyCSV&)statement);
     }
+    case StatementType::DROP_TABLE: {
+        return bindDropTable((const DropTable&)statement);
+    }
     default:
         assert(false);
     }
@@ -84,6 +87,22 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
     return make_unique<BoundCopyCSV>(
         CSVDescription(copyCSV.getCSVFileName(), bindParsingOptions(copyCSV.getParsingOptions())),
         TableSchema(tableName, tableID, isNodeTable));
+}
+
+unique_ptr<BoundDropTable> Binder::bindDropTable(const DropTable& dropTable) {
+    auto tableName = dropTable.getTableName();
+    validateTableExist(tableName);
+    auto catalogContentForReadOnlyVersion = catalog.getReadOnlyVersion();
+    auto isNodeTable = catalogContentForReadOnlyVersion->containNodeTable(tableName);
+    auto tableID = isNodeTable ?
+                       catalogContentForReadOnlyVersion->getNodeTableIDFromName(tableName) :
+                       catalogContentForReadOnlyVersion->getRelTableIDFromName(tableName);
+    if (isNodeTable) {
+        validateNodeTableHasNoEdge(tableID);
+    }
+    return make_unique<BoundDropTable>(
+        isNodeTable ? (TableSchema*)catalog.getReadOnlyVersion()->getNodeTableSchema(tableID) :
+                      (TableSchema*)catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
 }
 
 SrcDstTableIDs Binder::bindRelConnections(RelConnection relConnections) const {
@@ -697,6 +716,16 @@ unordered_map<string, shared_ptr<Expression>> Binder::enterSubquery() {
 
 void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
     variablesInScope = move(prevVariablesInScope);
+}
+
+void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
+    for (auto i = 0u; i < catalog.getReadOnlyVersion()->getNumRelTables(); i++) {
+        if (catalog.getReadOnlyVersion()->getRelTableSchema(i)->edgeContainsNodeTable(tableID)) {
+            throw BinderException(StringUtils::string_format(
+                "Cannot delete a node table with edges. It is on the edges of rel: %s.",
+                catalog.getReadOnlyVersion()->getRelTableSchema(i)->tableName.c_str()));
+        }
+    }
 }
 
 } // namespace binder

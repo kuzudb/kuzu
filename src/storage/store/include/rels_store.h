@@ -58,6 +58,11 @@ public:
 
     inline RelsStatistics& getRelsStatistics() { return relsStatistics; }
 
+    inline void removeRelTable(table_id_t tableID) {
+        relTables.erase(relTables.begin() + tableID);
+        relsStatistics.deleteTableStatistic(tableID);
+    }
+
 private:
     vector<unique_ptr<RelTable>> relTables;
     RelsStatistics relsStatistics;

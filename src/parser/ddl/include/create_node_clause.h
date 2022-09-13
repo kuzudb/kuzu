@@ -1,17 +1,18 @@
 #pragma once
 
-#include "src/parser/ddl/include/ddl.h"
+#include "src/parser/ddl/include/create_table.h"
 
 namespace graphflow {
 namespace parser {
 
 using namespace std;
 
-class CreateNodeClause : public DDL {
+class CreateNodeClause : public CreateTable {
 public:
     explicit CreateNodeClause(
         string tableName, vector<pair<string, string>> propertyNameDataTypes, string primaryKey)
-        : DDL{StatementType::CREATE_NODE_CLAUSE, move(tableName), move(propertyNameDataTypes)},
+        : CreateTable{StatementType::CREATE_NODE_CLAUSE, move(tableName),
+              move(propertyNameDataTypes)},
           primaryKey{move(primaryKey)} {}
 
     inline string getPrimaryKey() const { return primaryKey; }

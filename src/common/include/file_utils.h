@@ -37,7 +37,7 @@ public:
     }
 
     static void renameFileIfExists(const string& oldName, const string& newName);
-    static void removeFile(const string& path);
+    static void removeFileIfExists(const string& path);
     static void truncateFileToEmpty(FileInfo* fileInfo);
     static inline bool fileOrPathExists(const string& path) { return filesystem::exists(path); }
 

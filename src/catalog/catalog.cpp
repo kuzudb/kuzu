@@ -379,6 +379,25 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     FileUtils::closeFile(fileInfo->fd);
 }
 
+void CatalogContent::removeTableSchema(TableSchema* tableSchema) {
+    auto tableID = tableSchema->tableID;
+    if (tableSchema->isNodeTable) {
+        nodeTableNameToIDMap.erase(tableSchema->tableName);
+        nodeTableSchemas.erase(nodeTableSchemas.begin() + tableID);
+        for (auto i = tableID; i < nodeTableSchemas.size(); i++) {
+            nodeTableSchemas[i]->tableID--;
+            nodeTableNameToIDMap[nodeTableSchemas[i]->tableName]--;
+        }
+    } else {
+        relTableNameToIDMap.erase(tableSchema->tableName);
+        relTableSchemas.erase(relTableSchemas.begin() + tableID);
+        for (auto i = tableID; i < relTableSchemas.size(); i++) {
+            relTableSchemas[i]->tableID--;
+            relTableNameToIDMap[relTableSchemas[i]->tableName]--;
+        }
+    }
+}
+
 Catalog::Catalog() {
     catalogContentForReadOnlyTrx = make_unique<CatalogContent>();
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();

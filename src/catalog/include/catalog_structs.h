@@ -142,6 +142,11 @@ struct RelTableSchema : TableSchema {
         return properties.size() - numGeneratedProperties;
     }
 
+    bool edgeContainsNodeTable(table_id_t tableID) const {
+        return srcDstTableIDs.srcTableIDs.contains(tableID) ||
+               srcDstTableIDs.dstTableIDs.contains(tableID);
+    }
+
     RelMultiplicity relMultiplicity;
     uint32_t numGeneratedProperties;
     vector<Property> properties;

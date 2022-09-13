@@ -191,7 +191,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // have been changed during changed during checkpoint. So the in memory fileHandles
                 // are obsolete and should be reconstructed (e.g. since the numPages have likely
                 // changed they need to reconstruct their page locks).
-                storageManager->getNodesStore().getNode(tableID)->loadColumnsAndListsFromDisk(
+                storageManager->getNodesStore().getNodeTable(tableID)->loadColumnsAndListsFromDisk(
                     nodeTableSchema, *bufferManager, wal);
             } else {
                 auto catalogForCheckpointing = make_unique<catalog::Catalog>();

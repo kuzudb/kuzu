@@ -2,10 +2,13 @@
 
 #include "base_logical_operator.h"
 
+#include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
 
 namespace graphflow {
 namespace planner {
+
+using namespace graphflow::catalog;
 
 class LogicalCopyCSV : public LogicalOperator {
 

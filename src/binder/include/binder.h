@@ -6,6 +6,7 @@
 #include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
 #include "src/binder/bound_ddl/include/bound_create_node_clause.h"
 #include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
+#include "src/binder/bound_ddl/include/bound_drop_table.h"
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/binder/query/updating_clause/include/bound_create_clause.h"
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
@@ -13,6 +14,7 @@
 #include "src/parser/copy_csv/include/copy_csv.h"
 #include "src/parser/ddl/include/create_node_clause.h"
 #include "src/parser/ddl/include/create_rel_clause.h"
+#include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
@@ -38,6 +40,8 @@ public:
     unique_ptr<BoundCreateRelClause> bindCreateRelClause(const CreateRelClause& createRelClause);
 
     unique_ptr<BoundCopyCSV> bindCopyCSV(const CopyCSV& copyCSV);
+
+    unique_ptr<BoundDropTable> bindDropTable(const DropTable& dropTable);
 
     inline unordered_map<string, shared_ptr<Literal>> getParameterMap() {
         return expressionBinder.parameterMap;
@@ -151,6 +155,8 @@ private:
 
     unordered_map<string, shared_ptr<Expression>> enterSubquery();
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
+
+    void validateNodeTableHasNoEdge(table_id_t tableID) const;
 
 private:
     const Catalog& catalog;

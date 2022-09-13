@@ -29,8 +29,7 @@ public:
         return nodesStatisticsAndDeletedIDs;
     }
 
-    // TODO: rename to getNodeTable
-    inline NodeTable* getNode(table_id_t tableID) const { return nodeTables[tableID].get(); }
+    inline NodeTable* getNodeTable(table_id_t tableID) const { return nodeTables[tableID].get(); }
 
     // Since ddl statements are wrapped in a single auto-committed transaction, we don't need to
     // maintain a write-only version of nodeTables. We just need to add the actual nodeTable to
@@ -39,6 +38,11 @@ public:
         table_id_t tableID, BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
         nodeTables.push_back(make_unique<NodeTable>(&nodesStatisticsAndDeletedIDs, *bufferManager,
             isInMemoryMode, wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)));
+    }
+
+    inline void removeNodeTable(table_id_t tableID) {
+        nodeTables.erase(nodeTables.begin() + tableID);
+        nodesStatisticsAndDeletedIDs.deleteTableStatistic(tableID);
     }
 
     void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {

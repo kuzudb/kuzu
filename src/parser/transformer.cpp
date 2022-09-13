@@ -667,8 +667,10 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
 unique_ptr<DDL> Transformer::transformDDL() {
     if (root.gF_DDL()->gF_CreateNode()) {
         return transformCreateNodeClause(*root.gF_DDL()->gF_CreateNode());
-    } else {
+    } else if (root.gF_DDL()->gF_CreateRel()) {
         return transformCreateRelClause(*root.gF_DDL()->gF_CreateRel());
+    } else {
+        return transformDropTable(*root.gF_DDL()->gF_DropTable());
     }
 }
 
@@ -695,6 +697,10 @@ unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
     auto relConnections = transformRelConnection(*ctx.gF_RelConnections());
     return make_unique<CreateRelClause>(
         move(schemaName), move(propertyDefinitions), relMultiplicity, move(relConnections));
+}
+
+unique_ptr<DropTable> Transformer::transformDropTable(CypherParser::GF_DropTableContext& ctx) {
+    return make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(

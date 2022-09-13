@@ -7,6 +7,7 @@
 #include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
 #include "src/binder/bound_ddl/include/bound_create_node_clause.h"
 #include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
+#include "src/binder/bound_ddl/include/bound_drop_table.h"
 #include "src/binder/bound_statement/include/bound_statement.h"
 #include "src/binder/expression/include/existential_subquery_expression.h"
 
@@ -110,6 +111,8 @@ private:
         const BoundCreateRelClause& boundCreateRelClause);
 
     static unique_ptr<LogicalPlan> createCopyCSVPlan(const BoundCopyCSV& boundCopyCSV);
+
+    static unique_ptr<LogicalPlan> createDropTablePlan(const BoundDropTable& boundDropTable);
 
 private:
     const Catalog& catalog;
