@@ -7,7 +7,6 @@
 #include "src/processor/include/physical_plan/result/factorized_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
-using namespace std;
 using namespace graphflow::function::operation;
 
 namespace graphflow {

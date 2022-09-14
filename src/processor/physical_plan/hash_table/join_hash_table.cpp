@@ -30,7 +30,7 @@ void JoinHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsToAppen
     auto numTuplesToAppend = vectorsToAppend[0]->state->isFlat() ?
                                  1 :
                                  vectorsToAppend[0]->state->selVector->selectedSize;
-    auto appendInfos = factorizedTable->allocateTupleBlocks(numTuplesToAppend);
+    auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
         auto numAppendedTuples = 0ul;
         for (auto& blockAppendInfo : appendInfos) {
