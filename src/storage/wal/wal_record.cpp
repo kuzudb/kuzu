@@ -126,6 +126,13 @@ WALRecord WALRecord::newCopyRelCSVRecord(table_id_t tableID) {
     return retVal;
 }
 
+WALRecord WALRecord::newDropTableRecord(bool isNodeTable, table_id_t tableID) {
+    WALRecord retVal;
+    retVal.recordType = DROP_TABLE_RECORD;
+    retVal.dropTableRecord = DropTableRecord(isNodeTable, tableID);
+    return retVal;
+}
+
 void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
     ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
     offset += sizeof(WALRecord);

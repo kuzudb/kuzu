@@ -719,11 +719,11 @@ void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVari
 }
 
 void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
-    for (auto i = 0u; i < catalog.getReadOnlyVersion()->getNumRelTables(); i++) {
-        if (catalog.getReadOnlyVersion()->getRelTableSchema(i)->edgeContainsNodeTable(tableID)) {
+    for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        if (tableIDSchema.second->edgeContainsNodeTable(tableID)) {
             throw BinderException(StringUtils::string_format(
                 "Cannot delete a node table with edges. It is on the edges of rel: %s.",
-                catalog.getReadOnlyVersion()->getRelTableSchema(i)->tableName.c_str()));
+                tableIDSchema.second->tableName.c_str()));
         }
     }
 }

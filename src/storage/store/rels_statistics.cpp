@@ -13,14 +13,15 @@ RelStatistics::RelStatistics(SrcDstTableIDs srcDstTableIDs) : TableStatistics{0}
     }
 }
 
-RelsStatistics::RelsStatistics(vector<unique_ptr<RelStatistics>> relStatisticPerTable_)
+RelsStatistics::RelsStatistics(
+    unordered_map<table_id_t, unique_ptr<RelStatistics>> relStatisticPerTable_)
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& relStatistic : relStatisticPerTable_) {
-        tableStatisticPerTableForReadOnlyTrx->push_back(
-            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.get()));
-        tableStatisticPerTableForWriteTrx->push_back(
-            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.get()));
+        (*tableStatisticPerTableForReadOnlyTrx)[relStatistic.first] =
+            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
+        (*tableStatisticPerTableForWriteTrx)[relStatistic.first] =
+            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
     }
 }
 
@@ -42,7 +43,7 @@ void RelsStatistics::setNumRelsPerDirectionBoundTableID(
 uint64_t RelsStatistics::getNextRelID() {
     auto nextRelID = 0ull;
     for (auto& tableStatistic : *tableStatisticPerTableForReadOnlyTrx) {
-        nextRelID += ((RelStatistics*)tableStatistic.get())->getNumTuples();
+        nextRelID += ((RelStatistics*)tableStatistic.second.get())->getNumTuples();
     }
     return nextRelID;
 }

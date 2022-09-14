@@ -148,14 +148,17 @@ bool NodeStatisticsAndDeletedIDs::isDeleted(node_offset_t nodeOffset, uint64_t m
 }
 
 NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
-    vector<unique_ptr<NodeStatisticsAndDeletedIDs>>& nodesStatisticsAndDeletedIDs)
+    unordered_map<table_id_t, unique_ptr<NodeStatisticsAndDeletedIDs>>&
+        nodesStatisticsAndDeletedIDs)
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
-        tableStatisticPerTableForReadOnlyTrx->push_back(make_unique<NodeStatisticsAndDeletedIDs>(
-            *(NodeStatisticsAndDeletedIDs*)nodeStatistics.get()));
-        tableStatisticPerTableForWriteTrx->push_back(make_unique<NodeStatisticsAndDeletedIDs>(
-            *(NodeStatisticsAndDeletedIDs*)nodeStatistics.get()));
+        (*tableStatisticPerTableForReadOnlyTrx)[nodeStatistics.first] =
+            make_unique<NodeStatisticsAndDeletedIDs>(
+                *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
+        (*tableStatisticPerTableForWriteTrx)[nodeStatistics.first] =
+            make_unique<NodeStatisticsAndDeletedIDs>(
+                *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
     }
 }
 
@@ -195,8 +198,9 @@ void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
 void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(NodeTableSchema* tableSchema) {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
-    tableStatisticPerTableForWriteTrx->push_back(make_unique<NodeStatisticsAndDeletedIDs>(
-        tableSchema->tableID, UINT64_MAX /* maxNodeOffset */));
+    (*tableStatisticPerTableForWriteTrx)[tableSchema->tableID] =
+        make_unique<NodeStatisticsAndDeletedIDs>(
+            tableSchema->tableID, UINT64_MAX /* maxNodeOffset */);
 }
 
 unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(

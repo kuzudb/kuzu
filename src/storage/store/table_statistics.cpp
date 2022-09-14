@@ -7,7 +7,8 @@ namespace storage {
 
 TablesStatistics::TablesStatistics() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
-    tableStatisticPerTableForReadOnlyTrx = make_unique<vector<unique_ptr<TableStatistics>>>();
+    tableStatisticPerTableForReadOnlyTrx =
+        make_unique<unordered_map<table_id_t, unique_ptr<TableStatistics>>>();
 }
 
 void TablesStatistics::readFromFile(const string& directory) {
@@ -17,11 +18,13 @@ void TablesStatistics::readFromFile(const string& directory) {
     uint64_t offset = 0;
     uint64_t numTables;
     offset = SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
-    for (auto tableID = 0u; tableID < numTables; tableID++) {
+    for (auto i = 0u; i < numTables; i++) {
         uint64_t numTuples;
         offset = SerDeser::deserializeValue<uint64_t>(numTuples, fileInfo.get(), offset);
-        tableStatisticPerTableForReadOnlyTrx->push_back(
-            deserializeTableStatistics(numTuples, offset, fileInfo.get(), tableID));
+        table_id_t tableID;
+        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
+        (*tableStatisticPerTableForReadOnlyTrx)[tableID] =
+            deserializeTableStatistics(numTuples, offset, fileInfo.get(), tableID);
     }
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -31,16 +34,16 @@ void TablesStatistics::saveToFile(
     auto filePath = getTableStatisticsFilePath(directory, dbFileType);
     logger->info("Writing {} to {}.", getTableTypeForPrinting(), filePath);
     auto fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT);
-
     uint64_t offset = 0;
     auto& tableStatisticPerTable = (transactionType == TransactionType::READ_ONLY ||
                                        tableStatisticPerTableForWriteTrx == nullptr) ?
                                        tableStatisticPerTableForReadOnlyTrx :
                                        tableStatisticPerTableForWriteTrx;
     offset = SerDeser::serializeValue(tableStatisticPerTable->size(), fileInfo.get(), offset);
-    for (table_id_t tableID = 0; tableID < tableStatisticPerTable->size(); ++tableID) {
-        auto tableStatistics = (*tableStatisticPerTable)[tableID].get();
+    for (auto& tableStatistic : *tableStatisticPerTable) {
+        auto tableStatistics = tableStatistic.second.get();
         offset = SerDeser::serializeValue(tableStatistics->getNumTuples(), fileInfo.get(), offset);
+        offset = SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
     FileUtils::closeFile(fileInfo->fd);
@@ -49,10 +52,11 @@ void TablesStatistics::saveToFile(
 
 void TablesStatistics::initTableStatisticPerTableForWriteTrxIfNecessary() {
     if (tableStatisticPerTableForWriteTrx == nullptr) {
-        tableStatisticPerTableForWriteTrx = make_unique<vector<unique_ptr<TableStatistics>>>();
+        tableStatisticPerTableForWriteTrx =
+            make_unique<unordered_map<table_id_t, unique_ptr<TableStatistics>>>();
         for (auto& tableStatistic : *tableStatisticPerTableForReadOnlyTrx) {
-            tableStatisticPerTableForWriteTrx->push_back(
-                constructTableStatistic(tableStatistic.get()));
+            (*tableStatisticPerTableForWriteTrx)[tableStatistic.first] =
+                constructTableStatistic(tableStatistic.second.get());
         }
     }
 }

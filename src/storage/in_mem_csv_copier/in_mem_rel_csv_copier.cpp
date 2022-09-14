@@ -68,10 +68,10 @@ void InMemRelCSVCopier::initializeColumnsAndLists() {
             make_unique<atomic_uint64_vec_t>(catalog.getReadOnlyVersion()->getNumNodeTables());
         directionTableListSizes[relDirection].resize(
             catalog.getReadOnlyVersion()->getNumNodeTables());
-        for (auto tableID = 0u; tableID < catalog.getReadOnlyVersion()->getNumNodeTables();
-             tableID++) {
-            directionTableListSizes[relDirection][tableID] = make_unique<atomic_uint64_vec_t>(
-                maxNodeOffsetsPerTable[tableID] + 1 /* num nodes */);
+        for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
+            directionTableListSizes[relDirection][tableIDSchema.first] =
+                make_unique<atomic_uint64_vec_t>(
+                    maxNodeOffsetsPerTable[tableIDSchema.first] + 1 /* num nodes */);
         }
         if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relTableSchema->tableID, relDirection)) {

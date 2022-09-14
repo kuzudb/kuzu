@@ -44,7 +44,7 @@ NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 gF_CreateRel
-    : CREATE SP REL SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ; 
+    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ; 
    
 gF_DropTable
     : DROP SP TABLE SP oC_SchemaName ;

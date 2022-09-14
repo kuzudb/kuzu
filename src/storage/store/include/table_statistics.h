@@ -20,7 +20,7 @@ class TableStatistics {
 
 public:
     TableStatistics() = default;
-    TableStatistics(uint64_t numTuples) : numTuples{numTuples} {}
+    explicit TableStatistics(uint64_t numTuples) : numTuples{numTuples} {}
 
     inline uint64_t getNumTuples() const { return numTuples; }
 
@@ -46,17 +46,17 @@ public:
         tableStatisticPerTableForReadOnlyTrx = move(tableStatisticPerTableForWriteTrx);
     }
 
-    inline vector<unique_ptr<TableStatistics>>* getReadOnlyVersion() const {
+    inline unordered_map<table_id_t, unique_ptr<TableStatistics>>* getReadOnlyVersion() const {
         return tableStatisticPerTableForReadOnlyTrx.get();
     }
 
     inline void addTableStatistic(TableSchema* tableSchema) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        tableStatisticPerTableForWriteTrx->push_back(constructTableStatistic(tableSchema));
+        (*tableStatisticPerTableForWriteTrx)[tableSchema->tableID] =
+            constructTableStatistic(tableSchema);
     }
-    inline void deleteTableStatistic(table_id_t tableID) {
-        tableStatisticPerTableForReadOnlyTrx->erase(
-            tableStatisticPerTableForReadOnlyTrx->begin() + tableID);
+    inline void removeTableStatistic(table_id_t tableID) {
+        tableStatisticPerTableForReadOnlyTrx->erase(tableID);
     }
 
 protected:
@@ -86,8 +86,10 @@ protected:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<vector<unique_ptr<TableStatistics>>> tableStatisticPerTableForReadOnlyTrx;
-    unique_ptr<vector<unique_ptr<TableStatistics>>> tableStatisticPerTableForWriteTrx;
+    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
+        tableStatisticPerTableForReadOnlyTrx;
+    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
+        tableStatisticPerTableForWriteTrx;
     mutex mtx;
 };
 

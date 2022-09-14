@@ -238,6 +238,39 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // See comments for COPY_NODE_CSV_RECORD.
         }
     } break;
+    case DROP_TABLE_RECORD: {
+        if (isCheckpoint) {
+            auto tableID = walRecord.dropTableRecord.tableID;
+            if (!isRecovering) {
+                if (walRecord.dropTableRecord.isNodeTable) {
+                    storageManager->getNodesStore().removeNodeTable(tableID);
+                    WALReplayerUtils::removeDBFilesForNodeTable(
+                        catalog->getReadOnlyVersion()->getNodeTableSchema(tableID),
+                        wal->getDirectory());
+                } else {
+                    storageManager->getRelsStore().removeRelTable(tableID);
+                    WALReplayerUtils::removeDBFilesForRelTable(
+                        catalog->getReadOnlyVersion()->getRelTableSchema(tableID),
+                        wal->getDirectory(), catalog);
+                }
+            } else {
+                auto catalogForCheckpointing = make_unique<catalog::Catalog>();
+                catalogForCheckpointing->getReadOnlyVersion()->readFromFile(
+                    wal->getDirectory(), DBFileType::ORIGINAL);
+                if (walRecord.dropTableRecord.isNodeTable) {
+                    WALReplayerUtils::removeDBFilesForNodeTable(
+                        catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(tableID),
+                        wal->getDirectory());
+                } else {
+                    WALReplayerUtils::removeDBFilesForRelTable(
+                        catalogForCheckpointing->getReadOnlyVersion()->getRelTableSchema(tableID),
+                        wal->getDirectory(), catalogForCheckpointing.get());
+                }
+            }
+        } else {
+            // See comments for COPY_NODE_CSV_RECORD.
+        }
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +
