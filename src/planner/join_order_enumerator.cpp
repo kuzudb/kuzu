@@ -20,9 +20,12 @@ static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftS
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
     vector<unique_ptr<LogicalPlan>> prevPlans) {
-    context->init(queryGraph, queryGraphPredicate, move(prevPlans));
-    assert(!context->hasExpressionsToScanFromOuter());
-    planTableScan();
+    context->init(queryGraph, queryGraphPredicate, std::move(prevPlans));
+    if (context->hasExpressionsToScanFromOuter()) {
+        assert(false);
+    } else {
+        planTableScan();
+    }
     context->currentLevel++;
     while (context->currentLevel < context->maxLevel) {
         planLevel(context->currentLevel++);
@@ -66,13 +69,15 @@ void JoinOrderEnumerator::planResultScan() {
 void JoinOrderEnumerator::planNodeScan() {
     auto queryGraph = context->getQueryGraph();
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
-        if (context->matchedQueryNodes[nodePos]) {
+        auto node = queryGraph->getQueryNode(nodePos);
+        if (context->isNodeMatched(node.get())) {
             continue;
         }
+        context->addMatchedNode(node.get());
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
-        auto node = queryGraph->getQueryNode(nodePos);
+
         appendScanNodeID(node, *plan);
         auto predicates = getNewMatchedExpressions(
             context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
@@ -99,10 +104,11 @@ void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, Logical
 void JoinOrderEnumerator::planRelScan() {
     auto queryGraph = context->getQueryGraph();
     for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
-        if (context->matchedQueryRels[relPos]) {
+        auto rel = queryGraph->getQueryRel(relPos);
+        if (context->isRelMatched(rel.get())) {
             continue;
         }
-        auto rel = queryGraph->getQueryRel(relPos);
+        context->addMatchedRel(rel.get());
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryRel(relPos);
         auto predicates = getNewMatchedExpressions(

@@ -25,13 +25,6 @@ public:
                 LOGICAL_CREATE_NODE_TABLE, LOGICAL_CREATE_REL_TABLE, LOGICAL_COPY_CSV});
     }
 
-    // Our sub-plan (specific to the right plan of Exists and LeftNestedLoopJoin operator) does not
-    // support multiple pipelines. Any pipeline breaking operator is not allowed.
-    inline bool containOperatorsNotAllowedInSubPlan() const {
-        return lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
-            LOGICAL_HASH_JOIN, LOGICAL_AGGREGATE, LOGICAL_ORDER_BY});
-    }
-
     inline void setExpressionsToCollect(expression_vector expressions) {
         expressionsToCollect = move(expressions);
     }

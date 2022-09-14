@@ -10,14 +10,14 @@ namespace planner {
 using namespace graphflow::binder;
 
 class LogicalHashJoin : public LogicalOperator {
-
 public:
     // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
     LogicalHashJoin(shared_ptr<NodeExpression> joinNode, unique_ptr<Schema> buildSideSchema,
         vector<uint64_t> flatOutputGroupPositions, expression_vector expressionsToMaterialize,
         bool isScanOneRow, shared_ptr<LogicalOperator> probeSideChild,
         shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalOperator{move(probeSideChild), move(buildSideChild)}, joinNode(move(joinNode)),
+        : LogicalOperator{std::move(probeSideChild), std::move(buildSideChild)},
+          joinNode(std::move(joinNode)),
           buildSideSchema(move(buildSideSchema)), flatOutputGroupPositions{move(
                                                       flatOutputGroupPositions)},
           expressionsToMaterialize{move(expressionsToMaterialize)}, isScanOneRow{isScanOneRow} {}
@@ -51,5 +51,6 @@ private:
     expression_vector expressionsToMaterialize;
     bool isScanOneRow;
 };
+
 } // namespace planner
 } // namespace graphflow

@@ -31,13 +31,17 @@ unordered_set<uint32_t> SubqueryGraph::getNodeNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-        if (!queryNodesSelector[srcNodePos]) {
-            result.insert(srcNodePos);
+        if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
+            auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+            if (!queryNodesSelector[srcNodePos]) {
+                result.insert(srcNodePos);
+            }
         }
-        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
-        if (!queryNodesSelector[dstNodePos]) {
-            result.insert(dstNodePos);
+        if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
+            auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+            if (!queryNodesSelector[dstNodePos]) {
+                result.insert(dstNodePos);
+            }
         }
     }
     return result;
@@ -50,9 +54,17 @@ unordered_set<uint32_t> SubqueryGraph::getRelNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
-        if (queryNodesSelector[srcNodePos] || queryNodesSelector[dstNodePos]) {
+        bool isSrcNodeConnected = false;
+        if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
+            auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+            isSrcNodeConnected |= queryNodesSelector[srcNodePos];
+        }
+        bool isDstConnected = false;
+        if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
+            auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+            isDstConnected |= queryNodesSelector[dstNodePos];
+        }
+        if (isSrcNodeConnected || isDstConnected) {
             result.insert(relPos);
         }
     }

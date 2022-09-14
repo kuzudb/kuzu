@@ -1,6 +1,7 @@
 #include "src/planner/include/enumerator.h"
 
 #include "src/binder/query/include/bound_regular_query.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
@@ -9,7 +10,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
@@ -76,18 +76,6 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundState
     return bestPlan;
 }
 
-vector<unique_ptr<LogicalPlan>> Enumerator::getValidSubPlans(
-    vector<unique_ptr<LogicalPlan>> plans) {
-    vector<unique_ptr<LogicalPlan>> results;
-    for (auto& plan : plans) {
-        if (plan->containOperatorsNotAllowedInSubPlan()) {
-            continue;
-        }
-        results.push_back(move(plan));
-    }
-    return results;
-}
-
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
     auto bestPlan = move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
@@ -100,7 +88,7 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> 
 
 vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const NormalizedSingleQuery& singleQuery) {
     vector<unique_ptr<LogicalPlan>> result;
-    for (auto& plan : enumeratePlans(singleQuery)) {
+    for (auto& plan : enumerateSingleQuery(singleQuery)) {
         // This is copy is to avoid sharing operator across plans. Later optimization requires
         // each plan to be independent.
         result.push_back(plan->deepCopy());
@@ -111,7 +99,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const NormalizedSingleQu
 // Note: we cannot append ResultCollector for plans enumerated for single query before there could
 // be a UNION on top which requires further flatten. So we delay ResultCollector appending to
 // enumerate regular query level.
-vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
+vector<unique_ptr<LogicalPlan>> Enumerator::enumerateSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
     propertiesToScan.clear();
     for (auto& expression : singleQuery.getPropertiesToRead()) {
@@ -160,62 +148,61 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     return plans;
 }
 
-void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
-    const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
-    auto outerPlanSchema = outerPlan.getSchema();
-    expression_vector expressionsToScanFromOuter;
+static expression_vector getExpressionsToScanFromOuter(const QueryGraph& queryGraph,
+    shared_ptr<Expression>& queryGraphPredicate, Schema* outerSchema) {
+    expression_vector result;
     if (queryGraphPredicate) {
-        expressionsToScanFromOuter = outerPlanSchema->getSubExpressionsInScope(queryGraphPredicate);
+        result = outerSchema->getSubExpressionsInScope(queryGraphPredicate);
     }
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
-        if (outerPlanSchema->isExpressionInScope(*nodeIDExpression)) {
-            expressionsToScanFromOuter.push_back(nodeIDExpression);
+        if (outerSchema->isExpressionInScope(*nodeIDExpression)) {
+            result.push_back(nodeIDExpression);
         }
     }
-    for (auto& expression : expressionsToScanFromOuter) {
-        appendFlattenIfNecessary(
-            outerPlanSchema->getGroupPos(expression->getUniqueName()), outerPlan);
-    }
-    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
-    auto bestPlan = getBestPlan(getValidSubPlans(joinOrderEnumerator.enumerateJoinOrder(
-        queryGraph, queryGraphPredicate, getInitialEmptyPlans())));
-    joinOrderEnumerator.exitSubquery(move(prevContext));
-    // Schema merging logic for optional match:
-    //    Consider example MATCH (a:Person) OPTIONAL MATCH (a)-[:studyAt]->(b:Organisation)
-    //    where (a)-[:studyAt]->(b:Organisation) is a column extend. The inner resultSet
-    //    contains 1 dataChunk DCInner with 2 vectors. In the outer query, we shallow copy the
-    //    vector b from the inner query. However we put b's vector not to a's datachunk DCOuterA but
-    //    to a different datachunk DCOuterB. This is because the b's vector contains DCInner's
-    //    state, which might be different than DCOuterA. To make sure that when vector b is copied
-    //    to the outer query, we can keep DCInner's state, we copy B to a new datachunk.
-    auto subPlanSchema = bestPlan->getSchema()->copy();
-    assert(subPlanSchema->getNumGroups() > 0);
-    auto firstInnerGroup = subPlanSchema->getGroup(0);
-    auto firstInnerGroupMapToOuterPos = UINT32_MAX;
-    // Merge first inner group into outer. This merging handles the logic above.
-    for (auto& expression : firstInnerGroup->getExpressions()) {
-        if (outerPlanSchema->isExpressionInScope(*expression)) {
-            continue;
+    return result;
+}
+
+static shared_ptr<NodeExpression> getJoinNode(expression_vector& expressions) {
+    vector<shared_ptr<NodeExpression>> joinNodes;
+    for (auto& expression : expressions) {
+        if (expression->dataType.typeID == NODE_ID) {
+            auto node = static_pointer_cast<NodeExpression>(expression->getChild(0));
+            joinNodes.push_back(std::move(node));
         }
-        if (firstInnerGroupMapToOuterPos == UINT32_MAX) {
-            firstInnerGroupMapToOuterPos = outerPlanSchema->createGroup();
-        }
-        outerPlanSchema->insertToGroupAndScope(expression, firstInnerGroupMapToOuterPos);
-        outerPlanSchema->getGroup(firstInnerGroupMapToOuterPos)
-            ->setIsFlat(firstInnerGroup->getIsFlat());
     }
-    // Merge rest inner groups into outer.
-    for (auto i = 1u; i < subPlanSchema->getNumGroups(); ++i) {
-        auto outerPos = outerPlanSchema->createGroup();
-        auto group = subPlanSchema->getGroup(i);
-        for (auto& expression : group->getExpressions()) {
-            outerPlanSchema->insertToGroupAndScope(expression, outerPos);
+    // TODO(Guodong): solve with multiple join conditions
+    assert(joinNodes.size() == 1);
+    return joinNodes[0];
+}
+
+void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
+    shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
+    auto outerSchema = outerPlan.getSchema();
+    auto expressionsToScanFromOuter =
+        getExpressionsToScanFromOuter(queryGraph, queryGraphPredicate, outerSchema);
+    auto joinNode = getJoinNode(expressionsToScanFromOuter);
+    auto allExpressionsToScanAreNodeIDs =
+        ExpressionUtil::allExpressionsHaveDataType(expressionsToScanFromOuter, NODE_ID);
+    // Join node is scanned in the outer plan. Avoid scan the same table twice.
+    auto queryGraphToEnumerate = make_unique<QueryGraph>();
+    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+        auto queryNode = queryGraph.getQueryNode(i);
+        if (queryNode->getUniqueName() != joinNode->getUniqueName()) {
+            queryGraphToEnumerate->addQueryNode(std::move(queryNode));
         }
-        outerPlanSchema->getGroup(outerPos)->setIsFlat(group->getIsFlat());
     }
-    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
-        bestPlan->getSchema()->copy(), outerPlan.getLastOperator(), bestPlan->getLastOperator());
-    outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
+    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+        queryGraphToEnumerate->addQueryRel(queryGraph.getQueryRel(i));
+    }
+    // TODO(Xiyang): solve the general case with ASP-style join
+    assert(allExpressionsToScanAreNodeIDs);
+    // De-correlated subquery (meaning we don't scan from outer) if all dependencies are join nodes
+    // (i.e. join conditions)
+    auto prevContext = joinOrderEnumerator.enterSubquery(expression_vector{});
+    auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
+        *queryGraphToEnumerate, queryGraphPredicate, getInitialEmptyPlans()));
+    joinOrderEnumerator.exitSubquery(std::move(prevContext));
+    joinOrderEnumerator.appendHashJoin(joinNode, outerPlan, *bestInnerPlan);
 }
 
 void Enumerator::planExistsSubquery(
@@ -238,7 +225,7 @@ void Enumerator::planExistsSubquery(
         plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
-    auto bestPlan = getBestPlan(getValidSubPlans(move(plans)));
+    auto bestPlan = getBestPlan(move(plans));
     auto logicalExists = make_shared<LogicalExists>(subqueryExpression,
         bestPlan->getSchema()->copy(), outerPlan.getLastOperator(), bestPlan->getLastOperator());
     outerPlan.appendOperator(logicalExists);
@@ -252,6 +239,21 @@ void Enumerator::planSubqueryIfNecessary(
             planExistsSubquery(subqueryExpression, plan);
         }
     }
+}
+
+void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto schemaBeforeSink = schema->copy();
+    SinkOperatorUtil::reComputeSchema(*schemaBeforeSink, *schema);
+    vector<uint64_t> flatOutputGroupPositions;
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
+        if (schema->getGroup(i)->getIsFlat()) {
+            flatOutputGroupPositions.push_back(i);
+        }
+    }
+    auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
+        flatOutputGroupPositions, std::move(schemaBeforeSink), plan.getLastOperator());
+    plan.appendOperator(sink);
 }
 
 void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
@@ -289,7 +291,7 @@ void Enumerator::appendFlattenIfNecessary(shared_ptr<Expression> expression, Log
     }
     auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
     flatten->computeSchema(*schema);
-    plan.appendOperator(move(flatten));
+    plan.appendOperator(std::move(flatten));
     // update cardinality estimation info
     plan.multiplyCardinality(group->getMultiplier());
 }
@@ -300,7 +302,7 @@ void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalP
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
-    plan.appendOperator(move(filter));
+    plan.appendOperator(std::move(filter));
 }
 
 void Enumerator::appendScanNodePropIfNecessarySwitch(
