@@ -489,6 +489,20 @@ s
 k
 D
 
+-NAME ListExtractStructuredString
+-QUERY MATCH (o:organisation) RETURN o.name[2]
+---- 3
+B
+s
+E
+
+-NAME ListExtractUnstructuredString
+-QUERY MATCH (o:organisation) RETURN o.unstrStr[4]
+---- 3
+E
+X
+d
+
 -NAME UnstrStrEqual
 -QUERY MATCH (o:organisation) WHERE o.unstrStr = '  pERfECt' RETURN count(*)
 ---- 1

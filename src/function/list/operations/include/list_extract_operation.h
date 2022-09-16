@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "src/common/types/include/gf_list.h"
+#include "src/common/types/include/gf_string.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -32,6 +33,23 @@ public:
         auto values = reinterpret_cast<T*>(list.overflowPtr);
         result = values[uint64Pos - 1];
         setValue(values[uint64Pos - 1], result, resultValueVector);
+    }
+
+    static inline void operation(gf_string_t& str, int64_t& idx, gf_string_t& result) {
+        auto pos = idx > 0 ? min(idx, (int64_t)str.len) : max(str.len + idx, (int64_t)0) + 1;
+        result.set((char*)(str.getData() + pos - 1), 1 /* length */);
+    }
+
+    static inline void operation(Value& item, int64_t& pos, Value& result) {
+        if (item.dataType.typeID == STRING) {
+            result.dataType.typeID = STRING;
+            operation(item.val.strVal, pos, result.val.strVal);
+        } else if (item.dataType.typeID == LIST) {
+            throw RuntimeException("list_extract not implemented for unstructured lists");
+        } else {
+            throw RuntimeException(
+                "incorrect type given to [] operator. Type must be either LIST or INT");
+        }
     }
 };
 

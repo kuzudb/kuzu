@@ -485,6 +485,7 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     auto listExtract =
         make_unique<ParsedFunctionExpression>(LIST_EXTRACT_FUNC_NAME, move(rawExpression));
+    listExtract->addChild(move(propertyExpression));
     listExtract->addChild(transformExpression(*ctx.oC_Expression()));
     return listExtract;
 }

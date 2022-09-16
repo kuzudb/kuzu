@@ -138,6 +138,18 @@ False
 [10]
 [7]
 
+-NAME ListExtractStructuredList
+-QUERY MATCH (a:person) RETURN a.usedNames[1]
+---- 8
+Aida
+Bobby
+Carmen
+Wolfeschlegelstein
+Ein
+Fesdwe
+Grad
+Ad
+
 -NAME ListLenStructuredListOfInts
 -QUERY MATCH (a:person) RETURN len(a.workedHours)
 ---- 8

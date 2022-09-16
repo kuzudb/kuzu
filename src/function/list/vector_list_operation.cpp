@@ -125,8 +125,15 @@ void ListExtractVectorOperation::listExtractBindFunc(const vector<DataType>& arg
 vector<unique_ptr<VectorOperationDefinition>> ListExtractVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
+        vector<DataTypeID>{UNSTRUCTURED, INT64}, UNSTRUCTURED,
+        BinaryExecFunction<Value, int64_t, Value, operation::ListExtract>, false /* isVarlength*/));
+    result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
         vector<DataTypeID>{LIST, INT64}, ANY, nullptr, nullptr, listExtractBindFunc,
         false /* isVarlength*/));
+    result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
+        vector<DataTypeID>{STRING, INT64}, STRING,
+        BinaryExecFunction<gf_string_t, int64_t, gf_string_t, operation::ListExtract>,
+        false /* isVarlength */));
     return result;
 }
 
