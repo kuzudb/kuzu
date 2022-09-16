@@ -296,6 +296,9 @@ cc_library(
 
 cc_library(
     name = "physical_plan",
+    srcs = [
+        "physical_plan/physical_plan.cpp",
+    ],
     hdrs = [
         "include/physical_plan/physical_plan.h",
     ],

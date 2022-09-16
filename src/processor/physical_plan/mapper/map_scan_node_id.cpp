@@ -8,14 +8,14 @@ namespace processor {
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto logicalScan = (LogicalScanNodeID*)logicalOperator;
-    auto nodeExpression = logicalScan->getNodeExpression();
+    auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
     auto sharedState = make_shared<ScanNodeIDSharedState>(
-        &nodesStore.getNodesStatisticsAndDeletedIDs(), nodeExpression->getTableID());
-    auto dataPos = mapperContext.getDataPos(nodeExpression->getIDProperty());
-    mapperContext.addComputedExpressions(nodeExpression->getIDProperty());
+        &nodesStore.getNodesStatisticsAndDeletedIDs(), node->getTableID());
+    auto dataPos = mapperContext.getDataPos(node->getIDProperty());
+    mapperContext.addComputedExpressions(node->getIDProperty());
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        nodesStore.getNodeTable(nodeExpression->getTableID()), dataPos, sharedState,
+        node->getUniqueName(), nodesStore.getNodeTable(node->getTableID()), dataPos, sharedState,
         getOperatorID(), logicalScan->getExpressionsForPrinting());
 }
 

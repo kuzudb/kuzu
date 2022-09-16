@@ -20,6 +20,7 @@ class Enumerator {
     friend class JoinOrderEnumerator;
     friend class ProjectionEnumerator;
     friend class UpdatePlanner;
+    friend class ASPOptimizer;
 
 public:
     explicit Enumerator(const Catalog& catalog,

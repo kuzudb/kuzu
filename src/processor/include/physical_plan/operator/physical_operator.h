@@ -86,8 +86,10 @@ public:
 
     inline uint32_t getOperatorID() const { return id; }
 
+    inline void addChild(unique_ptr<PhysicalOperator> op) { children.push_back(std::move(op)); }
     inline PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
     inline uint64_t getNumChildren() const { return children.size(); }
+    unique_ptr<PhysicalOperator> moveUnaryChild();
 
     // This function grab leaf operator by traversing prevOperator pointer. For binary operators,
     // f.g. hash join probe, left nested loop join, caller should determine which branch's leaf to

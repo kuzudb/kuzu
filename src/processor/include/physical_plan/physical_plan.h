@@ -25,5 +25,15 @@ public:
     bool readOnly;
 };
 
+class PhysicalPlanUtil {
+public:
+    static vector<PhysicalOperator*> collectOperators(
+        PhysicalOperator* root, PhysicalOperatorType operatorType);
+
+private:
+    static void collectOperatorsRecursive(
+        PhysicalOperator* op, PhysicalOperatorType operatorType, vector<PhysicalOperator*>& result);
+};
+
 } // namespace processor
 } // namespace graphflow

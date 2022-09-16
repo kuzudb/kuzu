@@ -26,6 +26,13 @@ PhysicalOperator::PhysicalOperator(
     }
 }
 
+unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
+    assert(children.size() == 1);
+    auto result = std::move(children[0]);
+    children.clear();
+    return result;
+}
+
 PhysicalOperator* PhysicalOperator::getLeafOperator() {
     PhysicalOperator* op = this;
     while (op->getNumChildren()) {

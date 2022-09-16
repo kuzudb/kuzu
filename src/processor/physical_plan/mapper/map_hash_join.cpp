@@ -1,10 +1,53 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id.h"
+#include "src/processor/include/physical_plan/operator/semi_masker.h"
 
 namespace graphflow {
 namespace processor {
+
+static bool isASPJoin(HashJoinProbe* hashJoinProbe) {
+    auto op = hashJoinProbe->getChild(0);
+    while (op->getNumChildren() == 1) { // check pipeline
+        if (op->getOperatorType() == PhysicalOperatorType::SEMI_MASKER) {
+            return true;
+        }
+        op = op->getChild(0);
+    }
+    return false;
+}
+
+static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
+    // fetch scan node ID on build side
+    auto hashJoinBuild = hashJoinProbe->getChild(1);
+    assert(hashJoinBuild->getOperatorType() == PhysicalOperatorType::HASH_JOIN_BUILD);
+    vector<ScanNodeID*> scanNodeIDCandidates;
+    for (auto& op :
+        PhysicalPlanUtil::collectOperators(hashJoinBuild, PhysicalOperatorType::SCAN_NODE_ID)) {
+        auto scanNodeID = (ScanNodeID*)op;
+        if (scanNodeID->getNodeName() == joinNode->getUniqueName()) {
+            scanNodeIDCandidates.push_back(scanNodeID);
+        }
+    }
+    assert(scanNodeIDCandidates.size() == 1);
+    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
+    // set semi masker on probe side
+    auto op = hashJoinProbe->getChild(0);
+    while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
+        op = op->getChild(0);
+    }
+    assert(op->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
+    auto tableScan = op;
+    assert(op->getChild(0)->getChild(0)->getOperatorType() == PhysicalOperatorType::SEMI_MASKER);
+    auto semiMasker = (SemiMasker*)op->getChild(0)->getChild(0);
+    semiMasker->setSharedState(sharedState);
+    // reconstruct pipeline
+    auto resultCollector = tableScan->moveUnaryChild();
+    hashJoinProbe->addChild(std::move(resultCollector));
+}
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
@@ -51,7 +94,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
+    if (isASPJoin(hashJoinProbe.get())) {
+        mapASPJoin(hashJoin->getJoinNode().get(), hashJoinProbe.get());
+    }
     return hashJoinProbe;
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
+    auto node = logicalSemiMasker->getNode();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto keyDataPos = mapperContext.getDataPos(node->getIDProperty());
+    return make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
+        logicalSemiMasker->getExpressionsForPrinting());
 }
 
 } // namespace processor

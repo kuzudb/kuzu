@@ -22,6 +22,7 @@ class JoinOrderEnumeratorContext;
  */
 class JoinOrderEnumerator {
     friend class Enumerator;
+    friend class ASPOptimizer;
 
 public:
     JoinOrderEnumerator(const Catalog& catalog,
@@ -92,7 +93,9 @@ private:
     void appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
-    void appendHashJoin(const shared_ptr<NodeExpression>& joinNode, JoinType joinType,
+    static void planHashJoin(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    static void appendHashJoin(const shared_ptr<NodeExpression>& joinNode, JoinType joinType,
         LogicalPlan& probePlan, LogicalPlan& buildPlan);
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
