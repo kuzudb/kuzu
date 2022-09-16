@@ -27,7 +27,6 @@ enum PhysicalOperatorType : uint8_t {
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     INTERSECT,
-    LEFT_NESTED_LOOP_JOIN,
     LIMIT,
     LIST_EXTEND,
     MULTIPLICITY_REDUCER,
@@ -52,10 +51,10 @@ enum PhysicalOperatorType : uint8_t {
 const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",
     "COPY_NODE_CSV", "COPY_REL_CSV", "CREATE", "CREATE_NODE_TABLE", "CREATE_REL_TABLE", "DELETE",
     "DROP_TABLE", "EXISTS", "FACTORIZED_TABLE_SCAN", "FILTER", "FLATTEN", "HASH_JOIN_BUILD",
-    "HASH_JOIN_PROBE", "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND",
-    "MULTIPLICITY_REDUCER", "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN",
-    "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET",
-    "SKIP", "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN"};
+    "HASH_JOIN_PROBE", "INTERSECT", "LIMIT", "LIST_EXTEND", "MULTIPLICITY_REDUCER", "PROJECTION",
+    "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN", "SCAN_NODE_ID",
+    "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET", "SKIP",
+    "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN"};
 
 struct OperatorMetrics {
 
@@ -72,8 +71,8 @@ class PhysicalOperator {
 
 public:
     // Leaf operator
-    PhysicalOperator(uint32_t id, const string& paramsString)
-        : id{id}, paramsString{paramsString} {}
+    PhysicalOperator(uint32_t id, string paramsString)
+        : id{id}, transaction{nullptr}, paramsString{std::move(paramsString)} {}
     // Unary operator
     PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
     // Binary operator
