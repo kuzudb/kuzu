@@ -14,13 +14,12 @@ public:
     // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
     LogicalHashJoin(shared_ptr<NodeExpression> joinNode, unique_ptr<Schema> buildSideSchema,
         vector<uint64_t> flatOutputGroupPositions, expression_vector expressionsToMaterialize,
-        bool isScanOneRow, shared_ptr<LogicalOperator> probeSideChild,
-        shared_ptr<LogicalOperator> buildSideChild)
+        shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{std::move(probeSideChild), std::move(buildSideChild)},
-          joinNode(std::move(joinNode)),
-          buildSideSchema(move(buildSideSchema)), flatOutputGroupPositions{move(
-                                                      flatOutputGroupPositions)},
-          expressionsToMaterialize{move(expressionsToMaterialize)}, isScanOneRow{isScanOneRow} {}
+          joinNode(std::move(joinNode)), buildSideSchema(move(buildSideSchema)),
+          flatOutputGroupPositions{move(flatOutputGroupPositions)}, expressionsToMaterialize{move(
+                                                                        expressionsToMaterialize)} {
+    }
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
@@ -35,11 +34,10 @@ public:
     inline shared_ptr<NodeExpression> getJoinNode() const { return joinNode; }
     inline Schema* getBuildSideSchema() const { return buildSideSchema.get(); }
     inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
-    inline bool getIsScanOneRow() const { return isScanOneRow; }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalHashJoin>(joinNode, buildSideSchema->copy(),
-            flatOutputGroupPositions, expressionsToMaterialize, isScanOneRow, children[0]->copy(),
+            flatOutputGroupPositions, expressionsToMaterialize, children[0]->copy(),
             children[1]->copy());
     }
 
@@ -49,7 +47,6 @@ private:
     // TODO(Xiyang): solve this with issue 606
     vector<uint64_t> flatOutputGroupPositions;
     expression_vector expressionsToMaterialize;
-    bool isScanOneRow;
 };
 
 } // namespace planner
