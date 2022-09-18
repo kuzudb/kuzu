@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/query/match_clause/include/bound_match_clause.h"
+#include "src/binder/query/reading_clause/include/bound_match_clause.h"
 #include "src/binder/query/return_with_clause/include/bound_with_clause.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 
@@ -17,11 +17,13 @@ public:
 
     ~BoundQueryPart() = default;
 
-    inline void addMatchClause(unique_ptr<BoundMatchClause> matchClause) {
-        matchClauses.push_back(move(matchClause));
+    inline void addReadingClause(unique_ptr<BoundReadingClause> readingClause) {
+        readingClauses.push_back(move(readingClause));
     }
-    inline uint32_t getNumMatchClauses() const { return matchClauses.size(); }
-    inline BoundMatchClause* getMatchClause(uint32_t idx) const { return matchClauses[idx].get(); }
+    inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
+    inline BoundReadingClause* getReadingClause(uint32_t idx) const {
+        return readingClauses[idx].get();
+    }
 
     inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> updatingClause) {
         updatingClauses.push_back(move(updatingClause));
@@ -38,7 +40,7 @@ public:
     inline BoundWithClause* getWithClause() const { return withClause.get(); }
 
 private:
-    vector<unique_ptr<BoundMatchClause>> matchClauses;
+    vector<unique_ptr<BoundReadingClause>> readingClauses;
     vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
     unique_ptr<BoundWithClause> withClause;
 };

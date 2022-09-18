@@ -47,7 +47,7 @@ TEST_F(ExpressionTest, FilterIDComparisonTest) {
     string input = "MATCH () WHERE id(a) = id(b) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -60,7 +60,7 @@ TEST_F(ExpressionTest, FilterBooleanConnectionTest) {
     string input = "MATCH () WHERE a.isStudent AND NOT b.isMale RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -75,7 +75,7 @@ TEST_F(ExpressionTest, FilterNullOperatorTest) {
     string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -96,7 +96,7 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
         "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\" RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -114,7 +114,7 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     string input = "MATCH () WHERE 2 + a * 0.1 = a.age RETURN *";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -132,7 +132,7 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
     string input = "MATCH () WHERE ((2 - a) % 0.1) <= a.age RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }
 
@@ -149,6 +149,6 @@ TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
     string input = "MATCH () WHERE MIN(a, b^2) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*where == *matchClause.getWhereClause());
 }

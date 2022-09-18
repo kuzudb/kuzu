@@ -19,8 +19,8 @@ unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
 unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQueryPart(
     const BoundSingleQuery& singleQuery) {
     auto queryPart = make_unique<BoundQueryPart>();
-    for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
-        queryPart->addMatchClause(singleQuery.getMatchClause(i)->copy());
+    for (auto i = 0u; i < singleQuery.getNumReadingClauses(); i++) {
+        queryPart->addReadingClause(singleQuery.getReadingClause(i)->copy());
     }
     for (auto i = 0u; i < singleQuery.getNumUpdatingClauses(); ++i) {
         queryPart->addUpdatingClause(singleQuery.getUpdatingClause(i)->copy());
@@ -35,8 +35,10 @@ unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQuer
 unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
     const BoundQueryPart& queryPart) {
     auto normalizedQueryPart = make_unique<NormalizedQueryPart>();
-    for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
-        auto matchClause = queryPart.getMatchClause(i);
+    for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
+        auto readingClause = queryPart.getReadingClause(i);
+        assert(readingClause->getClauseType() == ClauseType::MATCH);
+        auto matchClause = (BoundMatchClause*)readingClause;
         normalizedQueryPart->addQueryGraph(matchClause->getQueryGraph()->copy(),
             matchClause->hasWhereExpression() ? matchClause->getWhereExpression() : nullptr,
             matchClause->getIsOptional());

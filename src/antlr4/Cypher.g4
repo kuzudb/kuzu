@@ -136,7 +136,9 @@ oC_UpdatingClause
         ;
 
 oC_ReadingClause 
-    : oC_Match ;
+    : oC_Match
+        | oC_Unwind
+        ;
 
 oC_Match 
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;
@@ -144,6 +146,10 @@ oC_Match
 OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
+
+UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' )( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
+
+oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 
 oC_Create
     : CREATE SP? oC_NodePattern ( SP? ',' SP? oC_NodePattern )* ;

@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "src/parser/query/match_clause/include/match_clause.h"
+#include "src/parser/query/reading_clause/include/match_clause.h"
 #include "src/parser/query/return_with_clause/include/with_clause.h"
 #include "src/parser/query/updating_clause/include/updating_clause.h"
 
@@ -14,18 +14,18 @@ class QueryPart {
 public:
     explicit QueryPart(unique_ptr<WithClause> withClause) : withClause{move(withClause)} {}
 
-    inline void addMatchClause(unique_ptr<MatchClause> matchClause) {
-        matchClauses.push_back(move(matchClause));
-    }
-    inline uint32_t getNumMatchClauses() const { return matchClauses.size(); }
-    inline MatchClause* getMatchClause(uint32_t idx) const { return matchClauses[idx].get(); }
-
     inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
     inline UpdatingClause* getUpdatingClause(uint32_t idx) const {
         return updatingClauses[idx].get();
     }
     inline void addUpdatingClause(unique_ptr<UpdatingClause> updatingClause) {
         updatingClauses.push_back(move(updatingClause));
+    }
+
+    inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
+    inline ReadingClause* getReadingClause(uint32_t idx) const { return readingClauses[idx].get(); }
+    inline void addReadingClause(unique_ptr<ReadingClause> readingClause) {
+        readingClauses.push_back(move(readingClause));
     }
 
     inline WithClause* getWithClause() const { return withClause.get(); }
@@ -35,7 +35,7 @@ public:
     bool operator!=(const QueryPart& other) const { return !operator==(other); }
 
 private:
-    vector<unique_ptr<MatchClause>> matchClauses;
+    vector<unique_ptr<ReadingClause>> readingClauses;
     vector<unique_ptr<UpdatingClause>> updatingClauses;
     unique_ptr<WithClause> withClause;
 };

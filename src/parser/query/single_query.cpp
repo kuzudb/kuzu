@@ -3,21 +3,25 @@
 namespace graphflow {
 namespace parser {
 
-bool SingleQuery::isFirstMatchOptional() const {
+bool SingleQuery::isFirstReadingClauseOptionalMatch() const {
     for (auto& queryPart : queryParts) {
-        if (queryPart->getNumMatchClauses() != 0) {
-            return queryPart->getMatchClause(0)->getIsOptional();
+        if (queryPart->getNumReadingClauses() != 0 &&
+            queryPart->getReadingClause(0)->getClauseType() == ClauseType::MATCH) {
+            return ((MatchClause*)queryPart->getReadingClause(0))->getIsOptional();
+        } else {
+            return false;
         }
     }
-    if (!matchClauses.empty()) {
-        return matchClauses[0]->getIsOptional();
+    if (getNumReadingClauses() != 0 && getReadingClause(0)->getClauseType() == ClauseType::MATCH) {
+        return ((MatchClause*)getReadingClause(0))->getIsOptional();
     }
     return false;
 }
 
 bool SingleQuery::operator==(const SingleQuery& other) const {
     if (queryParts.size() != other.queryParts.size() ||
-        matchClauses.size() != other.matchClauses.size() || *returnClause != *other.returnClause) {
+        readingClauses.size() != other.readingClauses.size() ||
+        *returnClause != *other.returnClause) {
         return false;
     }
     for (auto i = 0u; i < queryParts.size(); ++i) {
@@ -25,8 +29,8 @@ bool SingleQuery::operator==(const SingleQuery& other) const {
             return false;
         }
     }
-    for (auto i = 0u; i < matchClauses.size(); ++i) {
-        if (*matchClauses[i] != *other.matchClauses[i]) {
+    for (auto i = 0u; i < readingClauses.size(); ++i) {
+        if (*readingClauses[i] != *other.readingClauses[i]) {
             return false;
         }
     }

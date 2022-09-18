@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "bound_match_clause",
+    name = "bound_reading_clause",
     srcs = glob([
         "*.cpp",
     ]),
@@ -12,6 +12,7 @@ cc_library(
         "//src/binder/query:__pkg__",
     ],
     deps = [
+        "//src/common:clause_type",
         "//src/binder/expression:base_expression",
         "//src/binder/expression:node_rel_expression",
     ],

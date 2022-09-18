@@ -1,18 +1,20 @@
 #pragma once
 
 #include "pattern_element.h"
+#include "reading_clause.h"
 
 #include "src/parser/expression/include/parsed_expression.h"
 
 namespace graphflow {
 namespace parser {
 
-class MatchClause {
+class MatchClause : public ReadingClause {
 
 public:
     explicit MatchClause(
         vector<unique_ptr<PatternElement>> patternElements, bool isOptional = false)
-        : patternElements{move(patternElements)}, isOptional{isOptional} {}
+        : ReadingClause{ClauseType::MATCH}, patternElements{move(patternElements)},
+          isOptional{isOptional} {}
 
     ~MatchClause() = default;
 
@@ -29,9 +31,7 @@ public:
 
     inline bool getIsOptional() const { return isOptional; }
 
-    bool operator==(const MatchClause& other) const;
-
-    bool operator!=(const MatchClause& other) const { return !operator==(other); }
+    bool equals(const ReadingClause& other) const override;
 
 private:
     vector<unique_ptr<PatternElement>> patternElements;

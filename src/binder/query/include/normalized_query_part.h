@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/query/match_clause/include/query_graph.h"
+#include "src/binder/query/reading_clause/include/query_graph.h"
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 

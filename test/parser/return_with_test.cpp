@@ -93,7 +93,7 @@ TEST_F(ReturnWithTest, SingleWithTest) {
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
-    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses() == 0);
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumReadingClauses() == 0);
     ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
 }
 
@@ -109,7 +109,7 @@ TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
-    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumReadingClauses());
     ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
 }
 
@@ -138,8 +138,8 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumQueryParts());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumReadingClauses());
     ASSERT_TRUE(*withClause1 == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
-    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(1)->getNumMatchClauses() == 0u);
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(1)->getNumReadingClauses() == 0u);
     ASSERT_TRUE(*withClause2 == *regularQuery->getSingleQuery(0)->getQueryPart(1)->getWithClause());
 }

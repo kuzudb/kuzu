@@ -67,7 +67,7 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     CypherParser::OC_SinglePartQueryContext& ctx) {
     auto singleQuery = make_unique<SingleQuery>();
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        singleQuery->addMatchClause(transformReadingClause(*readingClause));
+        singleQuery->addReadingClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
         singleQuery->addUpdatingClause(transformUpdatingClause(*updatingClause));
@@ -81,7 +81,7 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
 unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPartContext& ctx) {
     auto queryPart = make_unique<QueryPart>(transformWith(*ctx.oC_With()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        queryPart->addMatchClause(transformReadingClause(*readingClause));
+        queryPart->addReadingClause(transformReadingClause(*readingClause));
     }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
         queryPart->addUpdatingClause(transformUpdatingClause(*updatingClause));
@@ -101,9 +101,15 @@ unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
     assert(false);
 }
 
-unique_ptr<MatchClause> Transformer::transformReadingClause(
+unique_ptr<ReadingClause> Transformer::transformReadingClause(
     CypherParser::OC_ReadingClauseContext& ctx) {
-    return transformMatch(*ctx.oC_Match());
+    if (ctx.oC_Match()) {
+        return transformMatch(*ctx.oC_Match());
+    } else if (ctx.oC_Unwind()) {
+        return transformUnwind(*ctx.oC_Unwind());
+    } else {
+        assert(false);
+    }
 }
 
 unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
@@ -113,6 +119,12 @@ unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContex
         matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
     return matchClause;
+}
+
+unique_ptr<UnwindClause> Transformer::transformUnwind(CypherParser::OC_UnwindContext& ctx) {
+    auto expression = transformExpression(*ctx.oC_Expression());
+    auto transformedVariable = transformVariable(*ctx.oC_Variable());
+    return make_unique<UnwindClause>(move(expression), move(transformedVariable));
 }
 
 unique_ptr<CreateClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {

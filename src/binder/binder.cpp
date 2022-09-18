@@ -152,8 +152,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         boundSingleQuery->addQueryPart(bindQueryPart(*singleQuery.getQueryPart(i)));
     }
-    for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
-        boundSingleQuery->addMatchClause(bindMatchClause(*singleQuery.getMatchClause(i)));
+    for (auto i = 0u; i < singleQuery.getNumReadingClauses(); i++) {
+        boundSingleQuery->addReadingClause(bindReadingClause(*singleQuery.getReadingClause(i)));
     }
     for (auto i = 0u; i < singleQuery.getNumUpdatingClauses(); ++i) {
         boundSingleQuery->addUpdatingClause(bindUpdatingClause(*singleQuery.getUpdatingClause(i)));
@@ -166,8 +166,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
 
 unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
     auto boundQueryPart = make_unique<BoundQueryPart>();
-    for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
-        boundQueryPart->addMatchClause(bindMatchClause(*queryPart.getMatchClause(i)));
+    for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
+        boundQueryPart->addReadingClause(bindReadingClause(*queryPart.getReadingClause(i)));
     }
     for (auto i = 0u; i < queryPart.getNumUpdatingClauses(); ++i) {
         boundQueryPart->addUpdatingClause(bindUpdatingClause(*queryPart.getUpdatingClause(i)));
@@ -186,6 +186,16 @@ unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchCla
         boundMatchClause->setWhereExpression(bindWhereExpression(*matchClause.getWhereClause()));
     }
     return boundMatchClause;
+}
+
+unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
+    switch (readingClause.getClauseType()) {
+    case ClauseType::MATCH: {
+        return bindMatchClause((MatchClause&)readingClause);
+    }
+    default:
+        assert(false);
+    }
 }
 
 unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause& updatingClause) {
@@ -543,7 +553,7 @@ vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
 }
 
 void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
-    if (singleQuery.isFirstMatchOptional()) {
+    if (singleQuery.isFirstReadingClauseOptionalMatch()) {
         throw BinderException("First match clause cannot be optional match.");
     }
 }

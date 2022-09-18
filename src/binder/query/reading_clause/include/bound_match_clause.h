@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bound_reading_clause.h"
 #include "query_graph.h"
 
 #include "src/binder/expression/include/expression.h"
@@ -10,14 +11,16 @@ namespace binder {
 /**
  * BoundMatchClause may not have whereExpression
  */
-class BoundMatchClause {
+class BoundMatchClause : public BoundReadingClause {
 
 public:
     explicit BoundMatchClause(unique_ptr<QueryGraph> queryGraph, bool isOptional)
-        : queryGraph{move(queryGraph)}, isOptional{isOptional} {}
+        : BoundReadingClause{ClauseType::MATCH}, queryGraph{move(queryGraph)}, isOptional{
+                                                                                   isOptional} {}
 
     BoundMatchClause(const BoundMatchClause& other)
-        : queryGraph{make_unique<QueryGraph>(*other.queryGraph)},
+        : BoundReadingClause(ClauseType::MATCH), queryGraph{make_unique<QueryGraph>(
+                                                     *other.queryGraph)},
           whereExpression(other.whereExpression), isOptional{other.isOptional} {}
 
     ~BoundMatchClause() = default;
@@ -34,7 +37,7 @@ public:
 
     inline bool getIsOptional() const { return isOptional; }
 
-    inline unique_ptr<BoundMatchClause> copy() const {
+    inline unique_ptr<BoundReadingClause> copy() override {
         return make_unique<BoundMatchClause>(*this);
     }
 

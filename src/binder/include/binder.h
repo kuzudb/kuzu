@@ -52,6 +52,7 @@ private:
 
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
 
+    unique_ptr<BoundReadingClause> bindReadingClause(const ReadingClause& readingClause);
     unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
 
     unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
