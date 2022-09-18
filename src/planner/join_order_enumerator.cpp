@@ -346,25 +346,6 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
     return true;
 }
 
-static bool buildSideHasNoPayload(const Schema& buildSchema) {
-    return buildSchema.getExpressionsInScope().size() == 1;
-}
-
-static bool buildSideHasUnFlatPayload(const string& key, const Schema& buildSchema) {
-    for (auto groupPos : SinkOperatorUtil::getGroupsPosIgnoringKeyGroup(buildSchema, key)) {
-        if (!buildSchema.getGroup(groupPos)->getIsFlat()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Key group contains expressions other than key, i.e. more than one expression.
-static bool buildSideKeyGroupIsNotTrivial(const string& key, const Schema& buildSchema) {
-    auto keyGroupPos = buildSchema.getGroupPos(key);
-    return buildSchema.getExpressionsInScope(keyGroupPos).size() > 1;
-}
-
 void JoinOrderEnumerator::appendHashJoin(
     const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
@@ -376,6 +357,8 @@ void JoinOrderEnumerator::appendHashJoin(
     // has projected out data chunks, which may increase the multiplicity of data chunks in the
     // build side. The core idea is to keep probe side key unflat only when we know that there is
     // only 0 or 1 match for each key.
+    // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
+    // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
     if (!isJoinKeyUniqueOnBuildSide(joinNodeID, buildPlan)) {
         Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
         // Update probe side cardinality if build side does not guarantee to have 0/1 match
@@ -383,23 +366,8 @@ void JoinOrderEnumerator::appendHashJoin(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
         probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
     }
-    // Analyze if we can scan multiple rows or not when the probe key if flat.
-    // TODO(Guodong): some of the follwing logics are ideally being replaced by duplicating probing
-    // key as in vectorized processing. Also, we might get rid of flattening probe key logic.
-    bool isScanOneRow = false;
-    if (probeSideSchema->getGroup(probeSideKeyGroupPos)->getIsFlat()) {
-        // If there is no payload, we can't represent more than one match in an unFlat vector, i.e.
-        // the multiplicity information is lost in the output.
-        isScanOneRow |= buildSideHasNoPayload(buildSideSchema);
-        // Factorization structure limitation.
-        isScanOneRow |= buildSideHasUnFlatPayload(joinNodeID, buildSideSchema);
-        // If key group is non-trivial, i.e. contains payload vectors along side with key vector, we
-        // cannot guarantee these payload vectors has 1-1 mapping with the key (e.g. edge
-        // properties). Therefore, we cannot scan multiple rows for a single key.
-        isScanOneRow |= buildSideKeyGroupIsNotTrivial(joinNodeID, buildSideSchema);
-    }
     auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
-    SinkOperatorUtil::mergeSchema(buildSideSchema, *probeSideSchema, joinNodeID, isScanOneRow);
+    SinkOperatorUtil::mergeSchema(buildSideSchema, *probeSideSchema, joinNodeID);
     vector<uint64_t> flatOutputGroupPositions;
     for (auto i = numGroupsBeforeMerging; i < probeSideSchema->getNumGroups(); ++i) {
         if (probeSideSchema->getGroup(i)->getIsFlat()) {
@@ -407,7 +375,7 @@ void JoinOrderEnumerator::appendHashJoin(
         }
     }
     auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
-        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(), isScanOneRow,
+        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
 }

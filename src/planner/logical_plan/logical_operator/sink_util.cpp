@@ -3,8 +3,7 @@
 namespace graphflow {
 namespace planner {
 
-void SinkOperatorUtil::mergeSchema(
-    const Schema& inputSchema, Schema& result, const string& key, bool isScanOneRow) {
+void SinkOperatorUtil::mergeSchema(const Schema& inputSchema, Schema& result, const string& key) {
     mergeKeyGroup(inputSchema, result, key);
     if (getGroupsPosIgnoringKeyGroup(inputSchema, key).empty()) { // nothing else to merge
         return;
@@ -12,9 +11,7 @@ void SinkOperatorUtil::mergeSchema(
     auto flatPayloads = getFlatPayloadsIgnoringKeyGroup(inputSchema, key);
     if (!flatPayloads.empty()) {
         auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
-        if (isScanOneRow) {
-            result.flattenGroup(flatPayloadsOutputGroupPos);
-        }
+        result.flattenGroup(flatPayloadsOutputGroupPos);
     }
     for (auto& payloadGroupPos : getGroupsPosIgnoringKeyGroup(inputSchema, key)) {
         auto payloadGroup = inputSchema.getGroup(payloadGroupPos);

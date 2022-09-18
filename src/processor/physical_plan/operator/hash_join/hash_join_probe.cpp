@@ -77,7 +77,8 @@ uint64_t HashJoinProbe::populateResultSet() {
     // Note: When the probe side is flat, and the build side: a) has no unflat columns; b) has no
     // payloads in the key data chunk; c) has payloads required to read from hash table, we apply an
     // optimization to unflat the probe side payloads in the resultSet.
-    auto numTuplesToRead = isScanOneRow ? 1 : probeState->matchedSelVector->selectedSize;
+    auto numTuplesToRead =
+        probeSideKeyVector->state->isFlat() ? 1 : probeState->matchedSelVector->selectedSize;
     if (!probeSideKeyVector->state->isFlat() &&
         probeSideKeyVector->state->selVector->selectedSize != numTuplesToRead) {
         // Update probeSideKeyVector's selectedPositions when the probe side is unflat and its

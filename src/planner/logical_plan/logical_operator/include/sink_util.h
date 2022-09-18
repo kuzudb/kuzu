@@ -9,8 +9,7 @@ using namespace graphflow::binder;
 // This class contains the logic for re-computing factorization structure after
 class SinkOperatorUtil {
 public:
-    static void mergeSchema(
-        const Schema& inputSchema, Schema& result, const string& key, bool isScanOneRow);
+    static void mergeSchema(const Schema& inputSchema, Schema& result, const string& key);
 
     static void reComputeSchema(const Schema& inputSchema, Schema& result);
 
