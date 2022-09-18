@@ -22,11 +22,13 @@ public:
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
     inline BoundQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
 
-    inline void addMatchClause(unique_ptr<BoundMatchClause> matchClause) {
-        matchClauses.push_back(move(matchClause));
+    inline void addReadingClause(unique_ptr<BoundReadingClause> readingClause) {
+        readingClauses.push_back(move(readingClause));
     }
-    inline uint32_t getNumMatchClauses() const { return matchClauses.size(); }
-    inline BoundMatchClause* getMatchClause(uint32_t idx) const { return matchClauses[idx].get(); }
+    inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
+    inline BoundReadingClause* getReadingClause(uint32_t idx) const {
+        return readingClauses[idx].get();
+    }
 
     inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> updatingClause) {
         updatingClauses.push_back(move(updatingClause));
@@ -48,7 +50,7 @@ public:
 
 private:
     vector<unique_ptr<BoundQueryPart>> queryParts;
-    vector<unique_ptr<BoundMatchClause>> matchClauses;
+    vector<unique_ptr<BoundReadingClause>> readingClauses;
     vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
     unique_ptr<BoundReturnClause> returnClause;
 };

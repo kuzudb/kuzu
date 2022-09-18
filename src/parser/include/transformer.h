@@ -6,6 +6,7 @@
 #include "src/parser/ddl/include/create_rel_clause.h"
 #include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
+#include "src/parser/query/reading_clause/include/unwind_clause.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
@@ -37,9 +38,11 @@ private:
 
     unique_ptr<UpdatingClause> transformUpdatingClause(CypherParser::OC_UpdatingClauseContext& ctx);
 
-    unique_ptr<MatchClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
+    unique_ptr<ReadingClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
     unique_ptr<MatchClause> transformMatch(CypherParser::OC_MatchContext& ctx);
+
+    unique_ptr<UnwindClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
 
     unique_ptr<CreateClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 

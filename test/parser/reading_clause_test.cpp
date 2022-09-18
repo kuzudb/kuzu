@@ -28,8 +28,8 @@ TEST_F(ReadingClauseTest, EmptyMatchTest) {
     string input = "MATCH () RETURN COUNT(*);";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
-    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumReadingClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getReadingClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
@@ -46,8 +46,8 @@ TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
     string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
-    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumReadingClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getReadingClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
@@ -70,8 +70,8 @@ TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
     string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
-    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumReadingClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getReadingClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
@@ -99,8 +99,8 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
     string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
-    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumReadingClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getReadingClause(0));
 }
 
 TEST_F(ReadingClauseTest, MultiMatchTest) {
@@ -130,7 +130,7 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
         "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
-    ASSERT_TRUE(*expectedMatch1 == *regularQuery->getSingleQuery(0)->getMatchClause(0));
-    ASSERT_TRUE(*expectedMatch2 == *regularQuery->getSingleQuery(0)->getMatchClause(1));
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumReadingClauses());
+    ASSERT_TRUE(*expectedMatch1 == *regularQuery->getSingleQuery(0)->getReadingClause(0));
+    ASSERT_TRUE(*expectedMatch2 == *regularQuery->getSingleQuery(0)->getReadingClause(1));
 }

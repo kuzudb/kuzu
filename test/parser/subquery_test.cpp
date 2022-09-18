@@ -28,7 +28,7 @@ public:
 
 TEST_F(SubqueryTest, ExistsTest) {
     auto innerQuery = make_unique<SingleQuery>();
-    innerQuery->addMatchClause(makeEmptyMatchClause());
+    innerQuery->addReadingClause(makeEmptyMatchClause());
     innerQuery->setReturnClause(makeReturnStarClause());
 
     auto existentialExpression =
@@ -39,13 +39,13 @@ TEST_F(SubqueryTest, ExistsTest) {
     string input = "MATCH () WHERE NOT EXISTS { MATCH () RETURN * } RETURN COUNT(*);";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*expectedExpression == *matchClause.getWhereClause());
 }
 
 TEST_F(SubqueryTest, NestedExistsTest) {
     auto secondInnerQuery = make_unique<SingleQuery>();
-    secondInnerQuery->addMatchClause(makeEmptyMatchClause());
+    secondInnerQuery->addReadingClause(makeEmptyMatchClause());
     secondInnerQuery->setReturnClause(makeReturnStarClause());
 
     auto innerQuery = make_unique<SingleQuery>();
@@ -53,7 +53,7 @@ TEST_F(SubqueryTest, NestedExistsTest) {
     auto match = makeEmptyMatchClause();
     match->setWhereClause(
         make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(secondInnerQuery), EMPTY));
-    innerQuery->addMatchClause(move(match));
+    innerQuery->addReadingClause(move(match));
 
     auto expectedExpression =
         make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(innerQuery), EMPTY);
@@ -62,6 +62,6 @@ TEST_F(SubqueryTest, NestedExistsTest) {
                    "* } RETURN COUNT(*);";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
-    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getMatchClause(0);
+    auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
     ASSERT_TRUE(*expectedExpression == *matchClause.getWhereClause());
 }

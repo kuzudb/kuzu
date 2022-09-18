@@ -4,11 +4,12 @@ namespace graphflow {
 namespace parser {
 
 bool QueryPart::operator==(const QueryPart& other) const {
-    if (matchClauses.size() != other.matchClauses.size() || *withClause != *other.withClause) {
+    if (readingClauses.size() != other.readingClauses.size() || *withClause != *other.withClause) {
         return false;
     }
-    for (auto i = 0u; i < matchClauses.size(); ++i) {
-        if (*matchClauses[i] != *other.matchClauses[i]) {
+    for (auto i = 0u; i < readingClauses.size(); ++i) {
+        auto &thisReadingClause = *readingClauses[i], otherReadingClause = *other.readingClauses[i];
+        if (thisReadingClause != otherReadingClause) {
             return false;
         }
     }

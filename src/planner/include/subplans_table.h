@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "src/binder/query/match_clause/include/query_graph.h"
+#include "src/binder/query/reading_clause/include/query_graph.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
 using namespace graphflow::binder;
