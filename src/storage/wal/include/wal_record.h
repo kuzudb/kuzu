@@ -218,6 +218,7 @@ enum WALRecordType : uint8_t {
     OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 6,
     COPY_NODE_CSV_RECORD = 7,
     COPY_REL_CSV_RECORD = 8,
+    DROP_TABLE_RECORD = 9,
 };
 
 struct PageUpdateOrInsertRecord {
@@ -321,6 +322,20 @@ struct TableStatisticsRecord {
     }
 };
 
+struct DropTableRecord {
+    bool isNodeTable;
+    table_id_t tableID;
+
+    DropTableRecord() = default;
+
+    DropTableRecord(bool isNodeTable, table_id_t tableID)
+        : isNodeTable{isNodeTable}, tableID{tableID} {}
+
+    inline bool operator==(const DropTableRecord& rhs) const {
+        return isNodeTable == rhs.isNodeTable && tableID == rhs.tableID;
+    }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
@@ -332,6 +347,7 @@ struct WALRecord {
         CopyNodeCSVRecord copyNodeCsvRecord;
         CopyRelCSVRecord copyRelCsvRecord;
         TableStatisticsRecord tableStatisticsRecord;
+        DropTableRecord dropTableRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -367,6 +383,9 @@ struct WALRecord {
         case COPY_REL_CSV_RECORD: {
             return copyRelCsvRecord == rhs.copyRelCsvRecord;
         }
+        case DROP_TABLE_RECORD: {
+            return dropTableRecord == rhs.dropTableRecord;
+        }
         default: {
             throw RuntimeException(
                 "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
@@ -387,6 +406,7 @@ struct WALRecord {
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeCSVRecord(table_id_t tableID);
     static WALRecord newCopyRelCSVRecord(table_id_t tableID);
+    static WALRecord newDropTableRecord(bool isNodeTable, table_id_t tableID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

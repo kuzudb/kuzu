@@ -19,11 +19,30 @@ public:
     static void createEmptyDBFilesForNewNodeTable(
         Catalog* catalog, table_id_t tableID, string directory);
 
-    static void replaceNodeFilesWithVersionFromWALIfExists(
-        catalog::NodeTableSchema* nodeTableSchema, string directory);
+    static inline void replaceNodeFilesWithVersionFromWALIfExists(
+        NodeTableSchema* nodeTableSchema, string directory) {
+        fileOperationOnNodeFiles(nodeTableSchema, directory,
+            replaceOriginalColumnFilesWithWALVersionIfExists,
+            replaceOriginalListFilesWithWALVersionIfExists);
+    }
 
     static void replaceRelPropertyFilesWithVersionFromWALIfExists(
-        catalog::RelTableSchema* relTableSchema, string directory, const catalog::Catalog* catalog);
+        RelTableSchema* relTableSchema, string directory, const Catalog* catalog) {
+        fileOperationOnRelFiles(relTableSchema, directory, catalog,
+            replaceOriginalColumnFilesWithWALVersionIfExists,
+            replaceOriginalListFilesWithWALVersionIfExists);
+    }
+
+    static inline void removeDBFilesForNodeTable(NodeTableSchema* tableSchema, string directory) {
+        fileOperationOnNodeFiles(
+            tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
+    }
+
+    static void removeDBFilesForRelTable(
+        RelTableSchema* tableSchema, string directory, const Catalog* catalog) {
+        fileOperationOnRelFiles(
+            tableSchema, directory, catalog, removeColumnFilesIfExists, removeListFilesIfExists);
+    }
 
 private:
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
@@ -46,9 +65,22 @@ private:
 
     static void replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName);
 
-    static void replaceRelPropertyFilesWithVersionFromWAL(catalog::RelTableSchema* relTableSchema,
-        table_id_t tableID, const string& directory, RelDirection relDirection,
-        bool isColumnProperty);
+    static void removeListFilesIfExists(string fileName);
+
+    static void removeColumnFilesIfExists(string fileName);
+
+    static void fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, string directory,
+        std::function<void(string fileName)> columnFileOperation,
+        std::function<void(string fileName)> listFileOperation);
+
+    static void fileOperationOnRelFiles(RelTableSchema* relTableSchema, string directory,
+        const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
+        std::function<void(string fileName)> listFileOperation);
+
+    static void fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema, table_id_t nodeTableID,
+        const string& directory, RelDirection relDirection, bool isColumnProperty,
+        std::function<void(string fileName)> columnFileOperation,
+        std::function<void(string fileName)> listFileOperation);
 };
 
 } // namespace storage

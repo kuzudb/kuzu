@@ -1,9 +1,9 @@
 #include "include/main_test_helper.h"
 
 TEST_F(ApiTest, CatalogPrinting) {
-    ASSERT_STREQ(conn->getNodeTableNames().c_str(), "Node tables: \n\tperson\n\torganisation\n");
+    ASSERT_STREQ(conn->getNodeTableNames().c_str(), "Node tables: \n\torganisation\n\tperson\n");
     ASSERT_STREQ(
-        conn->getRelTableNames().c_str(), "Rel tables: \n\tknows\n\tstudyAt\n\tworkAt\n\tmeets\n");
+        conn->getRelTableNames().c_str(), "Rel tables: \n\tmeets\n\tstudyAt\n\tknows\n\tworkAt\n");
 
     ASSERT_STREQ(conn->getRelPropertyNames("studyAt").c_str(),
         "studyAt src nodes: \n\tperson\nstudyAt dst nodes: \n\torganisation\nstudyAt properties: "

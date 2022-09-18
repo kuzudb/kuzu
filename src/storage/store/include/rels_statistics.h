@@ -41,13 +41,14 @@ public:
     RelsStatistics() : TablesStatistics{} {};
     // Should be used when an already loaded database is started from a directory.
     explicit RelsStatistics(const string& directory) : TablesStatistics{} {
-        logger->info("Initializing {}.", getTableTypeForPrinting());
+        logger->info("Initializing {}.", "RelsStatistics");
         readFromFile(directory);
-        logger->info("Initialized {}.", getTableTypeForPrinting());
+        logger->info("Initialized {}.", "RelsStatistics");
     }
 
     // Should only be used by tests.
-    explicit RelsStatistics(vector<unique_ptr<RelStatistics>> relStatisticPerTable_);
+    explicit RelsStatistics(
+        unordered_map<table_id_t, unique_ptr<RelStatistics>> relStatisticPerTable_);
 
     static inline void saveInitialRelsStatisticsToFile(const string& directory) {
         make_unique<RelsStatistics>()->saveToFile(

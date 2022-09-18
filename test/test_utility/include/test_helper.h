@@ -70,6 +70,26 @@ public:
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType);
 
+protected:
+    void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);
+
+    void validateListFilesExistence(
+        string fileName, bool existence, bool hasOverflow, bool hasHeader);
+
+    void validateNodeColumnAndListFilesExistence(
+        NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence);
+
+    void validateRelColumnAndListFilesExistence(
+        RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence);
+
+private:
+    static inline bool containsOverflowFile(DataTypeID typeID) {
+        return typeID == STRING || typeID == LIST || typeID == UNSTRUCTURED;
+    }
+
+    void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema, table_id_t tableID,
+        RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence);
+
 public:
     unique_ptr<SystemConfig> systemConfig;
     unique_ptr<DatabaseConfig> databaseConfig;

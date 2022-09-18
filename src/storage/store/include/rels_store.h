@@ -21,20 +21,20 @@ public:
 
     inline Column* getRelPropertyColumn(const table_id_t& relTableID, const table_id_t& nodeTableID,
         const uint64_t& propertyIdx) const {
-        return relTables[relTableID]->getPropertyColumn(nodeTableID, propertyIdx);
+        return relTables.at(relTableID)->getPropertyColumn(nodeTableID, propertyIdx);
     }
     inline Lists* getRelPropertyLists(const RelDirection& relDirection,
         const table_id_t& nodeTableID, const table_id_t& relTableID,
         const uint64_t& propertyIdx) const {
-        return relTables[relTableID]->getPropertyLists(relDirection, nodeTableID, propertyIdx);
+        return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
     }
     inline AdjColumn* getAdjColumn(const RelDirection& relDirection, const table_id_t& nodeTableID,
         const table_id_t& relTableID) const {
-        return relTables[relTableID]->getAdjColumn(relDirection, nodeTableID);
+        return relTables.at(relTableID)->getAdjColumn(relDirection, nodeTableID);
     }
     inline AdjLists* getAdjLists(const RelDirection& relDirection, const table_id_t& nodeTableID,
         const table_id_t& relTableID) const {
-        return relTables[relTableID]->getAdjLists(relDirection, nodeTableID);
+        return relTables.at(relTableID)->getAdjLists(relDirection, nodeTableID);
     }
 
     pair<vector<AdjLists*>, vector<AdjColumn*>> getAdjListsAndColumns(
@@ -47,24 +47,24 @@ public:
     // is running on the system, so we can directly create and insert a RelTable into relTables.
     inline void createRelTable(table_id_t tableID, vector<uint64_t>& maxNodeOffsetsPerTable,
         BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
-        relTables.push_back(make_unique<RelTable>(
-            *catalog, maxNodeOffsetsPerTable, tableID, *bufferManager, isInMemoryMode, wal));
+        relTables[tableID] = make_unique<RelTable>(
+            *catalog, maxNodeOffsetsPerTable, tableID, *bufferManager, isInMemoryMode, wal);
     }
 
     // This function is used for testing only.
     inline uint32_t getNumRelTables() const { return relTables.size(); }
 
-    inline RelTable* getRel(table_id_t tableID) const { return relTables[tableID].get(); }
+    inline RelTable* getRel(table_id_t tableID) const { return relTables.at(tableID).get(); }
 
     inline RelsStatistics& getRelsStatistics() { return relsStatistics; }
 
     inline void removeRelTable(table_id_t tableID) {
-        relTables.erase(relTables.begin() + tableID);
-        relsStatistics.deleteTableStatistic(tableID);
+        relTables.erase(tableID);
+        relsStatistics.removeTableStatistic(tableID);
     }
 
 private:
-    vector<unique_ptr<RelTable>> relTables;
+    unordered_map<table_id_t, unique_ptr<RelTable>> relTables;
     RelsStatistics relsStatistics;
     bool isInMemoryMode;
 };

@@ -48,21 +48,20 @@ public:
         vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
 
     virtual inline string getNodeTableName(table_id_t tableID) const {
-        return nodeTableSchemas[tableID]->tableName;
+        return nodeTableSchemas.at(tableID)->tableName;
     }
     virtual inline string getRelTableName(table_id_t tableID) const {
-        return relTableSchemas[tableID]->tableName;
+        return relTableSchemas.at(tableID)->tableName;
     }
 
     inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
-        return nodeTableSchemas[tableID].get();
+        return nodeTableSchemas.at(tableID).get();
     }
     inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
-        return relTableSchemas[tableID].get();
+        return relTableSchemas.at(tableID).get();
     }
 
     inline uint64_t getNumNodeTables() const { return nodeTableSchemas.size(); }
-    inline uint64_t getNumRelTables() const { return relTableSchemas.size(); }
 
     virtual inline bool containNodeTable(const string& tableName) const {
         return end(nodeTableNameToIDMap) != nodeTableNameToIDMap.find(tableName);
@@ -76,6 +75,11 @@ public:
     }
     virtual inline table_id_t getRelTableIDFromName(const string& tableName) const {
         return relTableNameToIDMap.at(tableName);
+    }
+
+    virtual inline bool isSingleMultiplicityInDirection(
+        table_id_t tableID, RelDirection direction) const {
+        return relTableSchemas.at(tableID)->isSingleMultiplicityInDirection(direction);
     }
 
     /**
@@ -93,17 +97,23 @@ public:
 
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
     inline const vector<Property>& getStructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas[tableID]->structuredProperties;
+        return nodeTableSchemas.at(tableID)->structuredProperties;
     }
     inline const vector<Property>& getUnstructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas[tableID]->unstructuredProperties;
+        return nodeTableSchemas.at(tableID)->unstructuredProperties;
     }
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {
-        return relTableSchemas[tableID]->properties;
+        return relTableSchemas.at(tableID)->properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         table_id_t tableID) const {
-        return nodeTableSchemas[tableID]->unstrPropertiesNameToIdMap;
+        return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap;
+    }
+    inline unordered_map<table_id_t, unique_ptr<NodeTableSchema>>& getNodeTableSchemas() {
+        return nodeTableSchemas;
+    }
+    inline unordered_map<table_id_t, unique_ptr<RelTableSchema>>& getRelTableSchemas() {
+        return relTableSchemas;
     }
 
     void removeTableSchema(TableSchema* tableSchema);
@@ -117,15 +127,13 @@ public:
     virtual const unordered_set<table_id_t>& getRelTableIDsForNodeTableDirection(
         table_id_t tableID, RelDirection direction) const;
 
-    virtual bool isSingleMultiplicityInDirection(table_id_t tableID, RelDirection direction) const;
-
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    vector<unique_ptr<NodeTableSchema>> nodeTableSchemas;
-    vector<unique_ptr<RelTableSchema>> relTableSchemas;
+    unordered_map<table_id_t, unique_ptr<NodeTableSchema>> nodeTableSchemas;
+    unordered_map<table_id_t, unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, table_id_t> nodeTableNameToIDMap;
@@ -185,10 +193,10 @@ public:
             unstructuredProperties);
     }
 
-    // TODO(Ziyi): we should delete tableSchema from write version of the catalog after the
-    // transaction for drop table has been implemented.
     inline void removeTableSchema(TableSchema* tableSchema) {
-        catalogContentForReadOnlyTrx->removeTableSchema(tableSchema);
+        initCatalogContentForWriteTrxIfNecessary();
+        catalogContentForWriteTrx->removeTableSchema(tableSchema);
+        wal->logDropTableRecord(tableSchema->isNodeTable, tableSchema->tableID);
     }
 
 protected:

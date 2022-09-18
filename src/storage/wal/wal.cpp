@@ -85,6 +85,12 @@ void WAL::logCopyRelCSVRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logDropTableRecord(bool isNodeTable, table_id_t tableID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newDropTableRecord(isNodeTable, tableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();

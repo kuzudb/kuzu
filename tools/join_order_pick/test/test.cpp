@@ -28,7 +28,7 @@ public:
             "KEY (ID))");
         regularConnection->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\"");
         regularConnection->query(
-            "CREATE REL knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+            "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
             "validInterval INTERVAL, comments STRING[], MANY_MANY)");
         regularConnection->query("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"");
     }

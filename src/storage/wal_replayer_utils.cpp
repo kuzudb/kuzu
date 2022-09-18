@@ -45,41 +45,6 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     IDIndex->flush();
 }
 
-void WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
-    catalog::NodeTableSchema* nodeTableSchema, string directory) {
-    for (auto& property : nodeTableSchema->structuredProperties) {
-        replaceOriginalColumnFilesWithWALVersionIfExists(StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
-    }
-    replaceOriginalListFilesWithWALVersionIfExists(StorageUtils::getNodeUnstrPropertyListsFName(
-        directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
-    replaceOriginalColumnFilesWithWALVersionIfExists(
-        StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
-}
-
-void WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
-    catalog::RelTableSchema* relTableSchema, string directory, const catalog::Catalog* catalog) {
-    for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-            relTableSchema->tableID, relDirection);
-        for (auto nodeTableID : nodeTableIDs) {
-            auto isColumnProperty = catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(
-                relTableSchema->tableID, relDirection);
-            if (isColumnProperty) {
-                replaceOriginalColumnFilesWithWALVersionIfExists(
-                    StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID, nodeTableID,
-                        relDirection, DBFileType::ORIGINAL));
-            } else {
-                replaceOriginalListFilesWithWALVersionIfExists(
-                    StorageUtils::getAdjListsFName(directory, relTableSchema->tableID, nodeTableID,
-                        relDirection, DBFileType::ORIGINAL));
-            }
-            replaceRelPropertyFilesWithVersionFromWAL(
-                relTableSchema, nodeTableID, directory, relDirection, isColumnProperty);
-        }
-    }
-}
-
 void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {
     inMemLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
     inMemLists->saveToFile();
@@ -166,19 +131,67 @@ void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(string ori
         StorageUtils::getListHeadersFName(originalListFileName));
 }
 
-void WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWAL(
-    catalog::RelTableSchema* relTableSchema, table_id_t tableID, const string& directory,
-    RelDirection relDirection, bool isColumnProperty) {
-    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-        auto property = relTableSchema->properties[i];
+void WALReplayerUtils::removeColumnFilesIfExists(string fileName) {
+    FileUtils::removeFileIfExists(fileName);
+    FileUtils::removeFileIfExists(StorageUtils::getOverflowPagesFName(fileName));
+}
+
+void WALReplayerUtils::removeListFilesIfExists(string fileName) {
+    FileUtils::removeFileIfExists(fileName);
+    FileUtils::removeFileIfExists(StorageUtils::getListMetadataFName(fileName));
+    FileUtils::removeFileIfExists(StorageUtils::getOverflowPagesFName(fileName));
+    FileUtils::removeFileIfExists(StorageUtils::getListHeadersFName(fileName));
+}
+
+void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, string directory,
+    std::function<void(string fileName)> columnFileOperation,
+    std::function<void(string fileName)> listFileOperation) {
+    for (auto& property : nodeTableSchema->structuredProperties) {
+        columnFileOperation(StorageUtils::getNodePropertyColumnFName(
+            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
+    }
+    listFileOperation(StorageUtils::getNodeUnstrPropertyListsFName(
+        directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
+    columnFileOperation(
+        StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
+}
+
+void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema, string directory,
+    const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
+    std::function<void(string fileName)> listFileOperation) {
+    for (auto relDirection : REL_DIRECTIONS) {
+        auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+            relTableSchema->tableID, relDirection);
+        for (auto nodeTableID : nodeTableIDs) {
+            auto isColumnProperty = catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(
+                relTableSchema->tableID, relDirection);
+            if (isColumnProperty) {
+                columnFileOperation(StorageUtils::getAdjColumnFName(directory,
+                    relTableSchema->tableID, nodeTableID, relDirection, DBFileType::ORIGINAL));
+            } else {
+                listFileOperation(StorageUtils::getAdjListsFName(directory, relTableSchema->tableID,
+                    nodeTableID, relDirection, DBFileType::ORIGINAL));
+            }
+            fileOperationOnRelPropertyFiles(relTableSchema, nodeTableID, directory, relDirection,
+                isColumnProperty, columnFileOperation, listFileOperation);
+        }
+    }
+}
+
+void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema,
+    table_id_t nodeTableID, const string& directory, RelDirection relDirection,
+    bool isColumnProperty, std::function<void(string fileName)> columnFileOperation,
+    std::function<void(string fileName)> listFileOperation) {
+    for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
+        auto property = tableSchema->properties[i];
         if (isColumnProperty) {
-            replaceOriginalColumnFilesWithWALVersionIfExists(
-                StorageUtils::getRelPropertyColumnFName(directory, relTableSchema->tableID, tableID,
-                    relDirection, property.name, DBFileType::ORIGINAL));
+            columnFileOperation(
+                StorageUtils::getRelPropertyColumnFName(directory, tableSchema->tableID,
+                    nodeTableID, relDirection, property.name, DBFileType::ORIGINAL));
         } else {
-            replaceOriginalListFilesWithWALVersionIfExists(
-                StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID, tableID,
-                    relDirection, relTableSchema->properties[i].propertyID, DBFileType::ORIGINAL));
+            listFileOperation(
+                StorageUtils::getRelPropertyListsFName(directory, tableSchema->tableID, nodeTableID,
+                    relDirection, tableSchema->properties[i].propertyID, DBFileType::ORIGINAL));
         }
     }
 }

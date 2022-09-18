@@ -351,25 +351,25 @@ TEST_F(BinderErrorTest, CopyCSVInvalidEscapeChar) {
 
 TEST_F(BinderErrorTest, CreateRelTableUsedName) {
     string expectedException = "Binder exception: Rel knows already exists.";
-    auto input = "CREATE REL knows ( FROM person TO person);";
+    auto input = "CREATE REL TABLE knows ( FROM person TO person);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidNodeTableName) {
     string expectedException = "Binder exception: Node table post does not exist.";
-    auto input = "CREATE REL knows_post ( FROM person TO post);";
+    auto input = "CREATE REL TABLE knows_post ( FROM person TO post);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidRelMultiplicity) {
     string expectedException = "Catalog exception: Invalid relMultiplicity string \"MANY_LOT\"";
-    auto input = "CREATE REL knows_post ( FROM person TO person, MANY_LOT);";
+    auto input = "CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: SMALLINT";
-    auto input = "CREATE REL knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY);";
+    auto input = "CREATE REL TABLE knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

@@ -6,23 +6,22 @@ namespace storage {
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
     BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
     : relsStatistics{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
-    relTables.resize(catalog.getReadOnlyVersion()->getNumRelTables());
-    for (auto tableID = 0u; tableID < catalog.getReadOnlyVersion()->getNumRelTables(); tableID++) {
-        relTables[tableID] = make_unique<RelTable>(
-            catalog, maxNodeOffsetsPerTable, tableID, bufferManager, isInMemoryMode, wal);
+    for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        relTables[tableIDSchema.first] = make_unique<RelTable>(catalog, maxNodeOffsetsPerTable,
+            tableIDSchema.first, bufferManager, isInMemoryMode, wal);
     }
 }
 
 pair<vector<AdjLists*>, vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
     const table_id_t tableID) const {
     vector<AdjLists*> adjListsRetVal;
-    for (uint64_t i = 0; i < relTables.size(); ++i) {
-        auto adjListsForRel = relTables[i]->getAdjListsForNodeTable(tableID);
+    for (auto& relTable : relTables) {
+        auto adjListsForRel = relTable.second->getAdjListsForNodeTable(tableID);
         adjListsRetVal.insert(adjListsRetVal.end(), adjListsForRel.begin(), adjListsForRel.end());
     }
     vector<AdjColumn*> adjColumnsRetVal;
-    for (uint64_t i = 0; i < relTables.size(); ++i) {
-        auto adjColumnsForRel = relTables[i]->getAdjColumnsForNodeTable(tableID);
+    for (auto& relTable : relTables) {
+        auto adjColumnsForRel = relTable.second->getAdjColumnsForNodeTable(tableID);
         adjColumnsRetVal.insert(
             adjColumnsRetVal.end(), adjColumnsForRel.begin(), adjColumnsForRel.end());
     }

@@ -18,11 +18,12 @@ class PlannerTest : public Test {
 public:
     void SetUp() override {
         catalog.setUp();
-        vector<unique_ptr<NodeStatisticsAndDeletedIDs>> nodeStatisticsAndDeletedIDs;
-        nodeStatisticsAndDeletedIDs.push_back(
-            make_unique<NodeStatisticsAndDeletedIDs>(PERSON_TABLE_ID, NUM_PERSON_NODES));
-        nodeStatisticsAndDeletedIDs.push_back(make_unique<NodeStatisticsAndDeletedIDs>(
-            ORGANISATION_TABLE_ID, NUM_ORGANISATION_NODES));
+        unordered_map<table_id_t, unique_ptr<NodeStatisticsAndDeletedIDs>>
+            nodeStatisticsAndDeletedIDs;
+        nodeStatisticsAndDeletedIDs[0] =
+            make_unique<NodeStatisticsAndDeletedIDs>(PERSON_TABLE_ID, NUM_PERSON_NODES);
+        nodeStatisticsAndDeletedIDs[1] =
+            make_unique<NodeStatisticsAndDeletedIDs>(ORGANISATION_TABLE_ID, NUM_ORGANISATION_NODES);
         mockNodeStatisticsAndDeletedIDs =
             make_unique<NodesStatisticsAndDeletedIDs>(nodeStatisticsAndDeletedIDs);
         auto knowsRelStatistics = make_unique<RelStatistics>(
@@ -45,11 +46,11 @@ public:
                                  unordered_map<table_id_t, uint64_t>{{0, 7}, {1, 0}},
                                  unordered_map<table_id_t, uint64_t>{
                                      {0, 7}, {1, 0}}} /* numRelsPerDirectionBoundTable */);
-        vector<unique_ptr<RelStatistics>> relStatistics;
-        relStatistics.push_back(move(knowsRelStatistics));
-        relStatistics.push_back(move(studyAtRelStatistics));
-        relStatistics.push_back(move(workAtRelStatistics));
-        relStatistics.push_back(move(meetsRelStatistics));
+        unordered_map<table_id_t, unique_ptr<RelStatistics>> relStatistics;
+        relStatistics[0] = move(knowsRelStatistics);
+        relStatistics[1] = move(studyAtRelStatistics);
+        relStatistics[2] = move(workAtRelStatistics);
+        relStatistics[3] = move(meetsRelStatistics);
         mockRelStatistic = make_unique<RelsStatistics>(move(relStatistics));
     }
 

@@ -75,14 +75,15 @@ public:
     NodesStatisticsAndDeletedIDs() : TablesStatistics{} {};
     // Should be used when an already loaded database is started from a directory.
     explicit NodesStatisticsAndDeletedIDs(const string& directory) : TablesStatistics{} {
-        logger->info("Initializing {}.", getTableTypeForPrinting());
+        logger->info("Initializing {}.", "NodesStatisticsAndDeletedIDs");
         readFromFile(directory);
-        logger->info("Initialized {}.", getTableTypeForPrinting());
+        logger->info("Initialized {}.", "NodesStatisticsAndDeletedIDs");
     }
 
     // Should be used ony by tests;
     explicit NodesStatisticsAndDeletedIDs(
-        vector<unique_ptr<NodeStatisticsAndDeletedIDs>>& nodesStatisticsAndDeletedIDs);
+        unordered_map<table_id_t, unique_ptr<NodeStatisticsAndDeletedIDs>>&
+            nodesStatisticsAndDeletedIDs);
 
     inline NodeStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(table_id_t tableID) const {
         return (NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForReadOnlyTrx)[tableID].get();

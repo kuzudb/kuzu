@@ -125,8 +125,8 @@ string Connection::getBuiltInAggregateFunctionNames() {
 string Connection::getNodeTableNames() {
     lock_t lck{mtx};
     string result = "Node tables: \n";
-    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumNodeTables(); ++i) {
-        result += "\t" + database->catalog->getReadOnlyVersion()->getNodeTableName(i) + "\n";
+    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
+        result += "\t" + tableIDSchema.second->tableName + "\n";
     }
     return result;
 }
@@ -134,8 +134,8 @@ string Connection::getNodeTableNames() {
 string Connection::getRelTableNames() {
     lock_t lck{mtx};
     string result = "Rel tables: \n";
-    for (auto i = 0u; i < database->catalog->getReadOnlyVersion()->getNumRelTables(); ++i) {
-        result += "\t" + database->catalog->getReadOnlyVersion()->getRelTableName(i) + "\n";
+    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
+        result += "\t" + tableIDSchema.second->tableName + "\n";
     }
     return result;
 }
@@ -257,7 +257,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             if (!preparedStatement->allowActiveTransaction && activeTransaction) {
                 throw ConnectionException(
                     "DDL and CopyCSV statements are automatically wrapped in a "
-                    "transaction and committed automatically. As such, they cannot be part of an "
+                    "transaction and committed. As such, they cannot be part of an "
                     "active transaction, please commit or rollback your previous transaction and "
                     "issue a ddl query without opening a transaction.");
             }

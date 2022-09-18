@@ -197,10 +197,12 @@ CatalogContent::CatalogContent(const string& directory) {
 
 CatalogContent::CatalogContent(const CatalogContent& other) {
     for (auto& nodeTableSchema : other.nodeTableSchemas) {
-        nodeTableSchemas.push_back(make_unique<NodeTableSchema>(*nodeTableSchema));
+        auto newNodeTableSchema = make_unique<NodeTableSchema>(*nodeTableSchema.second);
+        nodeTableSchemas[newNodeTableSchema->tableID] = move(newNodeTableSchema);
     }
     for (auto& relTableSchema : other.relTableSchemas) {
-        relTableSchemas.push_back(make_unique<RelTableSchema>(*relTableSchema));
+        auto newRelTableSchema = make_unique<RelTableSchema>(*relTableSchema.second);
+        relTableSchemas[newRelTableSchema->tableID] = move(newRelTableSchema);
     }
     nodeTableNameToIDMap = other.nodeTableNameToIDMap;
     relTableNameToIDMap = other.relTableNameToIDMap;
@@ -218,7 +220,7 @@ table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primary
     auto nodeTableSchema = make_unique<NodeTableSchema>(
         move(tableName), tableID, primaryKeyIdx, move(structuredProperties));
     nodeTableNameToIDMap[nodeTableSchema->tableName] = tableID;
-    nodeTableSchemas.push_back(move(nodeTableSchema));
+    nodeTableSchemas[tableID] = move(nodeTableSchema);
     return tableID;
 }
 
@@ -243,21 +245,21 @@ table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity r
     auto relTableSchema = make_unique<RelTableSchema>(move(tableName), tableID, relMultiplicity,
         move(structuredProperties), move(srcDstTableIDs));
     relTableNameToIDMap[relTableSchema->tableName] = tableID;
-    relTableSchemas.push_back(move(relTableSchema));
+    relTableSchemas[tableID] = move(relTableSchema);
     return tableID;
 }
 
 bool CatalogContent::containNodeProperty(table_id_t tableID, const string& propertyName) const {
-    for (auto& property : nodeTableSchemas[tableID]->structuredProperties) {
+    for (auto& property : nodeTableSchemas.at(tableID)->structuredProperties) {
         if (propertyName == property.name) {
             return true;
         }
     }
-    return nodeTableSchemas[tableID]->unstrPropertiesNameToIdMap.contains(propertyName);
+    return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap.contains(propertyName);
 }
 
 bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
-    for (auto& property : relTableSchemas[tableID]->properties) {
+    for (auto& property : relTableSchemas.at(tableID)->properties) {
         if (propertyName == property.name) {
             return true;
         }
@@ -267,7 +269,7 @@ bool CatalogContent::containRelProperty(table_id_t tableID, const string& proper
 
 const Property& CatalogContent::getNodeProperty(
     table_id_t tableID, const string& propertyName) const {
-    for (auto& property : nodeTableSchemas[tableID]->structuredProperties) {
+    for (auto& property : nodeTableSchemas.at(tableID)->structuredProperties) {
         if (propertyName == property.name) {
             return property;
         }
@@ -278,7 +280,7 @@ const Property& CatalogContent::getNodeProperty(
 
 const Property& CatalogContent::getRelProperty(
     table_id_t tableID, const string& propertyName) const {
-    for (auto& property : relTableSchemas[tableID]->properties) {
+    for (auto& property : relTableSchemas.at(tableID)->properties) {
         if (propertyName == property.name) {
             return property;
         }
@@ -287,12 +289,12 @@ const Property& CatalogContent::getRelProperty(
 }
 
 const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
-    auto primaryKeyId = nodeTableSchemas[tableID]->primaryPropertyId;
-    return nodeTableSchemas[tableID]->structuredProperties[primaryKeyId];
+    auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryPropertyId;
+    return nodeTableSchemas.at(tableID)->structuredProperties[primaryKeyId];
 }
 
 vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
-    return nodeTableSchemas[tableID]->getAllNodeProperties();
+    return nodeTableSchemas.at(tableID)->getAllNodeProperties();
 }
 
 const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
@@ -301,30 +303,17 @@ const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirec
         throw CatalogException("Node table " + to_string(tableID) + " is out of bounds.");
     }
     if (FWD == direction) {
-        return nodeTableSchemas[tableID]->fwdRelTableIDSet;
+        return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
     }
-    return nodeTableSchemas[tableID]->bwdRelTableIDSet;
+    return nodeTableSchemas.at(tableID)->bwdRelTableIDSet;
 }
 
 const unordered_set<table_id_t>& CatalogContent::getNodeTableIDsForRelTableDirection(
     table_id_t tableID, RelDirection direction) const {
-    if (tableID >= relTableSchemas.size()) {
-        throw CatalogException("Rel table " + to_string(tableID) + " is out of bounds.");
-    }
     if (FWD == direction) {
-        return relTableSchemas[tableID]->srcDstTableIDs.srcTableIDs;
+        return relTableSchemas.at(tableID)->srcDstTableIDs.srcTableIDs;
     }
-    return relTableSchemas[tableID]->srcDstTableIDs.dstTableIDs;
-}
-
-bool CatalogContent::isSingleMultiplicityInDirection(
-    table_id_t tableID, RelDirection direction) const {
-    auto relMultiplicity = relTableSchemas[tableID]->relMultiplicity;
-    if (FWD == direction) {
-        return ONE_ONE == relMultiplicity || MANY_ONE == relMultiplicity;
-    } else {
-        return ONE_ONE == relMultiplicity || ONE_MANY == relMultiplicity;
-    }
+    return relTableSchemas.at(tableID)->srcDstTableIDs.dstTableIDs;
 }
 
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
@@ -334,11 +323,14 @@ void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) 
     offset = SerDeser::serializeValue<uint64_t>(nodeTableSchemas.size(), fileInfo.get(), offset);
     offset = SerDeser::serializeValue<uint64_t>(relTableSchemas.size(), fileInfo.get(), offset);
     for (auto& nodeTableSchema : nodeTableSchemas) {
-        offset =
-            SerDeser::serializeValue<NodeTableSchema>(*nodeTableSchema, fileInfo.get(), offset);
+        offset = SerDeser::serializeValue<uint64_t>(nodeTableSchema.first, fileInfo.get(), offset);
+        offset = SerDeser::serializeValue<NodeTableSchema>(
+            *nodeTableSchema.second, fileInfo.get(), offset);
     }
     for (auto& relTableSchema : relTableSchemas) {
-        offset = SerDeser::serializeValue<RelTableSchema>(*relTableSchema, fileInfo.get(), offset);
+        offset = SerDeser::serializeValue<uint64_t>(relTableSchema.first, fileInfo.get(), offset);
+        offset = SerDeser::serializeValue<RelTableSchema>(
+            *relTableSchema.second, fileInfo.get(), offset);
     }
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -351,30 +343,32 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     uint64_t numNodeTables, numRelTables;
     offset = SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
     offset = SerDeser::deserializeValue<uint64_t>(numRelTables, fileInfo.get(), offset);
-    nodeTableSchemas.resize(numNodeTables);
-    relTableSchemas.resize(numRelTables);
-    for (auto tableID = 0u; tableID < numNodeTables; tableID++) {
+    table_id_t tableID;
+    for (auto i = 0u; i < numNodeTables; i++) {
+        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
         nodeTableSchemas[tableID] = make_unique<NodeTableSchema>();
         offset = SerDeser::deserializeValue<NodeTableSchema>(
             *nodeTableSchemas[tableID], fileInfo.get(), offset);
     }
-    for (auto tableID = 0u; tableID < numRelTables; tableID++) {
+    for (auto i = 0u; i < numRelTables; i++) {
+        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
         relTableSchemas[tableID] = make_unique<RelTableSchema>();
         offset = SerDeser::deserializeValue<RelTableSchema>(
             *relTableSchemas[tableID], fileInfo.get(), offset);
     }
     // construct the tableNameToIdMap and table's unstrPropertiesNameToIdMap
     for (auto& nodeTableSchema : nodeTableSchemas) {
-        nodeTableNameToIDMap[nodeTableSchema->tableName] = nodeTableSchema->tableID;
-        for (auto i = 0u; i < nodeTableSchema->unstructuredProperties.size(); i++) {
-            auto& property = nodeTableSchema->unstructuredProperties[i];
+        nodeTableNameToIDMap[nodeTableSchema.second->tableName] = nodeTableSchema.second->tableID;
+        for (auto i = 0u; i < nodeTableSchema.second->unstructuredProperties.size(); i++) {
+            auto& property = nodeTableSchema.second->unstructuredProperties[i];
             if (property.dataType.typeID == UNSTRUCTURED) {
-                nodeTableSchema->unstrPropertiesNameToIdMap[property.name] = property.propertyID;
+                nodeTableSchema.second->unstrPropertiesNameToIdMap[property.name] =
+                    property.propertyID;
             }
         }
     }
     for (auto& relTableSchema : relTableSchemas) {
-        relTableNameToIDMap[relTableSchema->tableName] = relTableSchema->tableID;
+        relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -383,18 +377,10 @@ void CatalogContent::removeTableSchema(TableSchema* tableSchema) {
     auto tableID = tableSchema->tableID;
     if (tableSchema->isNodeTable) {
         nodeTableNameToIDMap.erase(tableSchema->tableName);
-        nodeTableSchemas.erase(nodeTableSchemas.begin() + tableID);
-        for (auto i = tableID; i < nodeTableSchemas.size(); i++) {
-            nodeTableSchemas[i]->tableID--;
-            nodeTableNameToIDMap[nodeTableSchemas[i]->tableName]--;
-        }
+        nodeTableSchemas.erase(tableID);
     } else {
         relTableNameToIDMap.erase(tableSchema->tableName);
-        relTableSchemas.erase(relTableSchemas.begin() + tableID);
-        for (auto i = tableID; i < relTableSchemas.size(); i++) {
-            relTableSchemas[i]->tableID--;
-            relTableNameToIDMap[relTableSchemas[i]->tableName]--;
-        }
+        relTableSchemas.erase(tableID);
     }
 }
 

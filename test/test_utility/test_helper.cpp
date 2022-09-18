@@ -125,6 +125,95 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     return numPassedPlans == plans.size();
 }
 
+void BaseGraphTest::validateColumnFilesExistence(
+    string fileName, bool existence, bool hasOverflow) {
+    ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
+    if (hasOverflow) {
+        ASSERT_EQ(
+            FileUtils::fileOrPathExists(StorageUtils::getOverflowPagesFName(fileName)), existence);
+    }
+}
+
+void BaseGraphTest::validateListFilesExistence(
+    string fileName, bool existence, bool hasOverflow, bool hasHeader) {
+    ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
+    ASSERT_EQ(FileUtils::fileOrPathExists(StorageUtils::getListMetadataFName(fileName)), existence);
+    if (hasOverflow) {
+        ASSERT_EQ(
+            FileUtils::fileOrPathExists(StorageUtils::getOverflowPagesFName(fileName)), existence);
+    }
+    if (hasHeader) {
+        ASSERT_EQ(
+            FileUtils::fileOrPathExists(StorageUtils::getListHeadersFName(fileName)), existence);
+    }
+}
+
+void BaseGraphTest::validateNodeColumnAndListFilesExistence(
+    NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
+    for (auto& property : nodeTableSchema->structuredProperties) {
+        validateColumnFilesExistence(
+            StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath,
+                nodeTableSchema->tableID, property.propertyID, dbFileType),
+            existence, containsOverflowFile(property.dataType.typeID));
+    }
+    validateListFilesExistence(
+        StorageUtils::getNodeUnstrPropertyListsFName(
+            databaseConfig->databasePath, nodeTableSchema->tableID, dbFileType),
+        existence, true /* hasOverflow */, true /* hasHeader */);
+    validateColumnFilesExistence(StorageUtils::getNodeIndexFName(databaseConfig->databasePath,
+                                     nodeTableSchema->tableID, dbFileType),
+        existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));
+}
+
+void BaseGraphTest::validateRelColumnAndListFilesExistence(
+    RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
+    for (auto relDirection : REL_DIRECTIONS) {
+        unordered_set<table_id_t> nodeTableIDs = relDirection == FWD ?
+                                                     relTableSchema->srcDstTableIDs.srcTableIDs :
+                                                     relTableSchema->srcDstTableIDs.dstTableIDs;
+        if (relTableSchema->relMultiplicity) {
+            for (auto nodeTableID : nodeTableIDs) {
+                validateColumnFilesExistence(
+                    StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
+                        relTableSchema->tableID, nodeTableID, relDirection, dbFileType),
+                    existence, false /* hasOverflow */);
+                validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
+                    true /* isColumnProperty */, dbFileType, existence);
+            }
+        } else {
+            for (auto nodeTableID : nodeTableIDs) {
+                validateListFilesExistence(
+                    StorageUtils::getAdjListsFName(databaseConfig->databasePath,
+                        relTableSchema->tableID, nodeTableID, relDirection, dbFileType),
+                    existence, false /* hasOverflow */, true /* hasHeader */);
+                validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
+                    false /* isColumnProperty */, dbFileType, existence);
+            }
+        }
+    }
+}
+
+void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
+    table_id_t tableID, RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType,
+    bool existence) {
+    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
+        auto property = relTableSchema->properties[i];
+        auto hasOverflow = containsOverflowFile(property.dataType.typeID);
+        if (isColumnProperty) {
+            validateColumnFilesExistence(
+                StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
+                    relTableSchema->tableID, tableID, relDirection, property.name, dbFileType),
+                existence, hasOverflow);
+        } else {
+            validateListFilesExistence(
+                StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath,
+                    relTableSchema->tableID, tableID, relDirection,
+                    relTableSchema->properties[i].propertyID, dbFileType),
+                existence, hasOverflow, false /* hasHeader */);
+        }
+    }
+}
+
 void TestHelper::executeCypherScript(const string& cypherScript, Connection& conn) {
     assert(FileUtils::fileOrPathExists(cypherScript));
     ifstream file(cypherScript);

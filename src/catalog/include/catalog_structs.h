@@ -134,6 +134,11 @@ struct RelTableSchema : TableSchema {
         assert(false);
     }
 
+    inline bool isSingleMultiplicityInDirection(RelDirection direction) {
+        return relMultiplicity == ONE_ONE ||
+               relMultiplicity == (direction == FWD ? MANY_ONE : ONE_MANY);
+    }
+
     inline SrcDstTableIDs getSrcDstTableIDs() { return srcDstTableIDs; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
