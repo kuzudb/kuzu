@@ -212,6 +212,14 @@ cc_library(
 )
 
 cc_library(
+    name = "join_type",
+    hdrs = [
+        "include/join_type.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "statement_type",
     hdrs = [
         "include/statement_type.h",

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/common/include/join_type.h"
 #include "src/processor/include/physical_plan/operator/filtering_operator.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
@@ -12,8 +13,6 @@ struct ProbeState {
     explicit ProbeState() : nextMatchedTupleIdx{0} {
         matchedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
         probedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
-        probeSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        probeSelVector->resetSelectorToValuePosBuffer();
         matchedSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
         matchedSelVector->resetSelectorToValuePosBuffer();
     }
@@ -23,7 +22,6 @@ struct ProbeState {
     // Pointers to tuples in ht that actually matched.
     unique_ptr<uint8_t*[]> matchedTuples;
     // Selective index mapping each probed tuple to its probe side key vector.
-    unique_ptr<SelectionVector> probeSelVector;
     unique_ptr<SelectionVector> matchedSelVector;
     sel_t nextMatchedTupleIdx;
 };
@@ -49,47 +47,58 @@ public:
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
 class HashJoinProbe : public PhysicalOperator, FilteringOperator {
 public:
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */}, sharedState{std::move(sharedState)},
+          FilteringOperator{1 /* numStatesToSave */},
+          sharedState{std::move(sharedState)}, joinType{joinType},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState,
+    // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */}, sharedState{std::move(sharedState)},
+          FilteringOperator{1 /* numStatesToSave */},
+          sharedState{std::move(sharedState)}, joinType{joinType},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
-    PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
+    inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
-    // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinProbe>(sharedState, flatDataChunkPositions, probeDataInfo,
-            children[0]->clone(), id, paramsString);
+    inline unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<HashJoinProbe>(sharedState, joinType, flatDataChunkPositions,
+            probeDataInfo, children[0]->clone(), id, paramsString);
     }
 
 private:
+    bool hasMoreLeft();
     bool getNextBatchOfMatchedTuples();
-    uint64_t populateResultSet();
+    uint64_t getNextInnerJoinResult();
+    uint64_t getNextLeftJoinResult();
+    void setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors);
+
+    inline uint64_t getNextJoinResult() {
+        return joinType == JoinType::LEFT ? getNextLeftJoinResult() : getNextInnerJoinResult();
+    }
 
 private:
     shared_ptr<HashJoinSharedState> sharedState;
+    JoinType joinType;
     vector<uint64_t> flatDataChunkPositions;
 
     ProbeDataInfo probeDataInfo;
     vector<shared_ptr<ValueVector>> vectorsToReadInto;
     vector<uint32_t> columnIdxsToReadFrom;
-    shared_ptr<ValueVector> probeSideKeyVector;
+    shared_ptr<ValueVector> probeKeyVector;
     unique_ptr<ProbeState> probeState;
 };
+
 } // namespace processor
 } // namespace graphflow

@@ -2,6 +2,7 @@
 
 #include "src/binder/query/include/normalized_single_query.h"
 #include "src/catalog/include/catalog.h"
+#include "src/common/include/join_type.h"
 #include "src/planner/include/join_order_enumerator_context.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
@@ -71,18 +72,18 @@ private:
         auto maxLeftLevel = floor(level / 2.0);
         for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
             auto rightLevel = level - leftLevel;
-            planJoin(leftLevel, rightLevel);
+            planInnerJoin(leftLevel, rightLevel);
         }
         context->subPlansTable->finalizeLevel(level);
     }
 
-    void planJoin(uint32_t leftLevel, uint32_t rightLevel);
+    void planInnerJoin(uint32_t leftLevel, uint32_t rightLevel);
 
     bool canApplyINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
         shared_ptr<NodeExpression> joinNode);
-    void planINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+    void planInnerINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
         shared_ptr<NodeExpression> joinNode);
-    void planHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+    void planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
         shared_ptr<NodeExpression> joinNode, bool flipPlan);
     // Filter push down for hash join.
     void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
@@ -91,8 +92,8 @@ private:
     void appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
-    void appendHashJoin(
-        const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendHashJoin(const shared_ptr<NodeExpression>& joinNode, JoinType joinType,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan);
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
         table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);

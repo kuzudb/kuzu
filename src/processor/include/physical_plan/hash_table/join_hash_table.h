@@ -19,7 +19,7 @@ public:
     void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
-    void probe(ValueVector& keyVector, uint8_t** probedTuples, SelectionVector& probeSelVector);
+    void probe(ValueVector& keyVector, uint8_t** probedTuples);
 
     inline void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {

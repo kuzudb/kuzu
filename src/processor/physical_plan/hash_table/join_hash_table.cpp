@@ -64,31 +64,23 @@ void JoinHashTable::buildHashSlots() {
     }
 }
 
-void JoinHashTable::probe(
-    ValueVector& keyVector, uint8_t** probedTuples, SelectionVector& probeSelVector) {
+void JoinHashTable::probe(ValueVector& keyVector, uint8_t** probedTuples) {
+    if (getNumTuples() == 0) {
+        return;
+    }
     auto hashVector = make_unique<ValueVector>(INT64, &memoryManager);
     auto hasNoNullValues = NodeIDVector::discardNull(keyVector);
     if (!hasNoNullValues) {
-        probeSelVector.selectedSize = 0;
         return;
     }
     function::VectorHashOperations::computeHash(&keyVector, hashVector.get());
     auto hashes = (hash_t*)hashVector->values;
-    uint64_t numProbedKeys = 0;
-    if (hashVector->state->isFlat()) {
-        auto pos = hashVector->state->getPositionOfCurrIdx();
-        probedTuples[numProbedKeys] = getTupleForHash(hashes[pos]);
-        probeSelVector.selectedPositions[numProbedKeys] = pos;
-        numProbedKeys += probedTuples[numProbedKeys] != nullptr;
-    } else {
-        for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
-            auto pos = hashVector->state->selVector->selectedPositions[i];
-            probedTuples[numProbedKeys] = getTupleForHash(hashes[pos]);
-            probeSelVector.selectedPositions[numProbedKeys] = pos;
-            numProbedKeys += probedTuples[numProbedKeys] != nullptr;
-        }
+    auto startIdx = hashVector->state->isFlat() ? hashVector->state->currIdx : 0;
+    auto numValues = hashVector->state->isFlat() ? 1 : hashVector->state->selVector->selectedSize;
+    for (auto i = 0u; i < numValues; i++) {
+        auto pos = hashVector->state->selVector->selectedPositions[i + startIdx];
+        probedTuples[pos] = getTupleForHash(hashes[pos]);
     }
-    probeSelVector.selectedSize = numProbedKeys;
 }
 
 uint8_t** JoinHashTable::findHashSlot(const nodeID_t& value) const {

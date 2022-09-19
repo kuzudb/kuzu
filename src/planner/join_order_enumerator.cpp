@@ -138,7 +138,7 @@ void JoinOrderEnumerator::planPropertyScansForRel(
     enumerator->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
 }
 
-void JoinOrderEnumerator::planJoin(uint32_t leftLevel, uint32_t rightLevel) {
+void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
     assert(leftLevel <= rightLevel);
     for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
         for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
@@ -155,11 +155,11 @@ void JoinOrderEnumerator::planJoin(uint32_t leftLevel, uint32_t rightLevel) {
             auto joinNode = context->mergedQueryGraph->getQueryNode(joinNodePositions[0]);
             // If index nested loop (INL) join is possible, we prune hash join plans
             if (canApplyINLJoin(rightSubgraph, nbrSubgraph, joinNode)) {
-                planINLJoin(rightSubgraph, nbrSubgraph, joinNode);
+                planInnerINLJoin(rightSubgraph, nbrSubgraph, joinNode);
             } else if (canApplyINLJoin(nbrSubgraph, rightSubgraph, joinNode)) {
-                planINLJoin(nbrSubgraph, rightSubgraph, joinNode);
+                planInnerINLJoin(nbrSubgraph, rightSubgraph, joinNode);
             } else {
-                planHashJoin(rightSubgraph, nbrSubgraph, joinNode, leftLevel != rightLevel);
+                planInnerHashJoin(rightSubgraph, nbrSubgraph, joinNode, leftLevel != rightLevel);
             }
         }
     }
@@ -218,7 +218,7 @@ static uint32_t extractJoinRelPos(const SubqueryGraph& subgraph, const QueryGrap
     assert(false);
 }
 
-void JoinOrderEnumerator::planINLJoin(const SubqueryGraph& subgraph,
+void JoinOrderEnumerator::planInnerINLJoin(const SubqueryGraph& subgraph,
     const SubqueryGraph& otherSubgraph, shared_ptr<NodeExpression> joinNode) {
     assert(otherSubgraph.getNumQueryRels() == 1);
     auto queryGraph = context->getQueryGraph();
@@ -238,7 +238,7 @@ void JoinOrderEnumerator::planINLJoin(const SubqueryGraph& subgraph,
     }
 }
 
-void JoinOrderEnumerator::planHashJoin(const SubqueryGraph& subgraph,
+void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
     const SubqueryGraph& otherSubgraph, shared_ptr<NodeExpression> joinNode, bool flipPlan) {
     auto newSubgraph = subgraph;
     newSubgraph.addSubqueryGraph(otherSubgraph);
@@ -250,12 +250,12 @@ void JoinOrderEnumerator::planHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanBuildCopy = rightPlan->shallowCopy();
             auto leftPlanBuildCopy = leftPlan->shallowCopy();
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
-            appendHashJoin(joinNode, *leftPlanProbeCopy, *rightPlanBuildCopy);
+            appendHashJoin(joinNode, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
             context->addPlan(newSubgraph, move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
-                appendHashJoin(joinNode, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                appendHashJoin(joinNode, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, move(rightPlanProbeCopy));
             }
@@ -346,8 +346,8 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
     return true;
 }
 
-void JoinOrderEnumerator::appendHashJoin(
-    const shared_ptr<NodeExpression>& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+void JoinOrderEnumerator::appendHashJoin(const shared_ptr<NodeExpression>& joinNode,
+    JoinType joinType, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
     auto& buildSideSchema = *buildPlan.getSchema();
     auto probeSideSchema = probePlan.getSchema();
@@ -361,7 +361,6 @@ void JoinOrderEnumerator::appendHashJoin(
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
     if (!isJoinKeyUniqueOnBuildSide(joinNodeID, buildPlan)) {
         Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
-        // Update probe side cardinality if build side does not guarantee to have 0/1 match
         probePlan.multiplyCardinality(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
         probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
@@ -374,7 +373,7 @@ void JoinOrderEnumerator::appendHashJoin(
             flatOutputGroupPositions.push_back(i);
         }
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, buildSideSchema.copy(),
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, joinType, buildSideSchema.copy(),
         flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));

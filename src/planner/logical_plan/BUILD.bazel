@@ -15,6 +15,7 @@ cc_library(
     ],
     deps = [
         "//src/binder/expression:base_expression",
+        "//src/common:join_type",
         "//src/planner/logical_plan/logical_operator:base_logical_operator",
     ],
 )
