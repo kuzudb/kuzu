@@ -26,14 +26,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     // append union all
     vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
-    for (auto& expression : logicalUnionAll.getExpressionsToUnion()) {
+    vector<uint32_t> colIndicesToScan;
+    auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
+    for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
+        auto expression = expressionsToUnion[i];
         outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
         outVecDataTypes.push_back(expression->getDataType());
+        colIndicesToScan.push_back(i);
     }
-    auto unionSharedState = make_shared<UnionAllScanSharedState>(move(resultCollectorSharedStates));
+    auto unionSharedState =
+        make_shared<UnionAllScanSharedState>(std::move(resultCollectorSharedStates));
     return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(outDataPoses), move(outVecDataTypes), unionSharedState, move(prevOperators),
-        getOperatorID(), logicalUnionAll.getExpressionsForPrinting());
+        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+        unionSharedState, std::move(prevOperators), getOperatorID(),
+        logicalUnionAll.getExpressionsForPrinting());
 }
 
 } // namespace processor

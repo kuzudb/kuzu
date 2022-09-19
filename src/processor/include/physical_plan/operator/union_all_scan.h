@@ -25,19 +25,21 @@ class UnionAllScan : public BaseTableScan {
 public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
-        shared_ptr<UnionAllScanSharedState> sharedState,
+        vector<uint32_t> colIndicesToScan, shared_ptr<UnionAllScanSharedState> sharedState,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
-        : BaseTableScan{move(resultSetDescriptor), move(outVecPositions), move(outVecDataTypes),
-              move(children), id, paramsString},
-          sharedState{move(sharedState)} {}
+        : BaseTableScan{std::move(resultSetDescriptor), std::move(outVecPositions),
+              std::move(outVecDataTypes), std::move(colIndicesToScan), std::move(children), id,
+              paramsString},
+          sharedState{std::move(sharedState)} {}
 
     // For clone only
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
-        shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id, const string& paramsString)
-        : BaseTableScan{move(resultSetDescriptor), move(outVecPositions), move(outVecDataTypes), id,
-              paramsString},
-          sharedState{move(sharedState)} {}
+        vector<uint32_t> colIndicesToScan, shared_ptr<UnionAllScanSharedState> sharedState,
+        uint32_t id, const string& paramsString)
+        : BaseTableScan{std::move(resultSetDescriptor), std::move(outVecPositions),
+              std::move(outVecDataTypes), std::move(colIndicesToScan), id, paramsString},
+          sharedState{std::move(sharedState)} {}
 
     inline void setMaxMorselSize() override { maxMorselSize = sharedState->getMaxMorselSize(); }
     inline unique_ptr<FTableScanMorsel> getMorsel() override {
@@ -55,7 +57,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<UnionAllScan>(resultSetDescriptor->copy(), outVecPositions,
-            outVecDataTypes, sharedState, id, paramsString);
+            outVecDataTypes, colIndicesToScan, sharedState, id, paramsString);
     }
 
 private:

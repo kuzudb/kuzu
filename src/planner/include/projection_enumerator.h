@@ -15,6 +15,7 @@ class Enumerator;
 
 class ProjectionEnumerator {
     friend class Enumerator;
+    friend class JoinOrderEnumerator;
 
 public:
     explicit ProjectionEnumerator(const Catalog& catalog, Enumerator* enumerator)

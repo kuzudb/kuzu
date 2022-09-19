@@ -30,14 +30,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalTableScanToPhysical(
     // map factorized table scan
     vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
-    for (auto& expression : logicalTableScan.getExpressions()) {
+    vector<uint32_t> colIndicesToScan;
+    auto expressions = logicalTableScan.getExpressions();
+    for (auto i = 0u; i < expressions.size(); ++i) {
+        auto expression = expressions[i];
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
         outVecDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
+        colIndicesToScan.push_back(i);
     }
     return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(outDataPoses), move(outVecDataTypes), sharedState, vector<uint64_t>{}, getOperatorID(),
+        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+        sharedState, vector<uint64_t>{}, getOperatorID(),
         logicalTableScan.getExpressionsForPrinting());
 }
 
