@@ -8,25 +8,21 @@ namespace graphflow {
 namespace planner {
 using namespace graphflow::binder;
 
-class LogicalScanNodeID : public LogicalOperator {
+class LogicalSemiMasker : public LogicalOperator {
 public:
-    explicit LogicalScanNodeID(shared_ptr<NodeExpression> node) : node{move(node)} {}
+    LogicalSemiMasker(shared_ptr<NodeExpression> node, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, node{move(node)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
+        return LogicalOperatorType::LOGICAL_SEMI_MASKER;
     }
 
     inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
-    inline void computeSchema(Schema& schema) {
-        auto groupPos = schema.createGroup();
-        schema.insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
-    }
-
     inline shared_ptr<NodeExpression> getNode() const { return node; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalScanNodeID>(node);
+        return make_unique<LogicalSemiMasker>(node, children[0]->copy());
     }
 
 private:

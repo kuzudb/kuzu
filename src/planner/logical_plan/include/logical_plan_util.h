@@ -7,11 +7,17 @@ namespace planner {
 
 class LogicalPlanUtil {
 public:
+    static vector<LogicalOperator*> collectOperators(
+        const LogicalPlan& plan, LogicalOperatorType operatorType);
+
     static inline string encodeJoin(LogicalPlan& logicalPlan) {
         return encodeJoin(logicalPlan.getLastOperator().get());
     }
 
 private:
+    static void collectOperatorsRecursive(
+        LogicalOperator* op, LogicalOperatorType operatorType, vector<LogicalOperator*>& result);
+
     static string encodeJoin(LogicalOperator* logicalOperator) {
         string result;
         encodeJoinRecursive(logicalOperator, result);

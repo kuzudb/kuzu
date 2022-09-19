@@ -7,6 +7,13 @@
 namespace graphflow {
 namespace planner {
 
+vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
+    const LogicalPlan& plan, LogicalOperatorType operatorType) {
+    vector<LogicalOperator*> result;
+    collectOperatorsRecursive(plan.getLastOperator().get(), operatorType, result);
+    return result;
+}
+
 void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, string& encodeString) {
     switch (logicalOperator->getLogicalOperatorType()) {
     case LogicalOperatorType::LOGICAL_HASH_JOIN: {
@@ -31,6 +38,16 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
     }
 }
 
+void LogicalPlanUtil::collectOperatorsRecursive(
+    LogicalOperator* op, LogicalOperatorType operatorType, vector<LogicalOperator*>& result) {
+    if (op->getLogicalOperatorType() == operatorType) {
+        result.push_back(op);
+    }
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
+        collectOperatorsRecursive(op->getChild(i).get(), operatorType, result);
+    }
+}
+
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, string& encodeString) {
     auto logicalHashJoin = (LogicalHashJoin*)logicalOperator;
     encodeString += "HJ(" + logicalHashJoin->getJoinNode()->getRawName() + ")";
@@ -43,7 +60,7 @@ void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, string& enc
 
 void LogicalPlanUtil::encodeScanNodeID(LogicalOperator* logicalOperator, string& encodeString) {
     auto logicalScanNodeID = (LogicalScanNodeID*)logicalOperator;
-    encodeString += "S(" + logicalScanNodeID->getNodeExpression()->getRawName() + ")";
+    encodeString += "S(" + logicalScanNodeID->getNode()->getRawName() + ")";
 }
 
 } // namespace planner

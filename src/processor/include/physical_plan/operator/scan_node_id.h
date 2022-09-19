@@ -25,30 +25,46 @@ public:
 class ScanNodeIDSharedState {
 
 public:
-    explicit ScanNodeIDSharedState(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
-        table_id_t tableID, bool enableSemiMask = false)
-        : initialized{false}, enableSemiMask{enableSemiMask},
+    explicit ScanNodeIDSharedState(
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, table_id_t tableID)
+        : initialized{false},
           nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{tableID},
-          maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0} {}
+          maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0}, mask{nullptr} {
+    }
 
     void initialize(Transaction* transaction);
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
+    inline void initSemiMask(Transaction* transaction) {
+        unique_lock xLck{mtx};
+        if (mask == nullptr) {
+            auto maxNodeOffset_ =
+                nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
+            auto maxMorselIdx_ = maxNodeOffset_ >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+            mask = make_unique<SemiMask>(maxNodeOffset_, maxMorselIdx_);
+        }
+    }
     // Notice: This function is not protected with a lock for concurrent writes because of the
     // special use case that there is no mixed reads and writes to the mask, and all writes to the
     // mask try to set a position to true, thus it doesn't matter which thread succeeds.
     inline void setMask(uint64_t nodeOffset) {
-        mask->morselMask[nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2] = true;
-        mask->nodeMask[nodeOffset] = true;
+        auto morselOffset = nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+        // Note: blindly update mask does not parallel well so we minimize write by first checking
+        // if the mask is true or not.
+        if (!mask->morselMask[morselOffset]) {
+            mask->morselMask[morselOffset] = true;
+        }
+        if (!mask->nodeMask[nodeOffset]) {
+            mask->nodeMask[nodeOffset] = true;
+        }
     }
-    inline bool isSemiMaskEnabled() const { return enableSemiMask; }
+    inline bool isSemiMaskEnabled() const { return mask != nullptr; }
     inline bool isNodeMasked(node_offset_t nodeOffset) const { return mask->nodeMask[nodeOffset]; }
 
 private:
     mutex mtx;
     bool initialized;
-    bool enableSemiMask;
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
     table_id_t tableID;
     uint64_t maxNodeOffset;
@@ -60,11 +76,15 @@ private:
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
-    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, NodeTable* nodeTable,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
-        const string& paramsString)
+    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, string nodeName,
+        NodeTable* nodeTable, const DataPos& outDataPos,
+        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
-          nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
+          nodeName{nodeName}, nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(
+                                                                                sharedState)} {}
+
+    inline string getNodeName() const { return nodeName; }
+    inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
@@ -73,8 +93,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeTable, outDataPos, sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(resultSetDescriptor->copy(), nodeName, nodeTable, outDataPos,
+            sharedState, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -85,6 +105,7 @@ private:
     void setSelVector(node_offset_t startOffset, node_offset_t endOffset);
 
 private:
+    string nodeName;
     NodeTable* nodeTable;
     DataPos outDataPos;
     shared_ptr<ScanNodeIDSharedState> sharedState;

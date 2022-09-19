@@ -1,5 +1,7 @@
 #include "src/planner/include/join_order_enumerator.h"
 
+#include "include/asp_optimizer.h"
+
 #include "src/planner/include/enumerator.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
@@ -183,7 +185,7 @@ static shared_ptr<NodeExpression> getSequentialNode(LogicalPlan& plan) {
         // and we loose any sequential guarantees.
         return nullptr;
     }
-    return ((LogicalScanNodeID*)pipelineSource)->getNodeExpression();
+    return ((LogicalScanNodeID*)pipelineSource)->getNode();
 }
 
 // Check whether given node ID has sequential guarantee on the plan.
@@ -250,12 +252,12 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanBuildCopy = rightPlan->shallowCopy();
             auto leftPlanBuildCopy = leftPlan->shallowCopy();
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
-            appendHashJoin(joinNode, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
+            planHashJoin(joinNode, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
             context->addPlan(newSubgraph, move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
-                appendHashJoin(joinNode, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                planHashJoin(joinNode, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, move(rightPlanProbeCopy));
             }
@@ -318,6 +320,14 @@ void JoinOrderEnumerator::appendExtend(
     plan.increaseCost(plan.getCardinality());
 }
 
+void JoinOrderEnumerator::planHashJoin(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
+    LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    if (ASPOptimizer::canApplyASP(joinNode, probePlan, buildPlan)) {
+        ASPOptimizer::applyASP(joinNode, joinType, probePlan, buildPlan);
+    }
+    appendHashJoin(joinNode, joinType, probePlan, buildPlan);
+}
+
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
     auto buildSchema = buildPlan.getSchema();
     auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
@@ -340,7 +350,7 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
         return false;
     }
     auto scanNodeID = (LogicalScanNodeID*)firstop;
-    if (scanNodeID->getNodeExpression()->getIDProperty() != joinNodeID) {
+    if (scanNodeID->getNode()->getIDProperty() != joinNodeID) {
         return false;
     }
     return true;

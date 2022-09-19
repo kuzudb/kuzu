@@ -202,10 +202,8 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
         *queryGraphToEnumerate, queryGraphPredicate, getInitialEmptyPlans()));
     joinOrderEnumerator.exitSubquery(std::move(prevContext));
-    // TOOD(Xiyang): Update the cost for outer plan here.
-    Enumerator::appendFlattenIfNecessary(
-        outerPlan.getSchema()->getGroupPos(joinNode->getIDProperty()), outerPlan);
-    joinOrderEnumerator.appendHashJoin(joinNode, JoinType::LEFT, outerPlan, *bestInnerPlan);
+    Enumerator::appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
+    JoinOrderEnumerator::planHashJoin(joinNode, JoinType::LEFT, outerPlan, *bestInnerPlan);
 }
 
 void Enumerator::planExistsSubquery(
