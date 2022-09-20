@@ -96,6 +96,62 @@ TEST(TimestampTests, FromCString) {
     EXPECT_EQ(Timestamp::FromCString("1992-04-28T09:22:56", strlen("1992-04-28T09:22:56")).value,
         704452976000000);
     EXPECT_EQ(Timestamp::FromCString("2023-08-12", strlen("2023-08-12")).value, 1691798400000000);
+
+    // Timestamps with timezone.
+    EXPECT_EQ(
+        Timestamp::FromCString("2112-08-21 08:21:23.005612Z", strlen("2112-08-21 08:21:23.005612Z"))
+            .value,
+        4501210883005612);
+    EXPECT_EQ(Timestamp::FromCString(
+                  "2112-08-21 08:21:23.005612Z+00:00", strlen("2112-08-21 08:21:23.005612Z+00:00"))
+                  .value,
+        4501210883005612);
+    EXPECT_EQ(Timestamp::FromCString(
+                  "2112-08-21 08:21:23.005612Z+02:00", strlen("2112-08-21 08:21:23.005612Z+02:00"))
+                  .value,
+        4501203683005612);
+    EXPECT_EQ(
+        Timestamp::FromCString("1992-04-28T09:22:56-09:00", strlen("1992-04-28T09:22:56-09:00"))
+            .value,
+        704485376000000);
+    EXPECT_EQ(
+        Timestamp::FromCString("1992-04-28T09:22:56-09", strlen("1992-04-28T09:22:56-09")).value,
+        704485376000000);
+    EXPECT_EQ(Timestamp::FromCString(
+                  "1992-04-28T09:22:56-09:00   ", strlen("1992-04-28T09:22:56-09:00   "))
+                  .value,
+        704485376000000);
+    EXPECT_EQ(
+        Timestamp::FromCString("1992-04-28T09:22:56-06:30", strlen("1992-04-28T09:22:56-06:30"))
+            .value,
+        704476376000000);
+    try {
+        // Invalid timezone format.
+        Timestamp::FromCString("1992-04-28T09:33:56-XX:DD", strlen("1992-04-28T09:33:56-XX:DD"));
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
+    try {
+        // Missing +/- sign.
+        Timestamp::FromCString(
+            "2112-08-21 08:21:23.005612Z02:00", strlen("2112-08-21 08:21:23.005612Z02:00"));
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
+    try {
+        // Incorrect timezone minutes.
+        Timestamp::FromCString(
+            "2112-08-21 08:21:23.005612Z+02:100", strlen("2112-08-21 08:21:23.005612Z+02:100"));
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
+    try {
+        // Incorrect timezone hours.
+        Timestamp::FromCString(
+            "2112-08-21 08:21:23.005612Z+021", strlen("2112-08-21 08:21:23.005612Z+021"));
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
 }
 
 TEST(TimestampTests, toString) {
