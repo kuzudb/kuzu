@@ -82,6 +82,9 @@ public:
     static inline int64_t getEpochNanoSeconds(const timestamp_t& timestamp) {
         return timestamp.value * Interval::NANOS_PER_MICRO;
     }
+
+    static bool TryParseUTCOffset(
+        const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
 };
 
 } // namespace common

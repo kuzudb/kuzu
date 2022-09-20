@@ -23,10 +23,10 @@ def test_to_df(establish_connection):
                                           Timestamp('1980-10-26'), Timestamp('1980-10-26'),
                                           Timestamp('1980-10-26'), Timestamp('1990-11-27')]
     assert str(pd['p.birthdate'].dtype) == "datetime64[ns]"
-    assert pd['p.registerTime'].tolist() == [Timestamp('2011-08-20 11:25:30'), Timestamp('2008-11-03 13:25:30.000526'),
+    assert pd['p.registerTime'].tolist() == [Timestamp('2011-08-20 11:25:30'), Timestamp('2008-11-03 15:25:30.000526'),
                                              Timestamp('1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
                                              Timestamp('1976-12-23 11:21:42'), Timestamp('1972-07-31 13:22:30.678559'),
-                                             Timestamp('1976-12-23 11:21:42'), Timestamp('2023-02-21 13:25:30')]
+                                             Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')]
     assert str(pd['p.registerTime'].dtype) == "datetime64[ns]"
     assert pd['p.lastJobDuration'].tolist() == [Timedelta('1082 days 13:02:00'), Timedelta('3750 days 13:00:00.000024'),
                                                 Timedelta('2 days 00:24:11'), Timedelta('3750 days 13:00:00.000024'),

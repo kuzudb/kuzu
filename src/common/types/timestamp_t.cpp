@@ -66,7 +66,7 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
     if (!Date::TryConvertDate(str, dateStrLen, pos, date)) {
         throw ConversionException("Error occurred during parsing time Given: \"" +
                                   string(str, len) +
-                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS])");
+                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS][+/-HH:MM])");
     }
     if (pos == len) {
         // no time: only a date
@@ -81,19 +81,77 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
     if (!Time::TryConvertTime(str + pos, len - pos, time_pos, time)) {
         throw ConversionException("Error occurred during parsing time Given: \"" +
                                   string(str, len) +
-                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS])");
+                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS][+/-HH:MM])");
     }
     pos += time_pos;
     result = FromDatetime(date, time);
-
-    // skip any spaces at the end
-    while (pos < len && isspace(str[pos])) {
-        pos++;
-    }
     if (pos < len) {
-        throw ConversionException(string(str, len));
+        // skip a "Z" at the end (as per the ISO8601 specs)
+        if (str[pos] == 'Z') {
+            pos++;
+        }
+        int hour_offset, minute_offset;
+        if (Timestamp::TryParseUTCOffset(str, pos, len, hour_offset, minute_offset)) {
+            result.value -= hour_offset * Interval::MICROS_PER_HOUR +
+                            minute_offset * Interval::MICROS_PER_MINUTE;
+        }
+        // skip any spaces at the end
+        while (pos < len && isspace(str[pos])) {
+            pos++;
+        }
+        if (pos < len) {
+            throw ConversionException(string(str, len));
+        }
     }
     return result;
+}
+
+bool Timestamp::TryParseUTCOffset(
+    const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset) {
+    minute_offset = 0;
+    uint64_t curpos = pos;
+    // parse the next 3 characters
+    if (curpos + 3 > len) {
+        // no characters left to parse
+        return false;
+    }
+    char sign_char = str[curpos];
+    if (sign_char != '+' && sign_char != '-') {
+        // expected either + or -
+        return false;
+    }
+    curpos++;
+    if (!isdigit(str[curpos]) || !isdigit(str[curpos + 1])) {
+        // expected +HH or -HH
+        return false;
+    }
+    hour_offset = (str[curpos] - '0') * 10 + (str[curpos + 1] - '0');
+    if (sign_char == '-') {
+        hour_offset = -hour_offset;
+    }
+    curpos += 2;
+
+    // optional minute specifier: expected either "MM" or ":MM"
+    if (curpos >= len) {
+        // done, nothing left
+        pos = curpos;
+        return true;
+    }
+    if (str[curpos] == ':') {
+        curpos++;
+    }
+    if (curpos + 2 > len || !isdigit(str[curpos]) || !isdigit(str[curpos + 1])) {
+        // no MM specifier
+        pos = curpos;
+        return true;
+    }
+    // we have an MM specifier: parse it
+    minute_offset = (str[curpos] - '0') * 10 + (str[curpos + 1] - '0');
+    if (sign_char == '-') {
+        minute_offset = -minute_offset;
+    }
+    pos = curpos + 2;
+    return true;
 }
 
 string Timestamp::toString(timestamp_t timestamp) {
