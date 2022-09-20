@@ -120,12 +120,13 @@ vector<node_offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
 
 void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) {
     for (AdjLists* adjList : adjListsAndColumns.first) {
-        auto listInfo = adjList->getListInfo(nodeOffset);
-        if (!listInfo.isEmpty()) {
+        auto numElementsInList =
+            adjList->getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
+        if (numElementsInList != 0) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d has %d (one-to-many or many-to-many) edges for edge file: %s.",
-                tableID, nodeOffset, listInfo.numValuesInList,
+                tableID, nodeOffset, numElementsInList,
                 adjList->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }

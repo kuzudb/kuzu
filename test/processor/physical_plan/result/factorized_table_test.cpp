@@ -2,6 +2,7 @@
 
 #include "src/common/include/exception.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace graphflow::processor;
 

@@ -234,14 +234,14 @@ table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity r
         nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     }
     vector<Property> structuredProperties;
-    auto propertyId = 0;
+    auto propertyID = 0;
     for (auto& propertyDefinition : structuredPropertyDefinitions) {
         structuredProperties.push_back(
-            Property::constructRelProperty(propertyDefinition, propertyId++, tableID));
+            Property::constructRelProperty(propertyDefinition, propertyID++, tableID));
     }
     auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
     structuredProperties.push_back(
-        Property::constructRelProperty(propertyNameDataType, propertyId++, tableID));
+        Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
     auto relTableSchema = make_unique<RelTableSchema>(move(tableName), tableID, relMultiplicity,
         move(structuredProperties), move(srcDstTableIDs));
     relTableNameToIDMap[relTableSchema->tableName] = tableID;

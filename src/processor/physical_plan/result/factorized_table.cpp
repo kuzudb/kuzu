@@ -154,6 +154,17 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     }
 }
 
+void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
+    vector<uint32_t>& colIdxesToScan, vector<uint64_t>& tupleIdxesToRead, uint64_t startPos,
+    uint64_t numTuplesToRead) const {
+    assert(vectors.size() == colIdxesToScan.size());
+    auto tuplesToRead = make_unique<uint8_t*[]>(tupleIdxesToRead.size());
+    for (auto i = 0u; i < numTuplesToRead; i++) {
+        tuplesToRead[i] = getTuple(tupleIdxesToRead[i + startPos]);
+    }
+    lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToRead);
+}
+
 void FactorizedTable::mergeMayContainNulls(FactorizedTable& other) {
     for (auto i = 0u; i < other.tableSchema->getNumColumns(); i++) {
         if (!other.hasNoNullGuarantee(i)) {

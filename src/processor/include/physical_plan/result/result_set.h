@@ -28,8 +28,6 @@ public:
         listSyncStatesPerDataChunk[pos] = listSyncState;
     }
 
-    inline uint32_t getNumDataChunks() const { return dataChunks.size(); }
-
     inline shared_ptr<ValueVector> getValueVector(DataPos& dataPos) {
         return dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
     }

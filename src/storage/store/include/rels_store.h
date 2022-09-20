@@ -17,7 +17,7 @@ class RelsStore {
 
 public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
+        BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
     inline Column* getRelPropertyColumn(const table_id_t& relTableID, const table_id_t& nodeTableID,
         const uint64_t& propertyIdx) const {
@@ -46,9 +46,9 @@ public:
     // only be called by wal_replayer during checkpointing, during which time no other transaction
     // is running on the system, so we can directly create and insert a RelTable into relTables.
     inline void createRelTable(table_id_t tableID, vector<uint64_t>& maxNodeOffsetsPerTable,
-        BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
-        relTables[tableID] = make_unique<RelTable>(
-            *catalog, maxNodeOffsetsPerTable, tableID, *bufferManager, isInMemoryMode, wal);
+        BufferManager* bufferManager, WAL* wal, Catalog* catalog, MemoryManager* memoryManager) {
+        relTables[tableID] = make_unique<RelTable>(*catalog, maxNodeOffsetsPerTable, tableID,
+            *bufferManager, *memoryManager, isInMemoryMode, wal);
     }
 
     // This function is used for testing only.

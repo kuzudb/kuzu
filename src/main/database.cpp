@@ -14,13 +14,13 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     initDBDirAndCoreFilesIfNecessary();
     bufferManager = make_unique<BufferManager>(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
+    memoryManager = make_unique<MemoryManager>(bufferManager.get());
     wal = make_unique<WAL>(databaseConfig.databasePath, *bufferManager);
     recoverIfNecessary();
-    memoryManager = make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = make_unique<processor::QueryProcessor>(systemConfig.maxNumThreads);
     catalog = make_unique<catalog::Catalog>(wal.get());
     storageManager = make_unique<storage::StorageManager>(
-        *catalog, *bufferManager, databaseConfig.inMemoryMode, wal.get());
+        *catalog, *bufferManager, *memoryManager, databaseConfig.inMemoryMode, wal.get());
     transactionManager = make_unique<transaction::TransactionManager>(*wal);
 }
 
@@ -72,9 +72,10 @@ void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpo
         (isCheckpoint ? string("checkpointing") : string("rolling back the wal contents")) +
         " in the storage manager during " +
         (isRecovering ? "recovery." : "normal db execution (i.e., not recovering)."));
-    WALReplayer walReplayer = isRecovering ? WALReplayer(wal.get()) :
-                                             WALReplayer(wal.get(), storageManager.get(),
-                                                 bufferManager.get(), catalog.get(), isCheckpoint);
+    WALReplayer walReplayer = isRecovering ?
+                                  WALReplayer(wal.get()) :
+                                  WALReplayer(wal.get(), storageManager.get(), bufferManager.get(),
+                                      memoryManager.get(), catalog.get(), isCheckpoint);
     walReplayer.replay();
     logger->info(
         "Finished " +

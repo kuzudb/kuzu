@@ -100,3 +100,20 @@ cc_test(
         "//test/test_utility:test_helper",
     ],
 )
+
+cc_test(
+    name = "rel_insertion_test",
+    srcs = [
+        "rel_insertion_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//src/storage/storage_structure:lists",
+        "//test/test_utility:test_helper",
+    ],
+)

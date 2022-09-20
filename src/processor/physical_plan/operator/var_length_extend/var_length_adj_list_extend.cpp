@@ -13,6 +13,7 @@ AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionCon
     // it to children.
     children->state = make_shared<DataChunkState>();
     listSyncState = make_shared<ListSyncState>();
+    listHandle = make_shared<ListHandle>(*listSyncState);
 }
 
 void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
@@ -80,7 +81,7 @@ bool VarLengthAdjListExtend::getNextTuples() {
 
 void VarLengthAdjListExtend::reInitToRerunSubPlan() {
     for (auto& dfsLevelInfo : dfsLevelInfos) {
-        static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfo)->listSyncState->reset();
+        static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfo)->listHandle->reset();
     }
     VarLengthExtend::reInitToRerunSubPlan();
 }
@@ -88,8 +89,9 @@ void VarLengthAdjListExtend::reInitToRerunSubPlan() {
 bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, uint8_t level) {
     auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset(parent);
-    dfsLevelInfo->listSyncState->setBoundNodeOffset(parent);
-    ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listSyncState);
+    ((AdjLists*)storage)
+        ->initListReadingState(parent, *dfsLevelInfo->listHandle, transaction->getType());
+    ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listHandle);
     if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
         dfsStack.emplace(move(dfsLevelInfo));
         return true;
@@ -99,8 +101,8 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
     shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
-    if (dfsLevel->listSyncState->hasNewRangeToRead()) {
-        ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listSyncState);
+    if (dfsLevel->listHandle->listSyncState.hasMoreToRead()) {
+        ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listHandle);
         return true;
     }
     return false;

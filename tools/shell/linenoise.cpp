@@ -983,7 +983,6 @@ static int linenoiseEdit(
                         if (memcmp(seq, "[1;5D", 5) == 0) {
                             linenoiseEditMoveWordLeft(&l);
                         }
-
                     }
                 } else {
                     switch (seq[1]) {

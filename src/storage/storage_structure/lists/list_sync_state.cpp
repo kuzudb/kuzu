@@ -3,22 +3,23 @@
 namespace graphflow {
 namespace storage {
 
-bool ListSyncState::hasNewRangeToRead() {
-    if (!hasValidRangeToRead()) {
-        return false;
+bool ListSyncState::hasMoreToRead() {
+    if (hasValidRangeToRead() && (startElemOffset + numValuesToRead != numValuesInList)) {
+        return true;
     }
-    if (startIdx + numValuesToRead == numValuesInList) {
-        reset();
-        return false;
+    if (dataToReadFromUpdateStore && sourceStore == ListSourceStore::PersistentStore) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 void ListSyncState::reset() {
     boundNodeOffset = UINT64_MAX;
-    startIdx = UINT32_MAX;
+    startElemOffset = UINT32_MAX;
     numValuesToRead = UINT32_MAX;
     numValuesInList = UINT64_MAX;
+    sourceStore = ListSourceStore::PersistentStore;
+    dataToReadFromUpdateStore = false;
 }
 
 } // namespace storage
