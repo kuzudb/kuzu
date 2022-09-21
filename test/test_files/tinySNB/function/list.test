@@ -627,6 +627,51 @@ True
 [[10]]
 [[7]]
 
+-NAME ListSliceStructuredString
+-QUERY MATCH (o:organisation) RETURN o.name[1:4]
+---- 3
+ABFs
+CsWo
+DEsW
+
+-NAME ListSliceUnstructuredString
+-QUERY MATCH (o:organisation) RETURN o.unstrStr[5:8]
+---- 3
+RfEC
+cELL
+ org
+
+-NAME ListSliceStructuredStringRight
+-QUERY MATCH (a:person) RETURN a.fName[4:]
+---- 8
+ce
+
+ol
+
+zabeth
+ooq
+g
+ert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME ListSliceStructuredStringLeft
+-QUERY MATCH (a:person) RETURN a.fName[:5]
+---- 8
+Alice
+Bob
+Carol
+Dan
+Eliza
+Faroo
+Greg
+Huber
+
+-NAME ListSliceStructuredStringNull
+-QUERY MATCH (o:organisation) RETURN o.name[:]
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
 # TODO(Xiyang): this is most likely a list executor bug
 #-NAME ListCreate2
 #-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN [a.age, b.age]

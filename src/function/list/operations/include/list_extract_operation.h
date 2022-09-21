@@ -48,7 +48,7 @@ public:
             throw RuntimeException("list_extract not implemented for unstructured lists");
         } else {
             throw RuntimeException(
-                "incorrect type given to [] operator. Type must be either LIST or INT");
+                "incorrect type given to [] operator. Type must be either LIST or STRING");
         }
     }
 };

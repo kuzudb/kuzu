@@ -491,15 +491,44 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     assert(false);
 }
 
+unique_ptr<ParsedLiteralExpression> getZeroLiteral() {
+    auto literal = make_unique<Literal>(0l);
+    return make_unique<ParsedLiteralExpression>(move(literal), "0");
+}
+
 unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-    auto listExtract =
-        make_unique<ParsedFunctionExpression>(LIST_EXTRACT_FUNC_NAME, move(rawExpression));
-    listExtract->addChild(move(propertyExpression));
-    listExtract->addChild(transformExpression(*ctx.oC_Expression()));
-    return listExtract;
+
+    if (ctx.children[1]->getText() == ":" || ctx.children[2]->getText() == ":") {
+        auto listSlice =
+            make_unique<ParsedFunctionExpression>(LIST_SLICE_FUNC_NAME, move(rawExpression));
+        listSlice->addChild(move(propertyExpression));
+        if (ctx.children[1]->getText() == ":") {
+            listSlice->addChild(move(getZeroLiteral()));
+            if (ctx.oC_Expression(0)) {
+                listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
+            } else {
+                listSlice->addChild(move(getZeroLiteral()));
+            }
+        } else {
+            if (ctx.oC_Expression(1)) {
+                listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
+                listSlice->addChild(transformExpression(*ctx.oC_Expression(1)));
+            } else {
+                listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
+                listSlice->addChild(move(getZeroLiteral()));
+            }
+        }
+        return listSlice;
+    } else {
+        auto listExtract =
+            make_unique<ParsedFunctionExpression>(LIST_EXTRACT_FUNC_NAME, move(rawExpression));
+        listExtract->addChild(move(propertyExpression));
+        listExtract->addChild(transformExpression(*ctx.oC_Expression(0)));
+        return listExtract;
+    }
 }
 
 unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
