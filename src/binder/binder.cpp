@@ -176,6 +176,19 @@ unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
     return boundQueryPart;
 }
 
+unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
+    switch (readingClause.getClauseType()) {
+    case ClauseType::MATCH: {
+        return bindMatchClause((MatchClause&)readingClause);
+    } break;
+    case ClauseType::UNWIND: {
+        return bindUnwindClause((UnwindClause&)readingClause);
+    } break;
+    default:
+        assert(false);
+    }
+}
+
 unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchClause.getPatternElements());
@@ -188,14 +201,10 @@ unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchCla
     return boundMatchClause;
 }
 
-unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
-    switch (readingClause.getClauseType()) {
-    case ClauseType::MATCH: {
-        return bindMatchClause((MatchClause&)readingClause);
-    }
-    default:
-        assert(false);
-    }
+unique_ptr<BoundUnwindClause> Binder::bindUnwindClause(const UnwindClause& unwindClause) {
+    auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
+    variablesInScope.insert({unwindClause.getAlias(), boundExpression});
+    return make_unique<BoundUnwindClause>(move(boundExpression), unwindClause.getAlias());
 }
 
 unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause& updatingClause) {
