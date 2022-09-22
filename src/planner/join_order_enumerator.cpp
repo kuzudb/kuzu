@@ -323,7 +323,7 @@ void JoinOrderEnumerator::appendExtend(
 void JoinOrderEnumerator::planHashJoin(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
     LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     if (ASPOptimizer::canApplyASP(joinNode, probePlan, buildPlan)) {
-        ASPOptimizer::applyASP(joinNode, joinType, probePlan, buildPlan);
+        ASPOptimizer::applyASP(joinNode, probePlan, buildPlan);
     }
     appendHashJoin(joinNode, joinType, probePlan, buildPlan);
 }

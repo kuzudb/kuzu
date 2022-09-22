@@ -18,14 +18,12 @@ bool SemiMasker::getNextTuples() {
         return false;
     }
     auto values = (nodeID_t*)keyValueVector->values;
-    if (keyValueVector->state->isFlat()) {
-        auto pos = keyValueVector->state->getPositionOfCurrIdx();
-        scanNodeIDSharedState->setMask(values[pos].offset);
-    } else {
-        for (auto i = 0u; i < keyValueVector->state->selVector->selectedSize; i++) {
-            auto pos = keyValueVector->state->selVector->selectedPositions[i];
-            scanNodeIDSharedState->setMask(values[pos].offset);
-        }
+    auto startIdx = keyValueVector->state->isFlat() ? keyValueVector->state->currIdx : 0;
+    auto numValues =
+        keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize;
+    for (auto i = 0u; i < numValues; i++) {
+        auto pos = keyValueVector->state->selVector->selectedPositions[i + startIdx];
+        scanNodeIDSharedState->getSemiMask()->setMask(values[pos].offset, maskerIdx);
     }
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(

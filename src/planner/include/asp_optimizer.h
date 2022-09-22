@@ -12,8 +12,8 @@ public:
     static bool canApplyASP(shared_ptr<NodeExpression>& joinNode, const LogicalPlan& leftPlan,
         const LogicalPlan& rightPlan);
 
-    static void applyASP(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
-        LogicalPlan& leftPlan, LogicalPlan& rightPlan);
+    static void applyASP(
+        shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan);
 
 private:
     static void appendSemiMasker(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
