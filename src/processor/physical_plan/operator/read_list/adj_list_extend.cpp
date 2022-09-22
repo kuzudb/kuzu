@@ -7,16 +7,14 @@ shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
     resultSet = ReadList::init(context);
     outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    auto listSyncState = make_shared<ListSyncState>();
     resultSet->insert(outDataPos.dataChunkPos, listSyncState);
-    largeListHandle->setListSyncState(listSyncState);
     return resultSet;
 }
 
 bool AdjListExtend::getNextTuples() {
     metrics->executionTime.start();
-    if (largeListHandle->hasMoreToRead()) {
-        readValuesFromList();
+    if (listSyncState->hasNewRangeToRead()) {
+        lists->readValues(outValueVector, *listSyncState);
         metrics->executionTime.stop();
         metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
         return true;

@@ -10,8 +10,7 @@ class ReadRelPropertyList : public ReadList {
 public:
     ReadRelPropertyList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : ReadList{inDataPos, outDataPos, lists, move(child), id, false /* is not adj list */,
-              paramsString} {}
+        : ReadList{inDataPos, outDataPos, lists, move(child), id, paramsString} {}
 
     PhysicalOperatorType getOperatorType() override { return READ_REL_PROPERTY; }
 

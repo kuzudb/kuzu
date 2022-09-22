@@ -125,7 +125,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) 
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d has %d (one-to-many or many-to-many) edges for edge file: %s.",
-                tableID, nodeOffset, listInfo.listLen,
+                tableID, nodeOffset, listInfo.numValuesInList,
                 adjList->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }

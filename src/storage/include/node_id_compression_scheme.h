@@ -11,7 +11,7 @@ class NodeIDCompressionScheme {
 
 public:
     NodeIDCompressionScheme() : commonTableID{UINT64_MAX} {}
-    NodeIDCompressionScheme(const unordered_set<table_id_t>& nbrNodeTableIDs)
+    explicit NodeIDCompressionScheme(const unordered_set<table_id_t>& nbrNodeTableIDs)
         : commonTableID{nbrNodeTableIDs.size() == 1 ? *nbrNodeTableIDs.begin() : UINT64_MAX} {}
 
     inline uint64_t getNumBytesForNodeIDAfterCompression() const {

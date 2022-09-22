@@ -2,8 +2,8 @@
 
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/value.h"
-#include "src/storage/storage_structure/include/lists/large_list_handle.h"
 #include "src/storage/storage_structure/include/lists/list_headers.h"
+#include "src/storage/storage_structure/include/lists/list_sync_state.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
 #include "src/storage/storage_structure/include/overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
@@ -19,11 +19,11 @@ namespace storage {
 
 struct ListInfo {
     bool isLargeList{false};
-    uint64_t listLen{-1u};
+    uint64_t numValuesInList{UINT64_MAX};
     std::function<uint32_t(uint32_t)> mapper;
     PageElementCursor cursor;
 
-    inline bool isEmpty() { return listLen <= 0; }
+    inline bool isEmpty() { return numValuesInList == UINT64_MAX; }
 };
 
 /**
@@ -48,8 +48,7 @@ public:
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
               true /*hasNULLBytes*/, isInMemory, wal} {};
 
-    void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle);
+    void readValues(const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState);
 
     inline ListsMetadata& getListsMetadata() { return metadata; };
 
@@ -80,8 +79,8 @@ protected:
           storageStructureIDAndFName{storageStructureIDAndFName},
           metadata{storageStructureIDAndFName, &bufferManager, wal}, headers(move(headers)){};
 
-    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
+    virtual void readFromLargeList(
+        const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState, ListInfo& info);
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;
@@ -99,8 +98,8 @@ public:
           stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState,
+        ListInfo& info) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
@@ -119,8 +118,8 @@ public:
           listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState,
+        ListInfo& info) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
@@ -144,8 +143,8 @@ public:
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState,
+        ListInfo& info) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 

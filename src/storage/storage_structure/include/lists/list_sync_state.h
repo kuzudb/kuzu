@@ -2,6 +2,10 @@
 
 #include <cstdint>
 
+#include "src/common/types/include/node_id_t.h"
+
+using namespace graphflow::common;
+
 namespace graphflow {
 namespace storage {
 
@@ -18,26 +22,29 @@ class ListSyncState {
 public:
     ListSyncState() { reset(); };
 
-    inline void init(uint64_t numElements) { this->numElements = numElements; }
-
-    inline void set(uint32_t startIdx, uint32_t size) {
-        this->startIdx = startIdx;
-        this->size = size;
+    inline void setNumValuesInList(uint64_t numValuesInList_) {
+        this->numValuesInList = numValuesInList_;
     }
-
-    uint32_t getStartIdx() { return startIdx; }
-    uint32_t getEndIdx() { return startIdx + size; }
-    uint32_t getSize() { return size; }
+    inline void setBoundNodeOffset(node_offset_t boundNodeOffset_) {
+        this->boundNodeOffset = boundNodeOffset_;
+    }
+    inline void setRangeToRead(uint32_t startIdx_, uint32_t numValuesToRead_) {
+        this->startIdx = startIdx_;
+        this->numValuesToRead = numValuesToRead_;
+    }
+    inline node_offset_t getBoundNodeOffset() const { return boundNodeOffset; };
+    inline uint32_t getStartIdx() const { return startIdx; }
+    inline uint32_t getEndIdx() const { return startIdx + numValuesToRead; }
+    inline bool hasValidRangeToRead() const { return UINT32_MAX != startIdx; }
 
     bool hasNewRangeToRead();
-    inline bool hasValidRangeToRead() { return -1u != startIdx; }
-
     void reset();
 
 private:
+    node_offset_t boundNodeOffset;
     uint32_t startIdx;
-    uint32_t size;
-    uint64_t numElements;
+    uint32_t numValuesToRead;
+    uint64_t numValuesInList;
 };
 
 } // namespace storage
