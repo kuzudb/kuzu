@@ -10,10 +10,9 @@ class ReadList : public PhysicalOperator {
 
 public:
     ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
-        unique_ptr<PhysicalOperator> child, uint32_t id, bool isAdjList, const string& paramsString)
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, lists{lists}, largeListHandle{
-                                                    make_unique<LargeListHandle>(isAdjList)} {}
+          outDataPos{outDataPos}, lists{lists}, listSyncState{make_shared<ListSyncState>()} {}
 
     ~ReadList() override{};
 
@@ -36,7 +35,7 @@ protected:
     shared_ptr<ValueVector> outValueVector;
 
     Lists* lists;
-    unique_ptr<LargeListHandle> largeListHandle;
+    shared_ptr<ListSyncState> listSyncState;
 };
 
 } // namespace processor

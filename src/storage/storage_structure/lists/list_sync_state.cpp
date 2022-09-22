@@ -7,7 +7,7 @@ bool ListSyncState::hasNewRangeToRead() {
     if (!hasValidRangeToRead()) {
         return false;
     }
-    if (startIdx + size == numElements) {
+    if (startIdx + numValuesToRead == numValuesInList) {
         reset();
         return false;
     }
@@ -15,9 +15,10 @@ bool ListSyncState::hasNewRangeToRead() {
 }
 
 void ListSyncState::reset() {
-    startIdx = -1u;
-    size = -1u;
-    numElements = -1u;
+    boundNodeOffset = UINT64_MAX;
+    startIdx = UINT32_MAX;
+    numValuesToRead = UINT32_MAX;
+    numValuesInList = UINT64_MAX;
 }
 
 } // namespace storage

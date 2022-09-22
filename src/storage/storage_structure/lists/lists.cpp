@@ -13,14 +13,14 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
         auto largeListIdx = ListHeaders::getLargeListIdx(header);
         info.cursor = PageUtils::getPageElementCursorForPos(0, numElementsPerPage);
         info.mapper = metadata.getPageMapperForLargeListIdx(largeListIdx);
-        info.listLen = metadata.getNumElementsInLargeLists(largeListIdx);
+        info.numValuesInList = metadata.getNumElementsInLargeLists(largeListIdx);
     } else {
         info.isLargeList = false;
         auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
         info.cursor = PageUtils::getPageElementCursorForPos(
             ListHeaders::getSmallListCSROffset(header), numElementsPerPage);
         info.mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
-        info.listLen = ListHeaders::getSmallListLen(header);
+        info.numValuesInList = ListHeaders::getSmallListLen(header);
     }
     return info;
 }
@@ -31,11 +31,10 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
 // information about the last portion of v7's large list. Similarly, if nodeOffset is v3 and v3
 // has a small list then largeListHandle does not contain anything specific to v3 (it would likely
 // be containing information about the last portion of the last large list that was read).
-void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle) {
-    auto info = getListInfo(nodeOffset);
+void Lists::readValues(const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState) {
+    auto info = getListInfo(listSyncState.getBoundNodeOffset());
     if (info.isLargeList) {
-        readFromLargeList(valueVector, largeListHandle, info);
+        readFromLargeList(valueVector, listSyncState, info);
     } else {
         readSmallList(valueVector, info);
     }
@@ -46,11 +45,11 @@ void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& 
  * readValues, which is the main function for reading all lists except UNSTRUCTURED
  * and NODE_ID.
  */
-void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
+void Lists::readFromLargeList(
+    const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState, ListInfo& info) {
     // assumes that the associated adjList has already updated the syncState.
-    auto pageCursor = PageUtils::getPageElementCursorForPos(
-        largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
+    auto pageCursor =
+        PageUtils::getPageElementCursorForPos(listSyncState.getStartIdx(), numElementsPerPage);
     auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     readBySequentialCopy(tmpTransaction.get(), valueVector, pageCursor, info.mapper);
 }
@@ -60,9 +59,9 @@ void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& 
     readBySequentialCopy(tmpTransaction.get(), valueVector, info.cursor, info.mapper);
 }
 
-void StringPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
-    Lists::readFromLargeList(valueVector, largeListHandle, info);
+void StringPropertyLists::readFromLargeList(
+    const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState, ListInfo& info) {
+    Lists::readFromLargeList(valueVector, listSyncState, info);
     stringOverflowPages.readStringsToVector(*valueVector);
 }
 
@@ -72,9 +71,9 @@ void StringPropertyLists::readSmallList(
     stringOverflowPages.readStringsToVector(*valueVector);
 }
 
-void ListPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
-    Lists::readFromLargeList(valueVector, largeListHandle, info);
+void ListPropertyLists::readFromLargeList(
+    const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState, ListInfo& info) {
+    Lists::readFromLargeList(valueVector, listSyncState, info);
     listOverflowPages.readListsToVector(*valueVector);
 }
 
@@ -83,16 +82,14 @@ void ListPropertyLists::readSmallList(const shared_ptr<ValueVector>& valueVector
     listOverflowPages.readListsToVector(*valueVector);
 }
 
-void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
-    auto listSyncState = largeListHandle->getListSyncState();
+void AdjLists::readFromLargeList(
+    const shared_ptr<ValueVector>& valueVector, ListSyncState& listSyncState, ListInfo& info) {
     uint64_t csrOffset;
-    if (!largeListHandle->hasMoreToRead()) {
-        // initialize listSyncState to start tracking a new list.
-        listSyncState->init(info.listLen);
+    if (!listSyncState.hasNewRangeToRead()) {
+        listSyncState.setNumValuesInList(info.numValuesInList);
         csrOffset = 0;
     } else {
-        csrOffset = listSyncState->getEndIdx();
+        csrOffset = listSyncState.getEndIdx();
         info.cursor = PageUtils::getPageElementCursorForPos(csrOffset, numElementsPerPage);
     }
     // The number of edges to read is the minimum of: (i) how may edges are left to read
@@ -100,10 +97,10 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     // being read (csrOffset above should be set to the beginning of the next page. Note that
     // because of case (ii), this computation guarantees that what we read fits into a single page.
     // That's why we can call copyFromAPage.
-    auto numValuesToCopy = min((uint32_t)(info.listLen - csrOffset),
+    auto numValuesToCopy = min((uint32_t)(info.numValuesInList - csrOffset),
         numElementsPerPage - (uint32_t)(csrOffset % numElementsPerPage));
     valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
-    listSyncState->set(csrOffset, valueVector->state->selVector->selectedSize);
+    listSyncState.setRangeToRead(csrOffset, valueVector->state->selVector->selectedSize);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.pageIdx);
     readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId, info.cursor.posInPage,
@@ -113,7 +110,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
 // Note: This function sets the original and selected size of the DataChunk into which it will
 // read a list of nodes and edges.
 void AdjLists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
-    valueVector->state->initOriginalAndSelectedSize(info.listLen);
+    valueVector->state->initOriginalAndSelectedSize(info.numValuesInList);
     readNodeIDsBySequentialCopy(
         valueVector, info.cursor, info.mapper, nodeIDCompressionScheme, true /*isAdjLists*/);
 }
@@ -125,7 +122,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     node_offset_t nodeOffset) {
     // Step 1
     auto info = getListInfo(nodeOffset);
-    auto listLenInBytes = info.listLen * elementSize;
+    auto listLenInBytes = info.numValuesInList * elementSize;
     auto buffer = make_unique<uint8_t[]>(listLenInBytes);
     auto sizeLeftToCopy = listLenInBytes;
     auto bufferPtr = buffer.get();

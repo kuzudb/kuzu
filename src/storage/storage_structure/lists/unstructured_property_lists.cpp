@@ -39,10 +39,10 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
     UnstrPropListIterator itr;
     if (transaction->isReadOnly() || !localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
-        auto primaryStoreData = make_unique<uint8_t[]>(info.listLen);
+        auto primaryStoreData = make_unique<uint8_t[]>(info.numValuesInList);
         fillUnstrPropListFromPrimaryStore(info, primaryStoreData.get());
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
-            move(primaryStoreData), info.listLen, info.listLen /* capacity */);
+            move(primaryStoreData), info.numValuesInList, info.numValuesInList /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
     } else {
         itr = localUpdatedLists.getUpdatedListIterator(nodeOffset);
@@ -82,9 +82,9 @@ void UnstructuredPropertyLists::fillUnstrPropListFromPrimaryStore(
     ListInfo& info, uint8_t* dataToFill) {
     PageElementCursor cursor{info.cursor.pageIdx, info.cursor.posInPage};
     uint64_t numBytesRead = 0;
-    while (numBytesRead < info.listLen) {
+    while (numBytesRead < info.numValuesInList) {
         auto bytesToReadInCurrentPage =
-            min(info.listLen - numBytesRead, DEFAULT_PAGE_SIZE - cursor.posInPage);
+            min(info.numValuesInList - numBytesRead, DEFAULT_PAGE_SIZE - cursor.posInPage);
         auto physicalPageIdx = info.mapper(cursor.pageIdx);
 
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
@@ -103,7 +103,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     PageByteCursor byteCursor{info.cursor.pageIdx, info.cursor.posInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
-    while (numBytesRead < info.listLen) {
+    while (numBytesRead < info.numValuesInList) {
         readPropertyKeyAndDatatype((uint8_t*)(&propertyKeyDataType), byteCursor, info.mapper);
         numBytesRead += StorageConfig::UNSTR_PROP_HEADER_LEN;
         auto dataTypeSize = Types::getDataTypeSize(propertyKeyDataType.dataTypeID);
@@ -181,13 +181,13 @@ void UnstructuredPropertyLists::setProperty(
     lock_t lck{mtx};
     if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
-        uint64_t updatedListCapacity =
-            max(info.listLen, (uint64_t)(info.listLen * StorageConfig::ARRAY_RESIZING_FACTOR));
+        uint64_t updatedListCapacity = max(info.numValuesInList,
+            (uint64_t)(info.numValuesInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
         fillUnstrPropListFromPrimaryStore(info, existingUstrPropLists.get());
         localUpdatedLists.setPropertyList(
-            nodeOffset, make_unique<UnstrPropListWrapper>(
-                            move(existingUstrPropLists), info.listLen, updatedListCapacity));
+            nodeOffset, make_unique<UnstrPropListWrapper>(move(existingUstrPropLists),
+                            info.numValuesInList, updatedListCapacity));
     }
     localUpdatedLists.setProperty(nodeOffset, propertyKey, value);
 }
@@ -196,12 +196,12 @@ void UnstructuredPropertyLists::removeProperty(node_offset_t nodeOffset, uint32_
     lock_t lck{mtx};
     if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
         auto info = getListInfo(nodeOffset);
-        uint64_t updatedListCapacity =
-            max(info.listLen, (uint64_t)(info.listLen * StorageConfig::ARRAY_RESIZING_FACTOR));
+        uint64_t updatedListCapacity = max(info.numValuesInList,
+            (uint64_t)(info.numValuesInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         unique_ptr<uint8_t[]> originalPropLists = make_unique<uint8_t[]>(updatedListCapacity);
         fillUnstrPropListFromPrimaryStore(info, originalPropLists.get());
         unique_ptr<UnstrPropListWrapper> unstrListWrapper = make_unique<UnstrPropListWrapper>(
-            move(originalPropLists), info.listLen, updatedListCapacity);
+            move(originalPropLists), info.numValuesInList, updatedListCapacity);
         bool found = UnstrPropListUtils::findKeyPropertyAndPerformOp(
             unstrListWrapper.get(), propertyKey, [](UnstrPropListIterator& itr) -> void {});
         if (found) {

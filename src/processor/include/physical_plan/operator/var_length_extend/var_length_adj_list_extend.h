@@ -16,7 +16,7 @@ struct AdjListExtendDFSLevelInfo : DFSLevelInfo {
 
     uint64_t parent;
     uint64_t childrenIdx;
-    unique_ptr<LargeListHandle> largeListHandle;
+    shared_ptr<ListSyncState> listSyncState;
 };
 
 class VarLengthAdjListExtend : public VarLengthExtend {

@@ -12,8 +12,7 @@ AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionCon
     // DataChunkState to write how many nodes it has read, we create a new DataChunkState and assign
     // it to children.
     children->state = make_shared<DataChunkState>();
-    largeListHandle = make_unique<LargeListHandle>(true /* isAdjList */);
-    largeListHandle->setListSyncState(make_shared<ListSyncState>());
+    listSyncState = make_shared<ListSyncState>();
 }
 
 void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
@@ -81,7 +80,7 @@ bool VarLengthAdjListExtend::getNextTuples() {
 
 void VarLengthAdjListExtend::reInitToRerunSubPlan() {
     for (auto& dfsLevelInfo : dfsLevelInfos) {
-        static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfo)->largeListHandle->reset();
+        static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfo)->listSyncState->reset();
     }
     VarLengthExtend::reInitToRerunSubPlan();
 }
@@ -89,7 +88,8 @@ void VarLengthAdjListExtend::reInitToRerunSubPlan() {
 bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, uint8_t level) {
     auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset(parent);
-    ((AdjLists*)storage)->readValues(parent, dfsLevelInfo->children, dfsLevelInfo->largeListHandle);
+    dfsLevelInfo->listSyncState->setBoundNodeOffset(parent);
+    ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listSyncState);
     if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
         dfsStack.emplace(move(dfsLevelInfo));
         return true;
@@ -99,9 +99,8 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
     shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
-    if (dfsLevel->largeListHandle->hasMoreToRead()) {
-        ((AdjLists*)storage)
-            ->readValues(dfsLevel->parent, dfsLevel->children, dfsLevel->largeListHandle);
+    if (dfsLevel->listSyncState->hasNewRangeToRead()) {
+        ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listSyncState);
         return true;
     }
     return false;

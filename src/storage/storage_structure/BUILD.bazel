@@ -53,7 +53,6 @@ cc_library(
         "lists/updated_unstructured_property_lists.cpp",
     ],
     hdrs = [
-        "include/lists/large_list_handle.h",
         "include/lists/list_headers.h",
         "include/lists/list_sync_state.h",
         "include/lists/lists.h",

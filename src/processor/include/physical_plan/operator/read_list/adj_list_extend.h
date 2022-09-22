@@ -10,8 +10,7 @@ class AdjListExtend : public ReadList {
 public:
     AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : ReadList{
-              inDataPos, outDataPos, lists, move(child), id, true /* isAdjList */, paramsString} {}
+        : ReadList{inDataPos, outDataPos, lists, move(child), id, paramsString} {}
 
     PhysicalOperatorType getOperatorType() override { return LIST_EXTEND; }
 

@@ -12,7 +12,7 @@ shared_ptr<ResultSet> ReadList::init(ExecutionContext* context) {
 }
 
 void ReadList::reInitToRerunSubPlan() {
-    largeListHandle->reset();
+    listSyncState->reset();
     children[0]->reInitToRerunSubPlan();
 }
 
@@ -22,8 +22,9 @@ void ReadList::readValuesFromList() {
         outValueVector->state->selVector->selectedSize = 0;
         return;
     }
-    auto nodeOffset = inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
-    lists->readValues(nodeOffset, outValueVector, largeListHandle);
+    listSyncState->setBoundNodeOffset(
+        inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx()));
+    lists->readValues(outValueVector, *listSyncState);
 }
 
 } // namespace processor
