@@ -8,11 +8,13 @@ class PyConnection {
 public:
     static void initialize(py::handle& m);
 
-    explicit PyConnection(PyDatabase* pyDatabase);
+    explicit PyConnection(PyDatabase* pyDatabase, uint64_t numThreads);
 
     ~PyConnection() = default;
 
     unique_ptr<PyQueryResult> execute(const string& query, py::list params);
+
+    void setMaxNumThreadForExec(uint64_t numThreads);
 
 private:
     unordered_map<string, shared_ptr<Literal>> transformPythonParameters(py::list params);
