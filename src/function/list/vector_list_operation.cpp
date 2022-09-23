@@ -276,6 +276,14 @@ vector<unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefin
         vector<DataTypeID>{LIST, INT64, INT64}, LIST,
         TernaryListExecFunction<gf_list_t, int64_t, int64_t, gf_list_t, operation::ListSlice>,
         nullptr, bindFunc, false /* isVarlength*/));
+    result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
+        vector<DataTypeID>{STRING, INT64, INT64}, STRING,
+        TernaryListExecFunction<gf_string_t, int64_t, int64_t, gf_string_t, operation::ListSlice>,
+        false /* isVarlength */));
+    result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
+        vector<DataTypeID>{UNSTRUCTURED, INT64, INT64}, UNSTRUCTURED,
+        TernaryListExecFunction<Value, int64_t, int64_t, Value, operation::ListSlice>,
+        false /* isVarlength */));
     return result;
 }
 
