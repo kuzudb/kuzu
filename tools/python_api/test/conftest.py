@@ -23,6 +23,7 @@ def init_tiny_snb(tmp_path):
 
 @pytest.fixture
 def establish_connection(init_tiny_snb):
-    db = gdb.database(init_tiny_snb)
-    conn = gdb.connection(db)
+    db = gdb.database(init_tiny_snb, default_page_buffer_pool_size=128 *
+                      1024 * 1024, large_page_buffer_pool_size=128 * 1024 * 1024)
+    conn = gdb.connection(db, num_threads=4)
     return conn, db

@@ -1,30 +1,39 @@
 #include "include/py_connection.h"
 
 #include "datetime.h" // from Python
-
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "connection")
-        .def(py::init<PyDatabase*>())
+        .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
         .def("execute", &PyConnection::execute, py::arg("query"),
-            py::arg("parameters") = py::list());
-
+            py::arg("parameters") = py::list())
+        .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
+            py::arg("num_threads"));
     PyDateTime_IMPORT;
 }
 
-PyConnection::PyConnection(PyDatabase* pyDatabase) {
+PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     conn = make_unique<Connection>(pyDatabase->database.get());
+    if (numThreads > 0) {
+        conn->setMaxNumThreadForExec(numThreads);
+    }
 }
 
 unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list params) {
     auto preparedStatement = conn->prepare(query);
     auto parameters = transformPythonParameters(params);
+    py::gil_scoped_release release;
     auto queryResult = conn->executeWithParams(preparedStatement.get(), parameters);
+    py::gil_scoped_acquire acquire;
     if (!queryResult->isSuccess()) {
         throw runtime_error(queryResult->getErrorMessage());
     }
     auto pyQueryResult = make_unique<PyQueryResult>();
     pyQueryResult->queryResult = move(queryResult);
     return pyQueryResult;
+}
+
+void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
+    conn->setMaxNumThreadForExec(numThreads);
 }
 
 unordered_map<string, shared_ptr<Literal>> PyConnection::transformPythonParameters(
