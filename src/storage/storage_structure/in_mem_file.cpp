@@ -1,5 +1,7 @@
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
+#include <mutex>
+
 #include "src/common/include/type_utils.h"
 
 namespace graphflow {
