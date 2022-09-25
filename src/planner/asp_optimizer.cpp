@@ -29,8 +29,8 @@ bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, const Logic
     return true;
 }
 
-void ASPOptimizer::applyASP(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
-    LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
+void ASPOptimizer::applyASP(
+    shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
     appendSemiMasker(joinNode, leftPlan);
     Enumerator::appendAccumulate(leftPlan);
 }

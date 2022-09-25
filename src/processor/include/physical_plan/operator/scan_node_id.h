@@ -9,17 +9,49 @@
 namespace graphflow {
 namespace processor {
 
-struct SemiMask {
+struct Mask {
 public:
-    SemiMask(node_offset_t maxNodeOffset, uint64_t maxMorselIdx) {
-        morselMask = make_unique<bool[]>(maxMorselIdx + 1);
-        nodeMask = make_unique<bool[]>(maxNodeOffset + 1);
-        fill(morselMask.get(), morselMask.get() + maxMorselIdx + 1, false);
-        fill(nodeMask.get(), nodeMask.get() + maxNodeOffset + 1, false);
+    Mask(uint64_t size, uint8_t maskedFlag) : maskedFlag{maskedFlag} {
+        data = make_unique<uint8_t[]>(size);
+        fill(data.get(), data.get() + size, 0);
     }
 
-    unique_ptr<bool[]> morselMask;
-    unique_ptr<bool[]> nodeMask;
+    // Notice: This function is not protected with a lock for concurrent writes because of the
+    // special use case that there is no mixed reads and writes to the mask, and all writes to the
+    // mask try to set a position to the same value, thus it doesn't matter which thread succeeds.
+    inline void setMask(uint64_t pos, uint8_t maskerIdx, uint8_t maskValue) {
+        // Note: blindly update mask does not parallel well, so we minimize write by first checking
+        // if the mask is true or not.
+        if (data[pos] == maskerIdx) {
+            data[pos] = maskValue;
+        }
+    }
+    inline bool isMasked(uint64_t pos) { return data[pos] == maskedFlag; }
+
+private:
+    // The value of maskedFlag is equivalent to the num of maskers passed. It is used to check if a
+    // value is selected by all maskers or not. Each masker will increment its selected value by 1.
+    uint8_t maskedFlag;
+    unique_ptr<uint8_t[]> data;
+};
+
+struct ScanNodeIDSemiMask {
+public:
+    ScanNodeIDSemiMask(node_offset_t maxNodeOffset, uint8_t maskedFlag) {
+        nodeMask = make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
+        morselMask =
+            make_unique<Mask>((maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
+    }
+
+    inline bool isNodeMaskEnabled() { return nodeMask != nullptr; }
+    inline bool isMorselMasked(uint64_t morselIdx) { return morselMask->isMasked(morselIdx); }
+    inline bool isNodeMasked(uint64_t nodeOffset) { return nodeMask->isMasked(nodeOffset); }
+
+    void setMask(uint64_t nodeOffset, uint8_t maskerIdx);
+
+private:
+    unique_ptr<Mask> nodeMask;
+    unique_ptr<Mask> morselMask;
 };
 
 class ScanNodeIDSharedState {
@@ -27,40 +59,22 @@ class ScanNodeIDSharedState {
 public:
     explicit ScanNodeIDSharedState(
         NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, table_id_t tableID)
-        : initialized{false},
-          nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{tableID},
-          maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0}, mask{nullptr} {
-    }
+        : initialized{false}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
+          tableID{tableID}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX},
+          currentNodeOffset{0}, numMaskers{0}, semiMask{nullptr} {}
 
     void initialize(Transaction* transaction);
 
     pair<uint64_t, uint64_t> getNextRangeToRead();
 
-    inline void initSemiMask(Transaction* transaction) {
-        unique_lock xLck{mtx};
-        if (mask == nullptr) {
-            auto maxNodeOffset_ =
-                nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
-            auto maxMorselIdx_ = maxNodeOffset_ >> DEFAULT_VECTOR_CAPACITY_LOG_2;
-            mask = make_unique<SemiMask>(maxNodeOffset_, maxMorselIdx_);
-        }
+    void initSemiMask(Transaction* transaction);
+
+    inline bool isNodeMaskEnabled() const {
+        return semiMask != nullptr && semiMask->isNodeMaskEnabled();
     }
-    // Notice: This function is not protected with a lock for concurrent writes because of the
-    // special use case that there is no mixed reads and writes to the mask, and all writes to the
-    // mask try to set a position to true, thus it doesn't matter which thread succeeds.
-    inline void setMask(uint64_t nodeOffset) {
-        auto morselOffset = nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
-        // Note: blindly update mask does not parallel well so we minimize write by first checking
-        // if the mask is true or not.
-        if (!mask->morselMask[morselOffset]) {
-            mask->morselMask[morselOffset] = true;
-        }
-        if (!mask->nodeMask[nodeOffset]) {
-            mask->nodeMask[nodeOffset] = true;
-        }
-    }
-    inline bool isSemiMaskEnabled() const { return mask != nullptr; }
-    inline bool isNodeMasked(node_offset_t nodeOffset) const { return mask->nodeMask[nodeOffset]; }
+    inline ScanNodeIDSemiMask* getSemiMask() { return semiMask.get(); }
+    inline uint8_t getNumMaskers() const { return numMaskers; }
+    inline void incrementNumMaskers() { numMaskers++; }
 
 private:
     mutex mtx;
@@ -70,7 +84,8 @@ private:
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
     uint64_t currentNodeOffset;
-    unique_ptr<SemiMask> mask;
+    uint8_t numMaskers;
+    unique_ptr<ScanNodeIDSemiMask> semiMask;
 };
 
 class ScanNodeID : public PhysicalOperator, public SourceOperator {
@@ -80,19 +95,19 @@ public:
         NodeTable* nodeTable, const DataPos& outDataPos,
         shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
-          nodeName{nodeName}, nodeTable{nodeTable}, outDataPos{outDataPos}, sharedState{std::move(
-                                                                                sharedState)} {}
+          nodeName{std::move(nodeName)}, nodeTable{nodeTable}, outDataPos{outDataPos},
+          sharedState{std::move(sharedState)} {}
 
     inline string getNodeName() const { return nodeName; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
-    PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
+    inline PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID>(resultSetDescriptor->copy(), nodeName, nodeTable, outDataPos,
             sharedState, id, paramsString);
     }

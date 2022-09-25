@@ -3,6 +3,11 @@
 namespace graphflow {
 namespace processor {
 
+void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
+    nodeMask->setMask(nodeOffset, maskerIdx, maskerIdx + 1);
+    morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
+}
+
 void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* transaction) {
     unique_lock uLck{mtx};
     if (initialized) {
@@ -13,16 +18,24 @@ void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* tran
     initialized = true;
 }
 
+void ScanNodeIDSharedState::initSemiMask(Transaction* transaction) {
+    unique_lock xLck{mtx};
+    if (semiMask == nullptr) {
+        auto maxNodeOffset_ = nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
+        semiMask = make_unique<ScanNodeIDSemiMask>(maxNodeOffset_, numMaskers);
+    }
+}
+
 pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     unique_lock lck{mtx};
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
     }
-    if (mask) {
+    if (semiMask) {
         auto currentMorselIdx = currentNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
         assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-        while (currentMorselIdx <= maxMorselIdx && !mask->morselMask[currentMorselIdx]) {
+        while (currentMorselIdx <= maxMorselIdx && !semiMask->isMorselMasked(currentMorselIdx)) {
             currentMorselIdx++;
         }
         currentNodeOffset = min(currentMorselIdx * DEFAULT_VECTOR_CAPACITY, maxNodeOffset);
@@ -60,8 +73,6 @@ bool ScanNodeID::getNextTuples() {
         }
         outDataChunk->state->initOriginalAndSelectedSize(size);
         setSelVector(startOffset, endOffset);
-        nodeTable->getNodeStatisticsAndDeletedIDs()->setDeletedNodeOffsetsForMorsel(
-            transaction, outValueVector, nodeTable->getTableID());
     } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
@@ -69,7 +80,7 @@ bool ScanNodeID::getNextTuples() {
 }
 
 void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset) {
-    if (sharedState->isSemiMaskEnabled()) {
+    if (sharedState->isNodeMaskEnabled()) {
         outDataChunk->state->selVector->resetSelectorToValuePosBuffer();
         // Fill selected positions based on node mask for nodes between the given startOffset and
         // endOffset. If the node is masked (i.e., valid for read), then it is set to the selected
@@ -77,7 +88,7 @@ void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset
         sel_t numSelectedValues = 0;
         for (auto i = 0u; i < (endOffset - startOffset); i++) {
             outDataChunk->state->selVector->selectedPositions[numSelectedValues] = i;
-            numSelectedValues += sharedState->isNodeMasked(i + startOffset);
+            numSelectedValues += sharedState->getSemiMask()->isNodeMasked(i + startOffset);
         }
         outDataChunk->state->selVector->selectedSize = numSelectedValues;
     } else {

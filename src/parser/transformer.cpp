@@ -492,7 +492,7 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
 }
 
 unique_ptr<ParsedLiteralExpression> getZeroLiteral() {
-    auto literal = make_unique<Literal>(0l);
+    auto literal = make_unique<Literal>((int64_t)0);
     return make_unique<ParsedLiteralExpression>(move(literal), "0");
 }
 
