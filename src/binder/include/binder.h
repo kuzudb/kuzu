@@ -8,6 +8,7 @@
 #include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
 #include "src/binder/bound_ddl/include/bound_drop_table.h"
 #include "src/binder/query/include/bound_regular_query.h"
+#include "src/binder/query/reading_clause/include/bound_unwind_clause.h"
 #include "src/binder/query/updating_clause/include/bound_create_clause.h"
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
 #include "src/binder/query/updating_clause/include/bound_set_clause.h"
@@ -16,6 +17,7 @@
 #include "src/parser/ddl/include/create_rel_clause.h"
 #include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
+#include "src/parser/query/reading_clause/include/unwind_clause.h"
 
 using namespace graphflow::parser;
 using namespace graphflow::catalog;
@@ -54,6 +56,7 @@ private:
 
     unique_ptr<BoundReadingClause> bindReadingClause(const ReadingClause& readingClause);
     unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
+    unique_ptr<BoundUnwindClause> bindUnwindClause(const UnwindClause& unwindClause);
 
     unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindCreateClause(const UpdatingClause& updatingClause);
