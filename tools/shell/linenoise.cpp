@@ -726,6 +726,33 @@ void linenoiseEditMoveRight(struct linenoiseState* l) {
     }
 }
 
+/* Checks to see if character defines a separation between words */
+bool isWordSeparator(char c) {
+    return (!isalpha(c) && !isdigit(c));
+}
+
+/* Move cursor one word to the left */
+void linenoiseEditMoveWordLeft(struct linenoiseState* l) {
+    if (l->pos == 0) {
+        return;
+    }
+    do {
+        l->pos -= 1;
+    } while (l->pos > 0 && !isWordSeparator(l->buf[l->pos]));
+    refreshLine(l);
+}
+
+/* Move cursor one word to the right */
+void linenoiseEditMoveWordRight(struct linenoiseState* l) {
+    if (l->pos == l->len) {
+        return;
+    }
+    do {
+        l->pos += 1;
+    } while (l->pos != l->len && !isWordSeparator(l->buf[l->pos]));
+    refreshLine(l);
+}
+
 /* Move cursor to the start of the line. */
 void linenoiseEditMoveHome(struct linenoiseState* l) {
     if (l->pos != 0) {
@@ -935,10 +962,28 @@ static int linenoiseEdit(
                         break;
                     if (seq[2] == '~') {
                         switch (seq[1]) {
+                        case '1': /* HOME key. */
+                            linenoiseEditMoveHome(&l);
+                            break;
                         case '3': /* Delete key. */
                             linenoiseEditDelete(&l);
                             break;
+                        case '4': /* END key. */
+                            linenoiseEditMoveEnd(&l);
+                            break;
                         }
+                    }
+                    if (seq[2] == ';') {
+                        /* read another 2 bytes */
+                        if (read(l.ifd, seq + 3, 2) == -1)
+                            break;
+                        if (memcmp(seq, "[1;5C", 5) == 0) {
+                            linenoiseEditMoveWordRight(&l);
+                        }
+                        if (memcmp(seq, "[1;5D", 5) == 0) {
+                            linenoiseEditMoveWordLeft(&l);
+                        }
+
                     }
                 } else {
                     switch (seq[1]) {
