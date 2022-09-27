@@ -10,11 +10,11 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
@@ -68,9 +68,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     switch (operatorType) {
     case LOGICAL_SCAN_NODE_ID: {
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), mapperContext);
-    } break;
-    case LOGICAL_SELECT_SCAN: {
-        physicalOperator = mapLogicalResultScanToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext);
@@ -132,6 +129,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_STATIC_TABLE_SCAN: {
         physicalOperator = mapLogicalTableScanToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_FTABLE_SCAN: {
+        physicalOperator = mapLogicalFTableScanToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     case LOGICAL_CREATE: {
         physicalOperator = mapLogicalCreateToPhysical(logicalOperator.get(), mapperContext);
     } break;
@@ -158,28 +158,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         assert(false);
     }
     return physicalOperator;
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& resultScan = (const LogicalResultScan&)*logicalOperator;
-    auto expressionsToScan = resultScan.getExpressionsToScan();
-    assert(!expressionsToScan.empty());
-    vector<DataPos> inDataPoses;
-    uint32_t outDataChunkPos =
-        mapperContext.getDataPos(expressionsToScan[0]->getUniqueName()).dataChunkPos;
-    vector<uint32_t> outValueVectorsPos;
-    for (auto& expression : expressionsToScan) {
-        auto expressionName = expression->getUniqueName();
-        inDataPoses.push_back(outerMapperContext->getDataPos(expressionName));
-        // all variables should be appended to the same datachunk
-        assert(outDataChunkPos == mapperContext.getDataPos(expressionName).dataChunkPos);
-        outValueVectorsPos.push_back(mapperContext.getDataPos(expressionName).valueVectorPos);
-        mapperContext.addComputedExpressions(expressionName);
-    }
-    return make_unique<ResultScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(inDataPoses), outDataChunkPos, move(outValueVectorsPos), getOperatorID(),
-        resultScan.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(

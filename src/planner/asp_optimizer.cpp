@@ -9,8 +9,12 @@
 namespace graphflow {
 namespace planner {
 
-bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, const LogicalPlan& leftPlan,
-    const LogicalPlan& rightPlan) {
+bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, bool isLeftAcc,
+    const LogicalPlan& leftPlan, const LogicalPlan& rightPlan) {
+    // Avoid ASP if left side is already accumulated. This is due to simplicity on the mapper side.
+    if (isLeftAcc) {
+        return false;
+    }
     auto isLeftPlanFiltered = !LogicalPlanUtil::collectOperators(leftPlan, LOGICAL_FILTER).empty();
     // ASP join benefits only when left branch is selective.
     if (!isLeftPlanFiltered) {
@@ -18,7 +22,7 @@ bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, const Logic
     }
     auto rightScanNodeIDs = LogicalPlanUtil::collectOperators(rightPlan, LOGICAL_SCAN_NODE_ID);
     // TODO(Xiyang): multiple scan node IDs probably also works, but let's do a separate PR.
-    if (rightScanNodeIDs.size() > 1) {
+    if (rightScanNodeIDs.size() != 1) {
         return false;
     }
     auto rightScanNodeID = (LogicalScanNodeID*)rightScanNodeIDs[0];

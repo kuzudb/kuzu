@@ -55,14 +55,7 @@ public:
         matchedRels.insert(rel->getUniqueName());
     }
 
-    inline void setExpressionsToScanFromOuter(expression_vector expressions) {
-        expressionsToScanFromOuter = move(expressions);
-    }
     inline void clearExpressionsToScanFromOuter() { expressionsToScanFromOuter.clear(); }
-    inline bool hasExpressionsToScanFromOuter() { return !expressionsToScanFromOuter.empty(); }
-    inline const expression_vector& getExpressionsToScanFromOuter() {
-        return expressionsToScanFromOuter;
-    }
 
     void resetState();
 
@@ -78,6 +71,7 @@ private:
     unordered_set<string> matchedNodes;
     unordered_set<string> matchedRels;
 
+    LogicalPlan* outerPlan;
     expression_vector expressionsToScanFromOuter;
 };
 

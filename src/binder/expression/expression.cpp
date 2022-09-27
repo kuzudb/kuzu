@@ -82,5 +82,25 @@ bool ExpressionUtil::allExpressionsHaveDataType(
     return true;
 }
 
+uint32_t ExpressionUtil::find(Expression* target, expression_vector expressions) {
+    for (auto i = 0u; i < expressions.size(); ++i) {
+        if (target->getUniqueName() == expressions[i]->getUniqueName()) {
+            return i;
+        }
+    }
+    return UINT32_MAX;
+}
+
+string ExpressionUtil::toString(const expression_vector& expressions) {
+    if (expressions.empty()) {
+        return string{};
+    }
+    auto result = expressions[0]->getUniqueName();
+    for (auto i = 1u; i < expressions.size(); ++i) {
+        result += "," + expressions[i]->getUniqueName();
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace graphflow

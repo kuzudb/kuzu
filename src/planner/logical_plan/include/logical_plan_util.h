@@ -7,8 +7,13 @@ namespace planner {
 
 class LogicalPlanUtil {
 public:
+    static inline vector<LogicalOperator*> collectOperators(
+        const LogicalPlan& plan, LogicalOperatorType operatorType) {
+        return collectOperators(plan.getLastOperator().get(), operatorType);
+    }
+
     static vector<LogicalOperator*> collectOperators(
-        const LogicalPlan& plan, LogicalOperatorType operatorType);
+        LogicalOperator* root, LogicalOperatorType operatorType);
 
     static inline string encodeJoin(LogicalPlan& logicalPlan) {
         return encodeJoin(logicalPlan.getLastOperator().get());

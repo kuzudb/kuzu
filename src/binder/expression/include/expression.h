@@ -106,6 +106,10 @@ protected:
 class ExpressionUtil {
 public:
     static bool allExpressionsHaveDataType(expression_vector& expressions, DataTypeID dataTypeID);
+
+    static uint32_t find(Expression* target, expression_vector expressions);
+
+    static string toString(const expression_vector& expressions);
 };
 
 } // namespace binder

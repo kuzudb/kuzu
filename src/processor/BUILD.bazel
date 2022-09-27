@@ -325,6 +325,7 @@ cc_library(
         "//src/function/aggregate:aggregate_function",
         "//src/planner/logical_plan/logical_operator:logical_operator_impls",
         "//src/storage:storage_manager",
+        "//src/planner/logical_plan:logical_plan_util",
     ],
 )
 

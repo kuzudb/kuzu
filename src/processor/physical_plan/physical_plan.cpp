@@ -16,7 +16,7 @@ void PhysicalPlanUtil::collectOperatorsRecursive(
         result.push_back(op);
     }
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        collectOperatorsRecursive(op->getChild(0), operatorType, result);
+        collectOperatorsRecursive(op->getChild(i), operatorType, result);
     }
 }
 

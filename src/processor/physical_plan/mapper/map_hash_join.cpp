@@ -1,6 +1,8 @@
+#include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
+#include "src/processor/include/physical_plan/operator/factorized_table_scan.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
@@ -9,15 +11,35 @@
 namespace graphflow {
 namespace processor {
 
-static bool isASPJoin(HashJoinProbe* hashJoinProbe) {
-    auto op = hashJoinProbe->getChild(0);
-    while (op->getNumChildren() == 1) { // check pipeline
-        if (op->getOperatorType() == PhysicalOperatorType::SEMI_MASKER) {
+static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
+    auto op = logicalHashJoin->getChild(0); // check probe side
+    while (op->getNumChildren() == 1) {     // check pipeline
+        if (op->getLogicalOperatorType() == LogicalOperatorType::LOGICAL_SEMI_MASKER) {
             return true;
         }
         op = op->getChild(0);
     }
     return false;
+}
+
+static bool containFTableScan(LogicalHashJoin* logicalHashJoin) {
+    auto root = logicalHashJoin->getChild(1).get(); // check build side
+    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::LOGICAL_FTABLE_SCAN)
+                .empty();
+}
+
+static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinProbe) {
+    auto op = hashJoinProbe->getChild(0);
+    while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
+        op = op->getChild(0);
+    }
+    assert(op->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
+    return (FactorizedTableScan*)op;
+}
+
+static void constructAccPipeline(FactorizedTableScan* tableScan, HashJoinProbe* hashJoinProbe) {
+    auto resultCollector = tableScan->moveUnaryChild();
+    hashJoinProbe->addChild(std::move(resultCollector));
 }
 
 static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
@@ -34,19 +56,36 @@ static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
     }
     assert(scanNodeIDCandidates.size() == 1);
     auto sharedState = scanNodeIDCandidates[0]->getSharedState();
-    // set semi masker on probe side
-    auto op = hashJoinProbe->getChild(0);
-    while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
-        op = op->getChild(0);
-    }
-    assert(op->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
-    auto tableScan = op;
-    assert(op->getChild(0)->getChild(0)->getOperatorType() == PhysicalOperatorType::SEMI_MASKER);
-    auto semiMasker = (SemiMasker*)op->getChild(0)->getChild(0);
+    // set semi masker
+    auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
+    assert(tableScan->getChild(0)->getChild(0)->getOperatorType() ==
+           PhysicalOperatorType::SEMI_MASKER);
+    auto semiMasker = (SemiMasker*)tableScan->getChild(0)->getChild(0);
     semiMasker->setSharedState(sharedState);
-    // reconstruct pipeline
-    auto resultCollector = tableScan->moveUnaryChild();
-    hashJoinProbe->addChild(std::move(resultCollector));
+    constructAccPipeline(tableScan, hashJoinProbe);
+}
+
+static void mapAccJoin(HashJoinProbe* hashJoinProbe) {
+    auto hashJoinBuild = hashJoinProbe->getChild(1);
+    assert(hashJoinBuild->getOperatorType() == PhysicalOperatorType::HASH_JOIN_BUILD);
+    // fetch factorized table on probe side
+    auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
+    assert(tableScan->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
+    auto resultCollector = (ResultCollector*)tableScan->getChild(0);
+    auto sharedState = resultCollector->getSharedState();
+    // fetch fTableScan on build side
+    vector<PhysicalOperator*> tableScanCandidates;
+    for (auto& op : PhysicalPlanUtil::collectOperators(
+             hashJoinBuild, PhysicalOperatorType::FACTORIZED_TABLE_SCAN)) {
+        if (op->getNumChildren() == 0) {
+            tableScanCandidates.push_back(op);
+        }
+    }
+    // This might not be true for nested exists subquery.
+    assert(tableScanCandidates.size() == 1);
+    auto tableScanCandidate = (FactorizedTableScan*)tableScanCandidates[0];
+    tableScanCandidate->setSharedState(sharedState);
+    constructAccPipeline(tableScan, hashJoinProbe);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
@@ -94,8 +133,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
-    if (isASPJoin(hashJoinProbe.get())) {
-        mapASPJoin(hashJoin->getJoinNode().get(), hashJoinProbe.get());
+    if (hashJoin->getIsProbeAcc()) {
+        if (containASPOnPipeline(hashJoin)) {
+            mapASPJoin(hashJoin->getJoinNode().get(), hashJoinProbe.get());
+        } else if (containFTableScan(hashJoin)) {
+            mapAccJoin(hashJoinProbe.get());
+        } else {
+            assert(false);
+        }
     }
     return hashJoinProbe;
 }

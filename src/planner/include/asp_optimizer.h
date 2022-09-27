@@ -9,8 +9,8 @@ namespace planner {
 
 class ASPOptimizer {
 public:
-    static bool canApplyASP(shared_ptr<NodeExpression>& joinNode, const LogicalPlan& leftPlan,
-        const LogicalPlan& rightPlan);
+    static bool canApplyASP(shared_ptr<NodeExpression>& joinNode, bool isLeftAcc,
+        const LogicalPlan& leftPlan, const LogicalPlan& rightPlan);
 
     static void applyASP(
         shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan);

@@ -34,8 +34,6 @@ private:
 
     unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalResultScanToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
@@ -73,6 +71,8 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalTableScanToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalCreateToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);

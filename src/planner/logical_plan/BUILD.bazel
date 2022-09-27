@@ -30,6 +30,7 @@ cc_library(
     ],
     visibility = [
         "//src/planner:__subpackages__",
+        "//src/processor:__pkg__",
         "//test/planner:__subpackages__",
         "//tools/join_order_pick:__pkg__",
     ],

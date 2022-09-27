@@ -1,12 +1,14 @@
-#include "src/planner/include/join_order_enumerator.h"
+#include "include/join_order_enumerator.h"
 
 #include "include/asp_optimizer.h"
+#include "include/enumerator.h"
+#include "include/projection_enumerator.h"
 
-#include "src/planner/include/enumerator.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
@@ -23,11 +25,10 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
     vector<unique_ptr<LogicalPlan>> prevPlans) {
     context->init(queryGraph, queryGraphPredicate, std::move(prevPlans));
-    if (context->hasExpressionsToScanFromOuter()) {
-        assert(false);
-    } else {
-        planTableScan();
+    if (!context->expressionsToScanFromOuter.empty()) {
+        planOuterExpressionsScan(context->expressionsToScanFromOuter);
     }
+    planTableScan();
     context->currentLevel++;
     while (context->currentLevel < context->maxLevel) {
         planLevel(context->currentLevel++);
@@ -36,10 +37,11 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
 }
 
 unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
-    expression_vector expressionsToScan) {
+    LogicalPlan* outerPlan, expression_vector expressionsToScan) {
     auto prevContext = move(context);
     context = make_unique<JoinOrderEnumeratorContext>();
-    context->setExpressionsToScanFromOuter(move(expressionsToScan));
+    context->outerPlan = outerPlan;
+    context->expressionsToScanFromOuter = expressionsToScan;
     return prevContext;
 }
 
@@ -47,25 +49,25 @@ void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> pr
     context = move(prevContext);
 }
 
-void JoinOrderEnumerator::planResultScan() {
-    auto emptySubgraph = context->getEmptySubqueryGraph();
-    auto plan = context->containPlans(emptySubgraph) ?
-                    context->getPlans(emptySubgraph)[0]->shallowCopy() :
-                    make_unique<LogicalPlan>();
-    auto newSubgraph = emptySubgraph;
-    for (auto& expression : context->getExpressionsToScanFromOuter()) {
-        if (expression->dataType.typeID == NODE_ID) {
-            assert(expression->expressionType == PROPERTY);
-            newSubgraph.addQueryNode(context->getQueryGraph()->getQueryNodePos(
-                expression->getChild(0)->getUniqueName()));
+void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expressions) {
+    auto newSubgraph = context->getEmptySubqueryGraph();
+    for (auto& expression : expressions) {
+        if (expression->getDataType().typeID == NODE_ID) {
+            auto node = static_pointer_cast<NodeExpression>(expression->getChild(0));
+            context->addMatchedNode(node.get());
+            auto nodePos = context->getQueryGraph()->getQueryNodePos(*node);
+            newSubgraph.addQueryNode(nodePos);
         }
     }
-    appendResultScan(context->getExpressionsToScanFromOuter(), *plan);
-    for (auto& expression :
-        getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions())) {
-        enumerator->appendFilter(expression, *plan);
+    auto plan = make_unique<LogicalPlan>();
+    appendFTableScan(context->outerPlan, expressions, *plan);
+    auto predicates = getNewMatchedExpressions(
+        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+    for (auto& predicate : predicates) {
+        enumerator->appendFilter(predicate, *plan);
     }
-    context->addPlan(newSubgraph, move(plan));
+    enumerator->projectionEnumerator.appendDistinct(expressions, *plan);
+    context->addPlan(newSubgraph, std::move(plan));
 }
 
 void JoinOrderEnumerator::planNodeScan() {
@@ -252,12 +254,14 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanBuildCopy = rightPlan->shallowCopy();
             auto leftPlanBuildCopy = leftPlan->shallowCopy();
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
-            planHashJoin(joinNode, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
+            planHashJoin(joinNode, JoinType::INNER, false /* isProbeAcc */, *leftPlanProbeCopy,
+                *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
             context->addPlan(newSubgraph, move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
-                planHashJoin(joinNode, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                planHashJoin(joinNode, JoinType::INNER, false /* isProbeAcc */, *rightPlanProbeCopy,
+                    *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, move(rightPlanProbeCopy));
             }
@@ -271,17 +275,32 @@ void JoinOrderEnumerator::planFiltersForHashJoin(expression_vector& predicates, 
     }
 }
 
-void JoinOrderEnumerator::appendResultScan(
-    const expression_vector& expressionsToSelect, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto groupPos = schema->createGroup();
-    for (auto& expressionToSelect : expressionsToSelect) {
-        schema->insertToGroupAndScope(expressionToSelect, groupPos);
+void JoinOrderEnumerator::appendFTableScan(
+    LogicalPlan* outerPlan, expression_vector& expressionsToScan, LogicalPlan& plan) {
+    unordered_map<uint32_t, expression_vector> groupPosToExpressionsMap;
+    for (auto& expression : expressionsToScan) {
+        auto outerPos = outerPlan->getSchema()->getGroupPos(expression->getUniqueName());
+        if (!groupPosToExpressionsMap.contains(outerPos)) {
+            groupPosToExpressionsMap.insert({outerPos, expression_vector{}});
+        }
+        groupPosToExpressionsMap.at(outerPos).push_back(expression);
     }
-    auto resultScan = make_shared<LogicalResultScan>(expressionsToSelect);
-    auto group = schema->getGroup(groupPos);
-    group->setIsFlat(true);
-    plan.appendOperator(move(resultScan));
+    vector<uint64_t> flatOutputGroupPositions;
+    auto schema = plan.getSchema();
+    for (auto& [outerPos, expressions] : groupPosToExpressionsMap) {
+        auto innerPos = schema->createGroup();
+        schema->insertToGroupAndScope(expressions, innerPos);
+        if (outerPlan->getSchema()->getGroup(outerPos)->getIsFlat()) {
+            schema->flattenGroup(innerPos);
+            flatOutputGroupPositions.push_back(innerPos);
+        }
+    }
+    assert(outerPlan->getLastOperator()->getLogicalOperatorType() ==
+           LogicalOperatorType::LOGICAL_ACCUMULATE);
+    auto logicalAcc = (LogicalAccumulate*)outerPlan->getLastOperator().get();
+    auto fTableScan = make_shared<LogicalFTableScan>(
+        expressionsToScan, logicalAcc->getExpressions(), flatOutputGroupPositions);
+    plan.appendOperator(std::move(fTableScan));
 }
 
 void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
@@ -321,11 +340,12 @@ void JoinOrderEnumerator::appendExtend(
 }
 
 void JoinOrderEnumerator::planHashJoin(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
-    LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    if (ASPOptimizer::canApplyASP(joinNode, probePlan, buildPlan)) {
+    bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    if (ASPOptimizer::canApplyASP(joinNode, isProbeAcc, probePlan, buildPlan)) {
         ASPOptimizer::applyASP(joinNode, probePlan, buildPlan);
+        isProbeAcc = true;
     }
-    appendHashJoin(joinNode, joinType, probePlan, buildPlan);
+    appendHashJoin(joinNode, joinType, isProbeAcc, probePlan, buildPlan);
 }
 
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
@@ -357,7 +377,7 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
 }
 
 void JoinOrderEnumerator::appendHashJoin(const shared_ptr<NodeExpression>& joinNode,
-    JoinType joinType, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode->getIDProperty();
     auto& buildSideSchema = *buildPlan.getSchema();
     auto probeSideSchema = probePlan.getSchema();
@@ -383,8 +403,8 @@ void JoinOrderEnumerator::appendHashJoin(const shared_ptr<NodeExpression>& joinN
             flatOutputGroupPositions.push_back(i);
         }
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, joinType, buildSideSchema.copy(),
-        flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, joinType, isProbeAcc,
+        buildSideSchema.copy(), flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
 }

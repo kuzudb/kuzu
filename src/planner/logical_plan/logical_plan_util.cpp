@@ -8,9 +8,9 @@ namespace graphflow {
 namespace planner {
 
 vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
-    const LogicalPlan& plan, LogicalOperatorType operatorType) {
+    LogicalOperator* root, LogicalOperatorType operatorType) {
     vector<LogicalOperator*> result;
-    collectOperatorsRecursive(plan.getLastOperator().get(), operatorType, result);
+    collectOperatorsRecursive(root, operatorType, result);
     return result;
 }
 

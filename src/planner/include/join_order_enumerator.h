@@ -39,11 +39,11 @@ public:
     inline void resetState() { context->resetState(); }
 
 private:
-    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(expression_vector expressionsToScan);
+    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
+        LogicalPlan* outerPlan, expression_vector expressionsToScan);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
-    void planResultScan();
-
+    void planOuterExpressionsScan(expression_vector& expressions);
     inline void planTableScan() {
         planNodeScan();
         planRelScan();
@@ -89,14 +89,16 @@ private:
     // Filter push down for hash join.
     void planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan);
 
-    void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
+    void appendFTableScan(
+        LogicalPlan* outerPlan, expression_vector& expressionsToScan, LogicalPlan& plan);
+
     void appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
     static void planHashJoin(shared_ptr<NodeExpression>& joinNode, JoinType joinType,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendHashJoin(const shared_ptr<NodeExpression>& joinNode, JoinType joinType,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
         table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);

@@ -177,33 +177,44 @@ static shared_ptr<NodeExpression> getJoinNode(expression_vector& expressions) {
 
 void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
-    auto outerSchema = outerPlan.getSchema();
     auto expressionsToScanFromOuter =
-        getExpressionsToScanFromOuter(queryGraph, queryGraphPredicate, outerSchema);
+        getExpressionsToScanFromOuter(queryGraph, queryGraphPredicate, outerPlan.getSchema());
     auto joinNode = getJoinNode(expressionsToScanFromOuter);
     auto allExpressionsToScanAreNodeIDs =
         ExpressionUtil::allExpressionsHaveDataType(expressionsToScanFromOuter, NODE_ID);
-    // Join node is scanned in the outer plan. Avoid scan the same table twice.
-    auto queryGraphToEnumerate = make_unique<QueryGraph>();
-    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
-        auto queryNode = queryGraph.getQueryNode(i);
-        if (queryNode->getUniqueName() != joinNode->getUniqueName()) {
-            queryGraphToEnumerate->addQueryNode(std::move(queryNode));
+    if (allExpressionsToScanAreNodeIDs) { // De-correlated as left join
+        // Join node is scanned in the outer plan. Avoid scan the same table twice.
+        auto queryGraphToEnumerate = make_unique<QueryGraph>();
+        for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+            auto queryNode = queryGraph.getQueryNode(i);
+            if (queryNode->getUniqueName() != joinNode->getUniqueName()) {
+                queryGraphToEnumerate->addQueryNode(std::move(queryNode));
+            }
         }
+        for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+            queryGraphToEnumerate->addQueryRel(queryGraph.getQueryRel(i));
+        }
+        // De-correlated subquery doesn't scan from outer.
+        auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
+        auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
+            *queryGraphToEnumerate, queryGraphPredicate, getInitialEmptyPlans());
+        auto bestInnerPlan = getBestPlan(std::move(innerPlans));
+        joinOrderEnumerator.exitSubquery(std::move(prevContext));
+        appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
+        JoinOrderEnumerator::planHashJoin(
+            joinNode, JoinType::LEFT, false /* isProbeAcc */, outerPlan, *bestInnerPlan);
+    } else {
+        appendAccumulate(outerPlan);
+        auto prevContext =
+            joinOrderEnumerator.enterSubquery(&outerPlan, expressionsToScanFromOuter);
+        auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
+            queryGraph, queryGraphPredicate, getInitialEmptyPlans());
+        auto bestInnerPlan = getBestPlan(std::move(innerPlans));
+        joinOrderEnumerator.exitSubquery(std::move(prevContext));
+        appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
+        JoinOrderEnumerator::planHashJoin(
+            joinNode, JoinType::LEFT, true /* isProbeAcc */, outerPlan, *bestInnerPlan);
     }
-    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
-        queryGraphToEnumerate->addQueryRel(queryGraph.getQueryRel(i));
-    }
-    // TODO(Xiyang): solve the general case with ASP-style join
-    assert(allExpressionsToScanAreNodeIDs);
-    // De-correlated subquery (meaning we don't scan from outer) if all dependencies are join nodes
-    // (i.e. join conditions)
-    auto prevContext = joinOrderEnumerator.enterSubquery(expression_vector{});
-    auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
-        *queryGraphToEnumerate, queryGraphPredicate, getInitialEmptyPlans()));
-    joinOrderEnumerator.exitSubquery(std::move(prevContext));
-    Enumerator::appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
-    JoinOrderEnumerator::planHashJoin(joinNode, JoinType::LEFT, outerPlan, *bestInnerPlan);
 }
 
 void Enumerator::planExistsSubquery(
@@ -219,7 +230,8 @@ void Enumerator::planExistsSubquery(
     }
     outerPlan.getSchema()->insertToGroupAndScope(subqueryExpression, groupPosToWrite);
     auto& normalizedQuery = *subqueryExpression->getSubquery();
-    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
+    auto prevContext =
+        joinOrderEnumerator.enterSubquery(&outerPlan, move(expressionsToScanFromOuter));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
     joinOrderEnumerator.context->clearExpressionsToScanFromOuter();
     for (auto i = 1u; i < normalizedQuery.getNumQueryParts(); ++i) {
