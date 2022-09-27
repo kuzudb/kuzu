@@ -11,32 +11,22 @@ const string EMPTY = string();
 class SubqueryTest : public ::testing::Test {
 
 public:
-    static unique_ptr<MatchClause> makeEmptyMatchClause() {
+    static vector<unique_ptr<PatternElement>> makeEmptyPatternElements() {
         auto expectNode = make_unique<NodePattern>(
             string(), string(), vector<pair<string, unique_ptr<ParsedExpression>>>{});
         auto expectPElements = vector<unique_ptr<PatternElement>>();
         expectPElements.emplace_back(make_unique<PatternElement>(move(expectNode)));
-        return make_unique<MatchClause>(move(expectPElements));
-    }
-
-    static unique_ptr<ReturnClause> makeReturnStarClause() {
-        auto expressions = vector<unique_ptr<ParsedExpression>>();
-        return make_unique<ReturnClause>(make_unique<ProjectionBody>(
-            false /* isDistinct */, true /* containsStar */, move(expressions)));
+        return expectPElements;
     }
 };
 
 TEST_F(SubqueryTest, ExistsTest) {
-    auto innerQuery = make_unique<SingleQuery>();
-    innerQuery->addReadingClause(makeEmptyMatchClause());
-    innerQuery->setReturnClause(makeReturnStarClause());
-
     auto existentialExpression =
-        make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(innerQuery), EMPTY);
+        make_unique<ParsedSubqueryExpression>(makeEmptyPatternElements(), EMPTY);
     auto expectedExpression =
-        make_unique<ParsedExpression>(NOT, move(existentialExpression), EMPTY);
+        make_unique<ParsedExpression>(NOT, std::move(existentialExpression), EMPTY);
 
-    string input = "MATCH () WHERE NOT EXISTS { MATCH () RETURN * } RETURN COUNT(*);";
+    string input = "MATCH () WHERE NOT EXISTS { MATCH () } RETURN COUNT(*);";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);
@@ -44,22 +34,12 @@ TEST_F(SubqueryTest, ExistsTest) {
 }
 
 TEST_F(SubqueryTest, NestedExistsTest) {
-    auto secondInnerQuery = make_unique<SingleQuery>();
-    secondInnerQuery->addReadingClause(makeEmptyMatchClause());
-    secondInnerQuery->setReturnClause(makeReturnStarClause());
-
-    auto innerQuery = make_unique<SingleQuery>();
-    innerQuery->setReturnClause(makeReturnStarClause());
-    auto match = makeEmptyMatchClause();
-    match->setWhereClause(
-        make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(secondInnerQuery), EMPTY));
-    innerQuery->addReadingClause(move(match));
-
+    auto secondInnerSubquery =
+        make_unique<ParsedSubqueryExpression>(makeEmptyPatternElements(), EMPTY);
     auto expectedExpression =
-        make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(innerQuery), EMPTY);
-
-    string input = "MATCH () WHERE EXISTS { MATCH () WHERE EXISTS { MATCH () RETURN * } RETURN "
-                   "* } RETURN COUNT(*);";
+        make_unique<ParsedSubqueryExpression>(makeEmptyPatternElements(), EMPTY);
+    expectedExpression->setWhereClause(std::move(secondInnerSubquery));
+    string input = "MATCH () WHERE EXISTS { MATCH () WHERE EXISTS { MATCH () } } RETURN COUNT(*);";
     auto parsedQuery = Parser::parseQuery(input);
     auto regularQuery = reinterpret_cast<RegularQuery*>(parsedQuery.get());
     auto& matchClause = (MatchClause&)*regularQuery->getSingleQuery(0)->getReadingClause(0);

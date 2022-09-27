@@ -397,7 +397,7 @@ oC_FunctionName
     : oC_SymbolicName ;
 
 oC_ExistentialSubquery
-    :  EXISTS SP? '{' SP? oC_SingleQuery SP? '}' ;
+    :  EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
 
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 

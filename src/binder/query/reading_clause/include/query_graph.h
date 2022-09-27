@@ -122,6 +122,7 @@ public:
     vector<shared_ptr<Expression>> getNodeIDExpressions() const;
 
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
+    unique_ptr<QueryGraph> copyWithoutNode(shared_ptr<NodeExpression>& nodeToExclude) const;
 
 private:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;

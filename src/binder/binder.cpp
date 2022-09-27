@@ -449,6 +449,7 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
 
 unique_ptr<QueryGraph> Binder::bindQueryGraph(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
+    auto prevVariablesInScope = variablesInScope;
     auto queryGraph = make_unique<QueryGraph>();
     for (auto& patternElement : graphPattern) {
         auto leftNode = bindQueryNode(*patternElement->getFirstNodePattern(), *queryGraph);
@@ -459,6 +460,7 @@ unique_ptr<QueryGraph> Binder::bindQueryGraph(
             leftNode = rightNode;
         }
     }
+    validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     return queryGraph;
 }
 

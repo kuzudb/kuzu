@@ -409,6 +409,19 @@ void JoinOrderEnumerator::appendHashJoin(const shared_ptr<NodeExpression>& joinN
     probePlan.appendOperator(move(hashJoin));
 }
 
+void JoinOrderEnumerator::appendMarkJoin(shared_ptr<NodeExpression>& joinNode,
+    shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto joinNodeID = joinNode->getIDProperty();
+    auto buildSchema = buildPlan.getSchema();
+    auto probeSchema = probePlan.getSchema();
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    auto markGroupPos = probeSchema->getGroupPos(joinNodeID);
+    probeSchema->insertToGroupAndScope(mark, markGroupPos);
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNode, mark, buildSchema->copy(),
+        probePlan.getLastOperator(), buildPlan.getLastOperator());
+    probePlan.appendOperator(std::move(hashJoin));
+}
+
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(
     Expression& expression, Expression& variable) {
     expression_vector result;

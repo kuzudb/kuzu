@@ -219,5 +219,19 @@ vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
     return result;
 }
 
+unique_ptr<QueryGraph> QueryGraph::copyWithoutNode(
+    shared_ptr<NodeExpression>& nodeToExclude) const {
+    auto result = make_unique<QueryGraph>();
+    for (auto& queryNode : queryNodes) {
+        if (queryNode->getUniqueName() != nodeToExclude->getUniqueName()) {
+            result->addQueryNode(queryNode);
+        }
+    }
+    for (auto& queryRel : queryRels) {
+        result->addQueryRel(queryRel);
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace graphflow

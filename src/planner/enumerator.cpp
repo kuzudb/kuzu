@@ -6,7 +6,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
@@ -182,18 +181,9 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     auto joinNode = getJoinNode(expressionsToScanFromOuter);
     auto allExpressionsToScanAreNodeIDs =
         ExpressionUtil::allExpressionsHaveDataType(expressionsToScanFromOuter, NODE_ID);
-    if (allExpressionsToScanAreNodeIDs) { // De-correlated as left join
+    if (allExpressionsToScanAreNodeIDs) { // Unnest as left join
         // Join node is scanned in the outer plan. Avoid scan the same table twice.
-        auto queryGraphToEnumerate = make_unique<QueryGraph>();
-        for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
-            auto queryNode = queryGraph.getQueryNode(i);
-            if (queryNode->getUniqueName() != joinNode->getUniqueName()) {
-                queryGraphToEnumerate->addQueryNode(std::move(queryNode));
-            }
-        }
-        for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
-            queryGraphToEnumerate->addQueryRel(queryGraph.getQueryRel(i));
-        }
+        auto queryGraphToEnumerate = queryGraph.copyWithoutNode(joinNode);
         // De-correlated subquery doesn't scan from outer.
         auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
         auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
@@ -217,39 +207,31 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     }
 }
 
-void Enumerator::planExistsSubquery(
-    const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
-    auto expressionsToScanFromOuter =
-        outerPlan.getSchema()->getSubExpressionsInScope(subqueryExpression);
-    // We flatten all dependent groups for subquery and the result of subquery evaluation can be
-    // appended to any flat dependent group.
-    auto groupPosToWrite = UINT32_MAX;
-    for (auto& expression : expressionsToScanFromOuter) {
-        groupPosToWrite = outerPlan.getSchema()->getGroupPos(expression->getUniqueName());
-        appendFlattenIfNecessary(groupPosToWrite, outerPlan);
-    }
-    outerPlan.getSchema()->insertToGroupAndScope(subqueryExpression, groupPosToWrite);
-    auto& normalizedQuery = *subqueryExpression->getSubquery();
-    auto prevContext =
-        joinOrderEnumerator.enterSubquery(&outerPlan, move(expressionsToScanFromOuter));
-    auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
-    joinOrderEnumerator.context->clearExpressionsToScanFromOuter();
-    for (auto i = 1u; i < normalizedQuery.getNumQueryParts(); ++i) {
-        plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
-    }
-    joinOrderEnumerator.exitSubquery(move(prevContext));
-    auto bestPlan = getBestPlan(move(plans));
-    auto logicalExists = make_shared<LogicalExists>(subqueryExpression,
-        bestPlan->getSchema()->copy(), outerPlan.getLastOperator(), bestPlan->getLastOperator());
-    outerPlan.appendOperator(logicalExists);
+void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
+    assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
+    auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
+    auto expressionsToScanFromOuter = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
+    auto joinNode = getJoinNode(expressionsToScanFromOuter);
+    auto allExpressionsToScanAreNodeIDs =
+        ExpressionUtil::allExpressionsHaveDataType(expressionsToScanFromOuter, NODE_ID);
+    assert(allExpressionsToScanAreNodeIDs);
+    // Unnest as mark join
+    auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
+    // Join node is scanned in the outer plan. Avoid scan the same table twice.
+    auto queryGraphToEnumerate = subquery->getQueryGraph()->copyWithoutNode(joinNode);
+    auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
+        *queryGraphToEnumerate, subquery->getWhereExpression(), getInitialEmptyPlans()));
+    joinOrderEnumerator.exitSubquery(std::move(prevContext));
+    // TODO(Guodong): decide if you wanna flatten probe key or not.
+    // TODO(Xiyang): add asp.
+    JoinOrderEnumerator::appendMarkJoin(joinNode, expression, outerPlan, *bestInnerPlan);
 }
 
 void Enumerator::planSubqueryIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     if (expression->hasSubqueryExpression()) {
         for (auto& expr : expression->getTopLevelSubSubqueryExpressions()) {
-            auto subqueryExpression = static_pointer_cast<ExistentialSubqueryExpression>(expr);
-            planExistsSubquery(subqueryExpression, plan);
+            planExistsSubquery(expr, plan);
         }
     }
 }
