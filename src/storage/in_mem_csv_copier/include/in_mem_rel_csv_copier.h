@@ -60,6 +60,8 @@ private:
         const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
         PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
         InMemOverflowFile* orderedOverflowFile);
+    static void skipFirstRowIfNecessary(
+        uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader);
 
     // Concurrent tasks.
     static void populateAdjColumnsAndCountRelsInAdjListsTask(

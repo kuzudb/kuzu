@@ -110,7 +110,11 @@ private:
 
     SrcDstTableIDs bindRelConnections(RelConnection relConnections) const;
 
-    static CSVReaderConfig bindParsingOptions(unordered_map<string, string> parsingOptions);
+    CSVReaderConfig bindParsingOptions(
+        const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions);
+
+    void bindStringParsingOptions(
+        CSVReaderConfig& csvReaderConfig, const string& copyOptionName, string& copyOptionValue);
 
     static char bindParsingOptionValue(string parsingOptionValue);
 
@@ -151,7 +155,7 @@ private:
 
     void validateTableExist(string& tableName) const;
 
-    static void validateParsingOptionName(string& parsingOptionName);
+    static bool validateStringParsingOptionName(string& parsingOptionName);
 
     /******* helpers *********/
 

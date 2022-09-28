@@ -24,7 +24,7 @@ void InMemNodeCSVCopier::copy() {
         countLinesPerBlockAndParseUnstrPropertyNames(nodeTableSchema->getNumStructuredProperties());
     catalog.setUnstructuredPropertiesOfNodeTableSchema(
         unstructuredPropertyNames, nodeTableSchema->tableID);
-    numNodes = calculateNumRows();
+    numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured
     // lists.
@@ -150,12 +150,20 @@ void InMemNodeCSVCopier::populateIDIndex(
     }
 }
 
+void InMemNodeCSVCopier::skipFirstRowIfNecessary(
+    uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader) {
+    if (0 == blockId && csvDescription.csvReaderConfig.hasHeader && reader.hasNextLine()) {
+        reader.skipLine();
+    }
+}
+
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
     uint64_t blockId, uint64_t startOffset, InMemHashIndex* IDIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
         putPropsOfLineIntoColumns(copier->structuredColumns,
@@ -218,6 +226,7 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     PageByteCursor overflowPagesCursor;
     auto unstrPropertiesNameToIdMap = copier->catalog.getWriteVersion()

@@ -806,16 +806,16 @@ unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = ctx.gF_ParsingOptions() ?
                               transformParsingOptions(*ctx.gF_ParsingOptions()) :
-                              unordered_map<string, string>();
+                              unordered_map<string, unique_ptr<ParsedExpression>>();
     return make_unique<CopyCSV>(move(csvFileName), move(tableName), move(parsingOptions));
 }
 
-unordered_map<string, string> Transformer::transformParsingOptions(
+unordered_map<string, unique_ptr<ParsedExpression>> Transformer::transformParsingOptions(
     CypherParser::GF_ParsingOptionsContext& ctx) {
-    unordered_map<string, string> copyOptions;
+    unordered_map<string, unique_ptr<ParsedExpression>> copyOptions;
     for (auto loadOption : ctx.gF_ParsingOption()) {
-        copyOptions.emplace(transformSymbolicName(*loadOption->oC_SymbolicName()),
-            transformStringLiteral(*loadOption->StringLiteral()));
+        auto optionName = transformSymbolicName(*loadOption->oC_SymbolicName());
+        copyOptions.emplace(optionName, transformLiteral(*loadOption->oC_Literal()));
     }
     return copyOptions;
 }

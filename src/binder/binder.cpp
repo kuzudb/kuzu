@@ -116,25 +116,53 @@ SrcDstTableIDs Binder::bindRelConnections(RelConnection relConnections) const {
     return SrcDstTableIDs(move(srcTableIDs), move(dstTableIDs));
 }
 
-CSVReaderConfig Binder::bindParsingOptions(unordered_map<string, string> parsingOptions) {
+CSVReaderConfig Binder::bindParsingOptions(
+    const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions) {
     CSVReaderConfig csvReaderConfig;
-    for (auto& parsingOption : parsingOptions) {
+    for (auto& parsingOption : *parsingOptions) {
         auto copyOptionName = parsingOption.first;
-        validateParsingOptionName(copyOptionName);
-        auto parsingOptionValue = bindParsingOptionValue(parsingOption.second);
-        if (copyOptionName == "ESCAPE") {
-            csvReaderConfig.escapeChar = parsingOptionValue;
-        } else if (copyOptionName == "DELIM") {
-            csvReaderConfig.tokenSeparator = parsingOptionValue;
-        } else if (copyOptionName == "QUOTE") {
-            csvReaderConfig.quoteChar = parsingOptionValue;
-        } else if (copyOptionName == "LIST_BEGIN") {
-            csvReaderConfig.listBeginChar = parsingOptionValue;
-        } else if (copyOptionName == "LIST_END") {
-            csvReaderConfig.listEndChar = parsingOptionValue;
+        bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
+        auto copyOptionExpression = parsingOption.second.get();
+        auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
+        assert(boundCopyOptionExpression->expressionType = LITERAL);
+
+        if (copyOptionName == "HEADER") {
+            if (boundCopyOptionExpression->dataType.typeID != BOOL) {
+                throw "The value type of parsing csv option " + copyOptionName +
+                    " must be boolean.";
+            }
+            csvReaderConfig.hasHeader =
+                ((LiteralExpression&)(*boundCopyOptionExpression)).literal->val.booleanVal;
+        } else if (boundCopyOptionExpression->dataType.typeID == STRING &&
+                   isValidStringParsingOption) {
+            if (boundCopyOptionExpression->dataType.typeID != STRING) {
+                throw BinderException(
+                    "The value type of parsing csv option " + copyOptionName + " must be string.");
+            }
+            auto copyOptionValue =
+                ((LiteralExpression&)(*boundCopyOptionExpression)).literal->strVal;
+            bindStringParsingOptions(csvReaderConfig, copyOptionName, copyOptionValue);
+        } else {
+            throw BinderException("Unrecognized parsing csv option: " + copyOptionName + ".");
         }
     }
     return csvReaderConfig;
+}
+
+void Binder::bindStringParsingOptions(
+    CSVReaderConfig& csvReaderConfig, const string& copyOptionName, string& copyOptionValue) {
+    auto parsingOptionValue = bindParsingOptionValue(copyOptionValue);
+    if (copyOptionName == "ESCAPE") {
+        csvReaderConfig.escapeChar = parsingOptionValue;
+    } else if (copyOptionName == "DELIM") {
+        csvReaderConfig.tokenSeparator = parsingOptionValue;
+    } else if (copyOptionName == "QUOTE") {
+        csvReaderConfig.quoteChar = parsingOptionValue;
+    } else if (copyOptionName == "LIST_BEGIN") {
+        csvReaderConfig.listBeginChar = parsingOptionValue;
+    } else if (copyOptionName == "LIST_END") {
+        csvReaderConfig.listEndChar = parsingOptionValue;
+    }
 }
 
 char Binder::bindParsingOptionValue(string parsingOptionValue) {
@@ -716,13 +744,13 @@ void Binder::validateTableExist(string& tableName) const {
     }
 }
 
-void Binder::validateParsingOptionName(string& parsingOptionName) {
-    for (auto i = 0; i < size(CopyCSVConfig::CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyCSVConfig::CSV_PARSING_OPTIONS[i]) {
-            return;
+bool Binder::validateStringParsingOptionName(string& parsingOptionName) {
+    for (auto i = 0; i < size(CopyCSVConfig::STRING_CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyCSVConfig::STRING_CSV_PARSING_OPTIONS[i]) {
+            return true;
         }
     }
-    throw BinderException("Unrecognized parsing csv option: " + parsingOptionName + ".");
+    return false;
 }
 
 string Binder::getUniqueExpressionName(const string& name) {

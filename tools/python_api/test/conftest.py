@@ -17,7 +17,7 @@ def init_tiny_snb(tmp_path):
                  "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
                  "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
                  "KEY (ID))")
-    conn.execute("COPY person FROM \"dataset/tinysnb/vPerson.csv\"")
+    conn.execute("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)")
     return output_path
 
 

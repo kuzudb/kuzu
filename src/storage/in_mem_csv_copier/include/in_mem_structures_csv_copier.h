@@ -24,7 +24,7 @@ public:
 protected:
     void calculateNumBlocks(const string& filePath, string tableName);
 
-    uint64_t calculateNumRows();
+    uint64_t calculateNumRows(bool hasHeader);
 
     // Concurrent tasks
     static void countNumLinesPerBlockTask(
