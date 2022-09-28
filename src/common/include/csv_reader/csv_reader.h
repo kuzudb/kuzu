@@ -17,13 +17,15 @@ struct CSVReaderConfig {
           tokenSeparator{CopyCSVConfig::DEFAULT_TOKEN_SEPARATOR},
           quoteChar{CopyCSVConfig::DEFAULT_QUOTE_CHAR},
           listBeginChar{CopyCSVConfig::DEFAULT_LIST_BEGIN_CHAR},
-          listEndChar{CopyCSVConfig::DEFAULT_LIST_END_CHAR} {}
+          listEndChar{CopyCSVConfig::DEFAULT_LIST_END_CHAR},
+          hasHeader{CopyCSVConfig::DEFAULT_HAS_HEADER} {}
 
     char escapeChar;
     char tokenSeparator;
     char quoteChar;
     char listBeginChar;
     char listEndChar;
+    bool hasHeader;
 };
 
 struct CSVDescription {

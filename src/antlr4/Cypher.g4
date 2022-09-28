@@ -25,7 +25,7 @@ gF_ParsingOptions
     : gF_ParsingOption ( SP? ',' SP? gF_ParsingOption )* ;
     
 gF_ParsingOption
-    : oC_SymbolicName SP? '=' SP? StringLiteral ;
+    : oC_SymbolicName SP? '=' SP? oC_Literal;
 
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;    
 

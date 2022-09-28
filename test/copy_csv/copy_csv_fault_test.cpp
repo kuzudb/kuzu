@@ -54,7 +54,7 @@ TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY "
         "KEY (fName))");
-    auto result = conn->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\"");
+    auto result = conn->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)");
     ASSERT_EQ(result->getErrorMessage(),
         "Cannot convert string Alice to INT64.. Invalid input. No characters consumed.");
 }

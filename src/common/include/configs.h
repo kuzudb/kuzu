@@ -99,13 +99,14 @@ struct CopyCSVConfig {
     static constexpr char ID_FIELD[] = "ID";
 
     // Default configuration for csv file parsing
-    static constexpr const char* CSV_PARSING_OPTIONS[5] = {
+    static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};
     static constexpr char DEFAULT_ESCAPE_CHAR = '\\';
     static constexpr char DEFAULT_TOKEN_SEPARATOR = ',';
     static constexpr char DEFAULT_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_LIST_END_CHAR = ']';
+    static constexpr bool DEFAULT_HAS_HEADER = false;
 };
 
 struct EnumeratorKnobs {

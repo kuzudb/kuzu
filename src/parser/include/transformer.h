@@ -201,7 +201,7 @@ private:
 
     unique_ptr<CopyCSV> transformCopyCSV();
 
-    unordered_map<string, string> transformParsingOptions(
+    unordered_map<string, unique_ptr<ParsedExpression>> transformParsingOptions(
         CypherParser::GF_ParsingOptionsContext& ctx);
 
     string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);

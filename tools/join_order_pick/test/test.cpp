@@ -26,7 +26,7 @@ public:
             "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
             "PRIMARY "
             "KEY (ID))");
-        regularConnection->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\"");
+        regularConnection->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)");
         regularConnection->query(
             "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
             "validInterval INTERVAL, comments STRING[], MANY_MANY)");

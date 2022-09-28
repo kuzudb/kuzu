@@ -32,7 +32,7 @@ void InMemRelCSVCopier::copy() {
         "Copying rel {} with table {}.", relTableSchema->tableName, relTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, relTableSchema->tableName);
     countLinesPerBlock();
-    auto numRels = calculateNumRows();
+    auto numRels = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndLists();
     // Construct columns and lists.
     populateAdjColumnsAndCountRelsInAdjLists();
@@ -169,11 +169,19 @@ static void putValueIntoColumns(uint64_t propertyIdx,
     }
 }
 
+void InMemRelCSVCopier::skipFirstRowIfNecessary(
+    uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader) {
+    if (0 == blockId && csvDescription.csvReaderConfig.hasHeader && reader.hasNextLine()) {
+        reader.skipLine();
+    }
+}
+
 void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->debug("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTables{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};
@@ -486,6 +494,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTables{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};

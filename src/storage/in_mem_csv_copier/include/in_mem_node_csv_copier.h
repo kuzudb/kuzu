@@ -42,6 +42,8 @@ private:
         node_offset_t startOffset, uint64_t numValues);
     static void populateIDIndex(InMemColumn* column, InMemHashIndex* IDIndex,
         node_offset_t startOffset, uint64_t numValues);
+    static void skipFirstRowIfNecessary(
+        uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader);
 
     // Concurrent tasks.
     static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,

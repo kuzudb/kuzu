@@ -173,7 +173,7 @@ public:
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY KEY (ID))";
-    string copyPersonTableCmd = "COPY person FROM \"dataset/tinysnb/vPerson.csv\"";
+    string copyPersonTableCmd = "COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)";
 };
 } // namespace transaction
 } // namespace graphflow

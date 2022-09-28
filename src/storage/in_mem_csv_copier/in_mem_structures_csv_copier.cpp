@@ -26,9 +26,13 @@ void InMemStructuresCSVCopier::calculateNumBlocks(const string& filePath, string
     logger->info("Done chunking csv into blocks for table {}.", tableName);
 }
 
-uint64_t InMemStructuresCSVCopier::calculateNumRows() {
+uint64_t InMemStructuresCSVCopier::calculateNumRows(bool hasHeader) {
     assert(numLinesPerBlock.size() == numBlocks);
     auto numRows = 0u;
+    if (hasHeader) {
+        // Decrement the header line.
+        numLinesPerBlock[0]--;
+    }
     for (auto blockId = 0u; blockId < numBlocks; blockId++) {
         numRows += numLinesPerBlock[blockId];
     }
