@@ -99,6 +99,9 @@ private:
         bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendHashJoin(const shared_ptr<NodeExpression>& joinNode, JoinType joinType,
         bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    static void appendMarkJoin(shared_ptr<NodeExpression>& joinNode, shared_ptr<Expression>& mark,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
         table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);

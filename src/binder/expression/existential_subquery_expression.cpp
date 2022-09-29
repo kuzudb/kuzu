@@ -17,19 +17,11 @@ unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames()
 // expressions from predicates and return clause. Plus nodeID expressions from query graph.
 expression_vector ExistentialSubqueryExpression::getChildren() const {
     expression_vector result;
-    for (auto i = 0u; i < subQuery->getNumQueryParts(); ++i) {
-        auto queryPart = subQuery->getQueryPart(i);
-        for (auto j = 0u; j < queryPart->getNumQueryGraph(); ++j) {
-            for (auto& nodeIDExpression : queryPart->getQueryGraph(j)->getNodeIDExpressions()) {
-                result.push_back(nodeIDExpression);
-            }
-            if (queryPart->hasQueryGraphPredicate(j)) {
-                result.push_back(queryPart->getQueryGraphPredicate(j));
-            }
-        }
-        for (auto& expression : queryPart->getProjectionBody()->getProjectionExpressions()) {
-            result.push_back(expression);
-        }
+    for (auto& nodeIDExpression : queryGraph->getNodeIDExpressions()) {
+        result.push_back(nodeIDExpression);
+    }
+    if (hasWhereExpression()) {
+        result.push_back(whereExpression);
     }
     return result;
 }

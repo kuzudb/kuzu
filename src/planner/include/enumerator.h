@@ -51,8 +51,7 @@ private:
     void planOptionalMatch(const QueryGraph& queryGraph,
         shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
 
-    void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
-        LogicalPlan& outerPlan);
+    void planExistsSubquery(shared_ptr<Expression>& subquery, LogicalPlan& outerPlan);
 
     void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 

@@ -52,8 +52,6 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     expression->setRawName(parsedExpression.getRawName());
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
-    } else if (expression->expressionType == EXISTENTIAL_SUBQUERY) {
-        validateExistsSubqueryHasNoAggregationOrOrderBy(*expression);
     }
     return expression;
 }
@@ -280,11 +278,16 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();
-    auto boundSingleQuery = binder->bindSingleQuery(*subqueryExpression.getSubquery());
+    auto queryGraph = binder->bindQueryGraph(subqueryExpression.getPatternElements());
+    auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
+    auto boundSubqueryExpression =
+        make_shared<ExistentialSubqueryExpression>(std::move(queryGraph), std::move(name));
+    if (subqueryExpression.hasWhereClause()) {
+        boundSubqueryExpression->setWhereExpression(
+            binder->bindWhereExpression(*subqueryExpression.getWhereClause()));
+    }
     binder->exitSubquery(move(prevVariablesInScope));
-    return make_shared<ExistentialSubqueryExpression>(
-        QueryNormalizer::normalizeQuery(*boundSingleQuery),
-        binder->getUniqueExpressionName(parsedExpression.getRawName()));
+    return boundSubqueryExpression;
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
@@ -392,25 +395,6 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getChild(0)->hasAggregationExpression()) {
         throw BinderException(
             "Expression " + expression.getRawName() + " contains nested aggregation.");
-    }
-}
-
-void ExpressionBinder::validateExistsSubqueryHasNoAggregationOrOrderBy(
-    const Expression& expression) {
-    assert(expression.expressionType == EXISTENTIAL_SUBQUERY);
-    auto subquery = ((ExistentialSubqueryExpression&)expression).getSubquery();
-    vector<BoundProjectionBody*> projectionBodies;
-    for (auto i = 0u; i < subquery->getNumQueryParts(); ++i) {
-        projectionBodies.push_back(subquery->getQueryPart(i)->getProjectionBody());
-    }
-    for (auto& projectionBody : projectionBodies) {
-        if (projectionBody->hasAggregationExpressions() ||
-            projectionBody->hasOrderByExpressions()) {
-            throw BinderException(
-                "Expression " + expression.getRawName() +
-                " is an existential subquery expression and should not contains any "
-                "aggregation or order by in subquery RETURN or WITH clause.");
-        }
     }
 }
 

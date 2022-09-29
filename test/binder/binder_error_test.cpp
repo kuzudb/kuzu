@@ -215,39 +215,6 @@ TEST_F(BinderErrorTest, OptionalMatchAsFirstMatch) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, SubqueryWithAggregation1) {
-    string expectedException =
-        "Binder exception: Expression EXISTS { MATCH (a)-[:knows]->(b:person) RETURN COUNT(*) "
-        "} is an existential subquery expression and should not contains "
-        "any aggregation or order by in subquery RETURN or WITH clause.";
-    auto input = "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN COUNT(*) } "
-                 "RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, SubqueryWithAggregation2) {
-    string expectedException =
-        "Binder exception: Expression EXISTS { MATCH (a)-[:knows]->(b:person) WITH COUNT(*) AS k "
-        "RETURN k+1 } is an "
-        "existential subquery expression and should not contains any aggregation or order by in "
-        "subquery RETURN or WITH clause.";
-    auto input = "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WITH COUNT(*) AS "
-                 "k RETURN k+1 } "
-                 "RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, SubqueryWithOrderBy) {
-    string expectedException =
-        "Binder exception: Expression EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b.age ORDER "
-        "BY b.age } is an existential subquery expression and should not "
-        "contains any aggregation or order by in subquery RETURN or WITH clause.";
-    auto input = "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b.age "
-                 "ORDER BY b.age } "
-                 "RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, OrderByWithoutSkipLimitInWithClause) {
     string expectedException =
         "Binder exception: In WITH clause, ORDER BY must be followed by SKIP or LIMIT.";

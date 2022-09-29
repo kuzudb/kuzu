@@ -7,10 +7,8 @@
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
@@ -22,7 +20,6 @@
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
-#include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
@@ -33,7 +30,6 @@
 #include "src/processor/include/physical_plan/operator/order_by/order_by_scan.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
-#include "src/processor/include/physical_plan/operator/result_scan.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
@@ -113,9 +109,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_DISTINCT: {
         physicalOperator = mapLogicalDistinctToPhysical(logicalOperator.get(), mapperContext);
-    } break;
-    case LOGICAL_EXISTS: {
-        physicalOperator = mapLogicalExistsToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_ORDER_BY: {
         physicalOperator = mapLogicalOrderByToPhysical(logicalOperator.get(), mapperContext);
@@ -319,22 +312,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
         logicalDistinct.getExpressionsToDistinct(), logicalDistinct.getSchemaBeforeDistinct(),
         move(prevOperator), mapperContextBeforeDistinct, mapperContext,
         logicalDistinct.getExpressionsForPrinting());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalExists = (LogicalExists&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto subPlanMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*logicalExists.subPlanSchema));
-    auto prevContext = enterSubquery(&mapperContext);
-    auto subPlanLastOperator =
-        mapLogicalOperatorToPhysical(logicalExists.getChild(1), subPlanMapperContext);
-    exitSubquery(prevContext);
-    mapperContext.addComputedExpressions(logicalExists.subqueryExpression->getUniqueName());
-    auto outDataPos = mapperContext.getDataPos(logicalExists.subqueryExpression->getUniqueName());
-    return make_unique<Exists>(outDataPos, move(prevOperator), move(subPlanLastOperator),
-        getOperatorID(), logicalExists.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(

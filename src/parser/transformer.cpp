@@ -644,8 +644,12 @@ string Transformer::transformFunctionName(CypherParser::OC_FunctionNameContext& 
 
 unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
     CypherParser::OC_ExistentialSubqueryContext& ctx) {
-    return make_unique<ParsedSubqueryExpression>(
-        EXISTENTIAL_SUBQUERY, transformSingleQuery(*ctx.oC_SingleQuery()), ctx.getText());
+    auto existsSubquery =
+        make_unique<ParsedSubqueryExpression>(transformPattern(*ctx.oC_Pattern()), ctx.getText());
+    if (ctx.oC_Where()) {
+        existsSubquery->setWhereClause(transformWhere(*ctx.oC_Where()));
+    }
+    return existsSubquery;
 }
 
 string Transformer::transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx) {

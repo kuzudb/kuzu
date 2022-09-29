@@ -71,8 +71,6 @@ private:
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 
-    static void validateExistsSubqueryHasNoAggregationOrOrderBy(const Expression& expression);
-
 private:
     Binder* binder;
     unordered_map<string, shared_ptr<Literal>> parameterMap;

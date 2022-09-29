@@ -142,6 +142,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             assert(false);
         }
     }
+    // TODO(Guodong): below is the skeleton code for mark join mapping
+    //    if (hashJoin->getJoinType() == JoinType::MARK) {
+    //        auto mark = hashJoin->getMark();
+    //        auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());
+    //        mapperContext.addComputedExpressions(mark->getUniqueName());
+    //    }
     return hashJoinProbe;
 }
 
