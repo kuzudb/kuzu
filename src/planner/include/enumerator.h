@@ -48,6 +48,8 @@ private:
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
+    void planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+
     void planOptionalMatch(const QueryGraph& queryGraph,
         shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
 
