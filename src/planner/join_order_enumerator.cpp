@@ -4,6 +4,7 @@
 #include "include/enumerator.h"
 #include "include/projection_enumerator.h"
 
+#include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
@@ -142,6 +143,92 @@ void JoinOrderEnumerator::planPropertyScansForRel(
     enumerator->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
 }
 
+static unordered_map<uint32_t, vector<shared_ptr<RelExpression>>> populateIntersectRelCandidates(
+    const QueryGraph& queryGraph, const SubqueryGraph& subgraph) {
+    unordered_map<uint32_t, vector<shared_ptr<RelExpression>>> intersectNodePosToRelsMap;
+    for (auto relPos : subgraph.getRelNbrPositions()) {
+        auto rel = queryGraph.getQueryRel(relPos);
+        if (!queryGraph.containsQueryNode(rel->getSrcNodeName()) ||
+            !queryGraph.containsQueryNode(rel->getDstNodeName())) {
+            continue;
+        }
+        auto srcNodePos = queryGraph.getQueryNodePos(rel->getSrcNodeName());
+        auto dstNodePos = queryGraph.getQueryNodePos(rel->getDstNodeName());
+        auto isSrcConnected = subgraph.queryNodesSelector[srcNodePos];
+        auto isDstConnected = subgraph.queryNodesSelector[dstNodePos];
+        // Closing rel should be handled with inner join.
+        if (isSrcConnected && isDstConnected) {
+            continue;
+        }
+        auto intersectNodePos = isSrcConnected ? dstNodePos : srcNodePos;
+        if (!intersectNodePosToRelsMap.contains(intersectNodePos)) {
+            intersectNodePosToRelsMap.insert(
+                {intersectNodePos, vector<shared_ptr<RelExpression>>{}});
+        }
+        intersectNodePosToRelsMap.at(intersectNodePos).push_back(rel);
+    }
+    return intersectNodePosToRelsMap;
+}
+
+void JoinOrderEnumerator::planWCOJoin(uint32_t leftLevel, uint32_t rightLevel) {
+    assert(leftLevel <= rightLevel);
+    auto queryGraph = context->getQueryGraph();
+    for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
+        auto candidates = populateIntersectRelCandidates(*queryGraph, rightSubgraph);
+        for (auto& [intersectNodePos, rels] : candidates) {
+            if (rels.size() == leftLevel) {
+                auto intersectNode = queryGraph->getQueryNode(intersectNodePos);
+                planWCOJoin(rightSubgraph, rels, intersectNode);
+            }
+        }
+    }
+}
+
+// TODO: explain
+static unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
+    vector<unique_ptr<LogicalPlan>>& candidatePlans, const NodeExpression& boundNode) {
+    unique_ptr<LogicalPlan> result;
+    for (auto& candidatePlan : candidatePlans) {
+        if (LogicalPlanUtil::getSequentialNode(*candidatePlan)->getUniqueName() ==
+            boundNode.getUniqueName()) {
+            assert(result == nullptr);
+            result = candidatePlan->shallowCopy();
+        }
+    }
+    return result;
+}
+
+void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
+    vector<shared_ptr<RelExpression>> rels, shared_ptr<NodeExpression> intersectNode) {
+    auto newSubgraph = subgraph;
+    vector<shared_ptr<NodeExpression>> boundNodes;
+    vector<unique_ptr<LogicalPlan>> relPlans;
+    for (auto& rel : rels) {
+        auto boundNode = rel->getSrcNodeName() == intersectNode->getUniqueName() ?
+                             rel->getDstNode() :
+                             rel->getSrcNode();
+        boundNodes.push_back(boundNode);
+        auto relPos = context->getQueryGraph()->getQueryRelPos(rel->getUniqueName());
+        newSubgraph.addQueryRel(relPos);
+        // fetch build plans for rel
+        auto relSubgraph = context->getEmptySubqueryGraph();
+        relSubgraph.addQueryRel(relPos);
+        assert(context->subPlansTable->containSubgraphPlans(relSubgraph));
+        auto& relPlanCandidates = context->subPlansTable->getSubgraphPlans(relSubgraph);
+        assert(relPlanCandidates.size() == 2); // 2 directions
+        relPlans.push_back(getWCOJBuildPlanForRel(relPlanCandidates, *boundNode));
+    }
+    for (auto& leftPlan : context->getPlans(subgraph)) {
+        auto leftPlanCopy = leftPlan->shallowCopy();
+        vector<unique_ptr<LogicalPlan>> rightPlansCopy;
+        for (auto& relPlan : relPlans) {
+            rightPlansCopy.push_back(relPlan->shallowCopy());
+        }
+        appendIntersect(intersectNode, boundNodes, *leftPlanCopy, rightPlansCopy);
+        context->subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
+    }
+}
+
 void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
     assert(leftLevel <= rightLevel);
     for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
@@ -155,7 +242,9 @@ void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel)
                 continue;
             }
             auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
-            assert(joinNodePositions.size() == 1);
+            if (joinNodePositions.size() > 1) { // prune non-wcoj plans
+                continue;
+            }
             auto joinNode = context->mergedQueryGraph->getQueryNode(joinNodePositions[0]);
             // If index nested loop (INL) join is possible, we prune hash join plans
             if (canApplyINLJoin(rightSubgraph, nbrSubgraph, joinNode)) {
@@ -169,30 +258,9 @@ void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel)
     }
 }
 
-static LogicalOperator* getCurrentPipelineSourceOperator(LogicalPlan& plan) {
-    auto op = plan.getLastOperator().get();
-    while (
-        op->getNumChildren() == 1) { // We break pipeline for any operator with more than one child
-        op = op->getChild(0).get();
-    }
-    assert(op != nullptr);
-    return op;
-}
-
-// Return the node whose ID has sequential guarantee on the plan.
-static shared_ptr<NodeExpression> getSequentialNode(LogicalPlan& plan) {
-    auto pipelineSource = getCurrentPipelineSourceOperator(plan);
-    if (pipelineSource->getLogicalOperatorType() != LOGICAL_SCAN_NODE_ID) {
-        // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
-        // and we loose any sequential guarantees.
-        return nullptr;
-    }
-    return ((LogicalScanNodeID*)pipelineSource)->getNode();
-}
-
 // Check whether given node ID has sequential guarantee on the plan.
 static bool isNodeSequential(LogicalPlan& plan, NodeExpression* node) {
-    auto sequentialNode = getSequentialNode(plan);
+    auto sequentialNode = LogicalPlanUtil::getSequentialNode(plan);
     return sequentialNode != nullptr && sequentialNode->getUniqueName() == node->getUniqueName();
 }
 
@@ -420,6 +488,40 @@ void JoinOrderEnumerator::appendMarkJoin(shared_ptr<NodeExpression>& joinNode,
     auto hashJoin = make_shared<LogicalHashJoin>(joinNode, mark, buildSchema->copy(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.appendOperator(std::move(hashJoin));
+}
+
+void JoinOrderEnumerator::appendIntersect(shared_ptr<NodeExpression>& intersectNode,
+    vector<shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
+    vector<unique_ptr<LogicalPlan>>& buildPlans) {
+    auto intersectNodeID = intersectNode->getIDProperty();
+    auto probeSchema = probePlan.getSchema();
+    auto logicalIntersect =
+        make_shared<LogicalIntersect>(intersectNode, probePlan.getLastOperator());
+    assert(boundNodes.size() == buildPlans.size());
+    // Write intersect node and rels into a new group regardless of whether rel is n-n.
+    auto outGroupPos = probeSchema->createGroup();
+    // Write intersect node into output group.
+    probeSchema->insertToGroupAndScope(intersectNode->getNodeIDPropertyExpression(), outGroupPos);
+    for (auto i = 0u; i < buildPlans.size(); ++i) {
+        auto boundNode = boundNodes[i];
+        Enumerator::appendFlattenIfNecessary(
+            probeSchema->getGroupPos(boundNode->getIDProperty()), probePlan);
+        auto buildPlan = buildPlans[i].get();
+        auto buildSchema = buildPlan->getSchema();
+        auto expressions = buildSchema->getExpressionsInScope();
+        // Write rel properties into output group.
+        for (auto& expression : expressions) {
+            if (expression->getUniqueName() == intersectNodeID ||
+                expression->getUniqueName() == boundNode->getIDProperty()) {
+                continue;
+            }
+            probeSchema->insertToGroupAndScope(expression, outGroupPos);
+        }
+        auto buildInfo =
+            make_unique<LogicalIntersectBuildInfo>(boundNode, buildSchema->copy(), expressions);
+        logicalIntersect->addChild(buildPlan->getLastOperator(), std::move(buildInfo));
+    }
+    probePlan.appendOperator(std::move(logicalIntersect));
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(
