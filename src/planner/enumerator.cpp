@@ -12,6 +12,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_unwind.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
@@ -132,6 +133,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
                 *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
         }
     }
+    // TODO (Anurag): Supporting only 1 unwind query, nested unwind requires separate logical
+    // operator
+    if (queryPart.hasUnwindClause()) {
+        assert(queryPart.getNumUnwindClause() == 1);
+        for (auto& plan : plans) {
+            planUnwindClause(*queryPart.getUnwindClause(0), *plan);
+        }
+    }
     // plan update
     for (auto i = 0u; i < queryPart.getNumUpdatingClause(); ++i) {
         updatePlanner.planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
@@ -172,6 +181,13 @@ static shared_ptr<NodeExpression> getJoinNode(expression_vector& expressions) {
     // TODO(Guodong): solve with multiple join conditions
     assert(joinNodes.size() == 1);
     return joinNodes[0];
+}
+
+void Enumerator::planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto groupPos = schema->createGroup();
+    schema->insertToGroupAndScope(boundUnwindClause.getExpression(), groupPos);
+    plan.appendOperator(make_shared<LogicalUnwind>(boundUnwindClause.getExpression()));
 }
 
 void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
