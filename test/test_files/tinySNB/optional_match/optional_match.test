@@ -10,6 +10,24 @@
 ---- 1
 23
 
+-NAME CorrelatedOptionalMatchTest3
+-QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+26
+
+-NAME CorrelatedOptionalMatchTest4
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-NAME CorrelatedOptionalMatchTest5
+-QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (a)-[:studyAt]->(c:organisation), (b)-[:studyAt]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+14
+
 # TODO(Xiyang): This requires changing the check on when a filter can be applied
 #-NAME CorrelatedOptionalMatchTest3
 #-QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) WHERE c.age > a.age RETURN COUNT(*)
@@ -34,6 +52,12 @@
 -ENUMERATE
 ---- 1
 1
+
+-NAME MixedMatchTest4
+-QUERY match (a:person)-[:knows]->(b:person) optional match (a)-[:knows]->(c:person) match (b)-[:knows]->(c) return count(*)
+-ENUMERATE
+---- 1
+24
 
 -NAME MixedMatchHashJoinTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) MATCH (c)-[:knows]->(d:person)-[:knows]->(e:person) RETURN COUNT(*)

@@ -9,10 +9,11 @@
 namespace graphflow {
 namespace planner {
 
-bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, bool isLeftAcc,
+bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNodes, bool isLeftAcc,
     const LogicalPlan& leftPlan, const LogicalPlan& rightPlan) {
-    // Avoid ASP if left side is already accumulated. This is due to simplicity on the mapper side.
-    if (isLeftAcc) {
+    // Avoid ASP if there are multiple join nodes, or the left side is already accumulated, which is
+    // due to simplicity on the mapper side.
+    if (joinNodes.size() > 1 || isLeftAcc) {
         return false;
     }
     auto isLeftPlanFiltered = !LogicalPlanUtil::collectOperators(leftPlan, LOGICAL_FILTER).empty();
@@ -27,19 +28,19 @@ bool ASPOptimizer::canApplyASP(shared_ptr<NodeExpression>& joinNode, bool isLeft
     }
     auto rightScanNodeID = (LogicalScanNodeID*)rightScanNodeIDs[0];
     // Semi mask can only be pushed to ScanNodeIDs.
-    if (joinNode->getUniqueName() != rightScanNodeID->getNode()->getUniqueName()) {
+    if (joinNodes[0]->getUniqueName() != rightScanNodeID->getNode()->getUniqueName()) {
         return false;
     }
     return true;
 }
 
 void ASPOptimizer::applyASP(
-    shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
+    const shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
     appendSemiMasker(joinNode, leftPlan);
     Enumerator::appendAccumulate(leftPlan);
 }
 
-void ASPOptimizer::appendSemiMasker(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
+void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     auto semiMasker = make_shared<LogicalSemiMasker>(node, plan.getLastOperator());
     plan.appendOperator(std::move(semiMasker));
 }

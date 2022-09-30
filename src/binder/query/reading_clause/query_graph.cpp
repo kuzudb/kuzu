@@ -189,11 +189,15 @@ vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
     return result;
 }
 
-unique_ptr<QueryGraph> QueryGraph::copyWithoutNode(
-    shared_ptr<NodeExpression>& nodeToExclude) const {
+unique_ptr<QueryGraph> QueryGraph::copyWithoutNodes(
+    const vector<shared_ptr<NodeExpression>>& nodesToExclude) const {
     auto result = make_unique<QueryGraph>();
+    vector<shared_ptr<Expression>> nodesToExcludeExpressions(nodesToExclude.size());
+    for (auto i = 0u; i < nodesToExclude.size(); i++) {
+        nodesToExcludeExpressions[i] = nodesToExclude[i];
+    }
     for (auto& queryNode : queryNodes) {
-        if (queryNode->getUniqueName() != nodeToExclude->getUniqueName()) {
+        if (ExpressionUtil::find(queryNode.get(), nodesToExcludeExpressions) == UINT32_MAX) {
             result->addQueryNode(queryNode);
         }
     }

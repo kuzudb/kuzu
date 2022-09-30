@@ -84,7 +84,8 @@ void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, string& 
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, string& encodeString) {
     auto logicalHashJoin = (LogicalHashJoin*)logicalOperator;
-    encodeString += "HJ(" + logicalHashJoin->getJoinNode()->getRawName() + ")";
+    encodeString += "HJ(";
+    encodeString += logicalHashJoin->getExpressionsForPrinting() + ")";
 }
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, string& encodeString) {
