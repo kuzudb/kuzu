@@ -7,14 +7,15 @@ shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
     resultSet = ReadList::init(context);
     outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    resultSet->insert(outDataPos.dataChunkPos, listSyncState);
+    resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
+    listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
     return resultSet;
 }
 
 bool AdjListExtend::getNextTuples() {
     metrics->executionTime.start();
-    if (listSyncState->hasNewRangeToRead()) {
-        lists->readValues(outValueVector, *listSyncState);
+    if (listHandle->listSyncState.hasMoreToRead()) {
+        lists->readValues(outValueVector, *listHandle);
         metrics->executionTime.stop();
         metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
         return true;
@@ -24,7 +25,16 @@ bool AdjListExtend::getNextTuples() {
             metrics->executionTime.stop();
             return false;
         }
-        readValuesFromList();
+        auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
+        if (inValueVector->isNull(currentIdx)) {
+            outValueVector->state->selVector->selectedSize = 0;
+            continue;
+        }
+        ((AdjLists*)lists)
+            ->initListReadingState(
+                inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx()),
+                *listHandle, transaction->getType());
+        lists->readValues(outValueVector, *listHandle);
     } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);

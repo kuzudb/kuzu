@@ -48,6 +48,7 @@ cc_library(
         "lists/lists.cpp",
         "lists/lists_metadata.cpp",
         "lists/lists_update_iterator.cpp",
+        "lists/rel_update_store.cpp",
         "lists/unstructured_property_lists.cpp",
         "lists/unstructured_property_lists_utils.cpp",
         "lists/updated_unstructured_property_lists.cpp",
@@ -58,6 +59,7 @@ cc_library(
         "include/lists/lists.h",
         "include/lists/lists_metadata.h",
         "include/lists/lists_update_iterator.h",
+        "include/lists/rel_update_store.h",
         "include/lists/unstructured_property_lists.h",
         "include/lists/unstructured_property_lists_utils.h",
         "include/lists/updated_unstructured_property_lists.h",
@@ -65,6 +67,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "storage_structure",
+        "//src/processor:factorized_table",
     ],
 )
 

@@ -4,8 +4,8 @@
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
-        .def("execute", &PyConnection::execute, py::arg("query"),
-            py::arg("parameters") = py::list())
+        .def(
+            "execute", &PyConnection::execute, py::arg("query"), py::arg("parameters") = py::list())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"));
     PyDateTime_IMPORT;

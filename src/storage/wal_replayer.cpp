@@ -14,9 +14,9 @@ WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal
 }
 
 WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-    Catalog* catalog, bool isCheckpoint)
+    MemoryManager* memoryManager, Catalog* catalog, bool isCheckpoint)
     : isRecovering{false}, isCheckpoint{isCheckpoint}, storageManager{storageManager},
-      bufferManager{bufferManager}, wal{wal}, catalog{catalog} {
+      bufferManager{bufferManager}, memoryManager{memoryManager}, wal{wal}, catalog{catalog} {
     init();
 }
 
@@ -123,7 +123,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             if (!isRecovering) {
                 // See comments for NODE_TABLE_RECORD.
                 storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.tableID,
-                    maxNodeOffsetPerTable, bufferManager, wal, catalogForCheckPointing.get());
+                    maxNodeOffsetPerTable, bufferManager, wal, catalogForCheckPointing.get(),
+                    memoryManager);
             }
         } else {
             // See comments for NODE_TABLE_RECORD.

@@ -8,9 +8,12 @@ namespace graphflow {
 namespace storage {
 
 RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-    table_id_t tableID, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, tableID{tableID}, isInMemoryMode{
-                                                                                  isInMemoryMode} {
+    table_id_t tableID, BufferManager& bufferManager, MemoryManager& memoryManager,
+    bool isInMemoryMode, WAL* wal)
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, tableID{tableID},
+      isInMemoryMode{isInMemoryMode}, relUpdateStore{make_unique<RelUpdateStore>(memoryManager,
+                                          *catalog.getReadOnlyVersion()->getRelTableSchema(
+                                              tableID))} {
     loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerTable, bufferManager, wal);
 }
 
@@ -78,7 +81,8 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                 auto adjList = make_unique<AdjLists>(
                     StorageUtils::getAdjListsStructureIDAndFName(
                         wal->getDirectory(), tableID, nodeTableID, relDirection),
-                    bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
+                    bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal,
+                    relUpdateStore->getOrCreateListUpdateStore(relDirection, nodeTableID));
                 adjLists[relDirection].emplace(nodeTableID, move(adjList));
             }
         }
@@ -143,7 +147,7 @@ void RelTable::initPropertyListsForRelTable(
                 StorageUtils::getRelPropertyListsStructureIDAndFName(wal->getDirectory(), tableID,
                     nodeTableID, relDirection, properties[propertyIdx]),
                 properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode,
-                wal);
+                wal, relUpdateStore->getOrCreateListUpdateStore(relDirection, nodeTableID));
             propertyLists[relDirection].at(nodeTableID)[propertyIdx] = move(propertyList);
         }
     }

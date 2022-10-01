@@ -12,7 +12,8 @@ cc_library(
         "//src/processor:__pkg__",
     ],
     deps = [
-        "//src/processor:result",
+        "//src/binder/expression:base_expression",
+        "//src/processor:result_set",
     ],
 )
 

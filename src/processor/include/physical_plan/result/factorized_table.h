@@ -4,8 +4,8 @@
 #include <unordered_map>
 
 #include "src/common/include/overflow_buffer.h"
+#include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
 using namespace graphflow::common;
@@ -181,6 +181,8 @@ public:
         vector<uint32_t>& colIdxToScan) const;
     void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
+    void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
+        vector<uint64_t>& tupleIdxesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
 
     // When we merge two factorizedTables, we need to update the hasNoNullGuarantee based on
     // other factorizedTable.

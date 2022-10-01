@@ -26,8 +26,13 @@ void UnstructuredPropertyListsUpdateIterator::slideListsIfNecessary(
             if (newHeader != oldHeader) {
                 // Need to create a ValueVector and call Lists::readValues().
                 valueVectorToScanSmallLists->state->originalSize = listLen;
-                auto listInfo = lists->getListInfo(nodeOffsetToSlide);
-                lists->readSmallList(valueVectorToScanSmallLists, listInfo);
+                ListSyncState listSyncState;
+                ListHandle listHandle{listSyncState};
+                lists->initListReadingState(
+                    nodeOffsetToSlide, listHandle, TransactionType{READ_ONLY});
+                listHandle.resetCursorMapper(
+                    lists->getListsMetadata(), lists->getNumElementsPerPage());
+                lists->readSmallList(valueVectorToScanSmallLists, listHandle);
                 updateSmallListAndCurCSROffset(
                     oldHeader, valueVectorToScanSmallLists->values, listLen);
             } else {
