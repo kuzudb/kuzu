@@ -23,16 +23,16 @@ public:
     inline void resetCurrentOffset() { currentOffset = 0; }
 };
 
-class OverflowBuffer {
+class InMemOverflowBuffer {
 
 public:
-    explicit OverflowBuffer(MemoryManager* memoryManager)
+    explicit InMemOverflowBuffer(MemoryManager* memoryManager)
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
 
     // The blocks used are allocated through the MemoryManager but are backed by the
     // BufferManager. We need to therefore release them back by calling
     // memoryManager->freeBlock.
-    ~OverflowBuffer() {
+    ~InMemOverflowBuffer() {
         for (auto& block : blocks) {
             memoryManager->freeBlock(block->block->pageIdx);
         }
@@ -40,11 +40,11 @@ public:
 
     uint8_t* allocateSpace(uint64_t size);
 
-    inline void merge(OverflowBuffer& other) {
+    inline void merge(InMemOverflowBuffer& other) {
         move(begin(other.blocks), end(other.blocks), back_inserter(blocks));
-        // We clear the other OverflowBuffer's block because when it is deconstructed,
-        // OverflowBuffer's deconstructed tries to free these pages by calling
-        // memoryManager->freeBlock, but it should not because this OverflowBuffer still
+        // We clear the other InMemOverflowBuffer's block because when it is deconstructed,
+        // InMemOverflowBuffer's deconstructed tries to free these pages by calling
+        // memoryManager->freeBlock, but it should not because this InMemOverflowBuffer still
         // needs them.
         other.blocks.clear();
         currentBlock = other.currentBlock;

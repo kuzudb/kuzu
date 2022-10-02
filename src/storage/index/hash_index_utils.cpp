@@ -15,8 +15,8 @@ in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(const DataTyp
     }
 }
 
-bool InMemHashIndexUtils::equalsFuncForString(
-    const uint8_t* keyToLookup, const uint8_t* keyInEntry, const InMemOverflowFile* overflowFile) {
+bool InMemHashIndexUtils::equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+    const InMemOverflowFile* inMemOverflowFile) {
     auto gfStringInEntry = (gf_string_t*)keyInEntry;
     // Checks if prefix and len matches first.
     if (!HashIndexUtils::isStringPrefixAndLenEquals(keyToLookup, gfStringInEntry)) {
@@ -35,7 +35,7 @@ bool InMemHashIndexUtils::equalsFuncForString(
         TypeUtils::decodeOverflowPtr(
             gfStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
         return memcmp(keyToLookup,
-                   overflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
+                   inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
                    gfStringInEntry->len) == 0;
     }
 }
@@ -75,10 +75,10 @@ bool HashIndexUtils::isStringPrefixAndLenEquals(
 }
 
 bool HashIndexUtils::equalsFuncForString(
-    const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowFile* overflowPages) {
+    const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
     auto keyInEntryString = (gf_string_t*)keyInEntry;
     if (isStringPrefixAndLenEquals(keyToLookup, keyInEntryString)) {
-        auto entryKeyString = overflowPages->readString(*keyInEntryString);
+        auto entryKeyString = diskOverflowFile->readString(*keyInEntryString);
         return memcmp(keyToLookup, entryKeyString.c_str(), entryKeyString.length()) == 0;
     }
     return false;

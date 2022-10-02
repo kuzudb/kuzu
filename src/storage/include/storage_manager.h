@@ -26,8 +26,7 @@ public:
     inline Catalog* getCatalog() { return &catalog; }
     void prepareListsToCommitOrRollbackIfNecessary(bool isCommit) {
         nodesStore->prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(isCommit);
-        // TODO(Semih): When updates to other lists are called, we should call prepareToCommit on
-        // other lists as well.
+        relsStore->prepareAdjAndRelPropertyListsToCommitOrRollbackIfNecessary(isCommit);
     }
     inline string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }

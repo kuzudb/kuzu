@@ -3,8 +3,8 @@
 #include <cassert>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
+#include "src/common/include/in_mem_overflow_buffer.h"
 #include "src/common/include/null_mask.h"
-#include "src/common/include/overflow_buffer.h"
 #include "src/common/types/include/literal.h"
 
 namespace graphflow {
@@ -63,11 +63,11 @@ public:
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
 
-    inline OverflowBuffer& getOverflowBuffer() const { return *overflowBuffer; }
+    inline InMemOverflowBuffer& getOverflowBuffer() const { return *inMemOverflowBuffer; }
 
     inline void resetOverflowBuffer() const {
-        if (overflowBuffer) {
-            overflowBuffer->resetBuffer();
+        if (inMemOverflowBuffer) {
+            inMemOverflowBuffer->resetBuffer();
         }
     }
 
@@ -84,7 +84,7 @@ public:
 
 private:
     bool _isSequential = false;
-    unique_ptr<OverflowBuffer> overflowBuffer;
+    unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
     unique_ptr<uint8_t[]> valueBuffer;
     unique_ptr<NullMask> nullMask;
     uint32_t numBytesPerValue;

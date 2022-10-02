@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/include/overflow_buffer_utils.h"
+#include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/common/types/include/gf_list.h"
 
 using namespace std;
@@ -22,12 +22,12 @@ struct ListAppend {
             resultValueVector.getOverflowBuffer().allocateSpace((list.size + 1) * elementSize));
         result.size = list.size + 1;
         gf_list_t tmpList;
-        OverflowBufferUtils::copyListRecursiveIfNested(
+        InMemOverflowBufferUtils::copyListRecursiveIfNested(
             list, tmpList, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
         memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr),
             reinterpret_cast<uint8_t*>(tmpList.overflowPtr), list.size * elementSize);
-        OverflowBufferUtils::setListElement(result, list.size, element, resultValueVector.dataType,
-            resultValueVector.getOverflowBuffer());
+        InMemOverflowBufferUtils::setListElement(result, list.size, element,
+            resultValueVector.dataType, resultValueVector.getOverflowBuffer());
     }
 };
 

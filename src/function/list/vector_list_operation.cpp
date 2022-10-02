@@ -34,7 +34,7 @@ void VectorListOperations::ListCreation(
             assert(parameters[paramIdx]->state->isFlat());
             listElements[paramIdx] = parameters[paramIdx]->values + pos * numBytesOfListElement;
         }
-        OverflowBufferUtils::copyListNonRecursive(
+        InMemOverflowBufferUtils::copyListNonRecursive(
             listElements, gfList, result.dataType, result.getOverflowBuffer());
     } else {
         for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
@@ -48,7 +48,7 @@ void VectorListOperations::ListCreation(
                 listElements[paramIdx] =
                     parameters[paramIdx]->values + parameterPos * numBytesOfListElement;
             }
-            OverflowBufferUtils::copyListNonRecursive(
+            InMemOverflowBufferUtils::copyListNonRecursive(
                 listElements, gfList, result.dataType, result.getOverflowBuffer());
         }
     }

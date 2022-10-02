@@ -182,7 +182,7 @@ void InMemOverflowFile::copyStringOverflow(
     overflowCursor.offsetInPage += dstGFString->len;
 }
 
-void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
+void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcInMemOverflowFile,
     const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
     gf_list_t* dstGFList, DataType* listChildDataType) {
     auto numBytesOfListElement = Types::getDataTypeSize(*listChildDataType);
@@ -196,8 +196,8 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
     shared_lock lck(lock);
     TypeUtils::encodeOverflowPtr(
         dstGFList->overflowPtr, dstOverflowCursor.pageIdx, dstOverflowCursor.offsetInPage);
-    auto dataToCopyFrom =
-        srcOverflowPages->pages[srcOverflowCursor.pageIdx]->data + srcOverflowCursor.offsetInPage;
+    auto dataToCopyFrom = srcInMemOverflowFile->pages[srcOverflowCursor.pageIdx]->data +
+                          srcOverflowCursor.offsetInPage;
     auto gfListElements = pages[dstOverflowCursor.pageIdx]->write(dstOverflowCursor.offsetInPage,
         dstOverflowCursor.offsetInPage, dataToCopyFrom, dstGFList->size * numBytesOfListElement);
     dstOverflowCursor.offsetInPage += dstGFList->size * numBytesOfListElement;
@@ -207,8 +207,8 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
             PageByteCursor elementCursor;
             TypeUtils::decodeOverflowPtr(
                 elementsInList[i].overflowPtr, elementCursor.pageIdx, elementCursor.offsetInPage);
-            copyListOverflow(srcOverflowPages, elementCursor, dstOverflowCursor, &elementsInList[i],
-                listChildDataType->childType.get());
+            copyListOverflow(srcInMemOverflowFile, elementCursor, dstOverflowCursor,
+                &elementsInList[i], listChildDataType->childType.get());
         }
     } else if (listChildDataType->typeID == STRING) {
         auto elementsInList = (gf_string_t*)gfListElements;
@@ -218,7 +218,7 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcOverflowPages,
                 TypeUtils::decodeOverflowPtr(elementsInList[i].overflowPtr, elementCursor.pageIdx,
                     elementCursor.offsetInPage);
                 copyStringOverflow(dstOverflowCursor,
-                    srcOverflowPages->pages[elementCursor.pageIdx]->data +
+                    srcInMemOverflowFile->pages[elementCursor.pageIdx]->data +
                         elementCursor.offsetInPage,
                     &elementsInList[i]);
             }

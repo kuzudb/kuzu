@@ -1,9 +1,9 @@
-#include "src/common/include/overflow_buffer.h"
+#include "src/common/include/in_mem_overflow_buffer.h"
 
 namespace graphflow {
 namespace common {
 
-uint8_t* OverflowBuffer::allocateSpace(uint64_t size) {
+uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
     assert(size <= LARGE_PAGE_SIZE);
     if (requireNewBlock(size)) {
         allocateNewBlock();
@@ -13,7 +13,7 @@ uint8_t* OverflowBuffer::allocateSpace(uint64_t size) {
     return data;
 }
 
-void OverflowBuffer::allocateNewBlock() {
+void InMemOverflowBuffer::allocateNewBlock() {
     auto newBlock = make_unique<BufferBlock>(
         memoryManager->allocateBlock(false /* do not initialize to zero */));
     currentBlock = newBlock.get();

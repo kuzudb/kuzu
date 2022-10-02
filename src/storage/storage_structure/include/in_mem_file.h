@@ -72,7 +72,7 @@ public:
     // Copy overflow data at srcOverflow into dstGFString.
     void copyStringOverflow(
         PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString);
-    void copyListOverflow(InMemOverflowFile* srcOverflowPages,
+    void copyListOverflow(InMemOverflowFile* srcInMemOverflowFile,
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
         gf_list_t* dstGFList, DataType* listChildDataType);
 

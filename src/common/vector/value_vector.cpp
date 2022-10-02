@@ -1,6 +1,6 @@
 #include "src/common/include/vector/value_vector.h"
 
-#include "src/common/include/overflow_buffer_utils.h"
+#include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
@@ -13,7 +13,7 @@ ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
     values = valueBuffer.get();
     if (needOverflowBuffer()) {
         assert(memoryManager != nullptr);
-        overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
+        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(memoryManager);
     }
     nullMask = make_unique<NullMask>();
     numBytesPerValue = Types::getDataTypeSize(dataType);
@@ -23,7 +23,7 @@ void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
     assert(dataType.typeID == STRING);
     auto vectorData = (gf_string_t*)values;
     auto& result = vectorData[pos];
-    OverflowBufferUtils::copyString(value, len, result, *overflowBuffer);
+    InMemOverflowBufferUtils::copyString(value, len, result, *inMemOverflowBuffer);
 }
 
 void ValueVector::addString(uint64_t pos, string value) const {

@@ -69,7 +69,7 @@ void HashIndex::initializeFileAndHeader(const DataType& keyDataType) {
         StorageStructureUtils::pinEachPageOfFile(*fh, bm);
     }
     if (indexHeader->keyDataTypeID == STRING) {
-        overflowFile = make_unique<OverflowFile>(
+        diskOverflowFile = make_unique<DiskOverflowFile>(
             storageStructureIDAndFName, bm, isInMemory, nullptr /* no wal for now */);
     }
 }
@@ -168,7 +168,7 @@ bool HashIndex::lookupInSlot(uint8_t* slot, const uint8_t* key, node_offset_t& r
             continue;
         }
         auto entry = getEntryInSlot(const_cast<uint8_t*>(slot), entryPos);
-        if (keyEqualsFunc(key, entry, overflowFile.get())) {
+        if (keyEqualsFunc(key, entry, diskOverflowFile.get())) {
             memcpy(&result, entry + Types::getDataTypeSize(indexHeader->keyDataTypeID),
                 sizeof(node_offset_t));
             return true;
@@ -181,7 +181,7 @@ uint8_t* HashIndex::pinSlot(const SlotInfo& slotInfo) {
     auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
                                          oSlots->getPageCursorForSlot(slotInfo.slotId);
     auto frame = bm.pin(*fh, pageCursor.pageIdx);
-    return frame + (pageCursor.posInPage * indexHeader->numBytesPerSlot);
+    return frame + (pageCursor.elemPosInPage * indexHeader->numBytesPerSlot);
 }
 
 void HashIndex::unpinSlot(const SlotInfo& slotInfo) {

@@ -196,7 +196,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
                 ->getNodeProperty(nodeIDs[relDirection].tableID, CopyCSVConfig::ID_FIELD)
                 .dataType;
     }
-    vector<PageByteCursor> overflowPagesCursors{copier->relTableSchema->getNumProperties()};
+    vector<PageByteCursor> inMemOverflowFileCursors{copier->relTableSchema->getNumProperties()};
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
@@ -217,7 +217,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
         if (numPropertiesToRead != 0) {
             putPropsOfLineIntoColumns(numPropertiesToRead, copier->directionTablePropertyColumns,
                 copier->relTableSchema->properties, copier->propertyColumnsOverflowFiles,
-                overflowPagesCursors, reader, nodeIDs);
+                inMemOverflowFileCursors, reader, nodeIDs);
         }
         putValueIntoColumns(copier->relTableSchema->getRelIDDefinition().propertyID,
             copier->directionTablePropertyColumns, nodeIDs, (uint8_t*)&relID);
@@ -228,8 +228,9 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
 
 void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
     vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
-    const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-    vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs) {
+    const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& inMemOverflowFile,
+    vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
+    const vector<nodeID_t>& nodeIDs) {
     for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
         reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
@@ -278,8 +279,8 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                auto gfStr =
-                    overflowPages[propertyIdx]->copyString(strVal, overflowCursors[propertyIdx]);
+                auto gfStr = inMemOverflowFile[propertyIdx]->copyString(
+                    strVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                     reinterpret_cast<uint8_t*>(&gfStr));
             }
@@ -287,8 +288,8 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         case LIST: {
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
-                auto gfList =
-                    overflowPages[propertyIdx]->copyList(listVal, overflowCursors[propertyIdx]);
+                auto gfList = inMemOverflowFile[propertyIdx]->copyList(
+                    listVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                     reinterpret_cast<uint8_t*>(&gfList));
             }
@@ -357,9 +358,9 @@ static void putValueIntoLists(uint64_t propertyIdx,
 void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
     vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
     vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists,
-    const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-    vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
-    const vector<uint64_t>& reversePos) {
+    const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& inMemOverflowFiles,
+    vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
+    const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos) {
     for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
         reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
@@ -408,8 +409,8 @@ void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                auto gfStr =
-                    overflowPages[propertyIdx]->copyString(strVal, overflowCursors[propertyIdx]);
+                auto gfStr = inMemOverflowFiles[propertyIdx]->copyString(
+                    strVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                     nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfStr));
             }
@@ -417,8 +418,8 @@ void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
         case LIST: {
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
-                auto gfList =
-                    overflowPages[propertyIdx]->copyList(listVal, overflowCursors[propertyIdx]);
+                auto gfList = inMemOverflowFiles[propertyIdx]->copyList(
+                    listVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                     nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfList));
             }
@@ -510,7 +511,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
                 ->getNodeProperty(nodeIDs[relDirection].tableID, CopyCSVConfig::ID_FIELD)
                 .dataType;
     }
-    vector<PageByteCursor> overflowPagesCursors(copier->relTableSchema->getNumProperties());
+    vector<PageByteCursor> inMemOverflowFileCursors(copier->relTableSchema->getNumProperties());
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
@@ -532,7 +533,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
         if (numPropertiesToRead != 0) {
             putPropsOfLineIntoLists(numPropertiesToRead, copier->directionTablePropertyLists,
                 copier->directionTableAdjLists, copier->relTableSchema->properties,
-                copier->propertyListsOverflowFiles, overflowPagesCursors, reader, nodeIDs,
+                copier->propertyListsOverflowFiles, inMemOverflowFileCursors, reader, nodeIDs,
                 reversePos);
         }
         putValueIntoLists(copier->relTableSchema->getRelIDDefinition().propertyID,
@@ -568,17 +569,17 @@ void InMemRelCSVCopier::copyListOverflowFromUnorderedToOrderedPages(gf_list_t* g
 
 void InMemRelCSVCopier::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
-    InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages) {
+    InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
         if (dataType.typeID == STRING) {
             auto gfStr = reinterpret_cast<gf_string_t*>(propertyColumn->getElement(offsetStart));
             copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
-                orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
+                orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
         } else if (dataType.typeID == LIST) {
             auto gfList = reinterpret_cast<gf_list_t*>(propertyColumn->getElement(offsetStart));
             copyListOverflowFromUnorderedToOrderedPages(gfList, dataType, unorderedOverflowCursor,
-                orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
+                orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
         } else {
             assert(false);
         }
@@ -587,8 +588,8 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyColumnTask(const DataType& d
 
 void InMemRelCSVCopier::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
-    InMemLists* propertyLists, InMemOverflowFile* unorderedOverflowPages,
-    InMemOverflowFile* orderedOverflowPages) {
+    InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
+    InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -604,15 +605,15 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyListsTask(const DataType& da
                 *propertyLists->getListsMetadataBuilder(), true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
                 auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
+                    propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
-                    orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
+                    orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
             } else if (dataType.typeID == LIST) {
                 auto gfList = reinterpret_cast<gf_list_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
+                    propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyListOverflowFromUnorderedToOrderedPages(gfList, dataType,
-                    unorderedOverflowCursor, orderedOverflowCursor, unorderedOverflowPages,
-                    orderedOverflowPages);
+                    unorderedOverflowCursor, orderedOverflowCursor, unorderedInMemOverflowFile,
+                    orderedInMemOverflowFile);
             } else {
                 assert(false);
             }
@@ -622,7 +623,7 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyListsTask(const DataType& da
 
 void InMemRelCSVCopier::sortOverflowValues() {
     for (auto relDirection : REL_DIRECTIONS) {
-        // Sort overflow values of property lists.
+        // Sort overflow values of property Lists.
         for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
             auto numNodes = maxNodeOffsetsPerTable[tableID] + 1;
             auto numBuckets = numNodes / 256;
@@ -641,7 +642,7 @@ void InMemRelCSVCopier::sortOverflowValues() {
                             sortOverflowValuesOfPropertyListsTask, property.dataType, offsetStart,
                             offsetEnd, adjList.get(), propertyList,
                             propertyListsOverflowFiles[property.propertyID].get(),
-                            propertyList->getOverflowPages()));
+                            propertyList->getInMemOverflowFile()));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();
                 }
@@ -669,7 +670,7 @@ void InMemRelCSVCopier::sortOverflowValues() {
                             sortOverflowValuesOfPropertyColumnTask, property.dataType, offsetStart,
                             offsetEnd, propertyColumn,
                             propertyColumnsOverflowFiles[property.propertyID].get(),
-                            propertyColumn->getOverflowPages()));
+                            propertyColumn->getInMemOverflowFile()));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();
                 }
@@ -680,7 +681,7 @@ void InMemRelCSVCopier::sortOverflowValues() {
 }
 
 void InMemRelCSVCopier::saveToFile() {
-    logger->debug("Writing columns and lists to disk for rel {}.", relTableSchema->tableName);
+    logger->debug("Writing columns and Lists to disk for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
             relTableSchema->tableID, relDirection);
@@ -694,7 +695,6 @@ void InMemRelCSVCopier::saveToFile() {
                 propertyColumns[propertyIdx]->saveToFile();
             }
         }
-        // Write lists
         for (auto& [_, adjList] : directionTableAdjLists[relDirection]) {
             adjList->saveToFile();
         }

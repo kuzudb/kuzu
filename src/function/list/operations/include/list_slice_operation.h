@@ -23,8 +23,9 @@ struct ListSlice {
         result.size = endIdx - startIdx;
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace(result.size * elementSize));
-        OverflowBufferUtils::copyListRecursiveIfNested(list, result, resultValueVector.dataType,
-            resultValueVector.getOverflowBuffer(), startIdx - 1, endIdx - 2);
+        InMemOverflowBufferUtils::copyListRecursiveIfNested(list, result,
+            resultValueVector.dataType, resultValueVector.getOverflowBuffer(), startIdx - 1,
+            endIdx - 2);
     }
 
     static inline void operation(gf_string_t& str, int64_t& begin, int64_t& end,

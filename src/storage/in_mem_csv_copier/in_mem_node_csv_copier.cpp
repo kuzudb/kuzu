@@ -228,7 +228,7 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
-    PageByteCursor overflowPagesCursor;
+    PageByteCursor inMemOverflowFileCursor;
     auto unstrPropertiesNameToIdMap = copier->catalog.getWriteVersion()
                                           ->getNodeTableSchema(copier->nodeTableSchema->tableID)
                                           ->unstrPropertiesNameToIdMap;
@@ -236,7 +236,7 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
         for (auto i = 0u; i < copier->nodeTableSchema->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();
         }
-        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset, overflowPagesCursor,
+        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset, inMemOverflowFileCursor,
             unstrPropertiesNameToIdMap,
             reinterpret_cast<InMemUnstructuredLists*>(copier->unstrPropertyLists.get()));
         bufferOffset++;
@@ -292,7 +292,7 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
                 auto gfStr =
-                    column->getOverflowPages()->copyString(strVal, overflowCursors[columnIdx]);
+                    column->getInMemOverflowFile()->copyString(strVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfStr));
             }
         } break;
@@ -300,7 +300,7 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*column->getDataType().childType);
                 auto gfList =
-                    column->getOverflowPages()->copyList(listVal, overflowCursors[columnIdx]);
+                    column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfList));
             }
         } break;
@@ -313,7 +313,7 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
 }
 
 void InMemNodeCSVCopier::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-    PageByteCursor& overflowPagesCursor,
+    PageByteCursor& inMemOverflowFileCursor,
     unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     InMemUnstructuredLists* unstrPropertyLists) {
     while (reader.hasNextToken()) {
@@ -330,47 +330,47 @@ void InMemNodeCSVCopier::putUnstrPropsOfALineToLists(CSVReader& reader, node_off
         PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
             unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
             nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);
-        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
+        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.elemPosInPage};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType.typeID) {
         case INT64: {
             auto intVal = TypeUtils::convertToInt64(valuePtr);
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                (uint8_t*)(&intVal), &overflowPagesCursor);
+                (uint8_t*)(&intVal), &inMemOverflowFileCursor);
         } break;
         case DOUBLE: {
             auto doubleVal = TypeUtils::convertToDouble(valuePtr);
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&doubleVal), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(&doubleVal), &inMemOverflowFileCursor);
         } break;
         case BOOL: {
             auto boolVal = TypeUtils::convertToBoolean(valuePtr);
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&boolVal), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(&boolVal), &inMemOverflowFileCursor);
         } break;
         case DATE: {
             char* beginningOfDateStr = valuePtr;
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&dateVal), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(&dateVal), &inMemOverflowFileCursor);
         } break;
         case TIMESTAMP: {
             char* beginningOfTimestampStr = valuePtr;
             timestamp_t timestampVal =
                 Timestamp::FromCString(beginningOfTimestampStr, strlen(beginningOfTimestampStr));
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&timestampVal), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(&timestampVal), &inMemOverflowFileCursor);
         } break;
         case INTERVAL: {
             char* beginningOfIntervalStr = valuePtr;
             interval_t intervalVal =
                 Interval::FromCString(beginningOfIntervalStr, strlen(beginningOfIntervalStr));
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&intervalVal), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(&intervalVal), &inMemOverflowFileCursor);
         } break;
         case STRING: {
             unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(valuePtr), &overflowPagesCursor);
+                reinterpret_cast<uint8_t*>(valuePtr), &inMemOverflowFileCursor);
         } break;
         default:
             throw CopyCSVException("unsupported dataType while parsing unstructured property");

@@ -140,9 +140,7 @@ public:
 
     inline string getDirectory() const { return directory; }
 
-    inline void addToUpdatedUnstructuredPropertyLists(ListFileID listFileID) {
-        updatedUnstructuredPropertyLists.push_back(listFileID);
-    }
+    inline void addToUpdatedLists(ListFileID listFileID) { updatedLists.push_back(listFileID); }
 
 private:
     inline void flushHeaderPages() {
@@ -156,12 +154,12 @@ private:
     void setIsLastRecordCommit();
 
 public:
-    // Ideally we need a pointer to UnstructuredPropertyLists but instead we store the ListFileIDs
-    // because UnstructuredPropertyLists depends on WAL and making WAL depend on
-    // UnstructuredPropetyLists would create a circular dependency. Also note that ListFileID
-    // identify the "files" of the lists, e.g., the header or the metadata or the actual .lists
-    // file. We need information to only identify the list, so the fileIDType will be ignored.
-    vector<ListFileID> updatedUnstructuredPropertyLists;
+    // Ideally we need a pointer to Lists but instead we store the ListFileIDs because Lists depends
+    // on WAL and making WAL depend on Lists would create a circular dependency. Also note that
+    // ListFileID identifies the "files" of the Lists, e.g., the header or the metadata or the
+    // actual Lists file. We need information to only identify the list, so the fileIDType will be
+    // ignored.
+    vector<ListFileID> updatedLists;
 
 private:
     shared_ptr<spdlog::logger> logger;

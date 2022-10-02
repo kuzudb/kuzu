@@ -14,7 +14,9 @@ namespace storage {
 using namespace processor;
 using namespace catalog;
 
-using InsertedEdgeTupleIdxs = unordered_map<node_offset_t, vector<uint64_t>>;
+using InsertedEdgeTupleIdxs = map<node_offset_t, vector<uint64_t>>;
+
+class InMemList;
 
 class ListUpdateStore {
 
@@ -24,6 +26,19 @@ public:
     inline uint32_t getColIdxInFT(uint32_t propertyID) const {
         return propertyIDToColIdxMap.at(propertyID);
     }
+    inline bool isEmpty() const { return factorizedTable->getNumTuples() == 0; }
+    inline map<uint64_t, InsertedEdgeTupleIdxs>& getInsertedEdgeTupleIdxes() {
+        return chunkIdxToInsertedEdgeTupleIdxs;
+    }
+    inline void clear() {
+        factorizedTable->clear();
+        chunkIdxToInsertedEdgeTupleIdxs.clear();
+    }
+
+    void readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
+        InMemList& inMemList, uint64_t numElementsInPersistentStore,
+        DiskOverflowFile* diskOverflowFile, DataType dataType,
+        NodeIDCompressionScheme* nodeIDCompressionScheme);
 
     void addRel(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties);
 
@@ -37,7 +52,7 @@ private:
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
-    unordered_map<uint64_t, InsertedEdgeTupleIdxs> insertedEdgeTupleIdxs;
+    map<uint64_t, InsertedEdgeTupleIdxs> chunkIdxToInsertedEdgeTupleIdxs;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
 };
 
@@ -58,7 +73,7 @@ private:
 private:
     vector<unordered_map<table_id_t, shared_ptr<ListUpdateStore>>> listUpdateStoresPerDirection{2};
     MemoryManager& memoryManager;
-    RelTableSchema& relTableSchema;
+    RelTableSchema relTableSchema;
 };
 
 } // namespace storage

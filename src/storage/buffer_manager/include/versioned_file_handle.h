@@ -32,10 +32,9 @@ public:
         shared_lock slock(fhSharedMutex);
         // There is an updated wal page if the PageVersionAndLockInfo for the page group exists
         // and the page version for the page is not null (which is UINT32_MAX).
-        auto retVal =
-            !pageVersions[pageGroupIdxAndPosInGroup.pageIdx].empty() &&
-            (pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage] !=
-                UINT32_MAX);
+        auto retVal = !pageVersions[pageGroupIdxAndPosInGroup.pageIdx].empty() &&
+                      (pageVersions[pageGroupIdxAndPosInGroup.pageIdx]
+                                   [pageGroupIdxAndPosInGroup.elemPosInPage] != UINT32_MAX);
         return retVal;
     }
 
@@ -45,7 +44,8 @@ public:
         shared_lock slock(fhSharedMutex);
         auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForPos(
             originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
-        return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage];
+        return pageVersions[pageGroupIdxAndPosInGroup.pageIdx]
+                           [pageGroupIdxAndPosInGroup.elemPosInPage];
     }
 
     void createPageVersionGroupIfNecessary(page_idx_t pageIdx);

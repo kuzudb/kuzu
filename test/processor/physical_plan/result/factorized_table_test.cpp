@@ -271,7 +271,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     // destructed.
     factorizedTable1.reset();
     // Test whether the string that are inserted after merging will be stored correctly in the
-    // overflowBuffer.
+    // InMemOverflowBuffer.
     dataChunk->state->currIdx = 0;
     for (auto i = 0u; i < numRowsToAppend; i++) {
         factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]});

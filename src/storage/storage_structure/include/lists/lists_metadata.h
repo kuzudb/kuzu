@@ -19,8 +19,6 @@ class CopyCSVEmptyListsTest;
 namespace graphflow {
 namespace storage {
 
-class UnstructuredPropertyListsUpdateIterator;
-
 class BaseListsMetadata {
 
 public:
@@ -44,7 +42,7 @@ protected:
 
 class ListsMetadata : public BaseListsMetadata {
     friend class graphflow::testing::CopyCSVEmptyListsTest;
-    friend class UnstructuredPropertyListsUpdateIterator;
+    friend class ListsUpdateIterator;
 
 public:
     explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,

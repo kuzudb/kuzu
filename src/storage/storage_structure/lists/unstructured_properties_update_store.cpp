@@ -5,13 +5,13 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-bool UpdatedUnstructuredPropertyLists::hasUpdatedList(node_offset_t nodeOffset) {
+bool UnstructuredPropertiesUpdateStore::hasUpdatedList(node_offset_t nodeOffset) {
     uint64_t chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     return updatedChunks.contains(chunkIdx) &&
            updatedChunks.find(chunkIdx)->second->contains(nodeOffset);
 }
 
-void UpdatedUnstructuredPropertyLists::setEmptyUpdatedPropertiesList(node_offset_t nodeOffset) {
+void UnstructuredPropertiesUpdateStore::setEmptyUpdatedPropertiesList(node_offset_t nodeOffset) {
     uint64_t chunkIdx = getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(nodeOffset);
     auto updatedChunk = updatedChunks.find(chunkIdx)->second.get();
     if (!updatedChunk->contains(nodeOffset)) {
@@ -26,13 +26,13 @@ void UpdatedUnstructuredPropertyLists::setEmptyUpdatedPropertiesList(node_offset
 // Assumes the UpdatedChunk for nodeOffsetForPropKeys already exists.
 // chunkIdx is passed because the current callers have already computed it not because it is
 // necessary.
-void UpdatedUnstructuredPropertyLists::insertUpdatedListWrapper(uint64_t chunkIdx,
+void UnstructuredPropertiesUpdateStore::insertUpdatedListWrapper(uint64_t chunkIdx,
     node_offset_t nodeOffset, unique_ptr<UnstrPropListWrapper> unstrPropListWrapper) {
     auto updatedChunk = updatedChunks.find(chunkIdx)->second.get();
     updatedChunk->insert({nodeOffset, move(unstrPropListWrapper)});
 }
 
-void UpdatedUnstructuredPropertyLists::setPropertyList(
+void UnstructuredPropertiesUpdateStore::setPropertyList(
     node_offset_t nodeOffset, unique_ptr<UnstrPropListWrapper> unstrPropListWrapper) {
     uint64_t chunkIdx = getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(nodeOffset);
     insertUpdatedListWrapper(chunkIdx, nodeOffset, move(unstrPropListWrapper));
@@ -40,7 +40,7 @@ void UpdatedUnstructuredPropertyLists::setPropertyList(
 
 // This function assumes that the caller has before copied the initial original property list to
 // the local store.
-void UpdatedUnstructuredPropertyLists::setProperty(
+void UnstructuredPropertiesUpdateStore::setProperty(
     node_offset_t nodeOffset, uint32_t propertyKey, Value* value) {
     uint64_t chunkIdx = getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(nodeOffset);
     auto updatedList = updatedChunks.find(chunkIdx)->second->find(nodeOffset)->second.get();
@@ -70,7 +70,7 @@ void UpdatedUnstructuredPropertyLists::setProperty(
 
 // dataTypeSize is passed because the current callers all have already computed it not because it is
 // necessary. It can be computed from value->dataType if needed.
-void UpdatedUnstructuredPropertyLists::setValue(
+void UnstructuredPropertiesUpdateStore::setValue(
     uint8_t* updatedListData, uint64_t offsetInUpdatedList, Value* value, uint32_t dataTypeSize) {
     memcpy(updatedListData + offsetInUpdatedList, reinterpret_cast<uint8_t*>(&value->val),
         dataTypeSize);
@@ -81,20 +81,20 @@ void UpdatedUnstructuredPropertyLists::setValue(
             // to storage.
             gf_string_t* stringToWriteTo = (gf_string_t*)(updatedListData + offsetInUpdatedList);
             gf_string_t* stringToWriteFrom = (gf_string_t*)&value->val;
-            stringOverflowPages.writeStringOverflowAndUpdateOverflowPtr(
+            stringDiskOverflowFile.writeStringOverflowAndUpdateOverflowPtr(
                 *stringToWriteFrom, *stringToWriteTo);
         }
     }
 }
 
-UnstrPropListIterator UpdatedUnstructuredPropertyLists::getUpdatedListIterator(
+UnstrPropListIterator UnstructuredPropertiesUpdateStore::getUpdatedListIterator(
     node_offset_t nodeOffset) {
     uint64_t chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     return UnstrPropListIterator(
         updatedChunks.find(chunkIdx)->second->find(nodeOffset)->second.get());
 }
 
-void UpdatedUnstructuredPropertyLists::removeProperty(
+void UnstructuredPropertiesUpdateStore::removeProperty(
     node_offset_t nodeOffset, uint32_t propertyKey) {
     uint64_t chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     auto updatedList = updatedChunks.find(chunkIdx)->second->find(nodeOffset)->second.get();
@@ -105,7 +105,7 @@ void UpdatedUnstructuredPropertyLists::removeProperty(
         });
 }
 
-uint64_t UpdatedUnstructuredPropertyLists::getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(
+uint64_t UnstructuredPropertiesUpdateStore::getChunkIdxAndInsertUpdatedChunkIfNecessaryWithoutLock(
     node_offset_t nodeOffset) {
     uint64_t chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     if (!updatedChunks.contains(chunkIdx)) {

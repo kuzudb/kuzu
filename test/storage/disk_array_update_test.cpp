@@ -1,6 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/common/include/overflow_buffer_utils.h"
+#include "src/common/include/in_mem_overflow_buffer_utils.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::testing;
@@ -42,7 +42,7 @@ public:
     // we use as our DiskArray in these tests, a call to set the property list of nodeOffset to
     // empty will trigger the following: the UnstructuredPropertyLists will have an "update"; then
     // this will trigger UnstructuredPropertyLists to add itself to
-    // wal->addToUpdatedUnstructuredPropertyLists when prepareCommitOrRollbackIfNecessary called;
+    // wal->addToUpdatedLists when prepareCommitOrRollbackIfNecessary called;
     // then the WALReplayer will call checkpoint/rollbackInMemory on this UnstructuredPropertyLists;
     // finally UnstructuredPropertyLists will call headerDA->checkpoint/rollbackInMemoryIfNecessary.
     void setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism() {
@@ -316,16 +316,17 @@ TEST_F(DiskArrayUpdateEmptyDBTests, EmptyDiskArrayUpdatesTest) {
         headers->update(0, 1234);
         FAIL();
     } catch (exception& e) {}
-
-    headers->pushBack(0);
     setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism();
-    ASSERT_EQ(0, headers->getNumElements(TransactionType::READ_ONLY));
-    ASSERT_EQ(1, headers->getNumElements(TransactionType::WRITE));
-    ASSERT_EQ(0, headers->get(0, TransactionType::WRITE));
-
+    // In an ideal test, we should test that the WRITE and READ_ONLY transactions read different
+    // values (e.g., WRITE sees a numElements of 1 and READ_ONLY sees 0). However we cannot do that
+    // test here because unstructured property lists do not update the header until during
+    // committing. Instead currently it accumulates all updates in its local
+    // UnstructuredListUpdateStore. So even if we read the header's size for WRITE transaction, we
+    // would read 0 before committing. So the only thing we can test is that after the commit, both
+    // READ and WRITE sees a header with size 1 and headers[0] = 0 (which is the header empty lists
+    // get).
     commitOrRollbackConnectionAndInitDBIfNecessary(
         true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
-
     headers = personNodeTable->getUnstrPropertyLists()->getHeaders()->headersDiskArray.get();
     ASSERT_EQ(1, headers->getNumElements(TransactionType::READ_ONLY));
     ASSERT_EQ(1, headers->getNumElements(TransactionType::WRITE));

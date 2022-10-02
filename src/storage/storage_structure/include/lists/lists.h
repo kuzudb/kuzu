@@ -4,10 +4,10 @@
 
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/value.h"
+#include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/lists/list_headers.h"
 #include "src/storage/storage_structure/include/lists/list_sync_state.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
-#include "src/storage/storage_structure/include/overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 namespace graphflow {
@@ -18,6 +18,22 @@ class CopyCSVEmptyListsTest;
 
 namespace graphflow {
 namespace storage {
+
+struct InMemList {
+    InMemList(uint64_t numElements, uint64_t elementSize, bool requireNullMask)
+        : numElements{numElements} {
+        listData = make_unique<uint8_t[]>(numElements * elementSize);
+        nullMask = requireNullMask ?
+                       make_unique<NullMask>(NullMask::getNumNullEntries(numElements)) :
+                       nullptr;
+    }
+    inline uint8_t* getListData() const { return listData.get(); }
+    inline bool hasNullBuffer() const { return nullMask != nullptr; }
+    inline uint64_t* getNullMask() const { return nullMask->getData(); }
+    uint64_t numElements;
+    unique_ptr<uint8_t[]> listData;
+    unique_ptr<NullMask> nullMask;
+};
 
 struct CursorAndMapper {
     void reset(ListsMetadata& listMetadata, uint64_t numElementsPerPage, list_header_t listHeader,
@@ -62,6 +78,8 @@ struct ListHandle {
  * */
 class Lists : public BaseColumnOrList {
     friend class graphflow::testing::CopyCSVEmptyListsTest;
+    friend class ListsUpdateIterator;
+    friend class ListsUpdateIteratorFactory;
 
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
@@ -69,7 +87,6 @@ public:
         bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
               true /*hasNULLBytes*/, isInMemory, wal, listUpdateStore} {};
-
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
     inline uint64_t getNumElementsInPersistentStore(node_offset_t nodeOffset) const {
@@ -90,21 +107,28 @@ public:
     }
     inline uint64_t getNumElementsPerPage() const { return numElementsPerPage; }
     virtual inline void checkpointInMemoryIfNecessary() {
-        cout << "Lists::checkpointInMemoryIfNecessary called." << endl;
-        headers->checkpointInMemoryIfNecessary();
         metadata.checkpointInMemoryIfNecessary();
     }
-    virtual inline void rollbackInMemoryIfNecessary() {
-        headers->rollbackInMemoryIfNecessary();
-        metadata.rollbackInMemoryIfNecessary();
-    }
-    void initListReadingState(
-        node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
-
+    virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
+    virtual inline bool mayContainNulls() const { return true; }
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    // Prepares all the db file changes necessary to update the "persistent" store of lists with the
+    // relUpdateSotre, which stores the updates by the write trx locally.
+    void prepareCommitOrRollbackIfNecessary(bool isCommit);
+    void initListReadingState(
+        node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
+    void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
+        uint64_t numElementsInPersistentStore, InMemList& inMemList);
 
 protected:
+    virtual inline bool isUpdateStoreEmpty() const { return listUpdateStore->isEmpty(); }
+    virtual inline DiskOverflowFile* getDiskOverflowFileIfExists() { return nullptr; }
+    virtual inline NodeIDCompressionScheme* getNodeIDCompressionIfExists() { return nullptr; }
+    virtual void prepareCommit(ListsUpdateIterator& listsUpdateIterator);
+    virtual void readFromLargeList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
 
     // storageStructureIDAndFName is the ID and fName for the "main ".lists" file.
@@ -117,9 +141,6 @@ protected:
           metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{move(headers)},
           listUpdateStore{listUpdateStore} {};
 
-    virtual void readFromLargeList(
-        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;
     ListsMetadata metadata;
@@ -127,44 +148,52 @@ protected:
     shared_ptr<ListUpdateStore> listUpdateStore;
 };
 
-class StringPropertyLists : public Lists {
+class PropertyListsWithOverflow : public Lists {
+public:
+    PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
+        : Lists{storageStructureIDAndFName, dataType, Types::getDataTypeSize(dataType),
+              move(headers), bufferManager, isInMemory, wal, listUpdateStore},
+          diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
+
+private:
+    inline DiskOverflowFile* getDiskOverflowFileIfExists() override { return &diskOverflowFile; }
+
+public:
+    DiskOverflowFile diskOverflowFile;
+};
+
+class StringPropertyLists : public PropertyListsWithOverflow {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
         shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, DataType(STRING), sizeof(gf_string_t), move(headers),
-              bufferManager, isInMemory, wal, listUpdateStore},
-          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
+        : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
+              bufferManager, isInMemory, wal, listUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-private:
-    OverflowFile stringOverflowPages;
 };
 
-class ListPropertyLists : public Lists {
+class ListPropertyLists : public PropertyListsWithOverflow {
 
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
         bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, dataType, sizeof(gf_list_t), move(headers),
-              bufferManager, isInMemory, wal, listUpdateStore},
-          listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
+        : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
+              isInMemory, wal, listUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-private:
-    OverflowFile listOverflowPages;
 };
 
 class AdjLists : public Lists {
@@ -179,12 +208,36 @@ public:
               bufferManager, false, isInMemory, wal, listUpdateStore},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
+    inline bool mayContainNulls() const override { return false; }
+
     void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listSyncState) override;
 
     // Currently, used only in copyCSV tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
+    void checkpointInMemoryIfNecessary() {
+        if (listUpdateStore->isEmpty()) {
+            return;
+        }
+        headers->checkpointInMemoryIfNecessary();
+        Lists::checkpointInMemoryIfNecessary();
+        listUpdateStore->clear();
+    }
+
+    void rollbackInMemoryIfNecessary() {
+        if (listUpdateStore->isEmpty()) {
+            return;
+        }
+        headers->rollbackInMemoryIfNecessary();
+        Lists::rollbackInMemoryIfNecessary();
+        listUpdateStore->clear();
+    }
+
 private:
+    inline NodeIDCompressionScheme* getNodeIDCompressionIfExists() override {
+        return &nodeIDCompressionScheme;
+    }
+
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 

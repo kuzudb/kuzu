@@ -28,7 +28,7 @@ good||1
 |good|1
 ||2
 
--NAME OverflowBufferTest
+-NAME InMemOverflowBufferTest
 -QUERY MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
 -PARALLELISM 1
 ---- 8

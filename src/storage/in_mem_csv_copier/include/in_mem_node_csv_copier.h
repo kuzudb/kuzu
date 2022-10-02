@@ -30,7 +30,7 @@ private:
     static void calcLengthOfUnstrPropertyLists(
         CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists);
     static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-        PageByteCursor& stringOvfPagesCursor,
+        PageByteCursor& inMemOverflowFileCursor,
         unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         InMemUnstructuredLists* unstrPropertyLists);
 

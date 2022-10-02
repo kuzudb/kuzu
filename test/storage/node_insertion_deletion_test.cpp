@@ -44,9 +44,9 @@ public:
 
     node_offset_t addNode() {
         // TODO(Guodong/Semih/Xiyang): Currently it is not clear when and from where the hash index,
-        // structured columns, unstructured property lists, adjacency lists, and adj columns of a
+        // structured columns, unstructured property Lists, adjacency Lists, and adj columns of a
         // newly added node should be informed that a new node is being inserted, so these data
-        // structures either write values or NULLs or empty lists etc. Within the scope of these
+        // structures either write values or NULLs or empty Lists etc. Within the scope of these
         // tests we only have an ID column and we are manually from outside
         // NodesStatisticsAndDeletedIDs adding a NULL value for the ID. This should change later.
         node_offset_t nodeOffset = personNodeTable->getNodeStatisticsAndDeletedIDs()->addNode(
@@ -196,15 +196,15 @@ TEST_F(NodeInsertionDeletionTests, DeletingSameNodeOffsetErrorsTest) {
     } catch (Exception& e) { FAIL(); }
 }
 
-TEST_F(NodeInsertionDeletionTests, ScanAfterCommittedDeletionTest) {
+TEST_F(NodeInsertionDeletionTests, ScanAfterDeletionCommitNormalExecution) {
     testScanAfterDeletion(true /* is commit */);
 }
 
-TEST_F(NodeInsertionDeletionTests, ScanAfterRolledbackDeletionTest) {
+TEST_F(NodeInsertionDeletionTests, ScanAfterDeletionRolledbackNormalExecution) {
     testScanAfterDeletion(false /* is rollback */);
 }
 
-TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTest) {
+TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTestCommitNormalExecution) {
     for (node_offset_t nodeOffset = 2048; nodeOffset < 4096; ++nodeOffset) {
         personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             personNodeTable->getTableID(), nodeOffset);
@@ -217,37 +217,37 @@ TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTest) {
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
 }
 
-TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitTest) {
+TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitNormalExecution) {
     testDeleteAllNodes(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitRecoveryTest) {
+TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitRecovery) {
     testDeleteAllNodes(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackTest) {
+TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackNormalExecution) {
     testDeleteAllNodes(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackRecoveryTest) {
+TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackRecovery) {
     testDeleteAllNodes(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 // TODO(Guodong): We need to extend these tests with queries that verify that the IDs are deleted,
 // added, and can be queried correctly.
-TEST_F(NodeInsertionDeletionTests, SimpleAddCommitTest) {
+TEST_F(NodeInsertionDeletionTests, SimpleAddCommitNormalExecution) {
     testSimpleAdd(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(NodeInsertionDeletionTests, SimpleAddCommitRecoveryTest) {
+TEST_F(NodeInsertionDeletionTests, SimpleAddCommitRecovery) {
     testSimpleAdd(true /* is commit */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackTest) {
+TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackNormalExecution) {
     testSimpleAdd(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackRecoveryTest) {
+TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackRecovery) {
     testSimpleAdd(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 

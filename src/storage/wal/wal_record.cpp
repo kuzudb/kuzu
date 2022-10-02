@@ -107,8 +107,8 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
     WALRecord retVal;
     retVal.recordType = OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
-    retVal.overflowFileNextBytePosRecord =
-        OverflowFileNextBytePosRecord(storageStructureID_, prevNextByteToWriteTo_);
+    retVal.diskOverflowFileNextBytePosRecord =
+        DiskOverflowFileNextBytePosRecord(storageStructureID_, prevNextByteToWriteTo_);
     return retVal;
 }
 

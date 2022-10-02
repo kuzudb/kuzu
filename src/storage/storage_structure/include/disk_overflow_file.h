@@ -17,11 +17,11 @@ using namespace graphflow::transaction;
 namespace graphflow {
 namespace storage {
 
-class OverflowFile : public StorageStructure {
+class DiskOverflowFile : public StorageStructure {
     friend class StringPropertyColumn;
 
 public:
-    OverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
+    DiskOverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
@@ -30,7 +30,7 @@ public:
         nextBytePosToWriteTo = fileHandle.getNumPages() * DEFAULT_PAGE_SIZE;
     }
 
-    ~OverflowFile() {
+    ~DiskOverflowFile() {
         if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
@@ -41,7 +41,7 @@ public:
         StorageStructureIDAndFName copy = storageStructureIDAndFNameForMainDBFile;
         copy.storageStructureID.isOverflow = true;
         copy.fName =
-            StorageUtils::getOverflowPagesFName(storageStructureIDAndFNameForMainDBFile.fName);
+            StorageUtils::getOverflowFileName(storageStructureIDAndFNameForMainDBFile.fName);
         return copy;
     }
 
@@ -50,14 +50,14 @@ public:
         Transaction tmpTransaction(READ_ONLY, -1);
         readStringsToVector(&tmpTransaction, valueVector);
     }
-    inline void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
+    inline void readStringToVector(gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer) {
         Transaction tmpTransaction(READ_ONLY, -1);
-        readStringToVector(&tmpTransaction, gfStr, overflowBuffer);
+        readStringToVector(&tmpTransaction, gfStr, inMemOverflowBuffer);
     }
 
     void readStringsToVector(Transaction* transaction, ValueVector& valueVector);
     void readStringToVector(
-        Transaction* transaction, gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
+        Transaction* transaction, gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer);
 
     inline void scanSingleStringOverflow(
         Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
@@ -93,7 +93,7 @@ public:
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void readListToVector(
-        gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer);
+        gf_list_t& gfList, const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer);
     void setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst);
     void setListRecursiveIfNestedWithoutLock(
         const gf_list_t& src, gf_list_t& dst, const DataType& dataType);

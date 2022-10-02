@@ -62,6 +62,11 @@ public:
         relTables.erase(tableID);
         relsStatistics.removeTableStatistic(tableID);
     }
+    void prepareAdjAndRelPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
+        for (auto& relTable : relTables) {
+            relTable.second->prepareCommitOrRollbackIfNecessary(isCommit);
+        }
+    }
 
 private:
     unordered_map<table_id_t, unique_ptr<RelTable>> relTables;

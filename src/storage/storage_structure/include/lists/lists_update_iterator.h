@@ -6,16 +6,14 @@ namespace graphflow {
 namespace storage {
 
 /*
- * This class implements the CSR reconstruction algorithm to update UnstructuredPropertyLists
- * transactionally. It is designed to be used as follows through calls to updateLists:
- *     UnstructuredPropertyListsUpdateIterator updateItr(this);
- *     for (auto updatedChunkItr = localUpdatedLists.updatedChunks.begin();
- *         updatedChunkItr != localUpdatedLists.updatedChunks.end(); ++updatedChunkItr) {
+ * This class implements the CSR reconstruction algorithm to update lists transactionally.
+ * It is designed to be used as follows through calls to updateLists:
+ *     auto updateItr = ListsUpdateIteratorFactory::getListsUpdateIterator(this);
+ *     for (auto updatedChunkItr = listUpdateStore.updatedChunks.begin();
+ *         updatedChunkItr != listUpdateStore.updatedChunks.end(); ++updatedChunkItr) {
  *         for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();
  *              updatedNodeOffsetItr != updatedChunkItr->second->end(); updatedNodeOffsetItr++) {
- *              updateItr.updateList(updatedNodeOffsetItr->first,
- *                  updatedNodeOffsetItr->second->data.get() (the new list in uint8_t*),
- *                  updatedNodeOffsetItr->second->size (size of the new list));
+ *              updateItr.updateList(nodeOffset, inMemList);
  *         }
  *     }
  * Two important requirements for correctly using this class are: (i) that the
@@ -36,46 +34,37 @@ namespace storage {
  *   <li> listPageIdx: physical pageIdx in the .lists file.
  * </ul>
  */
-class UnstructuredPropertyListsUpdateIterator {
+
+class ListsUpdateIterator {
 public:
-    UnstructuredPropertyListsUpdateIterator(UnstructuredPropertyLists* lists)
+    ListsUpdateIterator(Lists* lists)
         : lists{lists}, curChunkIdx{UINT64_MAX}, curUnprocessedNodeOffset{UINT64_MAX},
-          curCSROffset{UINT64_MAX}, finishCalled{false},
-          tmpDataChunkState{make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY)},
-          // Note: We use DataTypeID:BOOL below because we need ValueVector into which
-          // we can write 1 byte-sized elements. valueVectorToScanSmallLists is used when sliding
-          // small lists left and right during CSR construction as a buffer to
-          // copy the lists from their old places in pages and then writing them to new location in
-          // pages. To read the pages, we use Lists::readSmallList() function, which can internally
-          // memcpy lists from pages into the buffer of ValueVector. This function reads the size of
-          // the list from ListInfo (which is based on the header of a node) and reads
-          // size*elementSize many bytes into the ValueVector. Since UnstructuredPropertyLists take
-          // elementSize as 1, we need a 1 byte-sized data type. Note that the functions in
-          // UnstructuredPropertyLists to read properties do not read
-          valueVectorToScanSmallLists{make_shared<ValueVector>(DataTypeID::BOOL)} {
-        valueVectorToScanSmallLists->setState(tmpDataChunkState);
-    }
+          curCSROffset{UINT64_MAX}, finishCalled{false} {}
 
-    ~UnstructuredPropertyListsUpdateIterator() { assert(finishCalled); }
+    ~ListsUpdateIterator() { assert(finishCalled); }
 
-    void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes);
+    void updateList(node_offset_t nodeOffset, InMemList& inMemList);
 
     void doneUpdating();
 
-private:
+protected:
+    virtual inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) = 0;
+    virtual inline void updateSmallListHeaderIfNecessary(
+        list_header_t oldHeader, list_header_t newHeader) = 0;
+    virtual inline bool isLargeListAfterInsertion(
+        list_header_t oldHeader, uint64_t numElementsAfterInsertion) = 0;
+
     void seekToBeginningOfChunkIdx(uint64_t chunkIdx);
 
     void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
 
     void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
 
-    void updateLargeList(list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes);
+    void writeListToListPages(InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
 
-    void updateSmallListAndCurCSROffset(
-        list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes);
+    void updateLargeList(list_header_t oldHeader, InMemList& inMemList);
 
-    void writeListToListPages(
-        uint8_t* newList, uint64_t listSizeInBytes, page_idx_t pageListHeadIdx, bool isSmallList);
+    void updateSmallListAndCurCSROffset(list_header_t oldHeader, InMemList& inMemList);
 
     pair<page_idx_t, bool> findListPageIdxAndInsertListPageToPageListIfNecessary(
         page_idx_t idxInPageList, uint32_t pageListHeadIdx);
@@ -88,14 +77,65 @@ private:
     page_idx_t insertNewPageGroupAndSetHeadIdxMap(
         uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx = UINT32_MAX);
 
-private:
-    UnstructuredPropertyLists* lists;
+protected:
+    Lists* lists;
     uint64_t curChunkIdx;
     uint64_t curUnprocessedNodeOffset;
     uint64_t curCSROffset;
     bool finishCalled;
-    shared_ptr<DataChunkState> tmpDataChunkState;
-    shared_ptr<ValueVector> valueVectorToScanSmallLists;
+};
+
+class AdjOrUnstructuredListsUpdateIterator : public ListsUpdateIterator {
+public:
+    AdjOrUnstructuredListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
+
+private:
+    inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {
+        list_header_t newHeader = ListHeaders::getLargeListHeader(largeListIdx);
+        lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
+    }
+    inline void updateSmallListHeaderIfNecessary(
+        list_header_t oldHeader, list_header_t newHeader) override {
+        if (newHeader != oldHeader) {
+            lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
+        }
+    }
+    inline bool isLargeListAfterInsertion(
+        list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
+        return ListHeaders::isALargeList(oldHeader) ||
+               numElementsAfterInsertion * lists->elementSize > DEFAULT_PAGE_SIZE;
+    }
+};
+
+class RelPropertyListsUpdateIterator : public ListsUpdateIterator {
+public:
+    RelPropertyListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
+
+private:
+    // Only adjListUpdateIterator and unstructuredListUpdateIterator need to update small or large
+    // list header.
+    inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {}
+    inline void updateSmallListHeaderIfNecessary(
+        list_header_t oldHeader, list_header_t newHeader) override {}
+    inline bool isLargeListAfterInsertion(
+        list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
+        return ListHeaders::isALargeList(lists->getHeaders()->headersDiskArray->get(
+            curUnprocessedNodeOffset, TransactionType::WRITE));
+    }
+};
+
+class ListsUpdateIteratorFactory {
+
+public:
+    static unique_ptr<ListsUpdateIterator> getListsUpdateIterator(Lists* lists) {
+        switch (lists->storageStructureIDAndFName.storageStructureID.listFileID.listType) {
+        case ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS:
+        case ListType::ADJ_LISTS:
+            return make_unique<AdjOrUnstructuredListsUpdateIterator>(lists);
+        case ListType::REL_PROPERTY_LISTS:
+            return make_unique<RelPropertyListsUpdateIterator>(lists);
+        }
+    }
 };
 
 } // namespace storage

@@ -44,15 +44,17 @@ private:
         Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadTables);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
-        const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-        vector<PageByteCursor>& overflowCursors, CSVReader& reader,
+        const vector<Property>& properties,
+        vector<unique_ptr<InMemOverflowFile>>& inMemOverflowFile,
+        vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs);
     static void putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
         vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists,
-        const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
-        vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs,
-        const vector<uint64_t>& reversePos);
+        const vector<Property>& properties,
+        vector<unique_ptr<InMemOverflowFile>>& inMemOverflowFiles,
+        vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
+        const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos);
     static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
         PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
         InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
@@ -70,11 +72,11 @@ private:
         uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier);
     static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
-        InMemOverflowFile* unorderedOverflowPages, InMemOverflowFile* orderedOverflowPages);
+        InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile);
     static void sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
-        InMemLists* propertyLists, InMemOverflowFile* unorderedStringOverflowPages,
-        InMemOverflowFile* orderedStringOverflowPages);
+        InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
+        InMemOverflowFile* orderedInMemOverflowFile);
 
 private:
     const vector<uint64_t> maxNodeOffsetsPerTable;

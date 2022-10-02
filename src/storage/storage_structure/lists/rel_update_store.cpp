@@ -1,5 +1,7 @@
 #include "src/storage/storage_structure/include/lists/rel_update_store.h"
 
+#include "src/storage/storage_structure/include/lists/lists.h"
+
 namespace graphflow {
 namespace storage {
 
@@ -26,24 +28,36 @@ ListUpdateStore::ListUpdateStore(MemoryManager& memoryManager, RelTableSchema& r
     factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(factorizedTableSchema));
 }
 
+void ListUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID,
+    vector<uint64_t> tupleIdxes, InMemList& inMemList, uint64_t numElementsInPersistentStore,
+    DiskOverflowFile* diskOverflowFile, DataType dataType,
+    NodeIDCompressionScheme* nodeIDCompressionScheme) {
+    factorizedTable->copyToInMemList(listFileID.listType == ADJ_LISTS ?
+                                         1 /* colIdx */ :
+                                         getColIdxInFT(listFileID.relPropertyListID.propertyID),
+        tupleIdxes, inMemList.getListData(), inMemList.nullMask.get(), numElementsInPersistentStore,
+        diskOverflowFile, dataType, nodeIDCompressionScheme);
+}
+
 void ListUpdateStore::addRel(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties) {
     auto srcNodeVector = srcDstNodeIDAndRelProperties[0];
     auto srcNodeOffset =
         srcNodeVector->readNodeOffset(srcNodeVector->state->getPositionOfCurrIdx());
     auto chunkIdx = StorageUtils::getListChunkIdx(srcNodeOffset);
-    if (!insertedEdgeTupleIdxs.contains(chunkIdx)) {
-        insertedEdgeTupleIdxs.emplace(chunkIdx, InsertedEdgeTupleIdxs{});
+    if (!chunkIdxToInsertedEdgeTupleIdxs.contains(chunkIdx)) {
+        chunkIdxToInsertedEdgeTupleIdxs.emplace(chunkIdx, InsertedEdgeTupleIdxs{});
     }
     factorizedTable->append(srcDstNodeIDAndRelProperties);
-    insertedEdgeTupleIdxs[chunkIdx][srcNodeOffset].push_back(factorizedTable->getNumTuples() - 1);
+    chunkIdxToInsertedEdgeTupleIdxs[chunkIdx][srcNodeOffset].push_back(
+        factorizedTable->getNumTuples() - 1);
 }
 
 uint64_t ListUpdateStore::getNumInsertedRelsForNodeOffset(node_offset_t nodeOffset) const {
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
-    if (!insertedEdgeTupleIdxs.contains(chunkIdx)) {
+    if (!chunkIdxToInsertedEdgeTupleIdxs.contains(chunkIdx)) {
         return 0;
     }
-    auto& chunks = insertedEdgeTupleIdxs.at(chunkIdx);
+    auto& chunks = chunkIdxToInsertedEdgeTupleIdxs.at(chunkIdx);
     return !chunks.contains(nodeOffset) ? 0 : chunks.at(nodeOffset).size();
 }
 
@@ -58,7 +72,8 @@ void ListUpdateStore::readValues(
     auto vectorsToRead = vector<shared_ptr<ValueVector>>{valueVector};
     auto columnsToRead = vector<uint32_t>{colIdx};
     auto tupleIdxesToRead =
-        insertedEdgeTupleIdxs.at(StorageUtils::getListChunkIdx(nodeOffset)).at(nodeOffset);
+        chunkIdxToInsertedEdgeTupleIdxs.at(StorageUtils::getListChunkIdx(nodeOffset))
+            .at(nodeOffset);
     factorizedTable->lookup(vectorsToRead, columnsToRead, tupleIdxesToRead,
         listSyncState.getStartElemOffset(), numTuplesToRead);
     valueVector->state->originalSize = numTuplesToRead;

@@ -243,7 +243,7 @@ void AggregateHashTable::initializeFTEntryWithFlatVec(
             auto entry = hashSlotsToUpdateAggState[idx]->entry;
             ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByFlatVector,
                 groupByFlatVector->state->getPositionOfCurrIdx(), entry + colOffset,
-                *factorizedTable->getOverflowBuffer());
+                *factorizedTable->getInMemOverflowBuffer());
         }
     }
 }
@@ -257,7 +257,7 @@ void AggregateHashTable::initializeFTEntryWithUnflatVec(
             auto entryIdx = entryIdxesToInitialize[i];
             ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByUnflatVector, entryIdx,
                 hashSlotsToUpdateAggState[entryIdx]->entry + colOffset,
-                *factorizedTable->getOverflowBuffer());
+                *factorizedTable->getInMemOverflowBuffer());
         }
     } else {
         for (auto i = 0u; i < numEntriesToInitialize; i++) {

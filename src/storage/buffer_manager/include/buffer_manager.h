@@ -45,8 +45,8 @@ namespace storage {
  * All access to the BM is through a FileHandle. To use the BM to acquire in-memory blocks users can
  * pin pages, which will then lead the BM to put these pages in memory, and then never unpin them
  * and the BM will never spill those pages to disk. However *make sure to unpin these pages*
- * eventually, otherwise this would be a form of internal memory leak. See OverflowBuffer for an
- * example, where this is done during the deconstruction of the OverflowBuffer.
+ * eventually, otherwise this would be a form of internal memory leak. See InMemOverflowBuffer for
+ * an example, where this is done during the deconstruction of the InMemOverflowBuffer.
  *
  * Users can also unpin their pages and then the BM might spill them to disk. The behavior of what
  * is guaranteed to be kept in memory and what can be spilled to disk is directly determined by the
