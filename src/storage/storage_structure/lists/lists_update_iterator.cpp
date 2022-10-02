@@ -5,14 +5,57 @@
 namespace graphflow {
 namespace storage {
 
-void UnstructuredPropertyListsUpdateIterator::seekToBeginningOfChunkIdx(uint64_t chunkIdx) {
+void ListsUpdateIterator::updateList(
+    node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes) {
+    seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
+    // We first check if the updated list is a newly inserted list.
+    auto headers = lists->getHeaders();
+    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
+    assert(nodeOffset <= numNodes);
+    // We modify the headers here to be able to assert that empty lists are being added for
+    // new nodes consecutively. That is when
+    uint64_t oldHeader;
+    if (nodeOffset == numNodes) {
+        oldHeader = ListHeaders::getSmallListHeader(0, 0);
+        headers->headersDiskArray->pushBack(0);
+    } else {
+        oldHeader = lists->getHeaders()->headersDiskArray->get(
+            curUnprocessedNodeOffset, TransactionType::WRITE);
+    }
+    if (ListHeaders::isALargeList(oldHeader) || listSizeInBytes > DEFAULT_PAGE_SIZE) {
+        updateLargeList(oldHeader, newList, listSizeInBytes);
+    } else {
+        updateSmallListAndCurCSROffset(oldHeader, newList, listSizeInBytes);
+    }
+    curUnprocessedNodeOffset++;
+}
+
+void ListsUpdateIterator::doneUpdating() {
+    if (curChunkIdx != UINT64_MAX) {
+        // If we are done updating, we should seek to the end of the curChunkIdx. However
+        // curChunkIdx may be the last chunk and the maximum node offset may be smaller than the
+        // maximum nodeOffset that would be in curChunkIdx if the curChunkIdx was full (which is
+        // what is returned by getChunkIdxEndNodeOffsetInclusive(curChunkIdx)). So we take the
+        // minimum of max Note also that we are trying to seek to the nodeOffset to the immediate
+        // right of the last node we want to slide. We do not have a "+ 1" for
+        // headersDiskArray->getNumElements, because that is exactly + 1 the last nodeOffset we want
+        // to slide. We have a + 1 for getChunkIdxEndNodeOffsetInclusive(curChunkIdx) because we
+        // want to slide the node with offset getChunkIdxEndNodeOffsetInclusive(curChunkIdx).
+        auto endNodeOffsetToSeekTo =
+            min(lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::WRITE),
+                StorageUtils::getChunkIdxEndNodeOffsetInclusive(curChunkIdx) + 1);
+        seekToNodeOffsetAndSlideListsIfNecessary(endNodeOffsetToSeekTo);
+    }
+    finishCalled = true;
+}
+
+void ListsUpdateIterator::seekToBeginningOfChunkIdx(uint64_t chunkIdx) {
     curChunkIdx = chunkIdx;
     curUnprocessedNodeOffset = StorageUtils::getChunkIdxBeginNodeOffset(curChunkIdx);
     curCSROffset = 0;
 }
 
-void UnstructuredPropertyListsUpdateIterator::slideListsIfNecessary(
-    uint64_t endNodeOffsetInclusive) {
+void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive) {
     for (node_offset_t nodeOffsetToSlide = curUnprocessedNodeOffset;
          nodeOffsetToSlide <= endNodeOffsetInclusive; ++nodeOffsetToSlide) {
         list_header_t oldHeader = lists->getHeaders()->getHeader(nodeOffsetToSlide);
@@ -43,7 +86,7 @@ void UnstructuredPropertyListsUpdateIterator::slideListsIfNecessary(
     }
 }
 
-void UnstructuredPropertyListsUpdateIterator::seekToNodeOffsetAndSlideListsIfNecessary(
+void ListsUpdateIterator::seekToNodeOffsetAndSlideListsIfNecessary(
     node_offset_t nodeOffsetToSeekTo) {
     auto chunkIdxOfNode = StorageUtils::getListChunkIdx(nodeOffsetToSeekTo);
     if (curChunkIdx == UINT64_MAX) {
@@ -65,52 +108,51 @@ void UnstructuredPropertyListsUpdateIterator::seekToNodeOffsetAndSlideListsIfNec
     }
 }
 
-void UnstructuredPropertyListsUpdateIterator::doneUpdating() {
-    if (curChunkIdx != UINT64_MAX) {
-        // If we are done updating, we should seek to the end of the curChunkIdx. However
-        // curChunkIdx may be the last chunk and the maximum node offset may be smaller than the
-        // maximum nodeOffset that would be in curChunkIdx if the curChunkIdx was full (which is
-        // what is returned by getChunkIdxEndNodeOffsetInclusive(curChunkIdx)). So we take the
-        // minimum of max Note also that we are trying to seek to the nodeOffset to the immediate
-        // right of the last node we want to slide. We do not have a "+ 1" for
-        // headersDiskArray->getNumElements, because that is exactly + 1 the last nodeOffset we want
-        // to slide. We have a + 1 for getChunkIdxEndNodeOffsetInclusive(curChunkIdx) because we
-        // want to slide the node with offset getChunkIdxEndNodeOffsetInclusive(curChunkIdx).
-        auto endNodeOffsetToSeekTo =
-            min(lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::WRITE),
-                StorageUtils::getChunkIdxEndNodeOffsetInclusive(curChunkIdx) + 1);
-        seekToNodeOffsetAndSlideListsIfNecessary(endNodeOffsetToSeekTo);
+void ListsUpdateIterator::writeListToListPages(
+    uint8_t* newList, uint64_t numElementsInList, page_idx_t pageListHeadIdx, bool isSmallList) {
+    uint64_t idxInPageList;
+    uint64_t elementOffsetInListPage;
+    uint64_t elementSize = lists->elementSize;
+    if (isSmallList) {
+        pair<uint64_t, uint64_t> idInPageGroupAndOffsetInListPage =
+            StorageUtils::getQuotientRemainder(curCSROffset, lists->numElementsPerPage);
+        idxInPageList = idInPageGroupAndOffsetInListPage.first;
+        elementOffsetInListPage = idInPageGroupAndOffsetInListPage.second;
+    } else {
+        // For large lists, the firstIdxInPageGroup is always 0.
+        idxInPageList = 0;
+        elementOffsetInListPage = 0;
     }
-    finishCalled = true;
+
+    bool firstIteration = true;
+    auto remainingNumElementsToWrite = numElementsInList;
+    while (remainingNumElementsToWrite > 0) {
+        if (firstIteration) {
+            firstIteration = false;
+        } else {
+            idxInPageList++;
+            elementOffsetInListPage = 0;
+        }
+        // Now find the physical pageIdx that this corresponds to the logical idxInPageList
+        auto [listPageIdx, insertingNewPage] =
+            findListPageIdxAndInsertListPageToPageListIfNecessary(idxInPageList, pageListHeadIdx);
+        uint64_t numElementsToWriteToCurrentPage =
+            min(remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
+        StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
+            lists->bufferManager, *(lists->wal),
+            [&newList, &elementOffsetInListPage, &numElementsToWriteToCurrentPage, &elementSize](
+                uint8_t* frame) -> void {
+                memcpy(frame + elementOffsetInListPage * elementSize, newList,
+                    numElementsToWriteToCurrentPage * elementSize);
+            });
+        remainingNumElementsToWrite -= numElementsToWriteToCurrentPage;
+        // We update the newList pointer as well.
+        newList += numElementsToWriteToCurrentPage * elementSize;
+    }
 }
 
-void UnstructuredPropertyListsUpdateIterator::updateList(
-    node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes) {
-    seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
-    // We first check if the updated list is a newly inserted list.
-    auto headers = lists->getHeaders();
-    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
-    assert(nodeOffset <= numNodes);
-    // We modify the headers here to be able to assert that empty lists are being added for
-    // new nodes consecutively. That is when
-    uint64_t oldHeader;
-    if (nodeOffset == numNodes) {
-        oldHeader = ListHeaders::getSmallListHeader(0, 0);
-        headers->headersDiskArray->pushBack(0);
-    } else {
-        oldHeader = lists->getHeaders()->headersDiskArray->get(
-            curUnprocessedNodeOffset, TransactionType::WRITE);
-    }
-    if (ListHeaders::isALargeList(oldHeader) || listSizeInBytes > DEFAULT_PAGE_SIZE) {
-        updateLargeList(oldHeader, newList, listSizeInBytes);
-    } else {
-        updateSmallListAndCurCSROffset(oldHeader, newList, listSizeInBytes);
-    }
-    curUnprocessedNodeOffset++;
-}
-
-void UnstructuredPropertyListsUpdateIterator::updateLargeList(
-    list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes) {
+void ListsUpdateIterator::updateLargeList(
+    list_header_t oldHeader, uint8_t* newList, uint64_t numElementsInList) {
     page_idx_t pageListHeadIdx;
     uint32_t largeListIdx;
     if (ListHeaders::isALargeList(oldHeader)) {
@@ -148,22 +190,19 @@ void UnstructuredPropertyListsUpdateIterator::updateLargeList(
     // indices in largeListIdxToPageListHeadIdxMap of where the pageListHeadIdx and
     // numElements for the large list are stored.
     lists->getListsMetadata().largeListIdxToPageListHeadIdxMap->update(
-        2 * largeListIdx + 1, listSizeInBytes);
-    writeListToListPages(newList, listSizeInBytes, pageListHeadIdx, false /* is large list */);
+        2 * largeListIdx + 1, numElementsInList);
+    writeListToListPages(newList, numElementsInList, pageListHeadIdx, false /* isSmallList */);
 }
 
-void UnstructuredPropertyListsUpdateIterator::updateSmallListAndCurCSROffset(
-    list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes) {
-    // For unstructured properties, each "element" in the list is 1 byte of an unstructured
-    // property key and value, so numElements = listSizeInBytes;
-    list_header_t newHeader =
-        ListHeaders::getSmallListHeader(curCSROffset, listSizeInBytes /* numElements */);
+void ListsUpdateIterator::updateSmallListAndCurCSROffset(
+    list_header_t oldHeader, uint8_t* newList, uint64_t numElementsInList) {
+    list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, numElementsInList);
     // 1: Update the headers if needed.
     if (newHeader != oldHeader) {
         lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
     }
     // If the newList is empty we can return. Changing the header is enough.
-    if (listSizeInBytes <= 0) {
+    if (numElementsInList <= 0) {
         return;
     }
 
@@ -189,53 +228,12 @@ void UnstructuredPropertyListsUpdateIterator::updateSmallListAndCurCSROffset(
     }
 
     // 3: Write the newList to the list pages.
-    writeListToListPages(newList, listSizeInBytes, pageListHeadIdx, true /* is small list */);
+    writeListToListPages(newList, numElementsInList, pageListHeadIdx, true /* is small list */);
     // 4: Update the curCSROffset
-    curCSROffset += listSizeInBytes;
+    curCSROffset += numElementsInList;
 }
 
-void UnstructuredPropertyListsUpdateIterator::writeListToListPages(
-    uint8_t* newList, uint64_t listSizeInBytes, page_idx_t pageListHeadIdx, bool isSmallList) {
-    uint64_t idxInPageList;
-    uint64_t offsetInListPage;
-    if (isSmallList) {
-        pair<uint64_t, uint64_t> idInPageGroupAndOffsetInListPage =
-            StorageUtils::getQuotientRemainder(curCSROffset, lists->numElementsPerPage);
-        idxInPageList = idInPageGroupAndOffsetInListPage.first;
-        offsetInListPage = idInPageGroupAndOffsetInListPage.second;
-    } else {
-        // For large lists, the firstIdxInPageGroup is always 0.
-        idxInPageList = 0;
-        offsetInListPage = 0;
-    }
-
-    bool firstIteration = true;
-    auto remainingNumBytesToWrite = listSizeInBytes;
-    while (remainingNumBytesToWrite > 0) {
-        if (firstIteration) {
-            firstIteration = false;
-        } else {
-            idxInPageList++;
-            offsetInListPage = 0;
-        }
-        // Now find the physical pageIdx that this corresponds to the logical idxInPageList
-        auto [listPageIdx, insertingNewPage] =
-            findListPageIdxAndInsertListPageToPageListIfNecessary(idxInPageList, pageListHeadIdx);
-        uint64_t numBytesToWriteToCurrentPage = min(remainingNumBytesToWrite,
-            (lists->numElementsPerPage - offsetInListPage) * lists->elementSize);
-        StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
-            lists->bufferManager, *(lists->wal),
-            [&newList, &offsetInListPage, &numBytesToWriteToCurrentPage](uint8_t* frame) -> void {
-                memcpy(frame + offsetInListPage, newList, numBytesToWriteToCurrentPage);
-            });
-        remainingNumBytesToWrite -= numBytesToWriteToCurrentPage;
-        // We update the newList pointer as well.
-        newList += numBytesToWriteToCurrentPage;
-    }
-}
-
-pair<page_idx_t, bool>
-UnstructuredPropertyListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
+pair<page_idx_t, bool> ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
     page_idx_t idxInPageList, uint32_t pageListHeadIdx) {
     auto pageLists = lists->getListsMetadata().pageLists.get();
     uint32_t curIdxInPageList = pageListHeadIdx;
@@ -272,7 +270,7 @@ UnstructuredPropertyListsUpdateIterator::findListPageIdxAndInsertListPageToPageL
     return make_pair(listPageIdx, isInsertingNewListPage);
 }
 
-page_idx_t UnstructuredPropertyListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
+page_idx_t ListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
     uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx) {
     auto pageLists = lists->getListsMetadata().pageLists.get();
     auto beginIdxOfNextPageGroup = pageLists->getNumElements(TransactionType::WRITE);
@@ -295,6 +293,31 @@ page_idx_t UnstructuredPropertyListsUpdateIterator::insertNewPageGroupAndSetHead
         pageLists->pushBack(StorageStructureUtils::NULL_PAGE_IDX);
     }
     return beginIdxOfNextPageGroup;
+}
+
+void UnstructuredPropertyListsUpdateIterator::updateList(
+    node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes) {
+    seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
+    // We first check if the updated list is a newly inserted list.
+    auto headers = lists->getHeaders();
+    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
+    assert(nodeOffset <= numNodes);
+    // We modify the headers here to be able to assert that empty lists are being added for
+    // new nodes consecutively. That is when
+    uint64_t oldHeader;
+    if (nodeOffset == numNodes) {
+        oldHeader = ListHeaders::getSmallListHeader(0, 0);
+        headers->headersDiskArray->pushBack(0);
+    } else {
+        oldHeader = lists->getHeaders()->headersDiskArray->get(
+            curUnprocessedNodeOffset, TransactionType::WRITE);
+    }
+    if (ListHeaders::isALargeList(oldHeader) || listSizeInBytes > DEFAULT_PAGE_SIZE) {
+        updateLargeList(oldHeader, newList, listSizeInBytes);
+    } else {
+        updateSmallListAndCurCSROffset(oldHeader, newList, listSizeInBytes);
+    }
+    curUnprocessedNodeOffset++;
 }
 
 } // namespace storage

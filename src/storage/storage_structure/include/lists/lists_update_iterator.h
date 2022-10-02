@@ -36,9 +36,10 @@ namespace storage {
  *   <li> listPageIdx: physical pageIdx in the .lists file.
  * </ul>
  */
-class UnstructuredPropertyListsUpdateIterator {
+
+class ListsUpdateIterator {
 public:
-    UnstructuredPropertyListsUpdateIterator(UnstructuredPropertyLists* lists)
+    ListsUpdateIterator(Lists* lists)
         : lists{lists}, curChunkIdx{UINT64_MAX}, curUnprocessedNodeOffset{UINT64_MAX},
           curCSROffset{UINT64_MAX}, finishCalled{false},
           tmpDataChunkState{make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY)},
@@ -56,26 +57,26 @@ public:
         valueVectorToScanSmallLists->setState(tmpDataChunkState);
     }
 
-    ~UnstructuredPropertyListsUpdateIterator() { assert(finishCalled); }
+    ~ListsUpdateIterator() { assert(finishCalled); }
 
-    void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes);
+    virtual void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes);
 
     void doneUpdating();
 
-private:
+protected:
     void seekToBeginningOfChunkIdx(uint64_t chunkIdx);
 
     void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
 
     void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
 
-    void updateLargeList(list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes);
+    void writeListToListPages(
+        uint8_t* newList, uint64_t numElementsInList, page_idx_t pageListHeadIdx, bool isSmallList);
+
+    void updateLargeList(list_header_t oldHeader, uint8_t* newList, uint64_t numElementsInList);
 
     void updateSmallListAndCurCSROffset(
         list_header_t oldHeader, uint8_t* newList, uint64_t listSizeInBytes);
-
-    void writeListToListPages(
-        uint8_t* newList, uint64_t listSizeInBytes, page_idx_t pageListHeadIdx, bool isSmallList);
 
     pair<page_idx_t, bool> findListPageIdxAndInsertListPageToPageListIfNecessary(
         page_idx_t idxInPageList, uint32_t pageListHeadIdx);
@@ -88,14 +89,24 @@ private:
     page_idx_t insertNewPageGroupAndSetHeadIdxMap(
         uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx = UINT32_MAX);
 
-private:
-    UnstructuredPropertyLists* lists;
+protected:
+    Lists* lists;
     uint64_t curChunkIdx;
     uint64_t curUnprocessedNodeOffset;
     uint64_t curCSROffset;
     bool finishCalled;
     shared_ptr<DataChunkState> tmpDataChunkState;
     shared_ptr<ValueVector> valueVectorToScanSmallLists;
+};
+
+class UnstructuredPropertyListsUpdateIterator : public ListsUpdateIterator {
+public:
+    UnstructuredPropertyListsUpdateIterator(UnstructuredPropertyLists* lists)
+        : ListsUpdateIterator(lists) {}
+
+    ~UnstructuredPropertyListsUpdateIterator() { assert(finishCalled); }
+
+    void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes) override;
 };
 
 } // namespace storage
