@@ -48,8 +48,12 @@ public:
     }
 
     void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
-        for (uint64_t i = 0; i < nodeTables.size(); ++i) {
-            nodeTables[i]->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
+        // The nodeTables is a map with <key = table_id_t, value = nodeTable>, so the
+        // key(table_id_t) may not necessarily be consecutive (eg. we drop a table in the middle of
+        // nodeTables). We can't simply iterate through nodeTables from table_id_t=0 until
+        // nodeTable.Size().
+        for (auto& nodeTable : nodeTables) {
+            nodeTable.second->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
         }
     }
 

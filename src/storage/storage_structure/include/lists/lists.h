@@ -69,7 +69,7 @@ public:
         bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
               true /*hasNULLBytes*/, isInMemory, wal, listUpdateStore} {};
-
+    virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
     inline uint64_t getNumElementsInPersistentStore(node_offset_t nodeOffset) const {
@@ -100,9 +100,10 @@ public:
     }
     void initListReadingState(
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
-
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    void fillListsFromPersistent(
+        CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, uint8_t* dataToFill);
 
 protected:
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
@@ -183,6 +184,24 @@ public:
 
     // Currently, used only in copyCSV tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
+
+    void prepareCommitOrRollbackIfNecessary(bool isCommit) override;
+
+    void checkpointInMemoryIfNecessary() {
+        if (listUpdateStore->isEmpty()) {
+            return;
+        }
+        Lists::checkpointInMemoryIfNecessary();
+        listUpdateStore->clear();
+    }
+
+    void rollbackInMemoryIfNecessary() {
+        if (listUpdateStore->isEmpty()) {
+            return;
+        }
+        Lists::rollbackInMemoryIfNecessary();
+        listUpdateStore->clear();
+    }
 
 private:
     void readFromLargeList(

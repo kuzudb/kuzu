@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "src/common/include/configs.h"
@@ -103,6 +104,77 @@ public:
     inline bool isNull(uint32_t pos) const { return isNull(data, pos); }
 
     inline uint64_t* getData() { return data; }
+
+    static inline std::pair<uint64_t, uint64_t> getNullBitAndEntryPos(uint64_t pos) {
+        auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
+        return std::make_pair(
+            pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2), nullEntryPos);
+    }
+
+    // This function returns true if we have copied a nullBit with value 1 (indicate a null
+    // value) to dstNullEntries.
+    static bool copyNullMask(uint64_t srcNullBitPos, uint64_t srcNullEntryPos,
+        uint64_t* srcNullEntries, uint64_t dstNullBitPos, uint64_t dstNullEntryPos,
+        uint64_t* dstNullEntries, uint64_t numBitsToCopy) {
+        uint64_t bitPos = 0;
+        bool hasNullInSrcNullMask = false;
+        while (bitPos < numBitsToCopy) {
+            auto curDstNullEntryPos = dstNullEntryPos;
+            auto curDstNullBitPos = dstNullBitPos;
+            uint64_t numBitsToReadInCurrentEntry;
+            uint64_t srcNullMaskEntry = srcNullEntries[srcNullEntryPos];
+            if (dstNullBitPos < srcNullBitPos) {
+                numBitsToReadInCurrentEntry = std::min(
+                    NullMask::NUM_BITS_PER_NULL_ENTRY - srcNullBitPos, numBitsToCopy - bitPos);
+                // Mask higher bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                                     (srcNullBitPos + numBitsToReadInCurrentEntry)];
+                // Shift right to align the bit in the page entry and vector entry.
+                srcNullMaskEntry = srcNullMaskEntry >> (srcNullBitPos - dstNullBitPos);
+                // Mask lower bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_LOWER_MASKS[dstNullBitPos];
+                // Move to the next null entry in page.
+                srcNullEntryPos++;
+                srcNullBitPos = 0;
+                dstNullBitPos += numBitsToReadInCurrentEntry;
+            } else if (dstNullBitPos > srcNullBitPos) {
+                numBitsToReadInCurrentEntry = std::min(
+                    NullMask::NUM_BITS_PER_NULL_ENTRY - dstNullBitPos, numBitsToCopy - bitPos);
+                // Mask lower bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_LOWER_MASKS[srcNullBitPos];
+                // Shift left to align the bit in the page entry and vector entry.
+                srcNullMaskEntry = srcNullMaskEntry << (dstNullBitPos - srcNullBitPos);
+                // Mask higher bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                                     (dstNullBitPos + numBitsToReadInCurrentEntry)];
+                // Move to the next null entry in vector.
+                dstNullEntryPos++;
+                dstNullBitPos = 0;
+                srcNullBitPos += numBitsToReadInCurrentEntry;
+            } else {
+                numBitsToReadInCurrentEntry = std::min(
+                    NullMask::NUM_BITS_PER_NULL_ENTRY - dstNullBitPos, numBitsToCopy - bitPos);
+                // Mask lower bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_LOWER_MASKS[srcNullBitPos];
+                // Mask higher bits out of current read range to 0.
+                srcNullMaskEntry &= ~NULL_HIGH_MASKS[NullMask::NUM_BITS_PER_NULL_ENTRY -
+                                                     (dstNullBitPos + numBitsToReadInCurrentEntry)];
+                // The input entry and the result entry are already aligned.
+                srcNullEntryPos++;
+                dstNullEntryPos++;
+                srcNullBitPos = dstNullBitPos = 0;
+            }
+            bitPos += numBitsToReadInCurrentEntry;
+            // Mask all bits to set in vector to 0.
+            dstNullEntries[curDstNullEntryPos] &=
+                ~(NULL_LOWER_MASKS[numBitsToReadInCurrentEntry] << curDstNullBitPos);
+            if (srcNullMaskEntry != 0) {
+                dstNullEntries[curDstNullEntryPos] |= srcNullMaskEntry;
+                hasNullInSrcNullMask = true;
+            }
+        }
+        return hasNullInSrcNullMask;
+    }
 
 private:
     uint64_t* data;

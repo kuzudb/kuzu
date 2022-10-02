@@ -45,6 +45,7 @@ protected:
 class ListsMetadata : public BaseListsMetadata {
     friend class graphflow::testing::CopyCSVEmptyListsTest;
     friend class ListsUpdateIterator;
+    friend class RelPropertyListUpdateIterator;
 
 public:
     explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,

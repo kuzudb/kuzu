@@ -106,7 +106,28 @@ public:
 
     ~UnstructuredPropertyListsUpdateIterator() { assert(finishCalled); }
 
-    void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t listSizeInBytes) override;
+    void updateList(node_offset_t nodeOffset, uint8_t* newList, uint64_t numElements) override;
+};
+
+class RelPropertyListUpdateIterator : public ListsUpdateIterator {
+public:
+    RelPropertyListUpdateIterator(Lists* lists) : ListsUpdateIterator(lists) {}
+
+    ~RelPropertyListUpdateIterator() { assert(finishCalled); }
+
+    void updateRelPropertyList(
+        node_offset_t nodeOffset, uint8_t* newList, uint64_t numElements, NullMask& nullMask);
+
+    void seekToNodeOffsetAndSlideListsIfNecessary(
+        node_offset_t nodeOffsetToSeekTo, NullMask& nullMask);
+
+    void writePropertyList(uint8_t* newList, uint64_t numElementsInList, NullMask& nullMask,
+        page_idx_t pageListHeadIdx, bool isSmallList);
+
+    void updateSmallListAndCurCSROffset(
+        list_header_t oldHeader, uint8_t* newList, uint64_t numElementsInList, NullMask& nullMask);
+
+    void slideListsIfNecessary(uint64_t endNodeOffsetInclusive, NullMask& nullMask);
 };
 
 } // namespace storage

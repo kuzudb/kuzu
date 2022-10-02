@@ -357,6 +357,35 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                 return nullptr;
             }
         }
+        case ADJ_LISTS: {
+            auto relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
+            auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
+                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID);
+            switch (storageStructureID.listFileID.listFileType) {
+            case BASE_LISTS: {
+                return adjLists->getFileHandle();
+            }
+            default:
+                // See comments for lists.
+                return nullptr;
+            }
+        }
+        case REL_PROPERTY_LISTS: {
+            auto relNodeTableAndDir =
+                storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
+            auto relPropLists =
+                storageManager->getRelsStore().getRelPropertyLists(relNodeTableAndDir.dir,
+                    relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID,
+                    storageStructureID.listFileID.relPropertyListID.propertyID);
+            switch (storageStructureID.listFileID.listFileType) {
+            case BASE_LISTS: {
+                return relPropLists->getFileHandle();
+            }
+            default:
+                // See comments for lists.
+                return nullptr;
+            }
+        }
         default:
             throw RuntimeException(
                 "There should not be any code path yet triggering getting List "
@@ -403,6 +432,27 @@ void WALReplayer::replay() {
                 unstructuredPropertyLists->checkpointInMemoryIfNecessary();
             } else {
                 unstructuredPropertyLists->rollbackInMemoryIfNecessary();
+            }
+        } break;
+        case ADJ_LISTS: {
+            auto relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
+            auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
+                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID);
+            if (isCheckpoint) {
+                adjLists->checkpointInMemoryIfNecessary();
+            } else {
+                adjLists->rollbackInMemoryIfNecessary();
+            }
+        } break;
+        case REL_PROPERTY_LISTS: {
+            auto relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
+            auto relPropLists = storageManager->getRelsStore().getRelPropertyLists(
+                relNodeTableAndDir.dir, relNodeTableAndDir.srcNodeTableID,
+                relNodeTableAndDir.relTableID, listFileID.relPropertyListID.propertyID);
+            if (isCheckpoint) {
+                relPropLists->checkpointInMemoryIfNecessary();
+            } else {
+                relPropLists->rollbackInMemoryIfNecessary();
             }
         } break;
         default:

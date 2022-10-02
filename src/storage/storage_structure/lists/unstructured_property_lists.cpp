@@ -43,8 +43,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
         uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
         auto primaryStoreData = make_unique<uint8_t[]>(numElementsInLIst);
-        fillUnstrPropListFromPrimaryStore(
-            cursorAndMapper, numElementsInLIst, primaryStoreData.get());
+        fillListsFromPersistent(cursorAndMapper, numElementsInLIst, primaryStoreData.get());
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
             move(primaryStoreData), numElementsInLIst, numElementsInLIst /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
@@ -82,30 +81,13 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
     }
 }
 
-void UnstructuredPropertyLists::fillUnstrPropListFromPrimaryStore(
-    CursorAndMapper& cursorAndMapper, uint64_t numElementsInList, uint8_t* dataToFill) {
-    PageElementCursor cursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.posInPage};
-    uint64_t numBytesRead = 0;
-    while (numBytesRead < numElementsInList) {
-        auto bytesToReadInCurrentPage =
-            min(numElementsInList - numBytesRead, DEFAULT_PAGE_SIZE - cursor.posInPage);
-        auto physicalPageIdx = cursorAndMapper.mapper(cursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        std::copy(frame + cursor.posInPage, frame + cursor.posInPage + bytesToReadInCurrentPage,
-            dataToFill + numBytesRead);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-        numBytesRead += bytesToReadInCurrentPage;
-        cursor.nextPage();
-    }
-}
-
 unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPropertiesOfNode(
     node_offset_t nodeOffset) {
     CursorAndMapper cursorAndMapper;
     cursorAndMapper.reset(metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
     auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
     auto retVal = make_unique<map<uint32_t /*unstructuredProperty pageIdx*/, Literal>>();
-    PageByteCursor byteCursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.posInPage};
+    PageByteCursor byteCursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.elemPosInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < numElementsInList) {
@@ -194,8 +176,7 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
-        fillUnstrPropListFromPrimaryStore(
-            cursorAndMapper, numElementsInList, existingUstrPropLists.get());
+        fillListsFromPersistent(cursorAndMapper, numElementsInList, existingUstrPropLists.get());
         if (isSetting) {
             localUpdatedLists.setPropertyList(
                 nodeOffset, make_unique<UnstrPropListWrapper>(move(existingUstrPropLists),

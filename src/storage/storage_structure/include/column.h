@@ -156,7 +156,7 @@ private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         readNodeIDsFromAPageBySequentialCopy(resultVector, vectorPos, cursor.pageIdx,
-            cursor.posInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
+            cursor.elemPosInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
             false /*isAdjLists*/);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,

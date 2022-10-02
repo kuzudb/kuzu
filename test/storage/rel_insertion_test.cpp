@@ -96,6 +96,27 @@ public:
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(5 /* numValueVectors */);
 };
 
+TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitTest) {
+    auto numRelsToInsert = 100;
+    insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert);
+    conn->beginWriteTransaction();
+    auto result = conn->query("match (:animal)-[e:knows]->(:animal) return e.length");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
+    validateInsertedEdgesLengthProperty(result.get(), numRelsToInsert /* numValuesToCheck */);
+    conn->commit();
+    result = conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, b.ID");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
+    for (auto i = 0u; i < numRelsToInsert; i++) {
+        auto tuple = result->getNext();
+        ASSERT_EQ(tuple->getValue(1)->val.nodeID.tableID, 0);
+        ASSERT_EQ(tuple->getValue(1)->val.nodeID.offset, i + 1);
+        ASSERT_FALSE(tuple->isNull(0));
+        ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+    }
+}
+
 TEST_F(RelInsertionTest, InsertRelsToEmptyList) {
     insertRels(0 /* srcTableID */, 0 /* dstTableID */);
     conn->beginWriteTransaction();

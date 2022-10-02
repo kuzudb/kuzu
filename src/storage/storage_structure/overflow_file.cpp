@@ -158,8 +158,8 @@ vector<Literal> OverflowFile::readList(const gf_list_t& listVal, const DataType&
 void OverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
     PageElementCursor byteCursor =
         PageUtils::getPageElementCursorForPos(nextBytePosToWriteTo, DEFAULT_PAGE_SIZE);
-    if ((byteCursor.posInPage == 0) ||
-        ((byteCursor.posInPage + numBytesToAppend - 1) > DEFAULT_PAGE_SIZE)) {
+    if ((byteCursor.elemPosInPage == 0) ||
+        ((byteCursor.elemPosInPage + numBytesToAppend - 1) > DEFAULT_PAGE_SIZE)) {
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
         nextBytePosToWriteTo = (fileHandle.getNumPages() * DEFAULT_PAGE_SIZE);

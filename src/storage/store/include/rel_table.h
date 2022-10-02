@@ -42,6 +42,7 @@ public:
     vector<AdjColumn*> getAdjColumnsForNodeTable(table_id_t tableID);
 
     inline RelUpdateStore* getRelUpdateStore() { return relUpdateStore.get(); }
+    void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog,

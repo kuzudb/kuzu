@@ -1,5 +1,7 @@
 #include "src/storage/storage_structure/include/lists/lists.h"
 
+#include "src/storage/storage_structure/include/lists/lists_update_iterator.h"
+
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -51,6 +53,25 @@ void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle
     auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     readBySequentialCopy(tmpTransaction.get(), valueVector, listHandle.cursorAndMapper.cursor,
         listHandle.cursorAndMapper.mapper);
+}
+
+void Lists::fillListsFromPersistent(
+    CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, uint8_t* dataToFill) {
+    uint64_t numBytesRead = 0;
+    auto numBytesToRead = numValuesInPersistentStore * elementSize;
+    while (numBytesRead < numBytesToRead) {
+        auto bytesToReadInCurrentPage = min(numBytesToRead - numBytesRead,
+            DEFAULT_PAGE_SIZE - cursorAndMapper.cursor.elemPosInPage * elementSize);
+        auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        copy(frame + cursorAndMapper.cursor.elemPosInPage * elementSize,
+            frame + cursorAndMapper.cursor.elemPosInPage * elementSize + bytesToReadInCurrentPage,
+            dataToFill);
+        bufferManager.unpin(fileHandle, physicalPageIdx);
+        numBytesRead += bytesToReadInCurrentPage;
+        dataToFill += bytesToReadInCurrentPage;
+        cursorAndMapper.cursor.nextPage();
+    }
 }
 
 void Lists::readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
@@ -134,16 +155,16 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     auto bufferPtr = buffer.get();
     while (sizeLeftToCopy) {
         auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
-        auto sizeToCopyInPage =
-            min(((uint64_t)(numElementsPerPage - cursorAndMapper.cursor.posInPage) * elementSize),
-                sizeLeftToCopy);
+        auto sizeToCopyInPage = min(
+            ((uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage) * elementSize),
+            sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(bufferPtr, frame + mapElementPosToByteOffset(cursorAndMapper.cursor.posInPage),
+        memcpy(bufferPtr, frame + mapElementPosToByteOffset(cursorAndMapper.cursor.elemPosInPage),
             sizeToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        cursorAndMapper.cursor.posInPage = 0;
+        cursorAndMapper.cursor.elemPosInPage = 0;
         cursorAndMapper.cursor.pageIdx++;
     }
 
@@ -159,6 +180,82 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         sizeLeftToDecompress -= nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
     }
     return retVal;
+}
+
+void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    if (listUpdateStore->isEmpty()) {
+        return;
+    }
+    wal->addToUpdatedUnstructuredPropertyLists(
+        storageStructureIDAndFName.storageStructureID.listFileID);
+    RelPropertyListUpdateIterator updateItr(this);
+    if (isCommit) {
+        // Note: In C++ iterating through maps happens in non-descending order of the keys. This
+        // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires
+        // the user to make calls to writeListToListPages in ascending order of nodeOffsets.
+        for (auto updatedChunkItr = listUpdateStore->getInsertedEdgeTupleIdxes().begin();
+             updatedChunkItr != listUpdateStore->getInsertedEdgeTupleIdxes().end();
+             ++updatedChunkItr) {
+            for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
+                 updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
+                auto nodeOffset = updatedNodeOffsetItr->first;
+                auto totalNumElements =
+                    getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
+                auto newList = make_unique<uint8_t[]>(totalNumElements * elementSize);
+                auto nullMask = NullMask();
+                CursorAndMapper cursorAndMapper;
+                cursorAndMapper.reset(
+                    metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+                auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+                fillListsFromPersistent(
+                    cursorAndMapper, numElementsInPersistentStore, newList.get());
+                listUpdateStore->getFactorizedTable()->readToList(
+                    listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID
+                                                       .listFileID.relPropertyListID.propertyID),
+                    updatedNodeOffsetItr->second,
+                    newList.get() + getNumElementsInPersistentStore(nodeOffset) * elementSize);
+                updateItr.updateRelPropertyList(
+                    nodeOffset, newList.get(), totalNumElements, nullMask);
+            }
+        }
+    }
+    updateItr.doneUpdating();
+}
+
+void AdjLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    if (listUpdateStore->isEmpty()) {
+        return;
+    }
+    wal->addToUpdatedUnstructuredPropertyLists(
+        storageStructureIDAndFName.storageStructureID.listFileID);
+    ListsUpdateIterator updateItr(this);
+    if (isCommit) {
+        // Note: In C++ iterating through maps happens in non-descending order of the keys. This
+        // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires
+        // the user to make calls to writeListToListPages in ascending order of nodeOffsets.
+        for (auto updatedChunkItr = listUpdateStore->getInsertedEdgeTupleIdxes().begin();
+             updatedChunkItr != listUpdateStore->getInsertedEdgeTupleIdxes().end();
+             ++updatedChunkItr) {
+            for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
+                 updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
+                auto nodeOffset = updatedNodeOffsetItr->first;
+                auto totalNumElements =
+                    getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
+                auto newList = make_unique<uint8_t[]>(totalNumElements * elementSize);
+                CursorAndMapper cursorAndMapper;
+                cursorAndMapper.reset(
+                    metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+                auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+                fillListsFromPersistent(
+                    cursorAndMapper, numElementsInPersistentStore, newList.get());
+                listUpdateStore->getFactorizedTable()->readToList(1 /* colIdx */,
+                    updatedNodeOffsetItr->second,
+                    newList.get() + getNumElementsInPersistentStore(nodeOffset) * elementSize);
+                updateItr.updateList(nodeOffset, newList.get(), totalNumElements);
+            }
+        }
+    }
+    updateItr.doneUpdating();
 }
 
 void AdjLists::readFromLargeList(
@@ -187,7 +284,7 @@ void AdjLists::readFromLargeList(
     auto physicalPageId =
         listHandle.cursorAndMapper.mapper(listHandle.cursorAndMapper.cursor.pageIdx);
     readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId,
-        listHandle.cursorAndMapper.cursor.posInPage, numValuesToCopy, nodeIDCompressionScheme,
+        listHandle.cursorAndMapper.cursor.elemPosInPage, numValuesToCopy, nodeIDCompressionScheme,
         true /*isAdjLists*/);
 }
 

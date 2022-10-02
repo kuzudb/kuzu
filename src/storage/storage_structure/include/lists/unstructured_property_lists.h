@@ -55,8 +55,6 @@ public:
     void rollbackInMemoryIfNecessary() override;
 
 private:
-    void fillUnstrPropListFromPrimaryStore(
-        CursorAndMapper& cursorAndMapper, uint64_t numElementsInList, uint8_t* dataToFill);
     void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,
         uint32_t pos, const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 

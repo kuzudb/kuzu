@@ -20,6 +20,7 @@ class ListsUpdateIterator;
 
 class StorageStructure {
     friend class ListsUpdateIterator;
+    friend class RelPropertyListUpdateIterator;
 
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,

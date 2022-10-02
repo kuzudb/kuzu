@@ -253,6 +253,25 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
+void FactorizedTable::readToList(
+    uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint8_t* list, bool* nullBuffer) const {
+    auto column = tableSchema->getColumn(colIdx);
+    assert(column->isFlat() == true);
+    auto colOffset = tableSchema->getColOffset(colIdx);
+    auto numBytesPerValue = tableSchema->getColumn(colIdx)->getNumBytes();
+    for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
+        auto tuple = getTuple(tupleIdxesToRead[i]);
+        if (nullBuffer != nullptr) {
+            nullBuffer[i] = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
+            nullBuffer++;
+        }
+        if (!isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx)) {
+            memcpy(list, tuple + colOffset, numBytesPerValue);
+        }
+        list += numBytesPerValue;
+    }
+}
+
 bool FactorizedTable::isNull(const uint8_t* nullMapBuffer, uint32_t idx) {
     uint32_t nullMapIdx = idx >> 3;
     uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8

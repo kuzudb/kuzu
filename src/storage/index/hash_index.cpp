@@ -181,7 +181,7 @@ uint8_t* HashIndex::pinSlot(const SlotInfo& slotInfo) {
     auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
                                          oSlots->getPageCursorForSlot(slotInfo.slotId);
     auto frame = bm.pin(*fh, pageCursor.pageIdx);
-    return frame + (pageCursor.posInPage * indexHeader->numBytesPerSlot);
+    return frame + (pageCursor.elemPosInPage * indexHeader->numBytesPerSlot);
 }
 
 void HashIndex::unpinSlot(const SlotInfo& slotInfo) {

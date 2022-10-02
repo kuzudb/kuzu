@@ -330,7 +330,7 @@ void InMemNodeCSVCopier::putUnstrPropsOfALineToLists(CSVReader& reader, node_off
         PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
             unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
             nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);
-        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.posInPage};
+        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.elemPosInPage};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType.typeID) {
         case INT64: {

@@ -46,7 +46,7 @@ void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t 
     auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
         nodeOffset, *listsMetadataBuilder, true /* hasNULLBytes */);
     inMemFile->getPage(cursor.pageIdx)
-        ->write(cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
+        ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val, numBytesForElement);
 }
 
 void InMemAdjLists::setElement(
@@ -56,7 +56,7 @@ void InMemAdjLists::setElement(
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
         ->write(
-            node, cursor.posInPage * numBytesForElement, cursor.posInPage, nodeIDCompressionScheme);
+            node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, nodeIDCompressionScheme);
 }
 
 void InMemAdjLists::saveToFile() {

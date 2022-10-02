@@ -39,16 +39,16 @@ struct PageByteCursor {
 struct PageElementCursor {
 
     PageElementCursor(page_idx_t pageIdx, uint16_t posInPage)
-        : pageIdx{pageIdx}, posInPage{posInPage} {};
+        : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
     PageElementCursor() : PageElementCursor{UINT32_MAX, UINT16_MAX} {};
 
     inline void nextPage() {
         pageIdx++;
-        posInPage = 0;
+        elemPosInPage = 0;
     }
 
     page_idx_t pageIdx;
-    uint16_t posInPage;
+    uint16_t elemPosInPage;
 };
 
 struct PageUtils {
@@ -240,6 +240,17 @@ public:
         case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
             baseFName = getNodeUnstrPropertyListsFName(directory,
                 listFileID.unstructuredNodePropertyListsID.tableID, DBFileType::ORIGINAL);
+        } break;
+        case ADJ_LISTS: {
+            auto relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
+            baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,
+                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
+        } break;
+        case REL_PROPERTY_LISTS: {
+            auto& relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
+            baseFName = getRelPropertyListsFName(directory, relNodeTableAndDir.relTableID,
+                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
+                listFileID.relPropertyListID.propertyID, DBFileType::ORIGINAL);
         } break;
         default: {
             throw RuntimeException(

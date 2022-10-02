@@ -57,7 +57,7 @@ void Column::writeValues(
 Literal Column::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.posInPage), dataType);
+    auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.elemPosInPage), dataType);
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return retVal;
 }
@@ -67,7 +67,7 @@ bool Column::isNull(node_offset_t nodeOffset) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto nullEntries = (uint64_t*)(frame + (elementSize * numElementsPerPage));
-    auto isNull = NullMask::isNull(nullEntries, cursor.posInPage);
+    auto isNull = NullMask::isNull(nullEntries, cursor.elemPosInPage);
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return isNull;
 }
@@ -90,9 +90,9 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
             fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto vectorBytesOffset = vectorPos * elementSize;
-    auto frameBytesOffset = cursor.posInPage * elementSize;
+    auto frameBytesOffset = cursor.elemPosInPage * elementSize;
     memcpy(resultVector->values + vectorBytesOffset, frame + frameBytesOffset, elementSize);
-    readSingleNullBit(resultVector, frame, cursor.posInPage, vectorPos);
+    readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
@@ -138,7 +138,7 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     gf_string_t gfString;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.posInPage), sizeof(gf_string_t));
+    memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_string_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(overflowFile.readString(gfString));
 }
@@ -164,7 +164,7 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     gf_list_t gfList;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.posInPage), sizeof(gf_list_t));
+    memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(listOverflowPages.readList(gfList, dataType), dataType);
 }

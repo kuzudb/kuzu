@@ -14,7 +14,7 @@ namespace storage {
 using namespace processor;
 using namespace catalog;
 
-using InsertedEdgeTupleIdxs = unordered_map<node_offset_t, vector<uint64_t>>;
+using InsertedEdgeTupleIdxs = map<node_offset_t, vector<uint64_t>>;
 
 class ListUpdateStore {
 
@@ -23,6 +23,15 @@ public:
 
     inline uint32_t getColIdxInFT(uint32_t propertyID) const {
         return propertyIDToColIdxMap.at(propertyID);
+    }
+    inline bool isEmpty() const { return factorizedTable->getNumTuples() == 0; }
+    inline map<uint64_t, InsertedEdgeTupleIdxs>& getInsertedEdgeTupleIdxes() {
+        return insertedEdgeTupleIdxs;
+    }
+    inline FactorizedTable* getFactorizedTable() const { return factorizedTable.get(); }
+    inline void clear() {
+        factorizedTable->clear();
+        insertedEdgeTupleIdxs.clear();
     }
 
     void addRel(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties);
@@ -37,7 +46,7 @@ private:
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
-    unordered_map<uint64_t, InsertedEdgeTupleIdxs> insertedEdgeTupleIdxs;
+    map<uint64_t, InsertedEdgeTupleIdxs> insertedEdgeTupleIdxs;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
 };
 

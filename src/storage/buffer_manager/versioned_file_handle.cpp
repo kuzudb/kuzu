@@ -42,7 +42,7 @@ void VersionedFileHandle::setWALPageVersionNoLock(
     page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
     auto pageGroupIdxAndPosInGroup =
         PageUtils::getPageElementCursorForPos(originalPageIdx, MULTI_VERSION_FILE_PAGE_GROUP_SIZE);
-    pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.posInPage] =
+    pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.elemPosInPage] =
         pageIdxInWAL;
 }
 

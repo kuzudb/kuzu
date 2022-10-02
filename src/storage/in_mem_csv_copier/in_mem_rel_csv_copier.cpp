@@ -604,12 +604,12 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyListsTask(const DataType& da
                 *propertyLists->getListsMetadataBuilder(), true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
                 auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
+                    propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedOverflowPages, orderedOverflowPages);
             } else if (dataType.typeID == LIST) {
                 auto gfList = reinterpret_cast<gf_list_t*>(propertyLists->getMemPtrToLoc(
-                    propertyListCursor.pageIdx, propertyListCursor.posInPage));
+                    propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyListOverflowFromUnorderedToOrderedPages(gfList, dataType,
                     unorderedOverflowCursor, orderedOverflowCursor, unorderedOverflowPages,
                     orderedOverflowPages);
