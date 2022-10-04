@@ -102,7 +102,7 @@ public:
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-    void fillListsFromPersistent(
+    void fillListsFromPersistentStore(
         CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, uint8_t* dataToFill);
 
 protected:

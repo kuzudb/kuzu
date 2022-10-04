@@ -55,7 +55,7 @@ void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle
         listHandle.cursorAndMapper.mapper);
 }
 
-void Lists::fillListsFromPersistent(
+void Lists::fillListsFromPersistentStore(
     CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, uint8_t* dataToFill) {
     uint64_t numBytesRead = 0;
     auto numBytesToRead = numValuesInPersistentStore * elementSize;
@@ -207,7 +207,7 @@ void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
                 auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
-                fillListsFromPersistent(
+                fillListsFromPersistentStore(
                     cursorAndMapper, numElementsInPersistentStore, newList.get());
                 listUpdateStore->getFactorizedTable()->readToList(
                     listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID
@@ -246,7 +246,7 @@ void AdjLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
                 auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
-                fillListsFromPersistent(
+                fillListsFromPersistentStore(
                     cursorAndMapper, numElementsInPersistentStore, newList.get());
                 listUpdateStore->getFactorizedTable()->readToList(1 /* colIdx */,
                     updatedNodeOffsetItr->second,

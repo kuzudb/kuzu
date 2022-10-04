@@ -43,7 +43,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
         uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
         auto primaryStoreData = make_unique<uint8_t[]>(numElementsInLIst);
-        fillListsFromPersistent(cursorAndMapper, numElementsInLIst, primaryStoreData.get());
+        fillListsFromPersistentStore(cursorAndMapper, numElementsInLIst, primaryStoreData.get());
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
             move(primaryStoreData), numElementsInLIst, numElementsInLIst /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
@@ -176,7 +176,8 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
-        fillListsFromPersistent(cursorAndMapper, numElementsInList, existingUstrPropLists.get());
+        fillListsFromPersistentStore(
+            cursorAndMapper, numElementsInList, existingUstrPropLists.get());
         if (isSetting) {
             localUpdatedLists.setPropertyList(
                 nodeOffset, make_unique<UnstrPropListWrapper>(move(existingUstrPropLists),

@@ -475,16 +475,10 @@ void RelPropertyListUpdateIterator::writePropertyList(uint8_t* newList, uint64_t
                 &elementSize, &numElementsPerPage, &numUpdatedElements](uint8_t* frame) -> void {
                 memcpy(frame + elementOffsetInListPage * elementSize, newList,
                     numElementsToWriteToCurrentPage * elementSize);
-                auto nullEntryPosInPage =
-                    elementOffsetInListPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
-                auto nullBitPosInPageEntry =
-                    elementOffsetInListPage -
-                    (nullEntryPosInPage << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
-                auto nullEntryPosInList =
-                    numUpdatedElements >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
-                auto nullBitPosInList =
-                    numUpdatedElements -
-                    (nullEntryPosInList << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
+                auto [nullBitPosInPageEntry, nullEntryPosInPage] =
+                    NullMask::getNullBitAndEntryPos(elementOffsetInListPage);
+                auto [nullBitPosInList, nullEntryPosInList] =
+                    NullMask::getNullBitAndEntryPos(numUpdatedElements);
                 NullMask::copyNullMask(nullBitPosInList, nullEntryPosInList, nullMask.getData(),
                     nullBitPosInPageEntry, nullEntryPosInPage,
                     (uint64_t*)(frame + numElementsPerPage * elementSize),
