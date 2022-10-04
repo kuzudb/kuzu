@@ -26,7 +26,7 @@ void DiskArrayHeader::readFromFile(FileHandle& fileHandle, uint64_t headerPageId
 void DiskArrayHeader::print() {
     cout << "firstPIPPageIdx: " << firstPIPPageIdx << endl;
     cout << "elementSize: " << elementSize << endl;
-    cout << "numElements: " << numElements << endl;
+    cout << "numNullEntries: " << numElements << endl;
     cout << "numElementsPerPageLog2: " << numElementsPerPageLog2 << endl;
     cout << "elementPageOffsetMask: " << elementPageOffsetMask << endl;
     cout << "numAPs: " << numAPs << endl;
@@ -84,7 +84,7 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
     hasTransactionalUpdates = true;
     if (idx >= getNumElementsNoLock(TransactionType::WRITE)) {
         throw RuntimeException(StringUtils::string_format(
-            "idx: %d of the DiskArray to be updated is >= numElements in DiskArray%d.", idx,
+            "idx: %d of the DiskArray to be updated is >= numNullEntries in DiskArray%d.", idx,
             getNumElementsNoLock(TransactionType::WRITE)));
     }
     page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
@@ -355,7 +355,7 @@ U BaseInMemDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     case READ_ONLY: {
         if (idx >= this->header.numElements) {
             throw RuntimeException("idx: " + to_string(idx) +
-                                   " of the element in DiskArray is >= this->header.numElements: " +
+                                   " of the element in DiskArray is >= this->header.numNullEntries: " +
                                    to_string(this->header.numElements) + " for read trx.");
         }
         return inMemArrayPages[apIdx][offsetInAP];
@@ -363,7 +363,7 @@ U BaseInMemDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     case WRITE: {
         if (idx >= this->getNumElementsNoLock(TransactionType::WRITE)) {
             throw RuntimeException("idx: " + to_string(idx) +
-                                   " of the element in DiskArray is >= this->header.numElements: " +
+                                   " of the element in DiskArray is >= this->header.numNullEntries: " +
                                    to_string(this->header.numElements) + " for write trx.");
         }
         VersionedFileHandle& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;

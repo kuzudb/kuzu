@@ -18,6 +18,23 @@ namespace storage {
 
 class ListsUpdateIterator;
 
+struct InMemList {
+    InMemList(uint64_t numElements, uint64_t elementSize, bool requireNullMask)
+        : numElements{numElements}, elementSize{elementSize} {
+        listData = make_unique<uint8_t[]>(numElements * elementSize);
+        nullMask = requireNullMask ?
+                       make_unique<NullMask>(NullMask::getNumNullEntries(numElements)) :
+                       nullptr;
+    }
+    inline uint8_t* getListData() const { return listData.get(); }
+    inline bool hasNullBuffer() const { return nullMask != nullptr; }
+    inline uint64_t* getNullMask() const { return nullMask->getData(); }
+    uint64_t numElements;
+    uint64_t elementSize;
+    unique_ptr<uint8_t[]> listData;
+    unique_ptr<NullMask> nullMask;
+};
+
 class StorageStructure {
     friend class ListsUpdateIterator;
     friend class RelPropertyListUpdateIterator;

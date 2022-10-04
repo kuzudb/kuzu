@@ -72,21 +72,24 @@ public:
     static constexpr uint64_t ALL_NULL_ENTRY = ~uint64_t(NO_NULL_ENTRY);
     static constexpr uint64_t NUM_BITS_PER_NULL_ENTRY_LOG2 = 6;
     static constexpr uint64_t NUM_BITS_PER_NULL_ENTRY = (uint64_t)1 << NUM_BITS_PER_NULL_ENTRY_LOG2;
-    static constexpr uint64_t NUM_NULL_ENTRIES =
+    static constexpr uint64_t NUM_BYTES_PER_NULL_ENTRY = NUM_BITS_PER_NULL_ENTRY >> 3;
+    static constexpr uint64_t DEFAULT_NUM_NULL_ENTRIES =
         DEFAULT_VECTOR_CAPACITY >> NUM_BITS_PER_NULL_ENTRY_LOG2;
 
-    NullMask() : mayContainNulls{false} {
-        buffer = std::make_unique<uint64_t[]>(NUM_NULL_ENTRIES);
+    NullMask() : NullMask{DEFAULT_NUM_NULL_ENTRIES} {}
+
+    NullMask(uint64_t numNullEntries) : mayContainNulls{false}, numNullEntries{numNullEntries} {
+        buffer = std::make_unique<uint64_t[]>(numNullEntries);
         data = buffer.get();
-        std::fill(data, data + NUM_NULL_ENTRIES, NO_NULL_ENTRY);
+        std::fill(data, data + numNullEntries, NO_NULL_ENTRY);
     }
 
     inline void setAllNonNull() {
-        std::fill(data, data + NUM_NULL_ENTRIES, NO_NULL_ENTRY);
+        std::fill(data, data + numNullEntries, NO_NULL_ENTRY);
         mayContainNulls = false;
     }
     inline void setAllNull() {
-        std::fill(data, data + NUM_NULL_ENTRIES, ALL_NULL_ENTRY);
+        std::fill(data, data + numNullEntries, ALL_NULL_ENTRY);
         mayContainNulls = true;
     }
 
@@ -111,6 +114,11 @@ public:
             pos - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2), nullEntryPos);
     }
 
+    static inline uint64_t getNumNullEntries(uint64_t numNullBits) {
+        return (numNullBits >> NUM_BITS_PER_NULL_ENTRY_LOG2) +
+               ((numNullBits - (numNullBits << NUM_BITS_PER_NULL_ENTRY_LOG2)) == 0 ? 0 : 1);
+    }
+
     // This function returns true if we have copied a nullBit with value 1 (indicate a null
     // value) to dstNullEntries.
     static bool copyNullMask(uint64_t srcNullBitPos, uint64_t srcNullEntryPos,
@@ -121,6 +129,7 @@ private:
     uint64_t* data;
     std::unique_ptr<uint64_t[]> buffer;
     bool mayContainNulls;
+    uint64_t numNullEntries;
 };
 
 } // namespace common

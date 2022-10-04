@@ -36,7 +36,7 @@ struct DiskArrayHeader {
     void print();
 
     // We do not need to store numElementsPerPageLog2, elementPageOffsetMask, and numArrayPages or
-    // save them on disk as they are functions of elementSize and numElements but we
+    // save them on disk as they are functions of elementSize and numNullEntries but we
     // nonetheless store them (and save them to disk) for simplicity.
     uint64_t elementSize;
     uint64_t numElementsPerPageLog2;

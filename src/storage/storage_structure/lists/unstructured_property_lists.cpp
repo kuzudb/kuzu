@@ -42,10 +42,10 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         CursorAndMapper cursorAndMapper;
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
         uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
-        auto primaryStoreData = make_unique<uint8_t[]>(numElementsInLIst);
-        fillListsFromPersistentStore(cursorAndMapper, numElementsInLIst, primaryStoreData.get());
+        InMemList inMemList{numElementsInLIst, elementSize, false /* requireNullMask */};
+        fillListsFromPersistentStore(cursorAndMapper, numElementsInLIst, inMemList);
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
-            move(primaryStoreData), numElementsInLIst, numElementsInLIst /* capacity */);
+            move(inMemList.listData), numElementsInLIst, numElementsInLIst /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
     } else {
         itr = localUpdatedLists.getUpdatedListIterator(nodeOffset);
@@ -175,16 +175,15 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
-        unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
-        fillListsFromPersistentStore(
-            cursorAndMapper, numElementsInList, existingUstrPropLists.get());
+        InMemList inMemList{updatedListCapacity, elementSize, false /* requireNullMask */};
+        fillListsFromPersistentStore(cursorAndMapper, numElementsInList, inMemList);
         if (isSetting) {
             localUpdatedLists.setPropertyList(
-                nodeOffset, make_unique<UnstrPropListWrapper>(move(existingUstrPropLists),
-                                numElementsInList, updatedListCapacity));
+                nodeOffset, make_unique<UnstrPropListWrapper>(
+                                move(inMemList.listData), numElementsInList, updatedListCapacity));
         } else if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
             unique_ptr<UnstrPropListWrapper> unstrListWrapper = make_unique<UnstrPropListWrapper>(
-                move(existingUstrPropLists), numElementsInList, updatedListCapacity);
+                move(inMemList.listData), numElementsInList, updatedListCapacity);
             bool found = UnstrPropListUtils::findKeyPropertyAndPerformOp(
                 unstrListWrapper.get(), propertyKey, [](UnstrPropListIterator& itr) -> void {});
             if (found) {
@@ -227,8 +226,11 @@ void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit
              updatedChunkItr != localUpdatedLists.updatedChunks.end(); ++updatedChunkItr) {
             for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();
                  updatedNodeOffsetItr != updatedChunkItr->second->end(); updatedNodeOffsetItr++) {
-                updateItr.updateList(updatedNodeOffsetItr->first,
-                    updatedNodeOffsetItr->second->data.get(), updatedNodeOffsetItr->second->size);
+                InMemList inMemList{
+                    updatedNodeOffsetItr->second->size, elementSize, false /* requireNullMask */};
+                memcpy(inMemList.getListData(), updatedNodeOffsetItr->second->data.get(),
+                    updatedNodeOffsetItr->second->size * elementSize);
+                updateItr.updateList(updatedNodeOffsetItr->first, inMemList);
             }
         }
     }

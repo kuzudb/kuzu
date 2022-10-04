@@ -56,9 +56,10 @@ void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle
 }
 
 void Lists::fillListsFromPersistentStore(
-    CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, uint8_t* dataToFill) {
+    CursorAndMapper& cursorAndMapper, uint64_t numValuesInPersistentStore, InMemList& inMemList) {
     uint64_t numBytesRead = 0;
     auto numBytesToRead = numValuesInPersistentStore * elementSize;
+    auto listData = inMemList.getListData();
     while (numBytesRead < numBytesToRead) {
         auto bytesToReadInCurrentPage = min(numBytesToRead - numBytesRead,
             DEFAULT_PAGE_SIZE - cursorAndMapper.cursor.elemPosInPage * elementSize);
@@ -66,10 +67,10 @@ void Lists::fillListsFromPersistentStore(
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
         copy(frame + cursorAndMapper.cursor.elemPosInPage * elementSize,
             frame + cursorAndMapper.cursor.elemPosInPage * elementSize + bytesToReadInCurrentPage,
-            dataToFill);
+            listData);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         numBytesRead += bytesToReadInCurrentPage;
-        dataToFill += bytesToReadInCurrentPage;
+        listData += bytesToReadInCurrentPage;
         cursorAndMapper.cursor.nextPage();
     }
 }
@@ -201,21 +202,18 @@ void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 auto nodeOffset = updatedNodeOffsetItr->first;
                 auto totalNumElements =
                     getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
-                auto newList = make_unique<uint8_t[]>(totalNumElements * elementSize);
-                auto nullMask = NullMask();
+                InMemList inMemList{totalNumElements, elementSize, true /* requireNullMask */};
                 CursorAndMapper cursorAndMapper;
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
                 auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
                 fillListsFromPersistentStore(
-                    cursorAndMapper, numElementsInPersistentStore, newList.get());
+                    cursorAndMapper, numElementsInPersistentStore, inMemList);
                 listUpdateStore->getFactorizedTable()->readToList(
                     listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID
                                                        .listFileID.relPropertyListID.propertyID),
-                    updatedNodeOffsetItr->second,
-                    newList.get() + getNumElementsInPersistentStore(nodeOffset) * elementSize);
-                updateItr.updateRelPropertyList(
-                    nodeOffset, newList.get(), totalNumElements, nullMask);
+                    updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore);
+                updateItr.updateRelPropertyList(nodeOffset, inMemList);
             }
         }
     }
@@ -241,17 +239,17 @@ void AdjLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 auto nodeOffset = updatedNodeOffsetItr->first;
                 auto totalNumElements =
                     getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
-                auto newList = make_unique<uint8_t[]>(totalNumElements * elementSize);
+                InMemList inMemList{totalNumElements, elementSize, true /* requireNullMask */};
                 CursorAndMapper cursorAndMapper;
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
                 auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
                 fillListsFromPersistentStore(
-                    cursorAndMapper, numElementsInPersistentStore, newList.get());
+                    cursorAndMapper, numElementsInPersistentStore, inMemList);
+                // Note: we always store the dstNodeID in the second column of factorizedTable.
                 listUpdateStore->getFactorizedTable()->readToList(1 /* colIdx */,
-                    updatedNodeOffsetItr->second,
-                    newList.get() + getNumElementsInPersistentStore(nodeOffset) * elementSize);
-                updateItr.updateList(nodeOffset, newList.get(), totalNumElements);
+                    updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore);
+                updateItr.updateList(nodeOffset, inMemList);
             }
         }
     }

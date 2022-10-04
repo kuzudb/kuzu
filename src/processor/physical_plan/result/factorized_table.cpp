@@ -253,23 +253,33 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
-void FactorizedTable::readToList(
-    uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint8_t* list, bool* nullBuffer) const {
+void FactorizedTable::readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead,
+    InMemList& inMemList, uint64_t startElemPosInList) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto numBytesPerValue = tableSchema->getColumn(colIdx)->getNumBytes();
+    auto listToFill = inMemList.getListData() + startElemPosInList * inMemList.elementSize;
+    bool hasNullBuffer = inMemList.hasNullBuffer();
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
         auto tuple = getTuple(tupleIdxesToRead[i]);
-        if (nullBuffer != nullptr) {
-            nullBuffer[i] = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
-            nullBuffer++;
+        auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
+        if (hasNullBuffer) {
+            inMemList.nullMask->setNull(startElemPosInList + i, isNullInFT);
         }
-        if (!isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx)) {
-            memcpy(list, tuple + colOffset, numBytesPerValue);
+        if (!isNullInFT) {
+            memcpy(listToFill, tuple + colOffset, numBytesPerValue);
         }
-        list += numBytesPerValue;
+        listToFill += numBytesPerValue;
     }
+}
+
+void FactorizedTable::clear() {
+    numTuples = 0;
+    flatTupleBlockCollection =
+        make_unique<DataBlockCollection>(tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
+    unflatTupleBlockCollection = make_unique<DataBlockCollection>();
+    overflowBuffer->resetBuffer();
 }
 
 bool FactorizedTable::isNull(const uint8_t* nullMapBuffer, uint32_t idx) {

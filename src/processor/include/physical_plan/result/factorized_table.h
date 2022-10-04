@@ -7,6 +7,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
+#include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace graphflow::common;
 
@@ -228,15 +229,9 @@ public:
     bool isOverflowColNull(const uint8_t* nullBuffer, uint32_t tupleIdx, uint32_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
-    void readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint8_t* list,
-        bool* nullBuffer = nullptr) const;
-    void clear() {
-        numTuples = 0;
-        flatTupleBlockCollection =
-            make_unique<DataBlockCollection>(tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
-        unflatTupleBlockCollection = make_unique<DataBlockCollection>();
-        overflowBuffer->resetBuffer();
-    }
+    void readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, InMemList& inMemList,
+        uint64_t startElemPosInList) const;
+    void clear();
 
 private:
     static bool isNull(const uint8_t* nullMapBuffer, uint32_t idx);
