@@ -4,11 +4,11 @@ namespace graphflow {
 namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-    BufferManager& bufferManager, bool isInMemoryMode, WAL* wal)
+    BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
     : relsStatistics{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         relTables[tableIDSchema.first] = make_unique<RelTable>(catalog, maxNodeOffsetsPerTable,
-            tableIDSchema.first, bufferManager, isInMemoryMode, wal);
+            tableIDSchema.first, bufferManager, memoryManager, isInMemoryMode, wal);
     }
 }
 

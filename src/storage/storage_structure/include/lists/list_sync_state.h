@@ -3,11 +3,17 @@
 #include <cstdint>
 
 #include "src/common/types/include/node_id_t.h"
+#include "src/common/types/include/types.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
+
+enum class ListSourceStore : uint8_t {
+    PersistentStore = 0,
+    RelUpdateStore = 1,
+};
 
 // ListSyncState holds the data that is required to synchronize reading from multiple Lists that
 // have related data and hence share same AdjListHeaders. The Lists that share a single copy of
@@ -29,22 +35,35 @@ public:
         this->boundNodeOffset = boundNodeOffset_;
     }
     inline void setRangeToRead(uint32_t startIdx_, uint32_t numValuesToRead_) {
-        this->startIdx = startIdx_;
+        this->startElemOffset = startIdx_;
         this->numValuesToRead = numValuesToRead_;
     }
     inline node_offset_t getBoundNodeOffset() const { return boundNodeOffset; };
-    inline uint32_t getStartIdx() const { return startIdx; }
-    inline uint32_t getEndIdx() const { return startIdx + numValuesToRead; }
-    inline bool hasValidRangeToRead() const { return UINT32_MAX != startIdx; }
+    inline uint32_t getStartElemOffset() const { return startElemOffset; }
+    inline uint32_t getEndElemOffset() const { return startElemOffset + numValuesToRead; }
+    inline bool hasValidRangeToRead() const { return UINT32_MAX != startElemOffset; }
+    inline uint32_t getNumValuesToRead() const { return numValuesToRead; }
+    inline uint64_t getNumValuesInList() const { return numValuesInList; }
+    inline ListSourceStore getListSourceStore() const { return sourceStore; }
+    inline void setSourceStore(ListSourceStore sourceStore) { this->sourceStore = sourceStore; }
+    inline void setDataToReadFromUpdateStore(bool dataToReadFromUpdateStore_) {
+        dataToReadFromUpdateStore = dataToReadFromUpdateStore_;
+    }
+    inline bool hasDataToReadFromUpdateStore() const { return dataToReadFromUpdateStore; }
+    inline list_header_t getListHeader() const { return listHeader; }
+    inline void setListHeader(list_header_t listHeader_) { listHeader = listHeader_; }
 
-    bool hasNewRangeToRead();
+    bool hasMoreToRead();
     void reset();
 
 private:
     node_offset_t boundNodeOffset;
-    uint32_t startIdx;
+    list_header_t listHeader;
+    uint32_t startElemOffset;
     uint32_t numValuesToRead;
     uint64_t numValuesInList;
+    ListSourceStore sourceStore;
+    bool dataToReadFromUpdateStore;
 };
 
 } // namespace storage

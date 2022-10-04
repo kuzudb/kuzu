@@ -16,8 +16,8 @@ namespace storage {
 class StorageManager {
 
 public:
-    StorageManager(
-        catalog::Catalog& catalog, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
+    StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager,
+        MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
     virtual ~StorageManager();
 

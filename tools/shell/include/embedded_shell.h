@@ -28,6 +28,8 @@ private:
 
     void printExecutionResult(QueryResult& queryResult) const;
 
+    void updateTableNames();
+
 private:
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;

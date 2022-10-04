@@ -50,7 +50,7 @@ public:
     explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
         BufferManager* bufferManager, WAL* wal);
 
-    inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
+    inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) const {
         return (*largeListIdxToPageListHeadIdxMap)[(2 * largeListIdx) + 1];
     };
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical

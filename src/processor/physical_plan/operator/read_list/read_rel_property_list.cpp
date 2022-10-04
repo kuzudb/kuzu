@@ -7,7 +7,7 @@ shared_ptr<ResultSet> ReadRelPropertyList::init(ExecutionContext* context) {
     resultSet = ReadList::init(context);
     outValueVector = make_shared<ValueVector>(lists->dataType, context->memoryManager);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    listSyncState = resultSet->getListSyncState(outDataPos.dataChunkPos);
+    listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
     return resultSet;
 }
 
@@ -18,7 +18,7 @@ bool ReadRelPropertyList::getNextTuples() {
         return false;
     }
     outValueVector->resetOverflowBuffer();
-    readValuesFromList();
+    lists->readValues(outValueVector, *listHandle);
     metrics->executionTime.stop();
     return true;
 }

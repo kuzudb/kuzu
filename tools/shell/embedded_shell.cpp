@@ -45,8 +45,34 @@ const string keywordResetPostfix = "\033[00m";
 
 const regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
+vector<string> nodeTableNames;
+vector<string> relTableNames;
+
+void EmbeddedShell::updateTableNames() {
+    nodeTableNames.clear();
+    relTableNames.clear();
+    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getNodeTableSchemas()) {
+        nodeTableNames.push_back(tableSchema.second->tableName);
+    }
+    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getRelTableSchemas()) {
+        relTableNames.push_back(tableSchema.second->tableName);
+    }
+}
+
+void addTableCompletion(string buf, string tableName, linenoiseCompletions* lc) {
+    string prefix, suffix;
+    auto prefixPos = buf.rfind(':') + 1;
+    prefix = buf.substr(0, prefixPos);
+    suffix = buf.substr(prefixPos);
+    if (suffix == tableName.substr(0, suffix.length())) {
+        linenoiseAddCompletion(lc, (prefix + tableName).c_str());
+    }
+}
+
 void completion(const char* buffer, linenoiseCompletions* lc) {
     string buf = string(buffer);
+
+    // Command completion.
     if (buf[0] == ':') {
         for (auto& command : shellCommand.commandList) {
             if (regex_search(command, regex("^" + buf))) {
@@ -55,6 +81,28 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         }
         return;
     }
+
+    // Node table name completion. Matches patterns that
+    // include an open bracket `(` with no closing bracket
+    // `)`, and a colon `:` sometime after the open bracket.
+    if (regex_search(buf, regex("^[^]*\\([^\\)]*:[^\\)]*$"))) {
+        for (auto& node : nodeTableNames) {
+            addTableCompletion(buf, node, lc);
+        }
+        return;
+    }
+
+    // Rel table name completion. Matches patterns that
+    // include an open square bracket `[` with no closing
+    // bracket `]` and a colon `:` sometime after the open bracket.
+    if (regex_search(buf, regex("^[^]*\\[[^\\]]*:[^\\]]*$"))) {
+        for (auto& rel : relTableNames) {
+            addTableCompletion(buf, rel, lc);
+        }
+        return;
+    }
+
+    // Keyword completion.
     string prefix;
     auto lastKeywordPos = buf.rfind(' ') + 1;
     if (lastKeywordPos != string::npos) {
@@ -118,6 +166,7 @@ EmbeddedShell::EmbeddedShell(
     linenoiseSetHighlightCallback(highlight);
     database = make_unique<Database>(databaseConfig, systemConfig);
     conn = make_unique<Connection>(database.get());
+    updateTableNames();
 }
 
 void EmbeddedShell::run() {
@@ -156,6 +205,8 @@ void EmbeddedShell::run() {
                 printf("Error: %s\n", queryResult->getErrorMessage().c_str());
             }
         }
+        updateTableNames();
+
         linenoiseHistoryAdd(line);
         linenoiseHistorySave("history.txt");
         free(line);

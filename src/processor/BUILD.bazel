@@ -9,20 +9,52 @@ cc_library(
 )
 
 cc_library(
-    name = "result",
-    srcs = glob([
-        "physical_plan/result/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/physical_plan/result/*.h",
-    ]),
+    name = "flat_tuple",
+    srcs = [
+        "physical_plan/result/flat_tuple.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/result/flat_tuple.h",
+    ],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//src/common:type_utils",
+    ],
+)
+
+cc_library(
+    name = "result_set",
+    srcs = [
+        "physical_plan/result/result_set.cpp",
+        "physical_plan/result/result_set_descriptor.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/result/result_set.h",
+        "include/physical_plan/result/result_set_descriptor.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "data_pos",
         "//src/common:data_chunk",
-        "//src/common:type_utils",
         "//src/planner/logical_plan",
         "//src/storage/storage_structure:lists",
+    ],
+)
+
+cc_library(
+    name = "factorized_table",
+    srcs = [
+        "physical_plan/result/factorized_table.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/result/factorized_table.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "flat_tuple",
+        "//src/common:data_chunk",
     ],
 )
 
@@ -61,7 +93,7 @@ cc_library(
     deps = [
         "data_pos",
         "execution_context",
-        "result",
+        "result_set",
     ],
 )
 
@@ -71,7 +103,7 @@ cc_library(
         "include/physical_plan/operator/source_operator.h",
     ],
     deps = [
-        "result",
+        "result_set",
     ],
 )
 
@@ -158,7 +190,7 @@ cc_library(
     ]),
     deps = [
         "base_operator",
-        "result",
+        "result_set",
         "//src/storage/storage_structure:column",
     ],
 )
@@ -246,7 +278,7 @@ cc_library(
     ]),
     visibility = ["//visibility:public"],
     deps = [
-        "result",
+        "factorized_table",
         "//src/function/aggregate:aggregate_function",
         "//src/function/hash:vector_hash_operations",
     ],

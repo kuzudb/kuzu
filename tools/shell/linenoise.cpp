@@ -107,6 +107,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -696,7 +697,13 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
                 if (write(l->ofd, &d, 1) == -1)
                     return -1;
             } else {
-                refreshLine(l);
+                struct pollfd fd {
+                    l->ifd, POLLIN, 0
+                };
+                int pastedInput = poll(&fd, 1, 0);
+                if (pastedInput == 0) {
+                    refreshLine(l);
+                }
             }
         } else {
             memmove(l->buf + l->pos + 1, l->buf + l->pos, l->len - l->pos);
@@ -983,7 +990,6 @@ static int linenoiseEdit(
                         if (memcmp(seq, "[1;5D", 5) == 0) {
                             linenoiseEditMoveWordLeft(&l);
                         }
-
                     }
                 } else {
                     switch (seq[1]) {
@@ -1021,10 +1027,6 @@ static int linenoiseEdit(
                 }
             }
             break;
-        default:
-            if (linenoiseEditInsert(&l, c))
-                return -1;
-            break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */
             buf[0] = '\0';
             l.pos = l.len = 0;
@@ -1048,8 +1050,11 @@ static int linenoiseEdit(
         case CTRL_W: /* ctrl+w, delete previous word */
             linenoiseEditDeletePrevWord(&l);
             break;
+        default:
+            if (linenoiseEditInsert(&l, c))
+                return -1;
+            break;
         }
-        refreshLine(&l);
     }
     return l.len;
 }

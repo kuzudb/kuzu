@@ -18,7 +18,7 @@ class RelTable {
 public:
     explicit RelTable(const catalog::Catalog& catalog,
         const vector<uint64_t>& maxNodeOffsetsPerTable, table_id_t tableID,
-        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
+        BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
     void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
         const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal);
@@ -41,6 +41,8 @@ public:
     vector<AdjLists*> getAdjListsForNodeTable(table_id_t tableID);
     vector<AdjColumn*> getAdjColumnsForNodeTable(table_id_t tableID);
 
+    inline RelUpdateStore* getRelUpdateStore() { return relUpdateStore.get(); }
+
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog,
         const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal);
@@ -59,6 +61,7 @@ private:
     vector<table_property_lists_map_t> propertyLists;
     vector<table_adj_lists_map_t> adjLists;
     bool isInMemoryMode;
+    unique_ptr<RelUpdateStore> relUpdateStore;
 };
 
 } // namespace storage

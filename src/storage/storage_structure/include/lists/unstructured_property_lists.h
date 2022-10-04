@@ -22,7 +22,8 @@ public:
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(UNSTRUCTURED), 1,
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
-              bufferManager, false /*hasNULLBytes*/, isInMemory, wal},
+              bufferManager, false /*hasNULLBytes*/, isInMemory, wal,
+              nullptr /* listUpdateStore */},
           overflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal},
           localUpdatedLists{overflowFile} {};
 
@@ -30,8 +31,14 @@ public:
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
     void setPropertyListEmpty(node_offset_t nodeOffset);
-    void setProperty(node_offset_t nodeOffset, uint32_t propertyKey, Value* value);
-    void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey);
+    void setOrRemoveProperty(
+        node_offset_t nodeOffset, uint32_t propertyKey, bool isSetting, Value* value = nullptr);
+    inline void setProperty(node_offset_t nodeOffset, uint32_t propertyKey, Value* value) {
+        setOrRemoveProperty(nodeOffset, propertyKey, true /* isSetting */, value);
+    }
+    inline void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey) {
+        setOrRemoveProperty(nodeOffset, propertyKey, false /* isSetting */);
+    }
 
     // Currently, used only in CopyCSV tests.
     unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
@@ -48,7 +55,8 @@ public:
     void rollbackInMemoryIfNecessary() override;
 
 private:
-    void fillUnstrPropListFromPrimaryStore(ListInfo& listInfo, uint8_t* dataToFill);
+    void fillUnstrPropListFromPrimaryStore(
+        CursorAndMapper& cursorAndMapper, uint64_t numElementsInList, uint8_t* dataToFill);
     void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,
         uint32_t pos, const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 

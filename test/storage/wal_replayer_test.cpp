@@ -12,7 +12,8 @@ class WALReplayerTests : public DBTest {
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {
     auto walIterator = database->getWAL()->getIterator();
     WALReplayer walReplayer(database->getWAL(), database->getStorageManager(),
-        database->getBufferManager(), database->getCatalog(), true /* is checkpointWAL */);
+        database->getBufferManager(), database->getMemoryManager(), database->getCatalog(),
+        true /* is checkpointWAL */);
     try {
         walReplayer.replay();
         FAIL();

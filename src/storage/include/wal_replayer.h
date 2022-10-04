@@ -23,7 +23,7 @@ public:
     WALReplayer(WAL* wal);
 
     WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-        catalog::Catalog* catalog, bool isCheckpoint);
+        MemoryManager* memoryManager, catalog::Catalog* catalog, bool isCheckpoint);
 
     void replay();
 
@@ -44,6 +44,7 @@ private:
     // has been initialized during recovery, i.e., isRecovering=true.
     StorageManager* storageManager;
     BufferManager* bufferManager;
+    MemoryManager* memoryManager;
     shared_ptr<FileHandle> walFileHandle;
     unique_ptr<uint8_t[]> pageBuffer;
     shared_ptr<spdlog::logger> logger;

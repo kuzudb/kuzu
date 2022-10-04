@@ -12,7 +12,7 @@ public:
     ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, lists{lists}, listSyncState{make_shared<ListSyncState>()} {}
+          outDataPos{outDataPos}, lists{lists} {}
 
     ~ReadList() override{};
 
@@ -35,7 +35,7 @@ protected:
     shared_ptr<ValueVector> outValueVector;
 
     Lists* lists;
-    shared_ptr<ListSyncState> listSyncState;
+    shared_ptr<ListHandle> listHandle;
 };
 
 } // namespace processor
