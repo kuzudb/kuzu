@@ -187,6 +187,7 @@ void Enumerator::planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalP
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(boundUnwindClause.getExpression(), groupPos);
+    schema->flattenGroup(groupPos);
     plan.appendOperator(make_shared<LogicalUnwind>(boundUnwindClause.getExpression()));
 }
 

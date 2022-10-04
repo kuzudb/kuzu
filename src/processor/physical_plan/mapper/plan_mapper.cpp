@@ -15,6 +15,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_unwind.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -33,6 +34,7 @@
 #include "src/processor/include/physical_plan/operator/scan_column/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
+#include "src/processor/include/physical_plan/operator/unwind/unwind.h"
 
 using namespace graphflow::planner;
 
@@ -64,6 +66,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     switch (operatorType) {
     case LOGICAL_SCAN_NODE_ID: {
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_UNWIND: {
+        physicalOperator = mapLogicalUnwindToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext);
@@ -151,6 +156,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         assert(false);
     }
     return physicalOperator;
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto unwind = (LogicalUnwind*)logicalOperator;
+    auto dataPos = mapperContext.getDataPos(unwind->getExpression()->getUniqueName());
+    return make_unique<Unwind>(getOperatorID(), unwind->getExpressionsForPrinting(),
+        unwind->getExpression(), mapperContext.getResultSetDescriptor()->copy(), dataPos);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
