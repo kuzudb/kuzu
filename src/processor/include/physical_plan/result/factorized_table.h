@@ -185,7 +185,7 @@ public:
     void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
         vector<uint64_t>& tupleIdxesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
 
-    // When we merge two factorizedTables, we need to update the hasNoNullGuarantee based on
+    // When we merge two factorizedTables, we need to update the requireNullMask based on
     // other factorizedTable.
     void mergeMayContainNulls(FactorizedTable& other);
     void merge(FactorizedTable& other);
@@ -229,8 +229,8 @@ public:
     bool isOverflowColNull(const uint8_t* nullBuffer, uint32_t tupleIdx, uint32_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
-    void readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, InMemList& inMemList,
-        uint64_t startElemPosInList) const;
+    void readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint64_t elementSize,
+        InMemList& inMemList, uint64_t startElemPosInList) const;
     void clear();
 
 private:

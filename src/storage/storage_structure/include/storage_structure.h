@@ -20,7 +20,7 @@ class ListsUpdateIterator;
 
 struct InMemList {
     InMemList(uint64_t numElements, uint64_t elementSize, bool requireNullMask)
-        : numElements{numElements}, elementSize{elementSize} {
+        : numElements{numElements} {
         listData = make_unique<uint8_t[]>(numElements * elementSize);
         nullMask = requireNullMask ?
                        make_unique<NullMask>(NullMask::getNumNullEntries(numElements)) :
@@ -30,7 +30,6 @@ struct InMemList {
     inline bool hasNullBuffer() const { return nullMask != nullptr; }
     inline uint64_t* getNullMask() const { return nullMask->getData(); }
     uint64_t numElements;
-    uint64_t elementSize;
     unique_ptr<uint8_t[]> listData;
     unique_ptr<NullMask> nullMask;
 };

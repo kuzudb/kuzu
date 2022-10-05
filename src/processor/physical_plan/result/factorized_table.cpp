@@ -254,12 +254,12 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx
 }
 
 void FactorizedTable::readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead,
-    InMemList& inMemList, uint64_t startElemPosInList) const {
+    uint64_t elementSize, InMemList& inMemList, uint64_t startElemPosInList) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto numBytesPerValue = tableSchema->getColumn(colIdx)->getNumBytes();
-    auto listToFill = inMemList.getListData() + startElemPosInList * inMemList.elementSize;
+    auto listToFill = inMemList.getListData() + startElemPosInList * elementSize;
     bool hasNullBuffer = inMemList.hasNullBuffer();
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
         auto tuple = getTuple(tupleIdxesToRead[i]);

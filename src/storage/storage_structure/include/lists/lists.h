@@ -102,8 +102,8 @@ public:
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-    void fillListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
-        uint64_t numValuesInPersistentStore, InMemList& inMemList);
+    void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
+        uint64_t numElementsInPersistentStore, InMemList& inMemList);
 
 protected:
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);

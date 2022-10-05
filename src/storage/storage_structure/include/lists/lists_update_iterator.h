@@ -66,15 +66,16 @@ public:
 protected:
     void seekToBeginningOfChunkIdx(uint64_t chunkIdx);
 
-    void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
+    virtual void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
 
     void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
 
-    void writeListToListPages(InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
+    virtual void writeListToListPages(
+        InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
 
     void updateLargeList(list_header_t oldHeader, InMemList& inMemList);
 
-    void updateSmallListAndCurCSROffset(list_header_t oldHeader, InMemList& inMemList);
+    virtual void updateSmallListAndCurCSROffset(list_header_t oldHeader, InMemList& inMemList);
 
     pair<page_idx_t, bool> findListPageIdxAndInsertListPageToPageListIfNecessary(
         page_idx_t idxInPageList, uint32_t pageListHeadIdx);
@@ -86,6 +87,8 @@ protected:
     // updated; otherwise largeListIdxToPageListHeadIdxMap will be updated.
     page_idx_t insertNewPageGroupAndSetHeadIdxMap(
         uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx = UINT32_MAX);
+
+    virtual inline bool requireNullMask() const { return false; }
 
 protected:
     Lists* lists;
@@ -101,9 +104,7 @@ class UnstructuredPropertyListsUpdateIterator : public ListsUpdateIterator {
 public:
     UnstructuredPropertyListsUpdateIterator(UnstructuredPropertyLists* lists)
         : ListsUpdateIterator(lists) {}
-
-    ~UnstructuredPropertyListsUpdateIterator() { assert(finishCalled); }
-
+    
     void updateList(node_offset_t nodeOffset, InMemList& inMemList) override;
 };
 
@@ -111,17 +112,12 @@ class RelPropertyListUpdateIterator : public ListsUpdateIterator {
 public:
     RelPropertyListUpdateIterator(Lists* lists) : ListsUpdateIterator(lists) {}
 
-    ~RelPropertyListUpdateIterator() { assert(finishCalled); }
-
     void updateRelPropertyList(node_offset_t nodeOffset, InMemList& inMemList);
 
-    void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
+    void writeListToListPages(
+        InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList) override;
 
-    void writePropertyList(InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
-
-    void updateSmallListAndCurCSROffset(list_header_t oldHeader, InMemList& inMemList);
-
-    void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
+    inline bool requireNullMask() const override { return true; }
 };
 
 } // namespace storage

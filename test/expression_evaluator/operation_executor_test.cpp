@@ -94,7 +94,7 @@ public:
     }
 
     // Since nullmask is a private field of valueVector, we do this trick to let
-    // hasNoNullGuarantee() return false.
+    // requireNullMask() return false.
     void setHasNoNullGuaranteeToFalse(shared_ptr<ValueVector>& valueVector) {
         valueVector->setNull(0, true);
         valueVector->setNull(0, false);

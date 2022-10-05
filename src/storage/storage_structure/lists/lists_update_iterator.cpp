@@ -22,7 +22,7 @@ void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemL
             curUnprocessedNodeOffset, TransactionType::WRITE);
     }
     if (ListHeaders::isALargeList(oldHeader) ||
-        inMemList.numElements * inMemList.elementSize > DEFAULT_PAGE_SIZE) {
+        inMemList.numElements * lists->elementSize > DEFAULT_PAGE_SIZE) {
         updateLargeList(oldHeader, inMemList);
     } else {
         updateSmallListAndCurCSROffset(oldHeader, inMemList);
@@ -76,12 +76,14 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
                 listHandle.resetCursorMapper(
                     lists->getListsMetadata(), lists->getNumElementsPerPage());
                 lists->readSmallList(valueVectorToScanSmallLists, listHandle);
-                InMemList inMemList{listLen, lists->elementSize, true /* requireNullMask */};
+                InMemList inMemList{listLen, lists->elementSize, requireNullMask()};
                 memcpy(inMemList.getListData(), valueVectorToScanSmallLists->values,
-                    inMemList.elementSize * inMemList.numElements);
-                memcpy(inMemList.getNullMask(), valueVectorToScanSmallLists->getNullMaskData(),
-                    inMemList.nullMask->getNumNullEntries(inMemList.numElements) *
-                        NullMask::NUM_BYTES_PER_NULL_ENTRY);
+                    lists->elementSize * inMemList.numElements);
+                if (inMemList.hasNullBuffer()) {
+                    memcpy(inMemList.getNullMask(), valueVectorToScanSmallLists->getNullMaskData(),
+                        inMemList.nullMask->getNumNullEntries(inMemList.numElements) *
+                            NullMask::NUM_BYTES_PER_NULL_ENTRY);
+                }
                 updateSmallListAndCurCSROffset(oldHeader, inMemList);
             } else {
                 curCSROffset += listLen;
@@ -160,7 +162,14 @@ void ListsUpdateIterator::writeListToListPages(
 void ListsUpdateIterator::updateLargeList(list_header_t oldHeader, InMemList& inMemList) {
     page_idx_t pageListHeadIdx;
     uint32_t largeListIdx;
-    if (ListHeaders::isALargeList(oldHeader)) {
+    // Note that the adjList and relPropertyList share the same header, and we always checkpoint
+    // adjLists prior to relPropertyList. It is possible that the adjList has already updated the
+    // header to largeListHeader. In this case, the relPropertyListIterator needs to check whether
+    // it needs to add largePage info.
+    if (ListHeaders::isALargeList(oldHeader) &&
+        (lists->getListsMetadata().largeListIdxToPageListHeadIdxMap->getNumElements(
+             TransactionType::WRITE) >>
+            1) > ListHeaders::getLargeListIdx(oldHeader)) {
         largeListIdx = ListHeaders::getLargeListIdx(oldHeader);
         // Note that we can actually directly read from the original
         // largeListIdxToPageListHeadIdxMap here since this UnstructuredPropertyListsUpdateIterator
@@ -326,103 +335,6 @@ void UnstructuredPropertyListsUpdateIterator::updateList(
     curUnprocessedNodeOffset++;
 }
 
-void RelPropertyListUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive) {
-    for (node_offset_t nodeOffsetToSlide = curUnprocessedNodeOffset;
-         nodeOffsetToSlide <= endNodeOffsetInclusive; ++nodeOffsetToSlide) {
-        list_header_t oldHeader = lists->getHeaders()->getHeader(nodeOffsetToSlide);
-        // Because large lists get their own set of pages and are not part of the CSR maintained
-        // in the current chunk's page list, we do not need to slide them. Only small lists need to
-        // be slided if necessary. The necessity condition is if the old header is not equal to
-        // the new header that would be formed by the current CSR offset.
-        if (!ListHeaders::isALargeList(oldHeader)) {
-            auto [listLen, csrOffset] = ListHeaders::getSmallListLenAndCSROffset(oldHeader);
-            list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, listLen);
-            if (newHeader != oldHeader) {
-                // Need to create a ValueVector and call Lists::readValues().
-                valueVectorToScanSmallLists->state->originalSize = listLen;
-                ListSyncState listSyncState;
-                ListHandle listHandle{listSyncState};
-                lists->initListReadingState(
-                    nodeOffsetToSlide, listHandle, TransactionType{READ_ONLY});
-                listHandle.resetCursorMapper(
-                    lists->getListsMetadata(), lists->getNumElementsPerPage());
-                lists->readSmallList(valueVectorToScanSmallLists, listHandle);
-                InMemList inMemList{listLen, lists->elementSize, true /* requireNullMask */};
-                memcpy(inMemList.getListData(), valueVectorToScanSmallLists->values,
-                    inMemList.elementSize * inMemList.numElements);
-                memcpy(inMemList.getNullMask(), valueVectorToScanSmallLists->getNullMaskData(),
-                    inMemList.nullMask->getNumNullEntries(inMemList.numElements) *
-                        NullMask::NUM_BYTES_PER_NULL_ENTRY);
-                updateSmallListAndCurCSROffset(oldHeader, inMemList);
-            } else {
-                curCSROffset += listLen;
-            }
-        }
-        curUnprocessedNodeOffset++;
-    }
-}
-
-void RelPropertyListUpdateIterator::seekToNodeOffsetAndSlideListsIfNecessary(
-    node_offset_t nodeOffsetToSeekTo) {
-    auto chunkIdxOfNode = StorageUtils::getListChunkIdx(nodeOffsetToSeekTo);
-    if (curChunkIdx == UINT64_MAX) {
-        seekToBeginningOfChunkIdx(chunkIdxOfNode);
-    } else if (curChunkIdx != chunkIdxOfNode) {
-        // If the next node offset whose list will be updated is in another chunk, and if
-        // curChunkIdx was an actual chunkIdx (i.e., it was not null=UINT64_MAX), we first slide (if
-        // necessary) any lists from the curUnprocessedNodeOffset (inclusive) to the last node
-        // offset in the current chunkIdx (inclusive)
-        slideListsIfNecessary(StorageUtils::getChunkIdxEndNodeOffsetInclusive(curChunkIdx));
-        seekToBeginningOfChunkIdx(chunkIdxOfNode);
-    }
-    // At this point we are guaranteed to have seeked to a node offset that is the same chunkIdx as
-    // the nodeOffsetToSeekTo. So we first slide (if necessary) all lists until nodeOffsetToSeekTo -
-    // 1 (inclusive). This will ensure that the curUnprocessedNodeOffset is nodeOffsetToSeekTo,
-    // so the writeListToListPages function can update the list of nodeOffsetToSeekTo.
-    if (nodeOffsetToSeekTo > 0) {
-        slideListsIfNecessary(nodeOffsetToSeekTo - 1);
-    }
-}
-
-void RelPropertyListUpdateIterator::updateSmallListAndCurCSROffset(
-    list_header_t oldHeader, InMemList& inMemList) {
-    list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, inMemList.numElements);
-    // 1: Update the headers if needed.
-    if (newHeader != oldHeader) {
-        lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
-    }
-    // If the newList is empty we can return. Changing the header is enough.
-    if (inMemList.numElements <= 0) {
-        return;
-    }
-
-    // 2: Find the pageListHeadIdx for the chunk. If this chunk is "new", i.e., a new list was
-    // inserted that created this chunk, then insert a NULL chunk head Idx.
-    page_idx_t pageListHeadIdx;
-    if (curChunkIdx == lists->getListsMetadata().chunkToPageListHeadIdxMap->getNumElements(
-                           TransactionType::WRITE)) {
-        // We need to add a new empty chunkIdx;
-        pageListHeadIdx = StorageStructureUtils::NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX;
-        lists->getListsMetadata().chunkToPageListHeadIdxMap->pushBack(pageListHeadIdx);
-    } else {
-        pageListHeadIdx = lists->getListsMetadata().chunkToPageListHeadIdxMap->get(
-            curChunkIdx, TransactionType::WRITE);
-    }
-
-    // If the chunk head idx is null, insert an initial page group for the chunk.
-    if (pageListHeadIdx == StorageStructureUtils::NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX) {
-        // Note that for small lists we don't pass the second argument (the largeListIdx) to
-        // insertNewPageGroupAndSetHeadIdxMap, which is passed automatically as null=UINT32_MAX.
-        pageListHeadIdx = insertNewPageGroupAndSetHeadIdxMap(
-            UINT32_MAX /* no curIdxInPageList; update chunkToPageListHeadIdxMap */);
-    }
-
-    // 3: Write the newList to the list pages.
-    writePropertyList(inMemList, pageListHeadIdx, true /* is small list */);
-    // 4: Update the curCSROffset
-    curCSROffset += inMemList.numElements;
-}
-
 void RelPropertyListUpdateIterator::updateRelPropertyList(
     node_offset_t nodeOffset, InMemList& inMemList) {
     seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
@@ -444,7 +356,7 @@ void RelPropertyListUpdateIterator::updateRelPropertyList(
     curUnprocessedNodeOffset++;
 }
 
-void RelPropertyListUpdateIterator::writePropertyList(
+void RelPropertyListUpdateIterator::writeListToListPages(
     InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList) {
     uint64_t idxInPageList;
     uint64_t elementOffsetInListPage;
@@ -463,6 +375,9 @@ void RelPropertyListUpdateIterator::writePropertyList(
     bool firstIteration = true;
     auto remainingNumElementsToWrite = inMemList.numElements;
     uint64_t numUpdatedElements = 0;
+    auto dataToFill = inMemList.getListData();
+    auto nullMask = inMemList.getNullMask();
+    auto numElementsPerPage = lists->numElementsPerPage;
     while (remainingNumElementsToWrite > 0) {
         if (firstIteration) {
             firstIteration = false;
@@ -475,9 +390,6 @@ void RelPropertyListUpdateIterator::writePropertyList(
             findListPageIdxAndInsertListPageToPageListIfNecessary(idxInPageList, pageListHeadIdx);
         uint64_t numElementsToWriteToCurrentPage =
             min(remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
-        auto numElementsPerPage = lists->numElementsPerPage;
-        auto dataToFill = inMemList.getListData();
-        auto nullMask = inMemList.getNullMask();
         StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
             lists->bufferManager, *(lists->wal),
             [&dataToFill, &nullMask, &elementOffsetInListPage, &numElementsToWriteToCurrentPage,

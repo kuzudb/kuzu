@@ -9,7 +9,7 @@ public:
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
-        initWithoutLoadingGraph();
+        createDBAndConn();
         relIDProperty = make_shared<ValueVector>(INT64, memoryManager.get());
         relIDValues = (int64_t*)relIDProperty->values;
         lengthProperty = make_shared<ValueVector>(INT64, memoryManager.get());
@@ -26,9 +26,15 @@ public:
         dataChunk->state->currIdx = 0;
     }
 
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
+    void commitOrRollbackConnectionAndInitDBIfNecessary(
+        bool isCommit, TransactionTestType transactionTestType) {
+        commitOrRollbackConnection(isCommit, transactionTestType);
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            createDBAndConn();
+        }
+    }
 
-    void initWithoutLoadingGraph() { createDBAndConn(); }
+    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
     void insertRels(table_id_t srcTableID, table_id_t dstTableID, uint64_t numValuesToInsert = 100,
         bool insertNullValues = false, bool testLongString = false) {
@@ -82,6 +88,31 @@ public:
         } catch (Exception& e) { FAIL(); }
     }
 
+    void insertRelsToEmptyListTest(bool isCommit, TransactionTestType transactionTestType,
+        uint64_t numRelsToInsert = 100, bool insertNullValues = false) {
+        insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert, insertNullValues);
+        conn->beginWriteTransaction();
+        auto result = conn->query("match (:animal)-[e:knows]->(:animal) return e.length");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
+        validateInsertedEdgesLengthProperty(result.get(), numRelsToInsert, insertNullValues);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        result = conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, b.ID");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(result->getNumTuples(), isCommit ? numRelsToInsert : 0);
+        if (isCommit) {
+            for (auto i = 0u; i < numRelsToInsert; i++) {
+                auto tuple = result->getNext();
+                ASSERT_EQ(tuple->isNull(0), insertNullValues && i % 2);
+                if (!insertNullValues || i % 2 == 0) {
+                    ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+                }
+                ASSERT_EQ(tuple->getValue(1)->val.nodeID.tableID, 0);
+                ASSERT_EQ(tuple->getValue(1)->val.nodeID.offset, i + 1);
+            }
+        }
+    }
+
 public:
     unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
@@ -96,25 +127,35 @@ public:
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(5 /* numValueVectors */);
 };
 
-TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitTest) {
-    auto numRelsToInsert = 100;
-    insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert);
-    conn->beginWriteTransaction();
-    auto result = conn->query("match (:animal)-[e:knows]->(:animal) return e.length");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
-    validateInsertedEdgesLengthProperty(result.get(), numRelsToInsert /* numValuesToCheck */);
-    conn->commit();
-    result = conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, b.ID");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
-    for (auto i = 0u; i < numRelsToInsert; i++) {
-        auto tuple = result->getNext();
-        ASSERT_EQ(tuple->getValue(1)->val.nodeID.tableID, 0);
-        ASSERT_EQ(tuple->getValue(1)->val.nodeID.offset, i + 1);
-        ASSERT_FALSE(tuple->isNull(0));
-        ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
-    }
+TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecutionTest) {
+    insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+// TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitRecoveryTest) {
+//    insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::RECOVERY);
+//}
+
+TEST_F(RelInsertionTest, InsertRelsToEmptyListRollbackNormalExecutionTest) {
+    insertRelsToEmptyListTest(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+// TEST_F(RelInsertionTest, InsertRelsToEmptyListRollbackRecoveryTest) {
+//    insertRelsToEmptyListTest(false /* isCommit */, TransactionTestType::RECOVERY);
+//}
+
+TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitWithNullTest) {
+    insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        100 /* numRelsToInsert */, true /* insertNullValues */);
+}
+
+TEST_F(RelInsertionTest, InsertLargeNumRelsToEmptyListCommitNoNullTest) {
+    insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        510 /* numRelsToInsert */, false /* insertNullValues */);
+}
+
+TEST_F(RelInsertionTest, InsertLargeNumRelsToEmptyListCommitWithNullTest) {
+    insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        510 /* numRelsToInsert */, true /* insertNullValues */);
 }
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyList) {

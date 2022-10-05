@@ -43,7 +43,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
         uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
         InMemList inMemList{numElementsInLIst, elementSize, false /* requireNullMask */};
-        fillListsFromPersistentStore(cursorAndMapper, numElementsInLIst, inMemList);
+        fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInLIst, inMemList);
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
             move(inMemList.listData), numElementsInLIst, numElementsInLIst /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
@@ -176,7 +176,7 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         InMemList inMemList{updatedListCapacity, elementSize, false /* requireNullMask */};
-        fillListsFromPersistentStore(cursorAndMapper, numElementsInList, inMemList);
+        fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInList, inMemList);
         if (isSetting) {
             localUpdatedLists.setPropertyList(
                 nodeOffset, make_unique<UnstrPropListWrapper>(

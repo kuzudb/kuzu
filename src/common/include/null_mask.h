@@ -98,9 +98,8 @@ public:
 
     void setNull(uint32_t pos, bool isNull);
 
-    static bool isNull(const uint64_t* nullEntries, uint32_t pos) {
-        auto entryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
-        auto bitPosInEntry = pos - (entryPos << NUM_BITS_PER_NULL_ENTRY_LOG2);
+    static inline bool isNull(const uint64_t* nullEntries, uint32_t pos) {
+        auto [bitPosInEntry, entryPos] = getNullBitAndEntryPos(pos);
         return nullEntries[entryPos] & NULL_BITMASKS_WITH_SINGLE_ONE[bitPosInEntry];
     }
 
