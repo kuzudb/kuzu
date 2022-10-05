@@ -217,7 +217,7 @@ void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit
     // rollback.
     wal->addToUpdatedUnstructuredPropertyLists(
         storageStructureIDAndFName.storageStructureID.listFileID);
-    UnstructuredPropertyListsUpdateIterator updateItr(this);
+    ListsUpdateIterator updateItr(this);
     if (isCommit) {
         // Note: In C++ iterating through maps happens in non-descending order of the keys. This
         // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires

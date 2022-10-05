@@ -70,8 +70,7 @@ protected:
 
     void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
 
-    virtual void writeListToListPages(
-        InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
+    void writeListToListPages(InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
 
     void updateLargeList(list_header_t oldHeader, InMemList& inMemList);
 
@@ -100,22 +99,9 @@ protected:
     shared_ptr<ValueVector> valueVectorToScanSmallLists;
 };
 
-class UnstructuredPropertyListsUpdateIterator : public ListsUpdateIterator {
-public:
-    UnstructuredPropertyListsUpdateIterator(UnstructuredPropertyLists* lists)
-        : ListsUpdateIterator(lists) {}
-    
-    void updateList(node_offset_t nodeOffset, InMemList& inMemList) override;
-};
-
 class RelPropertyListUpdateIterator : public ListsUpdateIterator {
 public:
     RelPropertyListUpdateIterator(Lists* lists) : ListsUpdateIterator(lists) {}
-
-    void updateRelPropertyList(node_offset_t nodeOffset, InMemList& inMemList);
-
-    void writeListToListPages(
-        InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList) override;
 
     inline bool requireNullMask() const override { return true; }
 };

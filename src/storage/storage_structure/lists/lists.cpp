@@ -221,7 +221,7 @@ void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                     cursorAndMapper, numElementsInPersistentStore, inMemList);
                 readToListFromFTAndUpdateOverflowIfNecessary(
                     updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore);
-                updateItr.updateRelPropertyList(nodeOffset, inMemList);
+                updateItr.updateList(nodeOffset, inMemList);
             }
         }
     }
@@ -247,7 +247,7 @@ void AdjLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 auto nodeOffset = updatedNodeOffsetItr->first;
                 auto totalNumElements =
                     getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
-                InMemList inMemList{totalNumElements, elementSize, true /* requireNullMask */};
+                InMemList inMemList{totalNumElements, elementSize, false /* requireNullMask */};
                 CursorAndMapper cursorAndMapper;
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);

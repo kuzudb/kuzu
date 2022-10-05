@@ -133,7 +133,8 @@ void ListsUpdateIterator::writeListToListPages(
 
     bool firstIteration = true;
     auto remainingNumElementsToWrite = inMemList.numElements;
-    auto newListData = inMemList.getListData();
+    uint64_t numUpdatedElements = 0;
+    auto numElementsPerPage = lists->numElementsPerPage;
     while (remainingNumElementsToWrite > 0) {
         if (firstIteration) {
             firstIteration = false;
@@ -148,14 +149,25 @@ void ListsUpdateIterator::writeListToListPages(
             min(remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
         StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
             lists->bufferManager, *(lists->wal),
-            [&newListData, &elementOffsetInListPage, &numElementsToWriteToCurrentPage,
-                &elementSize](uint8_t* frame) -> void {
-                memcpy(frame + elementOffsetInListPage * elementSize, newListData,
+            [&inMemList, &elementOffsetInListPage, &numElementsToWriteToCurrentPage, &elementSize,
+                &numElementsPerPage, &numUpdatedElements](uint8_t* frame) -> void {
+                auto dataToFill = inMemList.getListData() + numUpdatedElements * elementSize;
+                memcpy(frame + elementOffsetInListPage * elementSize, dataToFill,
                     numElementsToWriteToCurrentPage * elementSize);
+                if (inMemList.hasNullBuffer()) {
+                    auto [nullBitPosInPageEntry, nullEntryPosInPage] =
+                        NullMask::getNullBitAndEntryPos(elementOffsetInListPage);
+                    auto [nullBitPosInList, nullEntryPosInList] =
+                        NullMask::getNullBitAndEntryPos(numUpdatedElements);
+                    NullMask::copyNullMask(nullBitPosInList, nullEntryPosInList,
+                        inMemList.getNullMask(), nullBitPosInPageEntry, nullEntryPosInPage,
+                        (uint64_t*)(frame + numElementsPerPage * elementSize),
+                        numElementsToWriteToCurrentPage);
+                }
             });
         remainingNumElementsToWrite -= numElementsToWriteToCurrentPage;
         // We update the newList pointer as well.
-        newListData += numElementsToWriteToCurrentPage * elementSize;
+        numUpdatedElements += numElementsToWriteToCurrentPage;
     }
 }
 
@@ -307,109 +319,6 @@ page_idx_t ListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
         pageLists->pushBack(StorageStructureUtils::NULL_PAGE_IDX);
     }
     return beginIdxOfNextPageGroup;
-}
-
-void UnstructuredPropertyListsUpdateIterator::updateList(
-    node_offset_t nodeOffset, InMemList& inMemList) {
-    seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
-    // We first check if the updated list is a newly inserted list.
-    auto headers = lists->getHeaders();
-    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
-    assert(nodeOffset <= numNodes);
-    // We modify the headers here to be able to assert that empty lists are being added for
-    // new nodes consecutively. That is when
-    uint64_t oldHeader;
-    if (nodeOffset == numNodes) {
-        oldHeader = ListHeaders::getSmallListHeader(0, 0);
-        headers->headersDiskArray->pushBack(0);
-    } else {
-        oldHeader = lists->getHeaders()->headersDiskArray->get(
-            curUnprocessedNodeOffset, TransactionType::WRITE);
-    }
-    if (ListHeaders::isALargeList(oldHeader) ||
-        inMemList.numElements * lists->elementSize > DEFAULT_PAGE_SIZE) {
-        updateLargeList(oldHeader, inMemList);
-    } else {
-        updateSmallListAndCurCSROffset(oldHeader, inMemList);
-    }
-    curUnprocessedNodeOffset++;
-}
-
-void RelPropertyListUpdateIterator::updateRelPropertyList(
-    node_offset_t nodeOffset, InMemList& inMemList) {
-    seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
-    // We first check if the updated list is a newly inserted list.
-    auto headers = lists->getHeaders();
-    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
-    assert(nodeOffset <= numNodes);
-    // We modify the headers here to be able to assert that empty lists are being added for
-    // new nodes consecutively. That is when
-    uint64_t oldHeader;
-    oldHeader = lists->getHeaders()->headersDiskArray->get(
-        curUnprocessedNodeOffset, TransactionType::WRITE);
-    if (ListHeaders::isALargeList(oldHeader) ||
-        inMemList.numElements * lists->elementSize > DEFAULT_PAGE_SIZE) {
-        updateLargeList(oldHeader, inMemList);
-    } else {
-        updateSmallListAndCurCSROffset(oldHeader, inMemList);
-    }
-    curUnprocessedNodeOffset++;
-}
-
-void RelPropertyListUpdateIterator::writeListToListPages(
-    InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList) {
-    uint64_t idxInPageList;
-    uint64_t elementOffsetInListPage;
-    uint64_t elementSize = lists->elementSize;
-    if (isSmallList) {
-        pair<uint64_t, uint64_t> idInPageGroupAndOffsetInListPage =
-            StorageUtils::getQuotientRemainder(curCSROffset, lists->numElementsPerPage);
-        idxInPageList = idInPageGroupAndOffsetInListPage.first;
-        elementOffsetInListPage = idInPageGroupAndOffsetInListPage.second;
-    } else {
-        // For large lists, the firstIdxInPageGroup is always 0.
-        idxInPageList = 0;
-        elementOffsetInListPage = 0;
-    }
-
-    bool firstIteration = true;
-    auto remainingNumElementsToWrite = inMemList.numElements;
-    uint64_t numUpdatedElements = 0;
-    auto dataToFill = inMemList.getListData();
-    auto nullMask = inMemList.getNullMask();
-    auto numElementsPerPage = lists->numElementsPerPage;
-    while (remainingNumElementsToWrite > 0) {
-        if (firstIteration) {
-            firstIteration = false;
-        } else {
-            idxInPageList++;
-            elementOffsetInListPage = 0;
-        }
-        // Now find the physical pageIdx that this corresponds to the logical idxInPageList
-        auto [listPageIdx, insertingNewPage] =
-            findListPageIdxAndInsertListPageToPageListIfNecessary(idxInPageList, pageListHeadIdx);
-        uint64_t numElementsToWriteToCurrentPage =
-            min(remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
-        StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
-            lists->bufferManager, *(lists->wal),
-            [&dataToFill, &nullMask, &elementOffsetInListPage, &numElementsToWriteToCurrentPage,
-                &elementSize, &numElementsPerPage, &numUpdatedElements](uint8_t* frame) -> void {
-                memcpy(frame + elementOffsetInListPage * elementSize, dataToFill,
-                    numElementsToWriteToCurrentPage * elementSize);
-                auto [nullBitPosInPageEntry, nullEntryPosInPage] =
-                    NullMask::getNullBitAndEntryPos(elementOffsetInListPage);
-                auto [nullBitPosInList, nullEntryPosInList] =
-                    NullMask::getNullBitAndEntryPos(numUpdatedElements);
-                NullMask::copyNullMask(nullBitPosInList, nullEntryPosInList, nullMask,
-                    nullBitPosInPageEntry, nullEntryPosInPage,
-                    (uint64_t*)(frame + numElementsPerPage * elementSize),
-                    numElementsToWriteToCurrentPage);
-            });
-        remainingNumElementsToWrite -= numElementsToWriteToCurrentPage;
-        // We update the newList pointer as well.
-        dataToFill += numElementsToWriteToCurrentPage * elementSize;
-        numUpdatedElements += numElementsToWriteToCurrentPage;
-    }
 }
 
 } // namespace storage
