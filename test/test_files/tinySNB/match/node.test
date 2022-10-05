@@ -1,7 +1,7 @@
 -NAME node1
--QUERY UNWIND [[1], [2], [3], [4]] AS x RETURN x
+-QUERY MATCH (a:person) RETURN COUNT(*)
 ---- 1
-[[1],[2],[3],[4]]
+8
 
 -NAME node2
 -QUERY MATCH (a:organisation) RETURN COUNT(*)
