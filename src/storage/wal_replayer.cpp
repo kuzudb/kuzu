@@ -154,12 +154,28 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             overflowFile = reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFile();
         } break;
         case LISTS: {
-            assert(storageStructureID.listFileID.listType == UNSTRUCTURED_NODE_PROPERTY_LISTS);
-            UnstructuredPropertyLists* unstructuredPropertyLists =
-                storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
-            overflowFile = &unstructuredPropertyLists->overflowFile;
-            assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
+            switch (storageStructureID.listFileID.listType) {
+            case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
+                UnstructuredPropertyLists* unstructuredPropertyLists =
+                    storageManager->getNodesStore().getNodeUnstrPropertyLists(
+                        storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
+                overflowFile = &unstructuredPropertyLists->overflowFile;
+            } break;
+            case REL_PROPERTY_LISTS: {
+                auto relNodeTableAndDir =
+                    storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
+                auto relPropertyLists =
+                    storageManager->getRelsStore().getRelPropertyLists(relNodeTableAndDir.dir,
+                        relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID,
+                        storageStructureID.listFileID.relPropertyListID.propertyID);
+                overflowFile = &((PropertyListsWithOverflow*)relPropertyLists)->overflowPages;
+            } break;
+            default:
+                throw RuntimeException(
+                    "AdjLists shouldn't have OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
+
+                assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
+            }
         } break;
         default:
             throw RuntimeException("Unsupported storageStructureType " +
@@ -178,20 +194,20 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             auto tableID = walRecord.copyNodeCsvRecord.tableID;
             if (!isRecovering) {
                 auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
-                // If the WAL version of the file doesn't exist, we must have already replayed this
-                // WAL and successfully replaced the original DB file and deleted the WAL version
-                // but somehow WALReplayer must have failed/crashed before deleting the entire WAL
-                // (which is why the log record is still here). In that case the renaming has
-                // already happened, so we do not have to do anything, which is the behavior of
-                // replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version of the file does
-                // not exists, it will not do anything.
+                // If the WAL version of the file doesn't exist, we must have already replayed
+                // this WAL and successfully replaced the original DB file and deleted the WAL
+                // version but somehow WALReplayer must have failed/crashed before deleting the
+                // entire WAL (which is why the log record is still here). In that case the
+                // renaming has already happened, so we do not have to do anything, which is the
+                // behavior of replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version
+                // of the file does not exists, it will not do anything.
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
                     nodeTableSchema, wal->getDirectory());
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
-                // then we need to update the nodeTable because the actual columns and lists files
-                // have been changed during changed during checkpoint. So the in memory fileHandles
-                // are obsolete and should be reconstructed (e.g. since the numPages have likely
-                // changed they need to reconstruct their page locks).
+                // then we need to update the nodeTable because the actual columns and lists
+                // files have been changed during changed during checkpoint. So the in memory
+                // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
+                // have likely changed they need to reconstruct their page locks).
                 storageManager->getNodesStore().getNodeTable(tableID)->loadColumnsAndListsFromDisk(
                     nodeTableSchema, *bufferManager, wal);
             } else {
@@ -306,9 +322,9 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
         fileHandle->clearWALPageVersionIfNecessary(
             walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         if (isCheckpoint) {
-            // Update the page in buffer manager if it is in a frame. Note that we assume that
-            // the pageBuffer currently contains the contents of the WALVersion, so the caller
-            // needs to make sure that this assumption holds.
+            // Update the page in buffer manager if it is in a frame. Note that we assume
+            // that the pageBuffer currently contains the contents of the WALVersion, so the
+            // caller needs to make sure that this assumption holds.
             bufferManager->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandle,
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         } else {
@@ -324,9 +340,10 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
         Column* column = storageManager->getNodesStore().getNodePropertyColumn(
             storageStructureID.structuredNodePropertyColumnID.tableID,
             storageStructureID.structuredNodePropertyColumnID.propertyID);
-        // TODO: We are explicitly assuming that if the log record's storageStructureID is an
-        // overflow file, then the storage structure is a StringPropertyColumn. This should
-        // change as we support updates to other variable length data types in columns.
+        // TODO: We are explicitly assuming that if the log record's storageStructureID is
+        // an overflow file, then the storage structure is a StringPropertyColumn. This
+        // should change as we support updates to other variable length data types in
+        // columns.
         return storageStructureID.isOverflow ?
                    reinterpret_cast<StringPropertyColumn*>(column)->getOverflowFileHandle() :
                    column->getFileHandle();
@@ -345,15 +362,16 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
             }
             default:
                 // Note: We do not clear the WAL version of updated pages (nor do we need to
-                // update the Buffer Manager versions of these pages) for METADATA and HEADERS.
-                // The reason is METADATA and HEADERs are stored in InMemoryDiskArrays, which
-                // bypass the BufferManager and during checkpointing Lists, those InMemDiskArray
-                // rely on the WAL version of these pages existing to update their own in-memory
-                // versions manually. If we clear the WAL versions in WALReplayer
+                // update the Buffer Manager versions of these pages) for METADATA and
+                // HEADERS. The reason is METADATA and HEADERs are stored in
+                // InMemoryDiskArrays, which bypass the BufferManager and during
+                // checkpointing Lists, those InMemDiskArray rely on the WAL version of
+                // these pages existing to update their own in-memory versions manually. If
+                // we clear the WAL versions in WALReplayer
                 // InMeMDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock will omit
                 // refreshing their in memory copies of these updated pages. If we make the
-                // InMemDiskArrays also store their pages through the BufferManager, we should
-                // return the VersionedFileHandle's for METADATA and HEADERs as well.
+                // InMemDiskArrays also store their pages through the BufferManager, we
+                // should return the VersionedFileHandle's for METADATA and HEADERs as well.
                 return nullptr;
             }
         }
@@ -379,7 +397,9 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                     storageStructureID.listFileID.relPropertyListID.propertyID);
             switch (storageStructureID.listFileID.listFileType) {
             case BASE_LISTS: {
-                return relPropLists->getFileHandle();
+                return storageStructureID.isOverflow ? ((PropertyListsWithOverflow*)relPropLists)
+                                                           ->overflowPages.getFileHandle() :
+                                                       relPropLists->getFileHandle();
             }
             default:
                 // See comments for lists.

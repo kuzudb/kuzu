@@ -363,7 +363,7 @@ public:
         assert(fileName.find(StorageConfig::WAL_FILE_SUFFIX) == string::npos);
         return fileName + StorageConfig::WAL_FILE_SUFFIX;
     }
-    
+
 private:
     inline static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix) {
         auto pos = fileName.find(StorageConfig::WAL_FILE_SUFFIX);

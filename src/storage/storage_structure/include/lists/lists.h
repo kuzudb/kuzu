@@ -120,6 +120,14 @@ protected:
 
     virtual void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    virtual void readToListFromFTAndUpdateOverflowIfNecessary(vector<uint64_t> tupleIdxesInFT,
+        InMemList& inMemList, uint64_t numElementsInPersistentStore) {
+        listUpdateStore->getFactorizedTable()->readToListAndUpdateOverflowIfNecessary(
+            listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID.listFileID
+                                               .relPropertyListID.propertyID),
+            tupleIdxesInFT, inMemList, numElementsInPersistentStore, nullptr /* overflowFile */,
+            dataType);
+    }
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;
@@ -128,44 +136,58 @@ protected:
     shared_ptr<ListUpdateStore> listUpdateStore;
 };
 
-class StringPropertyLists : public Lists {
+class PropertyListsWithOverflow : public Lists {
+public:
+    PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
+        : Lists{storageStructureIDAndFName, dataType, Types::getDataTypeSize(dataType),
+              move(headers), bufferManager, isInMemory, wal, listUpdateStore},
+          overflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
+
+private:
+    virtual void readToListFromFTAndUpdateOverflowIfNecessary(vector<uint64_t> tupleIdxesInFT,
+        InMemList& inMemList, uint64_t numElementsInPersistentStore) {
+        listUpdateStore->getFactorizedTable()->readToListAndUpdateOverflowIfNecessary(
+            listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID.listFileID
+                                               .relPropertyListID.propertyID),
+            tupleIdxesInFT, inMemList, numElementsInPersistentStore, &overflowPages, dataType);
+    }
+
+public:
+    OverflowFile overflowPages;
+};
+
+class StringPropertyLists : public PropertyListsWithOverflow {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
         shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, DataType(STRING), sizeof(gf_string_t), move(headers),
-              bufferManager, isInMemory, wal, listUpdateStore},
-          stringOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
+        : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
+              bufferManager, isInMemory, wal, listUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-private:
-    OverflowFile stringOverflowPages;
 };
 
-class ListPropertyLists : public Lists {
+class ListPropertyLists : public PropertyListsWithOverflow {
 
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
         bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, dataType, sizeof(gf_list_t), move(headers),
-              bufferManager, isInMemory, wal, listUpdateStore},
-          listOverflowPages{storageStructureIDAndFName, bufferManager, isInMemory, wal} {};
+        : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
+              isInMemory, wal, listUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-private:
-    OverflowFile listOverflowPages;
 };
 
 class AdjLists : public Lists {

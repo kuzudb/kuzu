@@ -52,7 +52,7 @@ private:
 
 class RelUpdateStore {
 public:
-    RelUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
+    RelUpdateStore(MemoryManager& memoryManager, RelTableSchema relTableSchema)
         : memoryManager{memoryManager}, relTableSchema{relTableSchema} {}
 
     void addRel(vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties);
@@ -67,7 +67,7 @@ private:
 private:
     vector<unordered_map<table_id_t, shared_ptr<ListUpdateStore>>> listUpdateStoresPerDirection{2};
     MemoryManager& memoryManager;
-    RelTableSchema& relTableSchema;
+    RelTableSchema relTableSchema;
 };
 
 } // namespace storage

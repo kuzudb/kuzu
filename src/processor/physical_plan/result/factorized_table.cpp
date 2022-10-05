@@ -253,13 +253,14 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
-void FactorizedTable::readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead,
-    uint64_t elementSize, InMemList& inMemList, uint64_t startElemPosInList) const {
+void FactorizedTable::readToListAndUpdateOverflowIfNecessary(uint32_t colIdx,
+    vector<uint64_t>& tupleIdxesToRead, InMemList& inMemList, uint64_t startElemPosInList,
+    OverflowFile* overflowFile, DataType type) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto numBytesPerValue = tableSchema->getColumn(colIdx)->getNumBytes();
-    auto listToFill = inMemList.getListData() + startElemPosInList * elementSize;
+    auto listToFill = inMemList.getListData() + startElemPosInList * Types::getDataTypeSize(type);
     bool hasNullBuffer = inMemList.hasNullBuffer();
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
         auto tuple = getTuple(tupleIdxesToRead[i]);
@@ -269,6 +270,8 @@ void FactorizedTable::readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesTo
         }
         if (!isNullInFT) {
             memcpy(listToFill, tuple + colOffset, numBytesPerValue);
+            resetStringAndListOverflowIfNecessary(
+                listToFill, tuple + colOffset, type, overflowFile);
         }
         listToFill += numBytesPerValue;
     }
@@ -559,6 +562,26 @@ void FactorizedTable::readFlatColToUnflatVector(
                     positionInVectorToWrite, dataBuffer + tableSchema->getColOffset(colIdx));
             }
         }
+    }
+}
+
+void FactorizedTable::resetStringAndListOverflowIfNecessary(
+    uint8_t* dst, uint8_t* src, DataType type, OverflowFile* overflowFile) {
+    switch (type.typeID) {
+    case STRING: {
+        gf_string_t* stringToWriteFrom = (gf_string_t*)src;
+        if (!gf_string_t::isShortString(stringToWriteFrom->len)) {
+            // If the string we write is a long string, its overflowPtr is currently
+            // pointing to the overflow buffer of factorizedTable. We need to move it
+            // to storage.
+            overflowFile->writeStringOverflowAndUpdateOverflowPtr(
+                *stringToWriteFrom, *(gf_string_t*)dst);
+        }
+    } break;
+    case LIST: {
+        overflowFile->writeListOverflowAndUpdateOverflowPtr(
+            *(gf_list_t*)src, *(gf_list_t*)dst, type);
+    } break;
     }
 }
 

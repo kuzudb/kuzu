@@ -110,25 +110,25 @@ void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListHa
 void StringPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readFromLargeList(valueVector, listHandle);
-    stringOverflowPages.readStringsToVector(*valueVector);
+    overflowPages.readStringsToVector(*valueVector);
 }
 
 void StringPropertyLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readSmallList(valueVector, listHandle);
-    stringOverflowPages.readStringsToVector(*valueVector);
+    overflowPages.readStringsToVector(*valueVector);
 }
 
 void ListPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readFromLargeList(valueVector, listHandle);
-    listOverflowPages.readListsToVector(*valueVector);
+    overflowPages.readListsToVector(*valueVector);
 }
 
 void ListPropertyLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readSmallList(valueVector, listHandle);
-    listOverflowPages.readListsToVector(*valueVector);
+    overflowPages.readListsToVector(*valueVector);
 }
 
 void AdjLists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
@@ -219,11 +219,8 @@ void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
                 fillInMemListsFromPersistentStore(
                     cursorAndMapper, numElementsInPersistentStore, inMemList);
-                listUpdateStore->getFactorizedTable()->readToList(
-                    listUpdateStore->getColIdxInFT(storageStructureIDAndFName.storageStructureID
-                                                       .listFileID.relPropertyListID.propertyID),
-                    updatedNodeOffsetItr->second, elementSize, inMemList,
-                    numElementsInPersistentStore);
+                readToListFromFTAndUpdateOverflowIfNecessary(
+                    updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore);
                 updateItr.updateRelPropertyList(nodeOffset, inMemList);
             }
         }
@@ -258,9 +255,9 @@ void AdjLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
                 fillInMemListsFromPersistentStore(
                     cursorAndMapper, numElementsInPersistentStore, inMemList);
                 // Note: we always store the dstNodeID in the second column of factorizedTable.
-                listUpdateStore->getFactorizedTable()->readToList(1 /* colIdx */,
-                    updatedNodeOffsetItr->second, elementSize, inMemList,
-                    numElementsInPersistentStore);
+                listUpdateStore->getFactorizedTable()->readToListAndUpdateOverflowIfNecessary(
+                    1 /* colIdx */, updatedNodeOffsetItr->second, inMemList,
+                    numElementsInPersistentStore, nullptr /* overflowFile */, dataType);
                 updateItr.updateList(nodeOffset, inMemList);
             }
         }

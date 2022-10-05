@@ -9,7 +9,6 @@ public:
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
-        createDBAndConn();
         relIDProperty = make_shared<ValueVector>(INT64, memoryManager.get());
         relIDValues = (int64_t*)relIDProperty->values;
         lengthProperty = make_shared<ValueVector>(INT64, memoryManager.get());
@@ -18,11 +17,15 @@ public:
         placeValues = (gf_string_t*)placeProperty->values;
         srcNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         dstNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
+        tagProperty = make_shared<ValueVector>(
+            DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
+        tagValues = (gf_list_t*)tagProperty->values;
         dataChunk->insert(0, relIDProperty);
         dataChunk->insert(1, lengthProperty);
         dataChunk->insert(2, placeProperty);
-        dataChunk->insert(3, srcNodeVector);
-        dataChunk->insert(4, dstNodeVector);
+        dataChunk->insert(3, tagProperty);
+        dataChunk->insert(4, srcNodeVector);
+        dataChunk->insert(5, dstNodeVector);
         dataChunk->state->currIdx = 0;
     }
 
@@ -43,11 +46,17 @@ public:
             placeStr.overflowPtr =
                 reinterpret_cast<uint64_t>(placeProperty->getOverflowBuffer().allocateSpace(100));
         }
+        auto tagStr = gf_list_t();
+        tagStr.overflowPtr =
+            reinterpret_cast<uint64_t>(tagProperty->getOverflowBuffer().allocateSpace(100));
+        tagStr.size = 1;
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 1051 + i;
             lengthValues[0] = i;
             placeStr.set((testLongString ? "long long string prefix " : "") + to_string(i));
             placeValues[0] = placeStr;
+            tagStr.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+            tagValues[0] = tagStr;
             if (insertNullValues) {
                 lengthProperty->setNull(0, i % 2);
                 placeProperty->setNull(0, true /* isNull */);
@@ -58,8 +67,8 @@ public:
                 ->getRelsStore()
                 .getRel(0 /* relTableID */)
                 ->getRelUpdateStore()
-                ->addRel(vector<shared_ptr<ValueVector>>{
-                    srcNodeVector, dstNodeVector, lengthProperty, placeProperty, relIDProperty});
+                ->addRel(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+                    lengthProperty, placeProperty, tagProperty, relIDProperty});
         }
     }
 
@@ -89,26 +98,37 @@ public:
     }
 
     void insertRelsToEmptyListTest(bool isCommit, TransactionTestType transactionTestType,
-        uint64_t numRelsToInsert = 100, bool insertNullValues = false) {
-        insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert, insertNullValues);
+        uint64_t numRelsToInsert = 100, bool insertNullValues = false,
+        bool testLongString = false) {
+        insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert, insertNullValues,
+            testLongString);
         conn->beginWriteTransaction();
         auto result = conn->query("match (:animal)-[e:knows]->(:animal) return e.length");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(result->getNumTuples(), numRelsToInsert);
         validateInsertedEdgesLengthProperty(result.get(), numRelsToInsert, insertNullValues);
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        result = conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, b.ID");
+        result = conn->query(
+            "match (a:animal)-[e:knows]->(b:animal) return b.ID, e.length, e.place, e.tag");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(result->getNumTuples(), isCommit ? numRelsToInsert : 0);
         if (isCommit) {
             for (auto i = 0u; i < numRelsToInsert; i++) {
                 auto tuple = result->getNext();
-                ASSERT_EQ(tuple->isNull(0), insertNullValues && i % 2);
+                ASSERT_EQ(tuple->getValue(0)->val.nodeID.tableID, 0);
+                ASSERT_EQ(tuple->getValue(0)->val.nodeID.offset, i + 1);
+                ASSERT_EQ(tuple->isNull(1), insertNullValues && (i % 2 != 0));
                 if (!insertNullValues || i % 2 == 0) {
-                    ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+                    ASSERT_EQ(tuple->getValue(1)->val.int64Val, i);
                 }
-                ASSERT_EQ(tuple->getValue(1)->val.nodeID.tableID, 0);
-                ASSERT_EQ(tuple->getValue(1)->val.nodeID.offset, i + 1);
+                ASSERT_EQ(tuple->isNull(2), insertNullValues);
+                if (!insertNullValues) {
+                    ASSERT_EQ(tuple->getValue(2)->val.strVal.getAsString(),
+                        (testLongString ? "long long string prefix " : "") + to_string(i));
+                }
+                ASSERT_EQ(
+                    ((gf_string_t*)tuple->getValue(3)->val.listVal.overflowPtr)[0].getAsString(),
+                    (testLongString ? "long long string prefix " : "") + to_string(i));
             }
         }
     }
@@ -122,9 +142,11 @@ public:
     int64_t* lengthValues;
     shared_ptr<ValueVector> placeProperty;
     gf_string_t* placeValues;
+    shared_ptr<ValueVector> tagProperty;
+    gf_list_t* tagValues;
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
-    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(5 /* numValueVectors */);
+    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);
 };
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecutionTest) {
@@ -148,6 +170,9 @@ TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitWithNullTest) {
         100 /* numRelsToInsert */, true /* insertNullValues */);
 }
 
+// Our page size is 4096 bytes, so we can put 504 number of elements in a single page (4032 bytes
+// for data, 64 bytes for nullMask). We are trying to add 510 elements to the relPropertyList for
+// nodeOffset 1, this will make the relPropertyList for nodeOffset1 become largetList.
 TEST_F(RelInsertionTest, InsertLargeNumRelsToEmptyListCommitNoNullTest) {
     insertRelsToEmptyListTest(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
         510 /* numRelsToInsert */, false /* insertNullValues */);
@@ -270,17 +295,18 @@ TEST_F(RelInsertionTest, InsertLongStringsToLargeList) {
 }
 
 TEST_F(RelInsertionTest, InCorrectVectorErrorTest) {
-    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{lengthProperty, placeProperty,
-                                 relIDProperty, srcNodeVector, relIDProperty, dstNodeVector},
-        "Expected number of valueVectors: 5. Given: 6.");
+    incorrectVectorErrorTest(
+        vector<shared_ptr<ValueVector>>{lengthProperty, placeProperty, relIDProperty, srcNodeVector,
+            relIDProperty, tagProperty, dstNodeVector},
+        "Expected number of valueVectors: 6. Given: 7.");
     incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
-                                 placeProperty, lengthProperty, relIDProperty},
+                                 placeProperty, lengthProperty, tagProperty, relIDProperty},
         "Expected vector with type INT64, Given: STRING.");
     incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, relIDProperty,
-                                 lengthProperty, placeProperty, relIDProperty},
+                                 lengthProperty, placeProperty, tagProperty, relIDProperty},
         "The first two vectors of srcDstNodeIDAndRelProperties should be src/dstNodeVector.");
-    ((nodeID_t*)dstNodeVector->values)[0].tableID = 5;
+    ((nodeID_t*)srcNodeVector->values)[0].tableID = 5;
     incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
-                                 lengthProperty, placeProperty, relIDProperty},
+                                 lengthProperty, placeProperty, tagProperty, relIDProperty},
         "ListUpdateStore for tableID: 5 doesn't exist.");
 }

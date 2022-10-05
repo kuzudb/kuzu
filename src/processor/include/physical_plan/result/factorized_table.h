@@ -7,6 +7,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
+#include "src/storage/storage_structure/include/overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace graphflow::common;
@@ -229,8 +230,9 @@ public:
     bool isOverflowColNull(const uint8_t* nullBuffer, uint32_t tupleIdx, uint32_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
-    void readToList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint64_t elementSize,
-        InMemList& inMemList, uint64_t startElemPosInList) const;
+    void readToListAndUpdateOverflowIfNecessary(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead,
+        InMemList& inMemList, uint64_t startElemPosInList, OverflowFile* overflowFile,
+        DataType type) const;
     void clear();
 
 private:
@@ -277,6 +279,8 @@ private:
             readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
             readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
+    static void resetStringAndListOverflowIfNecessary(
+        uint8_t* dst, uint8_t* src, DataType type, OverflowFile* overflowFile);
 
     MemoryManager* memoryManager;
     unique_ptr<FactorizedTableSchema> tableSchema;
