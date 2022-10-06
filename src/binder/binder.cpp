@@ -84,10 +84,8 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
     auto isNodeTable = catalog.getReadOnlyVersion()->containNodeTable(tableName);
     auto tableID = isNodeTable ? catalog.getReadOnlyVersion()->getNodeTableIDFromName(tableName) :
                                  catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
-    auto filePath = copyCSV.getCSVFileName();
-    auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    auto numberOfFieldsInCSV = getNumberOfFieldsForCSV(filePath, csvReaderConfig);
-    return make_unique<BoundCopyCSV>(CSVDescription(filePath, csvReaderConfig, numberOfFieldsInCSV),
+    return make_unique<BoundCopyCSV>(
+        CSVDescription(copyCSV.getCSVFileName(), bindParsingOptions(copyCSV.getParsingOptions())),
         TableSchema(tableName, tableID, isNodeTable));
 }
 
@@ -174,19 +172,6 @@ char Binder::bindParsingOptionValue(string parsingOptionValue) {
                               "optional escape character.");
     }
     return parsingOptionValue[parsingOptionValue.length() - 1];
-}
-
-uint64_t Binder::getNumberOfFieldsForCSV(
-    const string& filePath, const CSVReaderConfig& csvReaderConfig) {
-    CSVReader reader(filePath, csvReaderConfig, 0);
-    auto numberOfTokens = 0u;
-    if (reader.hasNextLine()) {
-        while (reader.hasNextToken()) {
-            reader.skipToken();
-            ++numberOfTokens;
-        }
-    }
-    return numberOfTokens;
 }
 
 unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {

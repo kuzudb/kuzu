@@ -61,14 +61,14 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 4);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
         }
     }
 
@@ -225,9 +225,6 @@ TEST_F(TinySnbDDLTest, MultipleDropTablesTest) {
     result = conn->query("DROP TABLE workAt");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("workAt"));
-    result = conn->query("DROP TABLE mixed");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("mixed"));
     result = conn->query("DROP TABLE organisation");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));

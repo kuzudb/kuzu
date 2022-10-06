@@ -118,9 +118,6 @@ private:
 
     static char bindParsingOptionValue(string parsingOptionValue);
 
-    uint64_t getNumberOfFieldsForCSV(
-        const string& filePath, const CSVReaderConfig& csvReaderConfig);
-
     /******* validations *********/
     // E.g. Optional MATCH (a) RETURN a.age
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because

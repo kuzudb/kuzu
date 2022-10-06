@@ -29,13 +29,10 @@ struct CSVReaderConfig {
 };
 
 struct CSVDescription {
-    CSVDescription(
-        const string filePath, const CSVReaderConfig csvReaderConfig, uint64_t numberOfFields)
-        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)}, numberOfFields{
-                                                                                numberOfFields} {}
+    CSVDescription(const string filePath, const CSVReaderConfig csvReaderConfig)
+        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)} {}
     const string filePath;
     const CSVReaderConfig csvReaderConfig;
-    const uint64_t numberOfFields;
 };
 
 // TODO(Guodong): we should add a csv reader test to test edge cases and error messages.

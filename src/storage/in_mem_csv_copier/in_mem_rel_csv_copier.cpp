@@ -176,49 +176,20 @@ void InMemRelCSVCopier::skipFirstRowIfNecessary(
     }
 }
 
-vector<bool> InMemRelCSVCopier::getTableLabelConfig(
-    vector<bool> requireToReadTableLabels, InMemRelCSVCopier* copier) {
-    auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-
-    // -1 for _id field, +2 for start and end id.
-    auto expectedNumberOfFieldsLower =
-        numPropertiesToRead - 1 + 2 +
-        accumulate(requireToReadTableLabels.begin(), requireToReadTableLabels.end(), 0);
-    // For upper limit, always expect both table label columns.
-    auto expectedNumberOfFieldsUpper = numPropertiesToRead - 1 + 2 + 2;
-    vector<bool> hasTableLabelColumn;
-    if (copier->csvDescription.numberOfFields == expectedNumberOfFieldsUpper) {
-        hasTableLabelColumn = {true, true};
-    } else if (copier->csvDescription.numberOfFields == expectedNumberOfFieldsLower) {
-        hasTableLabelColumn = requireToReadTableLabels;
-    } else {
-        throw CopyCSVException(
-            "The number of fields in the CSV file does not match number of fields expected. "
-            "Expecting " +
-            (expectedNumberOfFieldsLower == expectedNumberOfFieldsUpper ?
-                    to_string(expectedNumberOfFieldsLower) :
-                    (to_string(expectedNumberOfFieldsLower) + " or " +
-                        to_string(expectedNumberOfFieldsUpper))) +
-            " fields. The CSV file has " + to_string(copier->csvDescription.numberOfFields) +
-            " fields.");
-    }
-    return hasTableLabelColumn;
-}
-
 void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->debug("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
-    vector<bool> requireToReadTableLabels{true, true};
+    vector<bool> requireToReadTables{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};
     for (auto& relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs =
             copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 copier->relTableSchema->tableID, relDirection);
-        requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
+        requireToReadTables[relDirection] = nodeTableIDs.size() != 1;
         nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
         nodeIDTypes[relDirection] =
             copier->catalog.getReadOnlyVersion()
@@ -227,11 +198,10 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     }
     vector<PageByteCursor> overflowPagesCursors{copier->relTableSchema->getNumProperties()};
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-    auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->tmpReadTransaction.get(), copier->catalog, hasTableLabelColumn);
+            copier->tmpReadTransaction.get(), copier->catalog, requireToReadTables);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -333,14 +303,16 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
 
 void InMemRelCSVCopier::inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
     vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-    Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn) {
+    Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadTables) {
     for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
-        if (hasTableLabelColumn[relDirection]) {
+        if (requireToReadTables[relDirection]) {
             nodeIDs[relDirection].tableID =
                 catalog.getReadOnlyVersion()->getNodeTableIDFromName(reader.getString());
-            reader.hasNextToken();
+        } else {
+            reader.skipToken();
         }
+        reader.hasNextToken();
         auto keyStr = reader.getString();
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
@@ -523,7 +495,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
-    vector<bool> requireToReadTableLabels{true, true};
+    vector<bool> requireToReadTables{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<DataType> nodeIDTypes{2};
     vector<uint64_t> reversePos{2};
@@ -531,7 +503,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
         auto nodeTableIDs =
             copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 copier->relTableSchema->tableID, relDirection);
-        requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
+        requireToReadTables[relDirection] = nodeTableIDs.size() != 1;
         nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
         nodeIDTypes[relDirection] =
             copier->catalog.getReadOnlyVersion()
@@ -540,11 +512,10 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     }
     vector<PageByteCursor> overflowPagesCursors(copier->relTableSchema->getNumProperties());
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-    auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->tmpReadTransaction.get(), copier->catalog, hasTableLabelColumn);
+            copier->tmpReadTransaction.get(), copier->catalog, requireToReadTables);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->relTableSchema->tableID, relDirection)) {
