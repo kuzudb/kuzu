@@ -41,7 +41,7 @@ private:
 
     static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-        Transaction* transaction, const Catalog& catalog, vector<bool>& requireToReadTables);
+        Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowFile>>& overflowPages,
@@ -62,6 +62,8 @@ private:
         InMemOverflowFile* orderedOverflowFile);
     static void skipFirstRowIfNecessary(
         uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader);
+    static vector<bool> getTableLabelConfig(
+        vector<bool> requireToReadTableLabels, InMemRelCSVCopier* copier);
 
     // Concurrent tasks.
     static void populateAdjColumnsAndCountRelsInAdjListsTask(

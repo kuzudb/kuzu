@@ -55,11 +55,6 @@ struct SubqueryGraph {
     unordered_set<SubqueryGraph, SubqueryGraphHasher> getNbrSubgraphs(uint32_t size) const;
     vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
 
-    bool isSrcConnected(uint32_t relPos) const;
-    bool isDstConnected(uint32_t relPos) const;
-
-    bool isClosingRel(uint32_t relPos) const;
-
     bool operator==(const SubqueryGraph& other) const {
         return queryRelsSelector == other.queryRelsSelector &&
                queryNodesSelector == other.queryNodesSelector;
