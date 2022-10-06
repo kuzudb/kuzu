@@ -101,36 +101,6 @@ vector<uint32_t> SubqueryGraph::getConnectedNodePos(const SubqueryGraph& nbr) co
     return result;
 }
 
-bool SubqueryGraph::isSrcConnected(uint32_t relPos) const {
-    assert(!queryRelsSelector[relPos]);
-    auto srcNodePos = queryGraph.getQueryNodePos(*queryGraph.getQueryRel(relPos)->getSrcNode());
-    return queryNodesSelector[srcNodePos];
-}
-
-bool SubqueryGraph::isDstConnected(uint32_t relPos) const {
-    assert(!queryRelsSelector[relPos]);
-    auto dstNodePos = queryGraph.getQueryNodePos(*queryGraph.getQueryRel(relPos)->getDstNode());
-    return queryNodesSelector[dstNodePos];
-}
-
-bool SubqueryGraph::isClosingRel(uint32_t relPos) const {
-    unordered_set<uint32_t> matchedNodePositions;
-    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
-        if (!queryRelsSelector[i]) {
-            continue;
-        }
-        auto matchedRel = queryGraph.getQueryRel(i);
-        auto srcNodePos = queryGraph.getQueryNodePos(*matchedRel->getSrcNode());
-        auto dstNodePos = queryGraph.getQueryNodePos(*matchedRel->getDstNode());
-        matchedNodePositions.insert(srcNodePos);
-        matchedNodePositions.insert(dstNodePos);
-    }
-    auto rel = queryGraph.getQueryRel(relPos);
-    auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-    auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
-    return matchedNodePositions.contains(srcNodePos) && matchedNodePositions.contains(dstNodePos);
-}
-
 unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getBaseNbrSubgraph() const {
     unordered_set<SubqueryGraph, SubqueryGraphHasher> result;
     for (auto& nodePos : getNodeNbrPositions()) {

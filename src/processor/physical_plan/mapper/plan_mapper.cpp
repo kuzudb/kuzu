@@ -74,9 +74,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_FILTER: {
         physicalOperator = mapLogicalFilterToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_INTERSECT: {
-        physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), mapperContext);
-    } break;
     case LOGICAL_PROJECTION: {
         physicalOperator = mapLogicalProjectionToPhysical(logicalOperator.get(), mapperContext);
     } break;
@@ -171,16 +168,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.expression, mapperContext);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         getOperatorID(), logicalFilter.getExpressionsForPrinting());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalIntersect = (const LogicalIntersect&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto leftDataPos = mapperContext.getDataPos(logicalIntersect.getLeftNodeID());
-    auto rightDataPos = mapperContext.getDataPos(logicalIntersect.getRightNodeID());
-    return make_unique<Intersect>(leftDataPos, rightDataPos, move(prevOperator), getOperatorID(),
-        logicalIntersect.getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
