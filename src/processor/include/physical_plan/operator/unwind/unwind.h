@@ -14,12 +14,13 @@ namespace processor {
 
 class Unwind : public PhysicalOperator, public SourceOperator {
 public:
-    Unwind(uint32_t id, const string& paramsString, shared_ptr<Expression> expression,
-        unique_ptr<ResultSetDescriptor> resultSetDescriptor, DataPos outDataPos,
-        unique_ptr<BaseExpressionEvaluator> expressionEvaluator)
+    Unwind(shared_ptr<Expression> expression, unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        DataPos outDataPos, unique_ptr<BaseExpressionEvaluator> expressionEvaluator, uint32_t id,
+        const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          expression(move(expression)), outDataPos{outDataPos}, expressionEvaluator{
-                                                                    move(expressionEvaluator)} {}
+          expression(move(expression)), outDataPos{outDataPos},
+          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false}, currentIndex{0u} {
+    }
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
 
@@ -27,9 +28,9 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Unwind>(id, paramsString, expression, resultSetDescriptor->copy(),
-            outDataPos, expressionEvaluator->clone());
+    inline unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<Unwind>(expression, resultSetDescriptor->copy(), outDataPos,
+            expressionEvaluator->clone(), id, paramsString);
     }
 
 private:
@@ -38,7 +39,9 @@ private:
 
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
     shared_ptr<DataChunk> outDataChunk;
-    bool expr_evaluated = false;
+    shared_ptr<ValueVector> valueVector;
+    bool isExprEvaluated;
+    gf_list_t* inputList;
 };
 
 } // namespace processor
