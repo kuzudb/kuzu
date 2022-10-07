@@ -19,8 +19,7 @@ public:
         const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
           expression(move(expression)), outDataPos{outDataPos},
-          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false}, currentIndex{0u} {
-    }
+          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false} {}
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
 
