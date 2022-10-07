@@ -84,6 +84,13 @@ public:
     inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
+    inline vector<shared_ptr<NodeExpression>> getQueryNodes(vector<uint32_t> nodePoses) const {
+        vector<shared_ptr<NodeExpression>> result;
+        for (auto nodePos : nodePoses) {
+            result.push_back(queryNodes[nodePos]);
+        }
+        return result;
+    }
     inline shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
         return queryNodes[nodePos];
     }
@@ -117,7 +124,8 @@ public:
     vector<shared_ptr<Expression>> getNodeIDExpressions() const;
 
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
-    unique_ptr<QueryGraph> copyWithoutNode(shared_ptr<NodeExpression>& nodeToExclude) const;
+    unique_ptr<QueryGraph> copyWithoutNodes(
+        const vector<shared_ptr<NodeExpression>>& nodesToExclude) const;
 
 private:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;

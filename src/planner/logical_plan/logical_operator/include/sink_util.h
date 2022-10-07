@@ -9,33 +9,32 @@ using namespace graphflow::binder;
 // This class contains the logic for re-computing factorization structure after
 class SinkOperatorUtil {
 public:
-    static void mergeSchema(const Schema& inputSchema, Schema& result, const string& key);
+    static void mergeSchema(const Schema& inputSchema, Schema& result, const vector<string>& keys);
 
     static void reComputeSchema(const Schema& inputSchema, Schema& result);
 
-    static unordered_set<uint32_t> getGroupsPosIgnoringKeyGroup(
-        const Schema& schema, const string& key);
+    static unordered_set<uint32_t> getGroupsPosIgnoringKeyGroups(
+        const Schema& schema, const vector<string>& keys);
 
 private:
-    static void mergeKeyGroup(const Schema& inputSchema, Schema& resultSchema, const string& key);
+    static void mergeKeyGroup(const Schema& inputSchema, Schema& resultSchema, uint32_t keyGroupPos,
+        const vector<string>& keysInGroup);
 
     static inline expression_vector getFlatPayloadsIgnoringKeyGroup(
-        const Schema& schema, const string& key) {
-        return getFlatPayloads(schema, getGroupsPosIgnoringKeyGroup(schema, key));
+        const Schema& schema, const vector<string>& keys) {
+        return getFlatPayloads(schema, getGroupsPosIgnoringKeyGroups(schema, keys));
     }
     static inline expression_vector getFlatPayloads(const Schema& schema) {
         return getFlatPayloads(schema, schema.getGroupsPosInScope());
     }
     static expression_vector getFlatPayloads(
-        const Schema& schema, unordered_set<uint32_t> payloadGroupsPos);
+        const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos);
 
-    static inline bool hasUnflatPayloadIgnoringKeyGroup(const Schema& schema, const string& key) {
-        return hasUnFlatPayload(schema, getGroupsPosIgnoringKeyGroup(schema, key));
-    }
     static inline bool hasUnFlatPayload(const Schema& schema) {
         return hasUnFlatPayload(schema, schema.getGroupsPosInScope());
     }
-    static bool hasUnFlatPayload(const Schema& schema, unordered_set<uint32_t> payloadGroupsPos);
+    static bool hasUnFlatPayload(
+        const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos);
 
     static uint32_t appendPayloadsToNewGroup(Schema& schema, expression_vector& payloads);
 };

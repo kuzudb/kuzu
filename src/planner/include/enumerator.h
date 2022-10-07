@@ -64,7 +64,8 @@ private:
     // or position of any flat group if there is no unFlat group.
     static uint32_t appendFlattensButOne(
         const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-    static void appendFlattenIfNecessary(shared_ptr<Expression> expression, LogicalPlan& plan);
+    static void appendFlattenIfNecessary(
+        const shared_ptr<Expression>& expression, LogicalPlan& plan);
     static inline void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
         auto expression = plan.getSchema()->getGroup(groupPos)->getFirstExpression();
         appendFlattenIfNecessary(expression, plan);

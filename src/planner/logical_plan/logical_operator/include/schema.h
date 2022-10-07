@@ -6,7 +6,6 @@
 
 using namespace graphflow::binder;
 using namespace graphflow::common;
-using namespace std;
 
 namespace graphflow {
 namespace planner {
