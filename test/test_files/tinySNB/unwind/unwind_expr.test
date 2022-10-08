@@ -1,15 +1,25 @@
 -NAME expr1
 -QUERY UNWIND [1, 2, 3, 4] AS x RETURN x
----- 1
-[1,2,3,4]
+---- 4
+1
+2
+3
+4
 
 -NAME expr2
--QUERY UNWIND [[1], [2], [3], [4]] AS x RETURN x
----- 1
-[[1],[2],[3],[4]]
+-QUERY UNWIND [[1, 2], [2, 3], [3, 4], [4, 1]] AS x RETURN x
+---- 4
+[1,2]
+[2,3]
+[3,4]
+[4,1]
 
 -NAME expr3
 -QUERY UNWIND ["a", "b", "c", "d"] AS x RETURN x
----- 1
-[a,b,c,d]
+---- 4
+a
+b
+c
+d
+
 

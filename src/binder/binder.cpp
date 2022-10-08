@@ -187,7 +187,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
         boundSingleQuery->addUpdatingClause(bindUpdatingClause(*singleQuery.getUpdatingClause(i)));
     }
     if (singleQuery.hasReturnClause()) {
-        boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
+        boundSingleQuery->setReturnClause(
+            bindReturnClause(*singleQuery.getReturnClause(), boundSingleQuery));
     }
     return boundSingleQuery;
 }
@@ -322,10 +323,34 @@ unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause)
     return boundWithClause;
 }
 
-unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
+unique_ptr<BoundReturnClause> Binder::bindReturnClause(
+    const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery) {
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = rewriteProjectionExpressions(bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->getContainsStar()));
+
+    /*
+     * The following logic is required for unwind clauses where the return type expression and the
+     * unwind expression are both same. In such cases, the return function expression has to be
+     * updated to one with return type of the child expression.
+     */
+    for (auto i = 0u; i < boundSingleQuery->getNumReadingClauses(); i++) {
+        if (boundSingleQuery->getReadingClause(i)->getClauseType() == ClauseType::UNWIND) {
+            auto boundUnwindClause = (BoundUnwindClause*)boundSingleQuery->getReadingClause(i);
+            for (auto& expression : boundProjectionExpressions) {
+                if (boundUnwindClause->getExpression()->getUniqueName() ==
+                        expression->getUniqueName() &&
+                    boundUnwindClause->getExpression()->getRawName() == expression->getRawName()) {
+                    string expressionRawName = expression->getRawName();
+                    auto dataType = make_shared<DataType>(*expression->dataType.childType);
+                    boundProjectionExpressions[i] = make_unique<Expression>(
+                        ExpressionType::FUNCTION, *dataType, expression->getUniqueName());
+                    boundProjectionExpressions[i]->setRawName(expressionRawName);
+                }
+            }
+        }
+    }
+
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
         projectionBody->getIsDistinct(), move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
