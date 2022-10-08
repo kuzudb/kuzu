@@ -28,8 +28,6 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void reInitToRerunSubPlan() override;
-
 protected:
     DataPos boundNodeDataPos;
     DataPos nbrNodeDataPos;

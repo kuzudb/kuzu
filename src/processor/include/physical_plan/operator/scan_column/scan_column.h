@@ -19,8 +19,6 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    inline void reInitToRerunSubPlan() override { children[0]->reInitToRerunSubPlan(); }
-
 protected:
     DataPos inputNodeIDVectorPos;
 

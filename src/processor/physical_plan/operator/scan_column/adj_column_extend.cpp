@@ -10,11 +10,6 @@ shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void AdjColumnExtend::reInitToRerunSubPlan() {
-    BaseScanColumn::reInitToRerunSubPlan();
-    FilteringOperator::reInitToRerunSubPlan();
-}
-
 bool AdjColumnExtend::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneNonNullValue;

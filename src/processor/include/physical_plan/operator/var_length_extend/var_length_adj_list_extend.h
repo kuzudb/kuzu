@@ -35,8 +35,6 @@ public:
 
     bool getNextTuples() override;
 
-    void reInitToRerunSubPlan() override;
-
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<VarLengthAdjListExtend>(boundNodeDataPos, nbrNodeDataPos, storage,
             lowerBound, upperBound, children[0]->clone(), id, paramsString);

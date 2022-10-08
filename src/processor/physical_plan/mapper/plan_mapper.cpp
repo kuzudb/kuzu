@@ -47,16 +47,6 @@ unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<Logical
     return make_unique<PhysicalPlan>(move(lastOperator), logicalPlan->isReadOnly());
 }
 
-const MapperContext* PlanMapper::enterSubquery(const MapperContext* newMapperContext) {
-    auto prevMapperContext = outerMapperContext;
-    outerMapperContext = newMapperContext;
-    return prevMapperContext;
-}
-
-void PlanMapper::exitSubquery(const MapperContext* prevMapperContext) {
-    outerMapperContext = prevMapperContext;
-}
-
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext) {
     unique_ptr<PhysicalOperator> physicalOperator;
