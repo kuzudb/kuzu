@@ -8,6 +8,11 @@
 ---- 1
 9|6.000000
 
+-NAME SimpleCountTest2
+-QUERY MATCH (a:person)-[e1:knows]->(:person) RETURN COUNT(e1)
+---- 1
+14
+
 -NAME SimpleSumTest
 -QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight), SUM(a.unstrNumericProp)
 ---- 1

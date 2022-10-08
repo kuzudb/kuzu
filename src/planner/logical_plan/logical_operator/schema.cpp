@@ -9,7 +9,14 @@ uint32_t Schema::createGroup() {
     return pos;
 }
 
+void Schema::insertToScope(const shared_ptr<Expression>& expression, uint32_t groupPos) {
+    assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
+    expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
+    expressionsInScope.push_back(expression);
+}
+
 void Schema::insertToGroupAndScope(const shared_ptr<Expression>& expression, uint32_t groupPos) {
+    assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);
     expressionsInScope.push_back(expression);
@@ -19,11 +26,6 @@ void Schema::insertToGroupAndScope(const expression_vector& expressions, uint32_
     for (auto& expression : expressions) {
         insertToGroupAndScope(expression, groupPos);
     }
-}
-
-uint32_t Schema::getGroupPos(const string& expressionName) const {
-    assert(expressionNameToGroupPos.contains(expressionName));
-    return expressionNameToGroupPos.at(expressionName);
 }
 
 bool Schema::isExpressionInScope(const Expression& expression) const {
@@ -87,7 +89,6 @@ unique_ptr<Schema> Schema::copy() const {
 
 void Schema::clear() {
     groups.clear();
-    expressionNameToGroupPos.clear();
     clearExpressionsInScope();
 }
 

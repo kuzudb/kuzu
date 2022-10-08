@@ -207,8 +207,19 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
+        // rewrite aggregate on node or rel as aggregate on their internal IDs.
+        if (child->dataType.typeID == NODE) {
+            auto node = static_pointer_cast<NodeExpression>(child);
+            child = node->getNodeIDPropertyExpression();
+        } else if (child->dataType.typeID == REL) {
+            auto rel = static_pointer_cast<RelExpression>(child);
+            auto idProperty = binder->catalog.getReadOnlyVersion()->getRelProperty(
+                rel->getTableID(), INTERNAL_ID_SUFFIX);
+            child = make_shared<PropertyExpression>(
+                idProperty.dataType, INTERNAL_ID_SUFFIX, idProperty.propertyID, std::move(child));
+        }
         childrenTypes.push_back(child->dataType);
-        children.push_back(move(child));
+        children.push_back(std::move(child));
     }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
     auto uniqueExpressionName =
