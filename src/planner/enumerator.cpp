@@ -6,6 +6,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
@@ -272,6 +273,18 @@ void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
     auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
         flatOutputGroupPositions, std::move(schemaBeforeSink), plan.getLastOperator());
     plan.appendOperator(sink);
+}
+
+void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPlan& plan) {
+    assert(plan.isEmpty());
+    auto schema = plan.getSchema();
+    auto groupPos = schema->createGroup();
+    schema->flattenGroup(groupPos); // Mark group holding constant as flat.
+    for (auto& expression : expressions) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+    auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));
+    plan.appendOperator(std::move(expressionsScan));
 }
 
 void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {

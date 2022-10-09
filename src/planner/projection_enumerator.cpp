@@ -17,6 +17,10 @@ namespace planner {
 void ProjectionEnumerator::enumerateProjectionBody(
     const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
+        if (plan->isEmpty()) { // e.g. RETURN 1, COUNT(2)
+            auto expressions = projectionBody.getProjectionExpressions();
+            Enumerator::appendExpressionsScan(expressions, *plan);
+        }
         enumerateAggregate(projectionBody, *plan);
         enumerateOrderBy(projectionBody, *plan);
         enumerateProjection(projectionBody, *plan);
@@ -102,7 +106,13 @@ void ProjectionEnumerator::appendProjection(
         } else {
             expressionsToEvaluate.push_back(expression);
             auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-            auto outputPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
+            uint32_t outputPos;
+            if (dependentGroupsPos.empty()) { // e.g. constant that does not depend on any input.
+                outputPos = schema->createGroup();
+                schema->flattenGroup(outputPos); // Mark group holding constant as flat.
+            } else {
+                outputPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
+            }
             expressionsToEvaluateOutputPos.push_back(outputPos);
         }
     }
