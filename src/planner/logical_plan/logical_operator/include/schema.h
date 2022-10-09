@@ -28,10 +28,6 @@ public:
     inline void insertExpression(const shared_ptr<Expression>& expression) {
         expressions.push_back(expression);
     }
-    inline shared_ptr<Expression> getFirstExpression() const {
-        assert(!expressions.empty());
-        return expressions[0];
-    }
     inline expression_vector getExpressions() const { return expressions; }
 
 private:
@@ -56,11 +52,20 @@ public:
 
     uint32_t createGroup();
 
+    void insertToScope(const shared_ptr<Expression>& expression, uint32_t groupPos);
+
     void insertToGroupAndScope(const shared_ptr<Expression>& expression, uint32_t groupPos);
 
     void insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos);
 
-    uint32_t getGroupPos(const string& expressionName) const;
+    inline uint32_t getGroupPos(const Expression& expression) {
+        return getGroupPos(expression.getUniqueName());
+    }
+
+    inline uint32_t getGroupPos(const string& expressionName) const {
+        assert(expressionNameToGroupPos.contains(expressionName));
+        return expressionNameToGroupPos.at(expressionName);
+    }
 
     inline void flattenGroup(uint32_t pos) { groups[pos]->isFlat = true; }
 
@@ -74,7 +79,10 @@ public:
 
     unordered_set<uint32_t> getDependentGroupsPos(const shared_ptr<Expression>& expression);
 
-    inline void clearExpressionsInScope() { expressionsInScope.clear(); }
+    inline void clearExpressionsInScope() {
+        expressionNameToGroupPos.clear();
+        expressionsInScope.clear();
+    }
 
     // Get the group positions containing at least one expression in scope.
     unordered_set<uint32_t> getGroupsPosInScope() const;

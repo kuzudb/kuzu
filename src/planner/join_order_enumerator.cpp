@@ -184,7 +184,7 @@ void JoinOrderEnumerator::planWCOJoin(uint32_t leftLevel, uint32_t rightLevel) {
     }
 }
 
-// TODO: explain
+// As a heuristic for wcoj, we always pick rel scan that starts from the bound node.
 static unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
     vector<unique_ptr<LogicalPlan>>& candidatePlans, const NodeExpression& boundNode) {
     unique_ptr<LogicalPlan> result;

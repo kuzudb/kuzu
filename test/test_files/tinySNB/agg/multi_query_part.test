@@ -7,3 +7,8 @@ False
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
 ---- 1
 True
+
+-NAME SimpleCountMultiQueryTest2
+-QUERY MATCH (p:person) WITH p AS f RETURN COUNT(f);
+---- 1
+8

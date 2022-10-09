@@ -67,8 +67,9 @@ private:
     static void appendFlattenIfNecessary(
         const shared_ptr<Expression>& expression, LogicalPlan& plan);
     static inline void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
-        auto expression = plan.getSchema()->getGroup(groupPos)->getFirstExpression();
-        appendFlattenIfNecessary(expression, plan);
+        auto expressions = plan.getSchema()->getExpressionsInScope(groupPos);
+        assert(!expressions.empty());
+        appendFlattenIfNecessary(expressions[0], plan);
     }
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);

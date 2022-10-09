@@ -76,32 +76,55 @@ void ProjectionEnumerator::enumerateSkipAndLimit(
     }
 }
 
-void ProjectionEnumerator::appendProjection(
-    const expression_vector& expressionsToProject, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    vector<uint32_t> groupsPosToWrite;
-    for (auto& expression : expressionsToProject) {
-        enumerator->planSubqueryIfNecessary(expression, plan);
-        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-        groupsPosToWrite.push_back(Enumerator::appendFlattensButOne(dependentGroupsPos, plan));
-    }
-
-    auto groupsPosInScopeBeforeProjection = schema->getGroupsPosInScope();
-    schema->clearExpressionsInScope();
-    for (auto i = 0u; i < expressionsToProject.size(); ++i) {
-        schema->insertToGroupAndScope(expressionsToProject[i], groupsPosToWrite[i]);
-    }
-    auto groupsPosInScopeAfterProjection = schema->getGroupsPosInScope();
+static unordered_set<uint32_t> getDiscardedGroupsPos(unordered_set<uint32_t>& groupsPosBefore,
+    unordered_set<uint32_t>& groupsPosAfter, uint32_t totalNumGroups) {
     unordered_set<uint32_t> discardGroupsPos;
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        if (groupsPosInScopeBeforeProjection.contains(i) &&
-            !groupsPosInScopeAfterProjection.contains(i)) {
+    for (auto i = 0u; i < totalNumGroups; ++i) {
+        if (groupsPosBefore.contains(i) && !groupsPosAfter.contains(i)) {
             discardGroupsPos.insert(i);
         }
     }
+    return discardGroupsPos;
+}
+
+void ProjectionEnumerator::appendProjection(
+    const expression_vector& expressionsToProject, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    expression_vector expressionsToReference;
+    vector<uint32_t> expressionsToReferenceOutputPos;
+    expression_vector expressionsToEvaluate;
+    vector<uint32_t> expressionsToEvaluateOutputPos;
+    for (auto& expression : expressionsToProject) {
+        enumerator->planSubqueryIfNecessary(expression, plan);
+        if (schema->isExpressionInScope(*expression)) {
+            expressionsToReference.push_back(expression);
+            expressionsToReferenceOutputPos.push_back(schema->getGroupPos(*expression));
+        } else {
+            expressionsToEvaluate.push_back(expression);
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+            auto outputPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
+            expressionsToEvaluateOutputPos.push_back(outputPos);
+        }
+    }
+    auto groupsPosInScopeBeforeProjection = schema->getGroupsPosInScope();
+    schema->clearExpressionsInScope();
+    for (auto i = 0u; i < expressionsToReference.size(); ++i) {
+        // E.g. RETURN MIN(a.age), MAX(a.age). We first project each expression in aggregate. So
+        // a.age might be projected twice.
+        if (schema->isExpressionInScope(*expressionsToReference[i])) {
+            continue;
+        }
+        schema->insertToScope(expressionsToReference[i], expressionsToReferenceOutputPos[i]);
+    }
+    for (auto i = 0u; i < expressionsToEvaluate.size(); ++i) {
+        schema->insertToGroupAndScope(expressionsToEvaluate[i], expressionsToEvaluateOutputPos[i]);
+    }
+    auto groupsPosInScopeAfterProjection = schema->getGroupsPosInScope();
+    auto discardGroupsPos = getDiscardedGroupsPos(
+        groupsPosInScopeBeforeProjection, groupsPosInScopeAfterProjection, schema->getNumGroups());
     auto projection = make_shared<LogicalProjection>(
-        expressionsToProject, move(discardGroupsPos), plan.getLastOperator());
-    plan.appendOperator(move(projection));
+        expressionsToProject, std::move(discardGroupsPos), plan.getLastOperator());
+    plan.appendOperator(std::move(projection));
 }
 
 void ProjectionEnumerator::appendDistinct(
