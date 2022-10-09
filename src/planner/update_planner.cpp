@@ -5,7 +5,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_create.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_static_table_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
@@ -15,8 +14,15 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
     switch (updatingClause.getClauseType()) {
     case ClauseType::CREATE: {
         auto& createClause = (BoundCreateClause&)updatingClause;
-        if (plan.isEmpty()) {
-            appendTableScan(createClause, plan);
+        if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
+            expression_vector expressions;
+            for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
+                auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
+                for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
+                    expressions.push_back(nodeUpdateInfo->getPropertyUpdateInfo(j)->getTarget());
+                }
+            }
+            Enumerator::appendExpressionsScan(expressions, plan);
         } else {
             Enumerator::appendAccumulate(plan);
         }
@@ -41,35 +47,21 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
 void UpdatePlanner::planPropertyUpdateInfo(
     shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto dependentGroupsPos = schema->getDependentGroupsPos(target);
-    auto targetPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
-    // TODO: xiyang solve together with issue #325
-    auto isTargetFlat = targetPos == UINT32_MAX || schema->getGroup(targetPos)->getIsFlat();
+    // Check LHS
     assert(property->getChild(0)->dataType.typeID == NODE);
     auto nodeExpression = static_pointer_cast<NodeExpression>(property->getChild(0));
     auto originGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
     auto isOriginFlat = schema->getGroup(originGroupPos)->getIsFlat();
-    // If both are unflat and from different groups, we flatten origin.
-    if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
-        Enumerator::appendFlattenIfNecessary(originGroupPos, plan);
-    }
-}
-
-void UpdatePlanner::appendTableScan(BoundCreateClause& createClause, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto groupPos = schema->createGroup();
-    expression_vector expressions;
-    for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
-        auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
-        for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
-            auto propertyUpdateInfo = nodeUpdateInfo->getPropertyUpdateInfo(j);
-            auto target = propertyUpdateInfo->getTarget();
-            schema->insertToGroupAndScope(target, groupPos);
-            expressions.push_back(target);
+    // Check RHS
+    auto targetDependentGroupsPos = schema->getDependentGroupsPos(target);
+    if (!targetDependentGroupsPos.empty()) { // RHS is not constant
+        auto targetPos = Enumerator::appendFlattensButOne(targetDependentGroupsPos, plan);
+        auto isTargetFlat = schema->getGroup(targetPos)->getIsFlat();
+        // If both are unflat and from different groups, we flatten LHS.
+        if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
+            Enumerator::appendFlattenIfNecessary(originGroupPos, plan);
         }
     }
-    auto tableScan = make_shared<LogicalStaticTableScan>(move(expressions));
-    plan.appendOperator(tableScan);
 }
 
 void UpdatePlanner::appendCreate(BoundCreateClause& createClause, LogicalPlan& plan) {

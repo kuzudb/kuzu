@@ -106,8 +106,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_ACCUMULATE: {
         physicalOperator = mapLogicalAccumulateToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_STATIC_TABLE_SCAN: {
-        physicalOperator = mapLogicalTableScanToPhysical(logicalOperator.get(), mapperContext);
+    case LOGICAL_EXPRESSIONS_SCAN: {
+        physicalOperator =
+            mapLogicalExpressionsScanToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_FTABLE_SCAN: {
         physicalOperator = mapLogicalFTableScanToPhysical(logicalOperator.get(), mapperContext);

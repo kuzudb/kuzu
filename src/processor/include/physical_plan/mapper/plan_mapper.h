@@ -61,7 +61,7 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalTableScanToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);

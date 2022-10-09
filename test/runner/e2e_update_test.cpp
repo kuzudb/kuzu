@@ -8,7 +8,7 @@ public:
 };
 
 TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {
-    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.age=70");
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.age");
     ASSERT_EQ(result->getNext()->getValue(0)->val.int64Val, 70);
 }
