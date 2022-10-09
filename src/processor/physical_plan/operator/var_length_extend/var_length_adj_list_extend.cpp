@@ -79,13 +79,6 @@ bool VarLengthAdjListExtend::getNextTuples() {
     }
 }
 
-void VarLengthAdjListExtend::reInitToRerunSubPlan() {
-    for (auto& dfsLevelInfo : dfsLevelInfos) {
-        static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfo)->listHandle->reset();
-    }
-    VarLengthExtend::reInitToRerunSubPlan();
-}
-
 bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, uint8_t level) {
     auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset(parent);

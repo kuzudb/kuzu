@@ -1,6 +1,3 @@
-# This graph is used to test reading large adjacent list in sub-query, which calls reInitToRerunSubPlan() on the same
-# physical operators in the middle of execution. If the listSyncState is not properly reset in the reInitToRerunSubPlan(),
-# it may cause readList() getting invalid startIdx/size/numElements and reading incorrect nodes from the graph.
 # This graph has 4090 person nodes (we abbreviate person to p below)
 # node p0: has edges to all other nodes except p0.
 # nodes p1: has edges to [p2,p3,...,p2049,p2050].
