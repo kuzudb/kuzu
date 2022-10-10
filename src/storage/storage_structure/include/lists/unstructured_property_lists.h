@@ -29,6 +29,9 @@ public:
     void readProperties(Transaction* transaction, ValueVector* nodeIDVector,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
+    void writeValues(
+        ValueVector* nodeIDVector, uint32_t propertyKey, ValueVector* vectorToWriteFrom);
+
     void setPropertyListEmpty(node_offset_t nodeOffset);
     void setOrRemoveProperty(
         node_offset_t nodeOffset, uint32_t propertyKey, bool isSetting, Value* value = nullptr);
@@ -53,6 +56,9 @@ public:
 
 private:
     void prepareCommit(ListsUpdateIterator& listsUpdateIterator) override;
+
+    void writeValue(node_offset_t nodeOffset, uint32_t propertyKey, ValueVector* vectorToWriteFrom,
+        uint32_t vectorPos);
 
     void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,
         uint32_t pos, const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);

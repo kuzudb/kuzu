@@ -87,16 +87,27 @@ void UpdatePlanner::appendCreate(BoundCreateClause& createClause, LogicalPlan& p
 }
 
 void UpdatePlanner::appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
-    vector<pair<shared_ptr<Expression>, shared_ptr<Expression>>> setItems;
+    vector<expression_pair> structuredSetItems;
+    vector<expression_pair> unstructuredSetItems;
     for (auto i = 0u; i < setClause.getNumPropertyUpdateInfos(); ++i) {
         auto propertyUpdateInfo = setClause.getPropertyUpdateInfo(i);
-        auto property = propertyUpdateInfo->getProperty();
+        auto property = static_pointer_cast<PropertyExpression>(propertyUpdateInfo->getProperty());
         auto target = propertyUpdateInfo->getTarget();
         planPropertyUpdateInfo(property, target, plan);
-        setItems.emplace_back(property, target);
+        if (property->dataType.typeID == UNSTRUCTURED) {
+            unstructuredSetItems.emplace_back(property, target);
+        } else {
+            structuredSetItems.emplace_back(property, target);
+        }
     }
-    auto set = make_shared<LogicalSet>(move(setItems), plan.getLastOperator());
-    plan.appendOperator(set);
+    if (!structuredSetItems.empty()) {
+        plan.appendOperator(make_shared<LogicalSetNodeProperty>(
+            std::move(structuredSetItems), false /* isUnstructured */, plan.getLastOperator()));
+    }
+    if (!unstructuredSetItems.empty()) {
+        plan.appendOperator(make_shared<LogicalSetNodeProperty>(
+            std::move(unstructuredSetItems), true /* isUnstructured*/, plan.getLastOperator()));
+    }
 }
 
 void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan) {
