@@ -247,11 +247,14 @@ unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchCla
 
 unique_ptr<BoundUnwindClause> Binder::bindUnwindClause(const UnwindClause& unwindClause) {
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    string expressionRawName = boundExpression->getRawName();
-    auto dataType = make_shared<DataType>(*boundExpression->dataType.childType);
-    auto aliasExpression = make_shared<Expression>(
-        ExpressionType::FUNCTION, *dataType, boundExpression->getUniqueName());
-    aliasExpression->setRawName(expressionRawName);
+    // this alias is to be used later when referred to by parent operators in plan mapping
+    boundExpression->setAlias(unwindClause.getAlias());
+    auto dataType = boundExpression->dataType.childType != nullptr ?
+                        make_shared<DataType>(*boundExpression->dataType.childType) :
+                        make_shared<DataType>(boundExpression->dataType);
+    auto aliasExpression =
+        make_shared<Expression>(ExpressionType::FUNCTION, *dataType, unwindClause.getAlias());
+    aliasExpression->setRawName(unwindClause.getAlias());
     variablesInScope.insert({unwindClause.getAlias(), aliasExpression});
     return make_unique<BoundUnwindClause>(
         move(boundExpression), move(aliasExpression), unwindClause.getAlias());
