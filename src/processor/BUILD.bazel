@@ -132,23 +132,6 @@ cc_library(
 )
 
 cc_library(
-    name = "unwind",
-    srcs = glob([
-        "physical_plan/operator/unwind/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/physical_plan/operator/unwind/*.h"
-    ]),
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_operator",
-        "source_operator",
-        "//src/binder/expression:expression_implementations",
-        "//src/expression_evaluator:expression_evaluator_impls",
-    ]
-)
-
-cc_library(
     name = "aggregate",
     srcs = glob([
         "physical_plan/operator/aggregate/*.cpp",
@@ -369,7 +352,6 @@ cc_library(
     deps = [
         "operator_impls",
         "physical_plan",
-        "unwind",
         "//src/binder/expression:expression_implementations",
         "//src/expression_evaluator:expression_evaluator_impls",
         "//src/function/aggregate:aggregate_function",

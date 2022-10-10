@@ -37,10 +37,8 @@ private:
     DataPos outDataPos;
 
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
-    shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> valueVector;
     bool isExprEvaluated;
-    gf_list_t* inputList;
 };
 
 } // namespace processor

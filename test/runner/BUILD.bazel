@@ -18,23 +18,6 @@ cc_test(
 )
 
 cc_test(
-    name = "e2e_unwind_test",
-    srcs = [
-            "e2e_unwind_test.cpp",
-        ],
-        copts = [
-            "-Iexternal/gtest/include",
-        ],
-        data = [
-            "//dataset",
-            "//test/test_files:tinySNB_queries",
-        ],
-        deps = [
-            "//test/test_utility:test_helper",
-        ],
-)
-
-cc_test(
     name = "e2e_update_test",
     srcs = [
         "e2e_update_test.cpp",
