@@ -15,17 +15,23 @@ shared_ptr<ResultSet> Unwind::init(ExecutionContext* context) {
 
 bool Unwind::getNextTuples() {
     metrics->executionTime.start();
-    if (isExprEvaluated) {
+    if (!isExprEvaluated) {
+        expressionEvaluator->evaluate();
+        inputList = (gf_list_t*)expressionEvaluator->resultVector->values;
+        isExprEvaluated = true;
+    }
+    if (startOffset >= inputList->size) {
         metrics->executionTime.stop();
         return false;
     }
-    expressionEvaluator->evaluate();
-    auto inputList = (gf_list_t*)expressionEvaluator->resultVector->values;
-    isExprEvaluated = true;
+    auto offsetLength =
+        (startOffset + 2048 < inputList->size) ? 2048 : (inputList->size - startOffset);
     uint32_t numOfBytes = Types::getDataTypeSize(expression->getDataType().childType->typeID);
-    memcpy(valueVector->values, reinterpret_cast<uint8_t*>(inputList->overflowPtr),
-        numOfBytes * inputList->size);
-    valueVector->state->initOriginalAndSelectedSize(inputList->size);
+    memcpy(valueVector->values,
+        reinterpret_cast<uint8_t*>(inputList->overflowPtr) + startOffset * numOfBytes,
+        numOfBytes * offsetLength);
+    valueVector->state->initOriginalAndSelectedSize(offsetLength);
+    startOffset += 2048;
     metrics->executionTime.stop();
     return true;
 }

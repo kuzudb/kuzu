@@ -185,7 +185,7 @@ static vector<shared_ptr<NodeExpression>> getJoinNodes(expression_vector& expres
 void Enumerator::planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(boundUnwindClause.getExpression(), groupPos);
+    schema->insertToGroupAndScope(boundUnwindClause.getAliasExpression(), groupPos);
     plan.appendOperator(make_shared<LogicalUnwind>(boundUnwindClause.getExpression()));
 }
 

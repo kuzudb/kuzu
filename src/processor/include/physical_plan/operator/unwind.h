@@ -19,7 +19,7 @@ public:
         const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
           expression(move(expression)), outDataPos{outDataPos},
-          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false} {}
+          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false}, startOffset{0u} {}
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
 
@@ -39,6 +39,8 @@ private:
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
     shared_ptr<ValueVector> valueVector;
     bool isExprEvaluated;
+    uint32_t startOffset;
+    gf_list_t* inputList;
 };
 
 } // namespace processor
