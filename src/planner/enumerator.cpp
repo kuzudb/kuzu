@@ -193,9 +193,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraph, queryGraphPredicate, outerPlan.getSchema());
-    auto allCorrelatedExpressionsAreNodeIDs =
-        ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID);
-    if (allCorrelatedExpressionsAreNodeIDs) {
+    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
         auto joinNodes = getJoinNodes(correlatedExpressions);
         // When correlated variables are all NODE IDs, the subquery evaluation can be unnested as
         // left join (i.e. inner plan does not scan from outer plan). Join node is scanned in the
@@ -232,18 +230,15 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
 void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
     assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
     auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
-    auto expressionsToScanFromOuter = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
-    auto allExpressionsToScanAreNodeIDs =
-        ExpressionUtil::allExpressionsHaveDataType(expressionsToScanFromOuter, NODE_ID);
-    if (allExpressionsToScanAreNodeIDs) {
-        auto joinNodes = getJoinNodes(expressionsToScanFromOuter);
+    auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
+    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
+        auto joinNodes = getJoinNodes(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
         auto queryGraphToEnumerate = subquery->getQueryGraph()->copyWithoutNodes(joinNodes);
         auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
             *queryGraphToEnumerate, subquery->getWhereExpression(), getInitialEmptyPlans()));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        // TODO(Guodong): decide if you wanna flatten probe key or not.
         // TODO(Xiyang): add asp.
         JoinOrderEnumerator::appendMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
     } else {

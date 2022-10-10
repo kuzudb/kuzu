@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "base_logical_operator.h"
 #include "schema.h"
 
@@ -62,7 +64,7 @@ public:
     inline JoinType getJoinType() const { return joinType; }
 
     inline shared_ptr<Expression> getMark() const {
-        assert(joinType == JoinType::MARK);
+        assert(joinType == JoinType::MARK && mark);
         return mark;
     }
     inline bool getIsProbeAcc() const { return isProbeAcc; }
@@ -70,7 +72,7 @@ public:
     inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
+        return make_unique<LogicalHashJoin>(joinNodes, joinType, mark, isProbeAcc,
             buildSideSchema->copy(), flatOutputGroupPositions, expressionsToMaterialize,
             children[0]->copy(), children[1]->copy());
     }
