@@ -97,49 +97,62 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
     // Populate build side and probe side vector positions
-    auto joinNodeID = hashJoin->getJoinNode()->getIDProperty();
-    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(joinNodeID);
-    auto probeSideKeyIDDataPos = mapperContext.getDataPos(joinNodeID);
     auto paramsString = hashJoin->getExpressionsForPrinting();
-    vector<bool> isBuildSideNonKeyDataFlat;
-    vector<DataPos> buildSideNonKeyDataPoses;
-    vector<DataPos> probeSideNonKeyDataPoses;
+    unordered_set<string> joinNodeIDs;
+    vector<bool> isBuildDataChunkContainKeys(
+        buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
+    vector<DataPos> buildKeysDataPos;
+    vector<DataPos> probeKeysDataPos;
+    for (auto& joinNode : hashJoin->getJoinNodes()) {
+        auto joinNodeID = joinNode->getIDProperty();
+        auto buildSideKeyPos = buildSideMapperContext.getDataPos(joinNodeID);
+        isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
+        buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(joinNodeID));
+        probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
+        joinNodeIDs.emplace(joinNodeID);
+    }
+    vector<DataPos> buildPayloadsPos;
+    vector<DataPos> probePayloadsPos;
+    vector<bool> isBuildPayloadsFlat;
+    vector<bool> isBuildPayloadsInKeyChunk;
     auto& buildSideSchema = *hashJoin->getBuildSideSchema();
     for (auto& expression : hashJoin->getExpressionsToMaterialize()) {
         auto expressionName = expression->getUniqueName();
-        if (expressionName == joinNodeID) {
+        if (joinNodeIDs.find(expressionName) != joinNodeIDs.end()) {
             continue;
         }
         mapperContext.addComputedExpressions(expressionName);
-        buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
-        isBuildSideNonKeyDataFlat.push_back(buildSideSchema.getGroup(expressionName)->getIsFlat());
-        probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
+        auto buildPayloadPos = buildSideMapperContext.getDataPos(expressionName);
+        buildPayloadsPos.push_back(buildPayloadPos);
+        isBuildPayloadsFlat.push_back(buildSideSchema.getGroup(expressionName)->getIsFlat());
+        isBuildPayloadsInKeyChunk.push_back(
+            isBuildDataChunkContainKeys[buildPayloadPos.dataChunkPos]);
+        probePayloadsPos.push_back(mapperContext.getDataPos(expressionName));
     }
 
-    vector<DataType> nonKeyDataPosesDataTypes(buildSideNonKeyDataPoses.size());
-    for (auto i = 0u; i < buildSideNonKeyDataPoses.size(); i++) {
-        auto [dataChunkPos, valueVectorPos] = buildSideNonKeyDataPoses[i];
+    vector<DataType> nonKeyDataPosesDataTypes(buildPayloadsPos.size());
+    for (auto i = 0u; i < buildPayloadsPos.size(); i++) {
+        auto [dataChunkPos, valueVectorPos] = buildPayloadsPos[i];
         nonKeyDataPosesDataTypes[i] =
             buildSideSchema.getGroup(dataChunkPos)->getExpressions()[valueVectorPos]->getDataType();
     }
     auto sharedState = make_shared<HashJoinSharedState>(nonKeyDataPosesDataTypes);
     // create hashJoin build
-    auto buildDataInfo =
-        BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
+    auto buildDataInfo = BuildDataInfo(
+        buildKeysDataPos, buildPayloadsPos, isBuildPayloadsFlat, isBuildPayloadsInKeyChunk);
     auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
         std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
+    auto probeDataInfo = ProbeDataInfo(probeKeysDataPos, probePayloadsPos);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
     if (hashJoin->getIsProbeAcc()) {
         if (containASPOnPipeline(hashJoin)) {
-            mapASPJoin(hashJoin->getJoinNode().get(), hashJoinProbe.get());
-        } else if (containFTableScan(hashJoin)) {
-            mapAccJoin(hashJoinProbe.get());
+            mapASPJoin(hashJoin->getJoinNodes()[0].get(), hashJoinProbe.get());
         } else {
-            assert(false);
+            assert(containFTableScan(hashJoin));
+            mapAccJoin(hashJoinProbe.get());
         }
     }
     // TODO(Guodong): below is the skeleton code for mark join mapping

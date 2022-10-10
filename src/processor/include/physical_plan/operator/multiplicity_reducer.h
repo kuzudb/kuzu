@@ -13,8 +13,6 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return MULTIPLICITY_REDUCER; }
 
-    void reInitToRerunSubPlan() override;
-
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

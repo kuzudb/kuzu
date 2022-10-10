@@ -29,19 +29,16 @@ struct ProbeState {
 struct ProbeDataInfo {
 
 public:
-    ProbeDataInfo(const DataPos& keyIDDataPos, vector<DataPos> nonKeyOutputDataPos)
-        : keyIDDataPos{keyIDDataPos}, nonKeyOutputDataPos{std::move(nonKeyOutputDataPos)} {}
+    ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutputDataPos)
+        : keysDataPos{std::move(keysDataPos)}, payloadsOutputDataPos{
+                                                   std::move(payloadsOutputDataPos)} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyOutputDataPos} {}
-
-    inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
-
-    inline uint32_t getKeyIDVectorPos() const { return keyIDDataPos.valueVectorPos; }
+        : ProbeDataInfo{other.keysDataPos, other.payloadsOutputDataPos} {}
 
 public:
-    DataPos keyIDDataPos;
-    vector<DataPos> nonKeyOutputDataPos;
+    vector<DataPos> keysDataPos;
+    vector<DataPos> payloadsOutputDataPos;
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
@@ -52,7 +49,7 @@ public:
         unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */},
+          FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
@@ -62,7 +59,7 @@ public:
         vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */},
+          FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType},
           flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
 
@@ -96,7 +93,8 @@ private:
     ProbeDataInfo probeDataInfo;
     vector<shared_ptr<ValueVector>> vectorsToReadInto;
     vector<uint32_t> columnIdxsToReadFrom;
-    shared_ptr<ValueVector> probeKeyVector;
+    vector<shared_ptr<ValueVector>> keyVectors;
+    vector<SelectionVector*> keySelVectors;
     unique_ptr<ProbeState> probeState;
 };
 

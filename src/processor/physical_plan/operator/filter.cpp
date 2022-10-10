@@ -10,11 +10,6 @@ shared_ptr<ResultSet> Filter::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void Filter::reInitToRerunSubPlan() {
-    children[0]->reInitToRerunSubPlan();
-    FilteringOperator::reInitToRerunSubPlan();
-}
-
 bool Filter::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneSelectedValue;

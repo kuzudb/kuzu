@@ -9,14 +9,14 @@ namespace common {
 ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
     : dataType{move(dataType)} {
     valueBuffer =
-        make_unique<uint8_t[]>(Types::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
+        make_unique<uint8_t[]>(Types::getDataTypeSize(this->dataType) * DEFAULT_VECTOR_CAPACITY);
     values = valueBuffer.get();
     if (needOverflowBuffer()) {
         assert(memoryManager != nullptr);
         overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
     }
     nullMask = make_unique<NullMask>();
-    numBytesPerValue = Types::getDataTypeSize(dataType);
+    numBytesPerValue = Types::getDataTypeSize(this->dataType);
 }
 
 void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {

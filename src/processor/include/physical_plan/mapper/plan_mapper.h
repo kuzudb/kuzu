@@ -18,17 +18,12 @@ class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
     PlanMapper(StorageManager& storageManager, MemoryManager* memoryManager, Catalog* catalog)
-        : storageManager{storageManager}, memoryManager{memoryManager}, outerMapperContext{nullptr},
+        : storageManager{storageManager}, memoryManager{memoryManager},
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
 private:
-    // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
-    // return physicalOperatorsInfo and pass it back when calling exitSubquery()
-    const MapperContext* enterSubquery(const MapperContext* newMapperContext);
-    void exitSubquery(const MapperContext* prevMapperContext);
-
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
         const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext);
 
@@ -41,8 +36,6 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
@@ -70,7 +63,7 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalTableScanToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
@@ -112,7 +105,6 @@ private:
 public:
     StorageManager& storageManager;
     MemoryManager* memoryManager;
-    const MapperContext* outerMapperContext;
     ExpressionMapper expressionMapper;
     Catalog* catalog;
 

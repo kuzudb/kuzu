@@ -20,43 +20,41 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    explicit HashJoinSharedState(vector<DataType> nonKeyDataPosesDataTypes)
-        : nonKeyDataPosesDataTypes{move(nonKeyDataPosesDataTypes)} {}
+    explicit HashJoinSharedState(vector<DataType> payloadDataTypes)
+        : payloadDataTypes{move(payloadDataTypes)} {}
 
-    void initEmptyHashTableIfNecessary(
-        MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
+    void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, uint64_t numKeyColumns,
+        unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
 
     inline JoinHashTable* getHashTable() { return hashTable.get(); }
 
-    inline vector<DataType> getNonKeyDataPosesDataTypes() { return nonKeyDataPosesDataTypes; }
+    inline vector<DataType> getPayloadDataTypes() { return payloadDataTypes; }
 
 private:
     mutex hashJoinSharedStateMutex;
     unique_ptr<JoinHashTable> hashTable;
-    vector<DataType> nonKeyDataPosesDataTypes;
+    vector<DataType> payloadDataTypes;
 };
 
 struct BuildDataInfo {
 
 public:
-    BuildDataInfo(
-        const DataPos& keyIDDataPos, vector<DataPos> nonKeyDataPoses, vector<bool> isNonKeyDataFlat)
-        : keyIDDataPos{keyIDDataPos}, nonKeyDataPoses{move(nonKeyDataPoses)},
-          isNonKeyDataFlat{move(isNonKeyDataFlat)} {}
+    BuildDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsDataPos,
+        vector<bool> isPayloadsFlat, vector<bool> isPayloadsInKeyChunk)
+        : keysDataPos{std::move(keysDataPos)}, payloadsDataPos{std::move(payloadsDataPos)},
+          isPayloadsFlat{move(isPayloadsFlat)}, isPayloadsInKeyChunk{move(isPayloadsInKeyChunk)} {}
 
     BuildDataInfo(const BuildDataInfo& other)
-        : BuildDataInfo{other.keyIDDataPos, other.nonKeyDataPoses, other.isNonKeyDataFlat} {}
-
-    inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
-
-    inline uint32_t getKeyIDVectorPos() const { return keyIDDataPos.valueVectorPos; }
+        : BuildDataInfo{other.keysDataPos, other.payloadsDataPos, other.isPayloadsFlat,
+              other.isPayloadsInKeyChunk} {}
 
 public:
-    DataPos keyIDDataPos;
-    vector<DataPos> nonKeyDataPoses;
-    vector<bool> isNonKeyDataFlat;
+    vector<DataPos> keysDataPos;
+    vector<DataPos> payloadsDataPos;
+    vector<bool> isPayloadsFlat;
+    vector<bool> isPayloadsInKeyChunk;
 };
 
 class HashJoinBuild : public Sink {
@@ -79,13 +77,12 @@ public:
     }
 
 private:
-    void appendVectors();
+    inline void appendVectors() { hashTable->append(vectorsToAppend); }
 
 private:
     shared_ptr<HashJoinSharedState> sharedState;
 
     BuildDataInfo buildDataInfo;
-    shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     unique_ptr<JoinHashTable> hashTable;
 };

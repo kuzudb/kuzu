@@ -9,10 +9,6 @@ shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void Flatten::reInitToRerunSubPlan() {
-    children[0]->reInitToRerunSubPlan();
-}
-
 bool Flatten::getNextTuples() {
     metrics->executionTime.start();
     // currentIdx == -1 is the check for initial case

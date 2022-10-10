@@ -20,13 +20,6 @@ public:
     }
 
 protected:
-    inline void reInitToRerunSubPlan() {
-        for (auto& prevSelVector : prevSelVectors) {
-            prevSelVector->selectedSize = 0;
-            prevSelVector->selectedPositions = nullptr;
-        }
-    }
-
     inline void restoreSelVectors(vector<SelectionVector*>& selVectors) {
         for (auto i = 0u; i < selVectors.size(); ++i) {
             restoreSelVector(prevSelVectors[i].get(), selVectors[i]);

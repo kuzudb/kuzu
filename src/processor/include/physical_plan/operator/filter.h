@@ -23,8 +23,6 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void reInitToRerunSubPlan() override;
-
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

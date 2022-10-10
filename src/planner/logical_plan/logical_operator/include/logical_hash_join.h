@@ -14,30 +14,31 @@ using namespace graphflow::binder;
 class LogicalHashJoin : public LogicalOperator {
 public:
     // Inner and left join.
-    LogicalHashJoin(shared_ptr<NodeExpression> joinNode, JoinType joinType, bool isProbeAcc,
-        unique_ptr<Schema> buildSideSchema, vector<uint64_t> flatOutputGroupPositions,
-        expression_vector expressionsToMaterialize, shared_ptr<LogicalOperator> probeSideChild,
-        shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalHashJoin{std::move(joinNode), joinType, nullptr, isProbeAcc,
+    LogicalHashJoin(vector<shared_ptr<NodeExpression>> joinNodes, JoinType joinType,
+        bool isProbeAcc, unique_ptr<Schema> buildSideSchema,
+        vector<uint64_t> flatOutputGroupPositions, expression_vector expressionsToMaterialize,
+        shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
+        : LogicalHashJoin{std::move(joinNodes), joinType, nullptr, isProbeAcc,
               std::move(buildSideSchema), std::move(flatOutputGroupPositions),
               std::move(expressionsToMaterialize), std::move(probeSideChild),
               std::move(buildSideChild)} {}
 
     // Mark join.
-    LogicalHashJoin(shared_ptr<NodeExpression> joinNode, shared_ptr<Expression> mark,
+    LogicalHashJoin(vector<shared_ptr<NodeExpression>> joinNodes, shared_ptr<Expression> mark,
         unique_ptr<Schema> buildSideSchema, shared_ptr<LogicalOperator> probeSideChild,
         shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalHashJoin{std::move(joinNode), JoinType::MARK, mark, false /* isProbeAcc */,
-              std::move(buildSideSchema), vector<uint64_t>{} /* flatOutputGroupPositions */,
+        : LogicalHashJoin{std::move(joinNodes), JoinType::MARK, std::move(mark),
+              false /* isProbeAcc */, std::move(buildSideSchema),
+              vector<uint64_t>{} /* flatOutputGroupPositions */,
               expression_vector{} /* expressionsToMaterialize */, std::move(probeSideChild),
               std::move(buildSideChild)} {}
 
-    LogicalHashJoin(shared_ptr<NodeExpression> joinNode, JoinType joinType,
+    LogicalHashJoin(vector<shared_ptr<NodeExpression>> joinNodes, JoinType joinType,
         shared_ptr<Expression> mark, bool isProbeAcc, unique_ptr<Schema> buildSideSchema,
         vector<uint64_t> flatOutputGroupPositions, expression_vector expressionsToMaterialize,
         shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{std::move(probeSideChild), std::move(buildSideChild)},
-          joinNode(std::move(joinNode)), joinType{joinType}, mark{std::move(mark)},
+          joinNodes(std::move(joinNodes)), joinType{joinType}, mark{std::move(mark)},
           isProbeAcc{isProbeAcc},
           buildSideSchema(std::move(buildSideSchema)), flatOutputGroupPositions{std::move(
                                                            flatOutputGroupPositions)},
@@ -46,11 +47,18 @@ public:
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
     }
-    inline string getExpressionsForPrinting() const override { return joinNode->getRawName(); }
+    inline string getExpressionsForPrinting() const override {
+        string result;
+        for (auto i = 0u; i < joinNodes.size() - 1; i++) {
+            result += joinNodes[i]->getRawName() + ",";
+        }
+        result += joinNodes[joinNodes.size() - 1]->getRawName();
+        return result;
+    }
     inline expression_vector getExpressionsToMaterialize() const {
         return expressionsToMaterialize;
     }
-    inline shared_ptr<NodeExpression> getJoinNode() const { return joinNode; }
+    inline vector<shared_ptr<NodeExpression>> getJoinNodes() const { return joinNodes; }
     inline JoinType getJoinType() const { return joinType; }
 
     inline shared_ptr<Expression> getMark() const {
@@ -61,14 +69,14 @@ public:
     inline Schema* getBuildSideSchema() const { return buildSideSchema.get(); }
     inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
 
-    unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNode, joinType, mark, isProbeAcc,
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
             buildSideSchema->copy(), flatOutputGroupPositions, expressionsToMaterialize,
             children[0]->copy(), children[1]->copy());
     }
 
-protected:
-    shared_ptr<NodeExpression> joinNode;
+private:
+    vector<shared_ptr<NodeExpression>> joinNodes;
     JoinType joinType;
     shared_ptr<Expression> mark; // when joinType is Mark
     bool isProbeAcc;

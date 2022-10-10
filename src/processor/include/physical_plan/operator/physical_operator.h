@@ -33,7 +33,6 @@ enum PhysicalOperatorType : uint8_t {
     PROJECTION,
     READ_REL_PROPERTY,
     RESULT_COLLECTOR,
-    RESULT_SCAN,
     SCAN_NODE_ID,
     SCAN_STRUCTURED_PROPERTY,
     SCAN_UNSTRUCTURED_PROPERTY,
@@ -53,9 +52,9 @@ const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLU
     "COPY_NODE_CSV", "COPY_REL_CSV", "CREATE", "CREATE_NODE_TABLE", "CREATE_REL_TABLE", "DELETE",
     "DROP_TABLE", "EXISTS", "FACTORIZED_TABLE_SCAN", "FILTER", "FLATTEN", "HASH_JOIN_BUILD",
     "HASH_JOIN_PROBE", "INTERSECT", "LIMIT", "LIST_EXTEND", "MULTIPLICITY_REDUCER", "PROJECTION",
-    "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN", "SCAN_NODE_ID",
-    "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET", "SKIP",
-    "ORDER_BY", "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN", "UNWIND"};
+    "READ_REL_PROPERTY", "RESULT_COLLECTOR", "SCAN_NODE_ID", "SCAN_STRUCTURED_PROPERTY",
+    "SCAN_UNSTRUCTURED_PROPERTY", "SEMI_MASKER", "SET", "SKIP", "ORDER_BY", "ORDER_BY_MERGE",
+    "ORDER_BY_SCAN", "UNION_ALL_SCAN", "UNWIND"};
 
 struct OperatorMetrics {
 
@@ -100,11 +99,6 @@ public:
     virtual PhysicalOperatorType getOperatorType() = 0;
 
     virtual shared_ptr<ResultSet> init(ExecutionContext* context);
-
-    // Only operators that can appear in a subPlan need to overwrite this function. Currently, we
-    // allow the following operators in subPlan: resultSetScan, extend, scanProperty, flatten,
-    // filter, intersect, projection, exists, leftNestedLoopJoin.
-    virtual void reInitToRerunSubPlan() { assert(false); }
 
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuples() = 0;

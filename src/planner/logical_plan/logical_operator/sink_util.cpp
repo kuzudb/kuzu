@@ -3,17 +3,25 @@
 namespace graphflow {
 namespace planner {
 
-void SinkOperatorUtil::mergeSchema(const Schema& inputSchema, Schema& result, const string& key) {
-    mergeKeyGroup(inputSchema, result, key);
-    if (getGroupsPosIgnoringKeyGroup(inputSchema, key).empty()) { // nothing else to merge
+void SinkOperatorUtil::mergeSchema(
+    const Schema& inputSchema, Schema& result, const vector<string>& keys) {
+    unordered_map<uint32_t, vector<string>> keyGroupPosToKeysMap;
+    for (auto& key : keys) {
+        auto groupPos = inputSchema.getGroupPos(key);
+        keyGroupPosToKeysMap[groupPos].push_back(key);
+    }
+    for (auto& [keyGroupPos, keysInGroup] : keyGroupPosToKeysMap) {
+        mergeKeyGroup(inputSchema, result, keyGroupPos, keysInGroup);
+    }
+    if (getGroupsPosIgnoringKeyGroups(inputSchema, keys).empty()) { // nothing else to merge
         return;
     }
-    auto flatPayloads = getFlatPayloadsIgnoringKeyGroup(inputSchema, key);
+    auto flatPayloads = getFlatPayloadsIgnoringKeyGroup(inputSchema, keys);
     if (!flatPayloads.empty()) {
         auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
         result.flattenGroup(flatPayloadsOutputGroupPos);
     }
-    for (auto& payloadGroupPos : getGroupsPosIgnoringKeyGroup(inputSchema, key)) {
+    for (auto& payloadGroupPos : getGroupsPosIgnoringKeyGroups(inputSchema, keys)) {
         auto payloadGroup = inputSchema.getGroup(payloadGroupPos);
         if (!payloadGroup->getIsFlat()) {
             auto payloads = inputSchema.getExpressionsInScope(payloadGroupPos);
@@ -45,20 +53,22 @@ void SinkOperatorUtil::reComputeSchema(const Schema& inputSchema, Schema& result
     }
 }
 
-unordered_set<uint32_t> SinkOperatorUtil::getGroupsPosIgnoringKeyGroup(
-    const Schema& schema, const string& key) {
-    auto keyGroupPos = schema.getGroupPos(key);
+unordered_set<uint32_t> SinkOperatorUtil::getGroupsPosIgnoringKeyGroups(
+    const Schema& schema, const vector<string>& keys) {
     auto payloadGroupsPos = schema.getGroupsPosInScope();
-    payloadGroupsPos.erase(keyGroupPos);
+    for (auto& key : keys) {
+        auto keyGroupPos = schema.getGroupPos(key);
+        payloadGroupsPos.erase(keyGroupPos);
+    }
     return payloadGroupsPos;
 }
 
-void SinkOperatorUtil::mergeKeyGroup(
-    const Schema& inputSchema, Schema& resultSchema, const string& key) {
-    auto inputKeyGroupPos = inputSchema.getGroupPos(key);
-    auto resultKeyGroupPos = resultSchema.getGroupPos(key);
-    for (auto& expression : inputSchema.getExpressionsInScope(inputKeyGroupPos)) {
-        if (expression->getUniqueName() == key) {
+void SinkOperatorUtil::mergeKeyGroup(const Schema& inputSchema, Schema& resultSchema,
+    uint32_t keyGroupPos, const vector<string>& keysInGroup) {
+    auto resultKeyGroupPos = resultSchema.getGroupPos(keysInGroup[0]);
+    for (auto& expression : inputSchema.getExpressionsInScope(keyGroupPos)) {
+        if (find(keysInGroup.begin(), keysInGroup.end(), expression->getUniqueName()) !=
+            keysInGroup.end()) {
             continue;
         }
         resultSchema.insertToGroupAndScope(expression, resultKeyGroupPos);
@@ -66,7 +76,7 @@ void SinkOperatorUtil::mergeKeyGroup(
 }
 
 expression_vector SinkOperatorUtil::getFlatPayloads(
-    const Schema& schema, unordered_set<uint32_t> payloadGroupsPos) {
+    const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
     expression_vector result;
     for (auto& payloadGroupPos : payloadGroupsPos) {
         if (schema.getGroup(payloadGroupPos)->getIsFlat()) {
@@ -79,7 +89,7 @@ expression_vector SinkOperatorUtil::getFlatPayloads(
 }
 
 bool SinkOperatorUtil::hasUnFlatPayload(
-    const Schema& schema, unordered_set<uint32_t> payloadGroupsPos) {
+    const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
     for (auto& payloadGroupPos : payloadGroupsPos) {
         if (!schema.getGroup(payloadGroupPos)->getIsFlat()) {
             return true;

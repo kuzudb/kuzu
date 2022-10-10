@@ -15,8 +15,8 @@ namespace common {
 class ValueVector {
 
 public:
-    ValueVector(DataType dataType, MemoryManager* memoryManager = nullptr);
-    ValueVector(DataTypeID dataTypeID, MemoryManager* memoryManager = nullptr)
+    explicit ValueVector(DataType dataType, MemoryManager* memoryManager = nullptr);
+    explicit ValueVector(DataTypeID dataTypeID, MemoryManager* memoryManager = nullptr)
         : ValueVector(DataType(dataTypeID), memoryManager) {
         assert(dataTypeID != LIST);
     }
@@ -32,7 +32,7 @@ public:
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
 
     inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
-    // Note that if this function returns true, there are no null. However if it returns false, it
+    // Note that if this function returns true, there are no null. However, if it returns false, it
     // doesn't mean there are nulls, i.e., there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const {
         // This function should not be used for flat values. For flat values, the null value

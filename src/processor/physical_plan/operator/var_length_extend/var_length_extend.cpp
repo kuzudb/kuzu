@@ -22,12 +22,5 @@ shared_ptr<ResultSet> VarLengthExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void VarLengthExtend::reInitToRerunSubPlan() {
-    while (!dfsStack.empty()) {
-        dfsStack.pop();
-    }
-    children[0]->reInitToRerunSubPlan();
-}
-
 } // namespace processor
 } // namespace graphflow

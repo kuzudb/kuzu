@@ -11,10 +11,5 @@ shared_ptr<ResultSet> ReadList::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void ReadList::reInitToRerunSubPlan() {
-    listHandle->reset();
-    children[0]->reInitToRerunSubPlan();
-}
-
 } // namespace processor
 } // namespace graphflow

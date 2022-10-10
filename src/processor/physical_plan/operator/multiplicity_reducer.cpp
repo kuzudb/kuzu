@@ -3,12 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-void MultiplicityReducer::reInitToRerunSubPlan() {
-    children[0]->reInitToRerunSubPlan();
-    prevMultiplicity = 1;
-    numRepeat = 0;
-}
-
 bool MultiplicityReducer::getNextTuples() {
     metrics->executionTime.start();
     if (numRepeat == 0) {
