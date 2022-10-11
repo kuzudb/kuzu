@@ -76,12 +76,6 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
             auto [listLen, csrOffset] = ListHeaders::getSmallListLenAndCSROffset(oldHeader);
             list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, listLen);
             if (newHeader != oldHeader) {
-                ListSyncState listSyncState;
-                ListHandle listHandle{listSyncState};
-                lists->initListReadingState(
-                    nodeOffsetToSlide, listHandle, TransactionType{READ_ONLY});
-                listHandle.resetCursorMapper(
-                    lists->getListsMetadata(), lists->getNumElementsPerPage());
                 InMemList inMemList{listLen, lists->elementSize, lists->mayContainNulls()};
                 CursorAndMapper cursorAndMapper;
                 cursorAndMapper.reset(lists->getListsMetadata(), lists->numElementsPerPage,

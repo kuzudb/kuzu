@@ -8,9 +8,9 @@ namespace processor {
 class AdjListExtend : public ReadList {
 
 public:
-    AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
+    AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* adjLists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : ReadList{inDataPos, outDataPos, lists, move(child), id, paramsString} {}
+        : ReadList{inDataPos, outDataPos, adjLists, move(child), id, paramsString} {}
 
     PhysicalOperatorType getOperatorType() override { return LIST_EXTEND; }
 
@@ -19,8 +19,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjListExtend>(
-            inDataPos, outDataPos, (AdjLists*)lists, children[0]->clone(), id, paramsString);
+        return make_unique<AdjListExtend>(inDataPos, outDataPos, (AdjLists*)listsWithRelUpdateStore,
+            children[0]->clone(), id, paramsString);
     }
 };
 

@@ -22,8 +22,7 @@ public:
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, DataType(UNSTRUCTURED), 1,
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
-              bufferManager, false /*hasNULLBytes*/, isInMemory, wal,
-              nullptr /* listUpdateStore */},
+              bufferManager, false /*hasNULLBytes*/, isInMemory, wal},
           diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal},
           unstructuredListUpdateStore{diskOverflowFile} {};
 
@@ -50,10 +49,9 @@ public:
     // Rollbacks in memory any updates that have been performed.
     void rollbackInMemoryIfNecessary() override;
 
+    void prepareCommitOrRollbackIfNecessary(bool isCommit) override;
+
 private:
-    inline bool isUpdateStoreEmpty() const override {
-        return unstructuredListUpdateStore.updatedChunks.empty();
-    }
     void prepareCommit(ListsUpdateIterator& listsUpdateIterator) override;
 
     void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,

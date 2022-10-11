@@ -9,19 +9,17 @@ namespace processor {
 class ReadList : public PhysicalOperator {
 
 public:
-    ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    ReadList(const DataPos& inDataPos, const DataPos& outDataPos,
+        ListsWithRelsUpdateStore* listsWithRelsUpdateStore, unique_ptr<PhysicalOperator> child,
+        uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, lists{lists} {}
+          outDataPos{outDataPos}, listsWithRelUpdateStore{listsWithRelsUpdateStore} {}
 
     ~ReadList() override{};
 
     PhysicalOperatorType getOperatorType() override = 0;
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
-
-protected:
-    void readValuesFromList();
 
 protected:
     DataPos inDataPos;
@@ -32,7 +30,7 @@ protected:
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 
-    Lists* lists;
+    ListsWithRelsUpdateStore* listsWithRelUpdateStore;
     shared_ptr<ListHandle> listHandle;
 };
 

@@ -21,6 +21,28 @@ void UnstructuredPropertyLists::readProperties(Transaction* transaction, ValueVe
     }
 }
 
+void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    if (unstructuredListUpdateStore.updatedChunks.empty()) {
+        return;
+    }
+    // Note: We need to add this unstructuredPropertyLists to WAL's set of
+    // updatedUnstructuredPropertyLists here instead of for example during WALReplayer when
+    // modifying pages for the following reason: Note that until this function is called, no updates
+    // to the files of Lists has been made. That is, so far there are no log records in WAL to
+    // indicate a change to this Lists. Therefore suppose a transaction makes changes, which results
+    // in changes to this Lists but then rolls back. Then since there are no log records, we cannot
+    // rely on the log for the WALReplayer to know that we need to rollback this
+    // unstructuredPropertyLists in memory. Therefore, we need to manually add this
+    // unstructuredPropertyLists to the set of updatedUnstructuredPropertyLists to rollback when the
+    // database class calls
+    // nodesStore->prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary, which blindly
+    // calls each Lists to check if they have something to commit or rollback.
+    wal->addToUpdatedUnstructuredPropertyLists(
+        storageStructureIDAndFName.storageStructureID.listFileID.unstructuredNodePropertyListsID
+            .tableID);
+    Lists::prepareCommitOrRollbackIfNecessary(isCommit);
+}
+
 void UnstructuredPropertyLists::prepareCommit(ListsUpdateIterator& listsUpdateIterator) {
     // Note: In C++ iterating through maps happens in non-descending order of the keys. This
     // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires

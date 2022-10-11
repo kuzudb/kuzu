@@ -133,6 +133,8 @@ public:
             return make_unique<AdjOrUnstructuredListsUpdateIterator>(lists);
         case ListType::REL_PROPERTY_LISTS:
             return make_unique<RelPropertyListsUpdateIterator>(lists);
+        default:
+            assert(false);
         }
     }
 };

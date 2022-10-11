@@ -51,12 +51,13 @@ public:
     string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
     void insertToRelUpdateStore() {
+        auto vectorsToAppend = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+            lengthProperty, placeProperty, tagProperty, relIDProperty};
         database->getStorageManager()
             ->getRelsStore()
-            .getRel(0 /* relTableID */)
+            .getRelTable(0 /* relTableID */)
             ->getRelUpdateStore()
-            ->addRel(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector, lengthProperty,
-                placeProperty, tagProperty, relIDProperty});
+            ->addRel(vectorsToAppend);
     }
 
     void insertRels(table_id_t srcTableID, table_id_t dstTableID, uint64_t numValuesToInsert = 100,
@@ -92,7 +93,7 @@ public:
         try {
             database->getStorageManager()
                 ->getRelsStore()
-                .getRel(0 /* relTableID */)
+                .getRelTable(0 /* relTableID */)
                 ->getRelUpdateStore()
                 ->addRel(srcDstNodeIDAndRelProperties);
             FAIL();
@@ -374,6 +375,8 @@ public:
         auto numValuesInList = 10;
         auto totalNumValuesAfterInsertion = numValuesToInsert + numValuesInList;
         auto placeStr = gf_string_t();
+        auto vectorsToAppend = vector<shared_ptr<ValueVector>>{
+            srcNodeVector, dstNodeVector, placeProperty, relIDProperty};
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 10 + i;
             placeStr.set(to_string(i));
@@ -382,10 +385,9 @@ public:
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, 1);
             database->getStorageManager()
                 ->getRelsStore()
-                .getRel(1 /* relTableID */)
+                .getRelTable(1 /* relTableID */)
                 ->getRelUpdateStore()
-                ->addRel(vector<shared_ptr<ValueVector>>{
-                    srcNodeVector, dstNodeVector, placeProperty, relIDProperty});
+                ->addRel(vectorsToAppend);
         }
         conn->beginWriteTransaction();
         auto result = conn->query("match (:person)-[p:plays]->(:person) return p.place");
@@ -596,5 +598,5 @@ TEST_F(RelInsertionTest, InCorrectVectorErrorTest) {
     ((nodeID_t*)srcNodeVector->values)[0].tableID = 5;
     incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
                                  lengthProperty, placeProperty, tagProperty, relIDProperty},
-        "ListUpdateStore for tableID: 5 doesn't exist.");
+        "TableID: 5 is not a valid src tableID in rel knows.");
 }
