@@ -12,19 +12,23 @@ namespace main {
 
 class OpProfileBox {
 public:
-    OpProfileBox(string name, vector<string> attributes)
-        : name{move(name)}, attributes{move(attributes)} {}
+    OpProfileBox(string opName, string paramsName, vector<string> attributes);
 
-    inline string getName() const { return name; }
+    inline string getOpName() const { return opName; }
 
-    string getAttribute(uint32_t i) const;
+    inline uint32_t getNumParams() const { return paramsNames.size(); }
+
+    string getParamsName(uint32_t idx) const;
+
+    string getAttribute(uint32_t idx) const;
 
     inline uint32_t getNumAttributes() const { return attributes.size(); }
 
     uint32_t getAttributeMaxLen() const;
 
 private:
-    string name;
+    string opName;
+    vector<string> paramsNames;
     vector<string> attributes;
 };
 
@@ -94,8 +98,11 @@ public:
     }
 
     static inline string getOperatorName(PhysicalOperator* physicalOperator) {
-        return PhysicalOperatorTypeNames[physicalOperator->getOperatorType()] + "(" +
-               physicalOperator->getParamsString() + ")";
+        return PhysicalOperatorTypeNames[physicalOperator->getOperatorType()];
+    }
+
+    static inline string getOperatorParams(PhysicalOperator* physicalOperator) {
+        return physicalOperator->getParamsString();
     }
 
 private:
