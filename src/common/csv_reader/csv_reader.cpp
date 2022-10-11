@@ -1,5 +1,7 @@
 #include "src/common/include/csv_reader/csv_reader.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
@@ -35,7 +37,8 @@ CSVReader::CSVReader(
     : fd{nullptr}, config{config}, nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
-      readingBlockEndOffset{UINT64_MAX}, nextTokenLen{UINT64_MAX} {}
+      readingBlockEndOffset{UINT64_MAX},
+      nextTokenLen{UINT64_MAX}, logger{LoggerUtils::getOrCreateSpdLogger("csv_reader")} {}
 
 CSVReader::~CSVReader() {
     // fd can be nullptr when the CSVReader is constructed by passing a char*, so it is reading over
@@ -182,7 +185,9 @@ char* CSVReader::getString() {
     setNextTokenIsProcessed();
     auto strVal = line + linePtrStart;
     if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
-        throw CSVReaderException(StringUtils::getLongStringErrorMessage(strVal, DEFAULT_PAGE_SIZE));
+        logger->warn(StringUtils::getLongStringErrorMessage(strVal, DEFAULT_PAGE_SIZE));
+        // If the string is too long, truncate it.
+        strVal[DEFAULT_PAGE_SIZE] = '\0';
     }
     return strVal;
 }
