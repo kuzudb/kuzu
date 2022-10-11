@@ -17,10 +17,10 @@ cc_library(
 cc_library(
     name = "overflow_buffer",
     srcs = [
-        "overflow_buffer.cpp",
+        "in_mem_overflow_buffer.cpp",
     ],
     hdrs = [
-        "include/overflow_buffer.h",
+        "include/in_mem_overflow_buffer.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -45,10 +45,10 @@ cc_library(
 cc_library(
     name = "overflow_buffer_utils",
     srcs = [
-        "overflow_buffer_utils.cpp",
+        "in_mem_overflow_buffer_utils.cpp",
     ],
     hdrs = [
-        "include/overflow_buffer_utils.h",
+        "include/in_mem_overflow_buffer_utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

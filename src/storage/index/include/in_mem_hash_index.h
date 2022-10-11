@@ -259,7 +259,7 @@ private:
         auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
                                              oSlots->getPageCursorForSlot(slotInfo.slotId);
         return inMemFile->getPage(pageCursor.pageIdx)->data +
-               (pageCursor.posInPage * indexHeader->numBytesPerSlot);
+               (pageCursor.elemPosInPage * indexHeader->numBytesPerSlot);
     }
 
     page_idx_t writeLogicalToPhysicalMapper(SlotArray* slotsArray);

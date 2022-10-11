@@ -5,6 +5,9 @@ cc_library(
     hdrs = [
         "planner_test_helper.h",
     ],
+    visibility = [
+        "//test/storage:__subpackages__",
+    ],
     deps = [
         "//src/binder",
         "//src/parser",

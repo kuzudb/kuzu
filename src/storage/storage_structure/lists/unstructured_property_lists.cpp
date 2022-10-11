@@ -21,6 +21,23 @@ void UnstructuredPropertyLists::readProperties(Transaction* transaction, ValueVe
     }
 }
 
+void UnstructuredPropertyLists::prepareCommit(ListsUpdateIterator& listsUpdateIterator) {
+    // Note: In C++ iterating through maps happens in non-descending order of the keys. This
+    // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires
+    // the user to make calls to writeListToListPages in ascending order of nodeOffsets.
+    for (auto updatedChunkItr = unstructuredListUpdateStore.updatedChunks.begin();
+         updatedChunkItr != unstructuredListUpdateStore.updatedChunks.end(); ++updatedChunkItr) {
+        for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();
+             updatedNodeOffsetItr != updatedChunkItr->second->end(); updatedNodeOffsetItr++) {
+            InMemList inMemList{
+                updatedNodeOffsetItr->second->size, elementSize, false /* requireNullMask */};
+            memcpy(inMemList.getListData(), updatedNodeOffsetItr->second->data.get(),
+                updatedNodeOffsetItr->second->size * elementSize);
+            listsUpdateIterator.updateList(updatedNodeOffsetItr->first, inMemList);
+        }
+    }
+}
+
 void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transaction,
     ValueVector* nodeIDVector, uint32_t pos,
     const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap) {
@@ -37,19 +54,18 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
     // the else branch executes, data is never used.
     unique_ptr<UnstrPropListWrapper> primaryStoreListWrapper;
     UnstrPropListIterator itr;
-    if (transaction->isReadOnly() || !localUpdatedLists.hasUpdatedList(nodeOffset)) {
+    if (transaction->isReadOnly() || !unstructuredListUpdateStore.hasUpdatedList(nodeOffset)) {
         auto header = headers->getHeader(nodeOffset);
         CursorAndMapper cursorAndMapper;
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
         uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
-        auto primaryStoreData = make_unique<uint8_t[]>(numElementsInLIst);
-        fillUnstrPropListFromPrimaryStore(
-            cursorAndMapper, numElementsInLIst, primaryStoreData.get());
+        InMemList inMemList{numElementsInLIst, elementSize, false /* requireNullMask */};
+        fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInLIst, inMemList);
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
-            move(primaryStoreData), numElementsInLIst, numElementsInLIst /* capacity */);
+            move(inMemList.listData), numElementsInLIst, numElementsInLIst /* capacity */);
         itr = UnstrPropListIterator(primaryStoreListWrapper.get());
     } else {
-        itr = localUpdatedLists.getUpdatedListIterator(nodeOffset);
+        itr = unstructuredListUpdateStore.getUpdatedListIterator(nodeOffset);
     }
 
     while (itr.hasNext()) {
@@ -62,7 +78,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
             itr.copyValueOfCurrentProp(reinterpret_cast<uint8_t*>(&value->val));
             value->dataType.typeID = propertyKeyDataType.dataTypeID;
             if (propertyKeyDataType.dataTypeID == STRING) {
-                overflowFile.readStringToVector(
+                diskOverflowFile.readStringToVector(
                     transaction, value->val.strVal, vector->getOverflowBuffer());
             }
         }
@@ -82,30 +98,13 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
     }
 }
 
-void UnstructuredPropertyLists::fillUnstrPropListFromPrimaryStore(
-    CursorAndMapper& cursorAndMapper, uint64_t numElementsInList, uint8_t* dataToFill) {
-    PageElementCursor cursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.posInPage};
-    uint64_t numBytesRead = 0;
-    while (numBytesRead < numElementsInList) {
-        auto bytesToReadInCurrentPage =
-            min(numElementsInList - numBytesRead, DEFAULT_PAGE_SIZE - cursor.posInPage);
-        auto physicalPageIdx = cursorAndMapper.mapper(cursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        std::copy(frame + cursor.posInPage, frame + cursor.posInPage + bytesToReadInCurrentPage,
-            dataToFill + numBytesRead);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-        numBytesRead += bytesToReadInCurrentPage;
-        cursor.nextPage();
-    }
-}
-
 unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPropertiesOfNode(
     node_offset_t nodeOffset) {
     CursorAndMapper cursorAndMapper;
     cursorAndMapper.reset(metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
     auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
     auto retVal = make_unique<map<uint32_t /*unstructuredProperty pageIdx*/, Literal>>();
-    PageByteCursor byteCursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.posInPage};
+    PageByteCursor byteCursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.elemPosInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
     auto numBytesRead = 0u;
     while (numBytesRead < numElementsInList) {
@@ -121,7 +120,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
         Literal propertyValueAsLiteral;
         if (STRING == propertyKeyDataType.dataTypeID) {
             propertyValueAsLiteral =
-                Literal(overflowFile.readString(unstrPropertyValue.val.strVal));
+                Literal(diskOverflowFile.readString(unstrPropertyValue.val.strVal));
         } else {
             propertyValueAsLiteral = Literal(
                 (uint8_t*)&unstrPropertyValue.val, DataType(propertyKeyDataType.dataTypeID));
@@ -180,93 +179,59 @@ void UnstructuredPropertyLists::readFromAPage(uint8_t* value, uint64_t bytesToRe
 
 void UnstructuredPropertyLists::setPropertyListEmpty(node_offset_t nodeOffset) {
     lock_t lck{mtx};
-    localUpdatedLists.setEmptyUpdatedPropertiesList(nodeOffset);
+    unstructuredListUpdateStore.setEmptyUpdatedPropertiesList(nodeOffset);
 }
 
 void UnstructuredPropertyLists::setOrRemoveProperty(
     node_offset_t nodeOffset, uint32_t propertyKey, bool isSetting, Value* value) {
     lock_t lck{mtx};
-    if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
+    if (!unstructuredListUpdateStore.hasUpdatedList(nodeOffset)) {
         CursorAndMapper cursorAndMapper;
         cursorAndMapper.reset(
             metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
         auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
-        unique_ptr<uint8_t[]> existingUstrPropLists = make_unique<uint8_t[]>(updatedListCapacity);
-        fillUnstrPropListFromPrimaryStore(
-            cursorAndMapper, numElementsInList, existingUstrPropLists.get());
+        InMemList inMemList{updatedListCapacity, elementSize, false /* requireNullMask */};
+        fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInList, inMemList);
         if (isSetting) {
-            localUpdatedLists.setPropertyList(
-                nodeOffset, make_unique<UnstrPropListWrapper>(move(existingUstrPropLists),
-                                numElementsInList, updatedListCapacity));
-        } else if (!localUpdatedLists.hasUpdatedList(nodeOffset)) {
+            unstructuredListUpdateStore.setPropertyList(
+                nodeOffset, make_unique<UnstrPropListWrapper>(
+                                move(inMemList.listData), numElementsInList, updatedListCapacity));
+        } else if (!unstructuredListUpdateStore.hasUpdatedList(nodeOffset)) {
             unique_ptr<UnstrPropListWrapper> unstrListWrapper = make_unique<UnstrPropListWrapper>(
-                move(existingUstrPropLists), numElementsInList, updatedListCapacity);
+                move(inMemList.listData), numElementsInList, updatedListCapacity);
             bool found = UnstrPropListUtils::findKeyPropertyAndPerformOp(
                 unstrListWrapper.get(), propertyKey, [](UnstrPropListIterator& itr) -> void {});
             if (found) {
-                localUpdatedLists.setPropertyList(nodeOffset, move(unstrListWrapper));
-                localUpdatedLists.removeProperty(nodeOffset, propertyKey);
+                unstructuredListUpdateStore.setPropertyList(nodeOffset, move(unstrListWrapper));
+                unstructuredListUpdateStore.removeProperty(nodeOffset, propertyKey);
             }
         }
     } else if (!isSetting) {
-        localUpdatedLists.removeProperty(nodeOffset, propertyKey);
+        unstructuredListUpdateStore.removeProperty(nodeOffset, propertyKey);
     }
     if (isSetting) {
-        localUpdatedLists.setProperty(nodeOffset, propertyKey, value);
+        unstructuredListUpdateStore.setProperty(nodeOffset, propertyKey, value);
     }
-}
-
-void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    if (localUpdatedLists.updatedChunks.empty()) {
-        return;
-    }
-    // Note: We need to add this list to WAL's set of updatedUnstructuredPropertyLists here instead
-    // of for example during WALReplayer when modifying pages for the following reason: Note that
-    // until this function is called, no updates to the files of UnstructuredPropertyLists has
-    // been made. That is, so far there are no log records in WAL to indicate a change to this
-    // UnstructuredPropertyLists. Therefore suppose a transaction makes changes, which results in
-    // changes to this UnstructuredPropertyLists but then rolls back. Then since there are no log
-    // records, we cannot rely on the log for the WALReplayer to know that we need to rollback this
-    // UnstructuredPropertyLists in memory. Therefore, we need to manually add this
-    // UnstructuredPropertyLists to the set of UnstructuredPropertyLists to rollback when
-    // the Database class calls storageManager->prepareListsToCommitOrRollbackIfNecessary, which
-    // blindly calls each UnstructuredPropertyList to check if they have something to commit or
-    // rollback.
-    wal->addToUpdatedUnstructuredPropertyLists(
-        storageStructureIDAndFName.storageStructureID.listFileID);
-    UnstructuredPropertyListsUpdateIterator updateItr(this);
-    if (isCommit) {
-        // Note: In C++ iterating through maps happens in non-descending order of the keys. This
-        // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires
-        // the user to make calls to writeListToListPages in ascending order of nodeOffsets.
-        for (auto updatedChunkItr = localUpdatedLists.updatedChunks.begin();
-             updatedChunkItr != localUpdatedLists.updatedChunks.end(); ++updatedChunkItr) {
-            for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();
-                 updatedNodeOffsetItr != updatedChunkItr->second->end(); updatedNodeOffsetItr++) {
-                updateItr.updateList(updatedNodeOffsetItr->first,
-                    updatedNodeOffsetItr->second->data.get(), updatedNodeOffsetItr->second->size);
-            }
-        }
-    }
-    updateItr.doneUpdating();
 }
 
 void UnstructuredPropertyLists::checkpointInMemoryIfNecessary() {
-    if (localUpdatedLists.updatedChunks.empty()) {
+    if (unstructuredListUpdateStore.updatedChunks.empty()) {
         return;
     }
+    headers->checkpointInMemoryIfNecessary();
     Lists::checkpointInMemoryIfNecessary();
-    localUpdatedLists.clear();
+    unstructuredListUpdateStore.clear();
 }
 
 void UnstructuredPropertyLists::rollbackInMemoryIfNecessary() {
-    if (localUpdatedLists.updatedChunks.empty()) {
+    if (unstructuredListUpdateStore.updatedChunks.empty()) {
         return;
     }
+    headers->rollbackInMemoryIfNecessary();
     Lists::rollbackInMemoryIfNecessary();
-    localUpdatedLists.clear();
+    unstructuredListUpdateStore.clear();
 }
 
 } // namespace storage

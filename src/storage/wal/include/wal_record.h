@@ -109,10 +109,6 @@ struct ListFileID {
         case REL_PROPERTY_LISTS: {
             return relPropertyListID == rhs.relPropertyListID;
         }
-        default: {
-            throw RuntimeException(
-                "Unrecognized ListType inside ==. ListType:" + to_string(listType));
-        }
         }
     }
 };
@@ -274,17 +270,17 @@ struct RelTableRecord {
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
-struct OverflowFileNextBytePosRecord {
+struct DiskOverflowFileNextBytePosRecord {
     StorageStructureID storageStructureID;
     uint64_t prevNextBytePosToWriteTo;
 
-    OverflowFileNextBytePosRecord() = default;
+    DiskOverflowFileNextBytePosRecord() = default;
 
-    OverflowFileNextBytePosRecord(
+    DiskOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo)
         : storageStructureID{storageStructureID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
 
-    inline bool operator==(const OverflowFileNextBytePosRecord& rhs) const {
+    inline bool operator==(const DiskOverflowFileNextBytePosRecord& rhs) const {
         return storageStructureID == rhs.storageStructureID &&
                prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
     }
@@ -343,7 +339,7 @@ struct WALRecord {
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
-        OverflowFileNextBytePosRecord overflowFileNextBytePosRecord;
+        DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyNodeCSVRecord copyNodeCsvRecord;
         CopyRelCSVRecord copyRelCsvRecord;
         TableStatisticsRecord tableStatisticsRecord;
@@ -375,7 +371,7 @@ struct WALRecord {
             return relTableRecord == rhs.relTableRecord;
         }
         case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
-            return overflowFileNextBytePosRecord == rhs.overflowFileNextBytePosRecord;
+            return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
         }
         case COPY_NODE_CSV_RECORD: {
             return copyNodeCsvRecord == rhs.copyNodeCsvRecord;

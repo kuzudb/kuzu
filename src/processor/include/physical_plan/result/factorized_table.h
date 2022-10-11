@@ -3,10 +3,12 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "src/common/include/overflow_buffer.h"
+#include "src/common/include/in_mem_overflow_buffer.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
+#include "src/storage/storage_structure/include/disk_overflow_file.h"
+#include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace graphflow::common;
 
@@ -189,7 +191,7 @@ public:
     void mergeMayContainNulls(FactorizedTable& other);
     void merge(FactorizedTable& other);
 
-    inline OverflowBuffer* getOverflowBuffer() const { return overflowBuffer.get(); }
+    inline InMemOverflowBuffer* getInMemOverflowBuffer() const { return inMemOverflowBuffer.get(); }
 
     bool hasUnflatCol() const;
     inline bool hasUnflatCol(vector<uint32_t>& colIdxes) const {
@@ -228,6 +230,12 @@ public:
     bool isOverflowColNull(const uint8_t* nullBuffer, uint32_t tupleIdx, uint32_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, uint32_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx);
+    // Note: this function also resets the overflow ptr of list and string to point to a buffer
+    // inside overflowFileOfInMemList.
+    void copyToInMemList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint8_t* data,
+        NullMask* nullMask, uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
+        DataType type, NodeIDCompressionScheme* nodeIDCompressionScheme) const;
+    void clear();
 
 private:
     static bool isNull(const uint8_t* nullMapBuffer, uint32_t idx);
@@ -273,6 +281,8 @@ private:
             readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
             readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
+    static void copyOverflowIfNecessary(
+        uint8_t* dst, uint8_t* src, DataType type, DiskOverflowFile* diskOverflowFile);
 
     MemoryManager* memoryManager;
     unique_ptr<FactorizedTableSchema> tableSchema;
@@ -280,7 +290,7 @@ private:
     uint32_t numTuplesPerBlock;
     unique_ptr<DataBlockCollection> flatTupleBlockCollection;
     unique_ptr<DataBlockCollection> unflatTupleBlockCollection;
-    unique_ptr<OverflowBuffer> overflowBuffer;
+    unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
 };
 
 class FlatTupleIterator {

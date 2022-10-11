@@ -48,8 +48,8 @@ public:
     }
 
     void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
-        for (uint64_t i = 0; i < nodeTables.size(); ++i) {
-            nodeTables[i]->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
+        for (auto& nodeTable : nodeTables) {
+            nodeTable.second->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
         }
     }
 

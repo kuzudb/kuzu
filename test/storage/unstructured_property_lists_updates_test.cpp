@@ -1,6 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/common/include/overflow_buffer_utils.h"
+#include "src/common/include/in_mem_overflow_buffer_utils.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::testing;
@@ -20,11 +20,11 @@ public:
     }
 
     void initWithoutLoadingGraph() {
-        if (overflowBuffer) {
-            overflowBuffer.reset();
+        if (inMemOverflowBuffer) {
+            inMemOverflowBuffer.reset();
         }
         createDBAndConn();
-        overflowBuffer = make_unique<OverflowBuffer>(database->getMemoryManager());
+        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(database->getMemoryManager());
         readConn = make_unique<Connection>(database.get());
         personTableID =
             database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
@@ -33,19 +33,19 @@ public:
 
         existingStrVal.dataType = DataType(DataTypeID::STRING);
         string existingStr = "abcdefghijklmn";
-        OverflowBufferUtils::copyString(
-            existingStr.c_str(), existingStr.size(), existingStrVal.val.strVal, *overflowBuffer);
+        InMemOverflowBufferUtils::copyString(existingStr.c_str(), existingStr.size(),
+            existingStrVal.val.strVal, *inMemOverflowBuffer);
         existingIntVal.dataType = DataType(DataTypeID::INT64);
         existingIntVal.val.int64Val = 123456;
 
         shortStrVal.dataType = DataType(DataTypeID::STRING);
         string shortStr = "short";
-        OverflowBufferUtils::copyString(
-            shortStr.c_str(), shortStr.size(), shortStrVal.val.strVal, *overflowBuffer);
+        InMemOverflowBufferUtils::copyString(
+            shortStr.c_str(), shortStr.size(), shortStrVal.val.strVal, *inMemOverflowBuffer);
         longStrVal.dataType = DataType(DataTypeID::STRING);
         string longStr = "new-long-string";
-        OverflowBufferUtils::copyString(
-            longStr.c_str(), longStr.size(), longStrVal.val.strVal, *overflowBuffer);
+        InMemOverflowBufferUtils::copyString(
+            longStr.c_str(), longStr.size(), longStrVal.val.strVal, *inMemOverflowBuffer);
         intVal.dataType = DataType(DataTypeID::INT64);
         intVal.val.int64Val = 677121;
         conn->beginWriteTransaction();
@@ -501,7 +501,7 @@ public:
     unique_ptr<Connection> readConn;
     NodeTable* personNodeTable;
     // Overflow is needed to update unstructured properties with long strings
-    unique_ptr<OverflowBuffer> overflowBuffer;
+    unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
     table_id_t personTableID;
     Value existingStrVal, existingIntVal, shortStrVal, longStrVal, intVal;
 };

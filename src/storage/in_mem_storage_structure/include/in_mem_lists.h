@@ -39,7 +39,7 @@ public:
 
     virtual void saveToFile();
     virtual void setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val);
-    virtual inline InMemOverflowFile* getOverflowPages() { return nullptr; }
+    virtual inline InMemOverflowFile* getInMemOverflowFile() { return nullptr; }
     inline ListsMetadataBuilder* getListsMetadataBuilder() { return listsMetadataBuilder.get(); }
     inline uint8_t* getMemPtrToLoc(uint64_t pageIdx, uint16_t posInPage) {
         return inMemFile->getPage(pageIdx)->data + (posInPage * numBytesForElement);
@@ -62,7 +62,7 @@ protected:
 
     ~InMemListsWithOverflow() override = default;
 
-    InMemOverflowFile* getOverflowPages() override { return overflowInMemFile.get(); }
+    InMemOverflowFile* getInMemOverflowFile() override { return overflowInMemFile.get(); }
     void saveToFile() override;
 
 protected:

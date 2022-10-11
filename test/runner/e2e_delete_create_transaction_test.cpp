@@ -61,7 +61,7 @@ TEST_F(DeleteCreateTransactionTest, ReadBeforeCommit) {
     }
 }
 
-TEST_F(DeleteCreateTransactionTest, ReadAfterCommit) {
+TEST_F(DeleteCreateTransactionTest, ReadAfterCommitNormalExecution) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(conn.get(), nodeIDsToDelete);
@@ -72,7 +72,7 @@ TEST_F(DeleteCreateTransactionTest, ReadAfterCommit) {
     }
 }
 
-TEST_F(DeleteCreateTransactionTest, ReadAfterRollback) {
+TEST_F(DeleteCreateTransactionTest, ReadAfterRollbackNormalExecution) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(conn.get(), nodeIDsToDelete);
@@ -83,7 +83,7 @@ TEST_F(DeleteCreateTransactionTest, ReadAfterRollback) {
     }
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteEntireMorselTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteEntireMorselCommitNormalExecution) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) WHERE a.ID < 4096 DELETE a");
     auto query = "MATCH (a:person) WHERE a.ID < 4096 RETURN count(*)";
@@ -94,7 +94,7 @@ TEST_F(DeleteCreateTransactionTest, DeleteEntireMorselTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitNormalExecution) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     auto query = "MATCH (a:person) RETURN count(DISTINCT a.ID)";
@@ -105,7 +105,7 @@ TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitRecovery) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -115,7 +115,7 @@ TEST_F(DeleteCreateTransactionTest, DeleteAllNodesCommitRecoveryTest) {
     ASSERT_EQ(getCountStarVal(conn.get(), query), 0);
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackNormalExecution) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->rollback();
@@ -124,7 +124,7 @@ TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
 }
 
-TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackRecovery) {
     conn->beginWriteTransaction();
     conn->query("MATCH (a:person) DELETE a");
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -134,7 +134,7 @@ TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackRecoveryTest) {
     ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
 }
 
-TEST_F(DeleteCreateTransactionTest, SimpleAddCommitTest) {
+TEST_F(DeleteCreateTransactionTest, SimpleAddCommitNormalExecution) {
     conn->beginWriteTransaction();
     add100Nodes(conn.get());
     string query = "MATCH (a:person) RETURN count(*)";
@@ -145,7 +145,7 @@ TEST_F(DeleteCreateTransactionTest, SimpleAddCommitTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
 }
 
-TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecovery) {
     conn->beginWriteTransaction();
     add100Nodes(conn.get());
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -155,7 +155,7 @@ TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecoveryTest) {
     ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
 }
 
-TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackTest) {
+TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackNormalExecution) {
     conn->beginWriteTransaction();
     add100Nodes(conn.get());
     conn->rollback();
@@ -164,7 +164,7 @@ TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackTest) {
     ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
 }
 
-TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackRecoveryTest) {
+TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackRecovery) {
     conn->beginWriteTransaction();
     add100Nodes(conn.get());
     conn->rollbackButSkipCheckpointingForTestingRecovery();

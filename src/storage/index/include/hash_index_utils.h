@@ -3,8 +3,8 @@
 #include <functional>
 
 #include "src/function/hash/operations/include/hash_operations.h"
+#include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
-#include "src/storage/storage_structure/include/overflow_file.h"
 
 using namespace graphflow::common;
 
@@ -12,7 +12,7 @@ namespace graphflow {
 namespace storage {
 
 using hash_function_t = std::function<hash_t(const uint8_t*)>;
-using equals_function_t = std::function<bool(const uint8_t*, const uint8_t*, OverflowFile*)>;
+using equals_function_t = std::function<bool(const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
 
 static const uint32_t NUM_BYTES_FOR_INT64_KEY = Types::getDataTypeSize(INT64);
 static const uint32_t NUM_BYTES_FOR_STRING_KEY = Types::getDataTypeSize(STRING);
@@ -31,22 +31,22 @@ public:
 private:
     // InsertFunc
     inline static void insertFuncForInt64(const uint8_t* key, node_offset_t offset, uint8_t* entry,
-        InMemOverflowFile* overflowFile = nullptr) {
+        InMemOverflowFile* inMemOverflowFile = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
         memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
     }
-    inline static void insertFuncForString(
-        const uint8_t* key, node_offset_t offset, uint8_t* entry, InMemOverflowFile* overflowFile) {
-        auto gfString = overflowFile->appendString(reinterpret_cast<const char*>(key));
+    inline static void insertFuncForString(const uint8_t* key, node_offset_t offset, uint8_t* entry,
+        InMemOverflowFile* inMemOverflowFile) {
+        auto gfString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
         memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemOverflowFile* overflowFile = nullptr) {
+        const InMemOverflowFile* inMemOverflowFile = nullptr) {
         return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
     }
     static bool equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemOverflowFile* overflowFile);
+        const InMemOverflowFile* inMemOverflowFile);
 };
 
 class HashIndexUtils {
@@ -69,11 +69,11 @@ public:
     static bool isStringPrefixAndLenEquals(
         const uint8_t* keyToLookup, const gf_string_t* keyInEntry);
     inline static bool equalsFuncForInt64(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowFile* ovfPages) {
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* ovfPages) {
         return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
     }
     static bool equalsFuncForString(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowFile* ovfPages);
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
     static equals_function_t initializeEqualsFunc(const DataTypeID& dataTypeID);
 };
 } // namespace storage

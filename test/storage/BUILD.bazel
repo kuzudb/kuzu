@@ -114,6 +114,7 @@ cc_test(
     ],
     deps = [
         "//src/storage/storage_structure:lists",
+        "//test/planner:planner_test_helper",
         "//test/test_utility:test_helper",
     ],
 )

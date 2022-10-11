@@ -9,15 +9,15 @@ namespace storage {
 using UpdatedChunk = map<node_offset_t, unique_ptr<UnstrPropListWrapper>>;
 
 /**
- * UpdatedUnstructuredPropertyLists is not thread-safe and assumes that the
- * UnstructuredPropertyLists, which is the sole user of UpdatedUnstructuredPropertyLists acquires
- * necessary locks to ensure UpdatedUnstructuredPropertyLists is accessed in a thread-safe manner.
+ * UnstructuredPropertiesUpdateStore is not thread-safe and assumes that the
+ * UnstructuredPropertyLists, which is the sole user of UnstructuredPropertiesUpdateStore acquires
+ * necessary locks to ensure UnstructuredPropertiesUpdateStore is accessed in a thread-safe manner.
  */
-class UpdatedUnstructuredPropertyLists {
+class UnstructuredPropertiesUpdateStore {
 
 public:
-    UpdatedUnstructuredPropertyLists(OverflowFile& stringOverflowPages)
-        : stringOverflowPages{stringOverflowPages} {};
+    UnstructuredPropertiesUpdateStore(DiskOverflowFile& stringDiskOverflowFile)
+        : stringDiskOverflowFile{stringDiskOverflowFile} {};
 
     inline bool empty() { return updatedChunks.empty(); }
     bool hasUpdatedList(node_offset_t nodeOffset);
@@ -39,7 +39,7 @@ private:
         uint32_t dataTypeSize);
 
 public:
-    OverflowFile& stringOverflowPages;
+    DiskOverflowFile& stringDiskOverflowFile;
     map<uint64_t, unique_ptr<UpdatedChunk>> updatedChunks;
 };
 

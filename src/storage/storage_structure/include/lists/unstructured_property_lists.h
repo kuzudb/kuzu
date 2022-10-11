@@ -1,6 +1,6 @@
 #pragma once
 
-#include "updated_unstructured_property_lists.h"
+#include "unstructured_properties_update_store.h"
 
 #include "src/storage/storage_structure/include/lists/lists.h"
 
@@ -24,8 +24,8 @@ public:
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
               bufferManager, false /*hasNULLBytes*/, isInMemory, wal,
               nullptr /* listUpdateStore */},
-          overflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal},
-          localUpdatedLists{overflowFile} {};
+          diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal},
+          unstructuredListUpdateStore{diskOverflowFile} {};
 
     void readProperties(Transaction* transaction, ValueVector* nodeIDVector,
         const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
@@ -39,14 +39,10 @@ public:
     inline void removeProperty(node_offset_t nodeOffset, uint32_t propertyKey) {
         setOrRemoveProperty(nodeOffset, propertyKey, false /* isSetting */);
     }
+    inline bool mayContainNulls() const override { return false; }
 
     // Currently, used only in CopyCSV tests.
     unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
-
-    // Prepares all the db file changes necessary to update the "persistent" unstructured property
-    // lists with the UpdatedUnstructuredPropertyLists localUpdatedLists, which stores the updates
-    // by the write trx locally.
-    void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
     // Checkpoints the in memory version of the lists.
     void checkpointInMemoryIfNecessary() override;
@@ -55,8 +51,11 @@ public:
     void rollbackInMemoryIfNecessary() override;
 
 private:
-    void fillUnstrPropListFromPrimaryStore(
-        CursorAndMapper& cursorAndMapper, uint64_t numElementsInList, uint8_t* dataToFill);
+    inline bool isUpdateStoreEmpty() const override {
+        return unstructuredListUpdateStore.updatedChunks.empty();
+    }
+    void prepareCommit(ListsUpdateIterator& listsUpdateIterator) override;
+
     void readPropertiesForPosition(Transaction* transaction, ValueVector* nodeIDVector,
         uint32_t pos, const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
@@ -70,11 +69,11 @@ private:
         const std::function<uint32_t(uint32_t)>& idxInPageListToListPageIdxMapper);
 
 public:
-    // TODO(Semih/Guodong): Currently we serialize all access to localUpdatedLists
+    // TODO(Semih/Guodong): Currently we serialize all access to unstructuredListUpdateStore
     // and should optimize parallel updates.
     mutex mtx;
-    OverflowFile overflowFile;
-    UpdatedUnstructuredPropertyLists localUpdatedLists;
+    DiskOverflowFile diskOverflowFile;
+    UnstructuredPropertiesUpdateStore unstructuredListUpdateStore;
 };
 
 } // namespace storage

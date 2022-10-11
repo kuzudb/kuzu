@@ -46,7 +46,8 @@ void InMemLists::setElement(uint32_t header, node_offset_t nodeOffset, uint64_t 
     auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
         nodeOffset, *listsMetadataBuilder, true /* hasNULLBytes */);
     inMemFile->getPage(cursor.pageIdx)
-        ->write(cursor.posInPage * numBytesForElement, cursor.posInPage, val, numBytesForElement);
+        ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val,
+            numBytesForElement);
 }
 
 void InMemAdjLists::setElement(
@@ -55,8 +56,8 @@ void InMemAdjLists::setElement(
         nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
-        ->write(
-            node, cursor.posInPage * numBytesForElement, cursor.posInPage, nodeIDCompressionScheme);
+        ->write(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
+            nodeIDCompressionScheme);
 }
 
 void InMemAdjLists::saveToFile() {
@@ -69,7 +70,7 @@ InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, 
     assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST ||
            this->dataType.typeID == UNSTRUCTURED);
     overflowInMemFile =
-        make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
+        make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
 }
 
 void InMemListsWithOverflow::saveToFile() {

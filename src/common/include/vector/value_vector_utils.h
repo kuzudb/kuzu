@@ -17,11 +17,11 @@ public:
     static void copyNonNullDataWithSameTypeIntoPos(
         ValueVector& resultVector, uint64_t pos, const uint8_t* srcData);
     static void copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector, uint64_t pos,
-        uint8_t* dstData, OverflowBuffer& dstOverflowBuffer);
+        uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer);
 
 private:
     static void copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
-        uint8_t* dstData, OverflowBuffer& overflowBuffer);
+        uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer);
 };
 
 } // namespace common

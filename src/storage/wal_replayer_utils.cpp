@@ -114,8 +114,8 @@ void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
     FileUtils::renameFileIfExists(walColFileName, originalColFileName);
     // We also check if there is a WAL version of the overflow file for the column and if so
     // replace the original version.
-    FileUtils::renameFileIfExists(StorageUtils::getOverflowPagesFName(walColFileName),
-        StorageUtils::getOverflowPagesFName(originalColFileName));
+    FileUtils::renameFileIfExists(StorageUtils::getOverflowFileName(walColFileName),
+        StorageUtils::getOverflowFileName(originalColFileName));
 }
 
 void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName) {
@@ -125,21 +125,21 @@ void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(string ori
         StorageUtils::getListMetadataFName(originalListFileName));
     // We also check if there is a WAL version of the overflow and header file for the list
     // and if so replace the original version.
-    FileUtils::renameFileIfExists(StorageUtils::getOverflowPagesFName(walListFileName),
-        StorageUtils::getOverflowPagesFName(originalListFileName));
+    FileUtils::renameFileIfExists(StorageUtils::getOverflowFileName(walListFileName),
+        StorageUtils::getOverflowFileName(originalListFileName));
     FileUtils::renameFileIfExists(StorageUtils::getListHeadersFName(walListFileName),
         StorageUtils::getListHeadersFName(originalListFileName));
 }
 
 void WALReplayerUtils::removeColumnFilesIfExists(string fileName) {
     FileUtils::removeFileIfExists(fileName);
-    FileUtils::removeFileIfExists(StorageUtils::getOverflowPagesFName(fileName));
+    FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
 }
 
 void WALReplayerUtils::removeListFilesIfExists(string fileName) {
     FileUtils::removeFileIfExists(fileName);
     FileUtils::removeFileIfExists(StorageUtils::getListMetadataFName(fileName));
-    FileUtils::removeFileIfExists(StorageUtils::getOverflowPagesFName(fileName));
+    FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
     FileUtils::removeFileIfExists(StorageUtils::getListHeadersFName(fileName));
 }
 

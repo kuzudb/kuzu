@@ -2,7 +2,7 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/common/types/include/literal.h"
-#include "src/storage/storage_structure/include/overflow_file.h"
+#include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace graphflow::common;
@@ -73,7 +73,7 @@ public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          overflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
+          diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
 
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -81,31 +81,33 @@ public:
     // Currently, used only in CopyCSV tests.
     Literal readValue(node_offset_t offset) override;
 
-    inline OverflowFile* getOverflowFile() { return &overflowFile; }
+    inline DiskOverflowFile* getDiskOverflowFile() { return &diskOverflowFile; }
 
-    inline VersionedFileHandle* getOverflowFileHandle() { return overflowFile.getFileHandle(); }
+    inline VersionedFileHandle* getDiskOverflowFileHandle() {
+        return diskOverflowFile.getFileHandle();
+    }
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         if (!resultVector->isNull(vectorPos)) {
-            overflowFile.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
+            diskOverflowFile.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
         }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        overflowFile.scanSequentialStringOverflow(transaction, *resultVector);
+        diskOverflowFile.scanSequentialStringOverflow(transaction, *resultVector);
     }
     void scanWithSelState(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        overflowFile.scanSequentialStringOverflow(transaction, *resultVector);
+        diskOverflowFile.scanSequentialStringOverflow(transaction, *resultVector);
     }
 
 private:
-    OverflowFile overflowFile;
+    DiskOverflowFile diskOverflowFile;
 };
 
 class ListPropertyColumn : public Column {
@@ -114,7 +116,7 @@ public:
     ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          listOverflowPages{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
+          listDiskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
 
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -125,21 +127,21 @@ private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
-        listOverflowPages.readListsToVector(*resultVector);
+        listDiskOverflowFile.readListsToVector(*resultVector);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        listOverflowPages.readListsToVector(*resultVector);
+        listDiskOverflowFile.readListsToVector(*resultVector);
     }
     inline void scanWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        listOverflowPages.readListsToVector(*resultVector);
+        listDiskOverflowFile.readListsToVector(*resultVector);
     }
 
 private:
-    OverflowFile listOverflowPages;
+    DiskOverflowFile listDiskOverflowFile;
 };
 
 class AdjColumn : public Column {
@@ -156,7 +158,7 @@ private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         readNodeIDsFromAPageBySequentialCopy(resultVector, vectorPos, cursor.pageIdx,
-            cursor.posInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
+            cursor.elemPosInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
             false /*isAdjLists*/);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,

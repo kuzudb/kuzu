@@ -13,7 +13,7 @@
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
-#include "src/storage/storage_structure/include/overflow_file.h"
+#include "src/storage/storage_structure/include/disk_overflow_file.h"
 
 using namespace graphflow::common;
 
@@ -101,7 +101,7 @@ private:
     unique_ptr<FileHandle> fh;
     BufferManager& bm;
     equals_function_t keyEqualsFunc;
-    unique_ptr<OverflowFile> overflowFile;
+    unique_ptr<DiskOverflowFile> diskOverflowFile;
     unique_ptr<HashIndexLocalStorage> localStorage;
 };
 

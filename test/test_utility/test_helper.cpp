@@ -130,7 +130,7 @@ void BaseGraphTest::validateColumnFilesExistence(
     ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
     if (hasOverflow) {
         ASSERT_EQ(
-            FileUtils::fileOrPathExists(StorageUtils::getOverflowPagesFName(fileName)), existence);
+            FileUtils::fileOrPathExists(StorageUtils::getOverflowFileName(fileName)), existence);
     }
 }
 
@@ -140,7 +140,7 @@ void BaseGraphTest::validateListFilesExistence(
     ASSERT_EQ(FileUtils::fileOrPathExists(StorageUtils::getListMetadataFName(fileName)), existence);
     if (hasOverflow) {
         ASSERT_EQ(
-            FileUtils::fileOrPathExists(StorageUtils::getOverflowPagesFName(fileName)), existence);
+            FileUtils::fileOrPathExists(StorageUtils::getOverflowFileName(fileName)), existence);
     }
     if (hasHeader) {
         ASSERT_EQ(

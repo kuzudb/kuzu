@@ -51,6 +51,19 @@ vector<AdjColumn*> RelTable::getAdjColumnsForNodeTable(table_id_t tableID) {
     return retVal;
 }
 
+void RelTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    for (auto& relDirection : REL_DIRECTIONS) {
+        for (auto& tableIdAndAdjList : adjLists[relDirection]) {
+            tableIdAndAdjList.second->prepareCommitOrRollbackIfNecessary(isCommit);
+        }
+        for (auto& tableIdAndPropList : propertyLists[relDirection]) {
+            for (auto& propertyList : tableIdAndPropList.second) {
+                propertyList->prepareCommitOrRollbackIfNecessary(isCommit);
+            }
+        }
+    }
+}
+
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", tableID);

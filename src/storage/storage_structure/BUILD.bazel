@@ -2,13 +2,13 @@ cc_library(
     name = "storage_structure",
     srcs = [
         "disk_array.cpp",
-        "overflow_file.cpp",
+        "disk_overflow_file.cpp",
         "storage_structure.cpp",
         "storage_structure_utils.cpp",
     ],
     hdrs = [
         "include/disk_array.h",
-        "include/overflow_file.h",
+        "include/disk_overflow_file.h",
         "include/storage_structure.h",
         "include/storage_structure_utils.h",
     ],
@@ -51,7 +51,7 @@ cc_library(
         "lists/rel_update_store.cpp",
         "lists/unstructured_property_lists.cpp",
         "lists/unstructured_property_lists_utils.cpp",
-        "lists/updated_unstructured_property_lists.cpp",
+        "lists/unstructured_properties_update_store.cpp",
     ],
     hdrs = [
         "include/lists/list_headers.h",
@@ -62,7 +62,7 @@ cc_library(
         "include/lists/rel_update_store.h",
         "include/lists/unstructured_property_lists.h",
         "include/lists/unstructured_property_lists_utils.h",
-        "include/lists/updated_unstructured_property_lists.h",
+        "include/lists/unstructured_properties_update_store.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

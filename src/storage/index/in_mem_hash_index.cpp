@@ -70,7 +70,7 @@ InMemHashIndex::InMemHashIndex(string fName, const DataType& keyDataType)
         1 /* initialize the hash index file with the header page. */);
     if (keyDataType.typeID == STRING) {
         inMemOverflowFile =
-            make_unique<InMemOverflowFile>(StorageUtils::getOverflowPagesFName(this->fName));
+            make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
     }
     indexHeader = make_unique<HashIndexHeader>(keyDataType.typeID);
     pSlots = make_unique<SlotWithMutexArray>(inMemFile.get(), indexHeader->numSlotsPerPage);

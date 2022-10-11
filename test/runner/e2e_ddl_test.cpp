@@ -145,7 +145,7 @@ public:
 } // namespace transaction
 } // namespace graphflow
 
-TEST_F(TinySnbDDLTest, MultipleCreateNodeTablesTest) {
+TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING, REGISTER_TIME DATE)");
     ASSERT_TRUE(result->isSuccess());
@@ -165,7 +165,7 @@ TEST_F(TinySnbDDLTest, MultipleCreateNodeTablesTest) {
     ASSERT_FALSE(result->isSuccess());
 }
 
-TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTableTest) {
+TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
                               "STRING)");
     ASSERT_TRUE(result->isSuccess());
@@ -175,22 +175,22 @@ TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTableTest) {
     ASSERT_TRUE(result->isSuccess());
 }
 
-TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionErrorTest) {
+TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
     ddlStatementsInsideActiveTransactionErrorTest(
         "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
         "STRING, REGISTER_TIME DATE)");
     ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
 }
 
-TEST_F(TinySnbDDLTest, CreateNodeTableCommitTest) {
+TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
     createNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecoveryTest) {
+TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecovery) {
     createNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, MultipleCreateRelTablesTest) {
+TEST_F(TinySnbDDLTest, MultipleCreateRelTables) {
     auto result = conn->query("CREATE REL TABLE likes (FROM person TO person, FROM person TO "
                               "organisation, date DATE, MANY_MANY)");
     ASSERT_TRUE(result->isSuccess());
@@ -210,15 +210,15 @@ TEST_F(TinySnbDDLTest, MultipleCreateRelTablesTest) {
     ASSERT_FALSE(result->isSuccess());
 }
 
-TEST_F(TinySnbDDLTest, CreateRelTableCommitTest) {
+TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {
     createRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbDDLTest, CreateRelTableCommitRecoveryTest) {
+TEST_F(TinySnbDDLTest, CreateRelTableCommitRecovery) {
     createRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, MultipleDropTablesTest) {
+TEST_F(TinySnbDDLTest, MultipleDropTables) {
     auto result = conn->query("DROP TABLE studyAt");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("studyAt"));
@@ -249,18 +249,18 @@ TEST_F(TinySnbDDLTest, MultipleDropTablesTest) {
     ASSERT_EQ(result->getNumTuples(), 0);
 }
 
-TEST_F(TinySnbDDLTest, DropNodeTableCommitTest) {
+TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
     dropNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbDDLTest, DropNodeTableCommitRecoveryTest) {
+TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
     dropNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropRelTableCommitTest) {
+TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbDDLTest, DropRelTableCommitRecoveryTest) {
+TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }

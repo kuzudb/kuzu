@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "src/common/include/overflow_buffer_utils.h"
+#include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
@@ -64,7 +64,8 @@ inline void CastToUnstructured::operation(
 template<>
 inline void CastToUnstructured::operation(
     gf_string_t& input, Value& result, ValueVector& resultVector) {
-    OverflowBufferUtils::copyString(input, result.val.strVal, resultVector.getOverflowBuffer());
+    InMemOverflowBufferUtils::copyString(
+        input, result.val.strVal, resultVector.getOverflowBuffer());
     result.dataType.typeID = STRING;
 }
 

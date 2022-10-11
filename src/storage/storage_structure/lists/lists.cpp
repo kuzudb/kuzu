@@ -1,29 +1,11 @@
 #include "src/storage/storage_structure/include/lists/lists.h"
 
+#include "src/storage/storage_structure/include/lists/lists_update_iterator.h"
+
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
-
-void Lists::initListReadingState(
-    node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType) {
-    auto& listSyncState = listHandle.listSyncState;
-    listSyncState.reset();
-    listSyncState.setBoundNodeOffset(nodeOffset);
-    listSyncState.setListHeader(headers->getHeader(nodeOffset));
-    uint64_t numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
-    auto numElementsInUpdateStore =
-        transactionType == WRITE ? listUpdateStore->getNumInsertedRelsForNodeOffset(nodeOffset) : 0;
-    listSyncState.setNumValuesInList(numElementsInPersistentStore == 0 ?
-                                         numElementsInUpdateStore :
-                                         numElementsInPersistentStore);
-    listSyncState.setDataToReadFromUpdateStore(numElementsInUpdateStore != 0);
-    // If there's no element is persistentStore and the relUpdateStore is non-empty, we can
-    // skip reading from persistentStore and start reading from relUpdateStore directly.
-    listSyncState.setSourceStore(numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0 ?
-                                     ListSourceStore::RelUpdateStore :
-                                     ListSourceStore::PersistentStore);
-}
 
 // Note: The given nodeOffset and largeListHandle may not be connected. For example if we
 // are about to read a new nodeOffset, say v5, after having read a previous nodeOffset, say v7, with
@@ -53,17 +35,99 @@ void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle
         listHandle.cursorAndMapper.mapper);
 }
 
-void Lists::readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
-    if (ListHeaders::isALargeList(listHandle.listSyncState.getListHeader())) {
-        readFromLargeList(valueVector, listHandle);
-    } else {
-        readSmallList(valueVector, listHandle);
+void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    if (isUpdateStoreEmpty()) {
+        return;
+    }
+    // Note: We need to add this list to WAL's set of updatedLists here instead
+    // of for example during WALReplayer when modifying pages for the following reason: Note that
+    // until this function is called, no updates to the files of Lists has
+    // been made. That is, so far there are no log records in WAL to indicate a change to this
+    // Lists. Therefore suppose a transaction makes changes, which results in changes to this Lists
+    // but then rolls back. Then since there are no log records, we cannot rely on the log for the
+    // WALReplayer to know that we need to rollback this Lists in memory. Therefore, we need to
+    // manually add this Lists to the set of Lists to rollback when the Database class calls
+    // storageManager->prepareListsToCommitOrRollbackIfNecessary, which blindly calls each Lists to
+    // check if they have something to commit or rollback.
+    wal->addToUpdatedLists(storageStructureIDAndFName.storageStructureID.listFileID);
+    auto updateItr = ListsUpdateIteratorFactory::getListsUpdateIterator(this);
+    if (isCommit) {
+        prepareCommit(*updateItr);
+    }
+    updateItr->doneUpdating();
+}
+
+void Lists::initListReadingState(
+    node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType) {
+    auto& listSyncState = listHandle.listSyncState;
+    listSyncState.reset();
+    listSyncState.setBoundNodeOffset(nodeOffset);
+    listSyncState.setListHeader(headers->getHeader(nodeOffset));
+    uint64_t numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+    auto numElementsInUpdateStore =
+        transactionType == WRITE ? listUpdateStore->getNumInsertedRelsForNodeOffset(nodeOffset) : 0;
+    listSyncState.setNumValuesInList(numElementsInPersistentStore == 0 ?
+                                         numElementsInUpdateStore :
+                                         numElementsInPersistentStore);
+    listSyncState.setDataToReadFromUpdateStore(numElementsInUpdateStore != 0);
+    // If there's no element is persistentStore and the relUpdateStore is non-empty, we can
+    // skip reading from persistentStore and start reading from relUpdateStore directly.
+    listSyncState.setSourceStore(numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0 ?
+                                     ListSourceStore::RelUpdateStore :
+                                     ListSourceStore::PersistentStore);
+}
+
+void Lists::fillInMemListsFromPersistentStore(
+    CursorAndMapper& cursorAndMapper, uint64_t numElementsInPersistentStore, InMemList& inMemList) {
+    uint64_t numElementsRead = 0;
+    auto numElementsToRead = numElementsInPersistentStore;
+    auto listData = inMemList.getListData();
+    while (numElementsRead < numElementsToRead) {
+        auto numElementsToReadInCurPage = min(numElementsToRead - numElementsRead,
+            (uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage));
+        auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        memcpy(listData, frame + cursorAndMapper.cursor.elemPosInPage * elementSize,
+            numElementsToReadInCurPage * elementSize);
+        if (inMemList.hasNullBuffer()) {
+            NullMask::copyNullMask((uint64_t*)(frame + numElementsPerPage * elementSize),
+                cursorAndMapper.cursor.elemPosInPage, inMemList.getNullMask(), numElementsRead,
+                numElementsToReadInCurPage);
+        }
+        bufferManager.unpin(fileHandle, physicalPageIdx);
+        numElementsRead += numElementsToReadInCurPage;
+        listData += numElementsToReadInCurPage * elementSize;
+        cursorAndMapper.cursor.nextPage();
+    }
+}
+
+void Lists::prepareCommit(ListsUpdateIterator& listsUpdateIterator) {
+    // See comments in UnstructuredPropertyLists::prepareCommit.
+    for (auto updatedChunkItr = listUpdateStore->getInsertedEdgeTupleIdxes().begin();
+         updatedChunkItr != listUpdateStore->getInsertedEdgeTupleIdxes().end(); ++updatedChunkItr) {
+        for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
+             updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
+            auto nodeOffset = updatedNodeOffsetItr->first;
+            auto totalNumElements = getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
+            InMemList inMemList{totalNumElements, elementSize, mayContainNulls()};
+            CursorAndMapper cursorAndMapper;
+            cursorAndMapper.reset(
+                metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+            auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+            fillInMemListsFromPersistentStore(
+                cursorAndMapper, numElementsInPersistentStore, inMemList);
+            listUpdateStore->readToListAndUpdateOverflowIfNecessary(
+                storageStructureIDAndFName.storageStructureID.listFileID,
+                updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore,
+                getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
+            listsUpdateIterator.updateList(nodeOffset, inMemList);
+        }
     }
 }
 
 /**
- * Note: This function is called for property lists other than STRINGS. This is called by
- * readValues, which is the main function for reading all lists except UNSTRUCTURED
+ * Note: This function is called for property Lists other than STRINGS. This is called by
+ * readValues, which is the main function for reading all Lists except UNSTRUCTURED
  * and NODE_ID.
  */
 void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
@@ -75,28 +139,36 @@ void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, ListHa
         tmpTransaction.get(), valueVector, pageCursor, listHandle.cursorAndMapper.mapper);
 }
 
+void Lists::readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
+    if (ListHeaders::isALargeList(listHandle.listSyncState.getListHeader())) {
+        readFromLargeList(valueVector, listHandle);
+    } else {
+        readSmallList(valueVector, listHandle);
+    }
+}
+
 void StringPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readFromLargeList(valueVector, listHandle);
-    stringOverflowPages.readStringsToVector(*valueVector);
+    diskOverflowFile.readStringsToVector(*valueVector);
 }
 
 void StringPropertyLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readSmallList(valueVector, listHandle);
-    stringOverflowPages.readStringsToVector(*valueVector);
+    diskOverflowFile.readStringsToVector(*valueVector);
 }
 
 void ListPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readFromLargeList(valueVector, listHandle);
-    listOverflowPages.readListsToVector(*valueVector);
+    diskOverflowFile.readListsToVector(*valueVector);
 }
 
 void ListPropertyLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     Lists::readSmallList(valueVector, listHandle);
-    listOverflowPages.readListsToVector(*valueVector);
+    diskOverflowFile.readListsToVector(*valueVector);
 }
 
 void AdjLists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
@@ -134,16 +206,16 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     auto bufferPtr = buffer.get();
     while (sizeLeftToCopy) {
         auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
-        auto sizeToCopyInPage =
-            min(((uint64_t)(numElementsPerPage - cursorAndMapper.cursor.posInPage) * elementSize),
-                sizeLeftToCopy);
+        auto sizeToCopyInPage = min(
+            ((uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage) * elementSize),
+            sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(bufferPtr, frame + mapElementPosToByteOffset(cursorAndMapper.cursor.posInPage),
+        memcpy(bufferPtr, frame + mapElementPosToByteOffset(cursorAndMapper.cursor.elemPosInPage),
             sizeToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        cursorAndMapper.cursor.posInPage = 0;
+        cursorAndMapper.cursor.elemPosInPage = 0;
         cursorAndMapper.cursor.pageIdx++;
     }
 
@@ -187,7 +259,7 @@ void AdjLists::readFromLargeList(
     auto physicalPageId =
         listHandle.cursorAndMapper.mapper(listHandle.cursorAndMapper.cursor.pageIdx);
     readNodeIDsFromAPageBySequentialCopy(valueVector, 0, physicalPageId,
-        listHandle.cursorAndMapper.cursor.posInPage, numValuesToCopy, nodeIDCompressionScheme,
+        listHandle.cursorAndMapper.cursor.elemPosInPage, numValuesToCopy, nodeIDCompressionScheme,
         true /*isAdjLists*/);
 }
 
