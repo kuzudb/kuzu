@@ -8,6 +8,10 @@
 
 using namespace std;
 
+namespace spdlog {
+class logger;
+}
+
 namespace graphflow {
 namespace common {
 
@@ -85,6 +89,7 @@ private:
 private:
     FILE* fd;
     const CSVReaderConfig& config;
+    shared_ptr<spdlog::logger> logger;
     bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
     char* line;
     size_t lineCapacity, lineLen;

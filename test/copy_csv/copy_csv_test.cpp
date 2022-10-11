@@ -91,6 +91,10 @@ public:
     }
 };
 
+class CopyCSVLongStringTest : public InMemoryDBTest {
+    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
+};
+
 struct KnowsTablePTablePKnowsLists {
     table_id_t knowsRelTableID;
     table_id_t pNodeTableID;
@@ -321,4 +325,28 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
 
 TEST_F(CopyCSVEmptyListsTest, CopyCSVEmptyLists) {
     testCopyCSVEmptyListsTest();
+}
+
+TEST_F(CopyCSVLongStringTest, LongStringError) {
+    auto storageManager = database->getStorageManager();
+    auto& catalog = *database->getCatalog();
+    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "fName");
+    auto col =
+        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+
+    EXPECT_EQ(4096, col->readValue(0).strVal.length());
+    string expectedResultName = "Alice";
+    auto repeatedTimes = 4096 / expectedResultName.length() + 1;
+    ostringstream os;
+    for (auto i = 0; i < repeatedTimes; i++) {
+        os << expectedResultName;
+    }
+    EXPECT_EQ(os.str().substr(0, 4096), col->readValue(0).strVal);
+    EXPECT_EQ("Bob", col->readValue(1).strVal);
+
+    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "gender");
+    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+    EXPECT_EQ(1, col->readValue(0).val.int64Val);
+    EXPECT_EQ(2, col->readValue(1).val.int64Val);
 }

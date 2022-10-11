@@ -20,10 +20,6 @@ public:
     }
 };
 
-class CopyCSVLongStringTest : public CopyCSVFaultTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
-};
-
 class CopyCSVDuplicateIDTest : public CopyCSVFaultTest {
     string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/duplicate-ids/"; }
 };
@@ -31,13 +27,6 @@ class CopyCSVDuplicateIDTest : public CopyCSVFaultTest {
 class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
     string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
 };
-
-TEST_F(CopyCSVLongStringTest, LongStringError) {
-    ASSERT_EQ(getCopyCSVException(),
-        "Failed to execute statement: COPY person FROM "
-        "\"dataset/copy-csv-fault-tests/long-string/vPerson.csv\".\nError: CSVReader "
-        "exception: Maximum length of strings is 4096. Input string's length is 5625.");
-}
 
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
     ASSERT_EQ(getCopyCSVException(),
