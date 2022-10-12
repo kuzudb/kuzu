@@ -1,11 +1,12 @@
 #include "src/binder/include/binder.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/common/include/type_utils.h"
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
-
 namespace graphflow {
 namespace binder {
 
@@ -86,7 +87,12 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
                                  catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
     auto filePath = copyCSV.getCSVFileName();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    auto numberOfFieldsInCSV = getNumberOfFieldsForCSV(filePath, csvReaderConfig);
+    auto csvFields = getFieldNamesForCSV(filePath, csvReaderConfig);
+
+    if (csvReaderConfig.hasHeader) {
+        validateCSVHeader(isNodeTable, csvFields, tableID);
+    }
+    auto numberOfFieldsInCSV = csvFields.size();
     return make_unique<BoundCopyCSV>(CSVDescription(filePath, csvReaderConfig, numberOfFieldsInCSV),
         TableSchema(tableName, tableID, isNodeTable));
 }
@@ -130,8 +136,8 @@ CSVReaderConfig Binder::bindParsingOptions(
 
         if (copyOptionName == "HEADER") {
             if (boundCopyOptionExpression->dataType.typeID != BOOL) {
-                throw "The value type of parsing csv option " + copyOptionName +
-                    " must be boolean.";
+                throw BinderException(
+                    "The value type of parsing csv option " + copyOptionName + " must be boolean.");
             }
             csvReaderConfig.hasHeader =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).literal->val.booleanVal;
@@ -176,17 +182,58 @@ char Binder::bindParsingOptionValue(string parsingOptionValue) {
     return parsingOptionValue[parsingOptionValue.length() - 1];
 }
 
-uint64_t Binder::getNumberOfFieldsForCSV(
-    const string& filePath, const CSVReaderConfig& csvReaderConfig) {
-    CSVReader reader(filePath, csvReaderConfig, 0);
-    auto numberOfTokens = 0u;
-    if (reader.hasNextLine()) {
-        while (reader.hasNextToken()) {
-            reader.skipToken();
-            ++numberOfTokens;
+void Binder::validateCSVHeader(
+    bool isNodeTable, const vector<string>& csvFields, table_id_t tableID) {
+    vector<Property> tableProperties;
+    auto csvPropertyStartIdx = 0u;
+    auto csvFieldsSize = 0u;
+
+    if (isNodeTable) {
+        auto tableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
+        tableProperties = tableSchema->getAllNodeProperties();
+        csvFieldsSize = csvFields.size();
+    } else {
+        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        tableProperties = tableSchema->properties;
+        // Drop "_id" property.
+        tableProperties.pop_back();
+
+        // Find first property column by skipping the "from", "to", and node type columns from
+        // header.
+        for (; csvPropertyStartIdx < csvFields.size(); ++csvPropertyStartIdx) {
+            if (compareStringsCaseInsensitive(
+                    csvFields[csvPropertyStartIdx], tableProperties[0].name)) {
+                break;
+            }
         }
+        if (csvPropertyStartIdx >= csvFields.size()) {
+            throw BinderException("The first property column \"" + tableProperties[0].name +
+                                  "\" is not found in the csv.");
+        }
+        csvFieldsSize = csvFields.size() - csvPropertyStartIdx;
     }
-    return numberOfTokens;
+    if (csvFieldsSize < tableProperties.size()) {
+        throw BinderException(
+            "The csv file does not have sufficient property columns. Expecting at least " +
+            to_string(tableProperties.size()) + " column" +
+            (tableProperties.size() > 1 ? "s" : "") + ". The file has " +
+            to_string(csvFields.size() - csvPropertyStartIdx) + " property column" +
+            (csvFieldsSize > 1 ? "s" : "") + ".");
+    }
+    if (csvFieldsSize > tableProperties.size()) {
+        logger->warn(to_string(csvFieldsSize - tableProperties.size()) +
+                     " additional trailing columns is detected in csv header. ");
+    }
+    for (auto i = 0u; i < tableProperties.size(); ++i) {
+        auto tableProperty = tableProperties[i].name;
+        const auto& csvField = csvFields[i + csvPropertyStartIdx];
+        if (compareStringsCaseInsensitive(csvField, tableProperty)) {
+            continue;
+        }
+        throw BinderException("The name of column " + to_string(i) +
+                              " does not match the column in schema. Expecting \"" + tableProperty +
+                              "\", the column name in csv is \"" + csvField + "\".");
+    }
 }
 
 unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
@@ -790,6 +837,24 @@ void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
                 tableIDSchema.second->tableName.c_str()));
         }
     }
+}
+
+vector<string> Binder::getFieldNamesForCSV(
+    const string& filePath, const CSVReaderConfig& csvReaderConfig) {
+    vector<string> result;
+    CSVReader reader(filePath, csvReaderConfig, 0);
+    if (reader.hasNextLine()) {
+        while (reader.hasNextToken()) {
+            result.emplace_back(reader.getString());
+        }
+    }
+    return result;
+}
+
+bool Binder::compareStringsCaseInsensitive(const string& str1, const string& str2) {
+    return str1.size() == str2.size() &&
+           std::equal(str1.begin(), str1.end(), str2.begin(),
+               [](auto a, auto b) { return std::tolower(a) == std::tolower(b); });
 }
 
 } // namespace binder

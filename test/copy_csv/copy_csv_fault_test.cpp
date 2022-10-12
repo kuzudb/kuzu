@@ -28,6 +28,8 @@ class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
     string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
 };
 
+class CopyCSVWrongHeaderTest : public CopyCSVFaultTest {};
+
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
     ASSERT_EQ(getCopyCSVException(),
         "Failed to execute statement: COPY person FROM "
@@ -46,4 +48,43 @@ TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
     auto result = conn->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)");
     ASSERT_EQ(result->getErrorMessage(),
         "Cannot convert string Alice to INT64.. Invalid input. No characters consumed.");
+}
+
+TEST_F(CopyCSVWrongHeaderTest, CSVHeaderError) {
+    conn->query("create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));");
+    conn->query(
+        "create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);");
+    auto result = conn->query(
+        "COPY person FROM \"dataset/copy-csv-fault-tests/wrong-header/vPersonWrongColumnName.csv\" "
+        "(HEADER=true)");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: The name of column 1 does not match the column in schema. Expecting "
+        "\"fName\", the column name in csv is \"name\".");
+
+    result = conn->query(
+        "COPY person FROM \"dataset/copy-csv-fault-tests/wrong-header/vPersonMissingColumn.csv\" "
+        "(HEADER=true)");
+    ASSERT_EQ(result->getErrorMessage(), "Binder exception: The csv file does not have sufficient "
+                                         "property columns. Expecting at least 2 "
+                                         "columns. The file has 1 property column.");
+
+    result = conn->query(
+        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsNoColumnMatch.csv\" "
+        "(HEADER=true)");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: The first property column \"prop1\" is not found in the csv.");
+
+    result = conn->query(
+        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsMissingColumn.csv\" "
+        "(HEADER=true)");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: The csv file does not have sufficient property columns. Expecting at "
+        "least 2 columns. The file has 1 property column.");
+
+    result = conn->query(
+        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsWrongColumnName.csv\" "
+        "(HEADER=true)");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: The name of column 1 does not match the column in schema. Expecting "
+        "\"prop2\", the column name in csv is \"p2\".");
 }
