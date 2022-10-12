@@ -16,7 +16,7 @@ using namespace catalog;
 
 using InsertedEdgeTupleIdxs = map<node_offset_t, vector<uint64_t>>;
 
-class InMemList;
+struct InMemList;
 
 class ListUpdateStore {
 

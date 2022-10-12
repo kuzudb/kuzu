@@ -37,11 +37,11 @@ namespace storage {
 
 class ListsUpdateIterator {
 public:
-    ListsUpdateIterator(Lists* lists)
+    explicit ListsUpdateIterator(Lists* lists)
         : lists{lists}, curChunkIdx{UINT64_MAX}, curUnprocessedNodeOffset{UINT64_MAX},
           curCSROffset{UINT64_MAX}, finishCalled{false} {}
 
-    ~ListsUpdateIterator() { assert(finishCalled); }
+    virtual ~ListsUpdateIterator() { assert(finishCalled); }
 
     void updateList(node_offset_t nodeOffset, InMemList& inMemList);
 
@@ -87,7 +87,7 @@ protected:
 
 class AdjOrUnstructuredListsUpdateIterator : public ListsUpdateIterator {
 public:
-    AdjOrUnstructuredListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
+    explicit AdjOrUnstructuredListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
     inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {
@@ -109,7 +109,7 @@ private:
 
 class RelPropertyListsUpdateIterator : public ListsUpdateIterator {
 public:
-    RelPropertyListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
+    explicit RelPropertyListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
     // Only adjListUpdateIterator and unstructuredListUpdateIterator need to update small or large
@@ -125,7 +125,6 @@ private:
 };
 
 class ListsUpdateIteratorFactory {
-
 public:
     static unique_ptr<ListsUpdateIterator> getListsUpdateIterator(Lists* lists) {
         switch (lists->storageStructureIDAndFName.storageStructureID.listFileID.listType) {

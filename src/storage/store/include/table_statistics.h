@@ -59,6 +59,8 @@ public:
         tableStatisticPerTableForReadOnlyTrx->erase(tableID);
     }
 
+    virtual ~TablesStatistics() = default;
+
 protected:
     virtual inline string getTableTypeForPrinting() const = 0;
 
