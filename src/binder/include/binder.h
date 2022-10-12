@@ -22,6 +22,10 @@
 using namespace graphflow::parser;
 using namespace graphflow::catalog;
 
+namespace spdlog {
+class logger;
+}
+
 namespace graphflow {
 namespace binder {
 
@@ -30,7 +34,8 @@ class Binder {
 
 public:
     explicit Binder(const Catalog& catalog)
-        : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+        : catalog{catalog}, lastExpressionId{0}, variablesInScope{},
+          expressionBinder{this}, logger{LoggerUtils::getOrCreateSpdLogger("binder")} {}
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
@@ -118,8 +123,7 @@ private:
 
     static char bindParsingOptionValue(string parsingOptionValue);
 
-    uint64_t getNumberOfFieldsForCSV(
-        const string& filePath, const CSVReaderConfig& csvReaderConfig);
+    void validateCSVHeader(bool isNodeTable, const vector<string>& csvFields, table_id_t tableID);
 
     /******* validations *********/
     // E.g. Optional MATCH (a) RETURN a.age
@@ -169,11 +173,16 @@ private:
 
     void validateNodeTableHasNoEdge(table_id_t tableID) const;
 
+    static vector<string> getFieldNamesForCSV(
+        const string& filePath, const CSVReaderConfig& csvReaderConfig);
+    static bool compareStringsCaseInsensitive(const string& str1, const string& str2);
+
 private:
     const Catalog& catalog;
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
+    shared_ptr<spdlog::logger> logger;
 };
 
 } // namespace binder
