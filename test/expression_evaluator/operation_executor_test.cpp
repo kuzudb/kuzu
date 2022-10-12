@@ -6,7 +6,7 @@
 #include "src/function/null/operations/include/null_operations.h"
 #include "src/function/string/operations/include/left_operation.h"
 #include "src/function/string/operations/include/substr_operation.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/processor/result/include/result_set.h"
 
 using ::testing::Test;
 

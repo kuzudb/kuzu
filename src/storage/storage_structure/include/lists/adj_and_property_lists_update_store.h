@@ -4,7 +4,7 @@
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/types/include/node_id_t.h"
 #include "src/common/types/include/types.h"
-#include "src/processor/include/physical_plan/result/factorized_table.h"
+#include "src/processor/result/include/factorized_table.h"
 #include "src/storage/include/storage_utils.h"
 #include "src/storage/storage_structure/include/lists/list_sync_state.h"
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/common/include/task_system/task.h"
-#include "src/processor/include/physical_plan/operator/sink.h"
+#include "src/processor/operator/include/sink.h"
 
 using namespace std;
 

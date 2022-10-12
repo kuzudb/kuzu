@@ -67,7 +67,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "storage_structure",
-        "//src/processor:factorized_table",
+        "//src/processor/result:factorized_table",
     ],
 )
 

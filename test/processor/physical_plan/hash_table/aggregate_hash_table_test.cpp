@@ -3,8 +3,8 @@
 #include "src/function/aggregate/include/avg.h"
 #include "src/function/aggregate/include/count.h"
 #include "src/function/aggregate/include/sum.h"
-#include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/processor/operator/aggregate/include/aggregate_hash_table.h"
+#include "src/processor/result/include/result_set.h"
 
 using ::testing::Test;
 using namespace graphflow::function;

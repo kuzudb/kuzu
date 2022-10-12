@@ -8,7 +8,8 @@ cc_library(
     ]),
     visibility = [
         "//src/function:__pkg__",
-        "//src/processor:__pkg__",
+        "//src/processor/operator/aggregate:__pkg__",
+        "//src/processor/operator/hash_join:__pkg__",
     ],
     deps = [
         "//src/function",

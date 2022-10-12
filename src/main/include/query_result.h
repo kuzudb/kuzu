@@ -3,8 +3,8 @@
 #include "query_summary.h"
 
 #include "src/common/types/include/types.h"
-#include "src/processor/include/physical_plan/result/factorized_table.h"
-#include "src/processor/include/physical_plan/result/flat_tuple.h"
+#include "src/processor/result/include/factorized_table.h"
+#include "src/processor/result/include/flat_tuple.h"
 
 using namespace graphflow::processor;
 

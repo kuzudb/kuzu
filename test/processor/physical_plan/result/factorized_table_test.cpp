@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/exception.h"
-#include "src/processor/include/physical_plan/result/factorized_table.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/processor/result/include/factorized_table.h"
+#include "src/processor/result/include/result_set.h"
 
 using namespace graphflow::processor;
 

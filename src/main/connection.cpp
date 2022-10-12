@@ -5,7 +5,7 @@
 
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
-#include "src/processor/include/physical_plan/mapper/plan_mapper.h"
+#include "src/processor/mapper/include/plan_mapper.h"
 
 using namespace std;
 using namespace graphflow::parser;

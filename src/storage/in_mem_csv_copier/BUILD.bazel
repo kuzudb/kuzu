@@ -9,7 +9,7 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/processor:__pkg__",
+        "//src/processor/operator:__subpackages__",
     ],
     deps = [
         "//src/catalog",

@@ -60,12 +60,12 @@ public:
     }
 
     static Property constructStructuredNodeProperty(
-        PropertyNameDataType nameDataType, uint32_t propertyID, table_id_t tableID) {
+        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
         return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
     static inline Property constructRelProperty(
-        PropertyNameDataType nameDataType, uint32_t propertyID, table_id_t tableID) {
+        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
         return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
@@ -136,12 +136,12 @@ struct RelTableSchema : TableSchema {
         assert(false);
     }
 
-    inline bool isSingleMultiplicityInDirection(RelDirection direction) {
+    inline bool isSingleMultiplicityInDirection(RelDirection direction) const {
         return relMultiplicity == ONE_ONE ||
                relMultiplicity == (direction == FWD ? MANY_ONE : ONE_MANY);
     }
 
-    inline SrcDstTableIDs getSrcDstTableIDs() { return srcDstTableIDs; }
+    inline SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline uint32_t getNumPropertiesToReadFromCSV() const { return properties.size(); }

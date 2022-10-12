@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "src/binder/expression/include/expression.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/processor/result/include/result_set.h"
 
 using namespace graphflow::binder;
 using namespace graphflow::processor;

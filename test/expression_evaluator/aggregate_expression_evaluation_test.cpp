@@ -6,7 +6,7 @@
 #include "src/function/aggregate/include/count.h"
 #include "src/function/aggregate/include/min_max.h"
 #include "src/function/aggregate/include/sum.h"
-#include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/processor/result/include/result_set.h"
 
 using ::testing::Test;
 

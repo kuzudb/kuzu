@@ -10,7 +10,7 @@ cc_test(
     ],
     deps = [
         "//src/expression_evaluator:expression_evaluator_impls",
-        "//src/processor:mapper",
+        "//src/processor/mapper",
         "@gtest",
         "@gtest//:gtest_main",
     ],
