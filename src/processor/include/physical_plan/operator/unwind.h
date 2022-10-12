@@ -12,14 +12,13 @@ using namespace graphflow::evaluator;
 namespace graphflow {
 namespace processor {
 
-class Unwind : public PhysicalOperator, public SourceOperator {
+class Unwind : public PhysicalOperator {
 public:
-    Unwind(shared_ptr<Expression> expression, unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        DataPos outDataPos, unique_ptr<BaseExpressionEvaluator> expressionEvaluator, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          expression(move(expression)), outDataPos{outDataPos},
-          expressionEvaluator{move(expressionEvaluator)}, isExprEvaluated{false}, startOffset{0u} {}
+    Unwind(shared_ptr<DataType> dataType, DataPos outDataPos,
+        unique_ptr<BaseExpressionEvaluator> expressionEvaluator, unique_ptr<PhysicalOperator> child,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, exprReturnDataType{move(dataType)},
+          outDataPos{outDataPos}, expressionEvaluator{move(expressionEvaluator)}, startIndex{0u} {}
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
 
@@ -28,18 +27,17 @@ public:
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Unwind>(expression, resultSetDescriptor->copy(), outDataPos,
-            expressionEvaluator->clone(), id, paramsString);
+        return make_unique<Unwind>(exprReturnDataType, outDataPos, expressionEvaluator->clone(),
+            children[0]->clone(), id, paramsString);
     }
 
 private:
-    shared_ptr<Expression> expression;
+    shared_ptr<DataType> exprReturnDataType;
     DataPos outDataPos;
 
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
     shared_ptr<ValueVector> valueVector;
-    bool isExprEvaluated;
-    uint32_t startOffset;
+    uint32_t startIndex;
     gf_list_t* inputList;
 };
 

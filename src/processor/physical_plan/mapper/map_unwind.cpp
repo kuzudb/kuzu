@@ -9,16 +9,14 @@ namespace processor {
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto unwind = (LogicalUnwind*)logicalOperator;
-    // use alias of expression instead of unique name that was inserted previously in schema group
-    auto dataPos = mapperContext.getDataPos(unwind->getExpression()->getAlias());
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto dataPos = mapperContext.getDataPos(unwind->getAliasExpression()->getUniqueName());
     auto expressionEvaluator =
         expressionMapper.mapExpression(unwind->getExpression(), mapperContext);
-    // add alias instead of unique name of expression so that parent operators can identify it and
-    // do reference evaluation
-    mapperContext.addComputedExpressions(unwind->getExpression()->getAlias());
-    return make_unique<Unwind>(unwind->getExpression(),
-        mapperContext.getResultSetDescriptor()->copy(), dataPos, move(expressionEvaluator),
-        getOperatorID(), unwind->getExpressionsForPrinting());
+    mapperContext.addComputedExpressions(unwind->getAliasExpression()->getUniqueName());
+    auto exprReturnDataType = make_shared<DataType>(unwind->getExpression()->getDataType());
+    return make_unique<Unwind>(exprReturnDataType, dataPos, move(expressionEvaluator),
+        move(prevOperator), getOperatorID(), unwind->getExpressionsForPrinting());
 }
 
 } // namespace processor

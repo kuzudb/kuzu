@@ -2,6 +2,7 @@
 
 #include "join_order_enumerator.h"
 #include "projection_enumerator.h"
+#include "unwind_planner.h"
 #include "update_planner.h"
 
 #include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
@@ -18,6 +19,7 @@ namespace planner {
 
 class Enumerator {
     friend class JoinOrderEnumerator;
+    friend class UnwindPlanner;
     friend class ProjectionEnumerator;
     friend class UpdatePlanner;
     friend class ASPOptimizer;
@@ -28,7 +30,8 @@ public:
         const RelsStatistics& relsStatistics)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,
                                 relsStatistics, this},
-          projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
+          unwindPlanner{catalog, this}, projectionEnumerator{catalog, this}, updatePlanner{
+                                                                                 catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -47,8 +50,6 @@ private:
 
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
-
-    void planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
     void planOptionalMatch(const QueryGraph& queryGraph,
         shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
@@ -121,6 +122,7 @@ private:
     const Catalog& catalog;
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
+    UnwindPlanner unwindPlanner;
     ProjectionEnumerator projectionEnumerator;
     UpdatePlanner updatePlanner;
 };

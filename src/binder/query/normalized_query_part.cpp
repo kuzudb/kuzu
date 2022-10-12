@@ -1,22 +1,31 @@
 #include "include/normalized_query_part.h"
 
+#include "reading_clause/include/bound_match_clause.h"
+
 namespace graphflow {
 namespace binder {
 
-void NormalizedQueryPart::addQueryGraph(unique_ptr<QueryGraph> queryGraph,
-    shared_ptr<Expression> predicate, bool isQueryGraphOptional) {
-    queryGraphs.push_back(move(queryGraph));
-    queryGraphPredicates.push_back(move(predicate));
-    isOptional.push_back(isQueryGraphOptional);
-}
-
 expression_vector NormalizedQueryPart::getPropertiesToRead() const {
     expression_vector result;
-    for (auto i = 0u; i < getNumQueryGraph(); ++i) {
-        if (hasQueryGraphPredicate(i)) {
-            for (auto& property : queryGraphPredicates[i]->getSubPropertyExpressions()) {
-                result.push_back(property);
+    for (auto i = 0u; i < getNumReadingClause(); i++) {
+        if (getReadingClause(i)->getClauseType() == ClauseType::MATCH) {
+            auto boundMatchClause = (BoundMatchClause*)getReadingClause(i);
+            if (boundMatchClause->getWhereExpression() != nullptr) {
+                for (auto& property :
+                    boundMatchClause->getWhereExpression()->getSubPropertyExpressions()) {
+                    result.push_back(property);
+                }
             }
+        } else if (getReadingClause(i)->getClauseType() == ClauseType::UNWIND) {
+            auto boundUnwindClause = (BoundUnwindClause*)getReadingClause(i);
+            if (boundUnwindClause->getExpression() != nullptr) {
+                for (auto& property :
+                    boundUnwindClause->getExpression()->getSubPropertyExpressions()) {
+                    result.push_back(property);
+                }
+            }
+        } else {
+            assert(false);
         }
     }
     for (auto& updatingClause : updatingClauses) {

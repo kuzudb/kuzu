@@ -247,11 +247,9 @@ unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchCla
 
 unique_ptr<BoundUnwindClause> Binder::bindUnwindClause(const UnwindClause& unwindClause) {
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    // this alias is to be used later when referred to by parent operators in plan mapping
     boundExpression->setAlias(unwindClause.getAlias());
-    auto dataType = boundExpression->dataType.childType != nullptr ?
-                        make_shared<DataType>(*boundExpression->dataType.childType) :
-                        make_shared<DataType>(boundExpression->dataType);
+    assert(boundExpression->dataType.childType != nullptr);
+    auto dataType = make_shared<DataType>(*boundExpression->dataType.childType);
     auto aliasExpression =
         make_shared<Expression>(ExpressionType::FUNCTION, *dataType, unwindClause.getAlias());
     aliasExpression->setRawName(unwindClause.getAlias());
@@ -737,7 +735,7 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalized
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < normalizedSingleQuery.getNumQueryParts(); ++i) {
         auto normalizedQueryPart = normalizedSingleQuery.getQueryPart(i);
-        if (hasSeenUpdateClause && normalizedQueryPart->getNumQueryGraph() != 0) {
+        if (hasSeenUpdateClause && normalizedQueryPart->getNumReadingClause() != 0) {
             throw BinderException("Read after update is not supported.");
         }
         hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();
