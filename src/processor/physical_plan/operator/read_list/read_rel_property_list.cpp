@@ -5,7 +5,8 @@ namespace processor {
 
 shared_ptr<ResultSet> ReadRelPropertyList::init(ExecutionContext* context) {
     resultSet = ReadList::init(context);
-    outValueVector = make_shared<ValueVector>(lists->dataType, context->memoryManager);
+    outValueVector =
+        make_shared<ValueVector>(listsWithRelUpdateStore->dataType, context->memoryManager);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
     return resultSet;
@@ -18,7 +19,7 @@ bool ReadRelPropertyList::getNextTuples() {
         return false;
     }
     outValueVector->resetOverflowBuffer();
-    lists->readValues(outValueVector, *listHandle);
+    listsWithRelUpdateStore->readValues(outValueVector, *listHandle);
     metrics->executionTime.stop();
     return true;
 }

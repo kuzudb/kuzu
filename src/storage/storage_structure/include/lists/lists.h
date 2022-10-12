@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rel_update_store.h"
+#include "rels_update_store.h"
 
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/value.h"
@@ -84,9 +84,9 @@ class Lists : public BaseColumnOrList {
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
+        bool isInMemory, WAL* wal)
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
-              true /*hasNULLBytes*/, isInMemory, wal, listUpdateStore} {};
+              true /*hasNULLBytes*/, isInMemory, wal} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
     inline uint64_t getNumElementsInPersistentStore(node_offset_t nodeOffset) const {
@@ -95,66 +95,89 @@ public:
                    metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
                    ListHeaders::getSmallListLen(header);
     }
-    inline uint64_t getNumElementsInRelUpdateStore(node_offset_t nodeOffset) const {
-        return listUpdateStore->getNumInsertedRelsForNodeOffset(nodeOffset);
-    }
-    inline uint64_t getTotalNumElementsInList(
-        TransactionType transactionType, node_offset_t nodeOffset) const {
-        return getNumElementsInPersistentStore(nodeOffset) +
-               (transactionType == TransactionType::WRITE ?
-                       getNumElementsInRelUpdateStore(nodeOffset) :
-                       0);
-    }
-    inline uint64_t getNumElementsPerPage() const { return numElementsPerPage; }
     virtual inline void checkpointInMemoryIfNecessary() {
         metadata.checkpointInMemoryIfNecessary();
     }
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
-    virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-    virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     // Prepares all the db file changes necessary to update the "persistent" store of lists with the
     // relUpdateSotre, which stores the updates by the write trx locally.
-    void prepareCommitOrRollbackIfNecessary(bool isCommit);
-    void initListReadingState(
-        node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
+    virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
     void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
         uint64_t numElementsInPersistentStore, InMemList& inMemList);
 
 protected:
-    virtual inline bool isUpdateStoreEmpty() const { return listUpdateStore->isEmpty(); }
     virtual inline DiskOverflowFile* getDiskOverflowFileIfExists() { return nullptr; }
     virtual inline NodeIDCompressionScheme* getNodeIDCompressionIfExists() { return nullptr; }
-    virtual void prepareCommit(ListsUpdateIterator& listsUpdateIterator);
-    virtual void readFromLargeList(
-        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-
-    void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    virtual void prepareCommit(ListsUpdateIterator& listsUpdateIterator) = 0;
 
     // storageStructureIDAndFName is the ID and fName for the "main ".lists" file.
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool hasNULLBytes, bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
+        bool hasNULLBytes, bool isInMemory, WAL* wal)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
               hasNULLBytes, isInMemory, wal},
           storageStructureIDAndFName{storageStructureIDAndFName},
-          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{move(headers)},
-          listUpdateStore{listUpdateStore} {};
+          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{move(headers)} {};
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;
     ListsMetadata metadata;
     shared_ptr<ListHeaders> headers;
-    shared_ptr<ListUpdateStore> listUpdateStore;
 };
 
-class PropertyListsWithOverflow : public Lists {
+class ListsWithRelsUpdateStore : public Lists {
+
+public:
+    ListsWithRelsUpdateStore(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
+        BufferManager& bufferManager, bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
+        : ListsWithRelsUpdateStore{storageStructureIDAndFName, dataType, elementSize, move(headers),
+              bufferManager, true /*hasNULLBytes*/, isInMemory, wal, relsUpdateStore} {};
+
+    inline uint64_t getNumElementsInRelUpdateStore(node_offset_t nodeOffset) {
+        return relsUpdateStore->getNumInsertedRelsForNodeOffset(
+            storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
+    }
+    inline uint64_t getTotalNumElementsInList(
+        TransactionType transactionType, node_offset_t nodeOffset) {
+        return getNumElementsInPersistentStore(nodeOffset) +
+               (transactionType == TransactionType::WRITE ?
+                       getNumElementsInRelUpdateStore(nodeOffset) :
+                       0);
+    }
+    virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    void initListReadingState(
+        node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
+
+protected:
+    virtual void readFromSmallList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    virtual void readFromLargeList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    void prepareCommit(ListsUpdateIterator& listsUpdateIterator) override;
+
+    ListsWithRelsUpdateStore(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
+        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory, WAL* wal,
+        RelsUpdateStore* relsUpdateStore)
+        : Lists{storageStructureIDAndFName, dataType, elementSize, headers, bufferManager,
+              hasNULLBytes, isInMemory, wal},
+          relsUpdateStore{relsUpdateStore} {};
+
+protected:
+    RelsUpdateStore* relsUpdateStore;
+};
+
+class PropertyListsWithOverflow : public ListsWithRelsUpdateStore {
 public:
     PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, dataType, Types::getDataTypeSize(dataType),
-              move(headers), bufferManager, isInMemory, wal, listUpdateStore},
+        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
+        : ListsWithRelsUpdateStore{storageStructureIDAndFName, dataType,
+              Types::getDataTypeSize(dataType), move(headers), bufferManager, isInMemory, wal,
+              relsUpdateStore},
           diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
 
 private:
@@ -169,15 +192,15 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        shared_ptr<ListUpdateStore> listUpdateStore)
+        RelsUpdateStore* relsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
-              bufferManager, isInMemory, wal, listUpdateStore} {};
+              bufferManager, isInMemory, wal, relsUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 };
 
 class ListPropertyLists : public PropertyListsWithOverflow {
@@ -185,27 +208,27 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
+        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
-              isInMemory, wal, listUpdateStore} {};
+              isInMemory, wal, relsUpdateStore} {};
 
 private:
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 };
 
-class AdjLists : public Lists {
+class AdjLists : public ListsWithRelsUpdateStore {
 
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
-        bool isInMemory, WAL* wal, shared_ptr<ListUpdateStore> listUpdateStore)
-        : Lists{storageStructureIDAndFName, DataType(NODE_ID),
+        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
+        : ListsWithRelsUpdateStore{storageStructureIDAndFName, DataType(NODE_ID),
               nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(),
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
-              bufferManager, false, isInMemory, wal, listUpdateStore},
+              bufferManager, false, isInMemory, wal, relsUpdateStore},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     inline bool mayContainNulls() const override { return false; }
@@ -216,21 +239,13 @@ public:
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
     void checkpointInMemoryIfNecessary() override {
-        if (listUpdateStore->isEmpty()) {
-            return;
-        }
         headers->checkpointInMemoryIfNecessary();
         Lists::checkpointInMemoryIfNecessary();
-        listUpdateStore->clear();
     }
 
     void rollbackInMemoryIfNecessary() override {
-        if (listUpdateStore->isEmpty()) {
-            return;
-        }
         headers->rollbackInMemoryIfNecessary();
         Lists::rollbackInMemoryIfNecessary();
-        listUpdateStore->clear();
     }
 
 private:
@@ -240,11 +255,9 @@ private:
 
     void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-
-    void readFromRelUpdateStore(
-        ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector) const;
+    void readFromSmallList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromRelUpdateStore(ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector);
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
@@ -253,10 +266,10 @@ private:
 class ListsFactory {
 
 public:
-    static unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
-        const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        shared_ptr<ListUpdateStore> listUpdateStore) {
+    static unique_ptr<ListsWithRelsUpdateStore> getListsWithRelsUpdateStore(
+        const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
+        const shared_ptr<ListHeaders>& adjListsHeaders, BufferManager& bufferManager,
+        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -264,15 +277,15 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Lists>(structureIDAndFName, dataType,
+            return make_unique<ListsWithRelsUpdateStore>(structureIDAndFName, dataType,
                 Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal,
-                listUpdateStore);
+                relsUpdateStore);
         case STRING:
             return make_unique<StringPropertyLists>(structureIDAndFName, adjListsHeaders,
-                bufferManager, isInMemory, wal, listUpdateStore);
+                bufferManager, isInMemory, wal, relsUpdateStore);
         case LIST:
             return make_unique<ListPropertyLists>(structureIDAndFName, dataType, adjListsHeaders,
-                bufferManager, isInMemory, wal, listUpdateStore);
+                bufferManager, isInMemory, wal, relsUpdateStore);
         default:
             throw StorageException("Invalid type for property list creation.");
         }

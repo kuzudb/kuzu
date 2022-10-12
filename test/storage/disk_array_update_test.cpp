@@ -42,7 +42,7 @@ public:
     // we use as our DiskArray in these tests, a call to set the property list of nodeOffset to
     // empty will trigger the following: the UnstructuredPropertyLists will have an "update"; then
     // this will trigger UnstructuredPropertyLists to add itself to
-    // wal->addToUpdatedLists when prepareCommitOrRollbackIfNecessary called;
+    // wal->addToUpdatedUnstructuredPropertyLists when prepareCommitOrRollbackIfNecessary called;
     // then the WALReplayer will call checkpoint/rollbackInMemory on this UnstructuredPropertyLists;
     // finally UnstructuredPropertyLists will call headerDA->checkpoint/rollbackInMemoryIfNecessary.
     void setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism() {

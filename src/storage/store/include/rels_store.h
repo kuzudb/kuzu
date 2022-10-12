@@ -23,7 +23,7 @@ public:
         const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyColumn(nodeTableID, propertyIdx);
     }
-    inline Lists* getRelPropertyLists(const RelDirection& relDirection,
+    inline ListsWithRelsUpdateStore* getRelPropertyLists(const RelDirection& relDirection,
         const table_id_t& nodeTableID, const table_id_t& relTableID,
         const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
@@ -54,7 +54,7 @@ public:
     // This function is used for testing only.
     inline uint32_t getNumRelTables() const { return relTables.size(); }
 
-    inline RelTable* getRel(table_id_t tableID) const { return relTables.at(tableID).get(); }
+    inline RelTable* getRelTable(table_id_t tableID) const { return relTables.at(tableID).get(); }
 
     inline RelsStatistics& getRelsStatistics() { return relsStatistics; }
 

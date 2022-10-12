@@ -234,12 +234,12 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory(),
                     catalog);
                 // See comments for COPY_NODE_CSV_RECORD.
-                storageManager->getRelsStore().getRel(tableID)->loadColumnsAndListsFromDisk(
+                storageManager->getRelsStore().getRelTable(tableID)->loadColumnsAndListsFromDisk(
                     *catalog,
                     storageManager->getNodesStore()
                         .getNodesStatisticsAndDeletedIDs()
                         .getMaxNodeOffsetPerTable(),
-                    *bufferManager, wal);
+                    *bufferManager);
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
                     .setAdjListsAndColumns(&storageManager->getRelsStore());
@@ -437,40 +437,23 @@ void WALReplayer::replay() {
         replayWALRecord(walRecord);
     }
 
-    // We next perform an in-memory checkpointing or rolling back of any lists.
-    for (auto& listFileID : wal->updatedLists) {
-        switch (listFileID.listType) {
-        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            auto unstructuredPropertyLists =
-                storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    listFileID.unstructuredNodePropertyListsID.tableID);
-            if (isCheckpoint) {
-                unstructuredPropertyLists->checkpointInMemoryIfNecessary();
-            } else {
-                unstructuredPropertyLists->rollbackInMemoryIfNecessary();
-            }
-        } break;
-        case ADJ_LISTS: {
-            auto relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
-            auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
-                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID);
-            if (isCheckpoint) {
-                adjLists->checkpointInMemoryIfNecessary();
-            } else {
-                adjLists->rollbackInMemoryIfNecessary();
-            }
-        } break;
-        case REL_PROPERTY_LISTS: {
-            auto relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
-            auto relPropLists = storageManager->getRelsStore().getRelPropertyLists(
-                relNodeTableAndDir.dir, relNodeTableAndDir.srcNodeTableID,
-                relNodeTableAndDir.relTableID, listFileID.relPropertyListID.propertyID);
-            if (isCheckpoint) {
-                relPropLists->checkpointInMemoryIfNecessary();
-            } else {
-                relPropLists->rollbackInMemoryIfNecessary();
-            }
-        } break;
+    // We next perform an in-memory checkpointing or rolling back of unstructuredPropertyLists.
+    for (auto& nodeTableID : wal->updatedUnstructuredPropertyLists) {
+        auto unstructuredPropertyLists =
+            storageManager->getNodesStore().getNodeUnstrPropertyLists(nodeTableID);
+        if (isCheckpoint) {
+            unstructuredPropertyLists->checkpointInMemoryIfNecessary();
+        } else {
+            unstructuredPropertyLists->rollbackInMemoryIfNecessary();
+        }
+    }
+    // Then we perform an in-memory checkpointing or rolling back of relTables.
+    for (auto& relTableID : wal->updatedRelTables) {
+        auto relTable = storageManager->getRelsStore().getRelTable(relTableID);
+        if (isCheckpoint) {
+            relTable->checkpointInMemoryIfNecessary();
+        } else {
+            relTable->rollbackInMemoryIfNecessary();
         }
     }
 }
