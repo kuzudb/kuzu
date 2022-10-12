@@ -5,17 +5,54 @@
 namespace graphflow {
 namespace main {
 
+OpProfileBox::OpProfileBox(string opName, string paramsName, vector<string> attributes)
+    : opName{move(opName)}, attributes{move(attributes)} {
+    stringstream paramsStream{paramsName};
+    string paramStr = "";
+    string subStr;
+    bool subParam = false;
+    // This loop splits the parameters by commas, while not
+    // splitting up parameters that are operators.
+    while (paramsStream.good()) {
+        getline(paramsStream, subStr, ',');
+        if (subStr.find('(') != std::string::npos && subStr.find(')') == std::string::npos) {
+            paramStr = subStr;
+            subParam = true;
+            continue;
+        } else if (subParam && subStr.find(')') == std::string::npos) {
+            paramStr += "," + subStr;
+            continue;
+        } else if (subParam) {
+            subStr = paramStr + ")";
+            paramStr = "";
+            subParam = false;
+        }
+        // This if statement discards any strings that are completely whitespace.
+        if (subStr.find_first_not_of(" \t\n\v\f\r") != std::string::npos) {
+            paramsNames.push_back(subStr);
+        }
+    }
+}
+
 uint32_t OpProfileBox::getAttributeMaxLen() const {
-    auto maxAttributeLen = name.length();
+    auto maxAttributeLen = opName.length();
+    for (auto& param : paramsNames) {
+        maxAttributeLen = max(param.length(), maxAttributeLen);
+    }
     for (auto& attribute : attributes) {
         maxAttributeLen = max(attribute.length(), maxAttributeLen);
     }
     return maxAttributeLen;
 }
 
-string OpProfileBox::getAttribute(uint32_t i) const {
-    assert(i < attributes.size());
-    return attributes[i];
+string OpProfileBox::getParamsName(uint32_t idx) const {
+    assert(idx < paramsNames.size());
+    return paramsNames[idx];
+}
+
+string OpProfileBox::getAttribute(uint32_t idx) const {
+    assert(idx < attributes.size());
+    return attributes[idx];
 }
 
 OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
@@ -30,6 +67,12 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
     // rightIndentWidth + boxRightFrameWidth;
     this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
+}
+
+void printSpaceIfNecessary(uint32_t idx, ostringstream& oss) {
+    if (idx > 0) {
+        oss << " ";
+    }
 }
 
 void OpProfileTree::prettyPrintToShell() const {
@@ -62,8 +105,8 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
 
 uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
     uint32_t& maxFieldWidth, Profiler& profiler) {
-    auto opProfileBox =
-        make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op), op->getAttributes(profiler));
+    auto opProfileBox = make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
+        PlanPrinter::getOperatorParams(op), op->getAttributes(profiler));
     maxFieldWidth = max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, move(opProfileBox));
     if (!op->getNumChildren()) {
@@ -80,6 +123,7 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
 
 void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, ostringstream& oss) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
+        printSpaceIfNecessary(i, oss);
         if (getOpProfileBox(rowIdx, i)) {
             // If the current box has a parent, we need to put a "┴" in the  box upper frame to
             // connect to its parent.
@@ -101,16 +145,25 @@ void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, ostringstream& 
 void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) const {
     auto height = calculateRowHeight(rowIdx);
     auto halfWayPoint = height / 2;
+    uint32_t offset = 0;
     for (auto i = 0u; i < height; i++) {
         for (auto j = 0u; j < opProfileBoxes[rowIdx].size(); j++) {
             auto opProfileBox = getOpProfileBox(rowIdx, j);
-            if (opProfileBox && i < 2 * opProfileBox->getNumAttributes() + 1) {
+            if (opProfileBox &&
+                i < 2 * (opProfileBox->getNumAttributes() + 1) + opProfileBox->getNumParams()) {
+                printSpaceIfNecessary(j, oss);
                 string textToPrint;
-                if (i % 2) {
+                unsigned int numParams = opProfileBox->getNumParams();
+                if (i == 0) {
+                    textToPrint = opProfileBox->getOpName();
+                } else if (i == 1) {
+                    textToPrint = string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
+                } else if (i <= numParams + 1) {
+                    textToPrint = opProfileBox->getParamsName(i - 2);
+                } else if ((i - numParams - 1) % 2) {
                     textToPrint = string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
                 } else {
-                    textToPrint =
-                        i ? opProfileBox->getAttribute(i / 2 - 1) : opProfileBox->getName();
+                    textToPrint = opProfileBox->getAttribute((i - numParams - 1) / 2 - 1);
                 }
                 auto numLeftSpaces =
                     (opProfileBoxWidth - (1 + INDENT_WIDTH) * 2 - textToPrint.length()) / 2;
@@ -121,25 +174,29 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
             } else if (opProfileBox) {
                 // If we have printed out all the attributes in the current opProfileBox, print
                 // empty spaces as placeholders.
+                printSpaceIfNecessary(j, oss);
                 oss << "│" << string(opProfileBoxWidth - 2, ' ') << "│";
             } else {
                 if (hasOpProfileBox(rowIdx + 1, j) && i >= halfWayPoint) {
-                    auto leftHorizLineSize = opProfileBoxWidth / 2;
+                    auto leftHorizLineSize = (opProfileBoxWidth - 1) / 2;
                     if (i == halfWayPoint) {
-                        oss << genHorizLine(leftHorizLineSize);
+                        oss << genHorizLine(leftHorizLineSize + 1);
                         if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1)) {
                             oss << "┬" << genHorizLine(opProfileBoxWidth - 1 - leftHorizLineSize);
                         } else {
                             oss << "┐" << string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                         }
                     } else if (i > halfWayPoint) {
+                        printSpaceIfNecessary(j, oss);
                         oss << string(leftHorizLineSize, ' ') << "│"
                             << string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                     }
                 } else if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1) &&
                            i == halfWayPoint) {
-                    oss << genHorizLine(opProfileBoxWidth);
+                    oss << genHorizLine(opProfileBoxWidth + 1);
+                    offset = offset == 0 ? 1 : 0;
                 } else {
+                    printSpaceIfNecessary(j, oss);
                     oss << string(opProfileBoxWidth, ' ');
                 }
             }
@@ -151,6 +208,7 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
 void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& oss) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         if (getOpProfileBox(rowIdx, i)) {
+            printSpaceIfNecessary(i, oss);
             // If the current opProfileBox has a child, we need to print out a connector to it.
             if (hasOpProfileBox(rowIdx + 1, i)) {
                 auto leftFrameLength = (opProfileBoxWidth - 2 * BOX_FRAME_WIDTH - 1) / 2;
@@ -163,10 +221,12 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& 
         } else if (hasOpProfileBox(rowIdx + 1, i)) {
             // If there is a opProfileBox at the bottom, we need to print out a vertical line to
             // connect it.
-            auto leftFrameLength = opProfileBoxWidth / 2;
+            auto leftFrameLength = (opProfileBoxWidth - 1) / 2;
+            printSpaceIfNecessary(i, oss);
             oss << string(leftFrameLength, ' ') << "│"
                 << string(opProfileBoxWidth - leftFrameLength - 1, ' ');
         } else {
+            printSpaceIfNecessary(i, oss);
             oss << string(opProfileBoxWidth, ' ');
         }
     }
@@ -223,10 +283,11 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         auto opProfileBox = getOpProfileBox(rowIdx, i);
         if (opProfileBox) {
-            height = max(height, opProfileBox->getNumAttributes());
+            height =
+                max(height, 2 * opProfileBox->getNumAttributes() + opProfileBox->getNumParams());
         }
     }
-    return height * 2 + 1;
+    return height + 2;
 }
 
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
