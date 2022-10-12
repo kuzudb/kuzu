@@ -143,7 +143,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
         std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    auto probeDataInfo = ProbeDataInfo(probeKeysDataPos, probePayloadsPos);
+    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsPos);
+    if (hashJoin->getJoinType() == JoinType::MARK) {
+        auto mark = hashJoin->getMark();
+        auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());
+        mapperContext.addComputedExpressions(mark->getUniqueName());
+        probeDataInfo.markDataPos = markOutputPos;
+    }
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
@@ -155,12 +161,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             mapAccJoin(hashJoinProbe.get());
         }
     }
-    // TODO(Guodong): below is the skeleton code for mark join mapping
-    //    if (hashJoin->getJoinType() == JoinType::MARK) {
-    //        auto mark = hashJoin->getMark();
-    //        auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());
-    //        mapperContext.addComputedExpressions(mark->getUniqueName());
-    //    }
     return hashJoinProbe;
 }
 

@@ -17,6 +17,11 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
         keyVectors.push_back(keyVector);
         keySelVectors.push_back(keyVector->state->selVector.get());
     }
+    if (joinType == JoinType::MARK) {
+        markVector = make_shared<ValueVector>(BOOL);
+        resultSet->dataChunks[probeDataInfo.markDataPos.dataChunkPos]->insert(
+            probeDataInfo.markDataPos.valueVectorPos, markVector);
+    }
     for (auto pos : flatDataChunkPositions) {
         auto dataChunk = resultSet->dataChunks[pos];
         dataChunk->state = DataChunkState::getSingleValueDataChunkState();
@@ -137,6 +142,38 @@ uint64_t HashJoinProbe::getNextLeftJoinResult() {
         setVectorsToNull(vectorsToReadInto);
     }
     return 1;
+}
+
+uint64_t HashJoinProbe::getNextMarkJoinResult() {
+    auto markValues = (bool*)markVector->values;
+    if (markVector->state->isFlat()) {
+        markValues[markVector->state->getPositionOfCurrIdx()] =
+            probeState->matchedSelVector->selectedSize != 0;
+    } else {
+        fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
+        for (auto i = 0u; i < probeState->matchedSelVector->selectedSize; i++) {
+            markValues[probeState->matchedSelVector->selectedPositions[i]] = true;
+        }
+    }
+    probeState->nextMatchedTupleIdx = probeState->matchedSelVector->selectedSize;
+    return 1;
+}
+
+uint64_t HashJoinProbe::getNextJoinResult() {
+    switch (joinType) {
+    case JoinType::LEFT: {
+        return getNextLeftJoinResult();
+    }
+    case JoinType::MARK: {
+        return getNextMarkJoinResult();
+    }
+    case JoinType::INNER: {
+        return getNextInnerJoinResult();
+    }
+    default: {
+        assert(false);
+    }
+    }
 }
 
 // The general flow of a hash join probe:

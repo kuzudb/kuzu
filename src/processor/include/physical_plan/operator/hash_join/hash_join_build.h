@@ -81,7 +81,6 @@ private:
 
 private:
     shared_ptr<HashJoinSharedState> sharedState;
-
     BuildDataInfo buildDataInfo;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     unique_ptr<JoinHashTable> hashTable;

@@ -491,14 +491,18 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
 }
 
 void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-    shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    // TODO(Guodong): Remove restrictions of the num of join nodes.
-    assert(joinNodes.size() == 1);
-    auto joinNodeID = joinNodes[0]->getIDProperty();
+    const shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto buildSchema = buildPlan.getSchema();
     auto probeSchema = probePlan.getSchema();
+    // Apply flattening all but one on join nodes of both probe and build side.
+    unordered_set<uint32_t> joinNodeGroupsPosInProbeSide, joinNodeGroupsPosInBuildSide;
+    for (auto& joinNode : joinNodes) {
+        joinNodeGroupsPosInProbeSide.insert(probeSchema->getGroupPos(joinNode->getIDProperty()));
+        joinNodeGroupsPosInBuildSide.insert(buildSchema->getGroupPos(joinNode->getIDProperty()));
+    }
+    auto markGroupPos = Enumerator::appendFlattensButOne(joinNodeGroupsPosInProbeSide, probePlan);
+    Enumerator::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    auto markGroupPos = probeSchema->getGroupPos(joinNodeID);
     probeSchema->insertToGroupAndScope(mark, markGroupPos);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, buildSchema->copy(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());

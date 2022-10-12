@@ -30,15 +30,19 @@ struct ProbeDataInfo {
 
 public:
     ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutputDataPos)
-        : keysDataPos{std::move(keysDataPos)}, payloadsOutputDataPos{
-                                                   std::move(payloadsOutputDataPos)} {}
+        : keysDataPos{std::move(keysDataPos)},
+          payloadsOutputDataPos{std::move(payloadsOutputDataPos)}, markDataPos{
+                                                                       UINT32_MAX, UINT32_MAX} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keysDataPos, other.payloadsOutputDataPos} {}
+        : ProbeDataInfo{other.keysDataPos, other.payloadsOutputDataPos} {
+        markDataPos = other.markDataPos;
+    }
 
 public:
     vector<DataPos> keysDataPos;
     vector<DataPos> payloadsOutputDataPos;
+    DataPos markDataPos;
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
@@ -79,11 +83,10 @@ private:
     bool getNextBatchOfMatchedTuples();
     uint64_t getNextInnerJoinResult();
     uint64_t getNextLeftJoinResult();
+    uint64_t getNextMarkJoinResult();
     void setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors);
 
-    inline uint64_t getNextJoinResult() {
-        return joinType == JoinType::LEFT ? getNextLeftJoinResult() : getNextInnerJoinResult();
-    }
+    uint64_t getNextJoinResult();
 
 private:
     shared_ptr<HashJoinSharedState> sharedState;
@@ -95,6 +98,7 @@ private:
     vector<uint32_t> columnIdxsToReadFrom;
     vector<shared_ptr<ValueVector>> keyVectors;
     vector<SelectionVector*> keySelVectors;
+    shared_ptr<ValueVector> markVector;
     unique_ptr<ProbeState> probeState;
 };
 

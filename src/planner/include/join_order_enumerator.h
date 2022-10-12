@@ -107,7 +107,7 @@ private:
     static void appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
         JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-        shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        const shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendIntersect(const shared_ptr<NodeExpression>& intersectNode,
         vector<shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
         vector<unique_ptr<LogicalPlan>>& buildPlans);
