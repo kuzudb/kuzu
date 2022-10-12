@@ -267,7 +267,7 @@ void FactorizedTable::copyToInMemList(uint32_t colIdx, vector<uint64_t>& tupleId
         (nodeIDCompressionScheme == nullptr ?
                 0 :
                 sizeof(nodeID_t) - nodeIDCompressionScheme->getNumBytesForNodeIDAfterCompression());
-    auto listToFill = data + startElemPosInList * Types::getDataTypeSize(type);
+    auto listToFill = data + startElemPosInList * numBytesPerValue;
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
         auto tuple = getTuple(tupleIdxesToRead[i]);
         auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);

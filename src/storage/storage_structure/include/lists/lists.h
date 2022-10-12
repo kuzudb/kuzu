@@ -54,7 +54,7 @@ struct CursorAndMapper {
 };
 
 struct ListHandle {
-    ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
+    explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
     inline void resetCursorMapper(ListsMetadata& listMetadata, uint64_t numElementsPerPage) {
         cursorAndMapper.reset(listMetadata, numElementsPerPage, listSyncState.getListHeader(),
             listSyncState.getBoundNodeOffset());
@@ -215,7 +215,7 @@ public:
     // Currently, used only in copyCSV tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
-    void checkpointInMemoryIfNecessary() {
+    void checkpointInMemoryIfNecessary() override {
         if (listUpdateStore->isEmpty()) {
             return;
         }
@@ -224,7 +224,7 @@ public:
         listUpdateStore->clear();
     }
 
-    void rollbackInMemoryIfNecessary() {
+    void rollbackInMemoryIfNecessary() override {
         if (listUpdateStore->isEmpty()) {
             return;
         }
