@@ -44,66 +44,59 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
     }
 }
 
-void UpdatePlanner::planPropertyUpdateInfo(
-    shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan) {
+void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
     auto schema = plan.getSchema();
+    auto lhs = setItem.first;
+    auto rhs = setItem.second;
     // Check LHS
-    assert(property->getChild(0)->dataType.typeID == NODE);
-    auto nodeExpression = static_pointer_cast<NodeExpression>(property->getChild(0));
-    auto originGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
-    auto isOriginFlat = schema->getGroup(originGroupPos)->getIsFlat();
+    assert(lhs->getChild(0)->dataType.typeID == NODE);
+    auto nodeExpression = static_pointer_cast<NodeExpression>(lhs->getChild(0));
+    auto lhsGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
+    auto isLhsFlat = schema->getGroup(lhsGroupPos)->getIsFlat();
     // Check RHS
-    auto targetDependentGroupsPos = schema->getDependentGroupsPos(target);
-    if (!targetDependentGroupsPos.empty()) { // RHS is not constant
-        auto targetPos = Enumerator::appendFlattensButOne(targetDependentGroupsPos, plan);
-        auto isTargetFlat = schema->getGroup(targetPos)->getIsFlat();
+    auto rhsDependentGroupsPos = schema->getDependentGroupsPos(rhs);
+    if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
+        auto rhsPos = Enumerator::appendFlattensButOne(rhsDependentGroupsPos, plan);
+        auto isRhsFlat = schema->getGroup(rhsPos)->getIsFlat();
         // If both are unflat and from different groups, we flatten LHS.
-        if (!isTargetFlat && !isOriginFlat && targetPos != originGroupPos) {
-            Enumerator::appendFlattenIfNecessary(originGroupPos, plan);
+        if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
+            Enumerator::appendFlattenIfNecessary(lhsGroupPos, plan);
         }
     }
 }
 
 void UpdatePlanner::appendCreate(BoundCreateClause& createClause, LogicalPlan& plan) {
-    // Flatten all inputs.
+    // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
+    // match clause. This is to simplify operator implementation.
     for (auto groupPos = 0u; groupPos < plan.getSchema()->getNumGroups(); ++groupPos) {
         Enumerator::appendFlattenIfNecessary(groupPos, plan);
     }
-    vector<create_item> createItems;
+    auto schema = plan.getSchema();
+    vector<shared_ptr<NodeExpression>> nodes;
     for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
         auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
-        assert(nodeUpdateInfo->getNumPropertyUpdateInfo() != 0);
-        vector<expression_pair> setItems;
-        for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
-            auto propertyUpdateInfo = nodeUpdateInfo->getPropertyUpdateInfo(j);
-            auto property = propertyUpdateInfo->getProperty();
-            auto target = propertyUpdateInfo->getTarget();
-            setItems.emplace_back(property, target);
-        }
-        createItems.emplace_back(nodeUpdateInfo->getNodeExpression(), move(setItems));
+        auto node = static_pointer_cast<NodeExpression>(nodeUpdateInfo->getNodeExpression());
+        auto groupPos = schema->createGroup();
+        schema->insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
+        schema->flattenGroup(groupPos); // create output is always flat
+        nodes.push_back(node);
     }
-    auto create = make_shared<LogicalCreate>(move(createItems), plan.getLastOperator());
+    auto create = make_shared<LogicalCreate>(std::move(nodes), plan.getLastOperator());
     plan.appendOperator(create);
+    auto setItems = getSetItems(createClause);
+    appendSet(setItems, plan);
 }
 
-void UpdatePlanner::appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
-    vector<expression_pair> structuredSetItems;
-    vector<expression_pair> unstructuredSetItems;
-    for (auto i = 0u; i < setClause.getNumPropertyUpdateInfos(); ++i) {
-        auto propertyUpdateInfo = setClause.getPropertyUpdateInfo(i);
-        auto property = static_pointer_cast<PropertyExpression>(propertyUpdateInfo->getProperty());
-        auto target = propertyUpdateInfo->getTarget();
-        planPropertyUpdateInfo(property, target, plan);
-        if (property->dataType.typeID == UNSTRUCTURED) {
-            unstructuredSetItems.emplace_back(property, target);
-        } else {
-            structuredSetItems.emplace_back(property, target);
-        }
+void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& plan) {
+    for (auto& setItem : setItems) {
+        planSetItem(setItem, plan);
     }
+    auto structuredSetItems = splitSetItems(setItems, true /* isStructured */);
     if (!structuredSetItems.empty()) {
         plan.appendOperator(make_shared<LogicalSetNodeProperty>(
             std::move(structuredSetItems), false /* isUnstructured */, plan.getLastOperator()));
     }
+    auto unstructuredSetItems = splitSetItems(setItems, false /* isStructured */);
     if (!unstructuredSetItems.empty()) {
         plan.appendOperator(make_shared<LogicalSetNodeProperty>(
             std::move(unstructuredSetItems), true /* isUnstructured*/, plan.getLastOperator()));
@@ -128,6 +121,40 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
     auto deleteOperator =
         make_shared<LogicalDelete>(nodeExpressions, primaryKeyExpressions, plan.getLastOperator());
     plan.appendOperator(deleteOperator);
+}
+
+vector<expression_pair> UpdatePlanner::getSetItems(BoundCreateClause& createClause) {
+    vector<expression_pair> setItems;
+    for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
+        auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
+        for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
+            auto updateInfo = nodeUpdateInfo->getPropertyUpdateInfo(j);
+            setItems.emplace_back(updateInfo->getProperty(), updateInfo->getTarget());
+        }
+    }
+    return setItems;
+}
+
+vector<expression_pair> UpdatePlanner::getSetItems(BoundSetClause& setClause) {
+    vector<expression_pair> setItems;
+    for (auto i = 0u; i < setClause.getNumPropertyUpdateInfos(); ++i) {
+        auto updateInfo = setClause.getPropertyUpdateInfo(i);
+        setItems.emplace_back(updateInfo->getProperty(), updateInfo->getTarget());
+    }
+    return setItems;
+}
+
+vector<expression_pair> UpdatePlanner::splitSetItems(
+    vector<expression_pair> setItems, bool isStructured) {
+    vector<expression_pair> result;
+    for (auto& [lhs, rhs] : setItems) {
+        auto property = static_pointer_cast<PropertyExpression>(lhs);
+        auto isPropertyStructured = property->dataType.typeID != UNSTRUCTURED;
+        if (isPropertyStructured == isStructured) {
+            result.emplace_back(lhs, rhs);
+        }
+    }
+    return result;
 }
 
 } // namespace planner

@@ -27,7 +27,8 @@ NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
 
 node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerMorsel.empty()) {
-        setNumTuples(getNumTuples() + 1);
+        //        setNumTuples(getNumTuples() + 1);
+        setMaxNodeOffset(getNumTuples() == UINT64_MAX ? 0 : getMaxNodeOffset() + 1);
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find

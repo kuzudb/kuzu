@@ -10,6 +10,8 @@
 namespace graphflow {
 namespace planner {
 
+using namespace graphflow::catalog;
+
 class Enumerator;
 
 class UpdatePlanner {
@@ -26,15 +28,21 @@ public:
 
 private:
     void planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan);
-    void planPropertyUpdateInfo(
-        shared_ptr<Expression> property, shared_ptr<Expression> target, LogicalPlan& plan);
+    void planSetItem(expression_pair setItem, LogicalPlan& plan);
 
     void appendCreate(BoundCreateClause& createClause, LogicalPlan& plan);
-    void appendSet(BoundSetClause& setClause, LogicalPlan& plan);
+    inline void appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
+        appendSet(getSetItems(setClause), plan);
+    }
+    void appendSet(vector<expression_pair> setItems, LogicalPlan& plan);
     void appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
 
+    vector<expression_pair> getSetItems(BoundCreateClause& createClause);
+    vector<expression_pair> getSetItems(BoundSetClause& setClause);
+    vector<expression_pair> splitSetItems(vector<expression_pair> setItems, bool isStructured);
+
 private:
-    const catalog::Catalog& catalog;
+    const Catalog& catalog;
     Enumerator* enumerator;
 };
 

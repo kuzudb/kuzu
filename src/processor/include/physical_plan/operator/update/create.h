@@ -7,11 +7,11 @@ namespace graphflow {
 namespace processor {
 
 class CreateNode : public PhysicalOperator {
-
 public:
-    CreateNode(vector<NodeTable*> nodeTables, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, nodeTables{move(nodeTables)} {}
+    CreateNode(vector<NodeTable*> nodeTables, vector<DataPos> outVectorPositions,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{move(child), id, paramsString}, nodeTables{move(nodeTables)},
+          outVectorPositions{std::move(outVectorPositions)} {}
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::CREATE; }
 
@@ -20,11 +20,14 @@ public:
     bool getNextTuples() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateNode>(nodeTables, children[0]->clone(), id, paramsString);
+        return make_unique<CreateNode>(
+            nodeTables, outVectorPositions, children[0]->clone(), id, paramsString);
     }
 
 private:
     vector<NodeTable*> nodeTables;
+    vector<DataPos> outVectorPositions;
+    vector<ValueVector*> outValueVectors;
 };
 
 } // namespace processor
