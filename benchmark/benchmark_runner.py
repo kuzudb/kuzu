@@ -6,7 +6,7 @@ import datetime
 import logging
 import subprocess
 
-# dataset registrition
+# dataset registration
 datasets = {'ldbc-sf10', 'ldbc-sf100'}
 
 datasets_path = {
@@ -26,7 +26,7 @@ graphflowDB_benchmark_tool = os.getenv(
     "GITHUB_WORKSPACE") + '/bazel-out/k8-fastbuild/bin/tools/benchmark/benchmark_tool'
 
 # benchmark configuration
-num_warmup = 3
+num_warmup = 1
 num_run = 5
 
 
@@ -142,7 +142,6 @@ def run_graphflowdb(serialized_graph_path):
             '--benchmark=' + benchmark_files + '/' + group,
             '--warmup=' + str(num_warmup),
             '--run=' + str(num_run),
-            '--thread=' + str(args.thread),
             '--out=' + benchmark_log_dir + '/' + group,
             '--default-bm=20480',
             '--large-bm=20480',
