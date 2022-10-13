@@ -3,20 +3,20 @@ FROM python:3.9
 ENV RUNNER_ALLOW_RUNASROOT=1
 
 # Configure bazel
-RUN apt install -y apt-transport-https curl gnupg
+RUN apt-get install -y apt-transport-https curl gnupg
 RUN curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg
 RUN mv bazel-archive-keyring.gpg /usr/share/keyrings
 RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
 
 # Install dependencies
-RUN apt update
-RUN apt install -y bazel
-RUN apt install -y openjdk-11-jdk
-RUN apt install -y clang
-RUN apt install -y clang-format
-RUN apt install clang-13
-RUN apt install -y nodejs
-RUN apt install -y jq
+RUN apt-get update
+RUN apt-get install -y bazel
+RUN apt-get install -y openjdk-11-jdk
+RUN apt-get install -y clang
+RUN apt-get install -y clang-format
+RUN apt-get install -y clang-13
+RUN apt-get install -y nodejs
+RUN apt-get install -y jq
 
 # Install GitHub action runner
 RUN mkdir /actions-runner
