@@ -82,7 +82,7 @@ void UpdatePlanner::appendCreate(BoundCreateClause& createClause, LogicalPlan& p
         nodes.push_back(node);
     }
     auto create = make_shared<LogicalCreate>(std::move(nodes), plan.getLastOperator());
-    plan.appendOperator(create);
+    plan.setLastOperator(create);
     auto setItems = getSetItems(createClause);
     appendSet(setItems, plan);
 }
@@ -93,12 +93,12 @@ void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& pla
     }
     auto structuredSetItems = splitSetItems(setItems, true /* isStructured */);
     if (!structuredSetItems.empty()) {
-        plan.appendOperator(make_shared<LogicalSetNodeProperty>(
+        plan.setLastOperator(make_shared<LogicalSetNodeProperty>(
             std::move(structuredSetItems), false /* isUnstructured */, plan.getLastOperator()));
     }
     auto unstructuredSetItems = splitSetItems(setItems, false /* isStructured */);
     if (!unstructuredSetItems.empty()) {
-        plan.appendOperator(make_shared<LogicalSetNodeProperty>(
+        plan.setLastOperator(make_shared<LogicalSetNodeProperty>(
             std::move(unstructuredSetItems), true /* isUnstructured*/, plan.getLastOperator()));
     }
 }
@@ -120,7 +120,7 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
     }
     auto deleteOperator =
         make_shared<LogicalDelete>(nodeExpressions, primaryKeyExpressions, plan.getLastOperator());
-    plan.appendOperator(deleteOperator);
+    plan.setLastOperator(deleteOperator);
 }
 
 vector<expression_pair> UpdatePlanner::getSetItems(BoundCreateClause& createClause) {

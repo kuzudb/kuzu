@@ -23,7 +23,9 @@ public:
     explicit HashJoinSharedState(vector<DataType> payloadDataTypes)
         : payloadDataTypes{move(payloadDataTypes)} {}
 
-    void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, uint64_t numKeyColumns,
+    virtual ~HashJoinSharedState() = default;
+
+    virtual void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, uint64_t numKeyColumns,
         unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
@@ -32,7 +34,7 @@ public:
 
     inline vector<DataType> getPayloadDataTypes() { return payloadDataTypes; }
 
-private:
+protected:
     mutex hashJoinSharedStateMutex;
     unique_ptr<JoinHashTable> hashTable;
     vector<DataType> payloadDataTypes;
@@ -63,23 +65,26 @@ public:
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : Sink{move(child), id, paramsString}, sharedState{move(sharedState)}, buildDataInfo{
                                                                                    buildDataInfo} {}
+    ~HashJoinBuild() override = default;
 
-    PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
+    inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void execute(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinBuild>(
             sharedState, buildDataInfo, children[0]->clone(), id, paramsString);
     }
 
-private:
+protected:
+    virtual void initHashTable(
+        MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
     inline void appendVectors() { hashTable->append(vectorsToAppend); }
 
-private:
+protected:
     shared_ptr<HashJoinSharedState> sharedState;
     BuildDataInfo buildDataInfo;
     vector<shared_ptr<ValueVector>> vectorsToAppend;

@@ -134,7 +134,7 @@ void ProjectionEnumerator::appendProjection(
         groupsPosInScopeBeforeProjection, groupsPosInScopeAfterProjection, schema->getNumGroups());
     auto projection = make_shared<LogicalProjection>(
         expressionsToProject, std::move(discardGroupsPos), plan.getLastOperator());
-    plan.appendOperator(std::move(projection));
+    plan.setLastOperator(std::move(projection));
 }
 
 void ProjectionEnumerator::appendDistinct(
@@ -151,7 +151,7 @@ void ProjectionEnumerator::appendDistinct(
     for (auto& expression : expressionsToDistinct) {
         schema->insertToGroupAndScope(expression, groupPos);
     }
-    plan.appendOperator(move(distinct));
+    plan.setLastOperator(move(distinct));
 }
 
 void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsToGroupBy,
@@ -202,7 +202,7 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
     for (auto& expression : expressionsToAggregate) {
         schema->insertToGroupAndScope(expression, groupPos);
     }
-    plan.appendOperator(move(aggregate));
+    plan.setLastOperator(move(aggregate));
 }
 
 void ProjectionEnumerator::appendOrderBy(
@@ -233,11 +233,11 @@ void ProjectionEnumerator::appendOrderBy(
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),
         plan.getLastOperator());
-    plan.appendOperator(move(orderBy));
+    plan.setLastOperator(move(orderBy));
 }
 
 void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {
-    plan.appendOperator(make_shared<LogicalMultiplicityReducer>(plan.getLastOperator()));
+    plan.setLastOperator(make_shared<LogicalMultiplicityReducer>(plan.getLastOperator()));
 }
 
 void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
@@ -246,7 +246,7 @@ void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) 
     auto limit = make_shared<LogicalLimit>(
         limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(limitNumber);
-    plan.appendOperator(move(limit));
+    plan.setLastOperator(move(limit));
 }
 
 void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
@@ -255,7 +255,7 @@ void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto skip = make_shared<LogicalSkip>(
         skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(plan.getCardinality() - skipNumber);
-    plan.appendOperator(move(skip));
+    plan.setLastOperator(move(skip));
 }
 
 expression_vector ProjectionEnumerator::getExpressionToGroupBy(

@@ -51,6 +51,19 @@ void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> pr
     context = move(prevContext);
 }
 
+void JoinOrderEnumerator::planLevel(uint32_t level) {
+    assert(level > 1);
+    auto maxLeftLevel = floor(level / 2.0);
+    for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
+        auto rightLevel = level - leftLevel;
+        if (leftLevel > 1) { // wcoj requires at least 2 rels
+            planWCOJoin(leftLevel, rightLevel);
+        }
+        planInnerJoin(leftLevel, rightLevel);
+    }
+    context->subPlansTable->finalizeLevel(level);
+}
+
 void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expressions) {
     auto newSubgraph = context->getEmptySubqueryGraph();
     for (auto& expression : expressions) {
@@ -204,7 +217,7 @@ static unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
 }
 
 void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
-    vector<shared_ptr<RelExpression>> rels, shared_ptr<NodeExpression> intersectNode) {
+    vector<shared_ptr<RelExpression>> rels, const shared_ptr<NodeExpression>& intersectNode) {
     auto newSubgraph = subgraph;
     vector<shared_ptr<NodeExpression>> boundNodes;
     vector<unique_ptr<LogicalPlan>> relPlans;
@@ -392,7 +405,7 @@ void JoinOrderEnumerator::appendFTableScan(
     auto logicalAcc = (LogicalAccumulate*)outerPlan->getLastOperator().get();
     auto fTableScan = make_shared<LogicalFTableScan>(
         expressionsToScan, logicalAcc->getExpressions(), flatOutputGroupPositions);
-    plan.appendOperator(std::move(fTableScan));
+    plan.setLastOperator(std::move(fTableScan));
 }
 
 void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
@@ -400,7 +413,7 @@ void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, Log
     auto schema = plan.getSchema();
     auto scan = make_shared<LogicalScanNodeID>(node);
     scan->computeSchema(*schema);
-    plan.appendOperator(move(scan));
+    plan.setLastOperator(move(scan));
     // update cardinality estimation info
     auto numNodes = nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(node->getTableID())
                         ->getMaxNodeOffset() +
@@ -421,7 +434,7 @@ void JoinOrderEnumerator::appendExtend(
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getTableID(), direction,
         isColumn, rel->getLowerBound(), rel->getUpperBound(), plan.getLastOperator());
     extend->computeSchema(*schema);
-    plan.appendOperator(move(extend));
+    plan.setLastOperator(move(extend));
     // update cardinality estimation info
     if (!isColumn) {
         auto extensionRate =
@@ -513,7 +526,7 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
         buildSideSchema.copy(), flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
-    probePlan.appendOperator(move(hashJoin));
+    probePlan.setLastOperator(move(hashJoin));
 }
 
 void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
@@ -532,7 +545,7 @@ void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>
     probeSchema->insertToGroupAndScope(mark, markGroupPos);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, buildSchema->copy(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
-    probePlan.appendOperator(std::move(hashJoin));
+    probePlan.setLastOperator(std::move(hashJoin));
 }
 
 void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& intersectNode,
@@ -540,19 +553,21 @@ void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& inte
     vector<unique_ptr<LogicalPlan>>& buildPlans) {
     auto intersectNodeID = intersectNode->getIDProperty();
     auto probeSchema = probePlan.getSchema();
-    auto logicalIntersect =
-        make_shared<LogicalIntersect>(intersectNode, probePlan.getLastOperator());
     assert(boundNodes.size() == buildPlans.size());
     // Write intersect node and rels into a new group regardless of whether rel is n-n.
     auto outGroupPos = probeSchema->createGroup();
     // Write intersect node into output group.
     probeSchema->insertToGroupAndScope(intersectNode->getNodeIDPropertyExpression(), outGroupPos);
+    vector<shared_ptr<LogicalOperator>> buildChildren;
+    vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         auto boundNode = boundNodes[i];
         Enumerator::appendFlattenIfNecessary(
             probeSchema->getGroupPos(boundNode->getIDProperty()), probePlan);
         auto buildPlan = buildPlans[i].get();
         auto buildSchema = buildPlan->getSchema();
+        Enumerator::appendFlattenIfNecessary(
+            buildSchema->getGroupPos(boundNode->getIDProperty()), *buildPlan);
         auto expressions = buildSchema->getExpressionsInScope();
         // Write rel properties into output group.
         for (auto& expression : expressions) {
@@ -564,9 +579,12 @@ void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& inte
         }
         auto buildInfo =
             make_unique<LogicalIntersectBuildInfo>(boundNode, buildSchema->copy(), expressions);
-        logicalIntersect->addChild(buildPlan->getLastOperator(), std::move(buildInfo));
+        buildChildren.push_back(buildPlan->getLastOperator());
+        buildInfos.push_back(std::move(buildInfo));
     }
-    probePlan.appendOperator(std::move(logicalIntersect));
+    auto logicalIntersect = make_shared<LogicalIntersect>(intersectNode,
+        probePlan.getLastOperator(), std::move(buildChildren), std::move(buildInfos));
+    probePlan.setLastOperator(std::move(logicalIntersect));
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(

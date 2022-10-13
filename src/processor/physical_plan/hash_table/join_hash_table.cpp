@@ -8,9 +8,9 @@ namespace processor {
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
     unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager}, numKeyColumns{numKeyColumns} {
-    auto numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
-    assert(numHashSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numHashSlotsPerBlock));
-    numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
+    auto numSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
+    assert(numSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numSlotsPerBlock));
+    numSlotsPerBlockLog2 = log2(numSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     // Prev pointer is always the last column in the table.
     colOffsetOfPrevPtrInTuple = tableSchema->getColOffset(tableSchema->getNumColumns() - 1);

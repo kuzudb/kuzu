@@ -44,6 +44,10 @@ TEST_F(TinySnbReadTest, Agg) {
     runTest("test/test_files/tinySNB/agg/multi_query_part.test");
 }
 
+TEST_F(TinySnbReadTest, Cyclic) {
+    runTest("test/test_files/tinySNB/cyclic/cyclic.test");
+}
+
 TEST_F(TinySnbReadTest, Projection) {
     runTest("test/test_files/tinySNB/projection/projection.test");
     runTest("test/test_files/tinySNB/projection/skip_limit.test");
@@ -78,8 +82,4 @@ TEST_F(TinySnbReadTest, Unwind) {
 TEST_F(TinySnbReadTest, VarLengthExtendTests) {
     runTest("test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test");
     runTest("test/test_files/tinySNB/var_length_extend/var_length_column_extend.test");
-}
-
-TEST_F(TinySnbReadTest, Cycle) {
-    runTest("test/test_files/tinySNB/cycle/cycle.test");
 }

@@ -12,8 +12,8 @@ class JoinOrderEnumeratorContext {
 
 public:
     JoinOrderEnumeratorContext()
-        : currentLevel{0}, subPlansTable{make_unique<SubPlansTable>()},
-          mergedQueryGraph{make_unique<QueryGraph>()} {}
+        : currentLevel{0}, maxLevel{0}, subPlansTable{make_unique<SubPlansTable>()},
+          mergedQueryGraph{make_unique<QueryGraph>()}, outerPlan{nullptr} {}
 
     void init(const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
         vector<unique_ptr<LogicalPlan>> prevPlans);

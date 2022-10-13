@@ -68,22 +68,11 @@ private:
     // Property push down for rel table.
     void planPropertyScansForRel(RelExpression& rel, RelDirection direction, LogicalPlan& plan);
 
-    inline void planLevel(uint32_t level) {
-        assert(level > 1);
-        auto maxLeftLevel = floor(level / 2.0);
-        for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
-            auto rightLevel = level - leftLevel;
-            //            if (leftLevel > 1) { // wcoj requires at least 2 rels
-            //                planWCOJoin(leftLevel, rightLevel);
-            //            }
-            planInnerJoin(leftLevel, rightLevel);
-        }
-        context->subPlansTable->finalizeLevel(level);
-    }
+    void planLevel(uint32_t level);
 
     void planWCOJoin(uint32_t leftLevel, uint32_t rightLevel);
     void planWCOJoin(const SubqueryGraph& subgraph, vector<shared_ptr<RelExpression>> rels,
-        shared_ptr<NodeExpression> intersectNode);
+        const shared_ptr<NodeExpression>& intersectNode);
 
     void planInnerJoin(uint32_t leftLevel, uint32_t rightLevel);
 

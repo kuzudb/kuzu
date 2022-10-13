@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/binder/expression/include/node_expression.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/mapper/mapper_context.h"
@@ -13,6 +14,8 @@ using namespace graphflow::planner;
 
 namespace graphflow {
 namespace processor {
+
+struct BuildDataInfo;
 
 class PlanMapper {
 public:
@@ -46,6 +49,8 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalSemiMaskerToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
@@ -101,6 +106,10 @@ private:
         vector<DataType>& outputGroupByKeyVectorsDataTypes,
         MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext, Schema* schema,
         vector<bool>& isInputGroupByHashKeyVectorFlat);
+
+    static BuildDataInfo generateBuildDataInfo(MapperContext& mapperContext,
+        Schema* buildSideSchema, const vector<shared_ptr<NodeExpression>>& keys,
+        const expression_vector& payloads);
 
 public:
     StorageManager& storageManager;

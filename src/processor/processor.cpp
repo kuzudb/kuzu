@@ -41,7 +41,8 @@ void QueryProcessor::decomposePlanIntoTasks(
     case RESULT_COLLECTOR: {
         if (parent->getOperatorType() == UNION_ALL_SCAN ||
             parent->getOperatorType() == FACTORIZED_TABLE_SCAN ||
-            parent->getOperatorType() == HASH_JOIN_PROBE) {
+            parent->getOperatorType() == HASH_JOIN_PROBE ||
+            parent->getOperatorType() == INTERSECT) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
             parentTask->addChildTask(move(childTask));
@@ -55,12 +56,9 @@ void QueryProcessor::decomposePlanIntoTasks(
         parentTask->addChildTask(move(childTask));
         parentTask->setSingleThreadedTask();
     } break;
-    case ORDER_BY: {
-        auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
-        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(move(childTask));
-    } break;
-    case HASH_JOIN_BUILD: {
+    case ORDER_BY:
+    case HASH_JOIN_BUILD:
+    case INTERSECT_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(move(childTask));

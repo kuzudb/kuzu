@@ -286,7 +286,7 @@ void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
     }
     auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
         flatOutputGroupPositions, std::move(schemaBeforeSink), plan.getLastOperator());
-    plan.appendOperator(sink);
+    plan.setLastOperator(sink);
 }
 
 void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPlan& plan) {
@@ -298,7 +298,7 @@ void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPl
         schema->insertToGroupAndScope(expression, groupPos);
     }
     auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));
-    plan.appendOperator(std::move(expressionsScan));
+    plan.setLastOperator(std::move(expressionsScan));
 }
 
 void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
@@ -311,7 +311,7 @@ void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan&
     schema->insertToGroupAndScope(boundUnwindClause.getAliasExpression(), groupPos);
     auto logicalUnwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
         boundUnwindClause.getAliasExpression(), plan.getLastOperator());
-    plan.appendOperator(logicalUnwind);
+    plan.setLastOperator(logicalUnwind);
 }
 
 void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
@@ -350,7 +350,7 @@ void Enumerator::appendFlattenIfNecessary(
     }
     auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
     flatten->computeSchema(*schema);
-    plan.appendOperator(std::move(flatten));
+    plan.setLastOperator(std::move(flatten));
     // update cardinality estimation info
     plan.multiplyCardinality(group->getMultiplier());
 }
@@ -361,7 +361,7 @@ void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalP
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
-    plan.appendOperator(std::move(filter));
+    plan.setLastOperator(std::move(filter));
 }
 
 void Enumerator::appendScanNodePropIfNecessarySwitch(
@@ -401,7 +401,7 @@ void Enumerator::appendScanNodePropIfNecessary(
     auto scanNodeProperty =
         make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getTableID(),
             move(propertyNames), move(propertyKeys), !isStructured, plan.getLastOperator());
-    plan.appendOperator(move(scanNodeProperty));
+    plan.setLastOperator(move(scanNodeProperty));
 }
 
 void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
@@ -421,7 +421,7 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
         plan.getLastOperator());
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
-    plan.appendOperator(move(scanProperty));
+    plan.setLastOperator(move(scanProperty));
 }
 
 unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
@@ -458,7 +458,7 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     }
     auto logicalUnion = make_shared<LogicalUnion>(
         firstChildSchema->getExpressionsInScope(), move(schemaBeforeUnion), move(children));
-    plan->appendOperator(logicalUnion);
+    plan->setLastOperator(logicalUnion);
     if (!isUnionAll) {
         projectionEnumerator.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
     }
@@ -522,7 +522,7 @@ vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlan
 unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
     const BoundCreateNodeClause& boundCreateNodeClause) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getTableName(),
+    plan->setLastOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getTableName(),
         boundCreateNodeClause.getPropertyNameDataTypes(),
         boundCreateNodeClause.getPrimaryKeyIdx()));
     return plan;
@@ -531,7 +531,7 @@ unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
 unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
     const BoundCreateRelClause& boundCreateRelClause) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getTableName(),
+    plan->setLastOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getTableName(),
         boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
         boundCreateRelClause.getSrcDstTableIDs()));
     return plan;
@@ -539,14 +539,14 @@ unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
 
 unique_ptr<LogicalPlan> Enumerator::createCopyCSVPlan(const BoundCopyCSV& boundCopyCSV) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalCopyCSV>(
+    plan->setLastOperator(make_shared<LogicalCopyCSV>(
         boundCopyCSV.getCSVDescription(), boundCopyCSV.getTableSchema()));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Enumerator::createDropTablePlan(const BoundDropTable& boundDropTable) {
     auto plan = make_unique<LogicalPlan>();
-    plan->appendOperator(make_shared<LogicalDropTable>(boundDropTable.getTableSchema()));
+    plan->setLastOperator(make_shared<LogicalDropTable>(boundDropTable.getTableSchema()));
     return plan;
 }
 

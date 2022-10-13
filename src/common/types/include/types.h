@@ -23,8 +23,8 @@ typedef uint32_t list_header_t;
 struct overflow_value_t {
     // the size of the overflow buffer can be calculated as:
     // numElements * sizeof(Element) + nullMap(4 bytes alignment)
-    uint64_t numElements;
-    uint8_t* value;
+    uint64_t numElements = 0;
+    uint8_t* value = nullptr;
 };
 
 enum DataTypeID : uint8_t {
