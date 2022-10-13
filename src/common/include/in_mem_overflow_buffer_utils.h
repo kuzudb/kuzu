@@ -26,8 +26,6 @@ public:
 
     static void copyListNonRecursive(const uint8_t* srcValues, gf_list_t& dest,
         const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer);
-    static void copyListNonRecursive(const vector<uint8_t*>& srcValues, gf_list_t& dest,
-        const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer);
     static void copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
         const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer,
         uint32_t srcStartIdx = 0, uint32_t srcEndIdx = UINT32_MAX);

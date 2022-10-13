@@ -9,6 +9,7 @@ struct gf_list_t {
 
 public:
     gf_list_t() : size{0}, overflowPtr{0} {}
+    gf_list_t(uint64_t size, uint64_t overflowPtr) : size{size}, overflowPtr{overflowPtr} {}
 
     void set(const uint8_t* values, const DataType& dataType) const;
 

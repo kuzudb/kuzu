@@ -17,7 +17,7 @@ using namespace catalog;
 using InsertedRelsPerNodeOffset = map<node_offset_t, vector<uint64_t>>;
 using InsertedRelsPerChunk = map<uint64_t, InsertedRelsPerNodeOffset>;
 
-class InMemList;
+struct InMemList;
 
 /* RelsUpdateStore stores all inserted edges in a factorizedTable in the format:
  * [srcNodeID, dstNodeID, relProp1, relProp2, ..., relPropN]. In order to efficiently find the

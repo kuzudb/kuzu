@@ -506,11 +506,11 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
             make_unique<ParsedFunctionExpression>(LIST_SLICE_FUNC_NAME, move(rawExpression));
         listSlice->addChild(move(propertyExpression));
         if (ctx.children[1]->getText() == ":") {
-            listSlice->addChild(move(getZeroLiteral()));
+            listSlice->addChild(getZeroLiteral());
             if (ctx.oC_Expression(0)) {
                 listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
             } else {
-                listSlice->addChild(move(getZeroLiteral()));
+                listSlice->addChild(getZeroLiteral());
             }
         } else {
             if (ctx.oC_Expression(1)) {
@@ -518,7 +518,7 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
                 listSlice->addChild(transformExpression(*ctx.oC_Expression(1)));
             } else {
                 listSlice->addChild(transformExpression(*ctx.oC_Expression(0)));
-                listSlice->addChild(move(getZeroLiteral()));
+                listSlice->addChild(getZeroLiteral());
             }
         }
         return listSlice;
