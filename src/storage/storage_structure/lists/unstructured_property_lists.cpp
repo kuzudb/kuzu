@@ -21,6 +21,33 @@ void UnstructuredPropertyLists::readProperties(Transaction* transaction, ValueVe
     }
 }
 
+void UnstructuredPropertyLists::writeValues(
+    ValueVector* nodeIDVector, uint32_t propertyKey, ValueVector* vectorToWriteFrom) {
+    assert(vectorToWriteFrom->dataType.typeID == UNSTRUCTURED);
+    if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
+        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
+        writeValue(nodeOffset, propertyKey, vectorToWriteFrom,
+            vectorToWriteFrom->state->getPositionOfCurrIdx());
+    } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
+        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
+        auto lastPos = vectorToWriteFrom->state->selVector->selectedSize - 1;
+        writeValue(nodeOffset, propertyKey, vectorToWriteFrom, lastPos);
+    } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto nodeOffset =
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[i]);
+            writeValue(nodeOffset, propertyKey, vectorToWriteFrom,
+                vectorToWriteFrom->state->getPositionOfCurrIdx());
+        }
+    } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+            auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+            writeValue(nodeOffset, propertyKey, vectorToWriteFrom, pos);
+        }
+    }
+}
+
 void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
     if (unstructuredListUpdateStore.updatedChunks.empty()) {
         return;
@@ -117,6 +144,16 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         if (!propertyKeysFound.contains(key)) {
             vector->setNull(pos, true);
         }
+    }
+}
+
+void UnstructuredPropertyLists::writeValue(node_offset_t nodeOffset, uint32_t propertyKey,
+    ValueVector* vectorToWriteFrom, uint32_t vectorPos) {
+    if (vectorToWriteFrom->isNull(vectorPos)) {
+        removeProperty(nodeOffset, propertyKey);
+    } else {
+        auto value = ((Value*)vectorToWriteFrom->values)[vectorPos];
+        setProperty(nodeOffset, propertyKey, &value);
     }
 }
 

@@ -5,7 +5,19 @@ using namespace graphflow::testing;
 class TinySnbUpdateTest : public DBTest {
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
+
+    string getStringExceedsOverflow() {
+        string veryLongList = "[";
+        for (int i = 0; i < 599; ++i) {
+            veryLongList += to_string(i);
+            veryLongList += ",";
+        }
+        veryLongList += "599]";
+        return veryLongList;
+    }
 };
+
+// SET clause tests
 
 TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50");
@@ -84,13 +96,8 @@ TEST_F(TinySnbUpdateTest, SetNodeListofListPropTest) {
 
 TEST_F(TinySnbUpdateTest, SetVeryLongListErrorsTest) {
     conn->beginWriteTransaction();
-    string veryLongList = "[";
-    for (int i = 0; i < 599; ++i) {
-        veryLongList += to_string(i);
-        veryLongList += ",";
-    }
-    veryLongList += "599]";
-    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=" + veryLongList);
+    auto result =
+        conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=" + getStringExceedsOverflow());
     ASSERT_FALSE(result->isSuccess());
 }
 
@@ -116,25 +123,17 @@ TEST_F(TinySnbUpdateTest, SetBothUnflatTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-TEST_F(TinySnbUpdateTest, SetUnflatFlatTest) {
+TEST_F(TinySnbUpdateTest, SetFlatUnFlatTest) {
     conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 SET a.age=b.age");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age");
     auto groundTruth = vector<string>{"0|20", "2|30", "3|45"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-TEST_F(TinySnbUpdateTest, SetFlatUnflatTest) {
+TEST_F(TinySnbUpdateTest, SetUnFlatFlatTest) {
     conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b.age=a.age");
     auto result = conn->query("MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age");
     auto groundTruth = vector<string>{"0|35", "2|35", "3|45"};
-    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
-}
-
-TEST_F(TinySnbUpdateTest, SetBothFlatTest) {
-    conn->query("MATCH (a:person)-[:studyAt]->(b:organisation), (a)-[:knows]->(c:person) SET "
-                "a.age=b.orgCode");
-    auto result = conn->query("MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age");
-    auto groundTruth = vector<string>{"0|325", "2|325", "3|45"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
@@ -153,10 +152,87 @@ TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
+TEST_F(TinySnbUpdateTest, SetNodeUnstrIntPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.unstrInt64Prop=1");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.unstrInt64Prop");
+    auto groundTruth = vector<string>{"0|1", "2|1", "3|4541124", "5|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrDatePropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.unstrDateProp1=date('2022-10-10')");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.unstrDateProp1");
+    auto groundTruth = vector<string>{"0|2022-10-10", "2|2022-10-10", "3|1950-01-01", "5|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrIntervalPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.unstrIntervalProp=interval('2 years')");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.unstrIntervalProp");
+    auto groundTruth = vector<string>{"0|2 years", "2|2 years", "3|", "5|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstBoolPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 4 SET a.unstrBoolProp1=True");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.unstrBoolProp1");
+    auto groundTruth = vector<string>{"0|True", "2|True", "3|True", "5|False"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrShortStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.label1='abcd'");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.label1");
+    auto groundTruth = vector<string>{"0|abcd", "2|abcd", "3|", "5|good"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrLongStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.label1='abcdefghijklmnopqrstuvwxyz'");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.label1");
+    auto groundTruth = vector<string>{
+        "0|abcdefghijklmnopqrstuvwxyz", "2|abcdefghijklmnopqrstuvwxyz", "3|", "5|good"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstLongStringErrorTest) {
+    //    conn->query(
+    //        "MATCH (a:person) WHERE a.ID < 3 SET a.label1='" + getStringExceedsOverflow() + "'");
+    //    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.label1");
+    //    auto groundTruth = vector<string>{"0|", "2|", "3|4541124", "5|"};
+    //    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    //    ASSERT_FALSE(result->isSuccess());
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrPropNullTest) {
+    conn->query("MATCH (a:person) WHERE a.ID < 3 SET a.unstrInt64Prop=null");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID,a.unstrInt64Prop");
+    auto groundTruth = vector<string>{"0|", "2|", "3|4541124", "5|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrPropFromSameNodeTest) {
+    conn->query("MATCH (a:person) SET a.label1=a.label2");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.label1");
+    auto groundTruth = vector<string>{"0|excellent", "2|excellent", "3|", "5|excellent"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeUnstrProp1HopTest) {
+    conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=0 SET a.label1=b.label2");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.label1");
+    auto groundTruth = vector<string>{"0|good", "2|excellent", "3|excellent", "5|excellent"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+// Delete clause test
+
 TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
     auto result = conn->query("MATCH (a:person) WHERE a.ID = 10 DELETE a;");
     ASSERT_FALSE(result->isSuccess());
 }
+
+// Create clause test
 
 // NOTE: this query should error once we enforce primary key to be unique
 TEST_F(TinySnbUpdateTest, InsertNodeTest) {

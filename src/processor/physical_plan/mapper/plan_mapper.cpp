@@ -116,7 +116,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_CREATE: {
         physicalOperator = mapLogicalCreateToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SET: {
+    case LOGICAL_SET_NODE_PROPERTY: {
         physicalOperator = mapLogicalSetToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_DELETE: {
