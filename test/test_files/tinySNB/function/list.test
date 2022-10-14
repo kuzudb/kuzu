@@ -672,6 +672,16 @@ ABFsUni
 CsWork
 DEsWork
 
+-NAME ListCreateFromLiteral1
+-QUERY RETURN [[100,200],[200,300],[300,400]]
+---- 1
+[[100,200],[200,300],[300,400]]
+
+-NAME ListCreateFromLiteral2
+-QUERY RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
+---- 1
+True
+
 # TODO(Xiyang): this is most likely a list executor bug
 #-NAME ListCreate2
 #-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN [a.age, b.age]

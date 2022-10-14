@@ -22,13 +22,6 @@ void InMemOverflowBufferUtils::copyListNonRecursive(const uint8_t* srcValues, gf
     dest.set(srcValues, dataType);
 }
 
-void InMemOverflowBufferUtils::copyListNonRecursive(const vector<uint8_t*>& srcValues,
-    gf_list_t& dest, const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer) {
-    InMemOverflowBufferUtils::allocateSpaceForList(
-        dest, srcValues.size() * Types::getDataTypeSize(*dataType.childType), inMemOverflowBuffer);
-    dest.set(srcValues, dataType.childType->typeID);
-}
-
 void InMemOverflowBufferUtils::copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
     const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer, uint32_t srcStartIdx,
     uint32_t srcEndIdx) {

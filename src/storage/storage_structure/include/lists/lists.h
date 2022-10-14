@@ -27,9 +27,11 @@ struct InMemList {
                        make_unique<NullMask>(NullMask::getNumNullEntries(numElements)) :
                        nullptr;
     }
+
     inline uint8_t* getListData() const { return listData.get(); }
     inline bool hasNullBuffer() const { return nullMask != nullptr; }
     inline uint64_t* getNullMask() const { return nullMask->getData(); }
+
     uint64_t numElements;
     unique_ptr<uint8_t[]> listData;
     unique_ptr<NullMask> nullMask;
@@ -49,17 +51,20 @@ struct CursorAndMapper {
                 listMetadata.getPageMapperForChunkIdx(StorageUtils::getListChunkIdx(nodeOffset));
         }
     }
+
     std::function<uint32_t(uint32_t)> mapper;
     PageElementCursor cursor;
 };
 
 struct ListHandle {
     explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
+
     inline void resetCursorMapper(ListsMetadata& listMetadata, uint64_t numElementsPerPage) {
         cursorAndMapper.reset(listMetadata, numElementsPerPage, listSyncState.getListHeader(),
             listSyncState.getBoundNodeOffset());
     }
     inline void reset() { listSyncState.reset(); }
+
     ListSyncState& listSyncState;
     CursorAndMapper cursorAndMapper;
 };

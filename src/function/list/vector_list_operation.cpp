@@ -26,16 +26,18 @@ void VectorListOperations::ListCreation(
     result.resetOverflowBuffer();
     auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);
-    vector<uint8_t*> listElements(parameters.size());
+    auto elements = make_unique<uint8_t[]>(parameters.size() * numBytesOfListElement);
     if (result.state->isFlat()) {
         auto pos = result.state->getPositionOfCurrIdx();
         auto& gfList = ((gf_list_t*)result.values)[pos];
         for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
             assert(parameters[paramIdx]->state->isFlat());
-            listElements[paramIdx] = parameters[paramIdx]->values + pos * numBytesOfListElement;
+            memcpy(elements.get() + paramIdx * numBytesOfListElement,
+                parameters[paramIdx]->values + pos * numBytesOfListElement, numBytesOfListElement);
         }
-        InMemOverflowBufferUtils::copyListNonRecursive(
-            listElements, gfList, result.dataType, result.getOverflowBuffer());
+        gf_list_t tmpList(parameters.size(), (uint64_t)elements.get());
+        InMemOverflowBufferUtils::copyListRecursiveIfNested(
+            tmpList, gfList, result.dataType, result.getOverflowBuffer());
     } else {
         for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
              ++selectedPos) {
@@ -45,11 +47,13 @@ void VectorListOperations::ListCreation(
                 auto parameterPos = parameters[paramIdx]->state->isFlat() ?
                                         parameters[paramIdx]->state->getPositionOfCurrIdx() :
                                         pos;
-                listElements[paramIdx] =
-                    parameters[paramIdx]->values + parameterPos * numBytesOfListElement;
+                memcpy(elements.get() + paramIdx * numBytesOfListElement,
+                    parameters[paramIdx]->values + parameterPos * numBytesOfListElement,
+                    numBytesOfListElement);
             }
-            InMemOverflowBufferUtils::copyListNonRecursive(
-                listElements, gfList, result.dataType, result.getOverflowBuffer());
+            gf_list_t tmpList(parameters.size(), (uint64_t)elements.get());
+            InMemOverflowBufferUtils::copyListRecursiveIfNested(
+                tmpList, gfList, result.dataType, result.getOverflowBuffer());
         }
     }
 }
