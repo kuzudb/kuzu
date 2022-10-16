@@ -15,9 +15,9 @@ TEST_F(TinySnbIndexTest, PersonNodeIDIndex) {
     auto personIDIndex = nodesStore.getIDIndex(0);
     int64_t personIDs[8] = {0, 2, 3, 5, 7, 8, 9, 10};
     node_offset_t nodeOffset;
-    auto transaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < 8; i++) {
-        auto found = personIDIndex->lookup(transaction.get(), personIDs[i], nodeOffset);
+        auto found = personIDIndex->lookup(dummyReadOnlyTrx.get(), personIDs[i], nodeOffset);
         ASSERT_TRUE(found);
         ASSERT_EQ(nodeOffset, i);
     }
@@ -29,9 +29,10 @@ TEST_F(TinySnbIndexTest, OrganisationNodeIDIndex) {
     auto organisationIDIndex = nodesStore.getIDIndex(1);
     int64_t organisationIDs[3] = {1, 4, 6};
     node_offset_t nodeOffset;
-    auto transaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < 3; i++) {
-        auto found = organisationIDIndex->lookup(transaction.get(), organisationIDs[i], nodeOffset);
+        auto found =
+            organisationIDIndex->lookup(dummyReadOnlyTrx.get(), organisationIDs[i], nodeOffset);
         ASSERT_TRUE(found);
         ASSERT_EQ(nodeOffset, i);
     }

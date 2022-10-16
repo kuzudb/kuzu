@@ -13,7 +13,7 @@ InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outp
       maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)}, relsStatistics{relsStatistics} {
     startRelID = relsStatistics->getNextRelID();
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-    tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     IDIndexes.resize(catalog.getReadOnlyVersion()->getNumNodeTables());
     for (auto& nodeTableIDs : relTableSchema->getAllNodeTableIDs()) {
         assert(IDIndexes[nodeTableIDs] == nullptr);
@@ -102,11 +102,11 @@ void InMemRelCSVCopier::initializeColumns(RelDirection relDirection) {
                 directionNodeIDCompressionScheme[relDirection], numNodes));
         vector<unique_ptr<InMemColumn>> propertyColumns(relTableSchema->getNumProperties());
         for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-            auto propertyName = relTableSchema->properties[i].name;
+            auto propertyID = relTableSchema->properties[i].propertyID;
             auto propertyDataType = relTableSchema->properties[i].dataType;
             auto fName =
                 StorageUtils::getRelPropertyColumnFName(outputDirectory, relTableSchema->tableID,
-                    nodeTableID, relDirection, propertyName, DBFileType::WAL_VERSION);
+                    nodeTableID, relDirection, propertyID, DBFileType::WAL_VERSION);
             propertyColumns[i] =
                 InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes);
         }
@@ -231,7 +231,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->tmpReadTransaction.get(), copier->catalog, hasTableLabelColumn);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -545,7 +545,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->tmpReadTransaction.get(), copier->catalog, hasTableLabelColumn);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->relTableSchema->tableID, relDirection)) {

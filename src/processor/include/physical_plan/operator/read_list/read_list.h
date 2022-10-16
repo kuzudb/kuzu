@@ -10,10 +10,11 @@ class ReadList : public PhysicalOperator {
 
 public:
     ReadList(const DataPos& inDataPos, const DataPos& outDataPos,
-        ListsWithRelsUpdateStore* listsWithRelsUpdateStore, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
+        ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, listsWithRelUpdateStore{listsWithRelsUpdateStore} {}
+          outDataPos{outDataPos}, listsWithAdjAndPropertyListsUpdateStore{
+                                      listsWithAdjAndPropertyListsUpdateStore} {}
 
     ~ReadList() override{};
 
@@ -30,7 +31,7 @@ protected:
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 
-    ListsWithRelsUpdateStore* listsWithRelUpdateStore;
+    ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore;
     shared_ptr<ListHandle> listHandle;
 };
 

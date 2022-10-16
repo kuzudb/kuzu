@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 namespace graphflow {
 namespace transaction {
@@ -19,6 +20,12 @@ public:
     inline bool isReadOnly() const { return READ_ONLY == type; }
     inline bool isWriteTransaction() const { return WRITE == type; }
     inline uint64_t getID() const { return ID; }
+    static inline std::unique_ptr<Transaction> getDummyWriteTrx() {
+        return std::make_unique<Transaction>(WRITE, UINT64_MAX);
+    }
+    static inline std::unique_ptr<Transaction> getDummyReadOnlyTrx() {
+        return std::make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    }
 
 private:
     TransactionType type;

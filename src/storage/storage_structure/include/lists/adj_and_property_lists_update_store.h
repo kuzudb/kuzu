@@ -19,15 +19,15 @@ using InsertedRelsPerChunk = map<uint64_t, InsertedRelsPerNodeOffset>;
 
 struct InMemList;
 
-/* RelsUpdateStore stores all inserted edges in a factorizedTable in the format:
+/* AdjAndPropertyListsUpdateStore stores all inserted edges in a factorizedTable in the format:
  * [srcNodeID, dstNodeID, relProp1, relProp2, ..., relPropN]. In order to efficiently find the
  * insertedEdges for a nodeTable, we introduce a mapping which stores the tupleIdxes of
  * insertedEdges for each nodeTable per direction.
  */
-class RelsUpdateStore {
+class AdjAndPropertyListsUpdateStore {
 
 public:
-    RelsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema);
+    AdjAndPropertyListsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema);
 
     inline bool isEmpty() const { return factorizedTable->isEmpty(); }
     inline void clear() {
@@ -47,7 +47,7 @@ public:
         DiskOverflowFile* diskOverflowFile, DataType dataType,
         NodeIDCompressionScheme* nodeIDCompressionScheme);
 
-    void addRel(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties);
+    void insertRelIfNecessary(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties);
 
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, node_offset_t nodeOffset) const;

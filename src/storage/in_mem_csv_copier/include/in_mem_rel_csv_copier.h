@@ -85,7 +85,7 @@ private:
     uint64_t startRelID;
     RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;
-    unique_ptr<Transaction> tmpReadTransaction;
+    unique_ptr<Transaction> dummyReadOnlyTrx;
     vector<unique_ptr<HashIndex>> IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
     vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerTable{2};

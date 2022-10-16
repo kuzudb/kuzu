@@ -18,10 +18,6 @@ using namespace graphflow::common;
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
         : storageStructureID{storageStructureID}, fName{move(fName)} {};
-
-    StorageStructureIDAndFName(const StorageStructureIDAndFName& other)
-        : storageStructureID{other.storageStructureID}, fName{other.fName} {};
-
     StorageStructureID storageStructureID;
     string fName;
 };
@@ -68,33 +64,6 @@ struct PageUtils {
 class StorageUtils {
 
 public:
-    static inline unique_ptr<FileInfo> getFileInfoForReadWrite(
-        const string& directory, StorageStructureID storageStructureID) {
-        string fName;
-        switch (storageStructureID.storageStructureType) {
-        case STRUCTURED_NODE_PROPERTY_COLUMN: {
-            fName = getNodePropertyColumnFName(directory,
-                storageStructureID.structuredNodePropertyColumnID.tableID,
-                storageStructureID.structuredNodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
-            if (storageStructureID.isOverflow) {
-                fName = getOverflowFileName(fName);
-            }
-        } break;
-        case LISTS: {
-            fName = getListFName(directory, storageStructureID);
-        } break;
-        case NODE_INDEX: {
-            throw RuntimeException("There should not be any code path yet triggering getting "
-                                   "NODE_INDEX file name from StorageStructureID.");
-        }
-        default: {
-            throw RuntimeException("Unsupported StorageStructureID in "
-                                   "StorageUtils::getFileInfoFromStorageStructureID.");
-        }
-        }
-        return FileUtils::openFile(fName, O_RDWR);
-    }
-
     static inline string getNodeIndexFName(
         const string& directory, const table_id_t& tableID, DBFileType dbFileType) {
         auto fName = StringUtils::string_format("n-%d", tableID);
@@ -113,7 +82,7 @@ public:
         const string& directory, const catalog::Property& property) {
         auto fName = getNodePropertyColumnFName(
             directory, property.tableID, property.propertyID, DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyMainColumnID(
+        return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyColumnID(
                                               property.tableID, property.propertyID),
             fName);
     }
@@ -173,17 +142,13 @@ public:
             FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
 
-    // TODO(Semih): Warning: We currently do not support updates on adj columns or their
-    // properties so we construct a dummy and wrong StorageStructureIDAndFName here. Later we should
-    // create a special file names for these and use the correct one. But the fName we construct
-    // is correct.
     static inline StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
         const string& directory, const table_id_t& relTableID, const table_id_t& nodeTableID,
         const RelDirection& relDirection) {
         auto fName = getAdjColumnFName(
             directory, relTableID, nodeTableID, relDirection, DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
-            StorageStructureID::newStructuredNodePropertyMainColumnID(nodeTableID, -1), fName);
+            StorageStructureID::newAdjColumnID(nodeTableID, relTableID, relDirection), fName);
     }
 
     static inline string getAdjListsFName(const string& directory, const table_id_t& relTableID,
@@ -196,23 +161,21 @@ public:
 
     static inline string getRelPropertyColumnFName(const string& directory,
         const table_id_t& relTableID, const table_id_t& nodeTableID,
-        const RelDirection& relDirection, const string& propertyName, DBFileType dbFileType) {
+        const RelDirection& relDirection, const uint32_t propertyID, DBFileType dbFileType) {
         auto fName = StringUtils::string_format(
-            "r-%d-%d-%d-%s", relTableID, nodeTableID, relDirection, propertyName.data());
+            "r-%d-%d-%d-%d", relTableID, nodeTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(
             FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
-    // TODO(Semih): Warning: We currently do not support updates on adj columns or their
-    // properties so we construct a dummy and wrong StorageStructureIDAndFName here. Later we should
-    // create a special file names for these and use the correct one. But the fName we construct
-    // is correct.
+
     static inline StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const string& directory, const table_id_t& relTableID, const table_id_t& nodeTableID,
-        const RelDirection& relDirection, const string& propertyName) {
+        const RelDirection& relDirection, uint32_t propertyID) {
         auto fName = getRelPropertyColumnFName(
-            directory, relTableID, nodeTableID, relDirection, propertyName, DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(
-            StorageStructureID::newStructuredNodePropertyMainColumnID(nodeTableID, -1), fName);
+            directory, relTableID, nodeTableID, relDirection, propertyID, DBFileType::ORIGINAL);
+        return StorageStructureIDAndFName(StorageStructureID::newRelPropertyColumnID(
+                                              nodeTableID, relTableID, relDirection, propertyID),
+            fName);
     }
 
     static inline string getRelPropertyListsFName(const string& directory,
@@ -230,44 +193,6 @@ public:
 
     static inline string getListMetadataFName(string baseListFName) {
         return appendSuffixOrInsertBeforeWALSuffix(baseListFName, ".metadata");
-    }
-
-    static inline string getListFName(
-        const string& directory, StorageStructureID storageStructureID) {
-        string baseFName;
-        ListFileID listFileID = storageStructureID.listFileID;
-        switch (listFileID.listType) {
-        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            baseFName = getNodeUnstrPropertyListsFName(directory,
-                listFileID.unstructuredNodePropertyListsID.tableID, DBFileType::ORIGINAL);
-        } break;
-        case ADJ_LISTS: {
-            auto relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
-            baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,
-                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
-        } break;
-        case REL_PROPERTY_LISTS: {
-            auto& relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
-            baseFName = getRelPropertyListsFName(directory, relNodeTableAndDir.relTableID,
-                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
-                listFileID.relPropertyListID.propertyID, DBFileType::ORIGINAL);
-        } break;
-        }
-
-        switch (listFileID.listFileType) {
-        case BASE_LISTS:
-            if (storageStructureID.isOverflow) {
-                return StorageUtils::getOverflowFileName(baseFName);
-            } else {
-                return baseFName;
-            }
-        case HEADERS: {
-            return getListHeadersFName(baseFName);
-        }
-        case METADATA: {
-            return getListMetadataFName(baseFName);
-        }
-        }
     }
 
     static inline string getOverflowFileName(const string& fName) {
@@ -355,15 +280,15 @@ public:
         return fileName + StorageConfig::WAL_FILE_SUFFIX;
     }
 
+    static unique_ptr<FileInfo> getFileInfoForReadWrite(
+        const string& directory, StorageStructureID storageStructureID);
+
+    static string getColumnFName(const string& directory, StorageStructureID storageStructureID);
+
+    static string getListFName(const string& directory, StorageStructureID storageStructureID);
+
 private:
-    inline static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix) {
-        auto pos = fileName.find(StorageConfig::WAL_FILE_SUFFIX);
-        if (pos == string::npos) {
-            return fileName + suffix;
-        } else {
-            return fileName.substr(0, pos) + suffix + StorageConfig::WAL_FILE_SUFFIX;
-        }
-    }
+    static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix);
 };
 
 } // namespace storage

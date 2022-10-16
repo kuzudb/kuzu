@@ -90,8 +90,8 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
     }
 }
 
-void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    PageElementCursor& cursor,
+void BaseColumnOrList::readNodeIDsBySequentialCopy(Transaction* transaction,
+    const shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme nodeIDCompressionScheme, bool isAdjLists) {
     uint64_t numValuesToRead = valueVector->state->originalSize;
@@ -100,14 +100,14 @@ void BaseColumnOrList::readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>
         uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
         uint64_t numValuesToReadInPage = min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readNodeIDsFromAPageBySequentialCopy(valueVector, vectorPos, physicalPageId,
+        readNodeIDsFromAPageBySequentialCopy(transaction, valueVector, vectorPos, physicalPageId,
             cursor.elemPosInPage, numValuesToReadInPage, nodeIDCompressionScheme, isAdjLists);
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
     }
 }
 
-void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
+void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(Transaction* transaction,
     const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme nodeIDCompressionScheme) {
@@ -121,7 +121,7 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
         if (isInRange(selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
                 vectorPos + numValuesToReadInPage)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-            readNodeIDsFromAPageBySequentialCopy(vector, vectorPos, physicalPageIdx,
+            readNodeIDsFromAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
                 cursor.elemPosInPage, numValuesToReadInPage, nodeIDCompressionScheme,
                 false /* isAdjList */);
         }
@@ -136,11 +136,15 @@ void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(
     }
 }
 
-void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
-    uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-    uint64_t numValuesToRead, NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists) {
+void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transaction,
+    const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
+    uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
+    NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)vector->values;
-    auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
     } else {
@@ -154,7 +158,7 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(const shared_ptr<Val
         currentFrameHead += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
         nodeValues[vectorStartPos + i] = nodeID;
     }
-    bufferManager.unpin(fileHandle, physicalPageIdx);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
 void BaseColumnOrList::readSingleNullBit(const shared_ptr<ValueVector>& valueVector,

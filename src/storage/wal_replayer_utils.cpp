@@ -54,17 +54,16 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
     table_id_t tableID, const string& directory, RelDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {
     for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-        auto propertyName = relTableSchema->properties[i].name;
+        auto propertyID = relTableSchema->properties[i].propertyID;
         auto propertyDataType = relTableSchema->properties[i].dataType;
         if (isForRelPropertyColumn) {
             auto fName = StorageUtils::getRelPropertyColumnFName(directory, relTableSchema->tableID,
-                tableID, relDirection, propertyName, DBFileType::ORIGINAL);
+                tableID, relDirection, propertyID, DBFileType::ORIGINAL);
             InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes)
                 ->saveToFile();
         } else {
-            auto fName =
-                StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID, tableID,
-                    relDirection, relTableSchema->properties[i].propertyID, DBFileType::ORIGINAL);
+            auto fName = StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
+                tableID, relDirection, propertyID, DBFileType::ORIGINAL);
             auto inMemPropertyList =
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
             initLargeListPageListsAndSaveToFile(inMemPropertyList.get());
@@ -184,14 +183,13 @@ void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSche
     std::function<void(string fileName)> listFileOperation) {
     for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
         auto property = tableSchema->properties[i];
+        auto propertyID = property.propertyID;
         if (isColumnProperty) {
-            columnFileOperation(
-                StorageUtils::getRelPropertyColumnFName(directory, tableSchema->tableID,
-                    nodeTableID, relDirection, property.name, DBFileType::ORIGINAL));
+            columnFileOperation(StorageUtils::getRelPropertyColumnFName(directory,
+                tableSchema->tableID, nodeTableID, relDirection, propertyID, DBFileType::ORIGINAL));
         } else {
-            listFileOperation(
-                StorageUtils::getRelPropertyListsFName(directory, tableSchema->tableID, nodeTableID,
-                    relDirection, tableSchema->properties[i].propertyID, DBFileType::ORIGINAL));
+            listFileOperation(StorageUtils::getRelPropertyListsFName(directory,
+                tableSchema->tableID, nodeTableID, relDirection, propertyID, DBFileType::ORIGINAL));
         }
     }
 }

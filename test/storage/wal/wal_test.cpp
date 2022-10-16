@@ -21,7 +21,7 @@ protected:
             uint32_t propertyID = 89;
             uint64_t pageIdxInOriginalFile = 1455304;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyMainColumnID(tableID, propertyID),
+                StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
@@ -31,7 +31,7 @@ protected:
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
             WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyMainColumnID(4, 89), 1455304,
+                StorageStructureID::newStructuredNodePropertyColumnID(4, 89), 1455304,
                 assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;
@@ -47,8 +47,7 @@ protected:
             uint32_t propertyID = 2463;
             uint64_t pageIdxInOriginalFile = 44436;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(
-                    tableID, propertyID),
+                StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
@@ -58,7 +57,7 @@ protected:
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
             WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(0, 2463), 44436,
+                StorageStructureID::newStructuredNodePropertyColumnID(0, 2463), 44436,
                 assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;

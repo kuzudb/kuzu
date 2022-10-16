@@ -50,7 +50,8 @@ protected:
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) {
         readBySequentialCopyWithSelState(transaction, resultVector, cursor, identityMapper);
     }
-
+    virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
     // length part of the value that will be written to.
     // Obtains *and does not release* the lock original page. Pins and updates the WAL version of
@@ -59,33 +60,52 @@ protected:
     // StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
     WALPageIdxPosInPageAndFrame beginUpdatingPage(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
-        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+
+private:
+    // The reason why we make this function virtual is: we can't simply do memcpy on nodeIDs if
+    // the adjColumn has tableIDCompression, in this case we only store the nodeOffset in
+    // persistent store of adjColumn.
+    virtual inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+        memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
+            vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
+    }
 
 protected:
     // no logical-physical page mapping is required for columns
     std::function<page_idx_t(page_idx_t)> identityMapper = [](uint32_t i) { return i; };
 };
 
-class StringPropertyColumn : public Column {
-
+class PropertyColumnWithOverflow : public Column {
 public:
-    StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
+    PropertyColumnWithOverflow(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
-
-    void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
-        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
-
-    // Currently, used only in CopyCSV tests.
-    Literal readValue(node_offset_t offset) override;
+          diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {}
 
     inline DiskOverflowFile* getDiskOverflowFile() { return &diskOverflowFile; }
 
     inline VersionedFileHandle* getDiskOverflowFileHandle() {
         return diskOverflowFile.getFileHandle();
     }
+
+protected:
+    DiskOverflowFile diskOverflowFile;
+};
+
+class StringPropertyColumn : public PropertyColumnWithOverflow {
+
+public:
+    StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
+        const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        : PropertyColumnWithOverflow{
+              structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal} {};
+
+    void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
+
+    // Currently, used only in CopyCSV tests.
+    Literal readValue(node_offset_t offset) override;
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
@@ -105,18 +125,15 @@ private:
         Column::scanWithSelState(transaction, resultVector, cursor);
         diskOverflowFile.scanSequentialStringOverflow(transaction, *resultVector);
     }
-
-private:
-    DiskOverflowFile diskOverflowFile;
 };
 
-class ListPropertyColumn : public Column {
+class ListPropertyColumn : public PropertyColumnWithOverflow {
 
 public:
     ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
-        : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          listDiskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {};
+        : PropertyColumnWithOverflow{
+              structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal} {};
 
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -127,21 +144,18 @@ private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
-        listDiskOverflowFile.readListsToVector(*resultVector);
+        diskOverflowFile.readListsToVector(*resultVector);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        listDiskOverflowFile.readListsToVector(*resultVector);
+        diskOverflowFile.readListsToVector(*resultVector);
     }
     inline void scanWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        listDiskOverflowFile.readListsToVector(*resultVector);
+        diskOverflowFile.readListsToVector(*resultVector);
     }
-
-private:
-    DiskOverflowFile listDiskOverflowFile;
 };
 
 class AdjColumn : public Column {
@@ -157,19 +171,28 @@ public:
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
-        readNodeIDsFromAPageBySequentialCopy(resultVector, vectorPos, cursor.pageIdx,
+        readNodeIDsFromAPageBySequentialCopy(transaction, resultVector, vectorPos, cursor.pageIdx,
             cursor.elemPosInPage, 1 /* numValuesToCopy */, nodeIDCompressionScheme,
             false /*isAdjLists*/);
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
-        readNodeIDsBySequentialCopy(
-            resultVector, cursor, identityMapper, nodeIDCompressionScheme, false /*isAdjLists*/);
+        readNodeIDsBySequentialCopy(transaction, resultVector, cursor, identityMapper,
+            nodeIDCompressionScheme, false /*isAdjLists*/);
     }
     inline void scanWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
         readNodeIDsBySequentialCopyWithSelState(
-            resultVector, cursor, identityMapper, nodeIDCompressionScheme);
+            transaction, resultVector, cursor, identityMapper, nodeIDCompressionScheme);
+    }
+    inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
+        const shared_ptr<ValueVector>& vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) override {
+        nodeIDCompressionScheme.writeNodeID(
+            walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
+            (nodeID_t*)(vectorToWriteFrom->values +
+                        posInVectorToWriteFrom *
+                            Types::getDataTypeSize(vectorToWriteFrom->dataType)));
     }
 
 private:
