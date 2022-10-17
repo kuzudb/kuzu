@@ -59,17 +59,18 @@ http_archive(
 # pybind11 bazel rules
 http_archive(
     name = "pybind11_bazel",
-    strip_prefix = "pybind11_bazel-26973c0ff320cb4b39e45bc3e4297b82bc3a6c09",
-    urls = ["https://github.com/pybind/pybind11_bazel/archive/26973c0ff320cb4b39e45bc3e4297b82bc3a6c09.zip"],
+    strip_prefix = "pybind11_bazel-9a24c33cbdc510fa60ab7f5ffb7d80ab89272799",
+    sha256 = "e1fe52ad3468629772c50c67a93449f235aed650a0fe8e89a22fbff285f677a1",
+    urls = ["https://github.com/pybind/pybind11_bazel/archive/9a24c33cbdc510fa60ab7f5ffb7d80ab89272799.zip"],
 )
 
 # pybind11
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
-    sha256 = "c2ed3fc84db08f40a36ce1d03331624ed6977497b35dfed36a1423396928559a",
-    strip_prefix = "pybind11-2.6.0",
-    urls = ["https://github.com/pybind/pybind11/archive/v2.6.0.zip"],
+    sha256 = "225df6e6dea7cea7c5754d4ed954e9ca7c43947b849b3795f87cb56437f1bd19",
+    strip_prefix = "pybind11-2.10.0",
+    urls = ["https://github.com/pybind/pybind11/archive/v2.10.0.zip"],
 )
 
 load("@pybind11_bazel//:python_configure.bzl", "python_configure")
