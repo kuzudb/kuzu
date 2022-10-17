@@ -691,19 +691,16 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
             l->len++;
             l->buf[l->len] = '\0';
             if ((!mlmode && l->plen + l->len < l->cols && !hintsCallback)) {
-                /* Avoid a full update of the line in the
-                 * trivial case. */
                 char d = (maskmode == 1) ? '*' : c;
                 if (write(l->ofd, &d, 1) == -1)
                     return -1;
-            } else {
-                struct pollfd fd {
-                    l->ifd, POLLIN, 0
-                };
-                int pastedInput = poll(&fd, 1, 0);
-                if (pastedInput == 0) {
-                    refreshLine(l);
-                }
+            }
+            struct pollfd fd {
+                l->ifd, POLLIN, 0
+            };
+            int pastedInput = poll(&fd, 1, 0);
+            if (pastedInput == 0) {
+                refreshLine(l);
             }
         } else {
             memmove(l->buf + l->pos + 1, l->buf + l->pos, l->len - l->pos);
@@ -958,9 +955,17 @@ static int linenoiseEdit(
              * chars at different times. */
             if (read(l.ifd, seq, 1) == -1)
                 break;
+
+            if (seq[0] == 'b') {
+                linenoiseEditMoveWordLeft(&l);
+                break;
+            } else if (seq[0] == 'f') {
+                linenoiseEditMoveWordRight(&l);
+                break;
+            }
+
             if (read(l.ifd, seq + 1, 1) == -1)
                 break;
-
             /* ESC [ sequences. */
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
