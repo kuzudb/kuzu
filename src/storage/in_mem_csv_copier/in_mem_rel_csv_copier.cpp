@@ -231,7 +231,8 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
+            requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -334,12 +335,15 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
 
 void InMemRelCSVCopier::inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
     vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-    Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn) {
+    Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn,
+    vector<bool> requireToReadTableLabels) {
     for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
         if (hasTableLabelColumn[relDirection]) {
-            nodeIDs[relDirection].tableID =
-                catalog.getReadOnlyVersion()->getNodeTableIDFromName(reader.getString());
+            if (requireToReadTableLabels[relDirection]) {
+                nodeIDs[relDirection].tableID =
+                    catalog.getReadOnlyVersion()->getNodeTableIDFromName(reader.getString());
+            }
             reader.hasNextToken();
         }
         auto keyStr = reader.getString();
@@ -545,7 +549,8 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
+            requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->relTableSchema->tableID, relDirection)) {
