@@ -17,7 +17,7 @@ struct ExecutionContext {
     ExecutionContext(uint64_t numThreads, Profiler* profiler, MemoryManager* memoryManager,
         BufferManager* bufferManager)
         : numThreads{numThreads}, profiler{profiler}, memoryManager{memoryManager},
-          bufferManager{bufferManager} {}
+          bufferManager{bufferManager}, transaction{nullptr} {}
 
     uint64_t numThreads;
     Profiler* profiler;
