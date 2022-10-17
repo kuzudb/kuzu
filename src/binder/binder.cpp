@@ -249,7 +249,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
         boundSingleQuery->addUpdatingClause(bindUpdatingClause(*singleQuery.getUpdatingClause(i)));
     }
     if (singleQuery.hasReturnClause()) {
-        boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
+        boundSingleQuery->setReturnClause(
+            bindReturnClause(*singleQuery.getReturnClause(), boundSingleQuery));
     }
     return boundSingleQuery;
 }
@@ -293,8 +294,14 @@ unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchCla
 
 unique_ptr<BoundUnwindClause> Binder::bindUnwindClause(const UnwindClause& unwindClause) {
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    variablesInScope.insert({unwindClause.getAlias(), boundExpression});
-    return make_unique<BoundUnwindClause>(move(boundExpression), unwindClause.getAlias());
+    boundExpression->setAlias(unwindClause.getAlias());
+    assert(boundExpression->dataType.childType != nullptr);
+    auto aliasExpression = make_shared<Expression>(
+        ExpressionType::VARIABLE, *(boundExpression->dataType.childType), unwindClause.getAlias());
+    aliasExpression->setRawName(unwindClause.getAlias());
+    variablesInScope.insert({unwindClause.getAlias(), aliasExpression});
+    return make_unique<BoundUnwindClause>(move(boundExpression), move(aliasExpression),
+        getUniqueExpressionName(unwindClause.getAlias()));
 }
 
 unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause& updatingClause) {
@@ -384,7 +391,8 @@ unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause)
     return boundWithClause;
 }
 
-unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
+unique_ptr<BoundReturnClause> Binder::bindReturnClause(
+    const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery) {
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = rewriteProjectionExpressions(bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->getContainsStar()));
@@ -773,7 +781,7 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalized
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < normalizedSingleQuery.getNumQueryParts(); ++i) {
         auto normalizedQueryPart = normalizedSingleQuery.getQueryPart(i);
-        if (hasSeenUpdateClause && normalizedQueryPart->getNumQueryGraph() != 0) {
+        if (hasSeenUpdateClause && normalizedQueryPart->getNumReadingClause() != 0) {
             throw BinderException("Read after update is not supported.");
         }
         hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();

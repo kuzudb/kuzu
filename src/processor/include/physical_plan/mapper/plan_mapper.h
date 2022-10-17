@@ -29,6 +29,8 @@ private:
 
     unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalUnwindToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(

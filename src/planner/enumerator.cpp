@@ -119,28 +119,8 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
     vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
     // plan read
-    for (auto i = 0u; i < queryPart.getNumQueryGraph(); ++i) {
-        if (queryPart.isQueryGraphOptional(i)) {
-            auto& queryGraph = *queryPart.getQueryGraph(i);
-            auto queryGraphPredicate = queryPart.getQueryGraphPredicate(i);
-            for (auto& plan : plans) {
-                planOptionalMatch(queryGraph, queryGraphPredicate, *plan);
-            }
-            // Although optional match is planned as a subquery, we still need to merge query graph
-            // as we merge sub query schema into outer query.
-            joinOrderEnumerator.context->mergeQueryGraph(queryGraph);
-        } else {
-            plans = joinOrderEnumerator.enumerateJoinOrder(
-                *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
-        }
-    }
-    // TODO (Anurag): Supporting only 1 unwind query, nested unwind requires separate logical
-    // operator
-    if (queryPart.hasUnwindClause()) {
-        assert(queryPart.getNumUnwindClause() == 1);
-        for (auto& plan : plans) {
-            planUnwindClause(*queryPart.getUnwindClause(0), *plan);
-        }
+    for (auto i = 0u; i < queryPart.getNumReadingClause(); i++) {
+        planReadingClause(queryPart.getReadingClause(i), plans);
     }
     // plan update
     for (auto i = 0u; i < queryPart.getNumUpdatingClause(); ++i) {
@@ -155,6 +135,52 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
         }
     }
     return plans;
+}
+
+void Enumerator::planReadingClause(
+    BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& prevPlans) {
+    auto readingClauseType = boundReadingClause->getClauseType();
+    switch (readingClauseType) {
+    case ClauseType::MATCH: {
+        planMatchClause(boundReadingClause, prevPlans);
+    } break;
+    case ClauseType::UNWIND: {
+        planUnwindClause(boundReadingClause, prevPlans);
+    } break;
+    default:
+        assert(false);
+    }
+}
+
+void Enumerator::planMatchClause(
+    BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans) {
+    auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
+    if (boundMatchClause->getIsOptional()) {
+        auto& queryGraph = *boundMatchClause->getQueryGraph();
+        auto queryGraphPredicate = boundMatchClause->getWhereExpression();
+        for (auto& plan : plans) {
+            planOptionalMatch(queryGraph, queryGraphPredicate, *plan);
+        }
+        // Although optional match is planned as a subquery, we still need to merge query
+        // graph as we merge sub query schema into outer query.
+        joinOrderEnumerator.context->mergeQueryGraph(queryGraph);
+    } else {
+        plans = joinOrderEnumerator.enumerateJoinOrder(*boundMatchClause->getQueryGraph(),
+            boundMatchClause->getWhereExpression(), move(plans));
+    }
+}
+
+void Enumerator::planUnwindClause(
+    BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans) {
+    auto boundUnwindClause = (BoundUnwindClause*)boundReadingClause;
+    for (auto& plan : plans) {
+        if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
+            expression_vector expressions;
+            expressions.push_back(boundUnwindClause->getExpression());
+            Enumerator::appendExpressionsScan(expressions, *plan);
+        }
+        appendUnwind(*boundUnwindClause, *plan);
+    }
 }
 
 static expression_vector getCorrelatedExpressions(const QueryGraph& queryGraph,
@@ -180,13 +206,6 @@ static vector<shared_ptr<NodeExpression>> getJoinNodes(expression_vector& expres
         }
     }
     return joinNodes;
-}
-
-void Enumerator::planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(boundUnwindClause.getExpression(), groupPos);
-    plan.appendOperator(make_shared<LogicalUnwind>(boundUnwindClause.getExpression()));
 }
 
 void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
@@ -280,6 +299,19 @@ void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPl
     }
     auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));
     plan.appendOperator(std::move(expressionsScan));
+}
+
+void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto dependentGroupPos = schema->getDependentGroupsPos(boundUnwindClause.getExpression());
+    if (!dependentGroupPos.empty()) {
+        Enumerator::appendFlattens(dependentGroupPos, plan);
+    }
+    auto groupPos = schema->createGroup();
+    schema->insertToGroupAndScope(boundUnwindClause.getAliasExpression(), groupPos);
+    auto logicalUnwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
+        boundUnwindClause.getAliasExpression(), plan.getLastOperator());
+    plan.appendOperator(logicalUnwind);
 }
 
 void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {

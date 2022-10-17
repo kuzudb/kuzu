@@ -37,6 +37,16 @@ public:
 
     inline bool getIsOptional() const { return isOptional; }
 
+    inline expression_vector getSubPropertyExpressions() const override {
+        expression_vector expressions;
+        if (this->hasWhereExpression()) {
+            for (auto& property : this->getWhereExpression()->getSubPropertyExpressions()) {
+                expressions.push_back(property);
+            }
+        }
+        return expressions;
+    }
+
     inline unique_ptr<BoundReadingClause> copy() override {
         return make_unique<BoundMatchClause>(*this);
     }

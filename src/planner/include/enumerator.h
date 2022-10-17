@@ -48,7 +48,14 @@ private:
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
-    void planUnwindClause(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+    void planReadingClause(
+        BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& prevPlans);
+
+    void planMatchClause(
+        BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans);
+
+    void planUnwindClause(
+        BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans);
 
     void planOptionalMatch(const QueryGraph& queryGraph,
         shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
@@ -60,6 +67,8 @@ private:
     static void appendAccumulate(LogicalPlan& plan);
 
     static void appendExpressionsScan(expression_vector& expressions, LogicalPlan& plan);
+
+    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
     static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group

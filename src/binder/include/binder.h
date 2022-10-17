@@ -70,7 +70,8 @@ private:
 
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
 
-    unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);
+    unique_ptr<BoundReturnClause> bindReturnClause(
+        const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery);
 
     expression_vector bindProjectionExpressions(
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);

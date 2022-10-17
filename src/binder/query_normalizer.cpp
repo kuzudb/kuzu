@@ -36,16 +36,7 @@ unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
     const BoundQueryPart& queryPart) {
     auto normalizedQueryPart = make_unique<NormalizedQueryPart>();
     for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
-        if (queryPart.getReadingClause(i)->getClauseType() == ClauseType::MATCH) {
-            auto matchClause = (BoundMatchClause*)queryPart.getReadingClause(i);
-            normalizedQueryPart->addQueryGraph(matchClause->getQueryGraph()->copy(),
-                matchClause->hasWhereExpression() ? matchClause->getWhereExpression() : nullptr,
-                matchClause->getIsOptional());
-        } else {
-            assert(queryPart.getReadingClause(i)->getClauseType() == ClauseType::UNWIND);
-            auto unwindClause = (BoundUnwindClause*)queryPart.getReadingClause(i);
-            normalizedQueryPart->addUnwindClauses(make_unique<BoundUnwindClause>(*unwindClause));
-        }
+        normalizedQueryPart->addReadingClause(queryPart.getReadingClause(i)->copy());
     }
     for (auto i = 0u; i < queryPart.getNumUpdatingClauses(); ++i) {
         normalizedQueryPart->addUpdatingClause(queryPart.getUpdatingClause(i)->copy());

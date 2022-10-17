@@ -14,27 +14,13 @@ public:
     NormalizedQueryPart() = default;
     ~NormalizedQueryPart() = default;
 
-    void addQueryGraph(unique_ptr<QueryGraph> queryGraph, shared_ptr<Expression> predicate,
-        bool isQueryGraphOptional);
-    inline uint32_t getNumQueryGraph() const { return queryGraphs.size(); }
-    inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
-
-    inline bool hasQueryGraphPredicate(uint32_t idx) const {
-        return queryGraphPredicates[idx] != nullptr;
+    inline void addReadingClause(unique_ptr<BoundReadingClause> boundReadingClause) {
+        readingClauses.push_back(move(boundReadingClause));
     }
-    inline shared_ptr<Expression> getQueryGraphPredicate(uint32_t idx) const {
-        return queryGraphPredicates[idx];
-    }
-
-    inline bool isQueryGraphOptional(uint32_t idx) const { return isOptional[idx]; }
-
-    inline void addUnwindClauses(unique_ptr<BoundUnwindClause> boundUnwindClause) {
-        unwindClauses.push_back(move(boundUnwindClause));
-    }
-    inline bool hasUnwindClause() const { return !unwindClauses.empty(); }
-    inline uint32_t getNumUnwindClause() const { return unwindClauses.size(); }
-    inline BoundUnwindClause* getUnwindClause(uint32_t idx) const {
-        return unwindClauses[idx].get();
+    inline bool hasReadingClause() const { return !readingClauses.empty(); }
+    inline uint32_t getNumReadingClause() const { return readingClauses.size(); }
+    inline BoundReadingClause* getReadingClause(uint32_t idx) const {
+        return readingClauses[idx].get();
     }
 
     inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
@@ -64,11 +50,7 @@ public:
 
 private:
     // read
-    vector<unique_ptr<QueryGraph>> queryGraphs;
-    expression_vector queryGraphPredicates;
-    vector<bool> isOptional;
-    // TODO (Anurag): Add BoundReadingClause here for holding match, unwind etc. clauses
-    vector<unique_ptr<BoundUnwindClause>> unwindClauses;
+    vector<unique_ptr<BoundReadingClause>> readingClauses;
 
     vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
 

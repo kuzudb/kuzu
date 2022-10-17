@@ -284,7 +284,7 @@ expression_vector ProjectionEnumerator::getExpressionsToProject(
     const BoundProjectionBody& projectionBody, const Schema& schema) {
     expression_vector expressionsToProject;
     for (auto& expression : projectionBody.getProjectionExpressions()) {
-        if (expression->expressionType == VARIABLE) {
+        if (expression->dataType.typeID == NODE || expression->dataType.typeID == REL) {
             for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
                 expressionsToProject.push_back(property);
             }
