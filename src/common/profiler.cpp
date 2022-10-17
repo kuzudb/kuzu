@@ -21,7 +21,9 @@ NumericMetric* Profiler::registerNumericMetric(const string& key) {
 
 double Profiler::sumAllTimeMetricsWithKey(const string& key) {
     auto sum = 0.0;
-    assert(metrics.contains(key));
+    if (!metrics.contains(key)) {
+        return sum;
+    }
     for (auto& metric : metrics.at(key)) {
         sum += ((TimeMetric*)metric.get())->getElapsedTimeMS();
     }
@@ -30,7 +32,9 @@ double Profiler::sumAllTimeMetricsWithKey(const string& key) {
 
 uint64_t Profiler::sumAllNumericMetricsWithKey(const string& key) {
     auto sum = 0ul;
-    assert(metrics.contains(key));
+    if (!metrics.contains(key)) {
+        return sum;
+    }
     for (auto& metric : metrics.at(key)) {
         sum += ((NumericMetric*)metric.get())->accumulatedValue;
     }
