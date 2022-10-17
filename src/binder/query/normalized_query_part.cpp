@@ -1,23 +1,15 @@
 #include "include/normalized_query_part.h"
 
+#include "reading_clause/include/bound_match_clause.h"
+
 namespace graphflow {
 namespace binder {
 
-void NormalizedQueryPart::addQueryGraph(unique_ptr<QueryGraph> queryGraph,
-    shared_ptr<Expression> predicate, bool isQueryGraphOptional) {
-    queryGraphs.push_back(move(queryGraph));
-    queryGraphPredicates.push_back(move(predicate));
-    isOptional.push_back(isQueryGraphOptional);
-}
-
 expression_vector NormalizedQueryPart::getPropertiesToRead() const {
     expression_vector result;
-    for (auto i = 0u; i < getNumQueryGraph(); ++i) {
-        if (hasQueryGraphPredicate(i)) {
-            for (auto& property : queryGraphPredicates[i]->getSubPropertyExpressions()) {
-                result.push_back(property);
-            }
-        }
+    for (auto& readingClause : readingClauses) {
+        expression_vector expressions = readingClause->getSubPropertyExpressions();
+        result.insert(result.end(), expressions.begin(), expressions.end());
     }
     for (auto& updatingClause : updatingClauses) {
         for (auto& property : updatingClause->getPropertiesToRead()) {

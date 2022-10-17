@@ -55,6 +55,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_SCAN_NODE_ID: {
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_UNWIND: {
+        physicalOperator = mapLogicalUnwindToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext);
     } break;

@@ -71,6 +71,10 @@ TEST_F(TinySnbReadTest, Union) {
     runTest("test/test_files/tinySNB/union/union.test");
 }
 
+TEST_F(TinySnbReadTest, Unwind) {
+    runTest("test/test_files/tinySNB/unwind/unwind.test");
+}
+
 TEST_F(TinySnbReadTest, VarLengthExtendTests) {
     runTest("test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test");
     runTest("test/test_files/tinySNB/var_length_extend/var_length_column_extend.test");
