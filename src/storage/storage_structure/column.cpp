@@ -99,8 +99,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
-    memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
-        vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
+    writeToPage(walPageInfo, vectorToWriteFrom, posInVectorToWriteFrom);
     setNullBitOfAPosInFrame(walPageInfo.frame, walPageInfo.posInPage,
         vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     return walPageInfo;
@@ -153,7 +152,7 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
             ((gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
                           mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
         auto gfListToWriteFrom = ((gf_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
-        listDiskOverflowFile.writeListOverflowAndUpdateOverflowPtr(
+        diskOverflowFile.writeListOverflowAndUpdateOverflowPtr(
             gfListToWriteFrom, *gfListToWriteTo, vectorToWriteFrom->dataType);
     }
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
@@ -166,7 +165,7 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(listDiskOverflowFile.readList(gfList, dataType), dataType);
+    return Literal(diskOverflowFile.readList(gfList, dataType), dataType);
 }
 
 } // namespace storage

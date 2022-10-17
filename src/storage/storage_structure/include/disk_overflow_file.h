@@ -47,12 +47,12 @@ public:
 
     // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
     inline void readStringsToVector(ValueVector& valueVector) {
-        Transaction tmpTransaction(READ_ONLY, -1);
-        readStringsToVector(&tmpTransaction, valueVector);
+        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+        readStringsToVector(dummyReadOnlyTrx.get(), valueVector);
     }
     inline void readStringToVector(gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer) {
-        Transaction tmpTransaction(READ_ONLY, -1);
-        readStringToVector(&tmpTransaction, gfStr, inMemOverflowBuffer);
+        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+        readStringToVector(dummyReadOnlyTrx.get(), gfStr, inMemOverflowBuffer);
     }
 
     void readStringsToVector(Transaction* transaction, ValueVector& valueVector);
@@ -71,8 +71,8 @@ public:
 
     // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
     string readString(const gf_string_t& str) {
-        Transaction tmpTransaction(READ_ONLY, -1);
-        return readString(&tmpTransaction, str);
+        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+        return readString(dummyReadOnlyTrx.get(), str);
     }
 
     string readString(Transaction* transaction, const gf_string_t& str);

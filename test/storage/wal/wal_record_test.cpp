@@ -45,7 +45,7 @@ public:
         uint64_t pageIdxInOriginalFile = 1455304;
         uint64_t pageIdxInWAL = 3;
         return WALRecord::newPageUpdateRecord(
-            StorageStructureID::newStructuredNodePropertyMainColumnID(tableID, propertyID),
+            StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
             pageIdxInOriginalFile, pageIdxInWAL);
     }
 
@@ -55,7 +55,7 @@ public:
         uint64_t pageIdxInOriginalFile = 44436;
         uint64_t pageIdxInWAL = 1234;
         return WALRecord::newPageUpdateRecord(
-            StorageStructureID::newStructuredNodePropertyColumnOverflowPagesID(tableID, propertyID),
+            StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
             pageIdxInOriginalFile, pageIdxInWAL);
     }
 

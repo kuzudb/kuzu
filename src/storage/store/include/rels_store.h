@@ -19,13 +19,14 @@ public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
         BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
-    inline Column* getRelPropertyColumn(const table_id_t& relTableID, const table_id_t& nodeTableID,
+    inline Column* getRelPropertyColumn(const RelDirection& relDirection,
+        const table_id_t& relTableID, const table_id_t& nodeTableID,
         const uint64_t& propertyIdx) const {
-        return relTables.at(relTableID)->getPropertyColumn(nodeTableID, propertyIdx);
+        return relTables.at(relTableID)->getPropertyColumn(relDirection, nodeTableID, propertyIdx);
     }
-    inline ListsWithRelsUpdateStore* getRelPropertyLists(const RelDirection& relDirection,
-        const table_id_t& nodeTableID, const table_id_t& relTableID,
-        const uint64_t& propertyIdx) const {
+    inline ListsWithAdjAndPropertyListsUpdateStore* getRelPropertyLists(
+        const RelDirection& relDirection, const table_id_t& nodeTableID,
+        const table_id_t& relTableID, const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
     }
     inline AdjColumn* getAdjColumn(const RelDirection& relDirection, const table_id_t& nodeTableID,

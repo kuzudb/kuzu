@@ -11,9 +11,9 @@ RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffset
     table_id_t tableID, BufferManager& bufferManager, MemoryManager& memoryManager,
     bool isInMemoryMode, WAL* wal)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, tableID{tableID},
-      isInMemoryMode{isInMemoryMode}, relsUpdateStore{make_unique<RelsUpdateStore>(memoryManager,
-                                          *catalog.getReadOnlyVersion()->getRelTableSchema(
-                                              tableID))},
+      isInMemoryMode{isInMemoryMode},
+      adjAndPropertyListsUpdateStore{make_unique<AdjAndPropertyListsUpdateStore>(
+          memoryManager, *catalog.getReadOnlyVersion()->getRelTableSchema(tableID))},
       wal{wal} {
     loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerTable, bufferManager);
 }
@@ -59,13 +59,41 @@ void RelTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
 void RelTable::checkpointInMemoryIfNecessary() {
     performOpOnListsWithUpdates(
         std::bind(&Lists::checkpointInMemoryIfNecessary, std::placeholders::_1),
-        std::bind(&RelTable::clearRelsUpdateStore, this));
+        std::bind(&RelTable::clearAdjAndPropertyListsUpdateStore, this));
 }
 
 void RelTable::rollbackInMemoryIfNecessary() {
     performOpOnListsWithUpdates(
         std::bind(&Lists::rollbackInMemoryIfNecessary, std::placeholders::_1),
-        std::bind(&RelTable::clearRelsUpdateStore, this));
+        std::bind(&RelTable::clearAdjAndPropertyListsUpdateStore, this));
+}
+
+// This function assumes that the order of vectors in valueVectorsToInsert as:
+// [srcNodeID, dstNodeID, relProp1, relProp2, ..., relPropN].
+void RelTable::insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert) {
+    auto& srcVector = valueVectorsToInsert[0];
+    auto& dstVector = valueVectorsToInsert[1];
+    auto srcNodeValues = srcVector->values;
+    auto dstNodeValues = dstVector->values;
+    auto srcPos = srcVector->state->selVector->selectedPositions
+                      [srcVector->state->isFlat() ? srcVector->state->getPositionOfCurrIdx() : 0];
+    auto dstPos = dstVector->state->selVector->selectedPositions
+                      [dstVector->state->isFlat() ? dstVector->state->getPositionOfCurrIdx() : 0];
+    auto srcTableID = ((nodeID_t*)srcNodeValues)[srcPos].tableID;
+    auto dstTableID = ((nodeID_t*)dstNodeValues)[dstPos].tableID;
+    for (auto direction : REL_DIRECTIONS) {
+        auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
+        auto boundVector = (direction == RelDirection::FWD ? srcVector : dstVector);
+        auto nbrVector = (direction == RelDirection::FWD ? dstVector : srcVector);
+        if (adjColumns[direction].contains(boundTableID)) {
+            adjColumns[direction].at(boundTableID)->writeValues(boundVector, nbrVector);
+            for (auto i = 2; i < valueVectorsToInsert.size(); i++) {
+                propertyColumns[direction].at(boundTableID)[i - 2]->writeValues(
+                    boundVector, valueVectorsToInsert[i]);
+            }
+        }
+    }
+    adjAndPropertyListsUpdateStore->insertRelIfNecessary(valueVectorsToInsert);
 }
 
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
@@ -88,10 +116,10 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     tableID, relDirection)) {
                 // Add adj column.
-                auto storageStructureIDAndFName = StorageUtils::getAdjColumnStructureIDAndFName(
-                    wal->getDirectory(), tableID, nodeTableID, relDirection);
-                auto adjColumn = make_unique<AdjColumn>(storageStructureIDAndFName, bufferManager,
-                    nodeIDCompressionScheme, isInMemoryMode, wal);
+                auto adjColumn = make_unique<AdjColumn>(
+                    StorageUtils::getAdjColumnStructureIDAndFName(
+                        wal->getDirectory(), tableID, nodeTableID, relDirection),
+                    bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
                 adjColumns[relDirection].emplace(nodeTableID, move(adjColumn));
             } else {
                 // Add adj list.
@@ -99,7 +127,7 @@ void RelTable::initAdjColumnOrLists(const Catalog& catalog,
                     StorageUtils::getAdjListsStructureIDAndFName(
                         wal->getDirectory(), tableID, nodeTableID, relDirection),
                     bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal,
-                    relsUpdateStore.get());
+                    adjAndPropertyListsUpdateStore.get());
                 adjLists[relDirection].emplace(nodeTableID, move(adjList));
             }
         }
@@ -111,7 +139,7 @@ void RelTable::initPropertyListsAndColumns(
     const Catalog& catalog, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing PropertyLists and PropertyColumns for rel {}.", tableID);
     propertyLists = vector<table_property_lists_map_t>{2};
-    propertyColumns = unordered_map<table_id_t, vector<unique_ptr<Column>>>{};
+    propertyColumns = vector<table_property_columns_map_t>{2};
     if (!catalog.getReadOnlyVersion()->getRelProperties(tableID).empty()) {
         for (auto relDirection : REL_DIRECTIONS) {
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
@@ -131,16 +159,18 @@ void RelTable::initPropertyColumnsForRelTable(
     for (auto& nodeTableID :
         catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
         auto& properties = catalog.getReadOnlyVersion()->getRelProperties(tableID);
-        propertyColumns[nodeTableID].resize(properties.size());
+        propertyColumns[relDirection].emplace(
+            nodeTableID, vector<unique_ptr<Column>>(properties.size()));
         for (auto& property : properties) {
-            auto storageStructureIDAndFName = StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                wal->getDirectory(), tableID, nodeTableID, relDirection, property.name);
             logger->debug(
                 "DIR {} nodeIDForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
                 relDirection, nodeTableID, property.propertyID, property.dataType.typeID,
                 property.name);
-            propertyColumns[nodeTableID][property.propertyID] = ColumnFactory::getColumn(
-                storageStructureIDAndFName, property.dataType, bufferManager, isInMemoryMode, wal);
+            propertyColumns[relDirection].at(nodeTableID)[property.propertyID] =
+                ColumnFactory::getColumn(
+                    StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
+                        tableID, nodeTableID, relDirection, property.propertyID),
+                    property.dataType, bufferManager, isInMemoryMode, wal);
         }
     }
     logger->debug("Initializing PropertyColumns done.");
@@ -153,19 +183,19 @@ void RelTable::initPropertyListsForRelTable(
         catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
         auto& properties = catalog.getReadOnlyVersion()->getRelProperties(tableID);
         auto adjListsHeaders = adjLists[relDirection].at(nodeTableID)->getHeaders();
-        propertyLists[relDirection].emplace(
-            nodeTableID, vector<unique_ptr<ListsWithRelsUpdateStore>>(properties.size()));
-        for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
+        propertyLists[relDirection].emplace(nodeTableID,
+            vector<unique_ptr<ListsWithAdjAndPropertyListsUpdateStore>>(properties.size()));
+        for (auto& property : properties) {
+            auto propertyID = property.propertyID;
             logger->debug("relDirection {} nodeTableForAdjColumnAndProperties {} propertyIdx {} "
                           "type {} name `{}`",
-                relDirection, nodeTableID, properties[propertyIdx].propertyID,
-                properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
-            auto propertyList = ListsFactory::getListsWithRelsUpdateStore(
-                StorageUtils::getRelPropertyListsStructureIDAndFName(wal->getDirectory(), tableID,
-                    nodeTableID, relDirection, properties[propertyIdx]),
-                properties[propertyIdx].dataType, adjListsHeaders, bufferManager, isInMemoryMode,
-                wal, relsUpdateStore.get());
-            propertyLists[relDirection].at(nodeTableID)[propertyIdx] = move(propertyList);
+                relDirection, nodeTableID, propertyID, property.dataType.typeID, property.name);
+            propertyLists[relDirection].at(nodeTableID)[property.propertyID] =
+                ListsFactory::getListsWithAdjAndPropertyListsUpdateStore(
+                    StorageUtils::getRelPropertyListsStructureIDAndFName(
+                        wal->getDirectory(), tableID, nodeTableID, relDirection, property),
+                    property.dataType, adjListsHeaders, bufferManager, isInMemoryMode, wal,
+                    adjAndPropertyListsUpdateStore.get());
         }
     }
     logger->debug("Initializing PropertyLists for rel {} done.", tableID);
@@ -174,7 +204,7 @@ void RelTable::initPropertyListsForRelTable(
 void RelTable::performOpOnListsWithUpdates(
     std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasInsertedRels) {
     auto& insertedRelsPerTableIDPerDirection =
-        relsUpdateStore->getInsertedRelsPerTableIDPerDirection();
+        adjAndPropertyListsUpdateStore->getInsertedRelsPerTableIDPerDirection();
     for (auto& relDirection : REL_DIRECTIONS) {
         for (auto& insertedRelsOfTable : insertedRelsPerTableIDPerDirection[relDirection]) {
             if (!insertedRelsOfTable.second.empty()) {
@@ -186,7 +216,7 @@ void RelTable::performOpOnListsWithUpdates(
             }
         }
     }
-    if (!relsUpdateStore->isEmpty()) {
+    if (!adjAndPropertyListsUpdateStore->isEmpty()) {
         opIfHasInsertedRels();
     }
 }

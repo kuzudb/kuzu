@@ -1,11 +1,12 @@
-#include "src/storage/storage_structure/include/lists/rels_update_store.h"
+#include "src/storage/storage_structure/include/lists/adj_and_property_lists_update_store.h"
 
 #include "src/storage/storage_structure/include/lists/lists.h"
 
 namespace graphflow {
 namespace storage {
 
-RelsUpdateStore::RelsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
+AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
+    MemoryManager& memoryManager, RelTableSchema& relTableSchema)
     : relTableSchema{relTableSchema} {
     auto factorizedTableSchema = make_unique<FactorizedTableSchema>();
     // The first two columns of factorizedTable are for srcNodeID and dstNodeID.
@@ -29,7 +30,7 @@ RelsUpdateStore::RelsUpdateStore(MemoryManager& memoryManager, RelTableSchema& r
     initInsertedRelsPerTableIDPerDirection();
 }
 
-void RelsUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID,
+void AdjAndPropertyListsUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID,
     vector<uint64_t> tupleIdxes, InMemList& inMemList, uint64_t numElementsInPersistentStore,
     DiskOverflowFile* diskOverflowFile, DataType dataType,
     NodeIDCompressionScheme* nodeIDCompressionScheme) {
@@ -38,24 +39,32 @@ void RelsUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFil
         nodeIDCompressionScheme);
 }
 
-void RelsUpdateStore::addRel(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties) {
+void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(
+    vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties) {
     validateSrcDstNodeIDAndRelProperties(srcDstNodeIDAndRelProperties);
-    factorizedTable->append(srcDstNodeIDAndRelProperties);
     auto srcNodeVector = srcDstNodeIDAndRelProperties[0];
     auto dstNodeVector = srcDstNodeIDAndRelProperties[1];
     auto pos = srcNodeVector->state->selVector
                    ->selectedPositions[srcNodeVector->state->getPositionOfCurrIdx()];
     auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
     auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
+    bool hasInsertedToFT = false;
     for (auto direction : REL_DIRECTIONS) {
         auto nodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
         auto chunkIdx = StorageUtils::getListChunkIdx(nodeID.offset);
-        insertedRelsPerTableIDPerDirection[direction][nodeID.tableID][chunkIdx][nodeID.offset]
-            .push_back(factorizedTable->getNumTuples() - 1);
+        if (insertedRelsPerTableIDPerDirection[direction].contains(nodeID.tableID)) {
+            if (!hasInsertedToFT) {
+                factorizedTable->append(srcDstNodeIDAndRelProperties);
+                hasInsertedToFT = true;
+            }
+            insertedRelsPerTableIDPerDirection[direction]
+                .at(nodeID.tableID)[chunkIdx][nodeID.offset]
+                .push_back(factorizedTable->getNumTuples() - 1);
+        }
     }
 }
 
-uint64_t RelsUpdateStore::getNumInsertedRelsForNodeOffset(
+uint64_t AdjAndPropertyListsUpdateStore::getNumInsertedRelsForNodeOffset(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
@@ -68,8 +77,8 @@ uint64_t RelsUpdateStore::getNumInsertedRelsForNodeOffset(
     return insertedRelsPerTableID.at(chunkIdx).at(nodeOffset).size();
 }
 
-void RelsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSyncState,
-    shared_ptr<ValueVector> valueVector) const {
+void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
+    ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector) const {
     auto numTuplesToRead = listSyncState.getNumValuesToRead();
     auto nodeOffset = listSyncState.getBoundNodeOffset();
     if (numTuplesToRead == 0) {
@@ -88,7 +97,7 @@ void RelsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSync
     valueVector->state->originalSize = numTuplesToRead;
 }
 
-uint32_t RelsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
+uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
     if (listFileID.listType == ADJ_LISTS) {
         return listFileID.adjListsID.relNodeTableAndDir.dir == FWD ? 1 : 0;
     } else {
@@ -98,7 +107,7 @@ uint32_t RelsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
 
 // TODO(Ziyi): This function is designed to help implementing the front-end of insertRels. Once the
 // front-end of insertRels has been implemented, we should delete this function.
-void RelsUpdateStore::validateSrcDstNodeIDAndRelProperties(
+void AdjAndPropertyListsUpdateStore::validateSrcDstNodeIDAndRelProperties(
     vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties) const {
     // Checks whether the number of vectors inside srcDstNodeIDAndRelProperties matches the number
     // of columns in factorizedTable.
@@ -131,29 +140,34 @@ void RelsUpdateStore::validateSrcDstNodeIDAndRelProperties(
                    ->selectedPositions[srcNodeVector->state->getPositionOfCurrIdx()];
     auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
     auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
-    if (!insertedRelsPerTableIDPerDirection[0].contains(srcNodeID.tableID)) {
+    if (relTableSchema.isRelPropertyList(RelDirection::FWD) &&
+        !insertedRelsPerTableIDPerDirection[RelDirection::FWD].contains(srcNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             srcNodeID.tableID, true /* isSrcTableID */, relTableSchema.tableName);
-    } else if (!insertedRelsPerTableIDPerDirection[1].contains(dstNodeID.tableID)) {
+    } else if (relTableSchema.isRelPropertyList(RelDirection::BWD) &&
+               !insertedRelsPerTableIDPerDirection[RelDirection::BWD].contains(dstNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             dstNodeID.tableID, false /* isSrcTableID */, relTableSchema.tableName);
     }
 }
 
-void RelsUpdateStore::initInsertedRelsPerTableIDPerDirection() {
+void AdjAndPropertyListsUpdateStore::initInsertedRelsPerTableIDPerDirection() {
     insertedRelsPerTableIDPerDirection.clear();
     auto srcDstTableIDs = relTableSchema.getSrcDstTableIDs();
     for (auto direction : REL_DIRECTIONS) {
         insertedRelsPerTableIDPerDirection.push_back(map<table_id_t, InsertedRelsPerChunk>{});
         auto tableIDs = direction == RelDirection::FWD ? srcDstTableIDs.srcTableIDs :
                                                          srcDstTableIDs.dstTableIDs;
-        for (auto tableID : tableIDs) {
-            insertedRelsPerTableIDPerDirection[direction].emplace(tableID, InsertedRelsPerChunk{});
+        if (relTableSchema.isRelPropertyList(direction)) {
+            for (auto tableID : tableIDs) {
+                insertedRelsPerTableIDPerDirection[direction].emplace(
+                    tableID, InsertedRelsPerChunk{});
+            }
         }
     }
 }
 
-void RelsUpdateStore::getErrorMsgForInvalidTableID(
+void AdjAndPropertyListsUpdateStore::getErrorMsgForInvalidTableID(
     uint64_t tableID, bool isSrcTableID, string tableName) {
     throw InternalException(
         StringUtils::string_format("TableID: %d is not a valid %s tableID in rel %s.", tableID,

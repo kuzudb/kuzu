@@ -108,9 +108,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, InMemHashIndexInt64SequentialLookup) {
     HashIndex hashIndex(
         storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
-    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
     for (int64_t i = 0; i < numKeysInsertedToFile; i++) {
-        auto found = hashIndex.lookup(tmpTransaction.get(), i, result);
+        auto found = hashIndex.lookup(Transaction::getDummyReadOnlyTrx().get(), i, result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, i << 1);
     }
@@ -131,10 +130,10 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookup) {
     mt19937 gen(seed);
     uniform_int_distribution<unsigned> distribution(0, numKeysInsertedToFile - 1);
     node_offset_t result;
-    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < 10000; i++) {
         int64_t key = distribution(gen);
-        hashIndex.lookup(tmpTransaction.get(), key, result);
+        hashIndex.lookup(dummyReadOnlyTrx.get(), key, result);
         ASSERT_EQ(result, key << 1);
     }
 }
@@ -144,9 +143,9 @@ TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookup) {
     HashIndex hashIndex(
         storageStructureIdAndFName, DataType(STRING), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
-    auto tmpTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto& entry : map) {
-        auto found = hashIndex.lookup(tmpTransaction.get(), entry.first.c_str(), result);
+        auto found = hashIndex.lookup(dummyReadOnlyTrx.get(), entry.first.c_str(), result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, entry.second);
     }
@@ -209,9 +208,9 @@ TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
     node_offset_t result;
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < numKeysToInsert; i++) {
-        ASSERT_TRUE(hashIndex->lookup(tmpReadTransaction.get(), i, result));
+        ASSERT_TRUE(hashIndex->lookup(dummyReadOnlyTrx.get(), i, result));
         ASSERT_EQ(result, i * 2);
     }
 }
@@ -220,97 +219,97 @@ TEST_F(LoadedHashIndexInt64KeyTest, InsertAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
-    auto tmpWriteTransaction = make_unique<Transaction>(WRITE, UINT64_MAX);
+    auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
-        ASSERT_TRUE(hashIndex->insert(tmpWriteTransaction.get(), key, key << 1));
+        ASSERT_TRUE(hashIndex->insert(dummyWriteTrx.get(), key, key << 1));
     }
     node_offset_t result;
     for (auto i = 0u; i < (numKeysInsertedToFile + 100); i++) {
-        ASSERT_TRUE(hashIndex->lookup(tmpWriteTransaction.get(), i, result));
+        ASSERT_TRUE(hashIndex->lookup(dummyWriteTrx.get(), i, result));
         ASSERT_EQ(result, i << 1);
     }
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    testLookupWithReadTransaction(hashIndex.get(), tmpReadTransaction.get());
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    testLookupWithReadTransaction(hashIndex.get(), dummyReadOnlyTrx.get());
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, DuplicateInsertWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
-    auto tmpWriteTransaction = make_unique<Transaction>(WRITE, UINT64_MAX);
+    auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
-        ASSERT_TRUE(hashIndex->insert(tmpWriteTransaction.get(), key, key << 1));
+        ASSERT_TRUE(hashIndex->insert(dummyWriteTrx.get(), key, key << 1));
     }
     for (auto i = 0u; i < (numKeysInsertedToFile + 100); i++) {
-        ASSERT_FALSE(hashIndex->insert(tmpWriteTransaction.get(), i, i << 1));
+        ASSERT_FALSE(hashIndex->insert(dummyWriteTrx.get(), i, i << 1));
     }
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    testLookupWithReadTransaction(hashIndex.get(), tmpReadTransaction.get());
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    testLookupWithReadTransaction(hashIndex.get(), dummyReadOnlyTrx.get());
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, DeleteAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
-    auto tmpWriteTransaction = make_unique<Transaction>(WRITE, UINT64_MAX);
+    auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < numKeysInsertedToFile; i++) {
         if (i % 2 == 0) {
-            hashIndex->deleteKey(tmpWriteTransaction.get(), i);
+            hashIndex->deleteKey(dummyWriteTrx.get(), i);
         }
     }
-    testLookupWithWriteTransaction(hashIndex.get(), tmpWriteTransaction.get());
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    testLookupWithReadTransaction(hashIndex.get(), tmpReadTransaction.get());
+    testLookupWithWriteTransaction(hashIndex.get(), dummyWriteTrx.get());
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    testLookupWithReadTransaction(hashIndex.get(), dummyReadOnlyTrx.get());
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, InsertDeleteAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
-    auto tmpWriteTransaction = make_unique<Transaction>(WRITE, UINT64_MAX);
+    auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
-        ASSERT_TRUE(hashIndex->insert(tmpWriteTransaction.get(), key, key << 1));
+        ASSERT_TRUE(hashIndex->insert(dummyWriteTrx.get(), key, key << 1));
     }
     for (auto i = 0u; i < (numKeysInsertedToFile + 100); i++) {
         if (i % 2 == 0) {
-            hashIndex->deleteKey(tmpWriteTransaction.get(), i);
+            hashIndex->deleteKey(dummyWriteTrx.get(), i);
         }
     }
-    testLookupWithWriteTransaction(hashIndex.get(), tmpWriteTransaction.get());
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    testLookupWithReadTransaction(hashIndex.get(), tmpReadTransaction.get());
+    testLookupWithWriteTransaction(hashIndex.get(), dummyWriteTrx.get());
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    testLookupWithReadTransaction(hashIndex.get(), dummyReadOnlyTrx.get());
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, DeleteInsertAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
     auto hashIndex =
         make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
-    auto tmpWriteTransaction = make_unique<Transaction>(WRITE, UINT64_MAX);
+    auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     // Delete even keys.
     for (auto i = 0u; i < numKeysInsertedToFile; i++) {
         if (i % 2 == 0) {
-            hashIndex->deleteKey(tmpWriteTransaction.get(), i);
+            hashIndex->deleteKey(dummyWriteTrx.get(), i);
         }
     }
     // Insert back deleted even keys.
     for (auto i = 0u; i < numKeysInsertedToFile; i++) {
         if (i % 2 == 0) {
-            ASSERT_TRUE(hashIndex->insert(tmpWriteTransaction.get(), i, i << 1));
+            ASSERT_TRUE(hashIndex->insert(dummyWriteTrx.get(), i, i << 1));
         }
     }
     // Insert more odd keys.
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
-        ASSERT_TRUE(hashIndex->insert(tmpWriteTransaction.get(), key, key << 1));
+        ASSERT_TRUE(hashIndex->insert(dummyWriteTrx.get(), key, key << 1));
     }
     node_offset_t result;
     for (auto i = 0u; i < (numKeysInsertedToFile + 100); i++) {
-        ASSERT_TRUE(hashIndex->lookup(tmpWriteTransaction.get(), i, result));
+        ASSERT_TRUE(hashIndex->lookup(dummyWriteTrx.get(), i, result));
         ASSERT_EQ(result, i << 1);
     }
-    auto tmpReadTransaction = make_unique<Transaction>(READ_ONLY, UINT64_MAX);
-    testLookupWithReadTransaction(hashIndex.get(), tmpReadTransaction.get());
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    testLookupWithReadTransaction(hashIndex.get(), dummyReadOnlyTrx.get());
 }

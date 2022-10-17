@@ -146,6 +146,11 @@ struct RelTableSchema : TableSchema {
         assert(properties.size() >= numGeneratedProperties);
         return properties.size() - numGeneratedProperties;
     }
+    inline bool isRelPropertyList(RelDirection relDirection) const {
+        return relMultiplicity == MANY_MANY ||
+               (relMultiplicity == ONE_MANY && relDirection == FWD) ||
+               (relMultiplicity == MANY_ONE && relDirection == BWD);
+    }
 
     bool edgeContainsNodeTable(table_id_t tableID) const {
         return srcDstTableIDs.srcTableIDs.contains(tableID) ||

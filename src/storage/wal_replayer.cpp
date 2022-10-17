@@ -26,6 +26,7 @@ void WALReplayer::init() {
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
+    auto type = walRecord.recordType;
     switch (walRecord.recordType) {
     case PAGE_UPDATE_OR_INSERT_RECORD: {
         // 1. As the first step we copy over the page on disk, regardless of if we are recovering
@@ -143,16 +144,29 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         auto storageStructureID = walRecord.diskOverflowFileNextBytePosRecord.storageStructureID;
         DiskOverflowFile* diskOverflowFile;
         switch (storageStructureID.storageStructureType) {
-        case STRUCTURED_NODE_PROPERTY_COLUMN: {
-            Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-                storageStructureID.structuredNodePropertyColumnID.tableID,
-                storageStructureID.structuredNodePropertyColumnID.propertyID);
-            // TODO: We are explicitly assuming that if the log record's storageStructureID is an
-            // overflow file, then the storage structure is a StringPropertyColumn. This should
-            // change as we support other variable length data types and in other storage
-            // structures.
-            diskOverflowFile =
-                reinterpret_cast<StringPropertyColumn*>(column)->getDiskOverflowFile();
+        case COLUMN: {
+            switch (storageStructureID.columnFileID.columnType) {
+            case STRUCTURED_NODE_PROPERTY_COLUMN: {
+                Column* column = storageManager->getNodesStore().getNodePropertyColumn(
+                    storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
+                    storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID);
+                diskOverflowFile =
+                    reinterpret_cast<PropertyColumnWithOverflow*>(column)->getDiskOverflowFile();
+            } break;
+            case REL_PROPERTY_COLUMN: {
+                auto& relNodeTableAndDir =
+                    storageStructureID.columnFileID.relPropertyColumnID.relNodeTableAndDir;
+                Column* column =
+                    storageManager->getRelsStore().getRelPropertyColumn(relNodeTableAndDir.dir,
+                        relNodeTableAndDir.relTableID, relNodeTableAndDir.srcNodeTableID,
+                        storageStructureID.columnFileID.relPropertyColumnID.propertyID);
+                diskOverflowFile =
+                    reinterpret_cast<PropertyColumnWithOverflow*>(column)->getDiskOverflowFile();
+            } break;
+            default:
+                throw RuntimeException(
+                    "AdjColumn shouldn't have OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
+            }
         } break;
         case LISTS: {
             switch (storageStructureID.listFileID.listType) {
@@ -163,7 +177,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 diskOverflowFile = &unstructuredPropertyLists->diskOverflowFile;
             } break;
             case REL_PROPERTY_LISTS: {
-                auto relNodeTableAndDir =
+                auto& relNodeTableAndDir =
                     storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
                 auto relPropertyLists =
                     storageManager->getRelsStore().getRelPropertyLists(relNodeTableAndDir.dir,
@@ -337,17 +351,40 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
 VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
     const StorageStructureID& storageStructureID) {
     switch (storageStructureID.storageStructureType) {
-    case STRUCTURED_NODE_PROPERTY_COLUMN: {
-        Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-            storageStructureID.structuredNodePropertyColumnID.tableID,
-            storageStructureID.structuredNodePropertyColumnID.propertyID);
-        // TODO: We are explicitly assuming that if the log record's storageStructureID is
-        // an overflow file, then the storage structure is a StringPropertyColumn. This
-        // should change as we support updates to other variable length data types in
-        // columns.
-        return storageStructureID.isOverflow ?
-                   reinterpret_cast<StringPropertyColumn*>(column)->getDiskOverflowFileHandle() :
-                   column->getFileHandle();
+    case COLUMN: {
+        switch (storageStructureID.columnFileID.columnType) {
+        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+            Column* column = storageManager->getNodesStore().getNodePropertyColumn(
+                storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
+                storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID);
+            return storageStructureID.isOverflow ?
+                       reinterpret_cast<PropertyColumnWithOverflow*>(column)
+                           ->getDiskOverflowFileHandle() :
+                       column->getFileHandle();
+        }
+        case ADJ_COLUMN: {
+            auto& relNodeTableAndDir =
+                storageStructureID.columnFileID.adjColumnID.relNodeTableAndDir;
+            Column* column = storageManager->getRelsStore().getAdjColumn(relNodeTableAndDir.dir,
+                relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID);
+            return column->getFileHandle();
+        }
+        case REL_PROPERTY_COLUMN: {
+            auto& relNodeTableAndDir =
+                storageStructureID.columnFileID.relPropertyColumnID.relNodeTableAndDir;
+            Column* column =
+                storageManager->getRelsStore().getRelPropertyColumn(relNodeTableAndDir.dir,
+                    relNodeTableAndDir.relTableID, relNodeTableAndDir.srcNodeTableID,
+                    storageStructureID.columnFileID.relPropertyColumnID.propertyID);
+            return storageStructureID.isOverflow ?
+                       reinterpret_cast<PropertyColumnWithOverflow*>(column)
+                           ->getDiskOverflowFileHandle() :
+                       column->getFileHandle();
+        }
+        default: {
+            assert(false);
+        }
+        }
     }
     case LISTS: {
         switch (storageStructureID.listFileID.listType) {
@@ -377,7 +414,7 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
             }
         }
         case ADJ_LISTS: {
-            auto relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
+            auto& relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
             auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
                 relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID);
             switch (storageStructureID.listFileID.listFileType) {
@@ -390,7 +427,7 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
             }
         }
         case REL_PROPERTY_LISTS: {
-            auto relNodeTableAndDir =
+            auto& relNodeTableAndDir =
                 storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
             auto relPropLists =
                 storageManager->getRelsStore().getRelPropertyLists(relNodeTableAndDir.dir,
@@ -407,12 +444,13 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                 return nullptr;
             }
         }
+        default: {
+            assert(false);
         }
-    default:
-        throw RuntimeException("Unrecognized StorageStructureType inside "
-                               "WALReplayer::replay(). StorageStructureType:" +
-                               to_string(storageStructureID.storageStructureType));
+        }
     }
+    default:
+        assert(false);
     }
 }
 

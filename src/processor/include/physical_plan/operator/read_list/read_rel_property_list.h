@@ -9,9 +9,10 @@ class ReadRelPropertyList : public ReadList {
 
 public:
     ReadRelPropertyList(const DataPos& inDataPos, const DataPos& outDataPos,
-        ListsWithRelsUpdateStore* listsWithRelUpdateStore, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
-        : ReadList{inDataPos, outDataPos, listsWithRelUpdateStore, move(child), id, paramsString} {}
+        ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : ReadList{inDataPos, outDataPos, listsWithAdjAndPropertyListsUpdateStore, move(child), id,
+              paramsString} {}
 
     PhysicalOperatorType getOperatorType() override { return READ_REL_PROPERTY; }
 
@@ -20,8 +21,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ReadRelPropertyList>(
-            inDataPos, outDataPos, listsWithRelUpdateStore, children[0]->clone(), id, paramsString);
+        return make_unique<ReadRelPropertyList>(inDataPos, outDataPos,
+            listsWithAdjAndPropertyListsUpdateStore, children[0]->clone(), id, paramsString);
     }
 };
 

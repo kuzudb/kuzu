@@ -202,7 +202,8 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
         if (isColumnProperty) {
             validateColumnFilesExistence(
                 StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, tableID, relDirection, property.name, dbFileType),
+                    relTableSchema->tableID, tableID, relDirection, property.propertyID,
+                    dbFileType),
                 existence, hasOverflow);
         } else {
             validateListFilesExistence(

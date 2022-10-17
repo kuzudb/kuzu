@@ -89,20 +89,20 @@ protected:
         const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
-    void readNodeIDsBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-        PageElementCursor& cursor,
+    void readNodeIDsBySequentialCopy(Transaction* transaction,
+        const shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme nodeIDCompressionScheme, bool isAdjLists);
 
-    void readNodeIDsBySequentialCopyWithSelState(const shared_ptr<ValueVector>& valueVector,
-        PageElementCursor& cursor,
+    void readNodeIDsBySequentialCopyWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
         NodeIDCompressionScheme nodeIDCompressionScheme);
 
-    void readNodeIDsFromAPageBySequentialCopy(const shared_ptr<ValueVector>& vector,
-        uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t numValuesToRead, NodeIDCompressionScheme& nodeIDCompressionScheme,
-        bool isAdjLists);
+    void readNodeIDsFromAPageBySequentialCopy(Transaction* transaction,
+        const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
+        uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
+        NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists);
 
     void readSingleNullBit(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector) const;

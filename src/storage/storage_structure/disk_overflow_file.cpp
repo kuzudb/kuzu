@@ -100,8 +100,8 @@ void DiskOverflowFile::readListToVector(
     if (dataType.childType->typeID == STRING) {
         auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
         for (auto i = 0u; i < gfList.size; i++) {
-            Transaction tmpTransaction(READ_ONLY, -1);
-            readStringToVector(&tmpTransaction, gfStrings[i], inMemOverflowBuffer);
+            auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+            readStringToVector(dummyReadOnlyTrx.get(), gfStrings[i], inMemOverflowBuffer);
         }
     } else if (dataType.childType->typeID == LIST) {
         auto gfLists = (gf_list_t*)(gfList.overflowPtr);

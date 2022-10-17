@@ -10,24 +10,32 @@ public:
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
-        relIDProperty = make_shared<ValueVector>(INT64, memoryManager.get());
-        relIDValues = (int64_t*)relIDProperty->values;
-        lengthProperty = make_shared<ValueVector>(INT64, memoryManager.get());
-        lengthValues = (int64_t*)lengthProperty->values;
-        placeProperty = make_shared<ValueVector>(STRING, memoryManager.get());
-        placeValues = (gf_string_t*)placeProperty->values;
+        relIDPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        relIDValues = (int64_t*)relIDPropertyVector->values;
+        lengthPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        lengthValues = (int64_t*)lengthPropertyVector->values;
+        placePropertyVector = make_shared<ValueVector>(STRING, memoryManager.get());
+        placeValues = (gf_string_t*)placePropertyVector->values;
         srcNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         dstNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
-        tagProperty = make_shared<ValueVector>(
+        tagPropertyVector = make_shared<ValueVector>(
             DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
-        tagValues = (gf_list_t*)tagProperty->values;
-        dataChunk->insert(0, relIDProperty);
-        dataChunk->insert(1, lengthProperty);
-        dataChunk->insert(2, placeProperty);
-        dataChunk->insert(3, tagProperty);
+        tagValues = (gf_list_t*)tagPropertyVector->values;
+        dataChunk->insert(0, relIDPropertyVector);
+        dataChunk->insert(1, lengthPropertyVector);
+        dataChunk->insert(2, placePropertyVector);
+        dataChunk->insert(3, tagPropertyVector);
         dataChunk->insert(4, srcNodeVector);
         dataChunk->insert(5, dstNodeVector);
         dataChunk->state->currIdx = 0;
+        vectorsToInsertToKnows = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+            lengthPropertyVector, placePropertyVector, tagPropertyVector, relIDPropertyVector};
+        vectorsToInsertToPlays = vector<shared_ptr<ValueVector>>{
+            srcNodeVector, dstNodeVector, placePropertyVector, relIDPropertyVector};
+        vectorsToInsertToHasOwner = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+            lengthPropertyVector, placePropertyVector, relIDPropertyVector};
+        vectorsToInsertToTeaches = vector<shared_ptr<ValueVector>>{
+            srcNodeVector, dstNodeVector, lengthPropertyVector, relIDPropertyVector};
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -50,41 +58,56 @@ public:
 
     string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
-    void insertToRelUpdateStore() {
-        auto vectorsToAppend = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
-            lengthProperty, placeProperty, tagProperty, relIDProperty};
+    inline void insertOneRelToRelTable(
+        table_id_t relTableID, vector<shared_ptr<ValueVector>> vectorsToInsert) {
         database->getStorageManager()
             ->getRelsStore()
-            .getRelTable(0 /* relTableID */)
-            ->getRelUpdateStore()
-            ->addRel(vectorsToAppend);
+            .getRelTable(relTableID)
+            ->insertRels(vectorsToInsert);
     }
 
-    void insertRels(table_id_t srcTableID, table_id_t dstTableID, uint64_t numValuesToInsert = 100,
-        bool insertNullValues = false, bool testLongString = false) {
+    inline void insertOneKnowsRel() {
+        insertOneRelToRelTable(0 /* relTableID */, vectorsToInsertToKnows);
+    }
+
+    inline void insertOnePlaysRel() {
+        insertOneRelToRelTable(1 /* relTableID */, vectorsToInsertToPlays);
+    }
+
+    inline void insertOneHasOwnerRel() {
+        insertOneRelToRelTable(2 /* relTableID */, vectorsToInsertToHasOwner);
+    }
+
+    inline void insertOneTeachesRel() {
+        insertOneRelToRelTable(3 /* relTableID */, vectorsToInsertToTeaches);
+    }
+
+    void insertRelsToKnowsTable(table_id_t srcTableID, table_id_t dstTableID,
+        uint64_t numValuesToInsert = 100, bool insertNullValues = false,
+        bool testLongString = false) {
         auto placeStr = gf_string_t();
         if (testLongString) {
-            placeStr.overflowPtr =
-                reinterpret_cast<uint64_t>(placeProperty->getOverflowBuffer().allocateSpace(100));
+            placeStr.overflowPtr = reinterpret_cast<uint64_t>(
+                placePropertyVector->getOverflowBuffer().allocateSpace(100));
         }
-        auto tagStr = gf_list_t();
-        tagStr.overflowPtr =
-            reinterpret_cast<uint64_t>(tagProperty->getOverflowBuffer().allocateSpace(100));
-        tagStr.size = 1;
+        auto tagList = gf_list_t();
+        tagList.overflowPtr =
+            reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
+        tagList.size = 1;
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 1051 + i;
             lengthValues[0] = i;
             placeStr.set((testLongString ? "long long string prefix " : "") + to_string(i));
             placeValues[0] = placeStr;
-            tagStr.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
-            tagValues[0] = tagStr;
+            tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+            tagValues[0] = tagList;
             if (insertNullValues) {
-                lengthProperty->setNull(0, i % 2);
-                placeProperty->setNull(0, true /* isNull */);
+                lengthPropertyVector->setNull(0, i % 2);
+                placePropertyVector->setNull(0, true /* isNull */);
             }
             ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1, srcTableID);
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, dstTableID);
-            insertToRelUpdateStore();
+            insertOneKnowsRel();
         }
     }
 
@@ -94,8 +117,8 @@ public:
             database->getStorageManager()
                 ->getRelsStore()
                 .getRelTable(0 /* relTableID */)
-                ->getRelUpdateStore()
-                ->addRel(srcDstNodeIDAndRelProperties);
+                ->getAdjAndPropertyListsUpdateStore()
+                ->insertRelIfNecessary(srcDstNodeIDAndRelProperties);
             FAIL();
         } catch (InternalException& exception) {
             ASSERT_EQ(exception.what(), errorMsg);
@@ -123,8 +146,8 @@ public:
     void insertRelsToEmptyListTest(bool isCommit, TransactionTestType transactionTestType,
         uint64_t numRelsToInsert = 100, bool insertNullValues = false,
         bool testLongString = false) {
-        insertRels(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert, insertNullValues,
-            testLongString);
+        insertRelsToKnowsTable(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert,
+            insertNullValues, testLongString);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, e.place, e.tag");
@@ -162,7 +185,7 @@ public:
     void insertRelsToSmallListTest(
         bool isCommit, TransactionTestType transactionTestType, uint64_t numRelsToInsert = 100) {
         auto numRelsAfterInsertion = 51 + numRelsToInsert;
-        insertRels(0 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert);
+        insertRelsToKnowsTable(0 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:animal)-[e:knows]->(b:person) return e.length, e.place, e.tag");
@@ -195,7 +218,8 @@ public:
     void insertRelsToLargeListTest(bool isCommit, TransactionTestType transactionTestType,
         uint64_t numRelsToInsert = 100, bool insertNullValues = false) {
         auto numRelsAfterInsertion = 2500 + numRelsToInsert;
-        insertRels(1 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert, insertNullValues);
+        insertRelsToKnowsTable(
+            1 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert, insertNullValues);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:person)-[e:knows]->(:person) return e.length, e.place, e.tag");
@@ -231,7 +255,7 @@ public:
         auto query = "match (a:person)-[e:knows]->(b:animal) return e.length, e.place, e.tag";
         validatePlanScanBWDList(query);
         auto numRelsToInsert = 100;
-        insertRels(1 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert);
+        insertRelsToKnowsTable(1 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result = conn->query(query);
         ASSERT_TRUE(result->isSuccess());
@@ -251,13 +275,13 @@ public:
 
     void insertRelsToNode(node_offset_t srcNodeOffset) {
         auto placeStr = gf_string_t();
-        auto tagStr = gf_list_t();
-        tagStr.overflowPtr =
-            reinterpret_cast<uint64_t>(tagProperty->getOverflowBuffer().allocateSpace(100));
-        tagStr.size = 1;
+        auto tagList = gf_list_t();
+        tagList.overflowPtr =
+            reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
+        tagList.size = 1;
         ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(srcNodeOffset, 0);
         placeValues[0] = placeStr;
-        tagValues[0] = tagStr;
+        tagValues[0] = tagList;
         // If the srcNodeOffset is an odd number, we insert 100 rels to it (person 700-799
         // (inclusive)). Otherwise, we insert 1000 rels to it (person 500-1499(inclusive)).
         // Note: inserting 1000 rels to a node will convert the original small list to large list.
@@ -267,8 +291,8 @@ public:
                 ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(dstNodeOffset, 1);
                 lengthValues[0] = dstNodeOffset * 3;
                 placeStr.set(to_string(dstNodeOffset - 5));
-                tagStr.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
-                insertToRelUpdateStore();
+                tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+                insertOneKnowsRel();
             }
         } else {
             for (auto i = 0u; i < 1000; i++) {
@@ -276,8 +300,8 @@ public:
                 ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(dstNodeOffset, 1);
                 lengthValues[0] = dstNodeOffset * 2;
                 placeStr.set(to_string(dstNodeOffset - 25));
-                tagStr.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
-                insertToRelUpdateStore();
+                tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+                insertOneKnowsRel();
             }
         }
     }
@@ -375,19 +399,14 @@ public:
         auto numValuesInList = 10;
         auto totalNumValuesAfterInsertion = numValuesToInsert + numValuesInList;
         auto placeStr = gf_string_t();
-        auto vectorsToAppend = vector<shared_ptr<ValueVector>>{
-            srcNodeVector, dstNodeVector, placeProperty, relIDProperty};
+        auto relDirections = vector<RelDirection>{RelDirection::FWD, RelDirection::BWD};
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 10 + i;
             placeStr.set(to_string(i));
             placeValues[0] = placeStr;
             ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1, 1);
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, 1);
-            database->getStorageManager()
-                ->getRelsStore()
-                .getRelTable(1 /* relTableID */)
-                ->getRelUpdateStore()
-                ->addRel(vectorsToAppend);
+            insertOnePlaysRel();
         }
         conn->beginWriteTransaction();
         auto result = conn->query("match (:person)-[p:plays]->(:person) return p.place");
@@ -402,20 +421,144 @@ public:
         validateSmallListAfterBecomingLarge(result.get(), isCommit ? numValuesToInsert : 0);
     }
 
+    void validateOneToOneRelTableAfterInsertion(
+        bool afterRollback, QueryResult* queryResult, bool testLongString, bool testNull) {
+        ASSERT_TRUE(queryResult->isSuccess());
+        // The hasOwner relTable has 10 rels in persistent store, and 2 rels in updateStore. If we
+        // don't rollback the transaction, the teaches relTable should have 12 rels.
+        auto numRelsAfterInsertion = afterRollback ? 10 : 12;
+        ASSERT_EQ(queryResult->getNumTuples(), numRelsAfterInsertion);
+        for (auto i = 0u; i < numRelsAfterInsertion; i++) {
+            // If we have rollback the transaction, we shouldn't see the inserted rels, which are:
+            // Animal0->person50, Animal10->person60.
+            if (afterRollback && i % 10 == 0) {
+                continue;
+            }
+            auto tuple = queryResult->getNext();
+            // If we are testing nullValues, the length and place property will be null if this edge
+            // is an inserted edge(checked by i % 10) and the srcNodeOffset is not a multiple of
+            // 20(checked by i % 20).
+            auto isNull = i % 10 == 0 && (testNull && i % 20);
+            ASSERT_EQ(tuple->isNull(0), isNull);
+            if (!isNull) {
+                // If this is an inserted edge(checked by i % 10), the length property value
+                // is i / 10. Otherwise, the length property value is i.
+                ASSERT_EQ(tuple->getValue(0)->val.int64Val, i % 10 ? i : i / 10);
+            }
+            ASSERT_EQ(tuple->isNull(1), isNull);
+            if (!isNull) {
+                // If this is an inserted edge(checked by i % 10), the place property value
+                // is prefix(if we are testing long strings) + i / 10. Otherwise,
+                // the place property value is "2000-i"(srcNodeOffset is odd) or 3 *
+                // "2000-i"(srcNodeOffset is even).
+                auto strVal =
+                    i % 10 ?
+                        (i % 2 ? to_string(2000 - i) :
+                                 to_string(2000 - i) + to_string(2000 - i) + to_string(2000 - i)) :
+                        ((testLongString && i % 20 ? "long string prefix " : "") +
+                            to_string(i / 10));
+                ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(), strVal);
+            }
+        }
+    }
+
+    void insertRelsToOneToOneRelTable(bool isCommit, TransactionTestType transactionTestType,
+        bool testLongString = false, bool testNull = false) {
+        auto query = "match (a:animal)-[h:hasOwner]->(:person) return h.length, h.place";
+        auto placeStr = gf_string_t();
+        placeStr.overflowPtr =
+            reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
+        // We insert 2 rels to eHasOwner:
+        // 1. Animal0->Person50, length: 0, place: "2000".
+        // 2. Animal10->Person60, length: 10, place: "1990".
+        // If we are testing long string, we also add the prefix "long string prefix" to place str.
+        for (auto i = 0u; i < 2; i++) {
+            relIDValues[0] = 10 + i;
+            lengthValues[0] = i;
+            placeStr.set((testLongString && i % 2 ? "long string prefix " : "") + to_string(i));
+            placeValues[0] = placeStr;
+            lengthPropertyVector->setNull(0, testNull && i % 2);
+            placePropertyVector->setNull(0, testNull && i % 2);
+            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(i * 10, 0);
+            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i * 10 + 50, 1);
+            insertOneHasOwnerRel();
+        }
+        conn->beginWriteTransaction();
+        auto result = conn->query(query);
+        validateOneToOneRelTableAfterInsertion(
+            false /* afterRollback */, result.get(), testLongString, testNull);
+        result.reset();
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        result = conn->query(query);
+        validateOneToOneRelTableAfterInsertion(!isCommit, result.get(), testLongString, testNull);
+    }
+
+    void validateManyToOneRelTableAfterInsertion(bool afterRollback, QueryResult* queryResult) {
+        ASSERT_TRUE(queryResult->isSuccess());
+        // The teaches relTable has 6 rels in persistent store, and 3 rels in updateStore. If we
+        // don't rollback the transaction, the teaches relTable should have 9 rels.
+        auto numRelsAfterInsertion = afterRollback ? 6 : 9;
+        ASSERT_EQ(queryResult->getNumTuples(), numRelsAfterInsertion);
+        shared_ptr<FlatTuple> tuple;
+        for (auto i = 1u; i <= 3; i++) {
+            for (auto j = 0; j <= i; j++) {
+                // If we have rollbacked the transaction, there will be no edges for
+                // person10->person1,person20->person2,person30->person3.
+                if (afterRollback && j == 0) {
+                    continue;
+                } else {
+                    tuple = queryResult->getNext();
+                }
+                // The length property's value is equal to the srcPerson's ID.
+                ASSERT_EQ(tuple->getValue(0)->val.int64Val, i * 10 + j);
+            }
+        }
+    }
+
+    // For many-to-one rel tables, the FWD is a list and the bwd is a column. For the FWD, we need
+    // to write the inserted rels to the WAL version of the pages of the column. For the BWD, we
+    // need to write the inserted rels to adjAndPropertyListsUpdateStore. This test is designed
+    // to test updates to a relTable which has a mixed of columns and lists.
+    void insertRelsToManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
+        auto query = "match (:person)-[t:teaches]->(:person) return t.length";
+        // We insert 3 edges to teaches relTable:
+        // 1. person10->person1, with length property 10.
+        // 2. person20->person2, with length property 20.
+        // 3. person30->person3, with lenght property 30.
+        for (auto i = 0u; i < 3; i++) {
+            relIDValues[0] = 10 + i;
+            lengthValues[0] = (i + 1) * 10;
+            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(10 * (i + 1), 1);
+            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, 1);
+            insertOneTeachesRel();
+        }
+        conn->beginWriteTransaction();
+        auto result = conn->query(query);
+        validateManyToOneRelTableAfterInsertion(false /* afterRollback */, result.get());
+        result.reset();
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        result = conn->query(query);
+        validateManyToOneRelTableAfterInsertion(!isCommit, result.get());
+    }
+
 public:
     unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
-    shared_ptr<ValueVector> relIDProperty;
+    shared_ptr<ValueVector> relIDPropertyVector;
     int64_t* relIDValues;
-    shared_ptr<ValueVector> lengthProperty;
+    shared_ptr<ValueVector> lengthPropertyVector;
     int64_t* lengthValues;
-    shared_ptr<ValueVector> placeProperty;
+    shared_ptr<ValueVector> placePropertyVector;
     gf_string_t* placeValues;
-    shared_ptr<ValueVector> tagProperty;
+    shared_ptr<ValueVector> tagPropertyVector;
     gf_list_t* tagValues;
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);
+    vector<shared_ptr<ValueVector>> vectorsToInsertToKnows;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
 };
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecution) {
@@ -585,18 +728,93 @@ TEST_F(RelInsertionTest, SmallListBecomesLargeRollbackRecovery) {
 }
 
 TEST_F(RelInsertionTest, InCorrectVectorErrorTest) {
-    incorrectVectorErrorTest(
-        vector<shared_ptr<ValueVector>>{lengthProperty, placeProperty, relIDProperty, srcNodeVector,
-            relIDProperty, tagProperty, dstNodeVector},
+    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{lengthPropertyVector,
+                                 placePropertyVector, relIDPropertyVector, srcNodeVector,
+                                 relIDPropertyVector, tagPropertyVector, dstNodeVector},
         "Expected number of valueVectors: 6. Given: 7.");
-    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
-                                 placeProperty, lengthProperty, tagProperty, relIDProperty},
+    incorrectVectorErrorTest(
+        vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector, placePropertyVector,
+            lengthPropertyVector, tagPropertyVector, relIDPropertyVector},
         "Expected vector with type INT64, Given: STRING.");
-    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, relIDProperty,
-                                 lengthProperty, placeProperty, tagProperty, relIDProperty},
+    incorrectVectorErrorTest(
+        vector<shared_ptr<ValueVector>>{srcNodeVector, relIDPropertyVector, lengthPropertyVector,
+            placePropertyVector, tagPropertyVector, relIDPropertyVector},
         "The first two vectors of srcDstNodeIDAndRelProperties should be src/dstNodeVector.");
     ((nodeID_t*)srcNodeVector->values)[0].tableID = 5;
-    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
-                                 lengthProperty, placeProperty, tagProperty, relIDProperty},
+    incorrectVectorErrorTest(
+        vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector, lengthPropertyVector,
+            placePropertyVector, tagPropertyVector, relIDPropertyVector},
         "TableID: 5 is not a valid src tableID in rel knows.");
+}
+
+TEST_F(RelInsertionTest, InsertRelsToOneToOneRelTableCommitNormalExecution) {
+    insertRelsToOneToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToOneToOneRelTableRollbackNormalExecution) {
+    insertRelsToOneToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToOneToOneRelTableCommitRecovery) {
+    insertRelsToOneToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToOneToOneRelTableRollbackRecovery) {
+    insertRelsToOneToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelInsertionTest, InsertLongStringsToOneToOneRelTableCommitNormalExecution) {
+    insertRelsToOneToOneRelTable(
+        true /* isCommit */, TransactionTestType::NORMAL_EXECUTION, true /* testLongStrings */);
+}
+
+TEST_F(RelInsertionTest, InsertLongStringsToOneToOneRelTableRollbackNormalExecution) {
+    insertRelsToOneToOneRelTable(
+        false /* isCommit */, TransactionTestType::NORMAL_EXECUTION, true /* testLongStrings */);
+}
+
+TEST_F(RelInsertionTest, InsertLongStringsToOneToOneRelTableCommitRecovery) {
+    insertRelsToOneToOneRelTable(
+        true /* isCommit */, TransactionTestType::RECOVERY, true /* testLongStrings */);
+}
+
+TEST_F(RelInsertionTest, InsertLongStringsToOneToOneRelTableRollbackRecovery) {
+    insertRelsToOneToOneRelTable(
+        false /* isCommit */, TransactionTestType::RECOVERY, true /* testLongStrings */);
+}
+
+TEST_F(RelInsertionTest, InsertNullValuesToOneToOneRelTableCommitNormalExecution) {
+    insertRelsToOneToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        false /* testLongStrings */, true /* testNulls */);
+}
+
+TEST_F(RelInsertionTest, InsertNullValuesToOneToOneRelTableRollbackNormalExecution) {
+    insertRelsToOneToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        false /* testLongStrings */, true /* testNulls */);
+}
+
+TEST_F(RelInsertionTest, InsertNullValuesToOneToOneRelTableCommitRecovery) {
+    insertRelsToOneToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY,
+        false /* testLongStrings */, true /* testNulls */);
+}
+
+TEST_F(RelInsertionTest, InsertNullValuesToOneToOneRelTableRollbackRecovery) {
+    insertRelsToOneToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY,
+        false /* testLongStrings */, true /* testNulls */);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableCommitNormalExecution) {
+    insertRelsToManyToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableRollbackNormalExecution) {
+    insertRelsToManyToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableCommitRecovery) {
+    insertRelsToManyToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableRollbackRecovery) {
+    insertRelsToManyToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rels_update_store.h"
+#include "adj_and_property_lists_update_store.h"
 
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/value.h"
@@ -106,7 +106,7 @@ public:
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
     // Prepares all the db file changes necessary to update the "persistent" store of lists with the
-    // relUpdateSotre, which stores the updates by the write trx locally.
+    // adjAndPropertyListsUpdateStore, which stores the updates by the write trx locally.
     virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
     void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
         uint64_t numElementsInPersistentStore, InMemList& inMemList);
@@ -131,24 +131,26 @@ protected:
     shared_ptr<ListHeaders> headers;
 };
 
-class ListsWithRelsUpdateStore : public Lists {
+class ListsWithAdjAndPropertyListsUpdateStore : public Lists {
 
 public:
-    ListsWithRelsUpdateStore(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
-        : ListsWithRelsUpdateStore{storageStructureIDAndFName, dataType, elementSize, move(headers),
-              bufferManager, true /*hasNULLBytes*/, isInMemory, wal, relsUpdateStore} {};
+    ListsWithAdjAndPropertyListsUpdateStore(
+        const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
+        const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory, WAL* wal, AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
+        : ListsWithAdjAndPropertyListsUpdateStore{storageStructureIDAndFName, dataType, elementSize,
+              move(headers), bufferManager, true /*hasNULLBytes*/, isInMemory, wal,
+              adjAndPropertyListsUpdateStore} {};
 
-    inline uint64_t getNumElementsInRelUpdateStore(node_offset_t nodeOffset) {
-        return relsUpdateStore->getNumInsertedRelsForNodeOffset(
+    inline uint64_t getNumElementsInAdjAndPropertyListsUpdateStore(node_offset_t nodeOffset) {
+        return adjAndPropertyListsUpdateStore->getNumInsertedRelsForNodeOffset(
             storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
     }
     inline uint64_t getTotalNumElementsInList(
         TransactionType transactionType, node_offset_t nodeOffset) {
         return getNumElementsInPersistentStore(nodeOffset) +
                (transactionType == TransactionType::WRITE ?
-                       getNumElementsInRelUpdateStore(nodeOffset) :
+                       getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset) :
                        0);
     }
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
@@ -163,26 +165,27 @@ protected:
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     void prepareCommit(ListsUpdateIterator& listsUpdateIterator) override;
 
-    ListsWithRelsUpdateStore(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory, WAL* wal,
-        RelsUpdateStore* relsUpdateStore)
+    ListsWithAdjAndPropertyListsUpdateStore(
+        const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
+        const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool hasNULLBytes, bool isInMemory, WAL* wal,
+        AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, headers, bufferManager,
               hasNULLBytes, isInMemory, wal},
-          relsUpdateStore{relsUpdateStore} {};
+          adjAndPropertyListsUpdateStore{adjAndPropertyListsUpdateStore} {};
 
 protected:
-    RelsUpdateStore* relsUpdateStore;
+    AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore;
 };
 
-class PropertyListsWithOverflow : public ListsWithRelsUpdateStore {
+class PropertyListsWithOverflow : public ListsWithAdjAndPropertyListsUpdateStore {
 public:
     PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
-        : ListsWithRelsUpdateStore{storageStructureIDAndFName, dataType,
+        bool isInMemory, WAL* wal, AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
+        : ListsWithAdjAndPropertyListsUpdateStore{storageStructureIDAndFName, dataType,
               Types::getDataTypeSize(dataType), move(headers), bufferManager, isInMemory, wal,
-              relsUpdateStore},
+              adjAndPropertyListsUpdateStore},
           diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
 
 private:
@@ -197,9 +200,9 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        RelsUpdateStore* relsUpdateStore)
+        AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
-              bufferManager, isInMemory, wal, relsUpdateStore} {};
+              bufferManager, isInMemory, wal, adjAndPropertyListsUpdateStore} {};
 
 private:
     void readFromLargeList(
@@ -213,9 +216,9 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
+        bool isInMemory, WAL* wal, AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
-              isInMemory, wal, relsUpdateStore} {};
+              isInMemory, wal, adjAndPropertyListsUpdateStore} {};
 
 private:
     void readFromLargeList(
@@ -224,16 +227,16 @@ private:
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 };
 
-class AdjLists : public ListsWithRelsUpdateStore {
+class AdjLists : public ListsWithAdjAndPropertyListsUpdateStore {
 
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
-        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore)
-        : ListsWithRelsUpdateStore{storageStructureIDAndFName, DataType(NODE_ID),
+        bool isInMemory, WAL* wal, AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore)
+        : ListsWithAdjAndPropertyListsUpdateStore{storageStructureIDAndFName, DataType(NODE_ID),
               nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(),
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
-              bufferManager, false, isInMemory, wal, relsUpdateStore},
+              bufferManager, false, isInMemory, wal, adjAndPropertyListsUpdateStore},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     inline bool mayContainNulls() const override { return false; }
@@ -262,7 +265,8 @@ private:
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
     void readFromSmallList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
-    void readFromRelUpdateStore(ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector);
+    void readFromAdjAndPropertyListsUpdateStore(
+        ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector);
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
@@ -271,10 +275,11 @@ private:
 class ListsFactory {
 
 public:
-    static unique_ptr<ListsWithRelsUpdateStore> getListsWithRelsUpdateStore(
+    static unique_ptr<ListsWithAdjAndPropertyListsUpdateStore>
+    getListsWithAdjAndPropertyListsUpdateStore(
         const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
         const shared_ptr<ListHeaders>& adjListsHeaders, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, RelsUpdateStore* relsUpdateStore) {
+        bool isInMemory, WAL* wal, AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -282,15 +287,15 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<ListsWithRelsUpdateStore>(structureIDAndFName, dataType,
-                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal,
-                relsUpdateStore);
+            return make_unique<ListsWithAdjAndPropertyListsUpdateStore>(structureIDAndFName,
+                dataType, Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager,
+                isInMemory, wal, adjAndPropertyListsUpdateStore);
         case STRING:
             return make_unique<StringPropertyLists>(structureIDAndFName, adjListsHeaders,
-                bufferManager, isInMemory, wal, relsUpdateStore);
+                bufferManager, isInMemory, wal, adjAndPropertyListsUpdateStore);
         case LIST:
             return make_unique<ListPropertyLists>(structureIDAndFName, dataType, adjListsHeaders,
-                bufferManager, isInMemory, wal, relsUpdateStore);
+                bufferManager, isInMemory, wal, adjAndPropertyListsUpdateStore);
         default:
             throw StorageException("Invalid type for property list creation.");
         }
