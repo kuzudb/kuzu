@@ -21,12 +21,9 @@ public:
 
     void close();
 
-    static py::object convertValueToPyObject(const Value& value, bool isNull);
+    static py::object convertValueToPyObject(const ResultValue& value);
 
     py::object getAsDF();
-
-private:
-    static py::object convertValueToPyObject(uint8_t* val, const DataType& dataType);
 
 private:
     unique_ptr<QueryResult> queryResult;

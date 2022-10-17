@@ -292,10 +292,10 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < colsWidth.size(); i++) {
-                if (tuple->nullMask[i]) {
+                if (tuple->getResultValue(i)->isNullVal()) {
                     continue;
                 }
-                uint32_t fieldLen = TypeUtils::toString(*tuple->getValue(i)).length() + 2;
+                uint32_t fieldLen = tuple->getResultValue(i)->to_string().length() + 2;
                 colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
             }
         }

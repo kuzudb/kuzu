@@ -43,7 +43,7 @@ public:
                               to_string(numWriteQueries) + "))");
         }
         auto result = connection->query("MATCH (a:person) WHERE a.ID=2 RETURN a.fName");
-        ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+        ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(),
             "abcdefghijklmnopqrstuvwxyz" + to_string(numWriteQueries + 2));
     }
 };
@@ -153,7 +153,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, SetNodeLongStringPropRollbackTest) 
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
     conn->rollback();
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "Alice");
 }
 
 TEST_F(SetNodeStructuredPropTransactionTest, SetVeryLongStringErrorsTest) {
@@ -171,7 +171,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, SetManyNodeLongStringPropCommitTest
     insertLongStrings1000TimesAndVerify(conn.get());
     conn->commit();
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(),
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(),
         "abcdefghijklmnopqrstuvwxyz" + to_string(1000));
 }
 
@@ -180,7 +180,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, SetManyNodeLongStringPropRollbackTe
     insertLongStrings1000TimesAndVerify(conn.get());
     conn->rollback();
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->val.strVal.getAsString(), "Alice");
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "Alice");
 }
 
 class SetNodeUnstrPropTransactionTest : public BaseSetNodePropTransactionTest {

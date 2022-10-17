@@ -306,18 +306,20 @@ public:
     shared_ptr<FlatTuple> getNextFlatTuple();
 
 private:
-    void readValueBufferToFlatTuple(uint64_t flatTupleValIdx, const uint8_t* valueBuffer);
-
-    void readUnflatColToFlatTuple(uint64_t flatTupleValIdx, uint8_t* valueBuffer);
-
-    void readFlatColToFlatTuple(uint32_t colIdx, uint8_t* valueBuffer);
-
     // The dataChunkPos may be not consecutive, which means some entries in the
     // flatTuplePositionsInDataChunk is invalid. We put pair(UINT64_MAX, UINT64_MAX) in the
     // invalid entries.
     inline bool isValidDataChunkPos(uint32_t dataChunkPos) const {
         return flatTuplePositionsInDataChunk[dataChunkPos].first != UINT64_MAX;
     }
+    inline void readValueBufferToFlatTuple(uint64_t flatTupleValIdx, const uint8_t* valueBuffer) {
+        iteratorFlatTuple->getResultValue(flatTupleValIdx)
+            ->set(valueBuffer, columnDataTypes[flatTupleValIdx]);
+    }
+
+    void readUnflatColToFlatTuple(uint64_t flatTupleValIdx, uint8_t* valueBuffer);
+
+    void readFlatColToFlatTuple(uint32_t colIdx, uint8_t* valueBuffer);
 
     // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in
     // FlatTuplePositionsInDataChunk.

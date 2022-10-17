@@ -86,34 +86,35 @@ public:
         auto writeQResult = conn->query(query);
         auto writeConTuple = writeQResult->getNext();
         if (expectedIntForWriteTrx == nullptr) {
-            ASSERT_TRUE(writeConTuple->isNull(0));
+            ASSERT_TRUE(writeConTuple->getResultValue(0)->isNullVal());
         } else {
-            ASSERT_FALSE(writeConTuple->isNull(0));
-            ASSERT_EQ(
-                writeConTuple->getValue(0)->val.int64Val, expectedIntForWriteTrx->val.int64Val);
+            ASSERT_FALSE(writeConTuple->getResultValue(0)->isNullVal());
+            ASSERT_EQ(writeConTuple->getResultValue(0)->getInt64Val(),
+                expectedIntForWriteTrx->val.int64Val);
         }
         if (expectedStrValueForWriteTrx == nullptr) {
-            ASSERT_TRUE(writeConTuple->isNull(1));
+            ASSERT_TRUE(writeConTuple->getResultValue(1)->isNullVal());
         } else {
-            ASSERT_FALSE(writeConTuple->isNull(1));
-            ASSERT_EQ(
-                writeConTuple->getValue(1)->val.strVal, expectedStrValueForWriteTrx->val.strVal);
+            ASSERT_FALSE(writeConTuple->getResultValue(1)->isNullVal());
+            ASSERT_EQ(writeConTuple->getResultValue(1)->getStringVal(),
+                expectedStrValueForWriteTrx->val.strVal.getAsString());
         }
 
         auto readQResult = readConn->query(query);
         auto readConTuple = readQResult->getNext();
         if (expectedIntForReadTrx == nullptr) {
-            ASSERT_TRUE(readConTuple->isNull(0));
+            ASSERT_TRUE(readConTuple->getResultValue(0)->isNullVal());
         } else {
-            ASSERT_FALSE(readConTuple->isNull(0));
-            ASSERT_EQ(readConTuple->getValue(0)->val.int64Val, expectedIntForReadTrx->val.int64Val);
+            ASSERT_FALSE(readConTuple->getResultValue(0)->isNullVal());
+            ASSERT_EQ(readConTuple->getResultValue(0)->getInt64Val(),
+                expectedIntForReadTrx->val.int64Val);
         }
         if (expectedStrValueForReadTrx == nullptr) {
-            ASSERT_TRUE(readConTuple->isNull(1));
+            ASSERT_TRUE(readConTuple->getResultValue(1)->isNullVal());
         } else {
-            ASSERT_FALSE(readConTuple->isNull(1));
-            ASSERT_EQ(
-                readConTuple->getValue(1)->val.strVal, expectedStrValueForReadTrx->val.strVal);
+            ASSERT_FALSE(readConTuple->getResultValue(1)->isNullVal());
+            ASSERT_EQ(readConTuple->getResultValue(1)->getStringVal(),
+                expectedStrValueForReadTrx->val.strVal.getAsString());
         }
     }
 
@@ -146,7 +147,7 @@ public:
                            " IS NOT NULL RETURN count (*)";
             auto qResult = connection->query(query);
             auto tuple = qResult->getNext();
-            ASSERT_EQ(tuple->getValue(0)->val.int64Val, 0);
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 0);
         }
     }
 
@@ -161,13 +162,13 @@ public:
             if (nodeOffsetForPropKeys == 250) {
                 // If we are looking for 250's properties, e.g., ui250 and us250, then we expect the
                 // count to be only 1 because only node 250 contains these
-                ASSERT_EQ(tuple->getValue(0)->val.int64Val, 1);
+                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
             } else {
                 // If we are not looking for 250's properties, e.g., ui0 and us0, then we expect the
                 // count to be 2 because there are 2 nodes with those properties: 1 is the node with
                 // nodeID=nodeOffsetForPropKeys; and 2 is node 250 which has all unstructured
                 // properties.
-                ASSERT_EQ(tuple->getValue(0)->val.int64Val, 2);
+                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 2);
             }
         }
     }
