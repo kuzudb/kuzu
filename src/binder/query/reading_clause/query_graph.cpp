@@ -101,6 +101,27 @@ vector<uint32_t> SubqueryGraph::getConnectedNodePos(const SubqueryGraph& nbr) co
     return result;
 }
 
+unordered_set<uint32_t> SubqueryGraph::getNodePositionsIgnoringNodeSelector() const {
+    unordered_set<uint32_t> result;
+    for (auto nodePos = 0u; nodePos < queryGraph.getNumQueryNodes(); ++nodePos) {
+        if (queryNodesSelector[nodePos]) {
+            result.insert(nodePos);
+        }
+    }
+    for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
+        auto rel = queryGraph.getQueryRel(relPos);
+        if (queryRelsSelector[relPos]) {
+            if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
+                result.insert(queryGraph.getQueryNodePos(rel->getSrcNodeName()));
+            }
+            if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
+                result.insert(queryGraph.getQueryNodePos(rel->getDstNodeName()));
+            }
+        }
+    }
+    return result;
+}
+
 unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getBaseNbrSubgraph() const {
     unordered_set<SubqueryGraph, SubqueryGraphHasher> result;
     for (auto& nodePos : getNodeNbrPositions()) {

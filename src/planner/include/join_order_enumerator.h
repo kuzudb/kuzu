@@ -73,9 +73,9 @@ private:
         auto maxLeftLevel = floor(level / 2.0);
         for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
             auto rightLevel = level - leftLevel;
-            if (leftLevel > 1) { // wcoj requires at least 2 rels
-                planWCOJoin(leftLevel, rightLevel);
-            }
+            //            if (leftLevel > 1) { // wcoj requires at least 2 rels
+            //                planWCOJoin(leftLevel, rightLevel);
+            //            }
             planInnerJoin(leftLevel, rightLevel);
         }
         context->subPlansTable->finalizeLevel(level);
