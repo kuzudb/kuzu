@@ -170,9 +170,12 @@ TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
                               "STRING)");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-    result = conn->query(
-        "CREATE (university:UNIVERSITY {NAME: \"WATERLOO\", WEBSITE: \"WATERLOO.CA\"})");
+    result =
+        conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
     ASSERT_TRUE(result->isSuccess());
+    result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
+    auto groundTruth = vector<string>{"WATERLOO|WATERLOO.CA"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
 TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {

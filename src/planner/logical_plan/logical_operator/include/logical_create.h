@@ -4,39 +4,34 @@
 
 #include "src/binder/expression/include/expression.h"
 
-using namespace graphflow::binder;
-
 namespace graphflow {
 namespace planner {
 
-using create_item = pair<shared_ptr<Expression> /* node */, vector<expression_pair> /* setItems */>;
-
 class LogicalCreate : public LogicalOperator {
 public:
-    LogicalCreate(vector<create_item> createItems, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, createItems{move(createItems)} {}
+    LogicalCreate(vector<shared_ptr<NodeExpression>> nodes, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{std::move(child)}, nodes{std::move(nodes)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_CREATE;
     }
 
     inline string getExpressionsForPrinting() const override {
-        string result;
-        for (auto& createItem : createItems) {
-            result += createItem.first->getRawName() + ",";
+        expression_vector expressions;
+        for (auto& node : nodes) {
+            expressions.push_back(node);
         }
-        return result;
+        return ExpressionUtil::toString(expressions);
     }
 
-    inline uint32_t getNumCreateItems() const { return createItems.size(); }
-    inline create_item getCreateItem(uint32_t idx) const { return createItems[idx]; }
+    inline vector<shared_ptr<NodeExpression>> getNodes() const { return nodes; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreate>(createItems, children[0]->copy());
+        return make_unique<LogicalCreate>(nodes, children[0]->copy());
     }
 
 private:
-    vector<create_item> createItems;
+    vector<shared_ptr<NodeExpression>> nodes;
 };
 
 } // namespace planner

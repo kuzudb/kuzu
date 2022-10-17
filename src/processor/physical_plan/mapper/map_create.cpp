@@ -12,13 +12,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto& nodesStore = storageManager.getNodesStore();
     vector<NodeTable*> nodeTables;
-    for (auto i = 0u; i < logicalCreate.getNumCreateItems(); ++i) {
-        auto [expression, setItems] = logicalCreate.getCreateItem(i);
-        auto& node = (NodeExpression&)*expression;
-        nodeTables.push_back(nodesStore.getNodeTable(node.getTableID()));
+    vector<DataPos> outVectorPositions;
+    for (auto& node : logicalCreate.getNodes()) {
+        outVectorPositions.push_back(mapperContext.getDataPos(node->getIDProperty()));
+        nodeTables.push_back(nodesStore.getNodeTable(node->getTableID()));
     }
-    return make_unique<CreateNode>(move(nodeTables), move(prevOperator), getOperatorID(),
-        logicalCreate.getExpressionsForPrinting());
+    return make_unique<CreateNode>(std::move(nodeTables), std::move(outVectorPositions),
+        std::move(prevOperator), getOperatorID(), logicalCreate.getExpressionsForPrinting());
 }
 
 } // namespace processor

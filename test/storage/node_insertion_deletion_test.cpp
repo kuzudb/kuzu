@@ -141,44 +141,6 @@ public:
         }
     }
 
-    void testSimpleAdd(bool isCommit, TransactionTestType transactionTestType) {
-        for (int i = 0; i < 3000; ++i) {
-            addNode();
-        }
-        auto tableID = personNodeTable->getTableID();
-        ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                      TransactionType::READ_ONLY, tableID),
-            9999);
-        ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                      TransactionType::WRITE, tableID),
-            12999);
-        string query = "MATCH (a:person) RETURN count(*)";
-        ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
-        ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
-
-        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-
-        if (isCommit) {
-            ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
-            ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 13000);
-            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                          TransactionType::READ_ONLY, tableID),
-                12999);
-            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                          TransactionType::WRITE, tableID),
-                12999);
-        } else {
-            ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
-            ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
-            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                          TransactionType::READ_ONLY, tableID),
-                9999);
-            ASSERT_EQ(personNodeTable->getNodeStatisticsAndDeletedIDs()->getMaxNodeOffset(
-                          TransactionType::WRITE, tableID),
-                9999);
-        }
-    }
-
 public:
     unique_ptr<Connection> readConn;
     NodeTable* personNodeTable;
@@ -231,24 +193,6 @@ TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackNormalExecution) {
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesRollbackRecovery) {
     testDeleteAllNodes(false /* is rollback */, TransactionTestType::RECOVERY);
-}
-
-// TODO(Guodong): We need to extend these tests with queries that verify that the IDs are deleted,
-// added, and can be queried correctly.
-TEST_F(NodeInsertionDeletionTests, SimpleAddCommitNormalExecution) {
-    testSimpleAdd(true /* is commit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(NodeInsertionDeletionTests, SimpleAddCommitRecovery) {
-    testSimpleAdd(true /* is commit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackNormalExecution) {
-    testSimpleAdd(false /* is rollback */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(NodeInsertionDeletionTests, SimpleAddRollbackRecovery) {
-    testSimpleAdd(false /* is rollback */, TransactionTestType::RECOVERY);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {

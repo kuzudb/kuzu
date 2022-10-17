@@ -225,6 +225,13 @@ TEST_F(TinySnbUpdateTest, SetNodeUnstrProp1HopTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
+TEST_F(TinySnbUpdateTest, SetNodeMixedPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID= 0 SET a.label1='abcd', a.fName='A'");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID < 3 RETURN a.ID,a.fName,a.label1");
+    auto groundTruth = vector<string>{"0|A|abcd", "2|Bob|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
 // Delete clause test
 
 TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
@@ -233,25 +240,70 @@ TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
 }
 
 // Create clause test
-
-// NOTE: this query should error once we enforce primary key to be unique
-TEST_F(TinySnbUpdateTest, InsertNodeTest) {
-    conn->beginWriteTransaction(); // TODO(Semih): check why auto-commit doesn't work
-    unique_ptr<QueryResult> result;
-    result = conn->query("MATCH (:person) CREATE (:person {ID:100});");
-    assert(result->isSuccess());
-    result = conn->query("MATCH (:person) RETURN COUNT(*)");
-    auto groundTruth = vector<string>{"16"};
+TEST_F(TinySnbUpdateTest, InsertNodeWithBoolIntDoubleTest) {
+    conn->query("CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1});");
+    auto result =
+        conn->query("MATCH (a:person) WHERE a.ID > 8 "
+                    "RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight, a.label1");
+    auto groundTruth = vector<string>{"10|2|False|True|83|4.900000|", "80|||True|22|1.100000|",
+        "9|2|False|False|40|4.900000|good"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-// NOTE: this query should error once we enforce primary key to be unique
-TEST_F(TinySnbUpdateTest, InsertNodeTest2) {
-    conn->beginWriteTransaction(); // TODO(Semih): check why auto-commit doesn't work
-    unique_ptr<QueryResult> result;
-    result = conn->query("MATCH (:person)-[:knows]->(:person) CREATE (:person {ID:100});");
-    assert(result->isSuccess());
-    result = conn->query("MATCH (:person) RETURN COUNT(*)");
-    auto groundTruth = vector<string>{"22"};
+TEST_F(TinySnbUpdateTest, InsertNodeWithDateIntervalTest) {
+    conn->query("CREATE (:person {ID:32, birthdate:date('1997-03-22'), lastJobDuration:interval('2 "
+                "years')});");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID > 8 "
+                              "RETURN a.ID, a.birthdate,a.lastJobDuration");
+    auto groundTruth = vector<string>{"10|1990-11-27|3 years 2 days 13:02:00",
+        "32|1997-03-22|2 years", "9|1980-10-26|10 years 5 months 13:00:00.000024"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeWithStringTest) {
+    conn->query("CREATE (:person {ID:32, fName:'A'}), (:person {ID:33, fName:'BCD'}), (:person "
+                "{ID:34, fName:'this is a long name'});");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.fName");
+    auto groundTruth = vector<string>{"10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
+        "32|A", "33|BCD", "34|this is a long name", "9|Greg"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeWithListTest) {
+    conn->query(
+        "CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']});");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID > 8 "
+                              "RETURN a.ID, a.workedHours,a.usedNames");
+    auto groundTruth = vector<string>{"10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]",
+        "11|[1,2,3]|[A,this is a long name]", "9|[1]|[Grad]"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeWithMixedLabelTest) {
+    conn->query("CREATE (:person {ID:32, fName:'A'}), (:organisation {ID:33, orgCode:144});");
+    auto pResult = conn->query("MATCH (a:person) WHERE a.ID > 30 RETURN a.ID, a.fName");
+    auto pGroundTruth = vector<string>{"32|A"};
+    ASSERT_EQ(TestHelper::convertResultToString(*pResult), pGroundTruth);
+    auto oResult = conn->query("MATCH (a:organisation) RETURN a.ID, a.orgCode");
+    auto oGroundTruth = vector<string>{"1|325", "33|144", "4|934", "6|824"};
+    ASSERT_EQ(TestHelper::convertResultToString(*oResult), oGroundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeWithUnstrTest) {
+    conn->query("CREATE (:person {ID:11, label1:'a', label2:'abcdefghijklmn'});");
+    auto result = conn->query(
+        "MATCH (a:person) WHERE a.ID > 5 RETURN a.ID, a.label1, a.label2, a.unstrDateProp1");
+    auto groundTruth = vector<string>{
+        "10||good|", "11|a|abcdefghijklmn|", "7|||", "8|excellent|excellent|", "9|good||"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeAfterMatchListTest) {
+    conn->query("MATCH (a:person) CREATE (:person {ID:a.ID+11, age:a.age*2});");
+    auto result = conn->query("MATCH (a:person) RETURN a.ID, a.fName,a.age");
+    auto groundTruth =
+        vector<string>{"0|Alice|35", "10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83",
+            "11||70", "13||60", "14||90", "16||40", "18||40", "19||50", "20||80", "21||166",
+            "2|Bob|30", "3|Carol|45", "5|Dan|20", "7|Elizabeth|20", "8|Farooq|25", "9|Greg|40"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

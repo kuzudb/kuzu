@@ -39,8 +39,13 @@ public:
         return result->getNext()->getValue(0)->val.int64Val;
     }
 
-    void add100Nodes(Connection* connection) {
-        for (auto i = 0u; i < 100; ++i) {
+    int64_t getNumNodes(Connection* connection) {
+        auto result = connection->query("MATCH (:person) RETURN count(*)");
+        return result->getNext()->getValue(0)->val.int64Val;
+    }
+
+    void addNodes(Connection* connection, uint64_t numNodes) {
+        for (auto i = 0u; i < numNodes; ++i) {
             auto id = 10000 + i;
             auto result = conn->query("CREATE (a:person {ID: " + to_string(id) + "})");
             assert(result->isSuccess());
@@ -134,44 +139,43 @@ TEST_F(DeleteCreateTransactionTest, DeleteAllNodesRollbackRecovery) {
     ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
 }
 
+// TODO(Guodong): We need to extend these tests with queries that verify that the IDs are deleted,
+// added, and can be queried correctly.
+TEST_F(DeleteCreateTransactionTest, SimpleAddCommitInTrx) {
+    conn->beginWriteTransaction();
+    addNodes(conn.get(), 1000);
+    ASSERT_EQ(getNumNodes(conn.get()), 11000);
+    ASSERT_EQ(getNumNodes(readConn.get()), 10000);
+}
+
 TEST_F(DeleteCreateTransactionTest, SimpleAddCommitNormalExecution) {
     conn->beginWriteTransaction();
-    add100Nodes(conn.get());
-    string query = "MATCH (a:person) RETURN count(*)";
-    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
-    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
+    addNodes(conn.get(), 1000);
     conn->commit();
-    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
-    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
+    ASSERT_EQ(getNumNodes(conn.get()), 11000);
 }
 
 TEST_F(DeleteCreateTransactionTest, SimpleAddCommitRecovery) {
     conn->beginWriteTransaction();
-    add100Nodes(conn.get());
+    addNodes(conn.get(), 1000);
     conn->commitButSkipCheckpointingForTestingRecovery();
-    // This should run the recovery algorithm
-    createDBAndConn();
-    string query = "MATCH (a:person) RETURN count(*)";
-    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
+    createDBAndConn(); // run recovery
+    ASSERT_EQ(getNumNodes(conn.get()), 11000);
 }
 
 TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackNormalExecution) {
     conn->beginWriteTransaction();
-    add100Nodes(conn.get());
+    addNodes(conn.get(), 1000);
     conn->rollback();
-    string query = "MATCH (a:person) RETURN count(*)";
-    ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
-    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
+    ASSERT_EQ(getNumNodes(conn.get()), 10000);
 }
 
 TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackRecovery) {
     conn->beginWriteTransaction();
-    add100Nodes(conn.get());
+    addNodes(conn.get(), 1000);
     conn->rollbackButSkipCheckpointingForTestingRecovery();
-    // This should run the recovery algorithm
-    createDBAndConn();
-    string query = "MATCH (a:person) RETURN count(*)";
-    ASSERT_EQ(getCountStarVal(conn.get(), query), 10000);
+    createDBAndConn(); // run recovery
+    ASSERT_EQ(getNumNodes(conn.get()), 10000);
 }
 
 // TODO(Guodong/Xiyang): Fix this test once we support properties in CREATE clause
