@@ -39,8 +39,8 @@ public:
     inline void resetState() { context->resetState(); }
 
 private:
-    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
-        LogicalPlan* outerPlan, expression_vector expressionsToScan);
+    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
+        expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     void planOuterExpressionsScan(expression_vector& expressions);

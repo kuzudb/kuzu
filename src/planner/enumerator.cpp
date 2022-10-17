@@ -214,13 +214,13 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         getCorrelatedExpressions(queryGraph, queryGraphPredicate, outerPlan.getSchema());
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
         auto joinNodes = getJoinNodes(correlatedExpressions);
-        // When correlated variables are all NODE IDs, the subquery evaluation can be unnested as
-        // left join (i.e. inner plan does not scan from outer plan). Join node is scanned in the
-        // outer plan. Avoid scan the same table twice.
-        auto innerQueryGraph = queryGraph.copyWithoutNodes(joinNodes);
-        auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
+        // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
+        // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
+        // scan only scans node ID and does not scan from storage (i.e. no property scan).
+        auto prevContext = joinOrderEnumerator.enterSubquery(
+            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
         auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
-            *innerQueryGraph, queryGraphPredicate, getInitialEmptyPlans());
+            queryGraph, queryGraphPredicate, getInitialEmptyPlans());
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
         for (auto& joinNode : joinNodes) {
@@ -253,10 +253,10 @@ void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalP
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
         auto joinNodes = getJoinNodes(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
-        auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan, expression_vector{});
-        auto queryGraphToEnumerate = subquery->getQueryGraph()->copyWithoutNodes(joinNodes);
+        auto prevContext = joinOrderEnumerator.enterSubquery(
+            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
         auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
-            *queryGraphToEnumerate, subquery->getWhereExpression(), getInitialEmptyPlans()));
+            *subquery->getQueryGraph(), subquery->getWhereExpression(), getInitialEmptyPlans()));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
         // TODO(Xiyang): add asp.
         JoinOrderEnumerator::appendMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
