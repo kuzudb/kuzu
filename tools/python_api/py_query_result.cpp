@@ -28,7 +28,7 @@ py::list PyQueryResult::getNext() {
     auto tuple = queryResult->getNext();
     py::tuple result(tuple->len());
     for (auto i = 0u; i < tuple->len(); ++i) {
-        result[i] = convertValueToPyObject(*tuple->getValue(i), tuple->nullMask[i]);
+        result[i] = convertValueToPyObject(*tuple->getResultValue(i));
     }
     return move(result);
 }
@@ -40,68 +40,32 @@ void PyQueryResult::close() {
     queryResult.reset();
 }
 
-py::object PyQueryResult::convertValueToPyObject(const Value& value, bool isNull) {
-    if (isNull) {
+py::object PyQueryResult::convertValueToPyObject(const ResultValue& value) {
+    if (value.isNullVal()) {
         return py::none();
     }
-    auto dataType = value.dataType;
+    auto dataType = value.getDataType();
     switch (dataType.typeID) {
     case BOOL: {
-        return convertValueToPyObject((uint8_t*)(&value.val.booleanVal), dataType);
+        return py::cast(value.getBooleanVal());
     }
     case INT64: {
-        return convertValueToPyObject((uint8_t*)(&value.val.int64Val), dataType);
+        return py::cast(value.getInt64Val());
     }
     case DOUBLE: {
-        return convertValueToPyObject((uint8_t*)(&value.val.doubleVal), dataType);
+        return py::cast(value.getDoubleVal());
     }
     case STRING: {
-        return convertValueToPyObject((uint8_t*)(&value.val.strVal), dataType);
+        return py::cast(value.getStringVal());
     }
     case DATE: {
-        return convertValueToPyObject((uint8_t*)(&value.val.dateVal), dataType);
-    }
-    case TIMESTAMP: {
-        return convertValueToPyObject((uint8_t*)(&value.val.timestampVal), dataType);
-    }
-    case INTERVAL: {
-        return convertValueToPyObject((uint8_t*)(&value.val.intervalVal), dataType);
-    }
-    case LIST: {
-        return convertValueToPyObject((uint8_t*)(&value.val.listVal), dataType);
-    }
-    case NODE_ID: {
-        // TODO: Somehow Neo4j allows exposing of internal type. But I start thinking we shouldn't.
-        return convertValueToPyObject((uint8_t*)(&value.val.nodeID), dataType);
-    }
-    default:
-        throw NotImplementedException(
-            "Unsupported type1: " + Types::dataTypeToString(value.dataType));
-    }
-}
-
-py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& dataType) {
-    switch (dataType.typeID) {
-    case BOOL: {
-        return py::cast(*(bool*)val);
-    }
-    case INT64: {
-        return py::cast(*(int64_t*)val);
-    }
-    case DOUBLE: {
-        return py::cast(*(double_t*)val);
-    }
-    case STRING: {
-        return py::cast((*(gf_string_t*)val).getAsString());
-    }
-    case DATE: {
-        auto dateVal = *(date_t*)val;
+        auto dateVal = value.getDateVal();
         int32_t year, month, day;
         Date::Convert(dateVal, year, month, day);
         return py::cast<py::object>(PyDate_FromDate(year, month, day));
     }
     case TIMESTAMP: {
-        auto timestampVal = *(timestamp_t*)val;
+        auto timestampVal = value.getTimestampVal();
         int32_t year, month, day, hour, min, sec, micros;
         date_t date;
         dtime_t time;
@@ -112,25 +76,19 @@ py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& d
             PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
     }
     case INTERVAL: {
-        auto intervalVal = *(interval_t*)val;
+        auto intervalVal = value.getIntervalVal();
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
         return py::cast<py::object>(py::module::import("datetime")
                                         .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
     case LIST: {
-        auto listVal = *(gf_list_t*)val;
-        auto childTypeSize = Types::getDataTypeSize(*dataType.childType);
+        auto listVal = value.getListVal();
         py::list list;
-        for (auto i = 0u; i < listVal.size; ++i) {
-            list.append(convertValueToPyObject(
-                (uint8_t*)(listVal.overflowPtr + childTypeSize * i), *dataType.childType));
+        for (auto i = 0u; i < listVal.size(); ++i) {
+            list.append(convertValueToPyObject(listVal[i]));
         }
         return move(list);
-    }
-    case NODE_ID: {
-        auto nodeVal = *(nodeID_t*)val;
-        return py::cast(make_pair(nodeVal.tableID, nodeVal.offset));
     }
     default:
         throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));

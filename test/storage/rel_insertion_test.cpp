@@ -129,16 +129,16 @@ public:
         bool containNullValues, bool containLongString) {
         for (auto i = 0u; i < numInsertedRels; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->isNull(0), containNullValues && (i % 2 != 0));
+            ASSERT_EQ(tuple->getResultValue(0)->isNullVal(), containNullValues && (i % 2 != 0));
             if (!containNullValues || i % 2 == 0) {
-                ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
             }
-            ASSERT_EQ(tuple->isNull(1), containNullValues);
+            ASSERT_EQ(tuple->getResultValue(1)->isNullVal(), containNullValues);
             if (!containNullValues) {
-                ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(),
+                ASSERT_EQ(tuple->getResultValue(1)->getStringVal(),
                     (containLongString ? "long long string prefix " : "") + to_string(i));
             }
-            ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0].getAsString(),
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
                 (containLongString ? "long long string prefix " : "") + to_string(i));
         }
     }
@@ -170,11 +170,10 @@ public:
     void validateSmallListAfterInsertion(QueryResult* result, uint64_t numInsertedRels) {
         for (auto i = 0u; i < 51; i++) {
             auto tuple = result->getNext();
-            ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
             auto strVal = getStringValToValidate(1000 - i);
-            ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(), strVal);
-            ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0].getAsString(),
-                strVal);
+            ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(), strVal);
             if (i == 1) {
                 validateInsertedRels(result, numInsertedRels, false /* containNullValues */,
                     false /* testLongString */);
@@ -205,11 +204,10 @@ public:
         QueryResult* result, uint64_t numInsertedRels, bool containNullValues) {
         for (auto i = 0u; i < 2500; i++) {
             auto tuple = result->getNext();
-            ASSERT_EQ(tuple->getValue(0)->val.int64Val, 3 * i);
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 3 * i);
             auto strVal = getStringValToValidate(3000 - i);
-            ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(), strVal);
-            ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0].getAsString(),
-                strVal);
+            ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(), strVal);
         }
         validateInsertedRels(
             result, numInsertedRels, containNullValues, false /* testLongString */);
@@ -310,11 +308,10 @@ public:
         for (auto i = 0u; i < 50; i++) {
             auto tuple = result->getNext();
             // Check rels stored in the persistent store.
-            ASSERT_EQ(tuple->getValue(0)->val.int64Val, i);
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
             auto strVal = getStringValToValidate(1000 - i);
-            ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(), strVal);
-            ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0].getAsString(),
-                strVal);
+            ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(), strVal);
             if (!isCommit) {
                 continue;
             }
@@ -328,22 +325,20 @@ public:
                 for (auto j = 0u; j < 100; j++) {
                     tuple = result->getNext();
                     auto dstNodeOffset = 700 + i + j;
-                    ASSERT_EQ(tuple->getValue(0)->val.int64Val, dstNodeOffset * 3);
+                    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 3);
                     ASSERT_EQ(
-                        tuple->getValue(1)->val.strVal.getAsString(), to_string(dstNodeOffset - 5));
-                    ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0]
-                                  .getAsString(),
+                        tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 5));
+                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
                         to_string(dstNodeOffset - 5));
                 }
             } else {
                 for (auto j = 0u; j < 1000; j++) {
                     tuple = result->getNext();
                     auto dstNodeOffset = 500 + i + j;
-                    ASSERT_EQ(tuple->getValue(0)->val.int64Val, dstNodeOffset * 2);
-                    ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(),
-                        to_string(dstNodeOffset - 25));
-                    ASSERT_EQ(((gf_string_t*)tuple->getValue(2)->val.listVal.overflowPtr)[0]
-                                  .getAsString(),
+                    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 2);
+                    ASSERT_EQ(
+                        tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 25));
+                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
                         to_string(dstNodeOffset - 25));
                 }
             }
@@ -382,11 +377,11 @@ public:
         for (auto i = 0u; i < 10; i++) {
             auto tuple = queryResult->getNext();
             ASSERT_EQ(
-                tuple->getValue(0)->val.strVal.getAsString(), to_string(i + 1) + to_string(i + 1));
+                tuple->getResultValue(0)->getStringVal(), to_string(i + 1) + to_string(i + 1));
         }
         for (auto i = 0u; i < numValuesToInsert; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->getValue(0)->val.strVal.getAsString(), to_string(i));
+            ASSERT_EQ(tuple->getResultValue(0)->getStringVal(), to_string(i));
         }
     }
 
@@ -439,13 +434,13 @@ public:
             // is an inserted edge(checked by i % 10) and the srcNodeOffset is not a multiple of
             // 20(checked by i % 20).
             auto isNull = i % 10 == 0 && (testNull && i % 20);
-            ASSERT_EQ(tuple->isNull(0), isNull);
+            ASSERT_EQ(tuple->getResultValue(0)->isNullVal(), isNull);
             if (!isNull) {
                 // If this is an inserted edge(checked by i % 10), the length property value
                 // is i / 10. Otherwise, the length property value is i.
-                ASSERT_EQ(tuple->getValue(0)->val.int64Val, i % 10 ? i : i / 10);
+                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i % 10 ? i : i / 10);
             }
-            ASSERT_EQ(tuple->isNull(1), isNull);
+            ASSERT_EQ(tuple->getResultValue(1)->isNullVal(), isNull);
             if (!isNull) {
                 // If this is an inserted edge(checked by i % 10), the place property value
                 // is prefix(if we are testing long strings) + i / 10. Otherwise,
@@ -457,7 +452,7 @@ public:
                                  to_string(2000 - i) + to_string(2000 - i) + to_string(2000 - i)) :
                         ((testLongString && i % 20 ? "long string prefix " : "") +
                             to_string(i / 10));
-                ASSERT_EQ(tuple->getValue(1)->val.strVal.getAsString(), strVal);
+                ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
             }
         }
     }
@@ -510,7 +505,7 @@ public:
                     tuple = queryResult->getNext();
                 }
                 // The length property's value is equal to the srcPerson's ID.
-                ASSERT_EQ(tuple->getValue(0)->val.int64Val, i * 10 + j);
+                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i * 10 + j);
             }
         }
     }

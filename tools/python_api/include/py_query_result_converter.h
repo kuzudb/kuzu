@@ -11,7 +11,7 @@ struct NPArrayWrapper {
 public:
     NPArrayWrapper(const DataType& type, uint64_t numFlatTuple);
 
-    void appendElement(Value* value, bool isNull);
+    void appendElement(ResultValue* value);
 
 private:
     py::dtype convertToArrayType(const DataType& type);

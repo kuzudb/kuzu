@@ -67,7 +67,7 @@ public:
     void checkNodeWithIDExists(Connection* connection, uint64_t nodeID) {
         auto result =
             connection->query("MATCH (a:person) WHERE a.ID=" + to_string(nodeID) + " RETURN a.ID");
-        ASSERT_EQ(result->getNext()->getValue(0)->val.int64Val, nodeID);
+        ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), nodeID);
     }
 
     void checkNodeWithIDDoesNotExist(Connection* connection, uint64_t nodeID) {
@@ -128,16 +128,16 @@ public:
                 personNodeTable->getTableID(), nodeOffset);
         }
         string query = "MATCH (a:person) RETURN count(DISTINCT a.ID)";
-        ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-        ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
+        ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+        ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10000);
 
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         if (isCommit) {
-            ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-            ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
+            ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+            ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
         } else {
-            ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
-            ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
+            ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10000);
+            ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10000);
         }
     }
 
@@ -172,11 +172,11 @@ TEST_F(NodeInsertionDeletionTests, DeleteEntireMorselTestCommitNormalExecution) 
             personNodeTable->getTableID(), nodeOffset);
     }
     string query = "MATCH (a:person) WHERE a.ID >= 2048 AND a.ID < 4096 RETURN count(*)";
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 2048);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 2048);
     conn->commit();
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAllNodesCommitNormalExecution) {
@@ -212,34 +212,34 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     }
 
     string query = "MATCH (a:person) RETURN count(*)";
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 10010);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10000);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10010);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10000);
     conn->commit();
     conn->beginWriteTransaction();
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 10010);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10010);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10010);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10010);
 
     for (node_offset_t nodeOffset = 0; nodeOffset < 10010; ++nodeOffset) {
         personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             personNodeTable->getTableID(), nodeOffset);
     }
 
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 10010);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 10010);
     conn->commit();
     conn->beginWriteTransaction();
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
 
     for (int i = 0; i < 5000; ++i) {
         auto nodeOffset = addNode();
         ASSERT_TRUE(nodeOffset >= 0 && nodeOffset < 10010);
     }
 
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 5000);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 0);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 5000);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 0);
     conn->commit();
     conn->beginWriteTransaction();
-    ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->val.int64Val, 5000);
-    ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->val.int64Val, 5000);
+    ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 5000);
+    ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 5000);
 }

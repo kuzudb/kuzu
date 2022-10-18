@@ -11,7 +11,7 @@ public:
 
     DataPos(const DataPos& other) : DataPos(other.dataChunkPos, other.valueVectorPos) {}
 
-    inline bool operator==(const DataPos& rhs) {
+    inline bool operator==(const DataPos& rhs) const {
         return (dataChunkPos == rhs.dataChunkPos) && (valueVectorPos == rhs.valueVectorPos);
     }
 

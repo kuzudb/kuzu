@@ -26,7 +26,6 @@ void WALReplayer::init() {
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
-    auto type = walRecord.recordType;
     switch (walRecord.recordType) {
     case PAGE_UPDATE_OR_INSERT_RECORD: {
         // 1. As the first step we copy over the page on disk, regardless of if we are recovering

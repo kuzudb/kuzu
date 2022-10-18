@@ -15,7 +15,7 @@ public:
     void checkNodeExists(Connection* connection, uint64_t nodeID) {
         auto result =
             connection->query("MATCH (a:person) WHERE a.ID=" + to_string(nodeID) + " RETURN a.ID");
-        ASSERT_EQ(result->getNext()->getValue(0)->val.int64Val, nodeID);
+        ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), nodeID);
     }
 
     void checkNodeNotExists(Connection* connection, uint64_t nodeID) {
@@ -36,12 +36,12 @@ public:
 
     int64_t getCountStarVal(Connection* connection, const string& query) {
         auto result = connection->query(query);
-        return result->getNext()->getValue(0)->val.int64Val;
+        return result->getNext()->getResultValue(0)->getInt64Val();
     }
 
     int64_t getNumNodes(Connection* connection) {
         auto result = connection->query("MATCH (:person) RETURN count(*)");
-        return result->getNext()->getValue(0)->val.int64Val;
+        return result->getNext()->getResultValue(0)->getInt64Val();
     }
 
     void addNodes(Connection* connection, uint64_t numNodes) {
