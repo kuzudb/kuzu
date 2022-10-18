@@ -41,7 +41,8 @@ private:
 
     static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
         vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-        Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn);
+        Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn,
+        vector<bool> requireToReadTableLabels);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
         const vector<Property>& properties,
