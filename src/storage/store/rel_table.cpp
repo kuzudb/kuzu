@@ -75,6 +75,7 @@ void RelTable::insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert)
     auto& dstVector = valueVectorsToInsert[1];
     auto srcNodeValues = srcVector->values;
     auto dstNodeValues = dstVector->values;
+    // TODO: assmue flat input
     auto srcPos = srcVector->state->selVector->selectedPositions
                       [srcVector->state->isFlat() ? srcVector->state->getPositionOfCurrIdx() : 0];
     auto dstPos = dstVector->state->selVector->selectedPositions

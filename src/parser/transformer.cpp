@@ -128,11 +128,7 @@ unique_ptr<UnwindClause> Transformer::transformUnwind(CypherParser::OC_UnwindCon
 }
 
 unique_ptr<CreateClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
-    auto createClause = make_unique<CreateClause>();
-    for (auto& nodePattern : ctx.oC_NodePattern()) {
-        createClause->addNodePattern(transformNodePattern(*nodePattern));
-    }
-    return createClause;
+    return make_unique<CreateClause>(transformPattern(*ctx.oC_Pattern()));
 }
 
 unique_ptr<SetClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
@@ -276,7 +272,9 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
         relDetail->oC_Variable() ? transformVariable(*relDetail->oC_Variable()) : string(),
         relDetail->oC_RelTypeName() ? transformRelTypeName(*relDetail->oC_RelTypeName()) : string(),
         lowerBound, upperBound,
-        ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT);
+        ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT,
+        relDetail->gF_Properties() ? transformProperties(*relDetail->gF_Properties()) :
+                                     vector<pair<string, unique_ptr<ParsedExpression>>>{});
 }
 
 vector<pair<string, unique_ptr<ParsedExpression>>> Transformer::transformProperties(

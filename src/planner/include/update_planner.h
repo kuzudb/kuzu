@@ -30,15 +30,16 @@ private:
     void planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planSetItem(expression_pair setItem, LogicalPlan& plan);
 
-    void appendCreate(BoundCreateClause& createClause, LogicalPlan& plan);
+    void planCreate(BoundCreateClause& createClause, LogicalPlan& plan);
+    void appendCreateNode(BoundCreateClause& createClause, LogicalPlan& plan);
+    void appendCreateRel(BoundCreateClause& createClause, LogicalPlan& plan);
+
     inline void appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
-        appendSet(getSetItems(setClause), plan);
+        appendSet(setClause.getSetItems(), plan);
     }
     void appendSet(vector<expression_pair> setItems, LogicalPlan& plan);
     void appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
 
-    vector<expression_pair> getSetItems(BoundCreateClause& createClause);
-    vector<expression_pair> getSetItems(BoundSetClause& setClause);
     vector<expression_pair> splitSetItems(vector<expression_pair> setItems, bool isStructured);
 
 private:

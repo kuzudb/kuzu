@@ -21,6 +21,12 @@ public:
 
     bool isNull() const { return literal->isNull(); }
 
+    static unique_ptr<LiteralExpression> createNullLiteralExpression(DataType dataType) {
+        auto nullLiteral = make_unique<Literal>();
+        nullLiteral->dataType = dataType;
+        return make_unique<LiteralExpression>(dataType, std::move(nullLiteral));
+    }
+
 public:
     unique_ptr<Literal> literal;
 };

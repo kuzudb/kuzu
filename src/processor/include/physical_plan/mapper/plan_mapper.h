@@ -72,7 +72,9 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalCreateToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);

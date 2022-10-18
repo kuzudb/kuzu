@@ -3,7 +3,6 @@
 using namespace graphflow::testing;
 
 class DeleteCreateTransactionTest : public DBTest {
-
 public:
     void SetUp() override {
         DBTest::SetUp();
@@ -177,28 +176,3 @@ TEST_F(DeleteCreateTransactionTest, SimpleAddRollbackRecovery) {
     createDBAndConn(); // run recovery
     ASSERT_EQ(getNumNodes(conn.get()), 10000);
 }
-
-// TODO(Guodong/Xiyang): Fix this test once we support properties in CREATE clause
-// TEST_F(DeleteCreateTransactionTest, DeleteAddMixedTest)  {
-//    conn->beginWriteTransaction();
-//    conn->query("MATCH (a:person) WHERE a.ID >= 1000 AND a.ID < 1100 DELETE a");
-//    add100Nodes(conn.get());
-//    add100Nodes(conn.get());
-//    string query = "MATCH (a:person) RETURN count(*)";
-//    ASSERT_EQ(getCountStarVal(conn.get(), query), 10100);
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10000);
-//    conn->commit();
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
-//    conn->beginWriteTransaction();
-//    conn->query("MATCH (a:person) DELETE a");
-//    ASSERT_EQ(getCountStarVal(conn.get(), query), 0);
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 10100);
-//    conn->commit();
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
-//    conn->beginWriteTransaction();
-//    add100Nodes(conn.get());
-//    ASSERT_EQ(getCountStarVal(conn.get(), query), 100);
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 0);
-//    conn->commit();
-//    ASSERT_EQ(getCountStarVal(readConn.get(), query), 100);
-//}

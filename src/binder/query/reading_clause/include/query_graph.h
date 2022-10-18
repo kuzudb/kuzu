@@ -137,5 +137,28 @@ private:
     vector<shared_ptr<RelExpression>> queryRels;
 };
 
+class PropertyKeyValCollection {
+public:
+    PropertyKeyValCollection() = default;
+    PropertyKeyValCollection(const PropertyKeyValCollection& other)
+        : varNameToPropertyKeyValPairs{other.varNameToPropertyKeyValPairs} {}
+
+    void addPropertyKeyValPair(const Expression& variable, expression_pair propertyKeyValPair);
+    vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
+
+    bool hasPropertyKeyValPair(const Expression& variable, const string& propertyName) const;
+    expression_pair getPropertyKeyValPair(
+        const Expression& variable, const string& propertyName) const;
+
+    inline unique_ptr<PropertyKeyValCollection> copy() const {
+        return make_unique<PropertyKeyValCollection>(*this);
+    }
+
+private:
+    // First indexed on variable name, then indexed on property name.
+    // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
+    unordered_map<string, unordered_map<string, expression_pair>> varNameToPropertyKeyValPairs;
+};
+
 } // namespace binder
 } // namespace graphflow

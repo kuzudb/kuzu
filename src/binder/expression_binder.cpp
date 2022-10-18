@@ -119,37 +119,40 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
-    auto& catalog = binder->catalog;
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(child, propertyName);
     } else if (REL == child->dataType.typeID) {
-        auto rel = static_pointer_cast<RelExpression>(child);
-        if (catalog.getReadOnlyVersion()->containRelProperty(rel->getTableID(), propertyName)) {
-            auto& property =
-                catalog.getReadOnlyVersion()->getRelProperty(rel->getTableID(), propertyName);
-            return make_shared<PropertyExpression>(
-                property.dataType, propertyName, property.propertyID, move(child));
-        } else {
-            throw BinderException(
-                "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
-        }
+        return bindRelPropertyExpression(child, propertyName);
     }
     assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
-    auto& catalog = binder->catalog;
+    auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
-    if (catalog.getReadOnlyVersion()->containNodeProperty(
-            nodeExpression->getTableID(), propertyName)) {
-        auto& property = catalog.getReadOnlyVersion()->getNodeProperty(
-            nodeExpression->getTableID(), propertyName);
+    if (catalogContent->containNodeProperty(nodeExpression->getTableID(), propertyName)) {
+        auto& property =
+            catalogContent->getNodeProperty(nodeExpression->getTableID(), propertyName);
         return make_shared<PropertyExpression>(
             property.dataType, propertyName, property.propertyID, move(node));
     } else {
         throw BinderException("Node " + nodeExpression->getRawName() + " does not have property " +
                               propertyName + ".");
+    }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
+    shared_ptr<Expression> rel, const string& propertyName) {
+    auto catalogContent = binder->catalog.getReadOnlyVersion();
+    auto relExpression = static_pointer_cast<RelExpression>(rel);
+    if (catalogContent->containRelProperty(relExpression->getTableID(), propertyName)) {
+        auto& property = catalogContent->getRelProperty(relExpression->getTableID(), propertyName);
+        return make_shared<PropertyExpression>(
+            property.dataType, propertyName, property.propertyID, move(rel));
+    } else {
+        throw BinderException(
+            "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
     }
 }
 
@@ -289,7 +292,8 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();
-    auto queryGraph = binder->bindQueryGraph(subqueryExpression.getPatternElements());
+    auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpression.getPatternElements());
+    Binder::validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
     auto boundSubqueryExpression =
         make_shared<ExistentialSubqueryExpression>(std::move(queryGraph), std::move(name));

@@ -16,17 +16,14 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
         auto& createClause = (BoundCreateClause&)updatingClause;
         if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
             expression_vector expressions;
-            for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
-                auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
-                for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
-                    expressions.push_back(nodeUpdateInfo->getPropertyUpdateInfo(j)->getTarget());
-                }
+            for (auto& setItem : createClause.getAllSetItems()) {
+                expressions.push_back(setItem.second);
             }
             Enumerator::appendExpressionsScan(expressions, plan);
         } else {
             Enumerator::appendAccumulate(plan);
         }
-        appendCreate((BoundCreateClause&)updatingClause, plan);
+        planCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
@@ -65,26 +62,37 @@ void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
     }
 }
 
-void UpdatePlanner::appendCreate(BoundCreateClause& createClause, LogicalPlan& plan) {
+void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& plan) {
     // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
     // match clause. This is to simplify operator implementation.
     for (auto groupPos = 0u; groupPos < plan.getSchema()->getNumGroups(); ++groupPos) {
         Enumerator::appendFlattenIfNecessary(groupPos, plan);
     }
+    if (createClause.hasNodes()) {
+        appendCreateNode(createClause, plan);
+    }
+    if (createClause.hasRels()) {
+        appendCreateRel(createClause, plan);
+    }
+}
+
+void UpdatePlanner::appendCreateNode(BoundCreateClause& createClause, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    vector<shared_ptr<NodeExpression>> nodes;
-    for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
-        auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
-        auto node = static_pointer_cast<NodeExpression>(nodeUpdateInfo->getNodeExpression());
+    for (auto& node : createClause.getNodes()) {
         auto groupPos = schema->createGroup();
         schema->insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
         schema->flattenGroup(groupPos); // create output is always flat
-        nodes.push_back(node);
     }
-    auto create = make_shared<LogicalCreate>(std::move(nodes), plan.getLastOperator());
-    plan.setLastOperator(create);
-    auto setItems = getSetItems(createClause);
-    appendSet(setItems, plan);
+    auto createNode =
+        make_shared<LogicalCreateNode>(createClause.getNodes(), plan.getLastOperator());
+    plan.setLastOperator(createNode);
+    appendSet(createClause.getNodesSetItems(), plan);
+}
+
+void UpdatePlanner::appendCreateRel(BoundCreateClause& createClause, LogicalPlan& plan) {
+    auto createRel = make_shared<LogicalCreateRel>(
+        createClause.getRels(), createClause.getSetItemsPerRel(), plan.getLastOperator());
+    plan.setLastOperator(createRel);
 }
 
 void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& plan) {
@@ -121,27 +129,6 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
     auto deleteOperator =
         make_shared<LogicalDelete>(nodeExpressions, primaryKeyExpressions, plan.getLastOperator());
     plan.setLastOperator(deleteOperator);
-}
-
-vector<expression_pair> UpdatePlanner::getSetItems(BoundCreateClause& createClause) {
-    vector<expression_pair> setItems;
-    for (auto i = 0u; i < createClause.getNumNodeUpdateInfo(); ++i) {
-        auto nodeUpdateInfo = createClause.getNodeUpdateInfo(i);
-        for (auto j = 0u; j < nodeUpdateInfo->getNumPropertyUpdateInfo(); ++j) {
-            auto updateInfo = nodeUpdateInfo->getPropertyUpdateInfo(j);
-            setItems.emplace_back(updateInfo->getProperty(), updateInfo->getTarget());
-        }
-    }
-    return setItems;
-}
-
-vector<expression_pair> UpdatePlanner::getSetItems(BoundSetClause& setClause) {
-    vector<expression_pair> setItems;
-    for (auto i = 0u; i < setClause.getNumPropertyUpdateInfos(); ++i) {
-        auto updateInfo = setClause.getPropertyUpdateInfo(i);
-        setItems.emplace_back(updateInfo->getProperty(), updateInfo->getTarget());
-    }
-    return setItems;
 }
 
 vector<expression_pair> UpdatePlanner::splitSetItems(

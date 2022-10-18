@@ -14,9 +14,11 @@ class RelPattern {
 
 public:
     RelPattern(string name, string tableName, string lowerBound, string upperBound,
-        ArrowDirection arrowDirection)
-        : variableName{move(name)}, tableName{move(tableName)}, lowerBound{move(lowerBound)},
-          upperBound{move(upperBound)}, arrowDirection{arrowDirection} {}
+        ArrowDirection arrowDirection,
+        vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
+        : variableName{std::move(name)}, tableName{std::move(tableName)},
+          lowerBound{std::move(lowerBound)}, upperBound{std::move(upperBound)},
+          arrowDirection{arrowDirection}, propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
     ~RelPattern() = default;
 
@@ -30,6 +32,11 @@ public:
 
     inline ArrowDirection getDirection() const { return arrowDirection; }
 
+    inline uint32_t getNumPropertyKeyValPairs() const { return propertyKeyValPairs.size(); }
+    inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
+        return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
+    }
+
     bool operator==(const RelPattern& other) const {
         return variableName == other.variableName && tableName == other.tableName &&
                lowerBound == other.lowerBound && upperBound == other.upperBound &&
@@ -42,6 +49,7 @@ private:
     string lowerBound;
     string upperBound;
     ArrowDirection arrowDirection;
+    vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs;
 };
 
 } // namespace parser
