@@ -196,7 +196,7 @@ void EmbeddedShell::run() {
             printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
         } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
             printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
-        } else {
+        } else if (!lineStr.empty()) {
             auto queryResult = conn->query(lineStr);
             if (queryResult->isSuccess()) {
                 printExecutionResult(*queryResult);
