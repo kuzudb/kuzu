@@ -37,12 +37,13 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     return move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
 
-unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
-    LogicalPlan* outerPlan, expression_vector expressionsToScan) {
-    auto prevContext = move(context);
+unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(LogicalPlan* outerPlan,
+    expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice) {
+    auto prevContext = std::move(context);
     context = make_unique<JoinOrderEnumeratorContext>();
     context->outerPlan = outerPlan;
     context->expressionsToScanFromOuter = std::move(expressionsToScan);
+    context->nodesToScanTwice = std::move(nodesToScanTwice);
     return prevContext;
 }
 
@@ -82,13 +83,17 @@ void JoinOrderEnumerator::planNodeScan() {
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
-
         appendScanNodeID(node, *plan);
-        auto predicates = getNewMatchedExpressions(
-            context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
-        planFiltersForNode(predicates, *node, *plan);
-        planPropertyScansForNode(*node, *plan);
-        context->addPlan(newSubgraph, move(plan));
+        // For un-nested subquery, the same table need to be scanned twice in both outer and inner
+        // plan. However, we make sure storage is only scanned once and force inner plan to only
+        // scan node ID.
+        if (!context->nodeNeedScanTwice(node.get())) {
+            auto predicates = getNewMatchedExpressions(
+                context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+            planFiltersForNode(predicates, *node, *plan);
+            planPropertyScansForNode(*node, *plan);
+        }
+        context->addPlan(newSubgraph, std::move(plan));
     }
 }
 

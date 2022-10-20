@@ -54,8 +54,14 @@ public:
         assert(!isRelMatched(rel));
         matchedRels.insert(rel->getUniqueName());
     }
-
-    inline void clearExpressionsToScanFromOuter() { expressionsToScanFromOuter.clear(); }
+    inline bool nodeNeedScanTwice(NodeExpression* node) {
+        for (auto& nodeToScanTwice : nodesToScanTwice) {
+            if (nodeToScanTwice->getUniqueName() == node->getUniqueName()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     void resetState();
 
@@ -73,6 +79,7 @@ private:
 
     LogicalPlan* outerPlan;
     expression_vector expressionsToScanFromOuter;
+    vector<shared_ptr<NodeExpression>> nodesToScanTwice;
 };
 
 } // namespace planner

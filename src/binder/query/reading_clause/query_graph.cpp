@@ -31,17 +31,13 @@ unordered_set<uint32_t> SubqueryGraph::getNodeNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
-            auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-            if (!queryNodesSelector[srcNodePos]) {
-                result.insert(srcNodePos);
-            }
+        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+        if (!queryNodesSelector[srcNodePos]) {
+            result.insert(srcNodePos);
         }
-        if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
-            auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
-            if (!queryNodesSelector[dstNodePos]) {
-                result.insert(dstNodePos);
-            }
+        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        if (!queryNodesSelector[dstNodePos]) {
+            result.insert(dstNodePos);
         }
     }
     return result;
@@ -54,17 +50,9 @@ unordered_set<uint32_t> SubqueryGraph::getRelNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        bool isSrcNodeConnected = false;
-        if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
-            auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-            isSrcNodeConnected |= queryNodesSelector[srcNodePos];
-        }
-        bool isDstConnected = false;
-        if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
-            auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
-            isDstConnected |= queryNodesSelector[dstNodePos];
-        }
-        if (isSrcNodeConnected || isDstConnected) {
+        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        if (queryNodesSelector[srcNodePos] || queryNodesSelector[dstNodePos]) {
             result.insert(relPos);
         }
     }
@@ -111,12 +99,8 @@ unordered_set<uint32_t> SubqueryGraph::getNodePositionsIgnoringNodeSelector() co
     for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
         auto rel = queryGraph.getQueryRel(relPos);
         if (queryRelsSelector[relPos]) {
-            if (queryGraph.containsQueryNode(rel->getSrcNodeName())) {
-                result.insert(queryGraph.getQueryNodePos(rel->getSrcNodeName()));
-            }
-            if (queryGraph.containsQueryNode(rel->getDstNodeName())) {
-                result.insert(queryGraph.getQueryNodePos(rel->getDstNodeName()));
-            }
+            result.insert(queryGraph.getQueryNodePos(rel->getSrcNodeName()));
+            result.insert(queryGraph.getQueryNodePos(rel->getDstNodeName()));
         }
     }
     return result;
@@ -206,24 +190,6 @@ vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
     vector<shared_ptr<Expression>> result;
     for (auto& queryNode : queryNodes) {
         result.push_back(queryNode->getNodeIDPropertyExpression());
-    }
-    return result;
-}
-
-unique_ptr<QueryGraph> QueryGraph::copyWithoutNodes(
-    const vector<shared_ptr<NodeExpression>>& nodesToExclude) const {
-    auto result = make_unique<QueryGraph>();
-    vector<shared_ptr<Expression>> nodesToExcludeExpressions(nodesToExclude.size());
-    for (auto i = 0u; i < nodesToExclude.size(); i++) {
-        nodesToExcludeExpressions[i] = nodesToExclude[i];
-    }
-    for (auto& queryNode : queryNodes) {
-        if (ExpressionUtil::find(queryNode.get(), nodesToExcludeExpressions) == UINT32_MAX) {
-            result->addQueryNode(queryNode);
-        }
-    }
-    for (auto& queryRel : queryRels) {
-        result->addQueryRel(queryRel);
     }
     return result;
 }

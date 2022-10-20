@@ -47,8 +47,8 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         auto result = make_unique<LogicalIntersect>(intersectNode, children[0]->copy());
-        for (auto i = 1u; i < children.size(); ++i) {
-            result->addChild(children[i]->copy(), buildInfos[i]->copy());
+        for (auto i = 0u; i < children.size() - 1; ++i) {
+            result->addChild(children[i + 1]->copy(), buildInfos[i]->copy());
         }
         return result;
     }

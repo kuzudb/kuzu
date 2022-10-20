@@ -22,11 +22,11 @@
 #---- 1
 #1
 
-#-NAME ExistSubqueryTest5
-#-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person)-[:knows]->(e:person) } RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#4
+-NAME ExistSubqueryTest5
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
 
 -NAME NotExistSubqueryTest
 -QUERY MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
@@ -34,11 +34,11 @@
 ---- 1
 3
 
-#-NAME ExistSubqueryMultiPartCyclicTest
-#-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person), (b)-[:knows]->(a) } RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#4
+-NAME ExistSubqueryMultiPartCyclicTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person), (b)-[:knows]->(a) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
 
 -NAME ExistsSubqueryColExtendTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) } RETURN COUNT(*)
@@ -64,11 +64,11 @@
 #---- 1
 #1
 
-#-NAME ExistSubqueryAliasTest2
-#-QUERY MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#7
+-NAME ExistSubqueryAliasTest2
+-QUERY MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
 
 -NAME ExistSubqueryReturnTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN a.fName
