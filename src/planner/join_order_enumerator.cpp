@@ -229,20 +229,41 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
     }
 }
 
+// E.g. Query graph (a)-[e1]->(b), (b)-[e2]->(a) and join between (a)-[e1] and [e2]
+// Since (b) is not in the scope of any join subgraph, join node is analyzed as (a) only, However,
+// [e1] and [e2] are also connected at (b) implicitly. So actual join nodes should be (a) and (b).
+// We prune such join.
+// Note that this does not mean we may lose good plan. An equivalent join can be found between [e2]
+// and (a)-[e1]->(b).
+static bool needPruneImplicitJoins(
+    const SubqueryGraph& leftSubgraph, const SubqueryGraph& rightSubgraph, uint32_t numJoinNodes) {
+    auto leftNodePositions = leftSubgraph.getNodePositionsIgnoringNodeSelector();
+    auto rightNodePositions = rightSubgraph.getNodePositionsIgnoringNodeSelector();
+    auto intersectionSize = 0;
+    for (auto& pos : leftNodePositions) {
+        if (rightNodePositions.contains(pos)) {
+            intersectionSize++;
+        }
+    }
+    return intersectionSize != numJoinNodes;
+}
+
 void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
     assert(leftLevel <= rightLevel);
     for (auto& rightSubgraph : context->subPlansTable->getSubqueryGraphs(rightLevel)) {
         for (auto& nbrSubgraph : rightSubgraph.getNbrSubgraphs(leftLevel)) {
-            // Consider previous example in enumerateExtend(), when enumerating second MATCH, and
-            // current level = 4 we get left subgraph as f, d, e (size = 2), and try to find a
-            // connected right subgraph of size 2. A possible right graph could be b, c, d. However,
-            // b, c, d is a subgraph enumerated in the first MATCH and has been cleared before
-            // enumeration of second MATCH. So subPlansTable does not contain this subgraph.
+            // E.g. MATCH (a)->(b) MATCH (b)->(c)
+            // Since we merge query graph for multipart query, during enumeration for the second
+            // match, the query graph is (a)->(b)->(c). However, we omit plans corresponding to the
+            // first match (i.e. (a)->(b)).
             if (!context->containPlans(nbrSubgraph)) {
                 continue;
             }
             auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
             auto joinNodes = context->mergedQueryGraph->getQueryNodes(joinNodePositions);
+            if (needPruneImplicitJoins(nbrSubgraph, rightSubgraph, joinNodes.size())) {
+                continue;
+            }
             // If index nested loop (INL) join is possible, we prune hash join plans
             if (canApplyINLJoin(rightSubgraph, nbrSubgraph, joinNodes)) {
                 planInnerINLJoin(rightSubgraph, nbrSubgraph, joinNodes);

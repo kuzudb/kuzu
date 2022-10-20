@@ -1,4 +1,0 @@
-:ID,name:STRING,orgCode:INT64,mark:DOUBLE,score:INT64
-1,ABFsUni,325,3.7,-2,unstrNumericProp:DOUBLE:-12.5
-4,CsWork,934,4.1,-100
-6,DEsWork,824,4.1,7,unstrNumericProp:DOUBLE:-3.1

@@ -26,7 +26,6 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
     ],
     deps = [
@@ -46,7 +45,6 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
     ],
     deps = [
@@ -55,23 +53,6 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
-
-#cc_test(
-#    name = "tinysnb_variant_read_test",
-#    srcs = [
-#        "tinysnb_variant_end_to_end_test.cpp",
-#    ],
-#    copts = [
-#        "-Iexternal/gtest/include",
-#    ],
-#    data = [
-#        "testfiles",
-#        "//dataset",
-#    ],
-#    deps = [
-#        "//test/test_utility:test_helper",
-#    ],
-#)
 
 cc_test(
     name = "e2e_read_list_test",
@@ -116,7 +97,6 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
     ],
     deps = [
@@ -133,15 +113,9 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     data = [
-        "testfiles",
         "//dataset",
     ],
     deps = [
         "//test/test_utility:test_helper",
     ],
-)
-
-filegroup(
-    name = "testfiles",
-    srcs = glob(["queries/**"]),
 )

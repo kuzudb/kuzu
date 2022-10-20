@@ -55,6 +55,11 @@ struct SubqueryGraph {
     unordered_set<SubqueryGraph, SubqueryGraphHasher> getNbrSubgraphs(uint32_t size) const;
     vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
 
+    // E.g. query graph (a)-[e1]->(b) and subgraph (a)-[e1], although (b) is not in subgraph, we
+    // return both (a) and (b) regardless of node selector. See needPruneJoin() in
+    // join_order_enumerator.cpp for its use case.
+    unordered_set<uint32_t> getNodePositionsIgnoringNodeSelector() const;
+
     bool operator==(const SubqueryGraph& other) const {
         return queryRelsSelector == other.queryRelsSelector &&
                queryNodesSelector == other.queryNodesSelector;

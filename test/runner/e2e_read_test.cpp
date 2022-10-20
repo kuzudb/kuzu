@@ -79,3 +79,7 @@ TEST_F(TinySnbReadTest, VarLengthExtendTests) {
     runTest("test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test");
     runTest("test/test_files/tinySNB/var_length_extend/var_length_column_extend.test");
 }
+
+TEST_F(TinySnbReadTest, Cycle) {
+    runTest("test/test_files/tinySNB/cycle/cycle.test");
+}

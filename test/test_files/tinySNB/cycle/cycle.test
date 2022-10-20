@@ -1,0 +1,41 @@
+-NAME TwoNodeCycleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+12
+
+-NAME TriangleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+24
+
+-NAME TriangleTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
+
+-NAME TriangleFilterTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-NAME SquareTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+84
+
+-NAME SquareTest2
+-QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+11
+
+-NAME SquareFilterTest2
+-QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE b.fName='Elizabeth' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
