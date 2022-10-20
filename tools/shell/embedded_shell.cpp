@@ -37,7 +37,8 @@ const vector<string> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXIST
     "TABLE", "CONTAINS", "DISTINCT", "ENDS", "IN", "IS", "NOT", "OR", "STARTS", "XOR", "CONSTRAINT",
     "DROP", "EXISTS", "INDEX", "NODE", "KEY", "UNIQUE", "INDEX", "JOIN", "PERIODIC", "COMMIT",
     "SCAN", "USING", "FALSE", "NULL", "TRUE", "ADD", "DO", "FOR", "MANDATORY", "OF", "REQUIRE",
-    "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR", "MINUS", "COUNT"};
+    "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR", "MINUS", "COUNT",
+    "PRIMARY", "COPY"};
 
 const string keywordColorPrefix = "\033[32m\033[1m";
 const string keywordResetPostfix = "\033[00m";
