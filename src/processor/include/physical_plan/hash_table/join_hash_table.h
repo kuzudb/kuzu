@@ -16,7 +16,9 @@ public:
     JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
         unique_ptr<FactorizedTableSchema> tableSchema);
 
-    void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
+    virtual ~JoinHashTable() = default;
+
+    virtual void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
     void probe(const vector<shared_ptr<ValueVector>>& keyVectors, uint8_t** probedTuples);
@@ -30,8 +32,16 @@ public:
     inline uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + colOffsetOfPrevPtrInTuple);
     }
+    inline uint8_t* getTupleForHash(hash_t hash) {
+        auto slotIdx = getSlotIdxForHash(hash);
+        return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
+                                ->getData()))[slotIdx & slotIdxInBlockMask];
+    }
+    inline const FactorizedTableSchema* getTableSchema() {
+        return factorizedTable->getTableSchema();
+    }
 
-private:
+protected:
     uint8_t** findHashSlot(nodeID_t* nodeIDs) const;
     // This function returns the pointer that previously stored in the same slot.
     uint8_t* insertEntry(uint8_t* tuple) const;
@@ -39,12 +49,6 @@ private:
     // This function returns a boolean flag indicating if there is non-null keys after discarding.
     static bool discardNullFromKeys(
         const vector<shared_ptr<ValueVector>>& vectors, uint32_t numKeyVectors);
-
-    inline uint8_t* getTupleForHash(hash_t hash) {
-        auto slotIdx = getSlotIdxForHash(hash);
-        return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
-                                ->getData()))[slotIdx & slotIdxInBlockMask];
-    }
 
 private:
     uint64_t numKeyColumns;

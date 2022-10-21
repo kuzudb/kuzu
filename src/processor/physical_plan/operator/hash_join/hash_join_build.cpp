@@ -47,11 +47,16 @@ shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
     tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
         Types::getDataTypeSize(INT64)));
-    hashTable = make_unique<JoinHashTable>(*context->memoryManager,
-        buildDataInfo.keysDataPos.size(), make_unique<FactorizedTableSchema>(*tableSchema));
-    sharedState->initEmptyHashTableIfNecessary(
-        *context->memoryManager, buildDataInfo.keysDataPos.size(), std::move(tableSchema));
+    initHashTable(*context->memoryManager, move(tableSchema));
     return resultSet;
+}
+
+void HashJoinBuild::initHashTable(
+    MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) {
+    hashTable = make_unique<JoinHashTable>(memoryManager, buildDataInfo.keysDataPos.size(),
+        make_unique<FactorizedTableSchema>(*tableSchema));
+    sharedState->initEmptyHashTableIfNecessary(
+        memoryManager, buildDataInfo.keysDataPos.size(), std::move(tableSchema));
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {

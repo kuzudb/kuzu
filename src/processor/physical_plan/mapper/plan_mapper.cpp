@@ -9,7 +9,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
@@ -22,7 +21,6 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
-#include "src/processor/include/physical_plan/operator/intersect.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by.h"
@@ -75,6 +73,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_HASH_JOIN: {
         physicalOperator = mapLogicalHashJoinToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_INTERSECT: {
+        physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_SCAN_NODE_PROPERTY: {
         physicalOperator =

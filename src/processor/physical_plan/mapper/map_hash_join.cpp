@@ -88,6 +88,38 @@ static void mapAccJoin(HashJoinProbe* hashJoinProbe) {
     constructAccPipeline(tableScan, hashJoinProbe);
 }
 
+BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
+    Schema* buildSideSchema, const vector<shared_ptr<NodeExpression>>& keys,
+    const expression_vector& payloads) {
+    auto buildSideMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
+    vector<DataPos> buildKeysDataPos, buildPayloadsDataPos;
+    vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
+    vector<bool> isBuildDataChunkContainKeys(
+        buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
+    unordered_set<string> joinNodeIDs;
+    for (auto& key : keys) {
+        auto nodeID = key->getIDProperty();
+        auto buildSideKeyPos = buildSideMapperContext.getDataPos(nodeID);
+        isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
+        buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(nodeID));
+        joinNodeIDs.emplace(nodeID);
+    }
+    for (auto& payload : payloads) {
+        auto payloadUniqueName = payload->getUniqueName();
+        if (joinNodeIDs.find(payloadUniqueName) != joinNodeIDs.end()) {
+            continue;
+        }
+        mapperContext.addComputedExpressions(payloadUniqueName);
+        auto payloadPos = buildSideMapperContext.getDataPos(payloadUniqueName);
+        buildPayloadsDataPos.push_back(payloadPos);
+        auto payloadGroup = buildSideSchema->getGroup(payloadPos.dataChunkPos);
+        isBuildPayloadsFlat.push_back(payloadGroup->getIsFlat());
+        isBuildPayloadsInKeyChunk.push_back(isBuildDataChunkContainKeys[payloadPos.dataChunkPos]);
+    }
+    return BuildDataInfo(
+        buildKeysDataPos, buildPayloadsDataPos, isBuildPayloadsFlat, isBuildPayloadsInKeyChunk);
+}
+
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto hashJoin = (LogicalHashJoin*)logicalOperator;
@@ -98,52 +130,27 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
     // Populate build side and probe side vector positions
     auto paramsString = hashJoin->getExpressionsForPrinting();
-    unordered_set<string> joinNodeIDs;
-    vector<bool> isBuildDataChunkContainKeys(
-        buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
-    vector<DataPos> buildKeysDataPos;
-    vector<DataPos> probeKeysDataPos;
+    auto buildSideSchema = hashJoin->getBuildSideSchema();
+    auto buildDataInfo = generateBuildDataInfo(mapperContext, buildSideSchema,
+        hashJoin->getJoinNodes(), hashJoin->getExpressionsToMaterialize());
+    vector<DataPos> probeKeysDataPos, probePayloadsDataPos;
+    vector<DataType> payloadsDataTypes;
     for (auto& joinNode : hashJoin->getJoinNodes()) {
         auto joinNodeID = joinNode->getIDProperty();
-        auto buildSideKeyPos = buildSideMapperContext.getDataPos(joinNodeID);
-        isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(joinNodeID));
         probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
-        joinNodeIDs.emplace(joinNodeID);
     }
-    vector<DataPos> buildPayloadsPos;
-    vector<DataPos> probePayloadsPos;
-    vector<bool> isBuildPayloadsFlat;
-    vector<bool> isBuildPayloadsInKeyChunk;
-    auto& buildSideSchema = *hashJoin->getBuildSideSchema();
-    for (auto& expression : hashJoin->getExpressionsToMaterialize()) {
-        auto expressionName = expression->getUniqueName();
-        if (joinNodeIDs.find(expressionName) != joinNodeIDs.end()) {
-            continue;
-        }
-        mapperContext.addComputedExpressions(expressionName);
-        auto buildPayloadPos = buildSideMapperContext.getDataPos(expressionName);
-        buildPayloadsPos.push_back(buildPayloadPos);
-        isBuildPayloadsFlat.push_back(buildSideSchema.getGroup(expressionName)->getIsFlat());
-        isBuildPayloadsInKeyChunk.push_back(
-            isBuildDataChunkContainKeys[buildPayloadPos.dataChunkPos]);
-        probePayloadsPos.push_back(mapperContext.getDataPos(expressionName));
+    for (auto& dataPos : buildDataInfo.payloadsDataPos) {
+        auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
+                              ->getExpressions()[dataPos.valueVectorPos];
+        payloadsDataTypes.push_back(expression->getDataType());
+        probePayloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
     }
-
-    vector<DataType> nonKeyDataPosesDataTypes(buildPayloadsPos.size());
-    for (auto i = 0u; i < buildPayloadsPos.size(); i++) {
-        auto [dataChunkPos, valueVectorPos] = buildPayloadsPos[i];
-        nonKeyDataPosesDataTypes[i] =
-            buildSideSchema.getGroup(dataChunkPos)->getExpressions()[valueVectorPos]->getDataType();
-    }
-    auto sharedState = make_shared<HashJoinSharedState>(nonKeyDataPosesDataTypes);
+    auto sharedState = make_shared<HashJoinSharedState>(payloadsDataTypes);
     // create hashJoin build
-    auto buildDataInfo = BuildDataInfo(
-        buildKeysDataPos, buildPayloadsPos, isBuildPayloadsFlat, isBuildPayloadsInKeyChunk);
     auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
         std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsPos);
+    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsDataPos);
     if (hashJoin->getJoinType() == JoinType::MARK) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());

@@ -15,7 +15,7 @@ public:
         : schema{move(schema)}, expressionsToCollect{move(expressionsToCollect)},
           estCardinality{estCardinality}, cost{cost} {}
 
-    void appendOperator(shared_ptr<LogicalOperator> op);
+    void setLastOperator(shared_ptr<LogicalOperator> op);
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 

@@ -161,6 +161,7 @@ class FlatTupleIterator;
 class FactorizedTable {
     friend FlatTupleIterator;
     friend class JoinHashTable;
+    friend class IntersectHashTable;
 
 public:
     FactorizedTable(MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
