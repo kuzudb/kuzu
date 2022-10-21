@@ -33,10 +33,13 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probePayloadVector);
         vectorsToReadInto.push_back(probePayloadVector);
     }
-    // We only need to read nonKeys from the factorizedTable. The first column in the
-    // factorizedTable is the key column, so we skip the key column.
+    // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
+    // columns in the factorizedTable, so we skip the first k columns.
+    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.payloadsOutputDataPos.size() + 1 ==
+           sharedState->getHashTable()->getTableSchema()->getNumColumns());
     columnIdxsToReadFrom.resize(probeDataInfo.payloadsOutputDataPos.size());
-    iota(columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), 1);
+    iota(
+        columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
     return resultSet;
 }
 
