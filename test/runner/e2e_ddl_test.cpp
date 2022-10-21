@@ -5,6 +5,90 @@ using namespace graphflow::testing;
 namespace graphflow {
 namespace transaction {
 
+class PrimaryKeyTest : public EmptyDBTest {
+public:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        databaseConfig->inMemoryMode = true;
+        createDBAndConn();
+    }
+};
+
+class IntPrimaryKeyTest : public PrimaryKeyTest {
+public:
+    string getInputCSVDir() override { return "dataset/primary-key-tests/int-primary-key-tests/"; }
+
+    void testPrimaryKey(string pkColName) {
+        conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
+                    "PRIMARY KEY (" +
+                    pkColName + "))");
+        conn->query("CREATE REL TABLE Knows(From Person TO Person)");
+        conn->query(
+            "COPY Person FROM \"dataset/primary-key-tests/int-primary-key-tests/vPerson.csv\"");
+        conn->query(
+            "COPY Knows FROM \"dataset/primary-key-tests/int-primary-key-tests/eKnows.csv\"");
+        auto tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 0"
+                                 "RETURN COUNT(*)")
+                         ->getNext();
+        // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 1 result.
+        // If key is secondIntCol we expect to find 0 result.
+        if (pkColName == "firstIntCol") {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+        } else {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 0);
+        }
+        tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 1 "
+                            "RETURN COUNT(*)")
+                    ->getNext();
+        // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 0 result.
+        // If key is secondIntCol we expect to find 1 result.
+        if (pkColName == "firstIntCol") {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 0);
+        } else {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+        }
+    }
+};
+
+class StringPrimaryKeyTest : public PrimaryKeyTest {
+public:
+    string getInputCSVDir() override {
+        return "dataset/primary-key-tests/string-primary-key-tests/";
+    }
+
+    void testPrimaryKey(string pkColName) {
+        conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
+                    "PRIMARY KEY (" +
+                    pkColName + "))");
+        conn->query("CREATE REL TABLE Knows(From Person TO Person)");
+        conn->query(
+            "COPY Person FROM \"dataset/primary-key-tests/string-primary-key-tests/vPerson.csv\"");
+        conn->query(
+            "COPY Knows FROM \"dataset/primary-key-tests/string-primary-key-tests/eKnows.csv\"");
+        auto tuple =
+            conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Alice\" "
+                        "RETURN COUNT(*)")
+                ->getNext();
+        // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 1
+        // result. If key is secondStrCol we expect to find 0 result.
+        if (pkColName == "firstStrCol") {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+        } else {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 0);
+        }
+        tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Bob\" "
+                            "RETURN COUNT(*)")
+                    ->getNext();
+        // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 0
+        // result. If key is secondStrCol we expect to find 1 result.
+        if (pkColName == "firstStrCol") {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 0);
+        } else {
+            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+        }
+    }
+};
+
 class TinySnbDDLTest : public DBTest {
 
 public:
@@ -26,7 +110,8 @@ public:
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
     void createNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        executeDDLWithoutCommit("CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE)");
+        executeDDLWithoutCommit(
+            "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
@@ -73,7 +158,7 @@ public:
     }
 
     void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        conn->query("CREATE NODE TABLE university(address STRING);");
+        conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
         auto nodeTableSchema =
             make_unique<NodeTableSchema>(*catalog->getReadOnlyVersion()->getNodeTableSchema(
                 catalog->getReadOnlyVersion()->getNodeTableIDFromName("university")));
@@ -145,9 +230,25 @@ public:
 } // namespace transaction
 } // namespace graphflow
 
+TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
+    testPrimaryKey("firstStrCol");
+}
+
+TEST_F(StringPrimaryKeyTest, PrimaryKeySecondColumn) {
+    testPrimaryKey("secondStrCol");
+}
+
+TEST_F(IntPrimaryKeyTest, PrimaryKeyFirstColumn) {
+    testPrimaryKey("firstIntCol");
+}
+
+TEST_F(IntPrimaryKeyTest, PrimaryKeySecondColumn) {
+    testPrimaryKey("secondIntCol");
+}
+
 TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-                              "STRING, REGISTER_TIME DATE)");
+                              "STRING, REGISTER_TIME DATE, PRIMARY KEY(NAME))");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
     result = conn->query(
@@ -167,7 +268,7 @@ TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
 
 TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
     auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-                              "STRING)");
+                              "STRING, PRIMARY KEY(NAME))");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
     result =
@@ -181,7 +282,7 @@ TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
 TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
     ddlStatementsInsideActiveTransactionErrorTest(
         "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-        "STRING, REGISTER_TIME DATE)");
+        "STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))");
     ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
 }
 

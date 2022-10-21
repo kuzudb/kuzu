@@ -7,6 +7,7 @@
 #include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
+
 namespace graphflow {
 namespace binder {
 
@@ -60,7 +61,7 @@ unique_ptr<BoundCreateNodeClause> Binder::bindCreateNodeClause(
     auto boundPropertyNameDataTypes =
         bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
     auto primaryKeyIdx = bindPrimaryKey(
-        createNodeClause.getPrimaryKey(), createNodeClause.getPropertyNameDataTypes());
+        createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
     return make_unique<BoundCreateNodeClause>(
         tableName, move(boundPropertyNameDataTypes), primaryKeyIdx);
 }
@@ -639,14 +640,14 @@ table_id_t Binder::bindNodeTableName(const string& tableName) const {
 }
 
 uint32_t Binder::bindPrimaryKey(
-    string primaryKey, vector<pair<string, string>> propertyNameDataTypes) {
-    auto primaryKeyIdx = 0u;
+    string pkColName, vector<pair<string, string>> propertyNameDataTypes) {
+    uint32_t primaryKeyIdx = UINT32_MAX;
     for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
-        if (propertyNameDataTypes[i].first == primaryKey) {
+        if (propertyNameDataTypes[i].first == pkColName) {
             primaryKeyIdx = i;
         }
     }
-    validatePrimaryKey(primaryKeyIdx, move(propertyNameDataTypes));
+    validatePrimaryKey(pkColName, primaryKeyIdx, move(propertyNameDataTypes));
     return primaryKeyIdx;
 }
 
@@ -801,7 +802,12 @@ void Binder::validateNodeCreateHasPrimaryKeyInput(
                           " expects primary key input.");
 }
 
-void Binder::validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, string>> properties) {
+void Binder::validatePrimaryKey(
+    string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties) {
+    if (primaryKeyIdx == UINT32_MAX) {
+        throw BinderException(
+            "Primary key " + pkColName + " does not match any of the predefined node properties.");
+    }
     auto primaryKey = properties[primaryKeyIdx];
     // We only support INT64 and STRING column as the primary key.
     if ((primaryKey.second != string("INT64")) && (primaryKey.second != string("STRING"))) {

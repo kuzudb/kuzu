@@ -724,12 +724,9 @@ unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
     CypherParser::GF_CreateNodeContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
     auto propertyDefinitions = transformPropertyDefinitions(*ctx.gF_PropertyDefinitions());
-    auto primaryKeyIdx =
-        ctx.gF_CreateNodeConstraint() ?
-            transformPrimaryKey(*ctx.gF_CreateNodeConstraint(), propertyDefinitions) :
-            "";
-    return make_unique<CreateNodeClause>(
-        move(schemaName), move(propertyDefinitions), primaryKeyIdx);
+    auto pkColName =
+        ctx.gF_CreateNodeConstraint() ? transformPrimaryKey(*ctx.gF_CreateNodeConstraint()) : "";
+    return make_unique<CreateNodeClause>(move(schemaName), move(propertyDefinitions), pkColName);
 }
 
 unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
@@ -776,8 +773,7 @@ string Transformer::transformListIdentifiers(CypherParser::GF_ListIdentifiersCon
     return listIdentifiers;
 }
 
-string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
-    vector<pair<string, string>> propertyDefinitions) {
+string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx) {
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 

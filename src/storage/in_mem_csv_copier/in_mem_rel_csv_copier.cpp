@@ -213,24 +213,24 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTableLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
-    vector<DataType> nodeIDTypes{2};
+    vector<DataType> nodePKTypes{2};
     for (auto& relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs =
             copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 copier->relTableSchema->tableID, relDirection);
         requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
         nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
-        nodeIDTypes[relDirection] =
-            copier->catalog.getReadOnlyVersion()
-                ->getNodeProperty(nodeIDs[relDirection].tableID, CopyCSVConfig::ID_FIELD)
-                .dataType;
+        nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
+                                        ->getNodeTableSchema(nodeIDs[relDirection].tableID)
+                                        ->getPrimaryKey()
+                                        .dataType;
     }
     vector<PageByteCursor> inMemOverflowFileCursors{copier->relTableSchema->getNumProperties()};
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
-        inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
+        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
             copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
             requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
@@ -530,7 +530,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTableLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
-    vector<DataType> nodeIDTypes{2};
+    vector<DataType> nodePKTypes{2};
     vector<uint64_t> reversePos{2};
     for (auto relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs =
@@ -538,17 +538,17 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
                 copier->relTableSchema->tableID, relDirection);
         requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
         nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
-        nodeIDTypes[relDirection] =
-            copier->catalog.getReadOnlyVersion()
-                ->getNodeProperty(nodeIDs[relDirection].tableID, CopyCSVConfig::ID_FIELD)
-                .dataType;
+        nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
+                                        ->getNodeTableSchema(nodeIDs[relDirection].tableID)
+                                        ->getPrimaryKey()
+                                        .dataType;
     }
     vector<PageByteCursor> inMemOverflowFileCursors(copier->relTableSchema->getNumProperties());
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
-        inferTableIDsAndOffsets(reader, nodeIDs, nodeIDTypes, copier->IDIndexes,
+        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
             copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
             requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {

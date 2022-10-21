@@ -279,7 +279,15 @@ TEST_F(BinderErrorTest, DeleteNodeProperty) {
 
 TEST_F(BinderErrorTest, CreateNodeTableUsedName) {
     string expectedException = "Binder exception: Node person already exists.";
-    auto input = "CREATE NODE TABLE person(NAME STRING, ID INT64)";
+    auto input = "CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateNodeTablePKColNameNotExists) {
+    string expectedException = "Binder exception: Primary key dummyColName does not match any of "
+                               "the predefined node properties.";
+    auto input = "CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key "
+                 "(dummyColName))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -292,7 +300,7 @@ TEST_F(BinderErrorTest, CreateNodeTableInvalidPKDataType) {
 
 TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: BIGINT";
-    auto input = "CREATE NODE TABLE PERSON(NAME BIGINT)";
+    auto input = "CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

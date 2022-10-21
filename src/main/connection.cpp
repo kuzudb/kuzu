@@ -148,9 +148,11 @@ string Connection::getNodePropertyNames(const string& tableName) {
     }
     string result = tableName + " properties: \n";
     auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName(tableName);
+    auto primaryKeyPropertyID =
+        catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
     for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
-        result += property.isIDProperty() ? "(ID PROPERTY)\n" : "\n";
+        result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
     }
     return result;
 }

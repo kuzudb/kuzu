@@ -46,7 +46,9 @@ private:
         uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader);
 
     // Concurrent tasks.
-    static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
+    // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
+    // Instead, it is the index in the structured columns that we expect it to appear.
+    static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
         uint64_t blockId, uint64_t offsetStart, InMemHashIndex* IDIndex,
         InMemNodeCSVCopier* copier);
     static void populateUnstrPropertyListsTask(

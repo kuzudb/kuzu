@@ -109,7 +109,7 @@ private:
     table_id_t bindNodeTableName(const string& tableName) const;
 
     static uint32_t bindPrimaryKey(
-        string primaryKey, vector<pair<string, string>> propertyNameDataTypes);
+        string pkColName, vector<pair<string, string>> propertyNameDataTypes);
 
     static vector<PropertyNameDataType> bindPropertyNameDataTypes(
         vector<pair<string, string>> propertyNameDataTypes);
@@ -159,7 +159,8 @@ private:
     static void validateNodeCreateHasPrimaryKeyInput(
         const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty);
 
-    static void validatePrimaryKey(uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
+    static void validatePrimaryKey(
+        string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
 
     void validateTableExist(string& tableName) const;
 

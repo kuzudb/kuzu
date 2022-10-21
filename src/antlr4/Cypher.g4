@@ -37,7 +37,7 @@ gF_DDL
         | gF_DropTable;
 
 gF_CreateNode
-    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint )? SP? ')' ;
+    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint ) SP? ')' ;
     
 NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
