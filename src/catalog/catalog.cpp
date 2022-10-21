@@ -63,8 +63,7 @@ uint64_t SerDeser::serializeValue<Property>(
     offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
     offset = SerDeser::serializeValue<uint32_t>(value.propertyID, fileInfo, offset);
-    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    return SerDeser::serializeValue<bool>(value.isIDProperty(), fileInfo, offset);
+    return SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
 template<>
@@ -73,9 +72,7 @@ uint64_t SerDeser::deserializeValue<Property>(
     offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint32_t>(value.propertyID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    bool isIDProperty = value.isIDProperty();
-    return SerDeser::deserializeValue<bool>(isIDProperty, fileInfo, offset);
+    return SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
 template<>
@@ -132,7 +129,7 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
+    offset = SerDeser::serializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
@@ -144,7 +141,7 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
+    offset = SerDeser::deserializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset =
@@ -289,7 +286,7 @@ const Property& CatalogContent::getRelProperty(
 }
 
 const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
-    auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryPropertyId;
+    auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryKeyPropertyIdx;
     return nodeTableSchemas.at(tableID)->structuredProperties[primaryKeyId];
 }
 

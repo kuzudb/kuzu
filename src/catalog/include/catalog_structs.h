@@ -38,8 +38,6 @@ public:
     PropertyNameDataType(string name, DataType dataType)
         : name{move(name)}, dataType{move(dataType)} {};
 
-    inline bool isIDProperty() const { return name == CopyCSVConfig::ID_FIELD; }
-
 public:
     string name;
     DataType dataType;
@@ -92,7 +90,8 @@ struct NodeTableSchema : TableSchema {
     NodeTableSchema(string tableName, table_id_t tableID, uint64_t primaryPropertyId,
         vector<Property> structuredProperties)
         : TableSchema{move(tableName), tableID, true /* isNodeTable */},
-          primaryPropertyId{primaryPropertyId}, structuredProperties{move(structuredProperties)} {}
+          primaryKeyPropertyIdx{primaryPropertyId}, structuredProperties{
+                                                        move(structuredProperties)} {}
 
     inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
     void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
@@ -100,11 +99,15 @@ struct NodeTableSchema : TableSchema {
     inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
-    inline Property getPrimaryKey() const { return structuredProperties[primaryPropertyId]; }
+    inline Property getPrimaryKey() const { return structuredProperties[primaryKeyPropertyIdx]; }
 
     vector<Property> getAllNodeProperties() const;
 
-    uint64_t primaryPropertyId;
+    // TODO(Semih): When we support updating the schemas, we need to update this or, we need
+    // a more robust mechanism to keep track of which property is the primary key (e.g., store this
+    // information with the property). This is an idx, not an ID, so as the columns/properties of
+    // the table change, the idx can change.
+    uint64_t primaryKeyPropertyIdx;
     vector<Property> structuredProperties, unstructuredProperties;
     unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
     unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel

@@ -10,6 +10,7 @@ filegroup(
         "node-insertion-deletion-tests/**",
         "non-empty-disk-array-db/**",
         "order-by-tests/**",
+        "primary-key-tests/**",
         "read-list-tests/**",
         "tinysnb/**",
         "tinysnb-variant/**",

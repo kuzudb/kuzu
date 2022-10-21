@@ -90,19 +90,11 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
                                         nodeTableSchema->tableID, DBFileType::WAL_VERSION),
             nodeTableSchema->getPrimaryKey().dataType);
     IDIndex->bulkReserve(numNodes);
-    uint32_t IDColumnIdx = UINT32_MAX;
-    for (auto i = 0u; i < nodeTableSchema->getNumStructuredProperties(); i++) {
-        if (nodeTableSchema->structuredProperties[i].isIDProperty()) {
-            IDColumnIdx = i;
-            break;
-        }
-    }
-    assert(IDColumnIdx != UINT32_MAX);
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        taskScheduler.scheduleTask(
-            CopyCSVTaskFactory::createCopyCSVTask(populateColumnsAndCountUnstrPropertyListSizesTask,
-                IDColumnIdx, blockIdx, offsetStart, IDIndex.get(), this));
+        taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
+            populateColumnsAndCountUnstrPropertyListSizesTask,
+            nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, IDIndex.get(), this));
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();

@@ -94,10 +94,6 @@ struct CopyCSVConfig {
     static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
     constexpr static char COMMENT_LINE_CHAR = '#';
 
-    // mandatory fields in input CSV files
-    // TODO(Ziyi): remove this field since the primary key may not necessarily be ID.
-    static constexpr char ID_FIELD[] = "ID";
-
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};

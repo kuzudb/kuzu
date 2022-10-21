@@ -61,12 +61,16 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeTableIDFromName("person"), 0);
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getRelTableIDFromName("knows"), 0);
+    ASSERT_EQ(
+        catalog->getReadOnlyVersion()->getNodeTableIDFromName("person"), 0 /* node table ID */);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->getRelTableIDFromName("knows"), 0 /* rel table ID */);
     // Test rel single relMultiplicity
     ASSERT_FALSE(catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(0, FWD));
     // Test property definition
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->getStructuredNodeProperties(0)[0].isIDProperty());
+    // primary key of person table is a column name ID, which is at idx 0 in the predefined
+    // properties
+    ASSERT_EQ(0 /* pkPropertyIdx */,
+        catalog->getReadOnlyVersion()->getNodeTableSchema(0 /* table ID */)->primaryKeyPropertyIdx);
 
     ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeProperty(0, "age").propertyID, 5);
     ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeProperty(0, "age").dataType.typeID, INT64);
@@ -112,7 +116,11 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     catalog->getReadOnlyVersion()->saveToFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     auto newCatalog = make_unique<Catalog>();
     newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
-    ASSERT_TRUE(newCatalog->getReadOnlyVersion()->getStructuredNodeProperties(0)[0].isIDProperty());
+    /* primary key of person table is a column name ID, which is at idx 0 in the predefined
+     * properties */
+    ASSERT_EQ(0 /* pkPropertyIdx */, newCatalog->getReadOnlyVersion()
+                                         ->getNodeTableSchema(0 /* table ID */)
+                                         ->primaryKeyPropertyIdx);
     // Test getting table id from string
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("person"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));

@@ -189,8 +189,7 @@ private:
 
     string transformListIdentifiers(CypherParser::GF_ListIdentifiersContext& ctx);
 
-    string transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx,
-        vector<pair<string, string>> propertyDefinitions);
+    string transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx);
 
     vector<pair<string, string>> transformPropertyDefinitions(
         CypherParser::GF_PropertyDefinitionsContext& ctx);

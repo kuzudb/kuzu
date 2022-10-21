@@ -10,15 +10,15 @@ using namespace std;
 class CreateNodeClause : public CreateTable {
 public:
     explicit CreateNodeClause(
-        string tableName, vector<pair<string, string>> propertyNameDataTypes, string primaryKey)
+        string tableName, vector<pair<string, string>> propertyNameDataTypes, string pkColName)
         : CreateTable{StatementType::CREATE_NODE_CLAUSE, move(tableName),
               move(propertyNameDataTypes)},
-          primaryKey{move(primaryKey)} {}
+          pKColName{move(pkColName)} {}
 
-    inline string getPrimaryKey() const { return primaryKey; }
+    inline string getPKColName() const { return pKColName; }
 
 private:
-    string primaryKey;
+    string pKColName;
 };
 
 } // namespace parser
