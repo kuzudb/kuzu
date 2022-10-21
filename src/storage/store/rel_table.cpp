@@ -96,6 +96,22 @@ void RelTable::insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert)
     adjAndPropertyListsUpdateStore->insertRelIfNecessary(valueVectorsToInsert);
 }
 
+void RelTable::deleteRels(shared_ptr<ValueVector>& nodeIDVector) {
+    assert(nodeIDVector->state->isFlat());
+    auto pos = nodeIDVector->state->getPositionOfCurrIdx();
+    auto nodeID =
+        ((nodeID_t*)nodeIDVector->values)[nodeIDVector->state->selVector->selectedPositions[pos]];
+    for (auto direction : REL_DIRECTIONS) {
+        if (adjColumns[direction].contains(nodeID.tableID)) {
+            adjColumns[direction].at(nodeID.tableID)->setNodeOffsetToNull(nodeID.offset);
+            for (auto& propertyColumn : propertyColumns[direction][nodeID.tableID]) {
+                propertyColumn->setNodeOffsetToNull(nodeID.offset);
+            }
+        }
+    }
+    adjAndPropertyListsUpdateStore->deleteRels(nodeID);
+}
+
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", tableID);
@@ -203,12 +219,14 @@ void RelTable::initPropertyListsForRelTable(
 
 void RelTable::performOpOnListsWithUpdates(
     std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasInsertedRels) {
-    auto& insertedRelsPerTableIDPerDirection =
-        adjAndPropertyListsUpdateStore->getInsertedRelsPerTableIDPerDirection();
+    auto& emptyListInPersistentStoreAndInsertedRelsPerTableIDPerDirection =
+        adjAndPropertyListsUpdateStore
+            ->getEmptyListInPersistentStoreAndInsertedRelsPerTableIDPerDirection();
     for (auto& relDirection : REL_DIRECTIONS) {
-        for (auto& insertedRelsOfTable : insertedRelsPerTableIDPerDirection[relDirection]) {
-            if (!insertedRelsOfTable.second.empty()) {
-                auto tableID = insertedRelsOfTable.first;
+        for (auto& emptyListInPersistentStoreAndInsertedRelsPerTable :
+            emptyListInPersistentStoreAndInsertedRelsPerTableIDPerDirection[relDirection]) {
+            if (!emptyListInPersistentStoreAndInsertedRelsPerTable.second.empty()) {
+                auto tableID = emptyListInPersistentStoreAndInsertedRelsPerTable.first;
                 opOnListsWithUpdates(adjLists[relDirection].at(tableID).get());
                 for (auto& propertyList : propertyLists[relDirection].at(tableID)) {
                     opOnListsWithUpdates(propertyList.get());
@@ -216,7 +234,7 @@ void RelTable::performOpOnListsWithUpdates(
             }
         }
     }
-    if (!adjAndPropertyListsUpdateStore->isEmpty()) {
+    if (adjAndPropertyListsUpdateStore->hasEmptyListInPersistentStoreOrInsertedRels()) {
         opIfHasInsertedRels();
     }
 }

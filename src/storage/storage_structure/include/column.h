@@ -36,6 +36,8 @@ public:
     // Used only for tests.
     bool isNull(node_offset_t nodeOffset);
 
+    void setNodeOffsetToNull(node_offset_t nodeOffset);
+
 protected:
     void lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector, uint32_t vectorPos);

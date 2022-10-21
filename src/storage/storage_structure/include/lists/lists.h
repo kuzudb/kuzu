@@ -94,17 +94,17 @@ public:
               true /*hasNULLBytes*/, isInMemory, wal} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() { return headers; };
-    inline uint64_t getNumElementsInPersistentStore(node_offset_t nodeOffset) const {
-        auto header = headers->getHeader(nodeOffset);
-        return ListHeaders::isALargeList(header) ?
-                   metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
-                   ListHeaders::getSmallListLen(header);
-    }
     virtual inline void checkpointInMemoryIfNecessary() {
         metadata.checkpointInMemoryIfNecessary();
     }
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
+    virtual inline uint64_t getNumElementsFromListHeader(node_offset_t nodeOffset) {
+        auto header = headers->getHeader(nodeOffset);
+        return ListHeaders::isALargeList(header) ?
+                   metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
+                   ListHeaders::getSmallListLen(header);
+    }
     // Prepares all the db file changes necessary to update the "persistent" store of lists with the
     // adjAndPropertyListsUpdateStore, which stores the updates by the write trx locally.
     virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
@@ -148,12 +148,14 @@ public:
     }
     inline uint64_t getTotalNumElementsInList(
         TransactionType transactionType, node_offset_t nodeOffset) {
-        return getNumElementsInPersistentStore(nodeOffset) +
+        return getNumElementsInPersistentStore(transactionType, nodeOffset) +
                (transactionType == TransactionType::WRITE ?
                        getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset) :
                        0);
     }
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
+    uint64_t getNumElementsInPersistentStore(
+        TransactionType transactionType, node_offset_t nodeOffset);
     void initListReadingState(
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
 

@@ -14,8 +14,20 @@ namespace storage {
 using namespace processor;
 using namespace catalog;
 
-using InsertedRelsPerNodeOffset = map<node_offset_t, vector<uint64_t>>;
-using InsertedRelsPerChunk = map<uint64_t, InsertedRelsPerNodeOffset>;
+struct EmptyListInPersistentStoreAndInsertedRels {
+    EmptyListInPersistentStoreAndInsertedRels() : emptyListInPersistentStore{false} {}
+    inline void deleteRels() {
+        emptyListInPersistentStore = true;
+        insertedRelsTupleIdxInFT.clear();
+    }
+    bool emptyListInPersistentStore;
+    vector<uint64_t> insertedRelsTupleIdxInFT;
+};
+
+using EmptyListInPersistentStoreAndInsertedRelsPerNodeOffset =
+    map<node_offset_t, EmptyListInPersistentStoreAndInsertedRels>;
+using EmptyListInPersistentStoreAndInsertedRelsPerChunk =
+    map<uint64_t, EmptyListInPersistentStoreAndInsertedRelsPerNodeOffset>;
 
 struct InMemList;
 
@@ -29,19 +41,24 @@ class AdjAndPropertyListsUpdateStore {
 public:
     AdjAndPropertyListsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema);
 
-    inline bool isEmpty() const { return factorizedTable->isEmpty(); }
     inline void clear() {
         factorizedTable->clear();
-        initInsertedRelsPerTableIDPerDirection();
+        initEmptyListInPersistentStoreAndInsertedRels();
     }
-    inline InsertedRelsPerChunk& getInsertedRelsPerChunk(ListFileID& listFileID) {
+    inline EmptyListInPersistentStoreAndInsertedRelsPerChunk&
+    getEmptyListInPersistentStoreAndInsertedRelsPerChunk(ListFileID& listFileID) {
         auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-        return insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
-            relNodeTableAndDir.srcNodeTableID);
+        return emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relNodeTableAndDir
+                                                                                   .dir]
+            .at(relNodeTableAndDir.srcNodeTableID);
     }
-    inline vector<map<table_id_t, InsertedRelsPerChunk>>& getInsertedRelsPerTableIDPerDirection() {
-        return insertedRelsPerTableIDPerDirection;
+    inline vector<map<table_id_t, EmptyListInPersistentStoreAndInsertedRelsPerChunk>>&
+    getEmptyListInPersistentStoreAndInsertedRelsPerTableIDPerDirection() {
+        return emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection;
     }
+    bool isEmptyListInPersistentStoreForNodeOffset(
+        ListFileID& listFileID, node_offset_t nodeOffset) const;
+    bool hasEmptyListInPersistentStoreOrInsertedRels() const;
     void readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
         InMemList& inMemList, uint64_t numElementsInPersistentStore,
         DiskOverflowFile* diskOverflowFile, DataType dataType,
@@ -55,6 +72,8 @@ public:
     void readValues(ListFileID& listFileID, ListSyncState& listSyncState,
         shared_ptr<ValueVector> valueVector) const;
 
+    void deleteRels(nodeID_t& nodeID);
+
 private:
     static inline RelNodeTableAndDir getRelNodeTableAndDirFromListFileID(ListFileID& listFileID) {
         assert(listFileID.listType != ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS);
@@ -65,7 +84,7 @@ private:
     uint32_t getColIdxInFT(ListFileID& listFileID) const;
     void validateSrcDstNodeIDAndRelProperties(
         vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties) const;
-    void initInsertedRelsPerTableIDPerDirection();
+    void initEmptyListInPersistentStoreAndInsertedRels();
     static void getErrorMsgForInvalidTableID(uint64_t tableID, bool isSrcTableID, string tableName);
 
 private:
@@ -73,7 +92,8 @@ private:
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
-    vector<map<table_id_t, InsertedRelsPerChunk>> insertedRelsPerTableIDPerDirection;
+    vector<map<table_id_t, EmptyListInPersistentStoreAndInsertedRelsPerChunk>>
+        emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;
 };

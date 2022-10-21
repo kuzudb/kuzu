@@ -27,7 +27,36 @@ AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
     dstNodeVector = make_shared<ValueVector>(NODE_ID, &memoryManager);
     nodeDataChunk->insert(1 /* pos */, dstNodeVector);
     factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(factorizedTableSchema));
-    initInsertedRelsPerTableIDPerDirection();
+    initEmptyListInPersistentStoreAndInsertedRels();
+}
+
+bool AdjAndPropertyListsUpdateStore::isEmptyListInPersistentStoreForNodeOffset(
+    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
+    auto& emptyListInPersistentStoreAndInsertedRelsForTable =
+        emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
+            relNodeTableAndDir.srcNodeTableID);
+    auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
+    if (!emptyListInPersistentStoreAndInsertedRelsForTable.contains(chunkIdx) ||
+        !emptyListInPersistentStoreAndInsertedRelsForTable.at(chunkIdx).contains(nodeOffset)) {
+        return false;
+    }
+    return emptyListInPersistentStoreAndInsertedRelsForTable
+        .at(StorageUtils::getListChunkIdx(nodeOffset))
+        .at(nodeOffset)
+        .emptyListInPersistentStore;
+}
+
+bool AdjAndPropertyListsUpdateStore::hasEmptyListInPersistentStoreOrInsertedRels() const {
+    for (auto relDirection : REL_DIRECTIONS) {
+        for (auto emptyListInPersistentStoreAndInsertedRelsPerTable :
+            emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relDirection]) {
+            if (!emptyListInPersistentStoreAndInsertedRelsPerTable.second.empty()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void AdjAndPropertyListsUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID,
@@ -52,14 +81,15 @@ void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(
     for (auto direction : REL_DIRECTIONS) {
         auto nodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
         auto chunkIdx = StorageUtils::getListChunkIdx(nodeID.offset);
-        if (insertedRelsPerTableIDPerDirection[direction].contains(nodeID.tableID)) {
+        if (emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[direction].contains(
+                nodeID.tableID)) {
             if (!hasInsertedToFT) {
                 factorizedTable->append(srcDstNodeIDAndRelProperties);
                 hasInsertedToFT = true;
             }
-            insertedRelsPerTableIDPerDirection[direction]
+            emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[direction]
                 .at(nodeID.tableID)[chunkIdx][nodeID.offset]
-                .push_back(factorizedTable->getNumTuples() - 1);
+                .insertedRelsTupleIdxInFT.push_back(factorizedTable->getNumTuples() - 1);
         }
     }
 }
@@ -68,13 +98,16 @@ uint64_t AdjAndPropertyListsUpdateStore::getNumInsertedRelsForNodeOffset(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto insertedRelsPerTableID = insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
-        relNodeTableAndDir.srcNodeTableID);
-    if (!insertedRelsPerTableID.contains(chunkIdx) ||
-        !insertedRelsPerTableID[chunkIdx].contains(nodeOffset)) {
+    auto emptyListInPersistentStoreAndinsertedRelsPerChunk =
+        emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
+            relNodeTableAndDir.srcNodeTableID);
+    if (!emptyListInPersistentStoreAndinsertedRelsPerChunk.contains(chunkIdx) ||
+        !emptyListInPersistentStoreAndinsertedRelsPerChunk[chunkIdx].contains(nodeOffset)) {
         return 0;
     }
-    return insertedRelsPerTableID.at(chunkIdx).at(nodeOffset).size();
+    return emptyListInPersistentStoreAndinsertedRelsPerChunk.at(chunkIdx)
+        .at(nodeOffset)
+        .insertedRelsTupleIdxInFT.size();
 }
 
 void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
@@ -88,13 +121,25 @@ void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
     auto vectorsToRead = vector<shared_ptr<ValueVector>>{valueVector};
     auto columnsToRead = vector<uint32_t>{getColIdxInFT(listFileID)};
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto tupleIdxesToRead = insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir]
-                                .at(relNodeTableAndDir.srcNodeTableID)
-                                .at(StorageUtils::getListChunkIdx(nodeOffset))
-                                .at(nodeOffset);
+    auto tupleIdxesToRead =
+        emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir]
+            .at(relNodeTableAndDir.srcNodeTableID)
+            .at(StorageUtils::getListChunkIdx(nodeOffset))
+            .at(nodeOffset)
+            .insertedRelsTupleIdxInFT;
     factorizedTable->lookup(vectorsToRead, columnsToRead, tupleIdxesToRead,
         listSyncState.getStartElemOffset(), numTuplesToRead);
     valueVector->state->originalSize = numTuplesToRead;
+}
+
+void AdjAndPropertyListsUpdateStore::deleteRels(nodeID_t& nodeID) {
+    for (auto relDirection : REL_DIRECTIONS) {
+        if (relTableSchema.isRelPropertyList(relDirection)) {
+            emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[relDirection]
+                .at(nodeID.tableID)[StorageUtils::getListChunkIdx(nodeID.offset)][nodeID.offset]
+                .deleteRels();
+        }
+    }
 }
 
 uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
@@ -141,27 +186,30 @@ void AdjAndPropertyListsUpdateStore::validateSrcDstNodeIDAndRelProperties(
     auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
     auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
     if (relTableSchema.isRelPropertyList(RelDirection::FWD) &&
-        !insertedRelsPerTableIDPerDirection[RelDirection::FWD].contains(srcNodeID.tableID)) {
+        !emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[RelDirection::FWD]
+             .contains(srcNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             srcNodeID.tableID, true /* isSrcTableID */, relTableSchema.tableName);
     } else if (relTableSchema.isRelPropertyList(RelDirection::BWD) &&
-               !insertedRelsPerTableIDPerDirection[RelDirection::BWD].contains(dstNodeID.tableID)) {
+               !emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[RelDirection::BWD]
+                    .contains(dstNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             dstNodeID.tableID, false /* isSrcTableID */, relTableSchema.tableName);
     }
 }
 
-void AdjAndPropertyListsUpdateStore::initInsertedRelsPerTableIDPerDirection() {
-    insertedRelsPerTableIDPerDirection.clear();
+void AdjAndPropertyListsUpdateStore::initEmptyListInPersistentStoreAndInsertedRels() {
+    emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection.clear();
     auto srcDstTableIDs = relTableSchema.getSrcDstTableIDs();
     for (auto direction : REL_DIRECTIONS) {
-        insertedRelsPerTableIDPerDirection.push_back(map<table_id_t, InsertedRelsPerChunk>{});
+        emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection.push_back(
+            map<table_id_t, EmptyListInPersistentStoreAndInsertedRelsPerChunk>{});
         auto tableIDs = direction == RelDirection::FWD ? srcDstTableIDs.srcTableIDs :
                                                          srcDstTableIDs.dstTableIDs;
         if (relTableSchema.isRelPropertyList(direction)) {
             for (auto tableID : tableIDs) {
-                insertedRelsPerTableIDPerDirection[direction].emplace(
-                    tableID, InsertedRelsPerChunk{});
+                emptyListInPersistentStoreAndinsertedRelsPerTableIDPerDirection[direction].emplace(
+                    tableID, EmptyListInPersistentStoreAndInsertedRelsPerChunk{});
             }
         }
     }

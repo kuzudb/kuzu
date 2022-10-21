@@ -72,6 +72,13 @@ bool Column::isNull(node_offset_t nodeOffset) {
     return isNull;
 }
 
+void Column::setNodeOffsetToNull(node_offset_t nodeOffset) {
+    auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
+    setNullBitOfAPosInFrame(walPageInfo.frame, walPageInfo.posInPage, true /* isNull */);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        walPageInfo, fileHandle, bufferManager, *wal);
+}
+
 void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& resultVector, uint32_t vectorPos) {
     if (nodeIDVector->isNull(vectorPos)) {

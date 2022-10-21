@@ -81,7 +81,7 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
                 cursorAndMapper.reset(lists->getListsMetadata(), lists->numElementsPerPage,
                     lists->getHeaders()->getHeader(nodeOffsetToSlide), nodeOffsetToSlide);
                 lists->fillInMemListsFromPersistentStore(cursorAndMapper,
-                    lists->getNumElementsInPersistentStore(nodeOffsetToSlide), inMemList);
+                    lists->getNumElementsFromListHeader(nodeOffsetToSlide), inMemList);
                 updateSmallListAndCurCSROffset(oldHeader, inMemList);
             } else {
                 curCSROffset += listLen;

@@ -51,6 +51,7 @@ public:
     void checkpointInMemoryIfNecessary();
     void rollbackInMemoryIfNecessary();
     void insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert);
+    void deleteRels(shared_ptr<ValueVector>& nodeIDVector);
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }

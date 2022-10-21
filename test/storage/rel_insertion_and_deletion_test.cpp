@@ -3,7 +3,7 @@
 
 using namespace graphflow::testing;
 
-class RelInsertionTest : public DBTest {
+class BaseRelInsertionOrDeletionTest : public DBTest {
 
 public:
     void SetUp() override {
@@ -38,6 +38,8 @@ public:
             srcNodeVector, dstNodeVector, lengthPropertyVector, relIDPropertyVector};
     }
 
+    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
+
     void commitOrRollbackConnectionAndInitDBIfNecessary(
         bool isCommit, TransactionTestType transactionTestType) {
         commitOrRollbackConnection(isCommit, transactionTestType);
@@ -45,18 +47,6 @@ public:
             createDBAndConn();
         }
     }
-
-    string getStringValToValidate(uint64_t val) {
-        string result = to_string(val);
-        if (val % 2 == 0) {
-            for (auto i = 0; i < 2; i++) {
-                result.append(to_string(val));
-            }
-        }
-        return result;
-    }
-
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
     inline void insertOneRelToRelTable(
         table_id_t relTableID, vector<shared_ptr<ValueVector>> vectorsToInsert) {
@@ -109,6 +99,39 @@ public:
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, dstTableID);
             insertOneKnowsRel();
         }
+    }
+
+public:
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
+    shared_ptr<ValueVector> relIDPropertyVector;
+    int64_t* relIDValues;
+    shared_ptr<ValueVector> lengthPropertyVector;
+    int64_t* lengthValues;
+    shared_ptr<ValueVector> placePropertyVector;
+    gf_string_t* placeValues;
+    shared_ptr<ValueVector> tagPropertyVector;
+    gf_list_t* tagValues;
+    shared_ptr<ValueVector> srcNodeVector;
+    shared_ptr<ValueVector> dstNodeVector;
+    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);
+    vector<shared_ptr<ValueVector>> vectorsToInsertToKnows;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
+    vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
+};
+
+class RelInsertionTest : public BaseRelInsertionOrDeletionTest {
+
+public:
+    string getStringValToValidate(uint64_t val) {
+        string result = to_string(val);
+        if (val % 2 == 0) {
+            for (auto i = 0; i < 2; i++) {
+                result.append(to_string(val));
+            }
+        }
+        return result;
     }
 
     void incorrectVectorErrorTest(
@@ -535,25 +558,154 @@ public:
         result = conn->query(query);
         validateManyToOneRelTableAfterInsertion(!isCommit, result.get());
     }
+};
 
+class RelDeletionTest : public BaseRelInsertionOrDeletionTest {
 public:
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<MemoryManager> memoryManager;
-    shared_ptr<ValueVector> relIDPropertyVector;
-    int64_t* relIDValues;
-    shared_ptr<ValueVector> lengthPropertyVector;
-    int64_t* lengthValues;
-    shared_ptr<ValueVector> placePropertyVector;
-    gf_string_t* placeValues;
-    shared_ptr<ValueVector> tagPropertyVector;
-    gf_list_t* tagValues;
-    shared_ptr<ValueVector> srcNodeVector;
-    shared_ptr<ValueVector> dstNodeVector;
-    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);
-    vector<shared_ptr<ValueVector>> vectorsToInsertToKnows;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
+    inline void deleteRelsFromRelTable(table_id_t relTableID, nodeID_t& nodeID) {
+        ((nodeID_t*)srcNodeVector->values)[0] = nodeID;
+        database->getStorageManager()
+            ->getRelsStore()
+            .getRelTable(relTableID)
+            ->deleteRels(srcNodeVector);
+    }
+
+    inline void deleteRelsFromKnowsRelTable(nodeID_t& nodeID) {
+        deleteRelsFromRelTable(0 /* relTableID */, nodeID);
+    }
+
+    inline void deleteRelsFromTeachesRelTable(nodeID_t& nodeID) {
+        deleteRelsFromRelTable(3 /* relTableID */, nodeID);
+    }
+
+    void validateAnimalKnowsPersonAfterDeletingRels(bool afterRollback) {
+        auto result = conn->query("MATCH (:animal)-[k:knows]->(:person) return k.length");
+        ASSERT_TRUE(result->isSuccess());
+        // The knows table contains 50 rels for relation animal knows person. After rel deletion,
+        // we will have 26 rels left(Note: we only delete rels with odd srcAnimalOffset).
+        ASSERT_EQ(result->getNumTuples(), afterRollback ? 51 : 26);
+        for (auto i = 0u; i <= 50; i++) {
+            // If we don't roll back the transaction, rels with odd srcAnimalOffset will be deleted.
+            if (!afterRollback && i % 2) {
+                continue;
+            }
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), i);
+        }
+    }
+
+    void deleteSmallListsFromManyToManyRelTable(
+        bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        // We have 50 rels for relation animal knows person. We are going to delete rels whose
+        // srcAnimalNodeOffset is an odd number.
+        for (auto i = 0u; i <= 50; i++) {
+            if (i % 2) {
+                nodeID_t nodeIDToDelete{i, 0 /* tableID */};
+                deleteRelsFromKnowsRelTable(nodeIDToDelete);
+            }
+        }
+        validateAnimalKnowsPersonAfterDeletingRels(false /* hasRollback */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        validateAnimalKnowsPersonAfterDeletingRels(!isCommit);
+    }
+
+    void validatePersonKnowsPersonAfterDeletingRels(bool afterRollback) {
+        auto result = conn->query("MATCH (:person)-[k:knows]->(:person) return k.length");
+        ASSERT_TRUE(result->isSuccess());
+        // The knows table contains 2500 rels for person0. After rel deletion, the person0 will
+        // have 0 rels.
+        ASSERT_EQ(result->getNumTuples(), afterRollback ? 2500 : 0);
+        if (afterRollback) {
+            for (auto i = 0u; i < 2500; i++) {
+                ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 3 * i);
+            }
+        }
+    }
+
+    void deleteLargeListFromManyToManyRelTable(
+        bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        // We have 2500 rels for relation person knows person and we are going to delete all rels of
+        // person0.
+        nodeID_t nodeIDToDelete{0, 1 /* tableID */};
+        deleteRelsFromKnowsRelTable(nodeIDToDelete);
+        validatePersonKnowsPersonAfterDeletingRels(false /* hasRollback */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        validatePersonKnowsPersonAfterDeletingRels(!isCommit);
+    }
+
+    void validateAnimalKnowsPersonAfterInsertionAndDeletion(
+        bool afterRollback, uint64_t numRelsToInsertToAnimal1) {
+        auto result = conn->query("MATCH (:animal)-[k:knows]->(:person) return k.length");
+        ASSERT_TRUE(result->isSuccess());
+        // Initially, animal0-50 all have 1 rel. After deletion and insertion, animal1 should have
+        // 10 rels if we don't rollback insertions and deletions. Since inserting/deleting rels for
+        // animal1 will update the CSR and slide lists for other nodeOffsets, we also need to check
+        // whether the rel properties for other nodeOffsets are still correct.
+        ASSERT_EQ(result->getNumTuples(), 50 + (afterRollback ? 1 : numRelsToInsertToAnimal1));
+        for (auto i = 0u; i <= 50; i++) {
+            // If we don't rollback the transaction, the rels for animal1 will be deleted and
+            // then inserted again.
+            if (!afterRollback && i == 1) {
+                for (auto j = 0u; j < numRelsToInsertToAnimal1; j++) {
+                    ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), j);
+                }
+                continue;
+            }
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), i);
+        }
+    }
+
+    void deleteAndInsertToManyToManyRelTable(bool isCommit, TransactionTestType transactionTestType,
+        bool testLargeListInsertionToAnimal1AfterDeletion) {
+        conn->beginWriteTransaction();
+        // If we are trying to test inserting a large list to animal1 after deleting all rels of
+        // animal1, we should insert at least 257 rels to animal1. (Note: 4096 / 16(uncompressed
+        // NodeID size) = 256).
+        auto numRelsToInsertToAnimal1 = testLargeListInsertionToAnimal1AfterDeletion ? 257 : 10;
+        nodeID_t nodeIDToDelete{1, 0 /* tableID */};
+        deleteRelsFromKnowsRelTable(nodeIDToDelete);
+        // After deleting all rels for animal1, we insert 10 rels for animal1.
+        insertRelsToKnowsTable(0 /* srcTableID */, 1 /* dstTableID */, numRelsToInsertToAnimal1);
+        validateAnimalKnowsPersonAfterInsertionAndDeletion(
+            false /* afterRollback */, numRelsToInsertToAnimal1);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        validateAnimalKnowsPersonAfterInsertionAndDeletion(!isCommit, numRelsToInsertToAnimal1);
+    }
+
+    void validateTeachesAfterDeletion(bool afterRollback) {
+        auto result = conn->query("MATCH (:person)-[t:teaches]->(:person) return t.length");
+        ASSERT_TRUE(result->isSuccess());
+        // The teaches relTable initially has 6 rels. After deleting the rels for person11,21,31,
+        // the teaches relTable still contains 3 rels.
+        ASSERT_EQ(result->getNumTuples(), afterRollback ? 6 : 3);
+        if (afterRollback) {
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 11);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 21);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 22);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 31);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 32);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 33);
+        } else {
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 22);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 32);
+            ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 33);
+        }
+    }
+
+    void deleteFromManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        // We delete rels for person 11, 21, 31.
+        nodeID_t nodeIDToDelete{11, 1 /* tableID */};
+        deleteRelsFromTeachesRelTable(nodeIDToDelete);
+        nodeIDToDelete.offset = 21;
+        deleteRelsFromTeachesRelTable(nodeIDToDelete);
+        nodeIDToDelete.offset = 31;
+        deleteRelsFromTeachesRelTable(nodeIDToDelete);
+        validateTeachesAfterDeletion(false /* afterRollback */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        validateTeachesAfterDeletion(!isCommit);
+    }
 };
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecution) {
@@ -812,4 +964,96 @@ TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableCommitRecovery) {
 
 TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableRollbackRecovery) {
     insertRelsToManyToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteSmallListFromManyToManyRelTableCommitNormalExecution) {
+    deleteSmallListsFromManyToManyRelTable(
+        true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteSmallListFromManyToManyRelTableRollbackNormalExecution) {
+    deleteSmallListsFromManyToManyRelTable(
+        false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteSmallListFromManyToManyRelTableCommitRecovery) {
+    deleteSmallListsFromManyToManyRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteSmallListFromManyToManyRelTableRollbackRecovery) {
+    deleteSmallListsFromManyToManyRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteLargeListFromManyToManyRelTableCommitNormalExecution) {
+    deleteLargeListFromManyToManyRelTable(
+        true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteLargeListFromManyToManyRelTableRollbackNormalExecution) {
+    deleteLargeListFromManyToManyRelTable(
+        false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteLargeListFromManyToManyRelTableCommitRecovery) {
+    deleteLargeListFromManyToManyRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteLargeListFromManyToManyRelTableRollbackRecovery) {
+    deleteLargeListFromManyToManyRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertSmallListToManyToManyRelTableCommitNormalExecution) {
+    deleteAndInsertToManyToManyRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        false /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertSmallListToManyToManyRelTableRollbackNormalExecution) {
+    deleteAndInsertToManyToManyRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        false /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertSmallListToManyToManyRelTableCommitRecovery) {
+    deleteAndInsertToManyToManyRelTable(true /* isCommit */, TransactionTestType::RECOVERY,
+        false /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertSmallListToManyToManyRelTableRollbackRecovery) {
+    deleteAndInsertToManyToManyRelTable(false /* isCommit */, TransactionTestType::RECOVERY,
+        false /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertLargeListToManyToManyRelTableCommitNormalExecution) {
+    deleteAndInsertToManyToManyRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        true /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertLargeListToManyToManyRelTableRollbackNormalExecution) {
+    deleteAndInsertToManyToManyRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION,
+        true /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertLargeListToManyToManyRelTableCommitRecovery) {
+    deleteAndInsertToManyToManyRelTable(true /* isCommit */, TransactionTestType::RECOVERY,
+        true /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteAndInsertLargeListToManyToManyRelTableRollbackRecovery) {
+    deleteAndInsertToManyToManyRelTable(false /* isCommit */, TransactionTestType::RECOVERY,
+        true /* testLargeListInsertionToAnimal1AfterDeletion */);
+}
+
+TEST_F(RelDeletionTest, DeleteFromManyToOneRelTableCommitNormalExecution) {
+    deleteFromManyToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteFromManyToOneRelTableRollbackNormalExecution) {
+    deleteFromManyToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelDeletionTest, DeleteFromManyToOneRelTableCommitRecovery) {
+    deleteFromManyToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelDeletionTest, DeleteFromManyToOneRelTableRollbackRecovery) {
+    deleteFromManyToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
 }

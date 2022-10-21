@@ -104,7 +104,7 @@ cc_test(
 cc_test(
     name = "rel_insertion_test",
     srcs = [
-        "rel_insertion_test.cpp",
+        "rel_insertion_and_deletion_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

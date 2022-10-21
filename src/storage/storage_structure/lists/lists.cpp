@@ -61,13 +61,24 @@ void ListsWithAdjAndPropertyListsUpdateStore::readValues(
     }
 }
 
+uint64_t ListsWithAdjAndPropertyListsUpdateStore::getNumElementsInPersistentStore(
+    TransactionType transactionType, node_offset_t nodeOffset) {
+    if (transactionType == TransactionType::WRITE &&
+        adjAndPropertyListsUpdateStore->isEmptyListInPersistentStoreForNodeOffset(
+            storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset)) {
+        return 0;
+    }
+    return getNumElementsFromListHeader(nodeOffset);
+}
+
 void ListsWithAdjAndPropertyListsUpdateStore::initListReadingState(
     node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType) {
     auto& listSyncState = listHandle.listSyncState;
     listSyncState.reset();
     listSyncState.setBoundNodeOffset(nodeOffset);
     listSyncState.setListHeader(headers->getHeader(nodeOffset));
-    uint64_t numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+    uint64_t numElementsInPersistentStore =
+        getNumElementsInPersistentStore(transactionType, nodeOffset);
     auto numElementsInUpdateStore =
         transactionType == WRITE ?
             adjAndPropertyListsUpdateStore->getNumInsertedRelsForNodeOffset(
@@ -119,10 +130,12 @@ void ListsWithAdjAndPropertyListsUpdateStore::readFromList(
 void ListsWithAdjAndPropertyListsUpdateStore::prepareCommit(
     ListsUpdateIterator& listsUpdateIterator) {
     // See comments in UnstructuredPropertyLists::prepareCommit.
-    auto& insertedRelsPerChunk = adjAndPropertyListsUpdateStore->getInsertedRelsPerChunk(
-        storageStructureIDAndFName.storageStructureID.listFileID);
-    for (auto updatedChunkItr = insertedRelsPerChunk.begin();
-         updatedChunkItr != insertedRelsPerChunk.end(); ++updatedChunkItr) {
+    auto& emptyListInPersistentStoreAndInsertedRelsPerChunk =
+        adjAndPropertyListsUpdateStore->getEmptyListInPersistentStoreAndInsertedRelsPerChunk(
+            storageStructureIDAndFName.storageStructureID.listFileID);
+    for (auto updatedChunkItr = emptyListInPersistentStoreAndInsertedRelsPerChunk.begin();
+         updatedChunkItr != emptyListInPersistentStoreAndInsertedRelsPerChunk.end();
+         ++updatedChunkItr) {
         for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
              updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
             auto nodeOffset = updatedNodeOffsetItr->first;
@@ -131,13 +144,15 @@ void ListsWithAdjAndPropertyListsUpdateStore::prepareCommit(
             CursorAndMapper cursorAndMapper;
             cursorAndMapper.reset(
                 metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
-            auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+            auto numElementsInPersistentStore =
+                getNumElementsInPersistentStore(TransactionType::WRITE, nodeOffset);
             fillInMemListsFromPersistentStore(
                 cursorAndMapper, numElementsInPersistentStore, inMemList);
             adjAndPropertyListsUpdateStore->readToListAndUpdateOverflowIfNecessary(
                 storageStructureIDAndFName.storageStructureID.listFileID,
-                updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore,
-                getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
+                updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT, inMemList,
+                numElementsInPersistentStore, getDiskOverflowFileIfExists(), dataType,
+                getNodeIDCompressionIfExists());
             listsUpdateIterator.updateList(nodeOffset, inMemList);
         }
     }
@@ -195,7 +210,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     CursorAndMapper cursorAndMapper;
     cursorAndMapper.reset(getListsMetadata(), numElementsPerPage, header, nodeOffset);
     // Step 1
-    auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
+    auto numElementsInList = getNumElementsFromListHeader(nodeOffset);
     auto listLenInBytes = numElementsInList * elementSize;
     auto buffer = make_unique<uint8_t[]>(listLenInBytes);
     auto sizeLeftToCopy = listLenInBytes;
