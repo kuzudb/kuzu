@@ -5,6 +5,7 @@
 #include <string>
 
 #include "src/common/include/type_utils.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace processor {
@@ -120,6 +121,15 @@ void ResultValue::setFromUnstructuredValue(Value& value) {
     default:
         assert(false);
     }
+}
+
+ResultValue* FlatTuple::getResultValue(uint32_t valIdx) {
+    if (valIdx >= len()) {
+        throw RuntimeException(StringUtils::string_format(
+            "ValIdx is out of range. Number of values in flatTuple: %d, valIdx: %d.", len(),
+            valIdx));
+    }
+    return resultValues[valIdx].get();
 }
 
 string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& delimiter) {
