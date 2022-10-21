@@ -118,13 +118,12 @@ struct NodeTableSchema : TableSchema {
 
 struct RelTableSchema : TableSchema {
     RelTableSchema()
-        : TableSchema{"", UINT64_MAX, false /* isNodeTable */}, relMultiplicity{MANY_MANY},
-          numGeneratedProperties{UINT32_MAX} {}
+        : TableSchema{"", UINT64_MAX, false /* isNodeTable */}, relMultiplicity{MANY_MANY} {}
     RelTableSchema(string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
         vector<Property> properties, SrcDstTableIDs srcDstTableIDs)
         : TableSchema{move(tableName), tableID, false /* isNodeTable */},
-          relMultiplicity{relMultiplicity}, numGeneratedProperties{0}, properties{move(properties)},
-          srcDstTableIDs{move(srcDstTableIDs)} {}
+          relMultiplicity{relMultiplicity}, properties{move(properties)}, srcDstTableIDs{move(
+                                                                              srcDstTableIDs)} {}
 
     unordered_set<table_id_t> getAllNodeTableIDs() const;
 
@@ -145,10 +144,7 @@ struct RelTableSchema : TableSchema {
     inline SrcDstTableIDs getSrcDstTableIDs() { return srcDstTableIDs; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
-    inline uint32_t getNumPropertiesToReadFromCSV() const {
-        assert(properties.size() >= numGeneratedProperties);
-        return properties.size() - numGeneratedProperties;
-    }
+    inline uint32_t getNumPropertiesToReadFromCSV() const { return properties.size(); }
     inline bool isRelPropertyList(RelDirection relDirection) const {
         return relMultiplicity == MANY_MANY ||
                (relMultiplicity == ONE_MANY && relDirection == FWD) ||
@@ -161,7 +157,6 @@ struct RelTableSchema : TableSchema {
     }
 
     RelMultiplicity relMultiplicity;
-    uint32_t numGeneratedProperties;
     vector<Property> properties;
     SrcDstTableIDs srcDstTableIDs;
 };
