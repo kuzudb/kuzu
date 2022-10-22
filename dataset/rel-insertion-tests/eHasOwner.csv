@@ -1,6 +1,3 @@
-# Animal whose ID is not multiple of 10 has owner person with ID = 50 + animalID.
-# The value of length property is equal to the ID of the animal.
-# The value of place property is: "2000-animalID" for animal with odd ID, and 3 * "2000-animalID" for animal with even ID.
 1,51,1,"1999"
 2,52,2,"199819981998"
 3,53,3,"1997"

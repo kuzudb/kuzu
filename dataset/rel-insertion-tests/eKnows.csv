@@ -1,5 +1,3 @@
-# Animal 0-50 all know person 0 with length property = animalID, place = string(1000-animalID), tags=[place]
-# Person 0 knows person 1-2500 with length property = 3 * (nbrPersonID - 1), place = string(3001-nbrPersonID), tags=[place]
 person,0,person,1,0,"300030003000",["300030003000"]
 person,0,person,2,3,"2999",["2999"]
 person,0,person,3,6,"299829982998",["299829982998"]

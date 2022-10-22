@@ -3,10 +3,18 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
+class LongStringPKTest : public DBTest {
+    string getInputCSVDir() override { return "dataset/long-string-pk-tests/"; }
+};
+
 class TinySnbReadTest : public DBTest {
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
+
+TEST_F(LongStringPKTest, LongStringPKTest) {
+    runTest("test/test_files/long_string_pk/long_string_pk.test");
+}
 
 TEST_F(TinySnbReadTest, MatchExecute) {
     runTest("test/test_files/tinySNB/match/node.test");

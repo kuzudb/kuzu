@@ -65,20 +65,46 @@ bool CSVReader::hasNextLine() {
     }
     // else, read the next line. The function getline() will dynamically allocate a larger line and
     // update the lineCapacity accordingly if the length of the line exceeds the lineCapacity.
+    // We keep curPos in case the very final line does not have a \n character in which case
+    // we will seek back to where we were and read it without using getLine (inside the if).
+    auto curPos = ftell(fd);
     lineLen = getline(&line, &lineCapacity, fd);
-    while (2 > lineLen || CopyCSVConfig::COMMENT_LINE_CHAR == line[0]) {
-        // Note: The getline function doesn't update the line if it reaches EOF. If a csv file only
-        // has comment lines and we don't reset line in each iteration, it will cause an infinite
-        // loop.
-        line[0] = '\0';
-        lineLen = getline(&line, &lineCapacity, fd);
-    };
-    linePtrStart = linePtrEnd = -1;
-    // file ends, end the file.
     if (feof(fd)) {
+        // According to POSIX getline manual (https://man7.org/linux/man-pages/man3/getline.3.html)
+        // the behavior of getline when in reaches an end of file is underdefined in terms of how
+        // it leaves the first (line) argument above. Instead, we re-read the file, this time
+        // with fgets (https://en.cppreference.com/w/c/io/fgets), whose behavior is clear and will
+        // guarantee.
+        // We first determine the last offset of the file:
+        fseek(fd, 0L, SEEK_END);
+        auto lastPos = ftell(fd);
         isEndOfBlock = true;
+        auto sizeOfRemainder = lastPos - curPos;
+        if (sizeOfRemainder > 0) {
+            if (lineCapacity < sizeOfRemainder) {
+                // Note: We don't have tests testing this case because although according to
+                // getline's documentation, the behavior is undefined, the getline call above
+                // (before the feof check) seems to be increasing the lineCapacity for the
+                // last lines without newline character. So this is here for safety but is
+                // not tested.
+                free(line);
+                // We are adding + 1 for the additional \n character we will append.
+                line = (char*)malloc(sizeOfRemainder + 1);
+            }
+            fseek(fd, curPos, SEEK_SET);
+            fgets(line, sizeOfRemainder + 1, fd);
+            line[sizeOfRemainder] = '\n';
+            lineLen = sizeOfRemainder;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    // The line is empty
+    if (lineLen < 2) {
         return false;
     }
+    linePtrStart = linePtrEnd = -1;
     return true;
 }
 

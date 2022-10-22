@@ -2,11 +2,12 @@ filegroup(
     name = "dataset",
     srcs = glob([
         "empty-db/**",
-        "hash-index-test/**",
         "copy-csv-fault-tests/**",
         "copy-csv-empty-lists-test/**",
         "copy-csv-node-property-test/**",
         "copy-csv-special-char-test/**",
+        "hash-index-test/**",
+        "long-string-pk-tests/**",
         "node-insertion-deletion-tests/**",
         "non-empty-disk-array-db/**",
         "order-by-tests/**",

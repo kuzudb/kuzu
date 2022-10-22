@@ -216,6 +216,7 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
 }
 
 void TestHelper::executeCypherScript(const string& cypherScript, Connection& conn) {
+    cout << "cypherScript: " << cypherScript << endl;
     assert(FileUtils::fileOrPathExists(cypherScript));
     ifstream file(cypherScript);
     if (!file.is_open()) {

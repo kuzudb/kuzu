@@ -76,6 +76,8 @@ public:
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
         gf_list_t* dstGFList, DataType* listChildDataType);
 
+    string readString(gf_string_t* strInInMemOvfFile);
+
 private:
     uint32_t addANewOverflowPage();
 
