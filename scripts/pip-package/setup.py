@@ -39,7 +39,9 @@ class BazelBuild(build_ext):
         self.announce("Done copying native extension", level=3)
         # Remove bazel's BUILD file for macOS due to naming conflict with python's build file
         if sys.platform == 'darwin':
-            os.remove(os.path.join(ext.sourcedir, 'BUILD'))
+            build_file_path = os.path.join(ext.sourcedir, 'BUILD')
+            if os.path.isfile(build_file_path):
+                os.remove(build_file_path)
 
 
 class BuildExtFirst(_build_py):
