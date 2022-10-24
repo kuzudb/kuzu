@@ -1,0 +1,27 @@
+name: Build-Linux-Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonPackageVersion:
+        description: "Version of output Python package"
+        required: true
+        default: "0.0.1"
+
+env:
+PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+
+jobs:
+  build-linux-wheels:
+    runs-on: self-hosted-linux-building
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: build-wheels
+        working-directory: ./scripts/pip-package/
+        run: bash build_all_packages.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-wheels
+          path: ./scripts/pip-package/wheelhouse/*.manylinux2014_x86_64.whl
