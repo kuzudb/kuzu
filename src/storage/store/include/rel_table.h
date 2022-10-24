@@ -50,6 +50,7 @@ public:
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
     void checkpointInMemoryIfNecessary();
     void rollbackInMemoryIfNecessary();
+
     void insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert);
 
 private:

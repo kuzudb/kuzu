@@ -194,5 +194,48 @@ vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
     return result;
 }
 
+void PropertyKeyValCollection::addPropertyKeyValPair(
+    const Expression& variable, expression_pair propertyKeyValPair) {
+    auto varName = variable.getUniqueName();
+    if (!varNameToPropertyKeyValPairs.contains(varName)) {
+        varNameToPropertyKeyValPairs.insert({varName, unordered_map<string, expression_pair>{}});
+    }
+    auto property = (PropertyExpression*)propertyKeyValPair.first.get();
+    assert(!varNameToPropertyKeyValPairs.at(varName).contains(property->getPropertyName()));
+    varNameToPropertyKeyValPairs.at(varName).insert(
+        {property->getPropertyName(), std::move(propertyKeyValPair)});
+}
+
+vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
+    const graphflow::binder::Expression& variable) const {
+    auto varName = variable.getUniqueName();
+    if (!varNameToPropertyKeyValPairs.contains(varName)) {
+        return vector<expression_pair>{};
+    }
+    vector<expression_pair> result;
+    for (auto& [_, setItem] : varNameToPropertyKeyValPairs.at(varName)) {
+        result.push_back(setItem);
+    }
+    return result;
+}
+
+bool PropertyKeyValCollection::hasPropertyKeyValPair(
+    const Expression& variable, const string& propertyName) const {
+    auto varName = variable.getUniqueName();
+    if (!varNameToPropertyKeyValPairs.contains(varName)) {
+        return false;
+    }
+    if (!varNameToPropertyKeyValPairs.at(varName).contains(propertyName)) {
+        return false;
+    }
+    return true;
+}
+
+expression_pair PropertyKeyValCollection::getPropertyKeyValPair(
+    const Expression& variable, const string& propertyName) const {
+    assert(hasPropertyKeyValPair(variable, propertyName));
+    return varNameToPropertyKeyValPairs.at(variable.getUniqueName()).at(propertyName);
+}
+
 } // namespace binder
 } // namespace graphflow

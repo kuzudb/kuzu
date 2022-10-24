@@ -9,13 +9,11 @@ namespace graphflow {
 namespace parser {
 
 class MatchClause : public ReadingClause {
-
 public:
     explicit MatchClause(
         vector<unique_ptr<PatternElement>> patternElements, bool isOptional = false)
         : ReadingClause{ClauseType::MATCH}, patternElements{move(patternElements)},
           isOptional{isOptional} {}
-
     ~MatchClause() = default;
 
     inline const vector<unique_ptr<PatternElement>>& getPatternElements() const {

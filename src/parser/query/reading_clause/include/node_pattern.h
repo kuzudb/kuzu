@@ -16,8 +16,9 @@ namespace parser {
 class NodePattern {
 public:
     NodePattern(string name, string tableName,
-        vector<pair<string, unique_ptr<ParsedExpression>>> properties)
-        : variableName{move(name)}, tableName{move(tableName)}, properties{move(properties)} {}
+        vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
+        : variableName{std::move(name)}, tableName{std::move(tableName)},
+          propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
     ~NodePattern() = default;
 
@@ -25,19 +26,19 @@ public:
 
     inline string getTableName() const { return tableName; }
 
-    inline uint32_t getNumProperties() const { return properties.size(); }
+    inline uint32_t getNumPropertyKeyValPairs() const { return propertyKeyValPairs.size(); }
     inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
-        return make_pair(properties[idx].first, properties[idx].second.get());
+        return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
     bool operator==(const NodePattern& other) const {
         if (!(variableName == other.variableName && tableName == other.tableName &&
-                properties.size() == other.properties.size())) {
+                propertyKeyValPairs.size() == other.propertyKeyValPairs.size())) {
             return false;
         }
-        for (auto i = 0u; i < properties.size(); ++i) {
-            auto& [name, expression] = properties[i];
-            auto& [otherName, otherExpression] = other.properties[i];
+        for (auto i = 0u; i < propertyKeyValPairs.size(); ++i) {
+            auto& [name, expression] = propertyKeyValPairs[i];
+            auto& [otherName, otherExpression] = other.propertyKeyValPairs[i];
             if (!(name == otherName && *expression == *otherExpression)) {
                 return false;
             }
@@ -50,7 +51,7 @@ public:
 private:
     string variableName;
     string tableName;
-    vector<pair<string, unique_ptr<ParsedExpression>>> properties;
+    vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs;
 };
 
 } // namespace parser

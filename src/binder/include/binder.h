@@ -18,6 +18,7 @@
 #include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
 #include "src/parser/query/reading_clause/include/unwind_clause.h"
+#include "src/parser/query/updating_clause/include/create_clause.h"
 
 using namespace graphflow::parser;
 using namespace graphflow::catalog;
@@ -95,13 +96,14 @@ private:
 
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
-    unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
-
+    pair<unique_ptr<QueryGraph>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
+        const vector<unique_ptr<PatternElement>>& graphPattern);
     void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
-        const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
+        const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
+        PropertyKeyValCollection& collection);
 
-    shared_ptr<NodeExpression> bindQueryNode(
-        const NodePattern& nodePattern, QueryGraph& queryGraph);
+    shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
+        PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
 
     table_id_t bindRelTable(const string& tableName) const;
@@ -156,8 +158,10 @@ private:
 
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
 
-    static void validateNodeCreateHasPrimaryKeyInput(
-        const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty);
+    static void validateCreateNodeHasPrimaryKeyInput(
+        const BoundCreateClause& createClause, const Catalog& catalog_);
+    static void validateCreateNodeHasPrimaryKeyInput(NodeExpression& node,
+        vector<expression_pair> propertyKeyValPairs, const Property& primaryKey);
 
     static void validatePrimaryKey(
         string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties);

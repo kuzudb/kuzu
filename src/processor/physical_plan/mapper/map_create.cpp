@@ -6,19 +6,49 @@
 namespace graphflow {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalCreate = (LogicalCreate&)*logicalOperator;
+    auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto& nodesStore = storageManager.getNodesStore();
-    vector<NodeTable*> nodeTables;
-    vector<DataPos> outVectorPositions;
-    for (auto& node : logicalCreate.getNodes()) {
-        outVectorPositions.push_back(mapperContext.getDataPos(node->getIDProperty()));
-        nodeTables.push_back(nodesStore.getNodeTable(node->getTableID()));
+    vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
+    for (auto& node : logicalCreateNode->getNodes()) {
+        auto table = nodesStore.getNodeTable(node->getTableID());
+        auto outDataPos = mapperContext.getDataPos(node->getIDProperty());
+        createNodeInfos.push_back(make_unique<CreateNodeInfo>(table, outDataPos));
     }
-    return make_unique<CreateNode>(std::move(nodeTables), std::move(outVectorPositions),
-        std::move(prevOperator), getOperatorID(), logicalCreate.getExpressionsForPrinting());
+    return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
+        getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto& relStore = storageManager.getRelsStore();
+    vector<unique_ptr<CreateRelInfo>> createRelInfos;
+    for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
+        auto rel = logicalCreateRel->getRel(i);
+        auto table = relStore.getRelTable(rel->getTableID());
+        auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getIDProperty());
+        auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getIDProperty());
+        vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
+        uint32_t relIDEvaluatorIdx = UINT32_MAX;
+        auto setItems = logicalCreateRel->getSetItems(i);
+        for (auto j = 0u; j < setItems.size(); ++j) {
+            auto& [lhs, rhs] = setItems[j];
+            auto propertyExpression = static_pointer_cast<PropertyExpression>(lhs);
+            if (propertyExpression->isInternalID()) {
+                relIDEvaluatorIdx = j;
+            }
+            evaluators.push_back(expressionMapper.mapExpression(rhs, mapperContext));
+        }
+        assert(relIDEvaluatorIdx != UINT32_MAX);
+        createRelInfos.push_back(make_unique<CreateRelInfo>(
+            table, srcNodePos, dstNodePos, std::move(evaluators), relIDEvaluatorIdx));
+    }
+    return make_unique<CreateRel>(relStore.getRelsStatistics(), std::move(createRelInfos),
+        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 } // namespace processor

@@ -10,8 +10,8 @@ class ReadingClauseTest : public ::testing::Test {
 public:
     static unique_ptr<RelPattern> makeRelPattern(
         const string& name, const string& type, ArrowDirection direction) {
-        return make_unique<RelPattern>(
-            name, type, "1" /*lowerBound*/, "1" /*upperBound*/, direction);
+        return make_unique<RelPattern>(name, type, "1" /*lowerBound*/, "1" /*upperBound*/,
+            direction, vector<pair<string, unique_ptr<ParsedExpression>>>{});
     }
 
     vector<pair<string, unique_ptr<ParsedExpression>>> getDummyProperties() {

@@ -4,7 +4,6 @@
 
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/common/include/type_utils.h"
-#include "src/parser/query/updating_clause/include/create_clause.h"
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
 
@@ -283,7 +282,7 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
 
 unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
-    auto queryGraph = bindQueryGraph(matchClause.getPatternElements());
+    auto [queryGraph, _] = bindGraphPattern(matchClause.getPatternElements());
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto boundMatchClause =
         make_unique<BoundMatchClause>(move(queryGraph), matchClause.getIsOptional());
@@ -323,24 +322,42 @@ unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause&
 
 unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
-    auto boundCreateClause = make_unique<BoundCreateClause>();
-    for (auto i = 0u; i < createClause.getNumNodePatterns(); ++i) {
-        auto nodePattern = createClause.getNodePattern(i);
-        auto node = createQueryNode(*nodePattern);
-        auto nodeUpdateInfo = make_unique<NodeUpdateInfo>(node);
-        for (auto j = 0u; j < nodePattern->getNumProperties(); ++j) {
-            auto [propertyName, target] = nodePattern->getProperty(j);
-            auto boundProperty = expressionBinder.bindNodePropertyExpression(node, propertyName);
-            auto boundTarget = expressionBinder.bindExpression(*target);
-            boundTarget = ExpressionBinder::implicitCastIfNecessary(
-                boundTarget, boundProperty->dataType.typeID);
-            nodeUpdateInfo->addPropertyUpdateInfo(
-                make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
+    auto prevVariablesInScope = variablesInScope;
+    auto [queryGraph, collection] = bindGraphPattern(createClause.getPatternElements());
+    vector<shared_ptr<NodeExpression>> nodesToCreate;
+    vector<vector<expression_pair>> setItemsPerNode;
+    for (auto i = 0u; i < queryGraph->getNumQueryNodes(); ++i) {
+        auto node = queryGraph->getQueryNode(i);
+        if (!prevVariablesInScope.contains(node->getRawName())) {
+            nodesToCreate.push_back(node);
         }
-        validateNodeCreateHasPrimaryKeyInput(*nodeUpdateInfo,
-            catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getTableID()));
-        boundCreateClause->addNodeUpdateInfo(move(nodeUpdateInfo));
+        setItemsPerNode.push_back(collection->getPropertyKeyValPairs(*node));
     }
+    vector<shared_ptr<RelExpression>> relsToCreate;
+    vector<vector<expression_pair>> setItemsPerRel;
+    for (auto i = 0u; i < queryGraph->getNumQueryRels(); ++i) {
+        auto rel = queryGraph->getQueryRel(i);
+        if (!prevVariablesInScope.contains(rel->getRawName())) {
+            relsToCreate.push_back(rel);
+        }
+        // CreateRel requires all properties in schema as input. So we rewrite set property to null
+        // if user does not specify a property in the query.
+        vector<expression_pair> setItems;
+        for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel->getTableID())) {
+            if (collection->hasPropertyKeyValPair(*rel, property.name)) {
+                setItems.push_back(collection->getPropertyKeyValPair(*rel, property.name));
+            } else {
+                auto propertyExpression = make_shared<PropertyExpression>(
+                    property.dataType, property.name, property.propertyID, rel);
+                setItems.emplace_back(std::move(propertyExpression),
+                    LiteralExpression::createNullLiteralExpression(property.dataType));
+            }
+        }
+        setItemsPerRel.push_back(std::move(setItems));
+    }
+    auto boundCreateClause = make_unique<BoundCreateClause>(std::move(nodesToCreate),
+        std::move(setItemsPerNode), std::move(relsToCreate), std::move(setItemsPerRel));
+    validateCreateNodeHasPrimaryKeyInput(*boundCreateClause, catalog);
     return boundCreateClause;
 }
 
@@ -349,12 +366,10 @@ unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& upda
     auto boundSetClause = make_unique<BoundSetClause>();
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
-        auto boundProperty = expressionBinder.bindExpression(*setItem->origin);
-        auto boundTarget = expressionBinder.bindExpression(*setItem->target);
-        boundTarget =
-            ExpressionBinder::implicitCastIfNecessary(boundTarget, boundProperty->dataType.typeID);
-        boundSetClause->addUpdateInfo(
-            make_unique<PropertyUpdateInfo>(move(boundProperty), move(boundTarget)));
+        auto boundLhs = expressionBinder.bindExpression(*setItem->origin);
+        auto boundRhs = expressionBinder.bindExpression(*setItem->target);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        boundSetClause->addSetItem(make_pair(boundLhs, boundRhs));
     }
     return boundSetClause;
 }
@@ -518,25 +533,36 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
     return whereExpression;
 }
 
-unique_ptr<QueryGraph> Binder::bindQueryGraph(
+// A graph pattern contains node/rel and a set of key-value pairs associated with the variable. We
+// bind node/rel as query graph and key-value pairs as a separate collection. This collection is
+// interpreted in two different ways.
+//    - In MATCH clause, these are additional predicates to WHERE clause
+//    - In UPDATE clause, there are properties to set.
+// We do not store key-value pairs in query graph primarily because we will merge key-value pairs
+// with other predicates specified in WHERE clause.
+pair<unique_ptr<QueryGraph>, unique_ptr<PropertyKeyValCollection>> Binder::bindGraphPattern(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = make_unique<QueryGraph>();
+    auto collection = make_unique<PropertyKeyValCollection>();
     for (auto& patternElement : graphPattern) {
-        auto leftNode = bindQueryNode(*patternElement->getFirstNodePattern(), *queryGraph);
+        auto leftNode =
+            bindQueryNode(*patternElement->getFirstNodePattern(), *queryGraph, *collection);
         for (auto i = 0u; i < patternElement->getNumPatternElementChains(); ++i) {
             auto patternElementChain = patternElement->getPatternElementChain(i);
-            auto rightNode = bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph);
-            bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph);
+            auto rightNode =
+                bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, *collection);
+            bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph,
+                *collection);
             leftNode = rightNode;
         }
     }
-    validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
-    return queryGraph;
+    return make_pair(std::move(queryGraph), std::move(collection));
 }
 
 void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
-    const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph) {
+    const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
+    PropertyKeyValCollection& collection) {
     auto parsedName = relPattern.getVariableName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
@@ -575,15 +601,18 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
+    for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
+        auto [propertyName, rhs] = relPattern.getProperty(i);
+        auto boundLhs = expressionBinder.bindRelPropertyExpression(queryRel, propertyName);
+        auto boundRhs = expressionBinder.bindExpression(*rhs);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
+    }
     queryGraph.addQueryRel(queryRel);
 }
 
 shared_ptr<NodeExpression> Binder::bindQueryNode(
-    const NodePattern& nodePattern, QueryGraph& queryGraph) {
-    if (nodePattern.getNumProperties() > 0) {
-        // E.g. MATCH (a:person {p1:v1}) is not supported.
-        throw BinderException("Node pattern with properties in MATCH clause is not supported.");
-    }
+    const NodePattern& nodePattern, QueryGraph& queryGraph, PropertyKeyValCollection& collection) {
     auto parsedName = nodePattern.getVariableName();
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
@@ -598,6 +627,13 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         }
     } else {
         queryNode = createQueryNode(nodePattern);
+    }
+    for (auto i = 0u; i < nodePattern.getNumPropertyKeyValPairs(); ++i) {
+        auto [propertyName, rhs] = nodePattern.getProperty(i);
+        auto boundLhs = expressionBinder.bindNodePropertyExpression(queryNode, propertyName);
+        auto boundRhs = expressionBinder.bindExpression(*rhs);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryNode(queryNode);
     return queryNode;
@@ -789,17 +825,26 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalized
     }
 }
 
-void Binder::validateNodeCreateHasPrimaryKeyInput(
-    const NodeUpdateInfo& nodeUpdateInfo, const Property& primaryKeyProperty) {
-    for (auto i = 0u; i < nodeUpdateInfo.getNumPropertyUpdateInfo(); ++i) {
-        auto& property =
-            (PropertyExpression&)*nodeUpdateInfo.getPropertyUpdateInfo(i)->getProperty();
-        if (property.getPropertyKey() == primaryKeyProperty.propertyID) {
+void Binder::validateCreateNodeHasPrimaryKeyInput(
+    const BoundCreateClause& createClause, const Catalog& catalog_) {
+    for (auto i = 0u; i < createClause.getNumNodes(); ++i) {
+        auto node = createClause.getNode(i);
+        auto& primaryKey =
+            catalog_.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getTableID());
+        validateCreateNodeHasPrimaryKeyInput(*node, createClause.getNodeSetItems(i), primaryKey);
+    }
+}
+
+void Binder::validateCreateNodeHasPrimaryKeyInput(
+    NodeExpression& node, vector<expression_pair> propertyKeyValPairs, const Property& primaryKey) {
+    for (auto& [lhs, _] : propertyKeyValPairs) {
+        auto& property = (PropertyExpression&)*lhs;
+        if (property.getPropertyKey() == primaryKey.propertyID) {
             return;
         }
     }
-    throw BinderException("Create node " + nodeUpdateInfo.getNodeExpression()->getRawName() +
-                          " expects primary key input.");
+    throw BinderException("Create node " + node.getRawName() + " expects primary key " +
+                          primaryKey.name + " as input.");
 }
 
 void Binder::validatePrimaryKey(

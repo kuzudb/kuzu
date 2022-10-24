@@ -238,6 +238,13 @@ TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
 }
 
 // Create clause test
+
+TEST_F(TinySnbUpdateTest, InsertNodeWithoutPrimaryKeyTest) {
+    auto result = conn->query("CREATE (a:person {isWorker:true});");
+    ASSERT_STREQ("Binder exception: Create node a expects primary key ID as input.",
+        result->getErrorMessage().c_str());
+}
+
 TEST_F(TinySnbUpdateTest, InsertNodeWithBoolIntDoubleTest) {
     conn->query("CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1});");
     auto result =
@@ -303,5 +310,16 @@ TEST_F(TinySnbUpdateTest, InsertNodeAfterMatchListTest) {
         vector<string>{"0|Alice|35", "10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83",
             "11||70", "13||60", "14||90", "16||40", "18||40", "19||50", "20||80", "21||166",
             "2|Bob|30", "3|Carol|45", "5|Dan|20", "7|Elizabeth|20", "8|Farooq|25", "9|Greg|40"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+// TODO(ziyi): check this query. If "RETURN a.ID, b.ID, e.ID", then b.ID and e.ID seems to be
+// in-correct.
+TEST_F(TinySnbUpdateTest, InsertRelBasicTest) {
+    conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 "
+                "CREATE (a)<-[:knows {date:date('1997-03-22')}]-(b);");
+    auto groundTruth = vector<string>{"4"};
+    auto result =
+        conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN COUNT(*)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

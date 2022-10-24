@@ -13,21 +13,21 @@ grammar Cypher;
     virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
-oC_Cypher 
+oC_Cypher
     : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF
-        | SP ? gF_DDL ( SP? ';' )? SP? EOF 
+        | SP ? gF_DDL ( SP? ';' )? SP? EOF
         | SP ? gF_CopyCSV ( SP? ';' )? SP? EOF ;
-        
+
 gF_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP? '(' SP? gF_ParsingOptions SP? ')' )? ;
 
 gF_ParsingOptions
     : gF_ParsingOption ( SP? ',' SP? gF_ParsingOption )* ;
-    
+
 gF_ParsingOption
     : oC_SymbolicName SP? '=' SP? oC_Literal;
 
-COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;    
+COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
@@ -38,19 +38,19 @@ gF_DDL
 
 gF_CreateNode
     : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint ) SP? ')' ;
-    
+
 NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 gF_CreateRel
-    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ; 
-   
+    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+
 gF_DropTable
     : DROP SP TABLE SP oC_SchemaName ;
-    
+
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
-    
+
 gF_RelConnections : gF_RelConnection ( SP? ',' SP? gF_RelConnection )* ;
 
 gF_RelConnection: FROM SP gF_NodeLabels SP TO SP gF_NodeLabels ;
@@ -64,21 +64,21 @@ gF_PropertyDefinition : oC_PropertyKeyName SP gF_DataType ;
 gF_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
 PRIMARY: ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'Y' | 'y' ) ;
-        
+
 KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
 
 REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
 
 TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
-gF_DataType 
-    : oC_SymbolicName 
+gF_DataType
+    : oC_SymbolicName
         | ( oC_SymbolicName gF_ListIdentifiers ) ;
 
 gF_ListIdentifiers : gF_ListIdentifier ( gF_ListIdentifier )* ;
 
 gF_ListIdentifier : '[' ']' ;
-        
+
 oC_AnyCypherOption
     : oC_Explain
         | oC_Profile ;
@@ -93,10 +93,10 @@ oC_Profile
 
 PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
-oC_Statement 
+oC_Statement
     : oC_Query ;
 
-oC_Query 
+oC_Query
     : oC_RegularQuery ;
 
 oC_RegularQuery
@@ -135,12 +135,12 @@ oC_UpdatingClause
         | oC_Delete
         ;
 
-oC_ReadingClause 
+oC_ReadingClause
     : oC_Match
         | oC_Unwind
         ;
 
-oC_Match 
+oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;
 
 OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
@@ -152,7 +152,7 @@ UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' )( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 
 oC_Create
-    : CREATE SP? oC_NodePattern ( SP? ',' SP? oC_NodePattern )* ;
+    : CREATE SP? oC_Pattern ;
 
 CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
@@ -259,7 +259,7 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ( gF_Properties SP? ) ? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.

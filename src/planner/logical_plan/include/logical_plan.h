@@ -20,9 +20,10 @@ public:
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
     inline bool isReadOnly() const {
-        return !lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
-            LOGICAL_SET_NODE_PROPERTY, LOGICAL_CREATE, LOGICAL_DELETE, LOGICAL_CREATE_NODE_TABLE,
-            LOGICAL_CREATE_REL_TABLE, LOGICAL_COPY_CSV, LOGICAL_DROP_TABLE});
+        return !lastOperator->descendantsContainType(
+            unordered_set<LogicalOperatorType>{LOGICAL_SET_NODE_PROPERTY, LOGICAL_CREATE_NODE,
+                LOGICAL_CREATE_REL, LOGICAL_DELETE, LOGICAL_CREATE_NODE_TABLE,
+                LOGICAL_CREATE_REL_TABLE, LOGICAL_COPY_CSV, LOGICAL_DROP_TABLE});
     }
 
     inline void setExpressionsToCollect(expression_vector expressions) {
