@@ -37,6 +37,9 @@ class BazelBuild(build_ext):
         shutil.copyfile(os.path.join(ext.sourcedir, 'bazel-bin', 'tools', 'python_api',
                                      '_graphflowdb.so'), os.path.join(ext.sourcedir, ext.name, '_graphflowdb.so'))
         self.announce("Done copying native extension", level=3)
+        # Remove bazel's BUILD file for macOS due to naming conflict with python's build file
+        if sys.platform == 'darwin':
+            os.remove(os.path.join(ext.sourcedir, 'BUILD'))
 
 
 class BuildExtFirst(_build_py):
