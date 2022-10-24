@@ -20,6 +20,10 @@ bool QueryResult::hasNext() {
 }
 
 shared_ptr<FlatTuple> QueryResult::getNext() {
+    if (!hasNext()) {
+        throw RuntimeException(
+            "No more tuples in QueryResult, Please check hasNext() before calling getNext().");
+    }
     validateQuerySucceed();
     return iterator->getNextFlatTuple();
 }

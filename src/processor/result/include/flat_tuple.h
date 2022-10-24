@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "src/common/include/exception.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
@@ -73,9 +74,9 @@ public:
         }
     }
 
-    inline ResultValue* getResultValue(uint32_t valIdx) { return resultValues[valIdx].get(); }
-
     inline uint32_t len() { return resultValues.size(); }
+
+    ResultValue* getResultValue(uint32_t valIdx);
 
     string toString(const vector<uint32_t>& colsWidth, const string& delimiter = "|");
 
