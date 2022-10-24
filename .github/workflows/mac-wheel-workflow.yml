@@ -18,7 +18,10 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
       - uses: actions/checkout@v2
-
+      - name: fix-permission
+        run: |
+          cd ../ && sudo chown -R runner:staff graphflowdb/ && cd graphflowdb/
+          ls -al
       - name: create-source-distribution
         working-directory: ./scripts/pip-package/
         run: |
