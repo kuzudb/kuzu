@@ -10,8 +10,7 @@ on:
 
 env:
   PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
-  CIBW_BEFORE_BUILD: "rm -rf ./sdist && mkdir ./sdist && tar -xf ./graphflowdb.tar.gz -C ./sdist"
-
+  
 jobs:
   build-x86-wheels:
     runs-on: macOS-11
@@ -29,6 +28,8 @@ jobs:
           rm -rf wheelhouse graphflowdb.tar.gz
           mkdir wheelhouse
           bash package_tar.sh
+          rm -rf ./sdist && mkdir ./sdist && tar -xf ./graphflowdb.tar.gz -C ./sdist
+          tar -czf sdist.tar.gz ./sdist/
 
       - name: build-wheel
         uses: pypa/cibuildwheel@v2.11.1
@@ -37,7 +38,7 @@ jobs:
           CIBW_ARCHS_MACOS: x86_64
           CIBW_BUILD_VERBOSITY: 3
         with:
-          package-dir: ./scripts/pip-package/sdist
+          package-dir: ./scripts/pip-package/sdist.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
       - uses: actions/upload-artifact@v3
