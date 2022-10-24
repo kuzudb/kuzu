@@ -9,7 +9,7 @@ on:
         default: "0.0.1"
 
 env:
-PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+  PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
 
 jobs:
   build-linux-wheels:
