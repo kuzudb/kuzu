@@ -1,0 +1,43 @@
+name: Build-Mac-Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonPackageVersion:
+        description: "Version of output Python package"
+        required: true
+        default: "0.0.1"
+
+env:
+  PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+
+jobs:
+  build-x86-wheels:
+    runs-on: macOS-11
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: create-source-distribution
+        working-directory: ./scripts/pip-package/
+        run: |
+          rm -rf wheelhouse graphflowdb.tar.gz sdist
+          mkdir wheelhouse sdist
+          bash package_tar.sh
+          tar -xf ./graphflowdb.tar.gz -C ./sdist
+
+      - name: build-wheel
+        uses: pypa/cibuildwheel@v2.11.1
+        env:
+          CIBW_SKIP: pp*
+          CIBW_ARCHS_MACOS: x86_64
+          CIBW_BUILD_VERBOSITY: 3
+        with:
+          package-dir: ./scripts/pip-package/sdist
+          output-dir: ./scripts/pip-package/wheelhouse
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-x86-wheels
+          path: ./scripts/pip-package/wheelhouse/*.whl

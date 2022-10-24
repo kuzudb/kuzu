@@ -23,6 +23,11 @@ class BazelBuild(build_ext):
     def build_extension(self, ext: BazelExtension) -> None:
         self.announce("Building native extension...", level=3)
         args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3']
+        # It seems bazel does not automatically pick up MACOSX_DEPLOYMENT_TARGET
+        # from the environment, so we need to pass it explicitly.
+        if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
+            args.append("--macos_minimum_os=" +
+                        os.environ["MACOSX_DEPLOYMENT_TARGET"])
         full_cmd = ['bazel', 'build', *args, '//tools/python_api:all']
         env_vars = os.environ.copy()
         env_vars['PYTHON_BIN_PATH'] = sys.executable
