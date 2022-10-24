@@ -1,10 +1,10 @@
-#include "src/processor/include/processor.h"
+#include "include/processor.h"
 
-#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate.h"
-#include "src/processor/include/physical_plan/operator/copy_csv/copy_rel_csv.h"
-#include "src/processor/include/physical_plan/operator/result_collector.h"
-#include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/processor_task.h"
+#include "src/processor/operator/aggregate/include/base_aggregate.h"
+#include "src/processor/operator/copy_csv/include/copy_rel_csv.h"
+#include "src/processor/operator/include/result_collector.h"
+#include "src/processor/operator/include/sink.h"
 
 using namespace graphflow::common;
 

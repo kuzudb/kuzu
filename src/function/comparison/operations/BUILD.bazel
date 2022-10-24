@@ -8,6 +8,6 @@ cc_library(
     ]),
     visibility = [
         "//src/function:__subpackages__",
-        "//src/processor:__pkg__",
+        "//src/processor:__subpackages__",
     ],
 )

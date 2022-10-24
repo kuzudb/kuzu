@@ -9,11 +9,11 @@ cc_library(
         "include/base_evaluator.h",
     ],
     visibility = [
-        "//src/processor:__pkg__",
+        "//src/processor:__subpackages__",
     ],
     deps = [
         "//src/binder/expression:base_expression",
-        "//src/processor:result_set",
+        "//src/processor/result:result_set",
     ],
 )
 
@@ -30,7 +30,7 @@ cc_library(
         "include/reference_evaluator.h",
     ],
     visibility = [
-        "//src/processor:__pkg__",
+        "//src/processor:__subpackages__",
         "//test/expression_evaluator:__pkg__",
     ],
     deps = [

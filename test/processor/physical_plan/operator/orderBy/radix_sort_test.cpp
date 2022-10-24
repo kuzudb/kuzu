@@ -8,8 +8,8 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/types/include/value.h"
-#include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
-#include "src/processor/include/physical_plan/operator/order_by/radix_sort.h"
+#include "src/processor/operator/order_by/include/order_by_key_encoder.h"
+#include "src/processor/operator/order_by/include/radix_sort.h"
 
 using ::testing::Test;
 using namespace graphflow::processor;

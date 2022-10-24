@@ -1,4 +1,4 @@
-#include "src/processor/include/processor_task.h"
+#include "include/processor_task.h"
 
 namespace graphflow {
 namespace processor {

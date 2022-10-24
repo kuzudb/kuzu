@@ -7,8 +7,8 @@
 #include "src/common/include/assert.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/processor/include/physical_plan/operator/order_by/key_block_merger.h"
-#include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
+#include "src/processor/operator/order_by/include/key_block_merger.h"
+#include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 
 using ::testing::Test;
 using namespace graphflow::processor;

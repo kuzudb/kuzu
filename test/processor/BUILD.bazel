@@ -12,7 +12,7 @@ cc_test(
     ],
     deps = [
         "//src/processor",
-        "//src/processor:mapper",
+        "//src/processor/mapper",
         "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
@@ -29,7 +29,7 @@ cc_test(
     ],
     deps = [
         "//src/processor",
-        "//src/processor:mapper",
+        "//src/processor/mapper",
         "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
@@ -46,7 +46,7 @@ cc_test(
     ],
     deps = [
         "//src/processor",
-        "//src/processor:mapper",
+        "//src/processor/mapper",
         "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
