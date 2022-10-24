@@ -16,17 +16,15 @@ public:
 
 class IntPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override { return "dataset/primary-key-tests/int-primary-key-tests/"; }
+    string getInputCSVDir() override { return "dataset/primary-key-tests/int-pk-tests/"; }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query(
-            "COPY Person FROM \"dataset/primary-key-tests/int-primary-key-tests/vPerson.csv\"");
-        conn->query(
-            "COPY Knows FROM \"dataset/primary-key-tests/int-primary-key-tests/eKnows.csv\"");
+        conn->query("COPY Person FROM \"dataset/primary-key-tests/int-pk-tests/vPerson.csv\"");
+        conn->query("COPY Knows FROM \"dataset/primary-key-tests/int-pk-tests/eKnows.csv\"");
         auto tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 0"
                                  "RETURN COUNT(*)")
                          ->getNext();
@@ -52,19 +50,15 @@ public:
 
 class StringPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override {
-        return "dataset/primary-key-tests/string-primary-key-tests/";
-    }
+    string getInputCSVDir() override { return "dataset/primary-key-tests/string-pk-tests/"; }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query(
-            "COPY Person FROM \"dataset/primary-key-tests/string-primary-key-tests/vPerson.csv\"");
-        conn->query(
-            "COPY Knows FROM \"dataset/primary-key-tests/string-primary-key-tests/eKnows.csv\"");
+        conn->query("COPY Person FROM \"dataset/primary-key-tests/string-pk-tests/vPerson.csv\"");
+        conn->query("COPY Knows FROM \"dataset/primary-key-tests/string-pk-tests/eKnows.csv\"");
         auto tuple =
             conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Alice\" "
                         "RETURN COUNT(*)")

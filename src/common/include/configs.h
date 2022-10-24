@@ -92,7 +92,6 @@ struct CopyCSVConfig {
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
     static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
-    constexpr static char COMMENT_LINE_CHAR = '#';
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {

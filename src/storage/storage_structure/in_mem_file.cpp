@@ -233,5 +233,17 @@ uint32_t InMemOverflowFile::addANewOverflowPage() {
     return newPageIdx;
 }
 
+string InMemOverflowFile::readString(gf_string_t* strInInMemOvfFile) {
+    if (gf_string_t::isShortString(strInInMemOvfFile->len)) {
+        return strInInMemOvfFile->getAsShortString();
+    } else {
+        page_idx_t pageIdx = UINT32_MAX;
+        uint16_t pagePos = UINT16_MAX;
+        TypeUtils::decodeOverflowPtr(strInInMemOvfFile->overflowPtr, pageIdx, pagePos);
+        return string(
+            reinterpret_cast<char*>(pages[pageIdx]->data + pagePos), strInInMemOvfFile->len);
+    }
+}
+
 } // namespace storage
 } // namespace graphflow

@@ -117,7 +117,8 @@ void InMemNodeCSVCopier::addIDsToIndex(
                                        " violates the uniqueness constraint for the ID property.");
             }
         } else {
-            auto key = ((gf_string_t*)column->getElement(offset))->getAsString();
+            auto strStoredInInMemOvfFile = ((gf_string_t*)column->getElement(offset));
+            auto key = column->getInMemOverflowFile()->readString(strStoredInInMemOvfFile);
             if (!hashIndex->append(key.c_str(), offset)) {
                 throw CopyCSVException("ID value  " + key +
                                        " violates the uniqueness constraint for the ID property.");

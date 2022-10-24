@@ -21,3 +21,11 @@ filegroup(
         "//test/runner:__pkg__",
     ],
 )
+
+filegroup(
+    name = "long_string_pk_queries",
+    srcs = glob(["long_string_pk/**"]),
+    visibility = [
+        "//test/runner:__pkg__",
+    ],
+)

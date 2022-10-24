@@ -11,6 +11,7 @@ cc_test(
     data = [
         "//dataset",
         "//test/test_files:tinySNB_queries",
+        "//test/test_files:long_string_pk_queries",
     ],
     deps = [
         "//test/test_utility:test_helper",
