@@ -18,7 +18,7 @@ namespace storage {
  *     }
  * Two important requirements for correctly using this class are: (i) that the
  * calls to updateList need to happen in ascending order of nodeOffsets; and (ii) there should not
- * be multiple calls to writeListToListPages for the same nodeOffset.
+ * be multiple calls to writeInMemListToListPages for the same nodeOffset.
  *
  * The CSR re-construction algorithm is currently very basic and slides each small list to the right
  * or left when updates to a chunk arrives (large lists don't need sliding because recall that they
@@ -45,6 +45,8 @@ public:
 
     void updateList(node_offset_t nodeOffset, InMemList& inMemList);
 
+    void appendToLargeList(node_offset_t nodeOffset, InMemList& inMemList);
+
     void doneUpdating();
 
 protected:
@@ -60,7 +62,8 @@ protected:
 
     void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
 
-    void writeListToListPages(InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
+    void writeInMemListToListPages(
+        InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
 
     void updateLargeList(list_header_t oldHeader, InMemList& inMemList);
 
@@ -68,6 +71,8 @@ protected:
 
     pair<page_idx_t, bool> findListPageIdxAndInsertListPageToPageListIfNecessary(
         page_idx_t idxInPageList, uint32_t pageListHeadIdx);
+
+private:
     // beginIdxOfCurrentPageGroup == UINT32_MAX indicates that this is the first pageGroup of the
     // current chunk or large list, so the function sets the chunkToHeadIdxMap of the chunk or
     // largeListIdxToPageListHeadIdxMap for the given largeListID.
@@ -77,6 +82,9 @@ protected:
     page_idx_t insertNewPageGroupAndSetHeadIdxMap(
         uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx = UINT32_MAX);
 
+    void writeAtOffset(InMemList& inMemList, page_idx_t pageListHeadIdx, uint64_t idxInPageList,
+        uint64_t elementOffsetInListPage);
+
 protected:
     Lists* lists;
     uint64_t curChunkIdx;
@@ -85,9 +93,10 @@ protected:
     bool finishCalled;
 };
 
-class AdjOrUnstructuredListsUpdateIterator : public ListsUpdateIterator {
+class AdjOrUnstructuredPropertyListsUpdateIterator : public ListsUpdateIterator {
 public:
-    explicit AdjOrUnstructuredListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
+    explicit AdjOrUnstructuredPropertyListsUpdateIterator(Lists* lists)
+        : ListsUpdateIterator{lists} {}
 
 private:
     inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {
@@ -130,7 +139,7 @@ public:
         switch (lists->storageStructureIDAndFName.storageStructureID.listFileID.listType) {
         case ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS:
         case ListType::ADJ_LISTS:
-            return make_unique<AdjOrUnstructuredListsUpdateIterator>(lists);
+            return make_unique<AdjOrUnstructuredPropertyListsUpdateIterator>(lists);
         case ListType::REL_PROPERTY_LISTS:
             return make_unique<RelPropertyListsUpdateIterator>(lists);
         default:

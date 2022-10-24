@@ -126,19 +126,37 @@ void ListsWithAdjAndPropertyListsUpdateStore::prepareCommit(
         for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
              updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
             auto nodeOffset = updatedNodeOffsetItr->first;
-            auto totalNumElements = getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
-            InMemList inMemList{totalNumElements, elementSize, mayContainNulls()};
-            CursorAndMapper cursorAndMapper;
-            cursorAndMapper.reset(
-                metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
-            auto numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
-            fillInMemListsFromPersistentStore(
-                cursorAndMapper, numElementsInPersistentStore, inMemList);
-            adjAndPropertyListsUpdateStore->readToListAndUpdateOverflowIfNecessary(
-                storageStructureIDAndFName.storageStructureID.listFileID,
-                updatedNodeOffsetItr->second, inMemList, numElementsInPersistentStore,
-                getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
-            listsUpdateIterator.updateList(nodeOffset, inMemList);
+            // We do an optimization for relPropertyList and adjList:
+            // If the initial list is a largeList, we can simply append the data from the
+            // relUpdateStore to largeList. In this case, we can skip reading the data from
+            // persistentStore to InMemList and only need to read the data from relUpdateStore to
+            // InMemList.
+            if (ListHeaders::isALargeList(
+                    headers->headersDiskArray->get(nodeOffset, TransactionType::READ_ONLY))) {
+                auto inMemList = make_unique<InMemList>(
+                    getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset), elementSize,
+                    mayContainNulls());
+                adjAndPropertyListsUpdateStore->readInsertionsToList(
+                    storageStructureIDAndFName.storageStructureID.listFileID,
+                    updatedNodeOffsetItr->second, *inMemList, 0 /* numElementsInPersistentStore */,
+                    getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
+                listsUpdateIterator.appendToLargeList(nodeOffset, *inMemList);
+            } else {
+                auto inMemList = make_unique<InMemList>(
+                    getTotalNumElementsInList(TransactionType::WRITE, nodeOffset), elementSize,
+                    mayContainNulls());
+                CursorAndMapper cursorAndMapper;
+                cursorAndMapper.reset(
+                    metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+                fillInMemListsFromPersistentStore(
+                    cursorAndMapper, getNumElementsInPersistentStore(nodeOffset), *inMemList);
+                adjAndPropertyListsUpdateStore->readInsertionsToList(
+                    storageStructureIDAndFName.storageStructureID.listFileID,
+                    updatedNodeOffsetItr->second, *inMemList,
+                    getNumElementsInPersistentStore(nodeOffset), getDiskOverflowFileIfExists(),
+                    dataType, getNodeIDCompressionIfExists());
+                listsUpdateIterator.updateList(nodeOffset, *inMemList);
+            }
         }
     }
 }
