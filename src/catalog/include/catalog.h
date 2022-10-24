@@ -42,10 +42,10 @@ public:
      * Node and Rel table functions.
      */
     table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-        vector<PropertyNameDataType> structuredPropertyDefinitions);
+        vector<PropertyNameDataType> predefinedPropertyNameDataTypes);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
+        vector<PropertyNameDataType> propertyNameDataTypes, SrcDstTableIDs srcDstTableIDs);
 
     virtual inline string getNodeTableName(table_id_t tableID) const {
         return nodeTableSchemas.at(tableID)->tableName;
@@ -96,18 +96,18 @@ public:
     const Property& getNodePrimaryKeyProperty(table_id_t tableID) const;
 
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
-    inline const vector<Property>& getStructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->structuredProperties;
+    inline const vector<Property>& getPredefinedNodeProperties(table_id_t tableID) const {
+        return nodeTableSchemas.at(tableID)->predefinedProperties;
     }
-    inline const vector<Property>& getUnstructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->unstructuredProperties;
+    inline const vector<Property>& getAdhocNodeProperties(table_id_t tableID) const {
+        return nodeTableSchemas.at(tableID)->adhocProperties;
     }
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {
         return relTableSchemas.at(tableID)->properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap;
+        return nodeTableSchemas.at(tableID)->adhocPropertiesNameToIdMap;
     }
     inline unordered_map<table_id_t, unique_ptr<NodeTableSchema>>& getNodeTableSchemas() {
         return nodeTableSchemas;
@@ -181,16 +181,15 @@ public:
     ExpressionType getFunctionType(const string& name) const;
 
     table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-        vector<PropertyNameDataType> structuredPropertyDefinitions);
+        vector<PropertyNameDataType> predefinedPropertyNameDataTypes);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
+        vector<PropertyNameDataType> propertyNameDataTypes, SrcDstTableIDs srcDstTableIDs);
 
-    inline void setUnstructuredPropertiesOfNodeTableSchema(
-        vector<string>& unstructuredProperties, table_id_t tableID) {
+    inline void setAdhocPropertiesOfNodeTableSchema(
+        vector<PropertyNameDataType>& adhocProperties, table_id_t tableID) {
         initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
-            unstructuredProperties);
+        catalogContentForWriteTrx->getNodeTableSchema(tableID)->addAdhocProperties(adhocProperties);
     }
 
     inline void removeTableSchema(TableSchema* tableSchema) {

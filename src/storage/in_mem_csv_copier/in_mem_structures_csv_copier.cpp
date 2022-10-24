@@ -40,28 +40,34 @@ uint64_t InMemStructuresCSVCopier::calculateNumRows(bool hasHeader) {
 }
 
 static void collectUnstrPropertyNamesInLine(
-    CSVReader& reader, uint64_t numTokensToSkip, unordered_set<string>* unstrPropertyNames) {
+    CSVReader& reader, uint64_t numTokensToSkip, unordered_map<string, DataType>* adhocProperties) {
     for (auto i = 0u; i < numTokensToSkip; ++i) {
         reader.hasNextToken();
     }
     while (reader.hasNextToken()) {
-        auto unstrPropertyStr = reader.getString();
-        auto unstrPropertyName =
-            StringUtils::split(unstrPropertyStr, CopyCSVConfig::UNSTR_PROPERTY_SEPARATOR)[0];
-        unstrPropertyNames->insert(unstrPropertyName);
+        auto adhocPropertyStr = reader.getString();
+        auto splittedAdhocPropertyStr =
+            StringUtils::split(adhocPropertyStr, CopyCSVConfig::UNSTR_PROPERTY_SEPARATOR);
+        auto propertyName = splittedAdhocPropertyStr[0];
+        auto dataType = Types::dataTypeFromString(splittedAdhocPropertyStr[1]);
+        if (adhocProperties->contains(propertyName)) {
+            // TODO(Chang): throw warning
+            assert(adhocProperties->at(propertyName) == dataType);
+        }
+        adhocProperties->insert({propertyName, dataType});
     }
 }
 
-void InMemStructuresCSVCopier::countNumLinesAndUnstrPropertiesPerBlockTask(const string& fName,
+void InMemStructuresCSVCopier::countNumLinesAndAdhocPropertiesPerBlockTask(const string& fName,
     uint64_t blockId, InMemStructuresCSVCopier* copier, uint64_t numTokensToSkip,
-    unordered_set<string>* unstrPropertyNames) {
+    unordered_map<string, DataType>* adhocProperties) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
     CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
     copier->numLinesPerBlock[blockId] = 0ull;
     while (reader.hasNextLine()) {
         copier->numLinesPerBlock[blockId]++;
-        if (unstrPropertyNames != nullptr) {
-            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, unstrPropertyNames);
+        if (adhocProperties != nullptr) {
+            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, adhocProperties);
         }
     }
     copier->logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);

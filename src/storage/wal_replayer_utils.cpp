@@ -27,7 +27,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     Catalog* catalog, table_id_t tableID, string directory) {
     auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    for (auto& property : nodeTableSchema->predefinedProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
         InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
@@ -145,7 +145,7 @@ void WALReplayerUtils::removeListFilesIfExists(string fileName) {
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, string directory,
     std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    for (auto& property : nodeTableSchema->predefinedProperties) {
         columnFileOperation(StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
     }

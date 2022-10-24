@@ -18,20 +18,18 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
 }
 
-void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
-    for (auto& unstrPropertyName : unstructuredPropertyNames) {
-        auto unstrPropertyId = unstructuredProperties.size();
-        unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
-        Property property = Property::constructUnstructuredNodeProperty(
-            unstrPropertyName, unstrPropertyId, tableID);
-        unstructuredProperties.emplace_back(property);
+void NodeTableSchema::addAdhocProperties(vector<PropertyNameDataType>& adhocPropertyNameDataTypes) {
+    for (auto& adhocPropertyNameDataType : adhocPropertyNameDataTypes) {
+        auto adhocPropertyId = adhocProperties.size();
+        adhocPropertiesNameToIdMap[adhocPropertyNameDataType.name] = adhocPropertyId;
+        adhocProperties.emplace_back(Property(std::move(adhocPropertyNameDataType.name),
+            DataType(UNSTRUCTURED), adhocPropertyId, tableID));
     }
 }
 
 vector<Property> NodeTableSchema::getAllNodeProperties() const {
-    auto allProperties = structuredProperties;
-    allProperties.insert(
-        allProperties.end(), unstructuredProperties.begin(), unstructuredProperties.end());
+    auto allProperties = predefinedProperties;
+    allProperties.insert(allProperties.end(), adhocProperties.begin(), adhocProperties.end());
     return allProperties;
 }
 

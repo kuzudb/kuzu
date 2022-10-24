@@ -109,7 +109,7 @@ Alice
 ---- 8
 47
 52
-68.000000
+68
 
 
 
@@ -125,9 +125,9 @@ Alice
 
 
 2008-11-03 13:25:30.000526
+1982-05-04 15:01:01
 1982-05-04 01:02:07
-1982-05-04
-1900-01-01
+1900-01-01 14:22:22.000526
 
 -NAME OrderByUnstrWithFilterTest
 -QUERY MATCH (p:person) WHERE p.gender = 2 RETURN p.unstrNumericProp ORDER BY p.unstrNumericProp desc
@@ -143,12 +143,12 @@ Alice
 -QUERY MATCH (p:person) RETURN p.unstrTimeProp1 ORDER BY p.gender desc, p.unstrTimeProp1 asc
 -PARALLELISM 3
 ---- 8
-1982-05-04
 1982-05-04 01:02:07
+1982-05-04 15:01:01
 
 
 
-1900-01-01
+1900-01-01 14:22:22.000526
 2008-11-03 13:25:30.000526
 
 -NAME OrderByUnstrMultipleColTest2
@@ -157,7 +157,7 @@ Alice
 ---- 8
 45|52
 20|
-20|68.000000
+20|68
 40|
 83|
 35|

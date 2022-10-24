@@ -20,10 +20,9 @@ void InMemNodeCSVCopier::copy() {
     logger->info(
         "Copying node {} with table {}.", nodeTableSchema->tableName, nodeTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, nodeTableSchema->tableName);
-    auto unstructuredPropertyNames =
-        countLinesPerBlockAndParseUnstrPropertyNames(nodeTableSchema->getNumStructuredProperties());
-    catalog.setUnstructuredPropertiesOfNodeTableSchema(
-        unstructuredPropertyNames, nodeTableSchema->tableID);
+    auto adhocPropertyNames =
+        countLinesPerBlockAndParseAdhocProperties(nodeTableSchema->getNumPredifinedProperties());
+    catalog.setAdhocPropertiesOfNodeTableSchema(adhocPropertyNames, nodeTableSchema->tableID);
     numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured
@@ -39,8 +38,8 @@ void InMemNodeCSVCopier::copy() {
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {
     logger->info("Initializing in memory structured columns and unstructured list.");
-    structuredColumns.resize(nodeTableSchema->getNumStructuredProperties());
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    structuredColumns.resize(nodeTableSchema->getNumPredifinedProperties());
+    for (auto& property : nodeTableSchema->predefinedProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
             nodeTableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
         structuredColumns[property.propertyID] =
@@ -53,34 +52,44 @@ void InMemNodeCSVCopier::initializeColumnsAndList() {
     logger->info("Done initializing in memory structured columns and unstructured list.");
 }
 
-static vector<string> mergeUnstrPropertyNamesFromBlocks(
-    vector<unordered_set<string>>& unstructuredPropertyNamesPerBlock) {
-    unordered_set<string> unstructuredPropertyNames;
-    for (auto& unstructuredPropertiesInBlock : unstructuredPropertyNamesPerBlock) {
-        for (auto& propertyName : unstructuredPropertiesInBlock) {
-            unstructuredPropertyNames.insert(propertyName);
+static vector<PropertyNameDataType> mergeUnstrPropertyNamesFromBlocks(
+    vector<unordered_map<string, DataType>> adhocPropertiesPerBlock) {
+    unordered_map<string, DataType> adhocPropertyNameDataTypes;
+    for (auto& adhocProperties : adhocPropertiesPerBlock) {
+        for (auto& [name, dataType] : adhocProperties) {
+            if (adhocPropertyNameDataTypes.contains(name)) {
+                assert(adhocPropertyNameDataTypes.at(name) == dataType);
+            } else {
+                adhocPropertyNameDataTypes.insert({name, dataType});
+            }
         }
     }
     // Ensure the same order in different platforms.
-    vector<string> result{unstructuredPropertyNames.begin(), unstructuredPropertyNames.end()};
-    sort(result.begin(), result.end());
+    vector<PropertyNameDataType> result;
+    for (auto& [name, dataType] : adhocPropertyNameDataTypes) {
+        result.push_back(PropertyNameDataType{name, dataType});
+    }
+    sort(result.begin(), result.end(),
+        [](const PropertyNameDataType& left, const PropertyNameDataType& right) {
+            return left.name < right.name;
+        });
     return result;
 }
 
-vector<string> InMemNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
-    uint64_t numStructuredProperties) {
-    logger->info("Counting number of lines and read unstructured property names in each block.");
-    vector<unordered_set<string>> unstructuredPropertyNamesPerBlock{numBlocks};
+vector<PropertyNameDataType> InMemNodeCSVCopier::countLinesPerBlockAndParseAdhocProperties(
+    uint64_t numPredefinedProperties) {
+    logger->info("Counting number of lines and parse adhoc properties names in each block.");
+    vector<unordered_map<string, DataType>> adhocPropertiesPerBlock{numBlocks};
     numLinesPerBlock.resize(numBlocks);
     for (uint64_t blockId = 0; blockId < numBlocks; blockId++) {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            countNumLinesAndUnstrPropertiesPerBlockTask, csvDescription.filePath, blockId, this,
-            numStructuredProperties, &unstructuredPropertyNamesPerBlock[blockId]));
+            countNumLinesAndAdhocPropertiesPerBlockTask, csvDescription.filePath, blockId, this,
+            numPredefinedProperties, &adhocPropertiesPerBlock[blockId]));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->info(
         "Done counting number of lines and read unstructured property names  in each block.");
-    return mergeUnstrPropertyNamesFromBlocks(unstructuredPropertyNamesPerBlock);
+    return mergeUnstrPropertyNamesFromBlocks(adhocPropertiesPerBlock);
 }
 
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
@@ -153,14 +162,14 @@ void InMemNodeCSVCopier::skipFirstRowIfNecessary(
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
     uint64_t blockId, uint64_t startOffset, InMemHashIndex* IDIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
-    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
+    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumPredifinedProperties());
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
         putPropsOfLineIntoColumns(copier->structuredColumns,
-            copier->nodeTableSchema->structuredProperties, overflowCursors, reader,
+            copier->nodeTableSchema->predefinedProperties, overflowCursors, reader,
             startOffset + bufferOffset);
         calcLengthOfUnstrPropertyLists(
             reader, startOffset + bufferOffset, copier->unstrPropertyLists.get());
@@ -224,9 +233,9 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
     PageByteCursor inMemOverflowFileCursor;
     auto unstrPropertiesNameToIdMap = copier->catalog.getWriteVersion()
                                           ->getNodeTableSchema(copier->nodeTableSchema->tableID)
-                                          ->unstrPropertiesNameToIdMap;
+                                          ->adhocPropertiesNameToIdMap;
     while (reader.hasNextLine()) {
-        for (auto i = 0u; i < copier->nodeTableSchema->getNumStructuredProperties(); ++i) {
+        for (auto i = 0u; i < copier->nodeTableSchema->getNumPredifinedProperties(); ++i) {
             reader.hasNextToken();
         }
         putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset, inMemOverflowFileCursor,

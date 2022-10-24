@@ -130,8 +130,8 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
+    offset = SerDeser::serializeVector<Property>(value.predefinedProperties, fileInfo, offset);
+    offset = SerDeser::serializeVector<Property>(value.adhocProperties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
@@ -142,8 +142,8 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
+    offset = SerDeser::deserializeVector<Property>(value.predefinedProperties, fileInfo, offset);
+    offset = SerDeser::deserializeVector<Property>(value.adhocProperties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -206,23 +206,23 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
 }
 
 table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-    vector<PropertyNameDataType> structuredPropertyDefinitions) {
+    vector<PropertyNameDataType> predefinedPropertyNameDataTypes) {
     table_id_t tableID = getNumNodeTables();
-    vector<Property> structuredProperties;
-    for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
-        auto& propertyDefinition = structuredPropertyDefinitions[i];
-        structuredProperties.push_back(
-            Property::constructStructuredNodeProperty(propertyDefinition, i, tableID));
+    vector<Property> predefinedProperties;
+    for (auto i = 0u; i < predefinedPropertyNameDataTypes.size(); ++i) {
+        auto& propertyNameDataType = predefinedPropertyNameDataTypes[i];
+        predefinedProperties.push_back(
+            Property(propertyNameDataType.name, propertyNameDataType.dataType, i, tableID));
     }
     auto nodeTableSchema = make_unique<NodeTableSchema>(
-        move(tableName), tableID, primaryKeyIdx, move(structuredProperties));
+        move(tableName), tableID, primaryKeyIdx, move(predefinedProperties));
     nodeTableNameToIDMap[nodeTableSchema->tableName] = tableID;
     nodeTableSchemas[tableID] = move(nodeTableSchema);
     return tableID;
 }
 
 table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    vector<PropertyNameDataType> propertyNameDataTypes, SrcDstTableIDs srcDstTableIDs) {
     table_id_t tableID = relTableSchemas.size();
     for (auto& srcTableID : srcDstTableIDs.srcTableIDs) {
         nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
@@ -230,29 +230,27 @@ table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity r
     for (auto& dstTableID : srcDstTableIDs.dstTableIDs) {
         nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     }
-    vector<Property> structuredProperties;
+    vector<Property> properties;
     auto propertyID = 0;
-    for (auto& propertyDefinition : structuredPropertyDefinitions) {
-        structuredProperties.push_back(
-            Property::constructRelProperty(propertyDefinition, propertyID++, tableID));
+    propertyNameDataTypes.push_back(PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64));
+    for (auto& propertyNameDataType : propertyNameDataTypes) {
+        properties.push_back(Property(
+            propertyNameDataType.name, propertyNameDataType.dataType, propertyID++, tableID));
     }
-    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
-    structuredProperties.push_back(
-        Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
-    auto relTableSchema = make_unique<RelTableSchema>(move(tableName), tableID, relMultiplicity,
-        move(structuredProperties), move(srcDstTableIDs));
+    auto relTableSchema = make_unique<RelTableSchema>(
+        move(tableName), tableID, relMultiplicity, move(properties), move(srcDstTableIDs));
     relTableNameToIDMap[relTableSchema->tableName] = tableID;
     relTableSchemas[tableID] = move(relTableSchema);
     return tableID;
 }
 
 bool CatalogContent::containNodeProperty(table_id_t tableID, const string& propertyName) const {
-    for (auto& property : nodeTableSchemas.at(tableID)->structuredProperties) {
+    for (auto& property : nodeTableSchemas.at(tableID)->predefinedProperties) {
         if (propertyName == property.name) {
             return true;
         }
     }
-    return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap.contains(propertyName);
+    return nodeTableSchemas.at(tableID)->adhocPropertiesNameToIdMap.contains(propertyName);
 }
 
 bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
@@ -266,13 +264,13 @@ bool CatalogContent::containRelProperty(table_id_t tableID, const string& proper
 
 const Property& CatalogContent::getNodeProperty(
     table_id_t tableID, const string& propertyName) const {
-    for (auto& property : nodeTableSchemas.at(tableID)->structuredProperties) {
+    for (auto& property : nodeTableSchemas.at(tableID)->predefinedProperties) {
         if (propertyName == property.name) {
             return property;
         }
     }
     auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(tableID).at(propertyName);
-    return getUnstructuredNodeProperties(tableID)[unstrPropertyIdx];
+    return getAdhocNodeProperties(tableID)[unstrPropertyIdx];
 }
 
 const Property& CatalogContent::getRelProperty(
@@ -287,7 +285,7 @@ const Property& CatalogContent::getRelProperty(
 
 const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
     auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryKeyPropertyIdx;
-    return nodeTableSchemas.at(tableID)->structuredProperties[primaryKeyId];
+    return nodeTableSchemas.at(tableID)->predefinedProperties[primaryKeyId];
 }
 
 vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
@@ -356,10 +354,10 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     // construct the tableNameToIdMap and table's unstrPropertiesNameToIdMap
     for (auto& nodeTableSchema : nodeTableSchemas) {
         nodeTableNameToIDMap[nodeTableSchema.second->tableName] = nodeTableSchema.second->tableID;
-        for (auto i = 0u; i < nodeTableSchema.second->unstructuredProperties.size(); i++) {
-            auto& property = nodeTableSchema.second->unstructuredProperties[i];
+        for (auto i = 0u; i < nodeTableSchema.second->adhocProperties.size(); i++) {
+            auto& property = nodeTableSchema.second->adhocProperties[i];
             if (property.dataType.typeID == UNSTRUCTURED) {
-                nodeTableSchema.second->unstrPropertiesNameToIdMap[property.name] =
+                nodeTableSchema.second->adhocPropertiesNameToIdMap[property.name] =
                     property.propertyID;
             }
         }
@@ -411,19 +409,19 @@ ExpressionType Catalog::getFunctionType(const string& name) const {
 }
 
 table_id_t Catalog::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-    vector<PropertyNameDataType> structuredPropertyDefinitions) {
+    vector<PropertyNameDataType> predefinedPropertyNameDataTypes) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
-        move(tableName), primaryKeyIdx, move(structuredPropertyDefinitions));
+        std::move(tableName), primaryKeyIdx, std::move(predefinedPropertyNameDataTypes));
     wal->logNodeTableRecord(tableID);
     return tableID;
 }
 
 table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    vector<PropertyNameDataType> propertyNameDataTypes, SrcDstTableIDs srcDstTableIDs) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addRelTableSchema(move(tableName), relMultiplicity,
-        move(structuredPropertyDefinitions), move(srcDstTableIDs));
+    auto tableID = catalogContentForWriteTrx->addRelTableSchema(std::move(tableName),
+        relMultiplicity, std::move(propertyNameDataTypes), std::move(srcDstTableIDs));
     wal->logRelTableRecord(tableID);
     return tableID;
 }

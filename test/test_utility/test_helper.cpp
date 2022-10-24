@@ -150,7 +150,7 @@ void BaseGraphTest::validateListFilesExistence(
 
 void BaseGraphTest::validateNodeColumnAndListFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    for (auto& property : nodeTableSchema->predefinedProperties) {
         validateColumnFilesExistence(
             StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath,
                 nodeTableSchema->tableID, property.propertyID, dbFileType),

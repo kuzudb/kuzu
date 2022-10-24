@@ -205,25 +205,18 @@ private:
     }
 
     void setProperties() {
-        PropertyNameDataType agePropertyDefinition(AGE_PROPERTY_KEY_STR, INT64);
-        ageProperty = Property::constructStructuredNodeProperty(
-            agePropertyDefinition, AGE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
-        PropertyNameDataType namePropertyDefinition(NAME_PROPERTY_KEY_STR, STRING);
-        nameProperty = Property::constructStructuredNodeProperty(
-            namePropertyDefinition, NAME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
-        PropertyNameDataType birthDatePropertyDefinition(BIRTHDATE_PROPERTY_KEY_STR, DATE);
-        birthDateProperty = Property::constructStructuredNodeProperty(
-            birthDatePropertyDefinition, BIRTHDATE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
-        PropertyNameDataType registerTimePropertyDefinition(
-            REGISTERTIME_PROPERTY_KEY_STR, TIMESTAMP);
-        registerTimeProperty = Property::constructStructuredNodeProperty(
-            registerTimePropertyDefinition, REGISTERTIME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
-        PropertyNameDataType descriptionPropertyDefinition(DESCRIPTION_PROPERTY_KEY_STR, STRING);
-        descriptionProperty = Property::constructRelProperty(
-            descriptionPropertyDefinition, DESCRIPTION_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
-        PropertyNameDataType knowsDatePropertyDefinition(KNOWSDATE_PROPERTY_KEY_STR, DATE);
-        knowsDateProperty = Property::constructRelProperty(
-            knowsDatePropertyDefinition, KNOWSDATE_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
+        ageProperty =
+            Property(AGE_PROPERTY_KEY_STR, DataType(INT64), AGE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
+        nameProperty = Property(
+            NAME_PROPERTY_KEY_STR, DataType(STRING), NAME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
+        birthDateProperty = Property(
+            BIRTHDATE_PROPERTY_KEY_STR, DataType(DATE), BIRTHDATE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
+        registerTimeProperty = Property(REGISTERTIME_PROPERTY_KEY_STR, DataType(TIMESTAMP),
+            REGISTERTIME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
+        descriptionProperty = Property(DESCRIPTION_PROPERTY_KEY_STR, DataType(STRING),
+            DESCRIPTION_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
+        knowsDateProperty = Property(
+            KNOWSDATE_PROPERTY_KEY_STR, DataType(DATE), KNOWSDATE_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
     }
 
     vector<unordered_set<table_id_t>> srcNodeIDToRelIDs, dstNodeIDToRelIDs;

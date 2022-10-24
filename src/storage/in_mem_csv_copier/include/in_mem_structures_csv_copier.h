@@ -29,13 +29,14 @@ protected:
     // Concurrent tasks
     static void countNumLinesPerBlockTask(
         const string& fName, uint64_t blockId, InMemStructuresCSVCopier* copier) {
-        countNumLinesAndUnstrPropertiesPerBlockTask(fName, blockId, copier, UINT64_MAX, nullptr);
+        countNumLinesAndAdhocPropertiesPerBlockTask(fName, blockId, copier, UINT64_MAX, nullptr);
     }
-    // We assume unstructured properties are written after structured properties, so numTokensToSkip
-    // indicates the start offset of unstructured properties.
-    static void countNumLinesAndUnstrPropertiesPerBlockTask(const string& fName, uint64_t blockId,
+    // We assume adhoc properties are written after predefined properties, so numTokensToSkip
+    // indicates the start offset of adhoc properties.
+    static void countNumLinesAndAdhocPropertiesPerBlockTask(const string& fName, uint64_t blockId,
         InMemStructuresCSVCopier* copier, uint64_t numTokensToSkip,
-        unordered_set<string>* unstrPropertyNames);
+        unordered_map<string, DataType>* adhocProperties);
+
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.

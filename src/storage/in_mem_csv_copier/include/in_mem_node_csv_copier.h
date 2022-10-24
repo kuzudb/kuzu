@@ -22,7 +22,8 @@ public:
 
 private:
     void initializeColumnsAndList();
-    vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
+    vector<PropertyNameDataType> countLinesPerBlockAndParseAdhocProperties(
+        uint64_t numPredefinedProperties);
     void populateColumnsAndCountUnstrPropertyListSizes();
     void calcUnstrListsHeadersAndMetadata();
     void populateUnstrPropertyLists();

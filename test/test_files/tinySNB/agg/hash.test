@@ -15,7 +15,7 @@
 ---- 3
 1900-01-01||1
 1950-01-01|99|2
-|68.000000|5
+|68|5
 
 -NAME GroupByKeyWithNullString
 -QUERY MATCH (a:person) return a.label1,a.label2, count(*)
@@ -64,7 +64,7 @@ Alice|1
 ---- 4
 47|60
 52|
-68.000000|
+68|
 |
 
 -NAME TwoHopAggTest

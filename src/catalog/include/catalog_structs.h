@@ -22,10 +22,8 @@ struct SrcDstTableIDs {
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
 
-// A PropertyNameDataType consists of its name, id, and dataType. If the property is unstructured,
-// then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported by the system.
+// A PropertyNameDataType consists of its name, id, and dataType.
 struct PropertyNameDataType {
-
 public:
     // This constructor is needed for ser/deser functions
     PropertyNameDataType(){};
@@ -44,30 +42,13 @@ public:
 };
 
 struct Property : PropertyNameDataType {
-
-private:
-    Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
-        : PropertyNameDataType{move(name), move(dataType)}, propertyID{propertyID}, tableID{
-                                                                                        tableID} {}
-
 public:
     // This constructor is needed for ser/deser functions
     Property() {}
 
-    static Property constructUnstructuredNodeProperty(
-        string name, uint32_t propertyID, table_id_t tableID) {
-        return Property(move(name), DataType(UNSTRUCTURED), propertyID, tableID);
-    }
-
-    static Property constructStructuredNodeProperty(
-        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
-    }
-
-    static inline Property constructRelProperty(
-        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
-    }
+    Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
+        : PropertyNameDataType{move(name), move(dataType)}, propertyID{propertyID}, tableID{
+                                                                                        tableID} {}
 
 public:
     uint32_t propertyID;
@@ -88,18 +69,18 @@ public:
 struct NodeTableSchema : TableSchema {
     NodeTableSchema() : NodeTableSchema{"", UINT64_MAX, UINT64_MAX, vector<Property>{}} {}
     NodeTableSchema(string tableName, table_id_t tableID, uint64_t primaryPropertyId,
-        vector<Property> structuredProperties)
-        : TableSchema{move(tableName), tableID, true /* isNodeTable */},
-          primaryKeyPropertyIdx{primaryPropertyId}, structuredProperties{
-                                                        move(structuredProperties)} {}
+        vector<Property> predefinedProperties)
+        : TableSchema{std::move(tableName), tableID, true /* isNodeTable */},
+          primaryKeyPropertyIdx{primaryPropertyId}, predefinedProperties{
+                                                        std::move(predefinedProperties)} {}
 
-    inline uint64_t getNumStructuredProperties() const { return structuredProperties.size(); }
-    void addUnstructuredProperties(vector<string>& unstructuredPropertyNames);
+    inline uint64_t getNumPredifinedProperties() const { return predefinedProperties.size(); }
+    void addAdhocProperties(vector<PropertyNameDataType>& adhocPropertyNameDataTypes);
 
     inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
-    inline Property getPrimaryKey() const { return structuredProperties[primaryKeyPropertyIdx]; }
+    inline Property getPrimaryKey() const { return predefinedProperties[primaryKeyPropertyIdx]; }
 
     vector<Property> getAllNodeProperties() const;
 
@@ -108,12 +89,12 @@ struct NodeTableSchema : TableSchema {
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
     uint64_t primaryKeyPropertyIdx;
-    vector<Property> structuredProperties, unstructuredProperties;
+    vector<Property> predefinedProperties, adhocProperties;
     unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
     unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel
-    // This map is maintained as a cache for unstructured properties. It is not serialized to the
+    // This map is maintained as a cache for adhoc properties. It is not serialized to the
     // catalog file, but is re-constructed when reading from the catalog file.
-    unordered_map<string, uint64_t> unstrPropertiesNameToIdMap;
+    unordered_map<string, uint64_t> adhocPropertiesNameToIdMap;
 };
 
 struct RelTableSchema : TableSchema {

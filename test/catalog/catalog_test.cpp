@@ -33,11 +33,12 @@ public:
         personProperties.emplace_back("usedNames", DataType(LIST, make_unique<DataType>(STRING)));
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
-        vector<string> unstrPropertyNames{"unstrIntProp"};
+        vector<PropertyNameDataType> unstrPropertyNames{
+            PropertyNameDataType("unstrIntProp", INT64)};
         auto tableID = catalog->getReadOnlyVersion()->addNodeTableSchema(
             "person", 0 /* primaryKeyIdx */, move(personProperties));
         auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
-        nodeTableSchema->addUnstructuredProperties(unstrPropertyNames);
+        nodeTableSchema->addAdhocProperties(unstrPropertyNames);
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_TABLE", STRING);

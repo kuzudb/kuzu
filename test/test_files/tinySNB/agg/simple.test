@@ -16,7 +16,7 @@
 -NAME SimpleSumTest
 -QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight), SUM(a.unstrNumericProp)
 ---- 1
-298|38.900000|167.000000
+298|38.900000|167
 
 -NAME SimpleSumTest2
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)

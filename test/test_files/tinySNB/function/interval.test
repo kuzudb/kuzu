@@ -67,14 +67,14 @@
 -NAME StructuredIntervalAddUnstructuredTime
 -QUERY MATCH (a:person) RETURN a.lastJobDuration + a.unstrTimeProp1
 ---- 8
-1903-01-03
-1982-05-04
+
+
+
+
+1903-01-04 03:24:22.000526
+1982-05-04 15:19:01.024
 1985-05-06 14:04:07
 2008-11-05 13:49:41.000526
-
-
-
-
 
 -NAME UnstructuredIntervalAdd
 -QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
