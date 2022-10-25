@@ -17,7 +17,7 @@ unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames()
 // expressions from predicates and return clause. Plus nodeID expressions from query graph.
 expression_vector ExistentialSubqueryExpression::getChildren() const {
     expression_vector result;
-    for (auto& nodeIDExpression : queryGraph->getNodeIDExpressions()) {
+    for (auto& nodeIDExpression : queryGraphCollection->getNodeIDExpressions()) {
         result.push_back(nodeIDExpression);
     }
     if (hasWhereExpression()) {

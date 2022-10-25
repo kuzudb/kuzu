@@ -31,9 +31,7 @@ void SinkOperatorUtil::mergeSchema(
     }
 }
 
-void SinkOperatorUtil::reComputeSchema(const Schema& inputSchema, Schema& result) {
-    assert(!inputSchema.getExpressionsInScope().empty());
-    result.clear();
+void SinkOperatorUtil::mergeSchema(const Schema& inputSchema, Schema& result) {
     auto flatPayloads = getFlatPayloads(inputSchema);
     if (!hasUnFlatPayload(inputSchema)) {
         appendPayloadsToNewGroup(result, flatPayloads);
@@ -51,6 +49,12 @@ void SinkOperatorUtil::reComputeSchema(const Schema& inputSchema, Schema& result
             }
         }
     }
+}
+
+void SinkOperatorUtil::recomputeSchema(const Schema& inputSchema, Schema& result) {
+    assert(!inputSchema.getExpressionsInScope().empty());
+    result.clear();
+    mergeSchema(inputSchema, result);
 }
 
 unordered_set<uint32_t> SinkOperatorUtil::getGroupsPosIgnoringKeyGroups(

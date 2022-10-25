@@ -71,6 +71,7 @@ private:
         const SubqueryGraph& prevNbr) const;
 };
 
+// QueryGraph represents a connected pattern specified in MATCH clause.
 class QueryGraph {
 public:
     QueryGraph() = default;
@@ -122,7 +123,9 @@ public:
     }
     void addQueryRel(shared_ptr<RelExpression> queryRel);
 
-    unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
+    bool canProjectExpression(Expression* expression) const;
+
+    bool isConnected(const QueryGraph& other);
 
     void merge(const QueryGraph& other);
 
@@ -135,6 +138,24 @@ private:
     unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<shared_ptr<NodeExpression>> queryNodes;
     vector<shared_ptr<RelExpression>> queryRels;
+};
+
+// QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH
+// clause.
+class QueryGraphCollection {
+public:
+    QueryGraphCollection() = default;
+
+    void addAndMergeQueryGraphIfConnected(unique_ptr<QueryGraph> queryGraphToAdd);
+    inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
+    inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
+
+    expression_vector getNodeIDExpressions() const;
+
+    unique_ptr<QueryGraphCollection> copy() const;
+
+private:
+    vector<unique_ptr<QueryGraph>> queryGraphs;
 };
 
 class PropertyKeyValCollection {

@@ -155,18 +155,25 @@ void Enumerator::planReadingClause(
 void Enumerator::planMatchClause(
     BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
+    auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
+    auto predicates = boundMatchClause->hasWhereExpression() ?
+                          boundMatchClause->getWhereExpression()->splitOnAND() :
+                          expression_vector{};
+    // TODO(Xiyang): when we plan a set of LogicalPlans with a (OPTIONAL)MATCH we shouldn't only
+    // take the best plan from (OPTIONAL)MATCH instead we should take all plans and do cartesian
+    // product with the set of LogicalPlans.
     if (boundMatchClause->getIsOptional()) {
-        auto& queryGraph = *boundMatchClause->getQueryGraph();
-        auto queryGraphPredicate = boundMatchClause->getWhereExpression();
         for (auto& plan : plans) {
-            planOptionalMatch(queryGraph, queryGraphPredicate, *plan);
+            planOptionalMatch(*queryGraphCollection, predicates, *plan);
         }
-        // Although optional match is planned as a subquery, we still need to merge query
-        // graph as we merge sub query schema into outer query.
-        joinOrderEnumerator.context->mergeQueryGraph(queryGraph);
     } else {
-        plans = joinOrderEnumerator.enumerateJoinOrder(*boundMatchClause->getQueryGraph(),
-            boundMatchClause->getWhereExpression(), move(plans));
+        if (plans.size() == 1 && plans[0]->isEmpty()) {
+            plans = joinOrderEnumerator.enumerate(*queryGraphCollection, predicates);
+        } else {
+            for (auto& plan : plans) {
+                planRegularMatch(*queryGraphCollection, predicates, *plan);
+            }
+        }
     }
 }
 
@@ -183,13 +190,15 @@ void Enumerator::planUnwindClause(
     }
 }
 
-static expression_vector getCorrelatedExpressions(const QueryGraph& queryGraph,
-    shared_ptr<Expression>& queryGraphPredicate, Schema* outerSchema) {
+static expression_vector getCorrelatedExpressions(
+    const QueryGraphCollection& collection, expression_vector& predicates, Schema* outerSchema) {
     expression_vector result;
-    if (queryGraphPredicate) {
-        result = outerSchema->getSubExpressionsInScope(queryGraphPredicate);
+    for (auto& predicate : predicates) {
+        for (auto& expression : outerSchema->getSubExpressionsInScope(predicate)) {
+            result.push_back(expression);
+        }
     }
-    for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
+    for (auto& nodeIDExpression : collection.getNodeIDExpressions()) {
         if (outerSchema->isExpressionInScope(*nodeIDExpression)) {
             result.push_back(nodeIDExpression);
         }
@@ -208,10 +217,13 @@ static vector<shared_ptr<NodeExpression>> getJoinNodes(expression_vector& expres
     return joinNodes;
 }
 
-void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
-    shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
+void Enumerator::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+    expression_vector& predicates, LogicalPlan& outerPlan) {
     auto correlatedExpressions =
-        getCorrelatedExpressions(queryGraph, queryGraphPredicate, outerPlan.getSchema());
+        getCorrelatedExpressions(queryGraphCollection, predicates, outerPlan.getSchema());
+    if (correlatedExpressions.empty()) {
+        throw NotImplementedException("Optional match is disconnected with previous MATCH clause.");
+    }
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
         auto joinNodes = getJoinNodes(correlatedExpressions);
         // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
@@ -219,8 +231,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         // scan only scans node ID and does not scan from storage (i.e. no property scan).
         auto prevContext = joinOrderEnumerator.enterSubquery(
             &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
-        auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
-            queryGraph, queryGraphPredicate, getInitialEmptyPlans());
+        auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
         for (auto& joinNode : joinNodes) {
@@ -229,20 +240,41 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         JoinOrderEnumerator::planHashJoin(
             joinNodes, JoinType::LEFT, false /* isProbeAcc */, outerPlan, *bestInnerPlan);
     } else {
-        // Note: the planning code for correlated optional match is ready to use. Once hash join
-        // support any data type uncomment the code below.
         throw NotImplementedException("Correlated optional match is not supported.");
-        //        appendAccumulate(outerPlan);
-        //        auto prevContext = joinOrderEnumerator.enterSubquery(&outerPlan,
-        //        correlatedExpressions); auto innerPlans = joinOrderEnumerator.enumerateJoinOrder(
-        //            queryGraph, queryGraphPredicate, getInitialEmptyPlans());
-        //        auto bestInnerPlan = getBestPlan(std::move(innerPlans));
-        //        joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        //        for (auto& joinNode : joinNodes) {
-        //            appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
-        //        }
-        //        JoinOrderEnumerator::planHashJoin(
-        //            joinNodes, JoinType::LEFT, true /* isProbeAcc */, outerPlan, *bestInnerPlan);
+    }
+}
+
+void Enumerator::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
+    expression_vector& predicates, LogicalPlan& prevPlan) {
+    auto correlatedExpressions =
+        getCorrelatedExpressions(queryGraphCollection, predicates, prevPlan.getSchema());
+    auto joinNodes = getJoinNodes(correlatedExpressions);
+    expression_vector predicatesToPushDown, predicatesToPullUp;
+    // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
+    // "b.age > s" should be pulled up after both MATCH clauses are joined.
+    for (auto& predicate : predicates) {
+        if (prevPlan.getSchema()->getSubExpressionsInScope(predicate).empty()) {
+            predicatesToPushDown.push_back(predicate);
+        } else {
+            predicatesToPullUp.push_back(predicate);
+        }
+    }
+    // Multi-part query is actually CTE and CTE can be considered as a subquery but does not scan
+    // from outer (i.e. can always be un-nest). So we plan multi-part query in the same way as
+    // planning an un-nest subquery.
+    auto prevContext = joinOrderEnumerator.enterSubquery(
+        &prevPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
+    auto plans = joinOrderEnumerator.enumerate(queryGraphCollection, predicatesToPushDown);
+    joinOrderEnumerator.exitSubquery(std::move(prevContext));
+    auto bestPlan = getBestPlan(std::move(plans));
+    if (joinNodes.empty()) {
+        JoinOrderEnumerator::appendCrossProduct(prevPlan, *bestPlan);
+    } else {
+        JoinOrderEnumerator::planHashJoin(
+            joinNodes, JoinType::INNER, false /* isProbeAcc */, prevPlan, *bestPlan);
+    }
+    for (auto& predicate : predicatesToPullUp) {
+        appendFilter(predicate, prevPlan);
     }
 }
 
@@ -250,13 +282,19 @@ void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalP
     assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
     auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
+    if (correlatedExpressions.empty()) {
+        throw NotImplementedException("Subquery is disconnected with outer query.");
+    }
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
         auto joinNodes = getJoinNodes(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(
             &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
-        auto bestInnerPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
-            *subquery->getQueryGraph(), subquery->getWhereExpression(), getInitialEmptyPlans()));
+        auto predicates = subquery->hasWhereExpression() ?
+                              subquery->getWhereExpression()->splitOnAND() :
+                              expression_vector{};
+        auto bestInnerPlan = getBestPlan(
+            joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
         // TODO(Xiyang): add asp.
         JoinOrderEnumerator::appendMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
@@ -277,7 +315,7 @@ void Enumerator::planSubqueryIfNecessary(
 void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
-    SinkOperatorUtil::reComputeSchema(*schemaBeforeSink, *schema);
+    SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
     vector<uint64_t> flatOutputGroupPositions;
     for (auto i = 0u; i < schema->getNumGroups(); ++i) {
         if (schema->getGroup(i)->getIsFlat()) {
@@ -448,7 +486,7 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     }
     // we compute the schema based on first child
     auto plan = make_unique<LogicalPlan>();
-    SinkOperatorUtil::reComputeSchema(*firstChildSchema, *plan->getSchema());
+    SinkOperatorUtil::recomputeSchema(*firstChildSchema, *plan->getSchema());
     vector<unique_ptr<Schema>> schemaBeforeUnion;
     vector<shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {

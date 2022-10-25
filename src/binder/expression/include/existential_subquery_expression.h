@@ -8,12 +8,15 @@ namespace graphflow {
 namespace binder {
 
 class ExistentialSubqueryExpression : public Expression {
-
 public:
-    ExistentialSubqueryExpression(unique_ptr<QueryGraph> queryGraph, const string& name)
-        : Expression{EXISTENTIAL_SUBQUERY, BOOL, name}, queryGraph{std::move(queryGraph)} {}
+    ExistentialSubqueryExpression(
+        unique_ptr<QueryGraphCollection> queryGraphCollection, const string& name)
+        : Expression{EXISTENTIAL_SUBQUERY, BOOL, name}, queryGraphCollection{
+                                                            std::move(queryGraphCollection)} {}
 
-    inline QueryGraph* getQueryGraph() const { return queryGraph.get(); }
+    inline QueryGraphCollection* getQueryGraphCollection() const {
+        return queryGraphCollection.get();
+    }
 
     inline void setWhereExpression(shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
@@ -26,7 +29,7 @@ public:
     expression_vector getChildren() const override;
 
 private:
-    unique_ptr<QueryGraph> queryGraph;
+    unique_ptr<QueryGraphCollection> queryGraphCollection;
     shared_ptr<Expression> whereExpression;
 };
 

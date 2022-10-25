@@ -32,18 +32,24 @@ public:
           relsStatistics{relsStatistics},
           enumerator{enumerator}, context{make_unique<JoinOrderEnumeratorContext>()} {};
 
-    vector<unique_ptr<LogicalPlan>> enumerateJoinOrder(const QueryGraph& queryGraph,
-        const shared_ptr<Expression>& queryGraphPredicate,
-        vector<unique_ptr<LogicalPlan>> prevPlans);
+    vector<unique_ptr<LogicalPlan>> enumerate(
+        const QueryGraphCollection& queryGraphCollection, expression_vector& predicates);
 
     inline void resetState() { context->resetState(); }
 
 private:
+    vector<unique_ptr<LogicalPlan>> planCrossProduct(
+        vector<unique_ptr<LogicalPlan>> leftPlans, vector<unique_ptr<LogicalPlan>> rightPlans);
+
+    vector<unique_ptr<LogicalPlan>> enumerate(
+        QueryGraph* queryGraph, expression_vector& predicates);
+
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
         expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     void planOuterExpressionsScan(expression_vector& expressions);
+
     inline void planTableScan() {
         planNodeScan();
         planRelScan();
@@ -91,6 +97,7 @@ private:
     void appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
+
     static void planHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
         bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
@@ -100,6 +107,7 @@ private:
     static void appendIntersect(const shared_ptr<NodeExpression>& intersectNode,
         vector<shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
         vector<unique_ptr<LogicalPlan>>& buildPlans);
+    static void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(

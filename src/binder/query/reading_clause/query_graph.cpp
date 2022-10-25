@@ -160,23 +160,6 @@ void QueryGraph::addQueryRel(shared_ptr<RelExpression> queryRel) {
     queryRels.push_back(queryRel);
 }
 
-unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeName) const {
-    auto nbrs = unordered_set<string>();
-    for (auto& rel : queryRels) {
-        if (rel->getSrcNodeName() == queryNodeName) {
-            if (end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(rel->getDstNodeName())) {
-                nbrs.insert(rel->getDstNodeName());
-            }
-        }
-        if (rel->getDstNodeName() == queryNodeName) {
-            if (end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(rel->getSrcNodeName())) {
-                nbrs.insert(rel->getSrcNodeName());
-            }
-        }
-    }
-    return nbrs;
-}
-
 void QueryGraph::merge(const QueryGraph& other) {
     for (auto& otherNode : other.queryNodes) {
         addQueryNode(otherNode);
@@ -186,10 +169,60 @@ void QueryGraph::merge(const QueryGraph& other) {
     }
 }
 
+bool QueryGraph::canProjectExpression(Expression* expression) const {
+    for (auto& variable : expression->getDependentVariableNames()) {
+        if (!containsQueryNode(variable) && !containsQueryRel(variable)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool QueryGraph::isConnected(const QueryGraph& other) {
+    for (auto& queryNode : queryNodes) {
+        if (other.containsQueryNode(queryNode->getUniqueName())) {
+            return true;
+        }
+    }
+    return false;
+}
+
 vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
     vector<shared_ptr<Expression>> result;
     for (auto& queryNode : queryNodes) {
         result.push_back(queryNode->getNodeIDPropertyExpression());
+    }
+    return result;
+}
+
+void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
+    unique_ptr<QueryGraph> queryGraphToAdd) {
+    bool isMerged = false;
+    for (auto& queryGraph : queryGraphs) {
+        if (queryGraph->isConnected(*queryGraphToAdd)) {
+            queryGraph->merge(*queryGraphToAdd);
+            isMerged = true;
+        }
+    }
+    if (!isMerged) {
+        queryGraphs.push_back(std::move(queryGraphToAdd));
+    }
+}
+
+expression_vector QueryGraphCollection::getNodeIDExpressions() const {
+    expression_vector result;
+    for (auto& queryGraph : queryGraphs) {
+        for (auto& nodeID : queryGraph->getNodeIDExpressions()) {
+            result.push_back(nodeID);
+        }
+    }
+    return result;
+}
+
+unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
+    auto result = make_unique<QueryGraphCollection>();
+    for (auto& queryGraph : queryGraphs) {
+        result->queryGraphs.push_back(queryGraph->copy());
     }
     return result;
 }

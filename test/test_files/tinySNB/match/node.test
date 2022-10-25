@@ -7,3 +7,9 @@
 -QUERY MATCH (a:organisation) RETURN COUNT(*)
 ---- 1
 3
+
+-NAME nodeCrossProductTest
+-QUERY MATCH (a:person), (b:person), (c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+512

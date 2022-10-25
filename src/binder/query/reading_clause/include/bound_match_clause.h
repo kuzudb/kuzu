@@ -14,18 +14,21 @@ namespace binder {
 class BoundMatchClause : public BoundReadingClause {
 
 public:
-    explicit BoundMatchClause(unique_ptr<QueryGraph> queryGraph, bool isOptional)
-        : BoundReadingClause{ClauseType::MATCH}, queryGraph{move(queryGraph)}, isOptional{
-                                                                                   isOptional} {}
+    explicit BoundMatchClause(
+        unique_ptr<QueryGraphCollection> queryGraphCollection, bool isOptional)
+        : BoundReadingClause{ClauseType::MATCH},
+          queryGraphCollection{std::move(queryGraphCollection)}, isOptional{isOptional} {}
 
     BoundMatchClause(const BoundMatchClause& other)
-        : BoundReadingClause(ClauseType::MATCH), queryGraph{make_unique<QueryGraph>(
-                                                     *other.queryGraph)},
+        : BoundReadingClause(ClauseType::MATCH),
+          queryGraphCollection{other.queryGraphCollection->copy()},
           whereExpression(other.whereExpression), isOptional{other.isOptional} {}
 
     ~BoundMatchClause() = default;
 
-    inline QueryGraph* getQueryGraph() const { return queryGraph.get(); }
+    inline QueryGraphCollection* getQueryGraphCollection() const {
+        return queryGraphCollection.get();
+    }
 
     inline void setWhereExpression(shared_ptr<Expression> expression) {
         whereExpression = move(expression);
@@ -52,7 +55,7 @@ public:
     }
 
 private:
-    unique_ptr<QueryGraph> queryGraph;
+    unique_ptr<QueryGraphCollection> queryGraphCollection;
     shared_ptr<Expression> whereExpression;
     bool isOptional;
 };

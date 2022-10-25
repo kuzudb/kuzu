@@ -293,7 +293,6 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();
     auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpression.getPatternElements());
-    Binder::validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
     auto boundSubqueryExpression =
         make_shared<ExistentialSubqueryExpression>(std::move(queryGraph), std::move(name));

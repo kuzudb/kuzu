@@ -49,7 +49,6 @@ public:
     expression_vector getPropertiesToRead() const;
 
 private:
-    // read
     vector<unique_ptr<BoundReadingClause>> readingClauses;
 
     vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
