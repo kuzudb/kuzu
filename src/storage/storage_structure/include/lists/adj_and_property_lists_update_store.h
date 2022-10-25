@@ -42,7 +42,7 @@ public:
     inline vector<map<table_id_t, InsertedRelsPerChunk>>& getInsertedRelsPerTableIDPerDirection() {
         return insertedRelsPerTableIDPerDirection;
     }
-    void readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
+    void readInsertionsToList(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
         InMemList& inMemList, uint64_t numElementsInPersistentStore,
         DiskOverflowFile* diskOverflowFile, DataType dataType,
         NodeIDCompressionScheme* nodeIDCompressionScheme);

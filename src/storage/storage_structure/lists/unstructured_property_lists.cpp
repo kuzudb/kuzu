@@ -73,7 +73,7 @@ void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit
 void UnstructuredPropertyLists::prepareCommit(ListsUpdateIterator& listsUpdateIterator) {
     // Note: In C++ iterating through maps happens in non-descending order of the keys. This
     // property is critical when using UnstructuredPropertyListsUpdateIterator, which requires
-    // the user to make calls to writeListToListPages in ascending order of nodeOffsets.
+    // the user to make calls to writeInMemListToListPages in ascending order of nodeOffsets.
     for (auto updatedChunkItr = unstructuredListUpdateStore.updatedChunks.begin();
          updatedChunkItr != unstructuredListUpdateStore.updatedChunks.end(); ++updatedChunkItr) {
         for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();

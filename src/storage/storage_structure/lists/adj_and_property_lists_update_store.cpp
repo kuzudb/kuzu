@@ -30,7 +30,8 @@ AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
     initInsertedRelsPerTableIDPerDirection();
 }
 
-void AdjAndPropertyListsUpdateStore::readToListAndUpdateOverflowIfNecessary(ListFileID& listFileID,
+// Note: This function also resets the overflowptr of each string in inMemList if necessary.
+void AdjAndPropertyListsUpdateStore::readInsertionsToList(ListFileID& listFileID,
     vector<uint64_t> tupleIdxes, InMemList& inMemList, uint64_t numElementsInPersistentStore,
     DiskOverflowFile* diskOverflowFile, DataType dataType,
     NodeIDCompressionScheme* nodeIDCompressionScheme) {
