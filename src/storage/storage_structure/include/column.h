@@ -35,6 +35,7 @@ public:
     virtual Literal readValue(node_offset_t offset);
     // Used only for tests.
     bool isNull(node_offset_t nodeOffset);
+    void setNodeOffsetToNull(node_offset_t nodeOffset);
 
 protected:
     void lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
@@ -52,12 +53,6 @@ protected:
     }
     virtual void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
-    // length part of the value that will be written to.
-    // Obtains *and does not release* the lock original page. Pins and updates the WAL version of
-    // the page. Finally updates the page with the new value from vectorToWriteFrom.
-    // Note that caller must ensure to unpin and release the WAL version of the page by calling
-    // StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
     WALPageIdxPosInPageAndFrame beginUpdatingPage(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
 
@@ -70,6 +65,14 @@ private:
         memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
             vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
     }
+    // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
+    // length part of the value that will be written to.
+    // Obtains *and does not release* the lock original page. Pins and updates the WAL version of
+    // the page. Finally updates the page with the new value from vectorToWriteFrom.
+    // Note that caller must ensure to unpin and release the WAL version of the page by calling
+    // StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
+    WALPageIdxPosInPageAndFrame beginUpdatingPageAndWriteOnlyNullBit(
+        node_offset_t nodeOffset, bool isNull);
 
 protected:
     // no logical-physical page mapping is required for columns

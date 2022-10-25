@@ -107,7 +107,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
         auto header = headers->getHeader(nodeOffset);
         CursorAndMapper cursorAndMapper;
         cursorAndMapper.reset(metadata, numElementsPerPage, header, nodeOffset);
-        uint64_t numElementsInLIst = getNumElementsInPersistentStore(nodeOffset);
+        uint64_t numElementsInLIst = getNumElementsFromListHeader(nodeOffset);
         InMemList inMemList{numElementsInLIst, elementSize, false /* requireNullMask */};
         fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInLIst, inMemList);
         primaryStoreListWrapper = make_unique<UnstrPropListWrapper>(
@@ -161,7 +161,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     node_offset_t nodeOffset) {
     CursorAndMapper cursorAndMapper;
     cursorAndMapper.reset(metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
-    auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
+    auto numElementsInList = getNumElementsFromListHeader(nodeOffset);
     auto retVal = make_unique<map<uint32_t /*unstructuredProperty pageIdx*/, Literal>>();
     PageByteCursor byteCursor{cursorAndMapper.cursor.pageIdx, cursorAndMapper.cursor.elemPosInPage};
     auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, ANY};
@@ -236,7 +236,7 @@ void UnstructuredPropertyLists::readFromAPage(uint8_t* value, uint64_t bytesToRe
     cursor.offsetInPage += bytesToRead;
 }
 
-void UnstructuredPropertyLists::setPropertyListEmpty(node_offset_t nodeOffset) {
+void UnstructuredPropertyLists::initEmptyPropertyLists(node_offset_t nodeOffset) {
     lock_t lck{mtx};
     unstructuredListUpdateStore.setEmptyUpdatedPropertiesList(nodeOffset);
 }
@@ -248,7 +248,7 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         CursorAndMapper cursorAndMapper;
         cursorAndMapper.reset(
             metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
-        auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
+        auto numElementsInList = getNumElementsFromListHeader(nodeOffset);
         uint64_t updatedListCapacity = max(numElementsInList,
             (uint64_t)(numElementsInList * StorageConfig::ARRAY_RESIZING_FACTOR));
         InMemList inMemList{updatedListCapacity, elementSize, false /* requireNullMask */};

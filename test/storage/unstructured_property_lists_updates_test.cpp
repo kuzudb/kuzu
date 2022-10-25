@@ -120,7 +120,7 @@ public:
 
     void removeAllPropertiesBySetPropertyListEmptyTest(
         bool isCommit, TransactionTestType transactionTestType) {
-        personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(123);
+        personNodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(123);
         queryAndVerifyResults(123, "ui123", "us123", nullptr /* expected int for write trx */,
             nullptr /* expected str for write trx */,
             &existingIntVal /* expected int for read trx */,
@@ -261,7 +261,7 @@ public:
                                        .propertyID;
         // Inserting until 1100 ensures that chunk 1 is filled and a new chunk 2 is started
         for (node_offset_t nodeOffset = 601; nodeOffset < 1100; ++nodeOffset) {
-            personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(nodeOffset);
+            personNodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(nodeOffset);
             personNodeTable->getUnstrPropertyLists()->setProperty(
                 nodeOffset, unstrIntPropKey, &existingIntVal);
             personNodeTable->getUnstrPropertyLists()->setProperty(

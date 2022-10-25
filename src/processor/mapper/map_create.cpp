@@ -18,8 +18,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
         auto outDataPos = mapperContext.getDataPos(node->getIDProperty());
         createNodeInfos.push_back(make_unique<CreateNodeInfo>(table, outDataPos));
     }
-    return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
-        getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
+    return make_unique<CreateNode>(std::move(createNodeInfos), storageManager.getRelsStore(),
+        std::move(prevOperator), getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(

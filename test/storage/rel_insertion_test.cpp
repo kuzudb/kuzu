@@ -1,5 +1,8 @@
-#include "test/planner/planner_test_helper.h"
 #include "test/test_utility/include/test_helper.h"
+
+#include "src/parser/include/parser.h"
+#include "src/planner/include/planner.h"
+#include "src/planner/logical_plan/include/logical_plan_util.h"
 
 using namespace graphflow::testing;
 
@@ -58,6 +61,17 @@ public:
 
     string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
+    void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
+        auto catalog = database->getCatalog();
+        auto statement = Parser::parseQuery(query);
+        auto parsedQuery = (RegularQuery*)statement.get();
+        auto boundQuery = Binder(*catalog).bind(*parsedQuery);
+        auto plan = Planner::getBestPlan(*catalog,
+            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+            database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
+        ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
+    }
+
     inline void insertOneRelToRelTable(
         table_id_t relTableID, vector<shared_ptr<ValueVector>> vectorsToInsert) {
         database->getStorageManager()
@@ -67,19 +81,19 @@ public:
     }
 
     inline void insertOneKnowsRel() {
-        insertOneRelToRelTable(0 /* relTableID */, vectorsToInsertToKnows);
+        insertOneRelToRelTable(KNOWS_REL_TABLE_ID, vectorsToInsertToKnows);
     }
 
     inline void insertOnePlaysRel() {
-        insertOneRelToRelTable(1 /* relTableID */, vectorsToInsertToPlays);
+        insertOneRelToRelTable(PLAYS_REL_TABLE_ID, vectorsToInsertToPlays);
     }
 
     inline void insertOneHasOwnerRel() {
-        insertOneRelToRelTable(2 /* relTableID */, vectorsToInsertToHasOwner);
+        insertOneRelToRelTable(HAS_OWNER_REL_TABLE_ID, vectorsToInsertToHasOwner);
     }
 
     inline void insertOneTeachesRel() {
-        insertOneRelToRelTable(3 /* relTableID */, vectorsToInsertToTeaches);
+        insertOneRelToRelTable(TEACHES_REL_TABLE_ID, vectorsToInsertToTeaches);
     }
 
     void insertRelsToKnowsTable(table_id_t srcTableID, table_id_t dstTableID,
@@ -105,7 +119,7 @@ public:
                 lengthPropertyVector->setNull(0, i % 2);
                 placePropertyVector->setNull(0, true /* isNull */);
             }
-            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1, srcTableID);
+            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1 /* offset */, srcTableID);
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, dstTableID);
             insertOneKnowsRel();
         }
@@ -116,7 +130,7 @@ public:
         try {
             database->getStorageManager()
                 ->getRelsStore()
-                .getRelTable(0 /* relTableID */)
+                .getRelTable(KNOWS_REL_TABLE_ID)
                 ->getAdjAndPropertyListsUpdateStore()
                 ->insertRelIfNecessary(srcDstNodeIDAndRelProperties);
             FAIL();
@@ -146,7 +160,7 @@ public:
     void insertRelsToEmptyListTest(bool isCommit, TransactionTestType transactionTestType,
         uint64_t numRelsToInsert = 100, bool insertNullValues = false,
         bool testLongString = false) {
-        insertRelsToKnowsTable(0 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert,
+        insertRelsToKnowsTable(ANIMAL_NODE_TABLE_ID, ANIMAL_NODE_TABLE_ID, numRelsToInsert,
             insertNullValues, testLongString);
         conn->beginWriteTransaction();
         auto result =
@@ -184,7 +198,7 @@ public:
     void insertRelsToSmallListTest(
         bool isCommit, TransactionTestType transactionTestType, uint64_t numRelsToInsert = 100) {
         auto numRelsAfterInsertion = 51 + numRelsToInsert;
-        insertRelsToKnowsTable(0 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert);
+        insertRelsToKnowsTable(ANIMAL_NODE_TABLE_ID, PERSON_NODE_TABLE_ID, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:animal)-[e:knows]->(b:person) return e.length, e.place, e.tag");
@@ -217,7 +231,7 @@ public:
         uint64_t numRelsToInsert = 100, bool insertNullValues = false) {
         auto numRelsAfterInsertion = 2500 + numRelsToInsert;
         insertRelsToKnowsTable(
-            1 /* srcTableID */, 1 /* dstTableID */, numRelsToInsert, insertNullValues);
+            PERSON_NODE_TABLE_ID, PERSON_NODE_TABLE_ID, numRelsToInsert, insertNullValues);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:person)-[e:knows]->(:person) return e.length, e.place, e.tag");
@@ -234,26 +248,15 @@ public:
             result.get(), isCommit ? numRelsToInsert : 0, insertNullValues);
     }
 
-    void validatePlanScanBWDList(string query) {
-        // This check is to validate whether the query used in "insertRelsAndQueryBWDListTest"
-        // scans the backward list of the knows table. If this test fails (eg. we have updated the
-        // planner), we should consider changing to a new query which scans the backward list with
-        // the new planner.
-        auto catalog = database->getCatalog();
-        auto statement = Parser::parseQuery(query);
-        auto parsedQuery = (RegularQuery*)statement.get();
-        auto boundQuery = Binder(*catalog).bind(*parsedQuery);
-        auto plan = Planner::getBestPlan(*catalog,
-            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
-        ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), "HJ(a){E(a)S(b)}{S(a)}");
-    }
-
     void insertRelsAndQueryBWDListTest(bool isCommit, TransactionTestType transactionTestType) {
         auto query = "match (a:person)-[e:knows]->(b:animal) return e.length, e.place, e.tag";
-        validatePlanScanBWDList(query);
+        // This check is to validate whether the query used in "insertRelsAndQueryBWDListTest"
+        // scans the backward list of the knows table. If this test fails (eg. we have updated the
+        // planner), we should consider changing to a new query which scans the BWD list with
+        // the new planner.
+        validateQueryBestPlanJoinOrder(query, "HJ(a){E(a)S(b)}{S(a)}");
         auto numRelsToInsert = 100;
-        insertRelsToKnowsTable(1 /* srcTableID */, 0 /* dstTableID */, numRelsToInsert);
+        insertRelsToKnowsTable(PERSON_NODE_TABLE_ID, ANIMAL_NODE_TABLE_ID, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result = conn->query(query);
         ASSERT_TRUE(result->isSuccess());
@@ -536,6 +539,80 @@ public:
         validateManyToOneRelTableAfterInsertion(!isCommit, result.get());
     }
 
+    void insertNodesToPersonTable() {
+        for (auto i = 0u; i < 100; ++i) {
+            // We already have 2501 nodes in person table, so the next node ID starts with 2501.
+            auto id = 2501 + i;
+            auto result = conn->query("CREATE (a:person {ID: " + to_string(id) + "})");
+            ASSERT_TRUE(result->isSuccess());
+        }
+        auto result = conn->query("MATCH (p:person) return p.ID");
+        ASSERT_TRUE(result->isSuccess());
+        // The initial person table has 2501 nodes, and we insert 100 person nodes. In total, we
+        // should have 2601 nodes after insertion.
+        ASSERT_EQ(result->getNumTuples(), 2601);
+    }
+
+    void queryRelsOfPerson(bool afterRollback) {
+        // Test whether we set the emptyList correctly in the MANY-MANY relTable.
+        auto result = conn->query("MATCH (p:person)-[e:knows]->(:person) return p.ID");
+        auto numInsertedRels = 10;
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(
+            result->getNumTuples(), 2500 /* numRels in knows table for person knows person */ +
+                                        (afterRollback ? 0 : numInsertedRels));
+        // Test whether we set the emptyList correctly in the ONE-ONE relTable.
+        result = conn->query("MATCH (:animal)-[:hasOwner]->(p:person) return p.ID");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(
+            result->getNumTuples(), 10 /* numRels in hasOwner table for animal hasOwner person */ +
+                                        (afterRollback ? 0 : numInsertedRels));
+        // Test whether we set the emptyList correctly in the MANY-ONE relTable.
+        result = conn->query("MATCH (:person)-[:teaches]->(p:person) return p.ID");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(
+            result->getNumTuples(), 6 /* numRels in teaches table for person teaches person */ +
+                                        (afterRollback ? 0 : numInsertedRels));
+        // We want to make sure that this query scans the BWD list of person. If the planner
+        // changes, we should consider making another query that scans the BWD list.
+        validateQueryBestPlanJoinOrder(
+            "MATCH (p1:person)-[:teaches]->(p2:person) return p1.ID", "HJ(p2){E(p2)S(p1)}{S(p2)}");
+    }
+
+    void insertNodesToPersonAndQueryRels(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        insertNodesToPersonTable();
+        auto& srcNode = ((nodeID_t*)(srcNodeVector->values))[0];
+        auto& dstNode = ((nodeID_t*)(dstNodeVector->values))[0];
+        auto placeStr = gf_string_t();
+        auto tagList = gf_list_t();
+        tagList.overflowPtr =
+            reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
+        tagList.size = 1;
+        for (auto i = 0u; i < 10; i++) {
+            relIDValues[0] = 2000 + i;
+            lengthValues[0] = i;
+            placeStr.set(to_string(i));
+            placeValues[0] = placeStr;
+            tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+            tagValues[0] = tagList;
+            // Insert 10 rels from person->person to knows/plays/teaches relTables.
+            srcNode.tableID = PERSON_NODE_TABLE_ID;
+            srcNode.offset = 40 + i;
+            dstNode.tableID = PERSON_NODE_TABLE_ID;
+            dstNode.offset = 40 + i;
+            insertOneKnowsRel();
+            insertOneTeachesRel();
+            // Insert 10 rels from animal->person to hasOwner relTable.
+            srcNode.tableID = ANIMAL_NODE_TABLE_ID;
+            srcNode.offset = 20 + i;
+            insertOneHasOwnerRel();
+        }
+        queryRelsOfPerson(false /* afterRollback */);
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        queryRelsOfPerson(!isCommit);
+    }
+
 public:
     unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
@@ -554,6 +631,12 @@ public:
     vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
     vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
     vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
+    static constexpr uint32_t ANIMAL_NODE_TABLE_ID = 0;
+    static constexpr uint32_t PERSON_NODE_TABLE_ID = 1;
+    static constexpr uint32_t KNOWS_REL_TABLE_ID = 0;
+    static constexpr uint32_t PLAYS_REL_TABLE_ID = 1;
+    static constexpr uint32_t HAS_OWNER_REL_TABLE_ID = 2;
+    static constexpr uint32_t TEACHES_REL_TABLE_ID = 3;
 };
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecution) {
@@ -812,4 +895,20 @@ TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableCommitRecovery) {
 
 TEST_F(RelInsertionTest, InsertRelsToManyToOneRelTableRollbackRecovery) {
     insertRelsToManyToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelInsertionTest, NewNodesHaveEmptyRelsCommitNormalExecution) {
+    insertNodesToPersonAndQueryRels(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, NewNodesHaveEmptyRelsRollbackNormalExecution) {
+    insertNodesToPersonAndQueryRels(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(RelInsertionTest, NewNodesHaveEmptyRelsCommitRecovery) {
+    insertNodesToPersonAndQueryRels(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(RelInsertionTest, NewNodesHaveEmptyRelsRollbackRecovery) {
+    insertNodesToPersonAndQueryRels(false /* isCommit */, TransactionTestType::RECOVERY);
 }

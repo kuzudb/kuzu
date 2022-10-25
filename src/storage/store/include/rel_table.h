@@ -52,6 +52,7 @@ public:
     void rollbackInMemoryIfNecessary();
 
     void insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert);
+    void initEmptyRelsForNewNode(nodeID_t& nodeID);
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
@@ -64,8 +65,8 @@ private:
         BufferManager& bufferManager, WAL* wal);
     void initPropertyListsForRelTable(const catalog::Catalog& catalog, RelDirection relDirection,
         BufferManager& bufferManager, WAL* wal);
-    void performOpOnListsWithUpdates(std::function<void(Lists*)> opOnListsWithUpdates,
-        std::function<void()> opIfHasInsertedRels);
+    void performOpOnListsWithUpdates(
+        std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasUpdates);
 
 private:
     shared_ptr<spdlog::logger> logger;

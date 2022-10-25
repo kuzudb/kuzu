@@ -27,7 +27,31 @@ AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
     dstNodeVector = make_shared<ValueVector>(NODE_ID, &memoryManager);
     nodeDataChunk->insert(1 /* pos */, dstNodeVector);
     factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(factorizedTableSchema));
-    initInsertedRelsPerTableIDPerDirection();
+    initListUpdatesPerTablePerDirection();
+}
+
+bool AdjAndPropertyListsUpdateStore::isListEmptyInPersistentStore(
+    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
+    auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
+        relNodeTableAndDir.srcNodeTableID);
+    auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
+    if (!listUpdatesPerChunk.contains(chunkIdx) ||
+        !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
+        return false;
+    }
+    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).emptyListInPersistentStore;
+}
+
+bool AdjAndPropertyListsUpdateStore::hasUpdates() const {
+    for (auto relDirection : REL_DIRECTIONS) {
+        for (auto listUpdatesPerTable : listUpdatesPerTablePerDirection[relDirection]) {
+            if (!listUpdatesPerTable.second.empty()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // Note: This function also resets the overflowptr of each string in inMemList if necessary.
@@ -53,14 +77,14 @@ void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(
     for (auto direction : REL_DIRECTIONS) {
         auto nodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
         auto chunkIdx = StorageUtils::getListChunkIdx(nodeID.offset);
-        if (insertedRelsPerTableIDPerDirection[direction].contains(nodeID.tableID)) {
+        if (listUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
             if (!hasInsertedToFT) {
                 factorizedTable->append(srcDstNodeIDAndRelProperties);
                 hasInsertedToFT = true;
             }
-            insertedRelsPerTableIDPerDirection[direction]
+            listUpdatesPerTablePerDirection[direction]
                 .at(nodeID.tableID)[chunkIdx][nodeID.offset]
-                .push_back(factorizedTable->getNumTuples() - 1);
+                .insertedRelsTupleIdxInFT.push_back(factorizedTable->getNumTuples() - 1);
         }
     }
 }
@@ -69,13 +93,13 @@ uint64_t AdjAndPropertyListsUpdateStore::getNumInsertedRelsForNodeOffset(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto insertedRelsPerTableID = insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
+    auto listUpdatesPerTable = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
         relNodeTableAndDir.srcNodeTableID);
-    if (!insertedRelsPerTableID.contains(chunkIdx) ||
-        !insertedRelsPerTableID[chunkIdx].contains(nodeOffset)) {
+    if (!listUpdatesPerTable.contains(chunkIdx) ||
+        !listUpdatesPerTable[chunkIdx].contains(nodeOffset)) {
         return 0;
     }
-    return insertedRelsPerTableID.at(chunkIdx).at(nodeOffset).size();
+    return listUpdatesPerTable.at(chunkIdx).at(nodeOffset).insertedRelsTupleIdxInFT.size();
 }
 
 void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
@@ -89,11 +113,11 @@ void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
     auto vectorsToRead = vector<shared_ptr<ValueVector>>{valueVector};
     auto columnsToRead = vector<uint32_t>{getColIdxInFT(listFileID)};
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto tupleIdxesToRead = insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir]
-                                .at(relNodeTableAndDir.srcNodeTableID)
-                                .at(StorageUtils::getListChunkIdx(nodeOffset))
-                                .at(nodeOffset);
-    factorizedTable->lookup(vectorsToRead, columnsToRead, tupleIdxesToRead,
+    auto listUpdates = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir]
+                           .at(relNodeTableAndDir.srcNodeTableID)
+                           .at(StorageUtils::getListChunkIdx(nodeOffset))
+                           .at(nodeOffset);
+    factorizedTable->lookup(vectorsToRead, columnsToRead, listUpdates.insertedRelsTupleIdxInFT,
         listSyncState.getStartElemOffset(), numTuplesToRead);
     valueVector->state->originalSize = numTuplesToRead;
 }
@@ -141,28 +165,27 @@ void AdjAndPropertyListsUpdateStore::validateSrcDstNodeIDAndRelProperties(
                    ->selectedPositions[srcNodeVector->state->getPositionOfCurrIdx()];
     auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
     auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
-    if (relTableSchema.isRelPropertyList(RelDirection::FWD) &&
-        !insertedRelsPerTableIDPerDirection[RelDirection::FWD].contains(srcNodeID.tableID)) {
+    if (relTableSchema.isStoredAsLists(RelDirection::FWD) &&
+        !listUpdatesPerTablePerDirection[RelDirection::FWD].contains(srcNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             srcNodeID.tableID, true /* isSrcTableID */, relTableSchema.tableName);
-    } else if (relTableSchema.isRelPropertyList(RelDirection::BWD) &&
-               !insertedRelsPerTableIDPerDirection[RelDirection::BWD].contains(dstNodeID.tableID)) {
+    } else if (relTableSchema.isStoredAsLists(RelDirection::BWD) &&
+               !listUpdatesPerTablePerDirection[RelDirection::BWD].contains(dstNodeID.tableID)) {
         getErrorMsgForInvalidTableID(
             dstNodeID.tableID, false /* isSrcTableID */, relTableSchema.tableName);
     }
 }
 
-void AdjAndPropertyListsUpdateStore::initInsertedRelsPerTableIDPerDirection() {
-    insertedRelsPerTableIDPerDirection.clear();
+void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
+    listUpdatesPerTablePerDirection.clear();
     auto srcDstTableIDs = relTableSchema.getSrcDstTableIDs();
     for (auto direction : REL_DIRECTIONS) {
-        insertedRelsPerTableIDPerDirection.push_back(map<table_id_t, InsertedRelsPerChunk>{});
+        listUpdatesPerTablePerDirection.push_back(map<table_id_t, ListUpdatesPerChunk>{});
         auto tableIDs = direction == RelDirection::FWD ? srcDstTableIDs.srcTableIDs :
                                                          srcDstTableIDs.dstTableIDs;
-        if (relTableSchema.isRelPropertyList(direction)) {
+        if (relTableSchema.isStoredAsLists(direction)) {
             for (auto tableID : tableIDs) {
-                insertedRelsPerTableIDPerDirection[direction].emplace(
-                    tableID, InsertedRelsPerChunk{});
+                listUpdatesPerTablePerDirection[direction].emplace(tableID, ListUpdatesPerChunk{});
             }
         }
     }

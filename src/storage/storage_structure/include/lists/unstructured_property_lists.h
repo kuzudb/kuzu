@@ -32,7 +32,7 @@ public:
     void writeValues(
         ValueVector* nodeIDVector, uint32_t propertyKey, ValueVector* vectorToWriteFrom);
 
-    void setPropertyListEmpty(node_offset_t nodeOffset);
+    void initEmptyPropertyLists(node_offset_t nodeOffset);
     void setOrRemoveProperty(
         node_offset_t nodeOffset, uint32_t propertyKey, bool isSetting, Value* value = nullptr);
     inline void setProperty(node_offset_t nodeOffset, uint32_t propertyKey, Value* value) {
