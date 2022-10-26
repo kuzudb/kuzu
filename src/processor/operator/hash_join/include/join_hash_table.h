@@ -37,6 +37,7 @@ public:
         return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
                                 ->getData()))[slotIdx & slotIdxInBlockMask];
     }
+    inline FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
     inline const FactorizedTableSchema* getTableSchema() {
         return factorizedTable->getTableSchema();
     }

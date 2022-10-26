@@ -155,6 +155,20 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
 }
 
 void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
+    const SelectionVector* selVector, vector<uint32_t>& colIdxesToScan,
+    uint8_t* tupleToRead) const {
+    assert(vectors.size() == colIdxesToScan.size());
+    for (auto i = 0u; i < colIdxesToScan.size(); i++) {
+        uint64_t colIdx = colIdxesToScan[i];
+        if (tableSchema->getColumn(colIdx)->isFlat()) {
+            readFlatCol(&tupleToRead, colIdx, *vectors[i], 1);
+        } else {
+            readUnflatCol(tupleToRead, selVector, colIdx, *vectors[i]);
+        }
+    }
+}
+
+void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     vector<uint32_t>& colIdxesToScan, vector<uint64_t>& tupleIdxesToRead, uint64_t startPos,
     uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
@@ -532,6 +546,36 @@ void FactorizedTable::readUnflatCol(
         }
     }
     vector.state->selVector->selectedSize = vectorOverflowValue.numElements;
+}
+
+void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionVector* selVector,
+    uint32_t colIdx, ValueVector& vector) const {
+    auto vectorOverflowValue =
+        *(overflow_value_t*)(tupleToRead + tableSchema->getColOffset(colIdx));
+    assert(vector.state->selVector->isUnfiltered());
+    if (hasNoNullGuarantee(colIdx)) {
+        vector.setAllNonNull();
+        auto val = vectorOverflowValue.value;
+        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
+            auto pos = selVector->selectedPositions[i];
+            ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                vector, i, val + (pos * vector.getNumBytesPerValue()));
+        }
+    } else {
+        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
+            auto pos = selVector->selectedPositions[i];
+            if (isOverflowColNull(vectorOverflowValue.value + vectorOverflowValue.numElements *
+                                                                  vector.getNumBytesPerValue(),
+                    pos, colIdx)) {
+                vector.setNull(i, true);
+            } else {
+                vector.setNull(i, false);
+                ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                    vector, i, vectorOverflowValue.value + pos * vector.getNumBytesPerValue());
+            }
+        }
+    }
+    vector.state->selVector->selectedSize = selVector->selectedSize;
 }
 
 void FactorizedTable::readFlatColToFlatVector(

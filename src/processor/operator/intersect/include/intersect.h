@@ -6,13 +6,24 @@
 namespace graphflow {
 namespace processor {
 
+struct IntersectDataInfo {
+    DataPos keyDataPos;
+    vector<DataPos> payloadsDataPos;
+    vector<DataType> payloadsDataType;
+};
+
 class Intersect : public PhysicalOperator {
 public:
-    Intersect(const DataPos& outputDataPos, vector<DataPos> probeKeysDataPos,
+    Intersect(const DataPos& outputDataPos, vector<IntersectDataInfo> intersectDataInfos,
         vector<shared_ptr<IntersectSharedState>> sharedHTs,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(children), id, paramsString}, outputDataPos{outputDataPos},
-          probeKeysDataPos{move(probeKeysDataPos)}, sharedHTs{move(sharedHTs)} {}
+          intersectDataInfos{move(intersectDataInfos)}, sharedHTs{move(sharedHTs)} {
+        intersectSelVectors.resize(this->sharedHTs.size());
+        for (auto i = 0u; i < this->sharedHTs.size(); i++) {
+            intersectSelVectors[i] = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        }
+    }
 
     inline PhysicalOperatorType getOperatorType() override { return INTERSECT; }
 
@@ -26,22 +37,28 @@ public:
             clonedChildren.push_back(child->clone());
         }
         return make_unique<Intersect>(
-            outputDataPos, probeKeysDataPos, sharedHTs, move(clonedChildren), id, paramsString);
+            outputDataPos, intersectDataInfos, sharedHTs, move(clonedChildren), id, paramsString);
     }
 
 private:
     vector<nodeID_t> getProbeKeys();
     vector<uint8_t*> probeHTs(const vector<nodeID_t>& keys);
     // Left is always the one with less num of values.
-    static uint64_t twoWayIntersect(nodeID_t* leftNodeIDs, uint64_t leftSize,
-        nodeID_t* rightNodeIDs, uint64_t rightSize, nodeID_t* outputNodeIDs);
-    void intersectLists();
+    static void twoWayIntersect(nodeID_t* leftNodeIDs, uint64_t leftSize,
+        vector<SelectionVector*>& lSelVectors, nodeID_t* rightNodeIDs, uint64_t rightSize,
+        SelectionVector* rSelVector);
+    void intersectLists(const vector<overflow_value_t>& listsToIntersect);
+    void populatePayloads(const vector<uint8_t*>& tuples, const vector<uint32_t>& listIdxes);
 
 private:
     DataPos outputDataPos;
-    vector<DataPos> probeKeysDataPos;
-    shared_ptr<ValueVector> outputVector;
+    vector<IntersectDataInfo> intersectDataInfos;
+    // payloadColumnIdxesToScanFrom and payloadVectorsToScanInto are organized by each build child.
+    vector<vector<uint32_t>> payloadColumnIdxesToScanFrom;
+    vector<vector<shared_ptr<ValueVector>>> payloadVectorsToScanInto;
+    shared_ptr<ValueVector> outKeyVector;
     vector<shared_ptr<ValueVector>> probeKeyVectors;
+    vector<unique_ptr<SelectionVector>> intersectSelVectors;
     vector<shared_ptr<IntersectSharedState>> sharedHTs;
     vector<bool> isIntersectListAFlatValue;
 };
