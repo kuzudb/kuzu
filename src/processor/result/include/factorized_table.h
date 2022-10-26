@@ -183,8 +183,11 @@ public:
     inline bool isEmpty() const { return getNumTuples() == 0; }
     void scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx, uint64_t numTuplesToScan,
         vector<uint32_t>& colIdxToScan) const;
+    // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
     void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
+    void lookup(vector<shared_ptr<ValueVector>>& vectors, const SelectionVector* selVector,
+        vector<uint32_t>& colIdxesToScan, uint8_t* tupleToRead) const;
     void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
         vector<uint64_t>& tupleIdxesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
 
@@ -272,7 +275,10 @@ private:
         uint64_t numAppendedTuples, uint32_t colIdx);
     overflow_value_t appendVectorToUnflatTupleBlocks(const ValueVector& vector, uint32_t colIdx);
 
+    // TODO(Guodong): Unify these two `readUnflatCol()` with a (possibly templated) copy executor.
     void readUnflatCol(uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const;
+    void readUnflatCol(const uint8_t* tupleToRead, const SelectionVector* selVector,
+        uint32_t colIdx, ValueVector& vector) const;
     void readFlatColToFlatVector(
         uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const;
     void readFlatColToUnflatVector(uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector,

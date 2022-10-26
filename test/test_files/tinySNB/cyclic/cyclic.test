@@ -27,11 +27,31 @@ Dan|Carol
 ---- 1
 24
 
+-NAME TriangleTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date=DATE('1950-05-14') RETURN a.fName, e1.date, b.fName, e2.date, c.fName, e3.date
+-ENUMERATE
+---- 8
+Bob|1950-05-14|Carol|2021-06-30|Alice|2021-06-30
+Bob|1950-05-14|Carol|2000-01-01|Dan|1950-05-14
+Bob|1950-05-14|Dan|2021-06-30|Alice|2021-06-30
+Bob|1950-05-14|Dan|2000-01-01|Carol|1950-05-14
+Carol|1950-05-14|Bob|2021-06-30|Alice|2021-06-30
+Carol|1950-05-14|Bob|1950-05-14|Dan|2000-01-01
+Dan|1950-05-14|Bob|2021-06-30|Alice|2021-06-30
+Dan|1950-05-14|Bob|1950-05-14|Carol|2000-01-01
+
 -NAME TriangleTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
+
+-NAME TriangleWithProjectionTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
+-ENUMERATE
+---- 2
+Alice|2021-06-30|Bob|2020|ABFsUni|2021
+Bob|2021-06-30|Alice|2021|ABFsUni|2020
 
 -NAME TriangleFilterTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
@@ -49,10 +69,10 @@ Alice|Carol|Dan
 Bob|Carol|Dan
 
 -NAME TriangleFilterWithProjectionTest2
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Bob' RETURN a.fName, b.fName, c.name
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) WHERE a.fName='Bob' RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
 -ENUMERATE
 ---- 1
-Bob|Alice|ABFsUni
+Bob|2021-06-30|Alice|2021|ABFsUni|2020
 
 -NAME SquareTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
