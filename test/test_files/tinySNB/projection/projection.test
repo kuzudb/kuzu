@@ -15,36 +15,46 @@
 2
 2
 
--NAME IsNullTest1
--QUERY MATCH (a:person) RETURN a.fName, a.unstrNumericProp IS NULL, a.unstrDateProp1 IS NOT NULL
----- 8
-Alice|True|True
-Bob|False|True
-Carol|False|True
-Dan|True|False
-Elizabeth|False|False
-Farooq|True|False
-Greg|True|False
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True|False
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME IsNullTest1
+#-QUERY MATCH (a:person) RETURN a.fName, a.unstrNumericProp IS NULL, a.unstrDateProp1 IS NOT NULL
+#---- 8
+#Alice|True|True
+#Bob|False|True
+#Carol|False|True
+#Dan|True|False
+#Elizabeth|False|False
+#Farooq|True|False
+#Greg|True|False
+#Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True|False
 
+# TODO(Semih): Remove this test and uncomment below copy of this test when enabling ad-hoc properties
 -NAME OrgNodesReturnStarTest
 -QUERY MATCH (a:organisation) RETURN *
 ---- 3
-1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000||48 days 23:00:00|48 days 23:00:00|-12.500000|  pERfECt||
-4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000|-4|26 years 52 days 48:00:00|32 years 123 days 48:00:00||  EXcELLENT organisation   ||
-6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|10|||3.300000|GoOd organisation ! |1900-01-01|1955-11-23 15:22:31
+1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000
+4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000
+6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000
 
--NAME PersonNodesTestUnstructuredProperty
--QUERY MATCH (a:person) RETURN a.ID,a.unstrDateProp1
----- 8
-0|1900-01-01
-10|
-2|1950-01-01
-3|1950-01-01
-5|
-7|
-8|
-9|
+#-NAME OrgNodesReturnStarTest
+#-QUERY MATCH (a:organisation) RETURN *
+#---- 3
+#1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000||48 days 23:00:00|48 days 23:00:00|-12.500000|  pERfECt||
+#4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000|-4|26 years 52 days 48:00:00|32 years 123 days 48:00:00||  EXcELLENT organisation   ||
+#6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|10|||3.300000|GoOd organisation ! |1900-01-01|1955-11-23 15:22:31
+
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME PersonNodesTestUnstructuredProperty
+#-QUERY MATCH (a:person) RETURN a.ID,a.unstrDateProp1
+#---- 8
+#0|1900-01-01
+#10|
+#2|1950-01-01
+#3|1950-01-01
+#5|
+#7|
+#8|
+#9|
 
 -NAME PersonNodesTestNull
 -QUERY MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null

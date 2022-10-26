@@ -123,72 +123,73 @@
 ---- 1
 3
 
--NAME PersonUnstrFilteredTest1
--QUERY MATCH (a:person) WHERE a.unstrNumericProp > 48 RETURN COUNT(*)
----- 1
-2
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME PersonUnstrFilteredTest1
+#-QUERY MATCH (a:person) WHERE a.unstrNumericProp > 48 RETURN COUNT(*)
+#---- 1
+#2
 
--NAME PersonUnstrFilteredTest2
--QUERY MATCH (a:person) WHERE a.unstrNumericProp <= 68 RETURN COUNT(*)
----- 1
-3
+#-NAME PersonUnstrFilteredTest2
+#-QUERY MATCH (a:person) WHERE a.unstrNumericProp <= 68 RETURN COUNT(*)
+#---- 1
+#3
 
--NAME PersonUnstrFilteredTest3
--QUERY MATCH (a:person) WHERE a.unstrNumericProp = 52 RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest3
+#-QUERY MATCH (a:person) WHERE a.unstrNumericProp = 52 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest4
--QUERY MATCH (a:person) WHERE 10 + a.unstrNumericProp = 57 RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest4
+#-QUERY MATCH (a:person) WHERE 10 + a.unstrNumericProp = 57 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest5
--QUERY MATCH (a:person) WHERE a.unstrNumericProp + a.unstrNumericProp2 = 67 RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest5
+#-QUERY MATCH (a:person) WHERE a.unstrNumericProp + a.unstrNumericProp2 = 67 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest6
--QUERY MATCH (a:person) WHERE a.unstrNumericProp - 10 > a.unstrNumericProp2 RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest6
+#-QUERY MATCH (a:person) WHERE a.unstrNumericProp - 10 > a.unstrNumericProp2 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest7
--QUERY MATCH (a:person) WHERE concat('abc ', string(a.unstrNumericProp)) = 'abc 52' RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest7
+#-QUERY MATCH (a:person) WHERE concat('abc ', string(a.unstrNumericProp)) = 'abc 52' RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest8
--QUERY MATCH (a:person) WHERE concat(a.unstrNumericProp2, ' abcdefghijklm') = '20 abcdefghijklm' RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest8
+#-QUERY MATCH (a:person) WHERE concat(a.unstrNumericProp2, ' abcdefghijklm') = '20 abcdefghijklm' RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest10
--QUERY MATCH (a:person) WHERE '47Bob' = concat(string(a.unstrNumericProp), a.fName) RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest10
+#-QUERY MATCH (a:person) WHERE '47Bob' = concat(string(a.unstrNumericProp), a.fName) RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest11
--QUERY MATCH (a:person) WHERE concat(string(a.unstrDateProp1), a.fName) = '1950-01-01Bob' RETURN COUNT(*)
----- 1
-1
+#-NAME PersonUnstrFilteredTest11
+#-QUERY MATCH (a:person) WHERE concat(string(a.unstrDateProp1), a.fName) = '1950-01-01Bob' RETURN COUNT(*)
+#---- 1
+#1
 
--NAME PersonUnstrFilteredTest12
--QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NULL RETURN COUNT(*)
----- 1
-5
+#-NAME PersonUnstrFilteredTest12
+#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NULL RETURN COUNT(*)
+#---- 1
+#5
 
--NAME PersonUnstrFilteredTest13
--QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NOT NULL RETURN COUNT(*)
----- 1
-3
+#-NAME PersonUnstrFilteredTest13
+#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NOT NULL RETURN COUNT(*)
+#---- 1
+#3
 
--NAME PersonUnstrFilteredTest14
--QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 IS NULL RETURN COUNT(*)
----- 1
-4
+#-NAME PersonUnstrFilteredTest14
+#-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 IS NULL RETURN COUNT(*)
+#---- 1
+#4
 
--NAME PersonUnstrFilteredTest15
--QUERY MATCH (a:person) WHERE a.unstrTimestampProp2  IS NOT NULL RETURN COUNT(*)
----- 1
-2
+#-NAME PersonUnstrFilteredTest15
+#-QUERY MATCH (a:person) WHERE a.unstrTimestampProp2  IS NOT NULL RETURN COUNT(*)
+#---- 1
+#2

@@ -162,8 +162,9 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint6
         putPropsOfLineIntoColumns(copier->structuredColumns,
             copier->nodeTableSchema->structuredProperties, overflowCursors, reader,
             startOffset + bufferOffset);
-        calcLengthOfUnstrPropertyLists(
-            reader, startOffset + bufferOffset, copier->unstrPropertyLists.get());
+        // TODO(Semih): Uncomment when enabling ad-hoc properties.
+        //        calcLengthOfUnstrPropertyLists(
+        //            reader, startOffset + bufferOffset, copier->unstrPropertyLists.get());
         bufferOffset++;
     }
     populateIDIndex(copier->structuredColumns[IDColumnIdx].get(), IDIndex, startOffset,
@@ -175,15 +176,30 @@ void InMemNodeCSVCopier::calcLengthOfUnstrPropertyLists(
     CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
-        auto startPos = strchr(unstrPropertyString, ':') + 1;
-        *strchr(startPos, ':') = 0;
+        auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
+        if (!unstrPropertyStringBreaker1) {
+            throw CopyCSVException("Unstructured property token in CSV is not in correct "
+                                   "structure. It does not have ':' to separate"
+                                   " the property key. token: " +
+                                   string(unstrPropertyString));
+        }
+        *unstrPropertyStringBreaker1 = 0;
+        auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
+        if (!unstrPropertyStringBreaker2) {
+            throw CopyCSVException("Unstructured property token in CSV is not in correct "
+                                   "structure. It does not have ':' to separate"
+                                   " the data type.");
+        }
+        *unstrPropertyStringBreaker2 = 0;
+        auto dataType = Types::dataTypeFromString(string(unstrPropertyStringBreaker1 + 1));
+        auto dataTypeSize = Types::getDataTypeSize(dataType);
         InMemListsUtils::incrementListSize(*unstrPropertyLists->getListSizes(), nodeOffset,
-            StorageConfig::UNSTR_PROP_HEADER_LEN +
-                Types::getDataTypeSize(Types::dataTypeFromString(string(startPos))));
+            StorageConfig::UNSTR_PROP_HEADER_LEN + dataTypeSize);
     }
 }
 
 void InMemNodeCSVCopier::calcUnstrListsHeadersAndMetadata() {
+    // TODO(Semih): This can never be nullptr so we can remove this check.
     if (unstrPropertyLists == nullptr) {
         return;
     }
@@ -229,9 +245,11 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
         for (auto i = 0u; i < copier->nodeTableSchema->getNumStructuredProperties(); ++i) {
             reader.hasNextToken();
         }
-        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset, inMemOverflowFileCursor,
-            unstrPropertiesNameToIdMap,
-            reinterpret_cast<InMemUnstructuredLists*>(copier->unstrPropertyLists.get()));
+        // TODO(Semih): Uncomment when enabling ad-hoc properties
+        //        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset,
+        //        inMemOverflowFileCursor,
+        //            unstrPropertiesNameToIdMap,
+        //            reinterpret_cast<InMemUnstructuredLists*>(copier->unstrPropertyLists.get()));
         bufferOffset++;
     }
     copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
@@ -311,6 +329,10 @@ void InMemNodeCSVCopier::putUnstrPropsOfALineToLists(CSVReader& reader, node_off
     InMemUnstructuredLists* unstrPropertyLists) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
+        // Note: We do not check if the unstrPropertyString is in correct format below because
+        // this was already done when inside populateColumnsAndCountUnstrPropertyListSizesTask,
+        // when calling calcLengthOfUnstrPropertyLists. E.g., below we don't check if
+        // unstrPropertyStringBreaker1 is null or not as we do in calcLengthOfUnstrPropertyLists.
         auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
         *unstrPropertyStringBreaker1 = 0;
         auto propertyKeyId = (uint32_t)unstrPropertiesNameToIdMap.at(string(unstrPropertyString));

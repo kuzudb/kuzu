@@ -32,8 +32,9 @@
 ---- 1
 6
 
--NAME PersonUnstrFilteredTest9
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.unstrNumericProp > b.unstrNumericProp RETURN COUNT(*)
--ENUMERATE
----- 1
-1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME PersonUnstrFilteredTest9
+#-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.unstrNumericProp > b.unstrNumericProp RETURN COUNT(*)
+#-ENUMERATE
+#---- 1
+#1

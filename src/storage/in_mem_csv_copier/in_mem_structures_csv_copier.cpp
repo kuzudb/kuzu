@@ -60,9 +60,10 @@ void InMemStructuresCSVCopier::countNumLinesAndUnstrPropertiesPerBlockTask(const
     copier->numLinesPerBlock[blockId] = 0ull;
     while (reader.hasNextLine()) {
         copier->numLinesPerBlock[blockId]++;
-        if (unstrPropertyNames != nullptr) {
-            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, unstrPropertyNames);
-        }
+        // TODO(Semih): Uncomment when enabling ad-hoc properties.
+        //        if (unstrPropertyNames != nullptr) {
+        //            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, unstrPropertyNames);
+        //        }
     }
     copier->logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);
 }

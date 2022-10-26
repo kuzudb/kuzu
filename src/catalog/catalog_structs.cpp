@@ -19,6 +19,8 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
 }
 
 void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
+    // TODO(Semih): Uncomment when enabling ad-hoc properties
+    assert(unstructuredProperties.empty());
     for (auto& unstrPropertyName : unstructuredPropertyNames) {
         auto unstrPropertyId = unstructuredProperties.size();
         unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;

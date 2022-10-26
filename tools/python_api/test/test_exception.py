@@ -10,8 +10,9 @@ def test_exception(establish_connection):
     with pytest.raises(RuntimeError, match="Binder exception: Node a does not have property dummy."):
         conn.execute("MATCH (a:person) RETURN a.dummy;")
 
-    with pytest.raises(RuntimeError, match="Runtime exception: Cannot abs `INTERVAL`"):
-        conn.execute("MATCH (a:person) RETURN abs(a.unstrIntervalProp);")
-    
+    # TODO(Xiyang): uncomment test when adhoc properties are enabled
+    # with pytest.raises(RuntimeError, match="Runtime exception: Cannot abs `INTERVAL`"):
+    #    conn.execute("MATCH (a:person) RETURN abs(a.lastJobDuration);")
+
     with pytest.raises(RuntimeError, match="Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported!"):
         db.resize_buffer_manager(1)

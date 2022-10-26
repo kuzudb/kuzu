@@ -634,12 +634,13 @@ ABFs
 CsWo
 DEsW
 
--NAME ListSliceUnstructuredString
--QUERY MATCH (o:organisation) RETURN o.unstrStr[5:8]
----- 3
-RfEC
-cELL
- org
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME ListSliceUnstructuredString
+#-QUERY MATCH (o:organisation) RETURN o.unstrStr[5:8]
+#---- 3
+#RfEC
+#cELL
+# org
 
 -NAME ListSliceStructuredStringRight
 -QUERY MATCH (a:person) RETURN a.fName[4:]
