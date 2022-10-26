@@ -188,6 +188,8 @@ public:
 
     inline void setUnstructuredPropertiesOfNodeTableSchema(
         vector<string>& unstructuredProperties, table_id_t tableID) {
+        // TODO(Semih): Uncomment when enabling ad-hoc properties
+        assert(unstructuredProperties.empty());
         initCatalogContentForWriteTrxIfNecessary();
         catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
             unstructuredProperties);

@@ -10,25 +10,26 @@
 ---- 1
 2
 
--NAME UnstructuredStructuredIntervalComparison
--QUERY MATCH (o:organisation) WHERE o.licenseValidInterval = o.unstrIntervalProp1 RETURN COUNT(*)
----- 1
-1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredStructuredIntervalComparison
+#-QUERY MATCH (o:organisation) WHERE o.licenseValidInterval = o.unstrIntervalProp1 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME TwoUnstructuredIntervalComparison1
--QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <> o.unstrIntervalProp2 RETURN COUNT(*)
----- 1
-1
+#-NAME TwoUnstructuredIntervalComparison1
+#-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <> o.unstrIntervalProp2 RETURN COUNT(*)
+#---- 1
+#1
 
--NAME TwoUnstructuredIntervalComparison2
--QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= o.unstrIntervalProp2 RETURN COUNT(*)
----- 1
-2
+#-NAME TwoUnstructuredIntervalComparison2
+#-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= o.unstrIntervalProp2 RETURN COUNT(*)
+#---- 1
+#2
 
--NAME UnstructuredIntervalFunctionComparison
--QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= Interval('8 years 42 days 3 hours') RETURN COUNT(*)
----- 1
-1
+#-NAME UnstructuredIntervalFunctionComparison
+#-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= Interval('8 years 42 days 3 hours') RETURN COUNT(*)
+#---- 1
+#1
 
 -NAME StructuredIntervalAdd
 -QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('47 hours 30 minutes 30 seconds')
@@ -64,24 +65,25 @@
 2025-02-25 23:53:30.30002
 2033-12-04 22:53:30.30002
 
--NAME StructuredIntervalAddUnstructuredTime
--QUERY MATCH (a:person) RETURN a.lastJobDuration + a.unstrTimeProp1
----- 8
-1903-01-03
-1982-05-04
-1985-05-06 14:04:07
-2008-11-05 13:49:41.000526
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME StructuredIntervalAddUnstructuredTime
+#-QUERY MATCH (a:person) RETURN a.lastJobDuration + a.unstrTimeProp1
+#---- 8
+#1903-01-03
+#1982-05-04
+#1985-05-06 14:04:07
+#2008-11-05 13:49:41.000526
+#
+#
+#
+#
 
-
-
-
-
--NAME UnstructuredIntervalAdd
--QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
----- 3
-
-10 years 68 days 65:32:00.312
-36 years 72 days 90:32:00.312
+#-NAME UnstructuredIntervalAdd
+#-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
+#---- 3
+#
+#10 years 68 days 65:32:00.312
+#36 years 72 days 90:32:00.312
 
 -NAME StructuredIntervalSubtract
 -QUERY MATCH (a:person) RETURN a.lastJobDuration - interval('52 days 42 hours 31 seconds 22 milliseconds')
@@ -95,12 +97,13 @@
 3 years -50 days -28:58:31.022
 3 years -50 days -28:58:31.022
 
--NAME UnstructuredIntervalSubtract
--QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
----- 3
-
--3 years -4 months -152 days -402:25:12
-22 years 8 months -148 days -377:25:12
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalSubtract
+#-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
+#---- 3
+#
+#-3 years -4 months -152 days -402:25:12
+#22 years 8 months -148 days -377:25:12
 
 -NAME StructuredIntervalMixedArithmeticOperations
 -QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') + interval('5 years 100 microseconds')
@@ -114,12 +117,13 @@
 8 years -186 days -31:53:19.9999
 8 years -186 days -31:53:19.9999
 
--NAME UnstructuredIntervalMixedArithmeticOperations
--QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - interval('100 days 32 hours 32 minutes')
----- 3
-
--2 years -70 days 02:05:40
-24 years -66 days 27:05:40
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalMixedArithmeticOperations
+#-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - interval('100 days 32 hours 32 minutes')
+#---- 3
+#
+#-2 years -70 days 02:05:40
+#24 years -66 days 27:05:40
 
 -NAME StructuredIntervalConcatenateString
 -QUERY MATCH (o:organisation) RETURN concat(concat('The license is valid until ', string(o.licenseValidInterval)), ' test')
@@ -128,12 +132,13 @@ The license is valid until 26 years 52 days 48:00:00 test
 The license is valid until 3 years 5 days test
 The license is valid until 82:00:00.1 test
 
--NAME UnstructuredIntervalConcatenateString
--QUERY MATCH (o:organisation) RETURN concat(concat('unstrIntervalProp1: ', o.unstrIntervalProp1), ' test')
----- 3
-
-unstrIntervalProp1: 26 years 52 days 48:00:00 test
-unstrIntervalProp1: 48 days 23:00:00 test
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalConcatenateString
+#-QUERY MATCH (o:organisation) RETURN concat(concat('unstrIntervalProp1: ', o.unstrIntervalProp1), ' test')
+#---- 3
+#
+#unstrIntervalProp1: 26 years 52 days 48:00:00 test
+#unstrIntervalProp1: 48 days 23:00:00 test
 
 -NAME StructuredIntervalDivideInt
 -QUERY MATCH (p:person) RETURN p.lastJobDuration / 3
@@ -177,12 +182,13 @@ unstrIntervalProp1: 48 days 23:00:00 test
 4 years 6 days 09:36:00
 8 days 06:00:00
 
--NAME UnstructuredIntervalDivideInt
--QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 / 8
----- 3
-
-3 years 3 months 6 days 18:00:00
-6 days 02:52:30
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalDivideInt
+#-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 / 8
+#---- 3
+#
+#3 years 3 months 6 days 18:00:00
+#6 days 02:52:30
 
 -NAME StructuredIntervalExtractYearFuncTest
 -QUERY MATCH (p:person) RETURN date_part("yeAr", p.lastJobDuration)
@@ -196,17 +202,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 10
 3
 
--NAME UnstructuredIntervalExtractYearFuncTest
--QUERY MATCH (p:person) RETURN date_part("Y", p.unstrIntervalProp)
----- 8
-5
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractYearFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("Y", p.unstrIntervalProp)
+#---- 8
+#5
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractMonthFuncTest
 -QUERY MATCH (p:person) RETURN date_part("month", p.lastJobDuration)
@@ -220,17 +227,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 5
 0
 
--NAME UnstructuredIntervalExtractMonthFuncTest
--QUERY MATCH (p:person) RETURN date_part("months", p.unstrIntervalProp)
----- 8
-0
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractMonthFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("months", p.unstrIntervalProp)
+#---- 8
+#0
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractDayFuncTest
 -QUERY MATCH (p:person) RETURN date_part("day", p.lastJobDuration)
@@ -244,17 +252,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 2
 
--NAME UnstructuredIntervalExtractDayFuncTest
--QUERY MATCH (p:person) RETURN date_part("day", p.unstrIntervalProp)
----- 8
-700
-300
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractDayFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("day", p.unstrIntervalProp)
+#---- 8
+#700
+#300
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractDecadeFuncTest
 -QUERY MATCH (p:person) RETURN date_part("Decade", p.lastJobDuration)
@@ -268,17 +277,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 1
 0
 
--NAME UnstructuredIntervalExtractDecadeFuncTest
--QUERY MATCH (p:person) RETURN date_part("decade", p.unstrIntervalProp)
----- 8
-0
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractDecadeFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("decade", p.unstrIntervalProp)
+#---- 8
+#0
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractCenturyFuncTest
 -QUERY MATCH (p:person) RETURN date_part("century", p.lastJobDuration)
@@ -292,17 +302,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 0
 
--NAME UnstructuredIntervalExtractCenturyFuncTest
--QUERY MATCH (p:person) RETURN date_part("century", p.unstrIntervalProp)
----- 8
-0
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractCenturyFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("century", p.unstrIntervalProp)
+#---- 8
+#0
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractMillenniumFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MILLENNIUM", p.lastJobDuration)
@@ -316,17 +327,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 0
 
--NAME UnstructuredIntervalExtractMillenniumFuncTest
--QUERY MATCH (p:person) RETURN date_part("MILLENNIUM", p.unstrIntervalProp)
----- 8
-0
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractMillenniumFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("MILLENNIUM", p.unstrIntervalProp)
+#---- 8
+#0
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractQuarterFuncTest
 -QUERY MATCH (p:person) RETURN date_part("QUARTER", p.lastJobDuration)
@@ -340,17 +352,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 2
 1
 
--NAME UnstructuredIntervalExtractQuarterFuncTest
--QUERY MATCH (p:person) RETURN date_part("QUARTER", p.unstrIntervalProp)
----- 8
-1
-1
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractQuarterFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("QUARTER", p.unstrIntervalProp)
+#---- 8
+#1
+#1
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractMicrosecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MICROSECOND", p.lastJobDuration)
@@ -364,17 +377,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 24
 0
 
--NAME UnstructuredIntervalExtractMicrosecondFuncTest
--QUERY MATCH (p:person) RETURN date_part("MICROSECOND", p.unstrIntervalProp)
----- 8
-0
-1000
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractMicrosecondFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("MICROSECOND", p.unstrIntervalProp)
+#---- 8
+#0
+#1000
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractMillisecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MILLISECOND", p.lastJobDuration)
@@ -388,17 +402,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 0
 
--NAME UnstructuredIntervalExtractMillisecondFuncTest
--QUERY MATCH (p:person) RETURN date_part("MILLISECOND", p.unstrIntervalProp)
----- 8
-0
-1
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractMillisecondFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("MILLISECOND", p.unstrIntervalProp)
+#---- 8
+#0
+#1
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractSecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("second", p.lastJobDuration)
@@ -412,17 +427,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 0
 
--NAME UnstructuredIntervalExtractSecondFuncTest
--QUERY MATCH (p:person) RETURN date_part("seconds", p.unstrIntervalProp)
----- 8
-0
-0
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractSecondFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("seconds", p.unstrIntervalProp)
+#---- 8
+#0
+#0
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractMinuteFuncTest
 -QUERY MATCH (p:person) RETURN date_part("minutes", p.lastJobDuration)
@@ -436,17 +452,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 0
 2
 
--NAME UnstructuredIntervalExtractMinuteFuncTest
--QUERY MATCH (p:person) RETURN date_part("minute", p.unstrIntervalProp)
----- 8
-0
-40
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractMinuteFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("minute", p.unstrIntervalProp)
+#---- 8
+#0
+#40
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalExtractHourFuncTest
 -QUERY MATCH (p:person) RETURN date_part("hours", p.lastJobDuration)
@@ -460,17 +477,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 13
 13
 
--NAME UnstructuredIntervalExtractHourFuncTest
--QUERY MATCH (p:person) RETURN date_part("hour", p.unstrIntervalProp)
----- 8
-5000
-50
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredIntervalExtractHourFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("hour", p.unstrIntervalProp)
+#---- 8
+#5000
+#50
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToYearFuncTest
 -QUERY MATCH (p:person) RETURN to_years(p.age)
@@ -484,17 +502,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 40 years
 83 years
 
--NAME UnstructuredInt64ToYearFuncTest
--QUERY MATCH (p:person) RETURN to_years(p.unstrInt64Prop2)
----- 8
-20 years
-43 years
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToYearFuncTest
+#-QUERY MATCH (p:person) RETURN to_years(p.unstrInt64Prop2)
+#---- 8
+#20 years
+#43 years
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToMonthsFuncTest
 -QUERY MATCH (p:person) RETURN to_months(p.age)
@@ -508,17 +527,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 3 years 4 months
 6 years 11 months
 
--NAME UnstructuredInt64ToMonthsFuncTest
--QUERY MATCH (p:person) RETURN to_months(p.unstrInt64Prop2)
----- 8
-1 year 8 months
-3 years 7 months
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToMonthsFuncTest
+#-QUERY MATCH (p:person) RETURN to_months(p.unstrInt64Prop2)
+#---- 8
+#1 year 8 months
+#3 years 7 months
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToDaysFuncTest
 -QUERY MATCH (p:person) RETURN to_days(p.age)
@@ -532,17 +552,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 40 days
 83 days
 
--NAME UnstructuredInt64ToDaysFuncTest
--QUERY MATCH (p:person) RETURN to_days(p.unstrInt64Prop2)
----- 8
-20 days
-43 days
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToDaysFuncTest
+#-QUERY MATCH (p:person) RETURN to_days(p.unstrInt64Prop2)
+#---- 8
+#20 days
+#43 days
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToHoursFuncTest
 -QUERY MATCH (p:person) RETURN to_hours(p.age)
@@ -556,17 +577,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 40:00:00
 83:00:00
 
--NAME UnstructuredInt64ToHoursFuncTest
--QUERY MATCH (p:person) RETURN to_hours(p.unstrInt64Prop2)
----- 8
-20:00:00
-43:00:00
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToHoursFuncTest
+#-QUERY MATCH (p:person) RETURN to_hours(p.unstrInt64Prop2)
+#---- 8
+#20:00:00
+#43:00:00
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToMinutesFuncTest
 -QUERY MATCH (p:person) RETURN to_minutes(p.age)
@@ -580,17 +602,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 00:40:00
 01:23:00
 
--NAME UnstructuredInt64ToMinutesFuncTest
--QUERY MATCH (p:person) RETURN to_minutes(p.unstrInt64Prop2)
----- 8
-00:20:00
-00:43:00
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToMinutesFuncTest
+#-QUERY MATCH (p:person) RETURN to_minutes(p.unstrInt64Prop2)
+#---- 8
+#00:20:00
+#00:43:00
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToSecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_seconds(p.age)
@@ -604,17 +627,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 00:00:40
 00:01:23
 
--NAME UnstructuredInt64ToSecondsFuncTest
--QUERY MATCH (p:person) RETURN to_seconds(p.unstrInt64Prop2)
----- 8
-00:00:20
-00:00:43
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToSecondsFuncTest
+#-QUERY MATCH (p:person) RETURN to_seconds(p.unstrInt64Prop2)
+#---- 8
+#00:00:20
+#00:00:43
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToMillisecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_milliseconds(p.age)
@@ -628,17 +652,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 00:00:00.04
 00:00:00.083
 
--NAME UnstructuredInt64ToMillisecondsFuncTest
--QUERY MATCH (p:person) RETURN to_milliseconds(p.unstrInt64Prop2)
----- 8
-00:00:00.02
-00:00:00.043
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToMillisecondsFuncTest
+#-QUERY MATCH (p:person) RETURN to_milliseconds(p.unstrInt64Prop2)
+#---- 8
+#00:00:00.02
+#00:00:00.043
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToMicrosecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_microseconds(p.age)
@@ -652,17 +677,18 @@ unstrIntervalProp1: 48 days 23:00:00 test
 00:00:00.00004
 00:00:00.000083
 
--NAME UnstructuredInt64ToMicrosecondsFuncTest
--QUERY MATCH (p:person) RETURN to_microseconds(p.unstrInt64Prop2)
----- 8
-00:00:00.00002
-00:00:00.000043
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToMicrosecondsFuncTest
+#-QUERY MATCH (p:person) RETURN to_microseconds(p.unstrInt64Prop2)
+#---- 8
+#00:00:00.00002
+#00:00:00.000043
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredIntervalComparisonAcrossNodesNonEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <> b.lastJobDuration RETURN COUNT(*)

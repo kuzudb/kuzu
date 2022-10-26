@@ -304,76 +304,82 @@ public:
     Value existingStrVal, existingIntVal, shortStrVal, longStrVal, intVal;
 };
 
+// TODO(Semih): Uncomment when enabling ad-hoc properties
 // TODO(Xiyang): migrate to delete
-TEST_F(UnstructuredPropertyListsUpdateTests,
-    RemoveAllPropertiesBySetPropertyListEmptyCommitNormalExecution) {
-    removeAllPropertiesBySetPropertyListEmptyTest(
-        true /* commit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests,
-    RemoveAllPropertiesBySetPropertyListEmptyRollbackNormalExecution) {
-    removeAllPropertiesBySetPropertyListEmptyTest(
-        false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(
-    UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesBySetPropertyListEmptyCommitRecovery) {
-    removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests,
-    RemoveAllPropertiesBySetPropertyListEmptyRollbackRecovery) {
-    removeAllPropertiesBySetPropertyListEmptyTest(
-        false /* rollback */, TransactionTestType::RECOVERY);
-}
-
-// TODO(Semih/Ziyi): the following tests should be removed and moved into benchmark.
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitNormalExecution) {
-    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackNormalExecution) {
-    removeAllPropertiesOfAllNodesTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitRecovery) {
-    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackRecovery) {
-    removeAllPropertiesOfAllNodesTest(false /* rollback */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitNormalExecution) {
-    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackNormalExecution) {
-    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitRecovery) {
-    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackRecovery) {
-    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::RECOVERY);
-}
-
-// TODO(Xiyang): migrate to create
-TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitNormalExecution) {
-    addNewListsTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackNormalExecution) {
-    addNewListsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitRecovery) {
-    addNewListsTest(true /* commit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackRecovery) {
-    addNewListsTest(false /* rollback */, TransactionTestType::RECOVERY);
-}
+// TEST_F(UnstructuredPropertyListsUpdateTests,
+//    RemoveAllPropertiesBySetPropertyListEmptyCommitNormalExecution) {
+//    removeAllPropertiesBySetPropertyListEmptyTest(
+//        true /* commit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests,
+//    RemoveAllPropertiesBySetPropertyListEmptyRollbackNormalExecution) {
+//    removeAllPropertiesBySetPropertyListEmptyTest(
+//        false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(
+//    UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesBySetPropertyListEmptyCommitRecovery)
+//    { removeAllPropertiesBySetPropertyListEmptyTest(true /* commit */,
+//    TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests,
+//    RemoveAllPropertiesBySetPropertyListEmptyRollbackRecovery) {
+//    removeAllPropertiesBySetPropertyListEmptyTest(
+//        false /* rollback */, TransactionTestType::RECOVERY);
+//}
+//
+//// TODO(Semih/Ziyi): the following tests should be removed and moved into benchmark.
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitNormalExecution)
+// {
+//    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests,
+// RemoveAllPropertiesOfAllNodesRollbackNormalExecution) {
+//    removeAllPropertiesOfAllNodesTest(false /* rollback */,
+//    TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesCommitRecovery) {
+//    removeAllPropertiesOfAllNodesTest(true /* commit */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAllPropertiesOfAllNodesRollbackRecovery) {
+//    removeAllPropertiesOfAllNodesTest(false /* rollback */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitNormalExecution) {
+//    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackNormalExecution)
+// {
+//    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestCommitRecovery) {
+//    removeAndWriteDataTwiceTest(true /* commit */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, RemoveAndWriteDataTwiceTestRollbackRecovery) {
+//    removeAndWriteDataTwiceTest(false /* rollback */, TransactionTestType::RECOVERY);
+//}
+//
+//// TODO(Xiyang): migrate to create
+// TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitNormalExecution) {
+//    addNewListsTest(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackNormalExecution) {
+//    addNewListsTest(false /* rollback */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestCommitRecovery) {
+//    addNewListsTest(true /* commit */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UnstructuredPropertyListsUpdateTests, AddNewListTestRollbackRecovery) {
+//    addNewListsTest(false /* rollback */, TransactionTestType::RECOVERY);
+//}

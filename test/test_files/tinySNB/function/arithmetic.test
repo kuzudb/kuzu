@@ -5,12 +5,13 @@
 0.340000
 0.320000
 
--NAME powerFunctionOnUnstrIntUnstrIntTest
--QUERY MATCH (a:organisation) RETURN (a.unstrInt64Prop % 7) ^ abs(a.unstrInt64Prop)
----- 3
-59049.000000
-256.000000
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME powerFunctionOnUnstrIntUnstrIntTest
+#-QUERY MATCH (a:organisation) RETURN (a.unstrInt64Prop % 7) ^ abs(a.unstrInt64Prop)
+#---- 3
+#59049.000000
+#256.000000
+#
 
 -NAME sinFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
@@ -26,19 +27,20 @@
 -0.811656
 0.785018
 
--NAME sinFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) WHERE a.name <> 'good' RETURN sin(a.unstrInt64Prop)
----- 3
--0.544021
-0.756802
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME sinFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) WHERE a.name <> 'good' RETURN sin(a.unstrInt64Prop)
+#---- 3
+#-0.544021
+#0.756802
+#
 
-
--NAME sinFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN sin(a.unstrNumericProp)
----- 3
-0.066322
--0.157746
-
+#-NAME sinFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN sin(a.unstrNumericProp)
+#---- 3
+#0.066322
+#-0.157746
+#
 
 -NAME cosFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN cos(a.mark)
@@ -53,19 +55,20 @@
 -0.584135
 0.619473
 
--NAME cosFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN cos(a.unstrInt64Prop)
----- 3
--0.839072
--0.653644
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME cosFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN cos(a.unstrInt64Prop)
+#---- 3
+#-0.839072
+#-0.653644
+#
 
-
--NAME cosFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN cos(a.unstrNumericProp)
----- 3
-0.997798
--0.987480
-
+#-NAME cosFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN cos(a.unstrNumericProp)
+#---- 3
+#0.997798
+#-0.987480
+#
 
 -NAME tanFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN tan(a.mark)
@@ -81,19 +84,20 @@
 1.389500
 1.267234
 
--NAME tanFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN tan(a.unstrInt64Prop)
----- 3
-0.648361
--1.157821
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME tanFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN tan(a.unstrInt64Prop)
+#---- 3
+#0.648361
+#-1.157821
+#
 
-
--NAME tanFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN tan(a.unstrNumericProp)
----- 3
-0.066468
-0.159746
-
+#-NAME tanFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN tan(a.unstrNumericProp)
+#---- 3
+#0.066468
+#0.159746
+#
 
 -NAME cotFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN cot(a.mark)
@@ -109,19 +113,20 @@
 0.719683
 0.789120
 
--NAME cotFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN cot(a.unstrInt64Prop)
----- 3
-1.542351
--0.863691
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME cotFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN cot(a.unstrInt64Prop)
+#---- 3
+#1.542351
+#-0.863691
+#
 
-
--NAME cotFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN cot(a.unstrNumericProp)
----- 3
-15.044779
-6.259948
-
+#-NAME cotFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN cot(a.unstrNumericProp)
+#---- 3
+#15.044779
+#6.259948
+#
 
 -NAME asinFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN asin(a.rating)
@@ -137,19 +142,20 @@
 -1.570796
 -1.570796
 
--NAME asinFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN asin(a.unstrInt64Prop % 2 - 1)
----- 3
--1.570796
--1.570796
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME asinFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN asin(a.unstrInt64Prop % 2 - 1)
+#---- 3
+#-1.570796
+#-1.570796
+#
 
-
--NAME asinFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN asin(a.unstrNumericProp / 14)
----- 3
--1.103650
-0.237953
-
+#-NAME asinFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN asin(a.unstrNumericProp / 14)
+#---- 3
+#-1.103650
+#0.237953
+#
 
 -NAME acosFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN acos(a.rating)
@@ -165,19 +171,20 @@
 3.141593
 3.141593
 
--NAME acosFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN acos(a.unstrInt64Prop % 2 - 1)
----- 3
-3.141593
-3.141593
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME acosFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN acos(a.unstrInt64Prop % 2 - 1)
+#---- 3
+#3.141593
+#3.141593
+#
 
-
--NAME acosFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN acos(a.unstrNumericProp / 14)
----- 3
-2.674447
-1.332843
-
+#-NAME acosFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN acos(a.unstrNumericProp / 14)
+#---- 3
+#2.674447
+#1.332843
+#
 
 -NAME atanFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN atan(a.rating)
@@ -193,18 +200,19 @@
 -0.785398
 -0.785398
 
--NAME atanFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN atan(a.unstrInt64Prop % 2 - 1)
----- 3
--0.785398
--0.785398
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME atanFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN atan(a.unstrInt64Prop % 2 - 1)
+#---- 3
+#-0.785398
+#-0.785398
+#
 
-
--NAME atanFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN atan(a.unstrNumericProp / 14)
----- 3
--0.728855
-0.231489
+#-NAME atanFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN atan(a.unstrNumericProp / 14)
+#---- 3
+#-0.728855
+#0.231489
 
 -NAME evenFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN even(a.mark)
@@ -220,18 +228,19 @@
 934
 824
 
--NAME evenFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN even(a.unstrInt64Prop)
----- 3
-10
--4
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME evenFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN even(a.unstrInt64Prop)
+#---- 3
+#10
+#-4
+#
 
-
--NAME evenFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN even(a.unstrNumericProp)
----- 3
--14
-4
+#-NAME evenFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN even(a.unstrNumericProp)
+#---- 3
+#-14
+#4
 
 -NAME factorialFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
@@ -240,12 +249,13 @@
 24
 87178291200
 
--NAME factorialFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN factorial(a.unstrInt64Prop + 4)
----- 3
-87178291200
-1
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME factorialFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN factorial(a.unstrInt64Prop + 4)
+#---- 3
+#87178291200
+#1
+#
 
 -NAME signFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN sign(a.mark)
@@ -261,18 +271,19 @@
 1
 1
 
--NAME signFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN sign(a.unstrInt64Prop)
----- 3
-1
--1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME signFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN sign(a.unstrInt64Prop)
+#---- 3
+#1
+#-1
+#
 
-
--NAME signFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN sign(a.unstrNumericProp)
----- 3
--1
-1
+#-NAME signFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN sign(a.unstrNumericProp)
+#---- 3
+#-1
+#1
 
 -NAME sqrtFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN sqrt(a.mark)
@@ -288,19 +299,20 @@
 30.561414
 28.705400
 
--NAME sqrtFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN sqrt(a.unstrInt64Prop + 6)
----- 3
-1.414214
-4.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME sqrtFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN sqrt(a.unstrInt64Prop + 6)
+#---- 3
+#1.414214
+#4.000000
+#
 
-
--NAME sqrtFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN sqrt(a.unstrNumericProp + 13.5)
----- 3
-1.000000
-4.098780
-
+#-NAME sqrtFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN sqrt(a.unstrNumericProp + 13.5)
+#---- 3
+#1.000000
+#4.098780
+#
 
 -NAME cbrtFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN cbrt(a.mark)
@@ -316,19 +328,20 @@
 9.774974
 9.375096
 
--NAME cbrtFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN cbrt(a.unstrInt64Prop)
----- 3
-2.154435
--1.587401
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME cbrtFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN cbrt(a.unstrInt64Prop)
+#---- 3
+#2.154435
+#-1.587401
+#
 
-
--NAME cbrtFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN cbrt(a.unstrNumericProp)
----- 3
--2.320794
-1.488806
-
+#-NAME cbrtFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN cbrt(a.unstrNumericProp)
+#---- 3
+#-2.320794
+#1.488806
+#
 
 -NAME gammaFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN gamma(a.mark)
@@ -344,17 +357,18 @@
 6
 6
 
--NAME gammaFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN gamma(a.unstrInt64Prop + 7)
----- 3
-20922789888000
-2
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME gammaFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN gamma(a.unstrInt64Prop + 7)
+#---- 3
+#20922789888000
+#2
 
--NAME gammaFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN gamma(abs(a.unstrNumericProp) - 3)
----- 3
-119292.461995
-2.991569
+#-NAME gammaFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN gamma(abs(a.unstrNumericProp) - 3)
+#---- 3
+#119292.461995
+#2.991569
 
 -NAME lgammaFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN lgamma(a.mark)
@@ -370,12 +384,13 @@
 5451.570283
 4706.038471
 
--NAME lgammaFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN lgamma(a.unstrInt64Prop + 5)
----- 3
-0.000000
-25.191221
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME lgammaFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN lgamma(a.unstrInt64Prop + 5)
+#---- 3
+#0.000000
+#25.191221
+#
 
 -NAME lnFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN ln(a.mark)
@@ -391,19 +406,20 @@
 6.839476
 6.714171
 
--NAME lnFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN ln(a.unstrInt64Prop + 5)
----- 3
-2.708050
-0.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME lnFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN ln(a.unstrInt64Prop + 5)
+#---- 3
+#2.708050
+#0.000000
+#
 
-
--NAME lnFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN ln(a.unstrNumericProp + 13.2)
----- 3
--0.356675
-2.803360
-
+#-NAME lnFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN ln(a.unstrNumericProp + 13.2)
+#---- 3
+#-0.356675
+#2.803360
+#
 
 -NAME logFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN log(a.mark)
@@ -419,19 +435,20 @@
 2.970347
 2.915927
 
--NAME logFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN log(a.unstrInt64Prop + 5)
----- 3
-1.176091
-0.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME logFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN log(a.unstrInt64Prop + 5)
+#---- 3
+#1.176091
+#0.000000
+#
 
-
--NAME logFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN log(a.unstrNumericProp + 13.2)
----- 3
--0.154902
-1.217484
-
+#-NAME logFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN log(a.unstrNumericProp + 13.2)
+#---- 3
+#-0.154902
+#1.217484
+#
 
 -NAME log2FunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN log2(a.mark)
@@ -447,19 +464,20 @@
 9.867279
 9.686501
 
--NAME log2FunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN log2(a.unstrInt64Prop + 5)
----- 3
-3.906891
-0.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME log2FunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN log2(a.unstrInt64Prop + 5)
+#---- 3
+#3.906891
+#0.000000
+#
 
-
--NAME log2FunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN log2(a.unstrNumericProp + 13.2)
----- 3
--0.514573
-4.044394
-
+#-NAME log2FunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN log2(a.unstrNumericProp + 13.2)
+#---- 3
+#-0.514573
+#4.044394
+#
 
 -NAME degreesFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN degrees(a.mark)
@@ -475,19 +493,20 @@
 53514.258065
 47211.722319
 
--NAME degreesFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN degrees(a.unstrInt64Prop)
----- 3
-572.957795
--229.183118
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME degreesFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN degrees(a.unstrInt64Prop)
+#---- 3
+#572.957795
+#-229.183118
+#
 
-
--NAME degreesFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN degrees(a.unstrNumericProp)
----- 3
--716.197244
-189.076072
-
+#-NAME degreesFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN degrees(a.unstrNumericProp)
+#---- 3
+#-716.197244
+#189.076072
+#
 
 -NAME radiansFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN radians(a.mark)
@@ -503,19 +522,20 @@
 16.301375
 14.381513
 
--NAME radiansFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN radians(a.unstrInt64Prop)
----- 3
-0.174533
--0.069813
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME radiansFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN radians(a.unstrInt64Prop)
+#---- 3
+#0.174533
+#-0.069813
+#
 
-
--NAME radiansFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN radians(a.unstrNumericProp)
----- 3
--0.218166
-0.057596
-
+#-NAME radiansFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN radians(a.unstrNumericProp)
+#---- 3
+#-0.218166
+#0.057596
+#
 
 -NAME atan2FunctionOnDoubleDoubleTest
 -QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
@@ -545,26 +565,27 @@
 1.566407
 1.565821
 
--NAME atan2FunctionOnUnstrInt64DoubleTest
--QUERY MATCH (a:organisation) RETURN atan2(a.unstrInt64Prop, a.unstrNumericProp)
----- 3
-1.252049
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME atan2FunctionOnUnstrInt64DoubleTest
+#-QUERY MATCH (a:organisation) RETURN atan2(a.unstrInt64Prop, a.unstrNumericProp)
+#---- 3
+#1.252049
+#
+#
 
+#-NAME atan2FunctionOnUnstrDoubleUnstrDoubleTest
+#-QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrNumericProp)
+#---- 3
+#-2.356194
+#
+#0.785398
 
-
--NAME atan2FunctionOnUnstrDoubleUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrNumericProp)
----- 3
--2.356194
-
-0.785398
-
--NAME atan2FunctionOnUnstrDoubleUnstrIntTest
--QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrInt64Prop)
----- 3
-
-
-0.318748
+#-NAME atan2FunctionOnUnstrDoubleUnstrIntTest
+#-QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrInt64Prop)
+#---- 3
+#
+#
+#0.318748
 
 -NAME roundFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
@@ -580,33 +601,35 @@
 824.000000
 934.000000
 
--NAME roundFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.unstrNumericProp, a.unstrInt64Prop)
----- 3
-3.300000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME roundFunctionOnUnstrDoubleTest
+#-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.unstrNumericProp, a.unstrInt64Prop)
+#---- 3
+#3.300000
+#
+#
 
+#-NAME roundFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN round(a.unstrInt64Prop, 3)
+#---- 3
+#-4.000000
+#10.000000
+#
 
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME bitwiseXorFunctionOnInt64Test
+#-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN bitwise_xor(a.orgCode, a.score)
+#---- 3
+#-325
+#-966
+#831
 
--NAME roundFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN round(a.unstrInt64Prop, 3)
----- 3
--4.000000
-10.000000
-
-
--NAME bitwiseXorFunctionOnInt64Test
--QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN bitwise_xor(a.orgCode, a.score)
----- 3
--325
--966
-831
-
--NAME bitwiseXorFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN bitwise_xor(a.unstrInt64Prop, a.unstrInt64Prop)
----- 3
-0
-0
-
+#-NAME bitwiseXorFunctionOnUnstrInt64Test
+#-QUERY MATCH (a:organisation) RETURN bitwise_xor(a.unstrInt64Prop, a.unstrInt64Prop)
+#---- 3
+#0
+#0
+#
 
 -NAME piFunctionAddStrIntTest
 -QUERY MATCH (a:organisation) RETURN a.orgCode + pi()
@@ -615,17 +638,18 @@
 937.141593
 827.141593
 
--NAME piFunctionAddUnstrNumericalValTest
--QUERY MATCH (a:person) RETURN a.unstrNumericProp + pi()
----- 8
-50.141593
-55.141593
-71.141593
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME piFunctionAddUnstrNumericalValTest
+#-QUERY MATCH (a:person) RETURN a.unstrNumericProp + pi()
+#---- 8
+#50.141593
+#55.141593
+#71.141593
+#
+#
+#
+#
+#
 
 -NAME AbsFunctionStrInt
 -QUERY MATCH (a:organisation) RETURN abs(a.score)
@@ -634,12 +658,13 @@
 2
 7
 
--NAME AbsFunctionUnstrValue
--QUERY MATCH (a:organisation) RETURN abs(a.unstrNumericProp)
----- 3
-
-12.500000
-3.300000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME AbsFunctionUnstrValue
+#-QUERY MATCH (a:organisation) RETURN abs(a.unstrNumericProp)
+#---- 3
+#
+#12.500000
+#3.300000
 
 -NAME FloorFunctionStrInt
 -QUERY MATCH (a:organisation) RETURN floor(a.score)
@@ -648,12 +673,13 @@
 -100
 7
 
--NAME FloorFunctionUnstrValue
--QUERY MATCH (a:organisation) RETURN floor(a.unstrNumericProp)
----- 3
--13.000000
-
-3.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME FloorFunctionUnstrValue
+#-QUERY MATCH (a:organisation) RETURN floor(a.unstrNumericProp)
+#---- 3
+#-13.000000
+#
+#3.000000
 
 -NAME CeilFunctionStrInt
 -QUERY MATCH (a:organisation) RETURN ceil(a.score)
@@ -662,16 +688,17 @@
 -100
 7
 
--NAME CeilFunctionUnstrValue
--QUERY MATCH (a:organisation) RETURN ceiling(a.unstrNumericProp)
----- 3
--12.000000
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME CeilFunctionUnstrValue
+#-QUERY MATCH (a:organisation) RETURN ceiling(a.unstrNumericProp)
+#---- 3
+#-12.000000
+#
+#4.000000
 
-4.000000
-
--NAME CeilFloorFunctionTest
--QUERY MATCH (a:organisation) RETURN ceil(ceil(a.unstrNumericProp + abs(-0.5)) + floor(3.5))
----- 3
-
--9.000000
-7.000000
+#-NAME CeilFloorFunctionTest
+#-QUERY MATCH (a:organisation) RETURN ceil(ceil(a.unstrNumericProp + abs(-0.5)) + floor(3.5))
+#---- 3
+#
+#-9.000000
+#7.000000

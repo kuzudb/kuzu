@@ -3,10 +3,11 @@
 ---- 1
 1
 
--NAME TimestampDateEqual
--QUERY MATCH (a:person) WHERE date_trunc("daY", a.unstrTimestampProp2) = date('1976-12-23') RETURN COUNT(*)
----- 1
-1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME TimestampDateEqual
+#-QUERY MATCH (a:person) WHERE date_trunc("daY", a.unstrTimestampProp2) = date('1976-12-23') RETURN COUNT(*)
+#---- 1
+#1
 
 -NAME TimestampDateNotEqual
 -QUERY MATCH (a:person) WHERE date_trunc("daY", a.registerTime) <> date('1976-12-23') RETURN COUNT(*)
@@ -33,25 +34,26 @@
 ---- 1
 2
 
--NAME UnstructuredStructuredTimestampComparison
--QUERY MATCH (a:person) WHERE a.registerTime = a.unstrTimestampProp1 RETURN COUNT(*)
----- 1
-2
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredStructuredTimestampComparison
+#-QUERY MATCH (a:person) WHERE a.registerTime = a.unstrTimestampProp1 RETURN COUNT(*)
+#---- 1
+#2
 
--NAME TwoUnstructuredTimestampComparison
--QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <> a.unstrTimestampProp2 RETURN COUNT(*)
----- 1
-2
+#-NAME TwoUnstructuredTimestampComparison
+#-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <> a.unstrTimestampProp2 RETURN COUNT(*)
+#---- 1
+#2
 
--NAME TwoUnstructuredTimestampComparison
--QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= a.unstrTimestampProp2 RETURN COUNT(*)
----- 1
-2
+#-NAME TwoUnstructuredTimestampComparison
+#-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= a.unstrTimestampProp2 RETURN COUNT(*)
+#---- 1
+#2
 
--NAME UnstructuredTimestampLiteralComparison
--QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= timestamp('1985-11-22 13:12:22.562') RETURN COUNT(*)
----- 1
-2
+#-NAME UnstructuredTimestampLiteralComparison
+#-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= timestamp('1985-11-22 13:12:22.562') RETURN COUNT(*)
+#---- 1
+#2
 
 -NAME StructuredTimestampArithmeticAddInterval1
 -QUERY MATCH (a:person) RETURN a.registerTime + interval('47 hours 30 minutes 30 seconds')
@@ -78,17 +80,18 @@
 2025-02-25 23:53:30.30002
 2033-12-04 22:53:30.30002
 
--NAME UnstructuredTimestampArithmeticAddInterval
--QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
----- 8
-
-
-
-
-1956-09-16 13:39:22.312
-1972-06-13 07:43:22.874
-2033-03-15 07:57:30.312
-2041-12-22 06:57:30.312
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampArithmeticAddInterval
+#-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
+#---- 8
+#
+#
+#
+#
+#1956-09-16 13:39:22.312
+#1972-06-13 07:43:22.874
+#2033-03-15 07:57:30.312
+#2041-12-22 06:57:30.312
 
 -NAME StructuredTimestampArithmeticSubtractInterval
 -QUERY MATCH (a:person) RETURN a.registerTime - interval('12 years 7 months 10 days 20 h 30 m 100 us')
@@ -102,17 +105,18 @@
 2010-07-10 16:55:29.9999
 2019-04-19 15:55:29.9999
 
--NAME UnstructuredTimestampArithmeticSubtractInterval
--QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
----- 8
-
-
-
-
-1942-09-20 01:42:10
-1958-06-18 19:46:10.562
-2019-03-17 20:00:18
-2027-12-25 19:00:18
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampArithmeticSubtractInterval
+#-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
+#---- 8
+#
+#
+#
+#
+#1942-09-20 01:42:10
+#1958-06-18 19:46:10.562
+#2019-03-17 20:00:18
+#2027-12-25 19:00:18
 
 -NAME StructuredTimestampArithmeticSubtractTimestamp
 -QUERY MATCH (a:person) RETURN a.registerTime - timestamp('2013-01-02 14:22:31.45612')
@@ -126,17 +130,18 @@
 3701 days 23:02:58.54388
 6905 days 22:02:58.54388
 
--NAME UnstructuredTimestampArithmeticSubtractTimestamp
--QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - timestamp('1976-01-02 13:44:12')
----- 8
-
-
-
-
--10721 days -18:36:50
--4973 days -00:32:49.438
-17216 days 23:41:18
-20420 days 22:41:18
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampArithmeticSubtractTimestamp
+#-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - timestamp('1976-01-02 13:44:12')
+#---- 8
+#
+#
+#
+#
+#-10721 days -18:36:50
+#-4973 days -00:32:49.438
+#17216 days 23:41:18
+#20420 days 22:41:18
 
 -NAME StructuredTimestampMixedArithmeticOperations
 -QUERY MATCH (a:person) RETURN a.registerTime + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') - timestamp('1976-01-02 13:44:12')
@@ -150,17 +155,18 @@
 17027 days 02:45:58
 20231 days 01:45:58
 
--NAME UnstructuredTimestampMixedArithmeticOperations
--QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - timestamp('1976-01-02 13:44:12')
----- 8
-
-
-
-
--11469 days -06:59:10
--5720 days -12:55:09.438
-16469 days 11:18:58
-19673 days 10:18:58
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampMixedArithmeticOperations
+#-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - timestamp('1976-01-02 13:44:12')
+#---- 8
+#
+#
+#
+#
+#-11469 days -06:59:10
+#-5720 days -12:55:09.438
+#16469 days 11:18:58
+#19673 days 10:18:58
 
 -NAME StructuredTimestampConcatenateString
 -QUERY MATCH (a:person) RETURN concat(concat('Register Time: ', string(a.registerTime)), ' test')
@@ -174,12 +180,13 @@ Register Time: 2011-08-20 11:25:30 test
 Register Time: 2023-02-21 13:25:30 test
 Register Time: 2031-11-30 12:25:30 test
 
--NAME castToTimestamp
--QUERY MATCH (o:organisation) RETURN timestamp(o.unstrStringProp1)
----- 3
-
-
-1955-11-23 15:22:31
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME castToTimestamp
+#-QUERY MATCH (o:organisation) RETURN timestamp(o.unstrStringProp1)
+#---- 3
+#
+#
+#1955-11-23 15:22:31
 
 -NAME StructuredTimestampExtractYearFuncTest
 -QUERY MATCH (p:person) RETURN date_part("yeAr", p.registerTime)
@@ -193,17 +200,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976
 2023
 
--NAME UnstructuredTimestampExtractYearFuncTest
--QUERY MATCH (p:person) RETURN date_part("Y", p.unstrTimestampProp1)
----- 8
-2031
-1946
-1962
-2023
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractYearFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("Y", p.unstrTimestampProp1)
+#---- 8
+#2031
+#1946
+#1962
+#2023
+#
+#
+#
+#
 
 -NAME StructuredTimestampExtractMicroFuncTest
 -QUERY MATCH (p:person) RETURN date_part("microSeconds", p.registerTime)
@@ -217,17 +225,18 @@ Register Time: 2031-11-30 12:25:30 test
 42000000
 30000000
 
--NAME UnstructuredTimestampExtractMicroFuncTest
--QUERY MATCH (p:person) RETURN date_part("microsecond", p.unstrTimestampProp2)
----- 8
-42000000
-30000526
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractMicroFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("microsecond", p.unstrTimestampProp2)
+#---- 8
+#42000000
+#30000526
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampExtractMsFuncTest
 -QUERY MATCH (p:person) RETURN date_part("millisEcond", p.registerTime)
@@ -241,17 +250,17 @@ Register Time: 2031-11-30 12:25:30 test
 42000
 30000
 
--NAME UnstructuredTimestampExtractMsFuncTest
--QUERY MATCH (p:person) RETURN date_part("miLlisEconds", p.unstrTimestampProp2)
----- 8
-42000
-30000
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractMsFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("miLlisEconds", p.unstrTimestampProp2)
+#---- 8
+#42000
+#30000
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampExtractSecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("seConds", p.registerTime)
@@ -265,17 +274,18 @@ Register Time: 2031-11-30 12:25:30 test
 42
 30
 
--NAME UnstructuredTimestampExtractSecondFuncTest
--QUERY MATCH (p:person) RETURN date_part("seCOND", p.unstrTimestampProp2)
----- 8
-42
-30
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractSecondFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("seCOND", p.unstrTimestampProp2)
+#---- 8
+#42
+#30
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampExtractMinuteFuncTest
 -QUERY MATCH (p:person) RETURN date_part("minute", p.registerTime)
@@ -289,17 +299,18 @@ Register Time: 2031-11-30 12:25:30 test
 41
 25
 
--NAME UnstructuredTimestampExtractMinuteFuncTest
--QUERY MATCH (p:person) RETURN date_part("miNutes", p.unstrTimestampProp2)
----- 8
-21
-25
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractMinuteFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("miNutes", p.unstrTimestampProp2)
+#---- 8
+#21
+#25
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampExtractHourFuncTest
 -QUERY MATCH (p:person) RETURN date_part("hours", p.registerTime)
@@ -313,17 +324,18 @@ Register Time: 2031-11-30 12:25:30 test
 4
 13
 
--NAME UnstructuredTimestampExtractHourFuncTest
--QUERY MATCH (p:person) RETURN date_part("Hour", p.unstrTimestampProp2)
----- 8
-11
-13
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampExtractHourFuncTest
+#-QUERY MATCH (p:person) RETURN date_part("Hour", p.unstrTimestampProp2)
+#---- 8
+#11
+#13
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncDayFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("Day", p.registerTime)
@@ -337,17 +349,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 00:00:00
 2023-02-21 00:00:00
 
--NAME UnstructuredTimestampTruncDayFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("daY", p.unstrTimestampProp2)
----- 8
-1976-12-23 00:00:00
-2008-11-03 00:00:00
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncDayFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("daY", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 00:00:00
+#2008-11-03 00:00:00
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncMicrosecondsFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("MIcroseCond", p.registerTime)
@@ -361,17 +374,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--NAME UnstructuredTimestampTruncMicrosecondsFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("MIcroseconds", p.unstrTimestampProp2)
----- 8
-1976-12-23 11:21:42
-2008-11-03 13:25:30.000526
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncMicrosecondsFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("MIcroseconds", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 11:21:42
+#2008-11-03 13:25:30.000526
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncMillisecondsFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("mIlliSecond", p.registerTime)
@@ -385,17 +399,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--NAME UnstructuredTimestampTruncMillisecondsFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("mIlliSeconds", p.unstrTimestampProp2)
----- 8
-1976-12-23 11:21:42
-2008-11-03 13:25:30
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncMillisecondsFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("mIlliSeconds", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 11:21:42
+#2008-11-03 13:25:30
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncSecondsFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("secOnds", p.registerTime)
@@ -409,17 +424,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--NAME UnstructuredTimestampTruncSecondsFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("secondS", p.unstrTimestampProp2)
----- 8
-1976-12-23 11:21:42
-2008-11-03 13:25:30
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncSecondsFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("secondS", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 11:21:42
+#2008-11-03 13:25:30
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncMinuteFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("Minutes", p.registerTime)
@@ -433,17 +449,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:00
 2023-02-21 13:25:00
 
--NAME UnstructuredTimestampTruncMinuteFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("minutes", p.unstrTimestampProp2)
----- 8
-1976-12-23 11:21:00
-2008-11-03 13:25:00
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncMinuteFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("minutes", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 11:21:00
+#2008-11-03 13:25:00
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampTruncHourFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("Hours", p.registerTime)
@@ -457,17 +474,18 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:00:00
 2023-02-21 13:00:00
 
--NAME UnstructuredTimestampTruncHourFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("houRs", p.unstrTimestampProp2)
----- 8
-1976-12-23 11:00:00
-2008-11-03 13:00:00
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampTruncHourFuncTest
+#-QUERY MATCH (p:person) RETURN date_trunc("houRs", p.unstrTimestampProp2)
+#---- 8
+#1976-12-23 11:00:00
+#2008-11-03 13:00:00
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampCenturyFuncTest
 -QUERY MATCH (p:person) RETURN century(p.registerTime)
@@ -481,17 +499,18 @@ Register Time: 2031-11-30 12:25:30 test
 20
 21
 
--NAME UnstructuredTimestampCenturyFuncTest
--QUERY MATCH (p:person) RETURN century(p.unstrTimestampProp2)
----- 8
-20
-21
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampCenturyFuncTest
+#-QUERY MATCH (p:person) RETURN century(p.unstrTimestampProp2)
+#---- 8
+#20
+#21
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampDaynameFuncTest
 -QUERY MATCH (p:person) RETURN dayname(p.registerTime)
@@ -505,17 +524,18 @@ Monday
 Thursday
 Tuesday
 
--NAME UnstructuredTimestampDaynameFuncTest
--QUERY MATCH (p:person) RETURN dayname(p.unstrTimestampProp2)
----- 8
-Thursday
-Monday
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampDaynameFuncTest
+#-QUERY MATCH (p:person) RETURN dayname(p.unstrTimestampProp2)
+#---- 8
+#Thursday
+#Monday
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampMonthNameFuncTest
 -QUERY MATCH (p:person) RETURN monthname(p.registerTime)
@@ -529,17 +549,18 @@ July
 December
 February
 
--NAME UnstructuredTimestampMonthNameFuncTest
--QUERY MATCH (p:person) RETURN monthname(p.unstrTimestampProp2)
----- 8
-December
-November
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampMonthNameFuncTest
+#-QUERY MATCH (p:person) RETURN monthname(p.unstrTimestampProp2)
+#---- 8
+#December
+#November
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampLastDayFuncTest
 -QUERY MATCH (p:person) RETURN last_day(p.registerTime)
@@ -553,17 +574,18 @@ November
 1976-12-31
 2023-02-28
 
--NAME UnstructuredTimestampLastDayFuncTest
--QUERY MATCH (p:person) RETURN last_day(p.unstrTimestampProp2)
----- 8
-1976-12-31
-2008-11-30
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampLastDayFuncTest
+#-QUERY MATCH (p:person) RETURN last_day(p.unstrTimestampProp2)
+#---- 8
+#1976-12-31
+#2008-11-30
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64EpochMsFuncTest
 -QUERY MATCH (p:person) RETURN epoch_ms(p.age)
@@ -577,17 +599,18 @@ November
 1970-01-01 00:00:00.04
 1970-01-01 00:00:00.083
 
--NAME UnstructuredInt64EpochMsFuncTest
--QUERY MATCH (p:person) RETURN epoch_ms(p.unstrInt64Prop)
----- 8
-1970-01-06 05:20:44.124
-1970-01-01 01:15:41.124
-1970-01-01 01:13:32.124
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64EpochMsFuncTest
+#-QUERY MATCH (p:person) RETURN epoch_ms(p.unstrInt64Prop)
+#---- 8
+#1970-01-06 05:20:44.124
+#1970-01-01 01:15:41.124
+#1970-01-01 01:13:32.124
+#
+#
+#
+#
+#
 
 -NAME StructuredInt64ToTimestampFuncTest
 -QUERY MATCH (p:person) RETURN to_timestamp(p.age)
@@ -601,17 +624,18 @@ November
 1970-01-01 00:00:40
 1970-01-01 00:01:23
 
--NAME UnstructuredInt64ToTimestampFuncTest
--QUERY MATCH (p:person) RETURN to_timestamp(p.unstrInt64Prop)
----- 8
-1984-04-19 17:35:24
-1970-02-22 13:25:24
-1970-02-21 01:35:24
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredInt64ToTimestampFuncTest
+#-QUERY MATCH (p:person) RETURN to_timestamp(p.unstrInt64Prop)
+#---- 8
+#1984-04-19 17:35:24
+#1970-02-22 13:25:24
+#1970-02-21 01:35:24
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampGreatestFuncTest
 -QUERY MATCH (p:person) RETURN greatest(p.registerTime, timestamp("2006-02-12 11:25:33"))
@@ -625,17 +649,18 @@ November
 2006-02-12 11:25:33
 2023-02-21 13:25:30
 
--NAME UnstructuredTimestampGreatestFuncTest
--QUERY MATCH (p:person) RETURN greatest(p.unstrTimestampProp2, timestamp("1986-02-12 11:25:33"))
----- 8
-1986-02-12 11:25:33
-2008-11-03 13:25:30.000526
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampGreatestFuncTest
+#-QUERY MATCH (p:person) RETURN greatest(p.unstrTimestampProp2, timestamp("1986-02-12 11:25:33"))
+#---- 8
+#1986-02-12 11:25:33
+#2008-11-03 13:25:30.000526
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampLeastFuncTest
 -QUERY MATCH (p:person) RETURN least(p.registerTime, timestamp("2006-02-12 11:25:33"))
@@ -649,17 +674,18 @@ November
 1976-12-23 04:41:42
 2006-02-12 11:25:33
 
--NAME UnstructuredTimestampLeastFuncTest
--QUERY MATCH (p:person) RETURN least(p.unstrTimestampProp2, timestamp("1986-02-12 11:25:33"))
----- 8
-1976-12-23 11:21:42
-1986-02-12 11:25:33
-
-
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstructuredTimestampLeastFuncTest
+#-QUERY MATCH (p:person) RETURN least(p.unstrTimestampProp2, timestamp("1986-02-12 11:25:33"))
+#---- 8
+#1976-12-23 11:21:42
+#1986-02-12 11:25:33
+#
+#
+#
+#
+#
+#
 
 -NAME StructuredTimestampComparisonAcrossNodesNonEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <> b.registerTime RETURN COUNT(*)

@@ -161,41 +161,44 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
     }
 }
 
-TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
-        graph->getNodesStore().getNodeUnstrPropertyLists(tableID));
-    auto& propertyNameToIdMap =
-        catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(tableID);
-    for (int i = 0; i < 1000; ++i) {
-        auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
-        if (i == 300 || i == 400 || i == 500) {
-            EXPECT_EQ(i * 4, propertiesMap->size());
-            for (int j = 0; j < i; ++j) {
-                EXPECT_EQ("strPropVal" + to_string(j),
-                    propertiesMap->at(propertyNameToIdMap.at("strPropKey" + to_string(j))).strVal);
-                EXPECT_EQ(
-                    j, propertiesMap->at(propertyNameToIdMap.at("int64PropKey" + to_string(j)))
-                           .val.int64Val);
-                EXPECT_EQ(j * 1.0,
-                    propertiesMap->at(propertyNameToIdMap.at("doublePropKey" + to_string(j)))
-                        .val.doubleVal);
-                EXPECT_FALSE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey" + to_string(j)))
-                                 .val.booleanVal);
-            }
-        } else {
-            EXPECT_EQ(4, propertiesMap->size());
-            EXPECT_EQ(
-                "strPropVal1", propertiesMap->at(propertyNameToIdMap.at("strPropKey1")).strVal);
-            EXPECT_EQ(1, propertiesMap->at(propertyNameToIdMap.at("int64PropKey1")).val.int64Val);
-            EXPECT_EQ(
-                1.0, propertiesMap->at(propertyNameToIdMap.at("doublePropKey1")).val.doubleVal);
-            EXPECT_TRUE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey1")).val.booleanVal);
-        }
-    }
-}
+// TODO(Semih): Uncomment when enabling ad-hoc properties
+// TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
+//    auto graph = database->getStorageManager();
+//    auto& catalog = *database->getCatalog();
+//    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+//    auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
+//        graph->getNodesStore().getNodeUnstrPropertyLists(tableID));
+//    auto& propertyNameToIdMap =
+//        catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(tableID);
+//    for (int i = 0; i < 1000; ++i) {
+//        auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
+//        if (i == 300 || i == 400 || i == 500) {
+//            EXPECT_EQ(i * 4, propertiesMap->size());
+//            for (int j = 0; j < i; ++j) {
+//                EXPECT_EQ("strPropVal" + to_string(j),
+//                    propertiesMap->at(propertyNameToIdMap.at("strPropKey" +
+//                    to_string(j))).strVal);
+//                EXPECT_EQ(
+//                    j, propertiesMap->at(propertyNameToIdMap.at("int64PropKey" + to_string(j)))
+//                           .val.int64Val);
+//                EXPECT_EQ(j * 1.0,
+//                    propertiesMap->at(propertyNameToIdMap.at("doublePropKey" + to_string(j)))
+//                        .val.doubleVal);
+//                EXPECT_FALSE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey" +
+//                to_string(j)))
+//                                 .val.booleanVal);
+//            }
+//        } else {
+//            EXPECT_EQ(4, propertiesMap->size());
+//            EXPECT_EQ(
+//                "strPropVal1", propertiesMap->at(propertyNameToIdMap.at("strPropKey1")).strVal);
+//            EXPECT_EQ(1, propertiesMap->at(propertyNameToIdMap.at("int64PropKey1")).val.int64Val);
+//            EXPECT_EQ(
+//                1.0, propertiesMap->at(propertyNameToIdMap.at("doublePropKey1")).val.doubleVal);
+//            EXPECT_TRUE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey1")).val.booleanVal);
+//        }
+//    }
+//}
 
 void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     // p0 has 5001 fwd edges to p0...p5000
@@ -323,9 +326,10 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);
 }
 
-TEST_F(CopyCSVEmptyListsTest, CopyCSVEmptyLists) {
-    testCopyCSVEmptyListsTest();
-}
+// TODO(Semih): Uncomment when enabling ad-hoc properties
+// TEST_F(CopyCSVEmptyListsTest, CopyCSVEmptyLists) {
+//    testCopyCSVEmptyListsTest();
+//}
 
 TEST_F(CopyCSVLongStringTest, LongStringError) {
     auto storageManager = database->getStorageManager();

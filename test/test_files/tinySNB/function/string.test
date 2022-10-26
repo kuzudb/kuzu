@@ -88,20 +88,22 @@
 ---- 1
 1
 
--NAME UnstrDateVarAndStrVarConcatUnstructured
--QUERY MATCH (a:person) WHERE '1950-01-01Carol' = concat(a.unstrDateProp1, a.fName) RETURN COUNT(*)
----- 1
-1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstrDateVarAndStrVarConcatUnstructured
+#-QUERY MATCH (a:person) WHERE '1950-01-01Carol' = concat(a.unstrDateProp1, a.fName) RETURN COUNT(*)
+#---- 1
+#1
 
 -NAME TimestampVarAndStrVarConcatStructured
 -QUERY MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = concat(string(a.registerTime), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME UnstrTimestampVarAndStrVarConcatUnstructured
--QUERY MATCH (a:person) WHERE '1962-05-22 13:11:22.562Greg' = concat(a.unstrTimestampProp1, a.fName) RETURN COUNT(*)
----- 1
-1
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UnstrTimestampVarAndStrVarConcatUnstructured
+#-QUERY MATCH (a:person) WHERE '1962-05-22 13:11:22.562Greg' = concat(a.unstrTimestampProp1, a.fName) RETURN COUNT(*)
+#---- 1
+#1
 
 -NAME ContainsReturn
 -QUERY MATCH (a:person) RETURN a.fName, a.fName CONTAINS "a" ORDER BY a.fName
@@ -130,10 +132,11 @@ Bob
 ---- 1
 7
 
--NAME ContainsSelect4
--QUERY MATCH (a:person) WHERE a.fName <> "Alice" and a.label2 CONTAINS a.label2 RETURN count(*)
----- 1
-4
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME ContainsSelect4
+#-QUERY MATCH (a:person) WHERE a.fName <> "Alice" and a.label2 CONTAINS a.label2 RETURN count(*)
+#---- 1
+#4
 
 -NAME StartsWithReturn1
 -QUERY MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
@@ -154,28 +157,29 @@ True
 False
 False
 
--NAME StartsWithReturn2
--QUERY MATCH (a:person) RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
----- 8
-excellent|False
-good|True
-good|True
-good|True
-|
-|
-|
-|
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME StartsWithReturn2
+#-QUERY MATCH (a:person) RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
+#---- 8
+#excellent|False
+#good|True
+#good|True
+#good|True
+#|
+#|
+#|
+#|
 
--NAME StartsWithFilterReturn
--QUERY MATCH (a:person) WHERE a.ID <> 0 RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
----- 7
-excellent|False
-good|True
-good|True
-|
-|
-|
-|
+#-NAME StartsWithFilterReturn
+#-QUERY MATCH (a:person) WHERE a.ID <> 0 RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
+#---- 7
+#excellent|False
+#good|True
+#good|True
+#|
+#|
+#|
+#|
 
 -NAME StartsWithSelect
 -QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
@@ -189,12 +193,13 @@ abfsuni
 cswork
 deswork
 
--NAME LowerUnstructuredStr
--QUERY MATCH (o:organisation) RETURN lower(o.unstrStr)
----- 3
-  perfect
-  excellent organisation   
-good organisation ! 
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME LowerUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN lower(o.unstrStr)
+#---- 3
+#  perfect
+#  excellent organisation
+#good organisation !
 
 -NAME UpperStructuredStr
 -QUERY MATCH (o:organisation) RETURN upper(o.name)
@@ -203,12 +208,13 @@ ABFSUNI
 CSWORK
 DESWORK
 
--NAME UpperUnstructuredStr
--QUERY MATCH (o:organisation) RETURN ucase(o.unstrStr)
----- 3
-  PERFECT
-  EXCELLENT ORGANISATION   
-GOOD ORGANISATION ! 
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME UpperUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN ucase(o.unstrStr)
+#---- 3
+#  PERFECT
+#  EXCELLENT ORGANISATION
+#GOOD ORGANISATION !
 
 -NAME TrimStructuredStr
 -QUERY MATCH (o:organisation) RETURN trim(o.name)
@@ -217,12 +223,13 @@ ABFsUni
 CsWork
 DEsWork
 
--NAME TrimUnstructuredStr
--QUERY MATCH (o:organisation) RETURN trim(o.unstrStr)
----- 3
-pERfECt
-EXcELLENT organisation
-GoOd organisation !
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME TrimUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN trim(o.unstrStr)
+#---- 3
+#pERfECt
+#EXcELLENT organisation
+#GoOd organisation !
 
 -NAME LtrimStructuredStr
 -QUERY MATCH (o:organisation) RETURN ltrim(o.name)
@@ -231,12 +238,13 @@ ABFsUni
 CsWork
 DEsWork
 
--NAME LtrimUnstructuredStr
--QUERY MATCH (o:organisation) RETURN ltrim(o.unstrStr)
----- 3
-pERfECt
-EXcELLENT organisation   
-GoOd organisation ! 
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME LtrimUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN ltrim(o.unstrStr)
+#---- 3
+#pERfECt
+#EXcELLENT organisation
+#GoOd organisation !
 
 -NAME RtrimStructuredStr
 -QUERY MATCH (o:organisation) RETURN rtrim(o.name)
@@ -245,12 +253,13 @@ ABFsUni
 CsWork
 DEsWork
 
--NAME RtrimUnstructuredStr
--QUERY MATCH (o:organisation) RETURN rtrim(o.unstrStr)
----- 3
-  pERfECt
-  EXcELLENT organisation
-GoOd organisation !
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME RtrimUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN rtrim(o.unstrStr)
+#---- 3
+#  pERfECt
+#  EXcELLENT organisation
+#GoOd organisation !
 
 -NAME ReverseStructuredStr
 -QUERY MATCH (o:organisation) RETURN reverse(o.name)
@@ -259,12 +268,13 @@ inUsFBA
 kroWsC
 kroWsED
 
--NAME ReverseUnstructuredStr
--QUERY MATCH (o:organisation) RETURN reverse(o.unstrStr)
----- 3
-tCEfREp  
-   noitasinagro TNELLEcXE  
- ! noitasinagro dOoG
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME ReverseUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN reverse(o.unstrStr)
+#---- 3
+#tCEfREp
+#   noitasinagro TNELLEcXE
+# ! noitasinagro dOoG
 
 -NAME LengthStructuredStr
 -QUERY MATCH (o:organisation) RETURN length(o.name)
@@ -273,12 +283,13 @@ tCEfREp
 6
 7
 
--NAME LengthUnstructuredStr
--QUERY MATCH (o:organisation) RETURN length(o.unstrStr)
----- 3
-9
-27
-20
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME LengthUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN length(o.unstrStr)
+#---- 3
+#9
+#27
+#20
 
 -NAME RepeatStructuredStr
 -QUERY MATCH (o:organisation) RETURN repeat(o.name, o.ID)
@@ -287,12 +298,13 @@ ABFsUni
 CsWorkCsWorkCsWorkCsWork
 DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
 
--NAME RepeatUnstructuredStr
--QUERY MATCH (o:organisation) RETURN repeat(o.unstrStr, o.ID)
----- 3
-  pERfECt
-  EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation   
-GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! 
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME RepeatUnstructuredStr
+#-QUERY MATCH (o:organisation) RETURN repeat(o.unstrStr, o.ID)
+#---- 3
+#  pERfECt
+#  EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation
+#GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation !
 
 -NAME LpadStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN lpad(p.fName, 5, "<")
@@ -306,29 +318,30 @@ Faroo
 <Greg
 Huber
 
--NAME LpadStructuredStrAndStructuredInt
--QUERY MATCH (p:person) RETURN lpad(p.fName, p.ID, "<")
----- 8
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME LpadStructuredStrAndStructuredInt
+#-QUERY MATCH (p:person) RETURN lpad(p.fName, p.ID, "<")
+#---- 8
+#
+#Bo
+#Car
+#<<Dan
+#Elizabe
+#<<Farooq
+#<<<<<Greg
+#Hubert Bla
 
-Bo
-Car
-<<Dan
-Elizabe
-<<Farooq
-<<<<<Greg
-Hubert Bla
-
--NAME LpadUnstructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN lpad(p.label1, 10, "<")
----- 8
-<<<<<<good
-<<<<<<good
-<excellent
-<<<<<<good
-
-
-
-
+#-NAME LpadUnstructuredStrAndLiteralInt
+#-QUERY MATCH (p:person) RETURN lpad(p.label1, 10, "<")
+#---- 8
+#<<<<<<good
+#<<<<<<good
+#<excellent
+#<<<<<<good
+#
+#
+#
+#
 
 -NAME RpadStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN rpad(p.fName, 15, ">")
@@ -354,17 +367,18 @@ Farooq<<
 Greg<<<<<
 Hubert Bla
 
--NAME RpadUnstructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN rpad(p.label1, 5, ">")
----- 8
-good>
-good>
-excel
-good>
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME RpadUnstructuredStrAndLiteralInt
+#-QUERY MATCH (p:person) RETURN rpad(p.label1, 5, ">")
+#---- 8
+#good>
+#good>
+#excel
+#good>
+#
+#
+#
+#
 
 -NAME SubStrStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN substr(p.fName, 2, 12)
@@ -378,16 +392,17 @@ arooq
 reg
 ubert Blaine
 
--NAME SubStrUnstructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN substring(p.label1, 3, 2)
----- 8
-od
-od
-ce
-od
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME SubStrUnstructuredStrAndLiteralInt
+#-QUERY MATCH (p:person) RETURN substring(p.label1, 3, 2)
+#---- 8
+#od
+#od
+#ce
+#od
+#
+#
+#
 
 -NAME LeftPositiveIdxStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN left(p.fName, 11)
@@ -420,17 +435,18 @@ Far
 G
 Hubert Blaine Wolfeschlegelsteinhausenbergerdo
 
--NAME LeftUnstructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN left(p.label1, 2)
----- 8
-go
-go
-ex
-go
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME LeftUnstructuredStrAndLiteralInt
+#-QUERY MATCH (p:person) RETURN left(p.label1, 2)
+#---- 8
+#go
+#go
+#ex
+#go
+#
+#
+#
+#
 
 -NAME RightPositiveIdxStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN right(p.fName, 10)
@@ -463,17 +479,18 @@ rooq
 eg
 bert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME RightUnstructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN right(p.label1, 3)
----- 8
-ood
-ood
-ent
-ood
-
-
-
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME RightUnstructuredStrAndLiteralInt
+#-QUERY MATCH (p:person) RETURN right(p.label1, 3)
+#---- 8
+#ood
+#ood
+#ent
+#ood
+#
+#
+#
+#
 
 -NAME ArrayExtractPositiveIdxStructuredStrAndStructuredInt
 -QUERY MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
@@ -496,27 +513,28 @@ B
 s
 E
 
--NAME ListExtractUnstructuredString
--QUERY MATCH (o:organisation) RETURN o.unstrStr[4]
----- 3
-E
-X
-d
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME ListExtractUnstructuredString
+#-QUERY MATCH (o:organisation) RETURN o.unstrStr[4]
+#---- 3
+#E
+#X
+#d
 
--NAME UnstrStrEqual
--QUERY MATCH (o:organisation) WHERE o.unstrStr = '  pERfECt' RETURN count(*)
----- 1
-1
+#-NAME UnstrStrEqual
+#-QUERY MATCH (o:organisation) WHERE o.unstrStr = '  pERfECt' RETURN count(*)
+#---- 1
+#1
 
--NAME UnstrStrNotEqual
--QUERY MATCH (o:organisation) WHERE o.unstrStr <> '  pERfECt' RETURN count(*)
----- 1
-2
+#-NAME UnstrStrNotEqual
+#-QUERY MATCH (o:organisation) WHERE o.unstrStr <> '  pERfECt' RETURN count(*)
+#---- 1
+#2
 
--NAME UnstrStrComparison
--QUERY MATCH (o:organisation) WHERE o.unstrStr < "Test string" RETURN count(*)
----- 1
-3
+#-NAME UnstrStrComparison
+#-QUERY MATCH (o:organisation) WHERE o.unstrStr < "Test string" RETURN count(*)
+#---- 1
+#3
 
 -NAME SuffixStructuredStr
 -QUERY MATCH (o:organisation) RETURN suffix(o.name, "Work")
@@ -525,17 +543,18 @@ False
 True
 True
 
--NAME SuffixUnstructuredStr
--QUERY MATCH (p:person) RETURN suffix(p.label1, "od")
----- 8
-True
-
-
-True
-
-False
-True
-
+# TODO(Semih): Uncomment when enabling ad-hoc properties
+#-NAME SuffixUnstructuredStr
+#-QUERY MATCH (p:person) RETURN suffix(p.label1, "od")
+#---- 8
+#True
+#
+#
+#True
+#
+#False
+#True
+#
 
 -NAME SuffixSelect
 -QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
