@@ -63,8 +63,12 @@ public:
 };
 
 template<typename FROM, typename TO>
-unique_ptr<TO> static_unique_pointer_cast(unique_ptr<FROM>&& old) {
+unique_ptr<TO> gf_static_unique_pointer_cast(unique_ptr<FROM>&& old) {
     return unique_ptr<TO>{static_cast<TO*>(old.release())};
+}
+template<class FROM, class TO>
+shared_ptr<TO> gf_reinterpret_pointer_cast(const shared_ptr<FROM>& r) {
+    return shared_ptr<TO>(r, reinterpret_cast<typename shared_ptr<TO>::element_type*>(r.get()));
 }
 
 class BitmaskUtils {
