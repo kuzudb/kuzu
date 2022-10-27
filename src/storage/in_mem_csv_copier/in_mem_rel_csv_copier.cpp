@@ -7,22 +7,19 @@ namespace graphflow {
 namespace storage {
 
 InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeTable,
-    BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics)
+    TaskScheduler& taskScheduler, Catalog& catalog,
+    map<table_id_t, uint64_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+    table_id_t tableID, RelsStatistics* relsStatistics)
     : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
       maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)}, relsStatistics{relsStatistics} {
     startRelID = relsStatistics->getNextRelID();
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    IDIndexes.resize(catalog.getReadOnlyVersion()->getNumNodeTables());
-    for (auto& nodeTableIDs : relTableSchema->getAllNodeTableIDs()) {
-        assert(IDIndexes[nodeTableIDs] == nullptr);
-        IDIndexes[nodeTableIDs] = make_unique<HashIndex>(
-            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableIDs),
-            catalog.getReadOnlyVersion()
-                ->getNodeTableSchema(nodeTableIDs)
-                ->getPrimaryKey()
-                .dataType,
+    for (auto& nodeTableID : relTableSchema->getAllNodeTableIDs()) {
+        assert(!IDIndexes.contains(nodeTableID));
+        IDIndexes[nodeTableID] = make_unique<HashIndex>(
+            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
+            catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
             *bufferManager, true /* isInMemory */);
     }
 }
@@ -60,18 +57,20 @@ void InMemRelCSVCopier::countLinesPerBlock() {
 }
 
 void InMemRelCSVCopier::initializeColumnsAndLists() {
+    directionNumRelsPerTable.resize(2);
+    directionTableListSizes.resize(2);
     for (auto relDirection : REL_DIRECTIONS) {
         directionNodeIDCompressionScheme[relDirection] = NodeIDCompressionScheme(
             catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 relTableSchema->tableID, !relDirection));
-        directionNumRelsPerTable[relDirection] =
-            make_unique<atomic_uint64_vec_t>(catalog.getReadOnlyVersion()->getNumNodeTables());
-        directionTableListSizes[relDirection].resize(
-            catalog.getReadOnlyVersion()->getNumNodeTables());
         for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
+            // Note we cannot do:
+            // directionNumRelsPerTable[relDirection][tableIDSchema.first] = atomic<uint64_t>(0);
+            // because atomic values are not movable.
+            directionNumRelsPerTable[relDirection].emplace(tableIDSchema.first, 0);
             directionTableListSizes[relDirection][tableIDSchema.first] =
                 make_unique<atomic_uint64_vec_t>(
-                    maxNodeOffsetsPerTable[tableIDSchema.first] + 1 /* num nodes */);
+                    maxNodeOffsetsPerTable.at(tableIDSchema.first) + 1 /* num nodes */);
         }
         if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relTableSchema->tableID, relDirection)) {
@@ -94,7 +93,7 @@ void InMemRelCSVCopier::initializeColumns(RelDirection relDirection) {
     auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
         relTableSchema->tableID, relDirection);
     for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable[nodeTableID] + 1;
+        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) + 1;
         directionTableAdjColumns[relDirection].emplace(nodeTableID,
             make_unique<InMemAdjColumn>(
                 StorageUtils::getAdjColumnFName(outputDirectory, relTableSchema->tableID,
@@ -118,7 +117,7 @@ void InMemRelCSVCopier::initializeLists(RelDirection relDirection) {
     auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
         relTableSchema->tableID, relDirection);
     for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable[nodeTableID] + 1;
+        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) + 1;
         directionTableAdjLists[relDirection].emplace(nodeTableID,
             make_unique<InMemAdjLists>(
                 StorageUtils::getAdjListsFName(outputDirectory, relTableSchema->tableID,
@@ -176,35 +175,6 @@ void InMemRelCSVCopier::skipFirstRowIfNecessary(
     }
 }
 
-vector<bool> InMemRelCSVCopier::getTableLabelConfig(
-    vector<bool> requireToReadTableLabels, InMemRelCSVCopier* copier) {
-    auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-
-    // -1 for _id field, +2 for start and end id.
-    auto expectedNumberOfFieldsLower =
-        numPropertiesToRead - 1 + 2 +
-        accumulate(requireToReadTableLabels.begin(), requireToReadTableLabels.end(), 0);
-    // For upper limit, always expect both table label columns.
-    auto expectedNumberOfFieldsUpper = numPropertiesToRead - 1 + 2 + 2;
-    vector<bool> hasTableLabelColumn;
-    if (copier->csvDescription.numberOfFields == expectedNumberOfFieldsUpper) {
-        hasTableLabelColumn = {true, true};
-    } else if (copier->csvDescription.numberOfFields == expectedNumberOfFieldsLower) {
-        hasTableLabelColumn = requireToReadTableLabels;
-    } else {
-        throw CopyCSVException(
-            "The number of fields in the CSV file does not match number of fields expected. "
-            "Expecting " +
-            (expectedNumberOfFieldsLower == expectedNumberOfFieldsUpper ?
-                    to_string(expectedNumberOfFieldsLower) :
-                    (to_string(expectedNumberOfFieldsLower) + " or " +
-                        to_string(expectedNumberOfFieldsUpper))) +
-            " fields. The CSV file has " + to_string(copier->csvDescription.numberOfFields) +
-            " fields.");
-    }
-    return hasTableLabelColumn;
-}
-
 void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->debug("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
@@ -218,7 +188,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
         auto nodeTableIDs =
             copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
                 copier->relTableSchema->tableID, relDirection);
-        requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
+        requireToReadTableLabels[relDirection] = nodeTableIDs.size() > 1;
         nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
         nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
                                         ->getNodeTableSchema(nodeIDs[relDirection].tableID)
@@ -227,12 +197,10 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     }
     vector<PageByteCursor> inMemOverflowFileCursors{copier->relTableSchema->getNumProperties()};
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-    auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
-            requireToReadTableLabels);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -243,7 +211,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
                 InMemListsUtils::incrementListSize(
                     *copier->directionTableListSizes[relDirection].at(tableID), nodeOffset, 1);
             }
-            copier->directionNumRelsPerTable[relDirection]->operator[](tableID)++;
+            copier->directionNumRelsPerTable[relDirection].at(tableID)++;
         }
         if (numPropertiesToRead != 0) {
             putPropsOfLineIntoColumns(numPropertiesToRead, copier->directionTablePropertyColumns,
@@ -263,7 +231,7 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
     vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
     const vector<nodeID_t>& nodeIDs) {
     for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
-        reader.hasNextToken();
+        reader.hasNextTokenOrError();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
@@ -334,30 +302,32 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
 }
 
 void InMemRelCSVCopier::inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-    vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-    Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn,
-    vector<bool> requireToReadTableLabels) {
+    vector<DataType>& nodeIDTypes, const map<table_id_t, unique_ptr<HashIndex>>& IDIndexes,
+    Transaction* transaction, const Catalog& catalog, vector<bool> requireToReadTableLabels) {
     for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
-        if (hasTableLabelColumn[relDirection]) {
-            if (requireToReadTableLabels[relDirection]) {
-                nodeIDs[relDirection].tableID =
-                    catalog.getReadOnlyVersion()->getNodeTableIDFromName(reader.getString());
+        if (requireToReadTableLabels[relDirection]) {
+            auto nodeTableName = reader.getString();
+            if (!catalog.getReadOnlyVersion()->containNodeTable(nodeTableName)) {
+                throw CopyCSVException(
+                    "NodeTableName: " + string(nodeTableName) + " does not exist.");
             }
+            nodeIDs[relDirection].tableID =
+                catalog.getReadOnlyVersion()->getNodeTableIDFromName(reader.getString());
             reader.hasNextToken();
         }
         auto keyStr = reader.getString();
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
             auto key = TypeUtils::convertToInt64(keyStr);
-            if (!IDIndexes[nodeIDs[relDirection].tableID]->lookup(
-                    transaction, key, nodeIDs[relDirection].offset)) {
+            if (!IDIndexes.at(nodeIDs[relDirection].tableID)
+                     ->lookup(transaction, key, nodeIDs[relDirection].offset)) {
                 throw CopyCSVException("Cannot find key: " + to_string(key) + " in the IDIndex.");
             }
         } break;
         case STRING: {
-            if (!IDIndexes[nodeIDs[relDirection].tableID]->lookup(
-                    transaction, keyStr, nodeIDs[relDirection].offset)) {
+            if (!IDIndexes.at(nodeIDs[relDirection].tableID)
+                     ->lookup(transaction, keyStr, nodeIDs[relDirection].offset)) {
                 throw CopyCSVException("Cannot find key: " + string(keyStr) + " in the IDIndex.");
             }
         } break;
@@ -471,7 +441,7 @@ void InMemRelCSVCopier::initAdjListsHeaders() {
             directionNodeIDCompressionScheme[relDirection].getNumBytesForNodeIDAfterCompression();
         for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                calculateListHeadersTask, maxNodeOffsetsPerTable[tableID] + 1, numBytesPerNode,
+                calculateListHeadersTask, maxNodeOffsetsPerTable.at(tableID) + 1, numBytesPerNode,
                 directionTableListSizes[relDirection][tableID].get(),
                 adjList->getListHeadersBuilder(), logger));
         }
@@ -485,7 +455,7 @@ void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
         "Initializing adjLists and propertyLists metadata for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
         for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable[tableID] + 1;
+            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
             auto listSizes = directionTableListSizes[relDirection][tableID].get();
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                 calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
@@ -545,12 +515,10 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     }
     vector<PageByteCursor> inMemOverflowFileCursors(copier->relTableSchema->getNumProperties());
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
-    auto hasTableLabelColumn = getTableLabelConfig(requireToReadTableLabels, copier);
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, hasTableLabelColumn,
-            requireToReadTableLabels);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->relTableSchema->tableID, relDirection)) {
@@ -659,7 +627,7 @@ void InMemRelCSVCopier::sortOverflowValues() {
     for (auto relDirection : REL_DIRECTIONS) {
         // Sort overflow values of property Lists.
         for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable[tableID] + 1;
+            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
@@ -687,7 +655,7 @@ void InMemRelCSVCopier::sortOverflowValues() {
     // Sort overflow values of property columns.
     for (auto relDirection : REL_DIRECTIONS) {
         for (auto& [tableID, column] : directionTablePropertyColumns[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable[tableID] + 1;
+            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {

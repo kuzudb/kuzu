@@ -9,6 +9,7 @@ void CopyRelCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executi
     auto relCSVCopier = make_unique<InMemRelCSVCopier>(csvDescription, wal->getDirectory(),
         taskScheduler, *catalog, nodesStatisticsAndDeletedIDs->getMaxNodeOffsetPerTable(),
         executionContext->bufferManager, tableSchema.tableID, relsStatistics);
+    errorIfTableIsNonEmpty(relsStatistics);
     // Note: This copy function will update the numRelsPerDirectionBoundTable and numRels
     // information in relsStatistics for this relTable.
     relCSVCopier->copy();

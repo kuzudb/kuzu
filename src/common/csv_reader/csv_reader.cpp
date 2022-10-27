@@ -80,25 +80,24 @@ bool CSVReader::hasNextLine() {
         auto lastPos = ftell(fd);
         isEndOfBlock = true;
         auto sizeOfRemainder = lastPos - curPos;
-        if (sizeOfRemainder > 0) {
-            if (lineCapacity < sizeOfRemainder) {
-                // Note: We don't have tests testing this case because although according to
-                // getline's documentation, the behavior is undefined, the getline call above
-                // (before the feof check) seems to be increasing the lineCapacity for the
-                // last lines without newline character. So this is here for safety but is
-                // not tested.
-                free(line);
-                // We are adding + 1 for the additional \n character we will append.
-                line = (char*)malloc(sizeOfRemainder + 1);
-            }
-            fseek(fd, curPos, SEEK_SET);
-            fgets(line, sizeOfRemainder + 1, fd);
-            line[sizeOfRemainder] = '\n';
-            lineLen = sizeOfRemainder;
-            return true;
-        } else {
+        if (sizeOfRemainder <= 0) {
             return false;
         }
+
+        if (lineCapacity < sizeOfRemainder) {
+            // Note: We don't have tests testing this case because although according to
+            // getline's documentation, the behavior is undefined, the getline call above
+            // (before the feof check) seems to be increasing the lineCapacity for the
+            // last lines without newline character. So this is here for safety but is
+            // not tested.
+            free(line);
+            // We are adding + 1 for the additional \n character we will append.
+            line = (char*)malloc(sizeOfRemainder + 1);
+        }
+        fseek(fd, curPos, SEEK_SET);
+        fgets(line, sizeOfRemainder + 1, fd);
+        line[sizeOfRemainder] = '\n';
+        lineLen = sizeOfRemainder;
     }
     // The line is empty
     if (lineLen < 2) {
@@ -188,6 +187,16 @@ bool CSVReader::hasNextToken() {
     if (isList) {
         // skip the next comma
         linePtrEnd++;
+    }
+    return true;
+}
+
+bool CSVReader::hasNextTokenOrError() {
+    if (!hasNextToken()) {
+        throw CSVReaderException(
+            StringUtils::string_format("CSV Reader was expecting more tokens but the line does not "
+                                       "have any tokens left. Last token: %s",
+                line + linePtrStart));
     }
     return true;
 }

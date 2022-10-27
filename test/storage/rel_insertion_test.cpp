@@ -13,6 +13,16 @@ public:
         bufferManager = make_unique<BufferManager>();
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
+        // Set tableIDs
+        auto catalogContents = database->getCatalog()->getReadOnlyVersion();
+        ANIMAL_TABLE_ID = catalogContents->getNodeTableIDFromName("animal");
+        PERSON_TABLE_ID = catalogContents->getNodeTableIDFromName("person");
+        KNOWS_TABLE_ID = catalogContents->getRelTableIDFromName("knows");
+        PLAYS_TABLE_ID = catalogContents->getRelTableIDFromName("plays");
+        HAS_OWNER_TABLE_ID = catalogContents->getRelTableIDFromName("hasOwner");
+        TEACHES_TABLE_ID = catalogContents->getRelTableIDFromName("teaches");
+
+        // Set vectors
         relIDPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
         relIDValues = (int64_t*)relIDPropertyVector->values;
         lengthPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
@@ -81,19 +91,19 @@ public:
     }
 
     inline void insertOneKnowsRel() {
-        insertOneRelToRelTable(KNOWS_REL_TABLE_ID, vectorsToInsertToKnows);
+        insertOneRelToRelTable(KNOWS_TABLE_ID, vectorsToInsertToKnows);
     }
 
     inline void insertOnePlaysRel() {
-        insertOneRelToRelTable(PLAYS_REL_TABLE_ID, vectorsToInsertToPlays);
+        insertOneRelToRelTable(PLAYS_TABLE_ID, vectorsToInsertToPlays);
     }
 
     inline void insertOneHasOwnerRel() {
-        insertOneRelToRelTable(HAS_OWNER_REL_TABLE_ID, vectorsToInsertToHasOwner);
+        insertOneRelToRelTable(HAS_OWNER_TABLE_ID, vectorsToInsertToHasOwner);
     }
 
     inline void insertOneTeachesRel() {
-        insertOneRelToRelTable(TEACHES_REL_TABLE_ID, vectorsToInsertToTeaches);
+        insertOneRelToRelTable(TEACHES_TABLE_ID, vectorsToInsertToTeaches);
     }
 
     void insertRelsToKnowsTable(table_id_t srcTableID, table_id_t dstTableID,
@@ -130,7 +140,7 @@ public:
         try {
             database->getStorageManager()
                 ->getRelsStore()
-                .getRelTable(KNOWS_REL_TABLE_ID)
+                .getRelTable(KNOWS_TABLE_ID)
                 ->getAdjAndPropertyListsUpdateStore()
                 ->insertRelIfNecessary(srcDstNodeIDAndRelProperties);
             FAIL();
@@ -160,8 +170,8 @@ public:
     void insertRelsToEmptyListTest(bool isCommit, TransactionTestType transactionTestType,
         uint64_t numRelsToInsert = 100, bool insertNullValues = false,
         bool testLongString = false) {
-        insertRelsToKnowsTable(ANIMAL_NODE_TABLE_ID, ANIMAL_NODE_TABLE_ID, numRelsToInsert,
-            insertNullValues, testLongString);
+        insertRelsToKnowsTable(
+            ANIMAL_TABLE_ID, ANIMAL_TABLE_ID, numRelsToInsert, insertNullValues, testLongString);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (a:animal)-[e:knows]->(b:animal) return e.length, e.place, e.tag");
@@ -198,7 +208,7 @@ public:
     void insertRelsToSmallListTest(
         bool isCommit, TransactionTestType transactionTestType, uint64_t numRelsToInsert = 100) {
         auto numRelsAfterInsertion = 51 + numRelsToInsert;
-        insertRelsToKnowsTable(ANIMAL_NODE_TABLE_ID, PERSON_NODE_TABLE_ID, numRelsToInsert);
+        insertRelsToKnowsTable(ANIMAL_TABLE_ID, PERSON_TABLE_ID, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:animal)-[e:knows]->(b:person) return e.length, e.place, e.tag");
@@ -230,8 +240,7 @@ public:
     void insertRelsToLargeListTest(bool isCommit, TransactionTestType transactionTestType,
         uint64_t numRelsToInsert = 100, bool insertNullValues = false) {
         auto numRelsAfterInsertion = 2500 + numRelsToInsert;
-        insertRelsToKnowsTable(
-            PERSON_NODE_TABLE_ID, PERSON_NODE_TABLE_ID, numRelsToInsert, insertNullValues);
+        insertRelsToKnowsTable(PERSON_TABLE_ID, PERSON_TABLE_ID, numRelsToInsert, insertNullValues);
         conn->beginWriteTransaction();
         auto result =
             conn->query("match (:person)-[e:knows]->(:person) return e.length, e.place, e.tag");
@@ -256,7 +265,7 @@ public:
         // the new planner.
         validateQueryBestPlanJoinOrder(query, "HJ(a){E(a)S(b)}{S(a)}");
         auto numRelsToInsert = 100;
-        insertRelsToKnowsTable(PERSON_NODE_TABLE_ID, ANIMAL_NODE_TABLE_ID, numRelsToInsert);
+        insertRelsToKnowsTable(PERSON_TABLE_ID, ANIMAL_TABLE_ID, numRelsToInsert);
         conn->beginWriteTransaction();
         auto result = conn->query(query);
         ASSERT_TRUE(result->isSuccess());
@@ -597,14 +606,14 @@ public:
             tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
             tagValues[0] = tagList;
             // Insert 10 rels from person->person to knows/plays/teaches relTables.
-            srcNode.tableID = PERSON_NODE_TABLE_ID;
+            srcNode.tableID = PERSON_TABLE_ID;
             srcNode.offset = 40 + i;
-            dstNode.tableID = PERSON_NODE_TABLE_ID;
+            dstNode.tableID = PERSON_TABLE_ID;
             dstNode.offset = 40 + i;
             insertOneKnowsRel();
             insertOneTeachesRel();
             // Insert 10 rels from animal->person to hasOwner relTable.
-            srcNode.tableID = ANIMAL_NODE_TABLE_ID;
+            srcNode.tableID = ANIMAL_TABLE_ID;
             srcNode.offset = 20 + i;
             insertOneHasOwnerRel();
         }
@@ -631,12 +640,8 @@ public:
     vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
     vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
     vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
-    static constexpr uint32_t ANIMAL_NODE_TABLE_ID = 0;
-    static constexpr uint32_t PERSON_NODE_TABLE_ID = 1;
-    static constexpr uint32_t KNOWS_REL_TABLE_ID = 0;
-    static constexpr uint32_t PLAYS_REL_TABLE_ID = 1;
-    static constexpr uint32_t HAS_OWNER_REL_TABLE_ID = 2;
-    static constexpr uint32_t TEACHES_REL_TABLE_ID = 3;
+    table_id_t ANIMAL_TABLE_ID, PERSON_TABLE_ID, KNOWS_TABLE_ID, PLAYS_TABLE_ID, HAS_OWNER_TABLE_ID,
+        TEACHES_TABLE_ID;
 };
 
 TEST_F(RelInsertionTest, InsertRelsToEmptyListCommitNormalExecution) {

@@ -16,8 +16,8 @@ namespace storage {
 class RelsStore {
 
 public:
-    RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-        BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
+    RelsStore(const Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager,
+        bool isInMemoryMode, WAL* wal);
 
     inline Column* getRelPropertyColumn(const RelDirection& relDirection,
         const table_id_t& relTableID, const table_id_t& nodeTableID,
@@ -46,10 +46,10 @@ public:
     // relStore when checkpointing and not in recovery mode. In other words, this function should
     // only be called by wal_replayer during checkpointing, during which time no other transaction
     // is running on the system, so we can directly create and insert a RelTable into relTables.
-    inline void createRelTable(table_id_t tableID, vector<uint64_t>& maxNodeOffsetsPerTable,
-        BufferManager* bufferManager, WAL* wal, Catalog* catalog, MemoryManager* memoryManager) {
-        relTables[tableID] = make_unique<RelTable>(*catalog, maxNodeOffsetsPerTable, tableID,
-            *bufferManager, *memoryManager, isInMemoryMode, wal);
+    inline void createRelTable(table_id_t tableID, BufferManager* bufferManager, WAL* wal,
+        Catalog* catalog, MemoryManager* memoryManager) {
+        relTables[tableID] = make_unique<RelTable>(
+            *catalog, tableID, *bufferManager, *memoryManager, isInMemoryMode, wal);
     }
 
     // This function is used for testing only.

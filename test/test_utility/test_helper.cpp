@@ -225,7 +225,9 @@ void TestHelper::executeCypherScript(const string& cypherScript, Connection& con
     }
     string line;
     while (getline(file, line)) {
+        cout << "Starting to execute query: " << line << endl;
         auto result = conn.query(line);
+        cout << "Executed query: " << line << endl;
         if (!result->isSuccess()) {
             throw Exception(
                 StringUtils::string_format("Failed to execute statement: %s.\nError: %s",

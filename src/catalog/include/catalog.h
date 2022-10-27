@@ -131,6 +131,9 @@ public:
     void readFromFile(const string& directory, DBFileType dbFileType);
 
 private:
+    inline table_id_t assignNextTableID() { return nextTableID++; }
+
+private:
     shared_ptr<spdlog::logger> logger;
     unordered_map<table_id_t, unique_ptr<NodeTableSchema>> nodeTableSchemas;
     unordered_map<table_id_t, unique_ptr<RelTableSchema>> relTableSchemas;
@@ -138,6 +141,7 @@ private:
     // is re-constructed when reading from the catalog file.
     unordered_map<string, table_id_t> nodeTableNameToIDMap;
     unordered_map<string, table_id_t> relTableNameToIDMap;
+    table_id_t nextTableID;
 };
 
 class Catalog {

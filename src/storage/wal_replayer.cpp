@@ -98,7 +98,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             if (!isRecovering) {
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
                 // then we need to create the NodeTable object for the newly created node table.
-                // Therefore, this effectively fixe the in-memory data structures (i.e., performs
+                // Therefore, this effectively fixes the in-memory data structures (i.e., performs
                 // the in-memory checkpointing).
                 storageManager->getNodesStore().createNodeTable(walRecord.nodeTableRecord.tableID,
                     bufferManager, wal, catalogForCheckpointing.get());
@@ -123,8 +123,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             if (!isRecovering) {
                 // See comments for NODE_TABLE_RECORD.
                 storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.tableID,
-                    maxNodeOffsetPerTable, bufferManager, wal, catalogForCheckPointing.get(),
-                    memoryManager);
+                    bufferManager, wal, catalogForCheckPointing.get(), memoryManager);
             }
         } else {
             // See comments for NODE_TABLE_RECORD.
@@ -248,11 +247,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalog);
                 // See comments for COPY_NODE_CSV_RECORD.
                 storageManager->getRelsStore().getRelTable(tableID)->loadColumnsAndListsFromDisk(
-                    *catalog,
-                    storageManager->getNodesStore()
-                        .getNodesStatisticsAndDeletedIDs()
-                        .getMaxNodeOffsetPerTable(),
-                    *bufferManager);
+                    *catalog, *bufferManager);
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
                     .setAdjListsAndColumns(&storageManager->getRelsStore());

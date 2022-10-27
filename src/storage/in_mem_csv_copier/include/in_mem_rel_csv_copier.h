@@ -18,8 +18,9 @@ class InMemRelCSVCopier : public InMemStructuresCSVCopier {
 
 public:
     InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog, vector<uint64_t> maxNodeOffsetsPerNodeTable,
-        BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics);
+        TaskScheduler& taskScheduler, Catalog& catalog,
+        map<table_id_t, uint64_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+        table_id_t tableID, RelsStatistics* relsStatistics);
 
     ~InMemRelCSVCopier() override = default;
 
@@ -40,9 +41,8 @@ private:
     void sortOverflowValues();
 
     static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-        vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
-        Transaction* transaction, const Catalog& catalog, vector<bool> hasTableLabelColumn,
-        vector<bool> requireToReadTableLabels);
+        vector<DataType>& nodeIDTypes, const map<table_id_t, unique_ptr<HashIndex>>& IDIndexes,
+        Transaction* transaction, const Catalog& catalog, vector<bool> requireToReadTableLabels);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
         const vector<Property>& properties,
@@ -82,14 +82,14 @@ private:
         InMemOverflowFile* orderedInMemOverflowFile);
 
 private:
-    const vector<uint64_t> maxNodeOffsetsPerTable;
+    const map<table_id_t, uint64_t> maxNodeOffsetsPerTable;
     uint64_t startRelID;
     RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;
     unique_ptr<Transaction> dummyReadOnlyTrx;
-    vector<unique_ptr<HashIndex>> IDIndexes;
-    vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
-    vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerTable{2};
+    map<table_id_t, unique_ptr<HashIndex>> IDIndexes;
+    vector<map<table_id_t, unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
+    vector<map<table_id_t, atomic<uint64_t>>> directionNumRelsPerTable{2};
     vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};
     vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
     vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};

@@ -18,12 +18,10 @@ using table_property_lists_map_t =
 class RelTable {
 
 public:
-    explicit RelTable(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerTable, table_id_t tableID,
+    explicit RelTable(const catalog::Catalog& catalog, table_id_t tableID,
         BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
-    void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager);
+    void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog, BufferManager& bufferManager);
 
 public:
     inline Column* getPropertyColumn(
@@ -57,8 +55,8 @@ public:
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
     inline void clearAdjAndPropertyListsUpdateStore() { adjAndPropertyListsUpdateStore->clear(); }
-    void initAdjColumnOrLists(const catalog::Catalog& catalog,
-        const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal);
+    void initAdjColumnOrLists(
+        const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
     void initPropertyListsAndColumns(
         const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
     void initPropertyColumnsForRelTable(const catalog::Catalog& catalog, RelDirection relDirection,

@@ -26,16 +26,15 @@ RelsStatistics::RelsStatistics(
 }
 
 void RelsStatistics::setNumRelsPerDirectionBoundTableID(
-    table_id_t tableID, vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable) {
+    table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable) {
     lock_t lck{mtx};
     initTableStatisticPerTableForWriteTrxIfNecessary();
-    assert(tableID < tableStatisticPerTableForWriteTrx->size());
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto boundTableID = 0u; boundTableID < directionNumRelsPerTable[relDirection]->size();
-             boundTableID++) {
+        for (auto const& tableIDNumRelPair : directionNumRelsPerTable[relDirection]) {
+            auto boundTableID = tableIDNumRelPair.first;
             ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()))
-                ->setNumRelsForDirectionBoundTable(relDirection, boundTableID,
-                    directionNumRelsPerTable[relDirection]->operator[](boundTableID).load());
+                ->setNumRelsForDirectionBoundTable(
+                    relDirection, boundTableID, tableIDNumRelPair.second.load());
         }
     }
 }

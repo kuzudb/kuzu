@@ -29,6 +29,17 @@ public:
     bool getNextTuples() override { return false; }
 
 protected:
+    void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {
+        auto numTuples =
+            tablesStatistics->getReadOnlyVersion()->at(tableSchema.tableID)->getNumTuples();
+        if (numTuples > 0) {
+            throw CopyCSVException(
+                "COPY CSV commands can be executed only on completely empty tables. Table: " +
+                tableSchema.tableName + " has " + to_string(numTuples) + " many tuples.");
+        }
+    }
+
+protected:
     Catalog* catalog;
     CSVDescription csvDescription;
     TableSchema tableSchema;
