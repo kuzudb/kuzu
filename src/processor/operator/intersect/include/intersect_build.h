@@ -26,7 +26,7 @@ public:
 
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<IntersectBuild>(
-            reinterpret_pointer_cast<IntersectSharedState, HashJoinSharedState>(sharedState),
+            gf_reinterpret_pointer_cast<HashJoinSharedState, IntersectSharedState>(sharedState),
             buildDataInfo, children[0]->clone(), id, paramsString);
     }
 
