@@ -33,8 +33,7 @@ public:
         // Because the memory manager only manages blocks in memory, this file should never be
         // created, opened, or written to. It's a place holder name. We keep the name for logging
         // purposes.
-        fh = make_shared<FileHandle>(
-            "mm-place-holder-file-name", FileHandle::O_LargePagedInMemoryTmpFile);
+        fh = make_shared<FileHandle>("mm-place-holder-file-name", FileHandle::O_IN_MEM_TEMP_FILE);
     }
 
     unique_ptr<MemoryBlock> allocateBlock(bool initializeToZero = false);

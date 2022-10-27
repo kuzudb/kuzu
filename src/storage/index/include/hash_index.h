@@ -1,18 +1,8 @@
 #pragma once
 
-#include <bitset>
-#include <climits>
-#include <iostream>
+#include "hash_index_builder.h"
 
-#include "hash_index_utils.h"
-#include "in_mem_hash_index.h"
-
-#include "src/common/include/configs.h"
-#include "src/common/include/file_utils.h"
-#include "src/common/include/vector/value_vector.h"
 #include "src/function/hash/operations/include/hash_operations.h"
-#include "src/storage/buffer_manager/include/buffer_manager.h"
-#include "src/storage/buffer_manager/include/memory_manager.h"
 #include "src/storage/storage_structure/include/disk_overflow_file.h"
 
 using namespace graphflow::common;
@@ -26,14 +16,12 @@ enum class HashIndexLocalLookupState { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
 // all newly inserted entries, and the other (localDeletionIndex) is to keep track of newly deleted
 // entries (not available in localInsertionIndex). We assume that in a transaction, the insertions
 // and deletions are very small, thus they can be kept in memory.
+// TODO(Guodong): Add the support of string keys.
 class HashIndexLocalStorage {
     static const node_offset_t NODE_OFFSET_PLACE_HOLDER = UINT64_MAX;
 
 public:
-    explicit HashIndexLocalStorage(const DataType& keyDataType) {
-        localInsertionIndex = make_unique<InMemHashIndex>(IN_MEM_TEMP_FILE_PATH, keyDataType);
-        localDeletionIndex = make_unique<InMemHashIndex>(IN_MEM_TEMP_FILE_PATH, keyDataType);
-    }
+    explicit HashIndexLocalStorage(const DataType& keyDataType) {}
 
     // Currently, we assume that reads(lookup) and writes(delete/insert) of the local storage will
     // never happen concurrently. Thus, lookup requires no local storage lock. Writes are
@@ -45,8 +33,8 @@ public:
 
 private:
     shared_mutex localStorageSharedMutex;
-    unique_ptr<InMemHashIndex> localInsertionIndex;
-    unique_ptr<InMemHashIndex> localDeletionIndex;
+    unordered_map<int64_t, node_offset_t> localInsertions;
+    unordered_map<int64_t, node_offset_t> localDeletions;
 };
 
 // HashIndex is the entrance to handle all updates and lookups into the index after building from
@@ -54,52 +42,58 @@ private:
 // The index consists of two parts, one is the persistent storage (from the persistent index file),
 // and the other is the local storage. All lookups/deletions/insertions go through local storage,
 // and then the persistent storage if necessary.
+//
+// Key interfaces:
+// - lookup(): Given a key, find its result. Return true if the key is found, else, return false.
+//   Lookups go through the local storage first, check if the key is marked as deleted or not, then
+//   check whether it can be found inside local insertions or not. If the key is neither marked as
+//   deleted nor found in local insertions, we proceed to lookups in the persistent store.
+// - delete(): Delete the given key.
+//   Deletions are directly marked in the local storage.
+// - insert(): Insert the given key and value. Return true if the given key doesn't exist in the
+// index before insertion, otherwise, return false.
+//   First check if the key to be inserted already exists in local insertions or the persistent
+//   store. If the key doesn't exist yet, append it to local insertions, and also remove it from
+//   local deletions if it was marked as deleted.
 class HashIndex : public BaseHashIndex {
 
 public:
     HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
-
-    ~HashIndex();
+        const DataType& keyDataType, BufferManager& bufferManager, WAL* wal);
 
 public:
     inline bool lookup(Transaction* transaction, int64_t key, node_offset_t& result) {
         return lookupInternal(transaction, reinterpret_cast<const uint8_t*>(&key), result);
     }
+    // TODO(Guodong): Add the support of string keys back to fix this.
     inline bool lookup(Transaction* transaction, const char* key, node_offset_t& result) {
         return lookupInternal(transaction, reinterpret_cast<const uint8_t*>(key), result);
     }
     inline void deleteKey(Transaction* transaction, int64_t key) {
         deleteInternal(transaction, reinterpret_cast<const uint8_t*>(&key));
     }
-    inline void deleteKey(Transaction* transaction, const char* key) {
-        deleteInternal(transaction, reinterpret_cast<const uint8_t*>(key));
-    }
     inline bool insert(Transaction* transaction, int64_t key, node_offset_t value) {
         return insertInternal(transaction, reinterpret_cast<const uint8_t*>(&key), value);
     }
-    inline bool insert(Transaction* transaction, const char* key, node_offset_t value) {
-        return insertInternal(transaction, reinterpret_cast<const uint8_t*>(key), value);
-    }
 
 private:
-    void initializeFileAndHeader(const DataType& keyDataType);
-    void readPageMapper(vector<page_idx_t>& mapper, page_idx_t mapperFirstPageIdx);
-
     bool lookupInternal(Transaction* transaction, const uint8_t* key, node_offset_t& result);
     void deleteInternal(Transaction* transaction, const uint8_t* key);
     bool insertInternal(Transaction* transaction, const uint8_t* key, node_offset_t value);
     bool lookupInPersistentIndex(const uint8_t* key, node_offset_t& result);
 
-    bool lookupInSlot(uint8_t* slot, const uint8_t* key, node_offset_t& result) const;
-    uint8_t* pinSlot(const SlotInfo& slotInfo);
-    void unpinSlot(const SlotInfo& slotInfo);
+    bool lookupInSlot(Slot* slot, const uint8_t* key, node_offset_t& result) const;
+    inline Slot* getSlot(const SlotInfo& slotInfo) const {
+        return slotInfo.isPSlot ? &pSlots->operator[](slotInfo.slotId) :
+                                  &oSlots->operator[](slotInfo.slotId);
+    }
 
 private:
-    StorageStructureIDAndFName storageStructureIDAndFName;
-    bool isInMemory;
-    unique_ptr<FileHandle> fh;
     BufferManager& bm;
+    unique_ptr<VersionedFileHandle> fileHandle;
+    unique_ptr<InMemDiskArray<HashIndexHeader>> headerArray;
+    unique_ptr<InMemDiskArray<Slot>> pSlots;
+    unique_ptr<InMemDiskArray<Slot>> oSlots;
     equals_function_t keyEqualsFunc;
     unique_ptr<DiskOverflowFile> diskOverflowFile;
     unique_ptr<HashIndexLocalStorage> localStorage;

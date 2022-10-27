@@ -1,8 +1,9 @@
-#include "src/storage/storage_structure/include/disk_array.h"
+#include "include/disk_array.h"
 
 #include "src/common/include/utils.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
-#include "src/storage/storage_structure/include/storage_structure_utils.h"
+#include "src/storage/index/include/hash_index_header.h"
+#include "src/storage/index/include/hash_index_slot.h"
 
 namespace graphflow {
 namespace storage {
@@ -227,7 +228,7 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 template<typename U>
 uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    VersionedFileHandle* versionedFileHandle = (VersionedFileHandle*)(&fileHandle);
+    VersionedFileHandle* versionedFileHandle = reinterpret_cast<VersionedFileHandle*>(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
         !versionedFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
         return readOp(&this->header);
@@ -366,7 +367,7 @@ U BaseInMemDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
 }
 template<typename U>
 void BaseInMemDiskArray<U>::addInMemoryArrayPageAndReadFromFile(page_idx_t apPageIdx) {
-    uint64_t apIdx = this->addInMemoryArrayPage();
+    uint64_t apIdx = this->addInMemoryArrayPage(false /* setToZero */);
     readArrayPageFromFile(apIdx, apPageIdx);
 }
 
@@ -380,18 +381,6 @@ template<typename T>
 InMemDiskArray<T>::InMemDiskArray(VersionedFileHandle& fileHandle, page_idx_t headerPageIdx,
     BufferManager* bufferManager, WAL* wal)
     : BaseInMemDiskArray<T>(fileHandle, headerPageIdx, bufferManager, wal) {}
-
-template<typename T>
-void InMemDiskArray<T>::checkpointInMemoryIfNecessary() {
-    unique_lock xlock{this->diskArraySharedMtx};
-    checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
-}
-
-template<typename T>
-void InMemDiskArray<T>::rollbackInMemoryIfNecessary() {
-    unique_lock xlock{this->diskArraySharedMtx};
-    InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
-}
 
 template<typename T>
 void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) {
@@ -454,22 +443,21 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
 
 template<typename T>
 InMemDiskArrayBuilder<T>::InMemDiskArrayBuilder(
-    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements)
+    FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements, bool setToZero)
     : BaseInMemDiskArray<T>(fileHandle, headerPageIdx, sizeof(T)) {
     setNumElementsAndAllocateDiskAPsForBuilding(numElements);
     for (uint64_t i = 0; i < this->header.numAPs; ++i) {
-        this->addInMemoryArrayPage();
+        this->addInMemoryArrayPage(setToZero);
     }
 }
 
 template<typename T>
-void InMemDiskArrayBuilder<T>::setNewNumElementsAndIncreaseCapacityIfNeeded(
-    uint64_t newNumElements) {
+void InMemDiskArrayBuilder<T>::resize(uint64_t newNumElements, bool setToZero) {
     uint64_t oldNumAPs = this->header.numAPs;
     setNumElementsAndAllocateDiskAPsForBuilding(newNumElements);
     uint64_t newNumAPs = this->header.numAPs;
-    for (int i = oldNumAPs; i < newNumAPs; ++i) {
-        this->addInMemoryArrayPage();
+    for (auto i = oldNumAPs; i < newNumAPs; ++i) {
+        this->addInMemoryArrayPage(setToZero);
     }
 }
 
@@ -515,7 +503,7 @@ void InMemDiskArrayBuilder<T>::setNumElementsAndAllocateDiskAPsForBuilding(
     uint64_t newNumElements) {
     uint64_t oldNumArrayPages = this->header.numAPs;
     uint64_t newNumArrayPages = getNumArrayPagesNeededForElements(newNumElements);
-    for (int i = oldNumArrayPages; i < newNumArrayPages; ++i) {
+    for (auto i = oldNumArrayPages; i < newNumArrayPages; ++i) {
         addNewArrayPageForBuilding();
     }
     this->header.numElements = newNumElements;
@@ -523,8 +511,17 @@ void InMemDiskArrayBuilder<T>::setNumElementsAndAllocateDiskAPsForBuilding(
 }
 
 template class BaseDiskArray<uint32_t>;
+template class BaseDiskArray<Slot>;
+template class BaseDiskArray<HashIndexHeader>;
 template class BaseInMemDiskArray<uint32_t>;
+template class BaseInMemDiskArray<Slot>;
+template class BaseInMemDiskArray<HashIndexHeader>;
 template class InMemDiskArrayBuilder<uint32_t>;
+template class InMemDiskArrayBuilder<Slot>;
+template class InMemDiskArrayBuilder<HashIndexHeader>;
 template class InMemDiskArray<uint32_t>;
+template class InMemDiskArray<Slot>;
+template class InMemDiskArray<HashIndexHeader>;
+
 } // namespace storage
 } // namespace graphflow

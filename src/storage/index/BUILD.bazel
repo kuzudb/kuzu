@@ -17,16 +17,41 @@ cc_library(
 )
 
 cc_library(
-    name = "in_mem_hash_index",
+    name = "hash_index_slot",
+    hdrs = [
+        "include/hash_index_slot.h",
+    ],
+    visibility = ["//src/storage:__subpackages__"],
+    deps = [
+        "//src/common:configs",
+        "//src/common/types",
+    ],
+)
+
+cc_library(
+    name = "hash_index_header",
+    hdrs = [
+        "include/hash_index_header.h",
+    ],
+    visibility = ["//src/storage:__subpackages__"],
+    deps = [
+        "hash_index_slot",
+    ],
+)
+
+cc_library(
+    name = "hash_index_builder",
     srcs = [
-        "in_mem_hash_index.cpp",
+        "hash_index_builder.cpp",
     ],
     hdrs = [
-        "include/in_mem_hash_index.h",
+        "include/hash_index_builder.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "hash_index_header",
         "hash_index_utils",
+        "//src/storage/storage_structure:disk_array",
     ],
 )
 
@@ -40,7 +65,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "in_mem_hash_index",
+        "hash_index_builder",
         "//src/common:vector",
         "//src/common/types",
         "//src/storage/buffer_manager",

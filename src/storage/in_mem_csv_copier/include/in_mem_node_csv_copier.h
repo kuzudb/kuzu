@@ -2,7 +2,7 @@
 
 #include "in_mem_structures_csv_copier.h"
 
-#include "src/storage/index/include/in_mem_hash_index.h"
+#include "src/storage/index/include/hash_index_builder.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
 namespace graphflow {
@@ -38,9 +38,9 @@ private:
         const vector<Property>& properties, vector<PageByteCursor>& overflowCursors,
         CSVReader& reader, uint64_t nodeOffset);
     template<DataTypeID DT>
-    static void addIDsToIndex(InMemColumn* column, InMemHashIndex* hashIndex,
+    static void addIDsToIndex(InMemColumn* column, HashIndexBuilder* hashIndex,
         node_offset_t startOffset, uint64_t numValues);
-    static void populateIDIndex(InMemColumn* column, InMemHashIndex* IDIndex,
+    static void populateIDIndex(InMemColumn* column, HashIndexBuilder* IDIndex,
         node_offset_t startOffset, uint64_t numValues);
     static void skipFirstRowIfNecessary(
         uint64_t blockId, const CSVDescription& csvDescription, CSVReader& reader);
@@ -49,7 +49,7 @@ private:
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
     // Instead, it is the index in the structured columns that we expect it to appear.
     static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
-        uint64_t blockId, uint64_t offsetStart, InMemHashIndex* IDIndex,
+        uint64_t blockId, uint64_t offsetStart, HashIndexBuilder* IDIndex,
         InMemNodeCSVCopier* copier);
     static void populateUnstrPropertyListsTask(
         uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeCSVCopier* copier);

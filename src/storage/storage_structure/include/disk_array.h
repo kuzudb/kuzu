@@ -5,10 +5,11 @@
 #include "src/common/include/configs.h"
 #include "src/common/types/include/types.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
-#include "src/storage/storage_structure/include/storage_structure.h"
 #include "src/storage/wal/include/wal.h"
+#include "src/transaction/include/transaction.h"
 
 using namespace graphflow::common;
+using namespace graphflow::transaction;
 
 namespace graphflow {
 namespace storage {
@@ -174,8 +175,11 @@ public:
     U get(uint64_t idx, TransactionType trxType = TransactionType::READ_ONLY);
 
 protected:
-    uint64_t addInMemoryArrayPage() {
+    inline uint64_t addInMemoryArrayPage(bool setToZero) {
         inMemArrayPages.emplace_back(make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE));
+        if (setToZero) {
+            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, DEFAULT_PAGE_SIZE);
+        }
         return inMemArrayPages.size() - 1;
     }
 
@@ -198,8 +202,14 @@ public:
     InMemDiskArray(VersionedFileHandle& fileHandle, page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal);
 
-    void checkpointInMemoryIfNecessary();
-    void rollbackInMemoryIfNecessary();
+    inline void checkpointInMemoryIfNecessary() {
+        unique_lock xlock{this->diskArraySharedMtx};
+        checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
+    }
+    inline void rollbackInMemoryIfNecessary() {
+        unique_lock xlock{this->diskArraySharedMtx};
+        InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
+    }
 
     inline VersionedFileHandle* getFileHandle() { return (VersionedFileHandle*)&this->fileHandle; }
 
@@ -210,12 +220,13 @@ private:
 template<typename T>
 class InMemDiskArrayBuilder : public BaseInMemDiskArray<T> {
 public:
-    InMemDiskArrayBuilder(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements);
+    InMemDiskArrayBuilder(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements,
+        bool setToZero = false);
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
     // anything to the wal.
-    void setNewNumElementsAndIncreaseCapacityIfNeeded(uint64_t newNumElements);
+    void resize(uint64_t newNumElements, bool setToZero);
 
     void saveToDisk();
 

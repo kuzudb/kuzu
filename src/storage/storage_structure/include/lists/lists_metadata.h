@@ -45,7 +45,7 @@ class ListsMetadata : public BaseListsMetadata {
     friend class ListsUpdateIterator;
 
 public:
-    explicit ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+    explicit ListsMetadata(const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
         BufferManager* bufferManager, WAL* wal);
 
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) const {

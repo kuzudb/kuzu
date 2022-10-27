@@ -81,7 +81,12 @@ TEST_F(CopyCSVWrongHeaderTest, MissingColumnErrors) {
     conn->query("create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));");
     conn->query(
         "create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);");
+    // We first copy nodes to the node table correctly, then check if missing columns will trigger
+    // errors when copying rels.
     auto result = conn->query(
+        "COPY person FROM \"dataset/copy-csv-fault-tests/wrong-header/vPerson.csv\" (HEADER=true)");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query(
         "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsMissingColumn.csv\""
         "(HEADER=true)");
     ASSERT_FALSE(result->isSuccess());

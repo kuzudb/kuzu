@@ -16,7 +16,7 @@ cc_library(
         "//src/common:task_system",
         "//src/storage/in_mem_storage_structure",
         "//src/storage/index:hash_index",
-        "//src/storage/index:in_mem_hash_index",
+        "//src/storage/index:hash_index_builder",
         "//src/storage/store",
     ],
 )
