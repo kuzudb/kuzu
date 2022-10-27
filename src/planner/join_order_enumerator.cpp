@@ -663,7 +663,9 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
     table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection) {
-    auto numRels = ((RelStatistics*)((*relsStatistics.getReadOnlyVersion())[relTableID].get()))
+    auto numRels = ((RelStatistics*)relsStatistics.getReadOnlyVersion()
+                        ->tableStatisticPerTable[relTableID]
+                        .get())
                        ->getNumRelsForDirectionBoundTable(relDirection, boundTableID);
     return ceil(
         (double)numRels / nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(boundTableID)

@@ -40,20 +40,18 @@ bool CreateNode::getNextTuples() {
 shared_ptr<ResultSet> CreateRel::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     for (auto& createRelInfo : createRelInfos) {
-        vector<shared_ptr<ValueVector>> vectorsToInsert;
         auto srcNodePos = createRelInfo->srcNodePos;
-        auto srcNodeVector =
-            resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
-        vectorsToInsert.push_back(srcNodeVector);
+        vector<shared_ptr<ValueVector>> vectorsToInsert;
+        srcNodeIDVectorPerRelTable.push_back(resultSet->dataChunks[srcNodePos.dataChunkPos]
+                                                 ->valueVectors[srcNodePos.valueVectorPos]);
         auto dstNodePos = createRelInfo->dstNodePos;
-        auto dstNodeVector =
-            resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
-        vectorsToInsert.push_back(dstNodeVector);
+        dstNodeIDVectorPerRelTable.push_back(resultSet->dataChunks[dstNodePos.dataChunkPos]
+                                                 ->valueVectors[dstNodePos.valueVectorPos]);
         for (auto& evaluator : createRelInfo->evaluators) {
             evaluator->init(*resultSet, context->memoryManager);
             vectorsToInsert.push_back(evaluator->resultVector);
         }
-        vectorsToInsertPerRel.push_back(vectorsToInsert);
+        relPropertyVectorsPerRelTable.push_back(vectorsToInsert);
     }
     return resultSet;
 }
@@ -73,14 +71,27 @@ bool CreateRel::getNextTuples() {
                 auto relIDVector = evaluator->resultVector;
                 assert(relIDVector->dataType.typeID == INT64 &&
                        relIDVector->state->getPositionOfCurrIdx() == 0);
-                // TODO(Ziyi): check this getNextRelID() not returning correct value.
-                ((int64_t*)relIDVector->values)[0] = (int64_t)relsStatistics.getNextRelID();
+                ((int64_t*)relIDVector->values)[0] = relsStatistics.getNextRelID(transaction);
+                auto srcTableID =
+                    ((nodeID_t*)srcNodeIDVectorPerRelTable[i]->values)
+                        [srcNodeIDVectorPerRelTable[i]->state->selVector->selectedPositions
+                                [srcNodeIDVectorPerRelTable[i]->state->getPositionOfCurrIdx()]]
+                            .tableID;
+                auto dstTableID =
+                    ((nodeID_t*)dstNodeIDVectorPerRelTable[i]->values)
+                        [dstNodeIDVectorPerRelTable[i]->state->selVector->selectedPositions
+                                [dstNodeIDVectorPerRelTable[i]->state->getPositionOfCurrIdx()]]
+                            .tableID;
+                relsStatistics.incrementNumRelsPerDirectionBoundTableByOne(
+                    createRelInfo->table->getRelTableID(), srcTableID, dstTableID);
+                relsStatistics.incrementNumRelsByOneForTable(createRelInfo->table->getRelTableID());
                 relIDVector->setNull(0, false);
             } else {
                 createRelInfo->evaluators[j]->evaluate();
             }
         }
-        createRelInfo->table->insertRels(vectorsToInsertPerRel[i]);
+        createRelInfo->table->insertRels(srcNodeIDVectorPerRelTable[i],
+            dstNodeIDVectorPerRelTable[i], relPropertyVectorsPerRelTable[i]);
     }
     metrics->executionTime.stop();
     return true;

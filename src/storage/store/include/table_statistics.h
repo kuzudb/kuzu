@@ -37,9 +37,9 @@ private:
     uint64_t numTuples;
 };
 
-class TablesStatisticsContent {
-    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
-        tableStatisticPerTableForReadOnlyTrx;
+struct TablesStatisticsContent {
+    TablesStatisticsContent() : nextRelID{0} {}
+    unordered_map<table_id_t, unique_ptr<TableStatistics>> tableStatisticPerTable;
     // This is only needed for RelsStatistics and is a temporary solution until we move to a
     // uniform node and edge ID scheme (and then open an issue about this.)
     uint64_t nextRelID;
@@ -54,24 +54,24 @@ public:
         saveToFile(directory, DBFileType::WAL_VERSION, TransactionType::WRITE);
     }
 
-    inline bool hasUpdates() { return tableStatisticPerTableForWriteTrx != nullptr; }
+    inline bool hasUpdates() { return tablesStatisticsContentForWriteTrx != nullptr; }
 
     inline void checkpointInMemoryIfNecessary() {
         lock_t lck{mtx};
-        tableStatisticPerTableForReadOnlyTrx = move(tableStatisticPerTableForWriteTrx);
+        tablesStatisticsContentForReadOnlyTrx = move(tablesStatisticsContentForWriteTrx);
     }
 
-    inline unordered_map<table_id_t, unique_ptr<TableStatistics>>* getReadOnlyVersion() const {
-        return tableStatisticPerTableForReadOnlyTrx.get();
+    inline TablesStatisticsContent* getReadOnlyVersion() const {
+        return tablesStatisticsContentForReadOnlyTrx.get();
     }
 
     inline void addTableStatistic(TableSchema* tableSchema) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        (*tableStatisticPerTableForWriteTrx)[tableSchema->tableID] =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
             constructTableStatistic(tableSchema);
     }
     inline void removeTableStatistic(table_id_t tableID) {
-        tableStatisticPerTableForReadOnlyTrx->erase(tableID);
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.erase(tableID);
     }
 
     virtual ~TablesStatistics() = default;
@@ -103,10 +103,8 @@ protected:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
-        tableStatisticPerTableForReadOnlyTrx;
-    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
-        tableStatisticPerTableForWriteTrx;
+    unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
+    unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
     mutex mtx;
 };
 

@@ -90,12 +90,14 @@ public:
             nodesStatisticsAndDeletedIDs);
 
     inline NodeStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(table_id_t tableID) const {
-        return (NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForReadOnlyTrx)[tableID].get();
+        return (NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForReadOnlyTrx
+            ->tableStatisticPerTable[tableID]
+            .get();
     }
 
     inline void rollbackInMemoryIfNecessary() {
         lock_t lck{mtx};
-        tableStatisticPerTableForWriteTrx.reset();
+        tablesStatisticsContentForWriteTrx.reset();
     }
 
     static inline void saveInitialNodesStatisticsAndDeletedIDsToFile(const string& directory) {
@@ -105,7 +107,9 @@ public:
 
     inline void setNumTuplesForTable(table_id_t tableID, uint64_t numTuples) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
+        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                ->tableStatisticPerTable[tableID]
+                .get())
             ->setNumTuples(numTuples);
     }
 
@@ -118,16 +122,17 @@ public:
 
     inline node_offset_t getMaxNodeOffset(TransactionType transactionType, table_id_t tableID) {
         return (transactionType == TransactionType::READ_ONLY ||
-                   tableStatisticPerTableForWriteTrx == nullptr) ?
+                   tablesStatisticsContentForWriteTrx == nullptr) ?
                    getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
-                   ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID]
+                   ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                           ->tableStatisticPerTable[tableID]
                            .get())
                        ->getMaxNodeOffset();
     }
 
     // This function is only used for testing purpose.
     inline uint32_t getNumNodeStatisticsAndDeleteIDsPerTable() const {
-        return tableStatisticPerTableForReadOnlyTrx->size();
+        return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.size();
     }
 
     void setAdjListsAndColumns(RelsStore* relsStore);
@@ -137,7 +142,9 @@ public:
     node_offset_t addNode(table_id_t tableID) {
         lock_t lck{mtx};
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        return ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
+        return ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                    ->tableStatisticPerTable[tableID]
+                    .get())
             ->addNode();
     }
 
@@ -145,7 +152,9 @@ public:
     void deleteNode(table_id_t tableID, node_offset_t nodeOffset) {
         lock_t lck{mtx};
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
+        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                ->tableStatisticPerTable[tableID]
+                .get())
             ->deleteNode(nodeOffset);
     }
 

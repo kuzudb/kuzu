@@ -14,7 +14,7 @@ namespace storage {
 class WALReplayerUtils {
 public:
     static void createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
-        const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable);
+        const string& directory, const map<table_id_t, node_offset_t>& maxNodeOffsetsPerTable);
 
     static void createEmptyDBFilesForNewNodeTable(
         Catalog* catalog, table_id_t tableID, string directory);

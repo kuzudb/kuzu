@@ -56,31 +56,23 @@ public:
             directory, DBFileType::ORIGINAL, TransactionType::READ_ONLY);
     }
 
-    inline void setNumRelsForTable(table_id_t tableID, uint64_t numRels) {
-        lock_t lck{mtx};
-        initTableStatisticPerTableForWriteTrxIfNecessary();
-        assert(tableStatisticPerTableForWriteTrx->contains(tableID));
-        auto relStatistics =
-            ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()));
-        relStatistics->setNumTuples(numRels);
-        assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRels);
-        assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRels);
-    }
+    void setNumRelsForTable(table_id_t relTableID, uint64_t numRels);
 
     void assertNumRelsIsSound(
-        unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
-        uint64_t sum = 0;
-        for (auto tableIDNumRels : relsPerBoundTable) {
-            sum += tableIDNumRels.second;
-        }
-        assert(sum == numRels);
-    }
+        unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels);
+
+    void incrementNumRelsByOneForTable(table_id_t relTableID);
+
+    // Note: This function will not update the numTuples, nextRelID fields. They should be updated
+    // separately.
+    void incrementNumRelsPerDirectionBoundTableByOne(
+        table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID);
 
     // Note: This function will not set the numTuples field. That should be called separately.
     void setNumRelsPerDirectionBoundTableID(
         table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable);
 
-    uint64_t getNextRelID();
+    uint64_t getNextRelID(Transaction* transaction);
 
 protected:
     inline string getTableTypeForPrinting() const override { return "RelsStatistics"; }

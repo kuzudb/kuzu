@@ -18,8 +18,8 @@ using table_property_lists_map_t =
 class RelTable {
 
 public:
-    explicit RelTable(const catalog::Catalog& catalog, table_id_t tableID,
-        BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
+    RelTable(const catalog::Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
+        MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
     void loadColumnsAndListsFromDisk(const catalog::Catalog& catalog, BufferManager& bufferManager);
 
@@ -41,6 +41,7 @@ public:
     inline AdjAndPropertyListsUpdateStore* getAdjAndPropertyListsUpdateStore() {
         return adjAndPropertyListsUpdateStore.get();
     }
+    inline table_id_t getRelTableID() const { return tableID; }
 
     vector<AdjLists*> getAdjListsForNodeTable(table_id_t tableID);
     vector<AdjColumn*> getAdjColumnsForNodeTable(table_id_t tableID);
@@ -49,7 +50,9 @@ public:
     void checkpointInMemoryIfNecessary();
     void rollbackInMemoryIfNecessary();
 
-    void insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert);
+    void insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
+        shared_ptr<ValueVector>& dstNodeIDVector,
+        vector<shared_ptr<ValueVector>>& relPropertyVectors);
     void initEmptyRelsForNewNode(nodeID_t& nodeID);
 
 private:

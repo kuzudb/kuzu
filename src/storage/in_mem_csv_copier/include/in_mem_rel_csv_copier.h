@@ -19,7 +19,7 @@ class InMemRelCSVCopier : public InMemStructuresCSVCopier {
 public:
     InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
         TaskScheduler& taskScheduler, Catalog& catalog,
-        map<table_id_t, uint64_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+        map<table_id_t, node_offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
         table_id_t tableID, RelsStatistics* relsStatistics);
 
     ~InMemRelCSVCopier() override = default;
@@ -82,7 +82,7 @@ private:
         InMemOverflowFile* orderedInMemOverflowFile);
 
 private:
-    const map<table_id_t, uint64_t> maxNodeOffsetsPerTable;
+    const map<table_id_t, node_offset_t> maxNodeOffsetsPerTable;
     uint64_t startRelID;
     RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;

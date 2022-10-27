@@ -154,17 +154,17 @@ NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
-        (*tableStatisticPerTableForReadOnlyTrx)[nodeStatistics.first] =
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[nodeStatistics.first] =
             make_unique<NodeStatisticsAndDeletedIDs>(
                 *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
-        (*tableStatisticPerTableForWriteTrx)[nodeStatistics.first] =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[nodeStatistics.first] =
             make_unique<NodeStatisticsAndDeletedIDs>(
                 *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
     }
 }
 
 void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
-    for (auto& tableIDStatistics : *tableStatisticPerTableForReadOnlyTrx) {
+    for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
         getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)
             ->setAdjListsAndColumns(relsStore->getAdjListsAndColumns(tableIDStatistics.first));
     }
@@ -172,7 +172,7 @@ void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
 
 map<table_id_t, node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
     map<table_id_t, node_offset_t> retVal;
-    for (auto& tableIDStatistics : *tableStatisticPerTableForReadOnlyTrx) {
+    for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
         retVal[tableIDStatistics.first] =
             getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)->getMaxNodeOffset();
     }
@@ -182,24 +182,26 @@ map<table_id_t, node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPer
 void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
-    // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which is
-    // during checkpointing, this function, which is called during scans, cannot be called. 2) In a
-    // read-only transaction, the same morsel cannot be scanned concurrently. 3) A write transaction
-    // cannot have two concurrent pipelines where one is writing and the other is reading
-    // nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a query where
-    // scans/reads happen in a write transaction cannot run concurrently with the pipeline that
-    // performs an add/delete node.
+    // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
+    // is during checkpointing, this function, which is called during scans, cannot be called.
+    // 2) In a read-only transaction, the same morsel cannot be scanned concurrently. 3) A write
+    // transaction cannot have two concurrent pipelines where one is writing and the other is
+    // reading nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a query
+    // where scans/reads happen in a write transaction cannot run concurrently with the pipeline
+    // that performs an add/delete node.
     lock_t lck{mtx};
-    (transaction->isReadOnly() || !tableStatisticPerTableForWriteTrx) ?
+    (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
         getNodeStatisticsAndDeletedIDs(tableID)->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
-        ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
+        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                ->tableStatisticPerTable[tableID]
+                .get())
             ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
 }
 
 void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(NodeTableSchema* tableSchema) {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
-    (*tableStatisticPerTableForWriteTrx)[tableSchema->tableID] =
+    tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         make_unique<NodeStatisticsAndDeletedIDs>(
             tableSchema->tableID, UINT64_MAX /* maxNodeOffset */);
 }

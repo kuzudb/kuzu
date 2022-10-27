@@ -97,7 +97,9 @@ public:
 private:
     RelsStatistics& relsStatistics;
     vector<unique_ptr<CreateRelInfo>> createRelInfos;
-    vector<vector<shared_ptr<ValueVector>>> vectorsToInsertPerRel;
+    vector<shared_ptr<ValueVector>> srcNodeIDVectorPerRelTable;
+    vector<shared_ptr<ValueVector>> dstNodeIDVectorPerRelTable;
+    vector<vector<shared_ptr<ValueVector>>> relPropertyVectorsPerRelTable;
 };
 
 } // namespace processor

@@ -58,7 +58,11 @@ public:
         DiskOverflowFile* diskOverflowFile, DataType dataType,
         NodeIDCompressionScheme* nodeIDCompressionScheme);
 
-    void insertRelIfNecessary(vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties);
+    // If this is a one-to-one relTable, all properties are stored in columns.
+    // In this case, the adjAndPropertyListsUpdateStore should not store the insert rels in FT.
+    void insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
+        shared_ptr<ValueVector>& dstNodeIDVector,
+        vector<shared_ptr<ValueVector>>& relPropertyVectors);
 
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, node_offset_t nodeOffset) const;
@@ -85,10 +89,7 @@ private:
                    listFileID.relPropertyListID.relNodeTableAndDir;
     }
     uint32_t getColIdxInFT(ListFileID& listFileID) const;
-    void validateSrcDstNodeIDAndRelProperties(
-        vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties) const;
     void initListUpdatesPerTablePerDirection();
-    static void getErrorMsgForInvalidTableID(uint64_t tableID, bool isSrcTableID, string tableName);
 
 private:
     unique_ptr<FactorizedTable> factorizedTable;
