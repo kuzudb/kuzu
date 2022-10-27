@@ -145,7 +145,7 @@ struct RelTableSchema : TableSchema {
 
     inline uint32_t getNumProperties() const { return properties.size(); }
     inline uint32_t getNumPropertiesToReadFromCSV() const { return properties.size(); }
-    inline bool isRelPropertyList(RelDirection relDirection) const {
+    inline bool isStoredAsLists(RelDirection relDirection) const {
         return relMultiplicity == MANY_MANY ||
                (relMultiplicity == ONE_MANY && relDirection == FWD) ||
                (relMultiplicity == MANY_ONE && relDirection == BWD);

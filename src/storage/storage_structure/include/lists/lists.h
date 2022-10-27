@@ -93,8 +93,8 @@ public:
         : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
               true /*hasNULLBytes*/, isInMemory, wal} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
-    inline shared_ptr<ListHeaders> getHeaders() { return headers; };
-    inline uint64_t getNumElementsInPersistentStore(node_offset_t nodeOffset) const {
+    inline shared_ptr<ListHeaders> getHeaders() const { return headers; };
+    inline uint64_t getNumElementsFromListHeader(node_offset_t nodeOffset) const {
         auto header = headers->getHeader(nodeOffset);
         return ListHeaders::isALargeList(header) ?
                    metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
@@ -148,7 +148,7 @@ public:
     }
     inline uint64_t getTotalNumElementsInList(
         TransactionType transactionType, node_offset_t nodeOffset) {
-        return getNumElementsInPersistentStore(nodeOffset) +
+        return getNumElementsInPersistentStore(transactionType, nodeOffset) +
                (transactionType == TransactionType::WRITE ?
                        getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset) :
                        0);
@@ -156,6 +156,8 @@ public:
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     void initListReadingState(
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
+    uint64_t getNumElementsInPersistentStore(
+        TransactionType transactionType, node_offset_t nodeOffset);
 
 protected:
     virtual void readFromSmallList(
@@ -173,6 +175,10 @@ protected:
         : Lists{storageStructureIDAndFName, dataType, elementSize, headers, bufferManager,
               hasNULLBytes, isInMemory, wal},
           adjAndPropertyListsUpdateStore{adjAndPropertyListsUpdateStore} {};
+
+private:
+    unique_ptr<InMemList> getInMemListWithDataFromUpdateStoreOnly(
+        node_offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT);
 
 protected:
     AdjAndPropertyListsUpdateStore* adjAndPropertyListsUpdateStore;

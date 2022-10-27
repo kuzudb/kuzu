@@ -97,6 +97,15 @@ void RelTable::insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert)
     adjAndPropertyListsUpdateStore->insertRelIfNecessary(valueVectorsToInsert);
 }
 
+void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
+    for (auto direction : REL_DIRECTIONS) {
+        if (adjColumns[direction].contains(nodeID.tableID)) {
+            adjColumns[direction].at(nodeID.tableID)->setNodeOffsetToNull(nodeID.offset);
+        }
+    }
+    adjAndPropertyListsUpdateStore->initEmptyListInPersistentStore(nodeID);
+}
+
 void RelTable::initAdjColumnOrLists(const Catalog& catalog,
     const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", tableID);
@@ -203,13 +212,13 @@ void RelTable::initPropertyListsForRelTable(
 }
 
 void RelTable::performOpOnListsWithUpdates(
-    std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasInsertedRels) {
-    auto& insertedRelsPerTableIDPerDirection =
-        adjAndPropertyListsUpdateStore->getInsertedRelsPerTableIDPerDirection();
+    std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasUpdates) {
+    auto& listUpdatesPerDirection =
+        adjAndPropertyListsUpdateStore->getListUpdatesPerTablePerDirection();
     for (auto& relDirection : REL_DIRECTIONS) {
-        for (auto& insertedRelsOfTable : insertedRelsPerTableIDPerDirection[relDirection]) {
-            if (!insertedRelsOfTable.second.empty()) {
-                auto tableID = insertedRelsOfTable.first;
+        for (auto& listUpdatesPerTable : listUpdatesPerDirection[relDirection]) {
+            if (!listUpdatesPerTable.second.empty()) {
+                auto tableID = listUpdatesPerTable.first;
                 opOnListsWithUpdates(adjLists[relDirection].at(tableID).get());
                 for (auto& propertyList : propertyLists[relDirection].at(tableID)) {
                     opOnListsWithUpdates(propertyList.get());
@@ -217,8 +226,8 @@ void RelTable::performOpOnListsWithUpdates(
             }
         }
     }
-    if (!adjAndPropertyListsUpdateStore->isEmpty()) {
-        opIfHasInsertedRels();
+    if (adjAndPropertyListsUpdateStore->hasUpdates()) {
+        opIfHasUpdates();
     }
 }
 

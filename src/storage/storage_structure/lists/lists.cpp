@@ -66,8 +66,18 @@ void ListsWithAdjAndPropertyListsUpdateStore::initListReadingState(
     auto& listSyncState = listHandle.listSyncState;
     listSyncState.reset();
     listSyncState.setBoundNodeOffset(nodeOffset);
-    listSyncState.setListHeader(headers->getHeader(nodeOffset));
-    uint64_t numElementsInPersistentStore = getNumElementsInPersistentStore(nodeOffset);
+    auto isListEmptyInPersistentStore =
+        adjAndPropertyListsUpdateStore->isListEmptyInPersistentStore(
+            storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
+    if (transactionType == TransactionType::READ_ONLY || !isListEmptyInPersistentStore) {
+        listSyncState.setListHeader(headers->getHeader(nodeOffset));
+    } else {
+        // ListHeader is UINT32_MAX in two cases: (i) ListSyncState is not initialized; or (ii) the
+        // list of a new node is being scanned so there is no header for the new node.
+        listSyncState.setListHeader(UINT32_MAX);
+    }
+    auto numElementsInPersistentStore =
+        getNumElementsInPersistentStore(transactionType, nodeOffset);
     auto numElementsInUpdateStore =
         transactionType == WRITE ?
             adjAndPropertyListsUpdateStore->getNumInsertedRelsForNodeOffset(
@@ -80,9 +90,21 @@ void ListsWithAdjAndPropertyListsUpdateStore::initListReadingState(
     // If there's no element is persistentStore and the adjAndPropertyListsUpdateStore is non-empty,
     // we can skip reading from persistentStore and start reading from
     // adjAndPropertyListsUpdateStore directly.
-    listSyncState.setSourceStore(numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0 ?
-                                     ListSourceStore::AdjAndPropertyListsUpdateStore :
-                                     ListSourceStore::PersistentStore);
+    listSyncState.setSourceStore(
+        ((numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0) ||
+            isListEmptyInPersistentStore) ?
+            ListSourceStore::AdjAndPropertyListsUpdateStore :
+            ListSourceStore::PersistentStore);
+}
+
+uint64_t ListsWithAdjAndPropertyListsUpdateStore::getNumElementsInPersistentStore(
+    TransactionType transactionType, node_offset_t nodeOffset) {
+    if (transactionType == TransactionType::WRITE &&
+        adjAndPropertyListsUpdateStore->isListEmptyInPersistentStore(
+            storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset)) {
+        return 0;
+    }
+    return getNumElementsFromListHeader(nodeOffset);
 }
 
 void ListsWithAdjAndPropertyListsUpdateStore::readFromSmallList(
@@ -119,28 +141,28 @@ void ListsWithAdjAndPropertyListsUpdateStore::readFromList(
 void ListsWithAdjAndPropertyListsUpdateStore::prepareCommit(
     ListsUpdateIterator& listsUpdateIterator) {
     // See comments in UnstructuredPropertyLists::prepareCommit.
-    auto& insertedRelsPerChunk = adjAndPropertyListsUpdateStore->getInsertedRelsPerChunk(
+    auto& listUpdatesPerChunk = adjAndPropertyListsUpdateStore->getListUpdatesPerChunk(
         storageStructureIDAndFName.storageStructureID.listFileID);
-    for (auto updatedChunkItr = insertedRelsPerChunk.begin();
-         updatedChunkItr != insertedRelsPerChunk.end(); ++updatedChunkItr) {
+    for (auto updatedChunkItr = listUpdatesPerChunk.begin();
+         updatedChunkItr != listUpdatesPerChunk.end(); ++updatedChunkItr) {
         for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
              updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
             auto nodeOffset = updatedNodeOffsetItr->first;
-            // We do an optimization for relPropertyList and adjList:
-            // If the initial list is a largeList, we can simply append the data from the
-            // relUpdateStore to largeList. In this case, we can skip reading the data from
-            // persistentStore to InMemList and only need to read the data from relUpdateStore to
-            // InMemList.
-            if (ListHeaders::isALargeList(
-                    headers->headersDiskArray->get(nodeOffset, TransactionType::READ_ONLY))) {
-                auto inMemList = make_unique<InMemList>(
-                    getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset), elementSize,
-                    mayContainNulls());
-                adjAndPropertyListsUpdateStore->readInsertionsToList(
-                    storageStructureIDAndFName.storageStructureID.listFileID,
-                    updatedNodeOffsetItr->second, *inMemList, 0 /* numElementsInPersistentStore */,
-                    getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
-                listsUpdateIterator.appendToLargeList(nodeOffset, *inMemList);
+            if (adjAndPropertyListsUpdateStore->isListEmptyInPersistentStore(
+                    storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset)) {
+                listsUpdateIterator.updateList(
+                    nodeOffset, *getInMemListWithDataFromUpdateStoreOnly(nodeOffset,
+                                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT));
+            } else if (ListHeaders::isALargeList(headers->headersDiskArray->get(
+                           nodeOffset, TransactionType::READ_ONLY))) {
+                // We do an optimization for relPropertyList and adjList:
+                // If the initial list is a largeList, we can simply append the data from the
+                // relUpdateStore to largeList. In this case, we can skip reading the data from
+                // persistentStore to InMemList and only need to read the data from relUpdateStore
+                // to InMemList.
+                listsUpdateIterator.appendToLargeList(
+                    nodeOffset, *getInMemListWithDataFromUpdateStoreOnly(nodeOffset,
+                                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT));
             } else {
                 auto inMemList = make_unique<InMemList>(
                     getTotalNumElementsInList(TransactionType::WRITE, nodeOffset), elementSize,
@@ -148,17 +170,30 @@ void ListsWithAdjAndPropertyListsUpdateStore::prepareCommit(
                 CursorAndMapper cursorAndMapper;
                 cursorAndMapper.reset(
                     metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+                auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
                 fillInMemListsFromPersistentStore(
-                    cursorAndMapper, getNumElementsInPersistentStore(nodeOffset), *inMemList);
+                    cursorAndMapper, numElementsInPersistentStore, *inMemList);
                 adjAndPropertyListsUpdateStore->readInsertionsToList(
                     storageStructureIDAndFName.storageStructureID.listFileID,
-                    updatedNodeOffsetItr->second, *inMemList,
-                    getNumElementsInPersistentStore(nodeOffset), getDiskOverflowFileIfExists(),
-                    dataType, getNodeIDCompressionIfExists());
+                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT, *inMemList,
+                    numElementsInPersistentStore, getDiskOverflowFileIfExists(), dataType,
+                    getNodeIDCompressionIfExists());
                 listsUpdateIterator.updateList(nodeOffset, *inMemList);
             }
         }
     }
+}
+
+unique_ptr<InMemList>
+ListsWithAdjAndPropertyListsUpdateStore::getInMemListWithDataFromUpdateStoreOnly(
+    node_offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT) {
+    auto inMemList = make_unique<InMemList>(
+        getNumElementsInAdjAndPropertyListsUpdateStore(nodeOffset), elementSize, mayContainNulls());
+    adjAndPropertyListsUpdateStore->readInsertionsToList(
+        storageStructureIDAndFName.storageStructureID.listFileID, insertedRelsTupleIdxInFT,
+        *inMemList, 0 /* numElementsInPersistentStore */, getDiskOverflowFileIfExists(), dataType,
+        getNodeIDCompressionIfExists());
+    return inMemList;
 }
 
 void StringPropertyLists::readFromLargeList(
@@ -213,7 +248,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     CursorAndMapper cursorAndMapper;
     cursorAndMapper.reset(getListsMetadata(), numElementsPerPage, header, nodeOffset);
     // Step 1
-    auto numElementsInList = getNumElementsInPersistentStore(nodeOffset);
+    auto numElementsInList = getNumElementsFromListHeader(nodeOffset);
     auto listLenInBytes = numElementsInList * elementSize;
     auto buffer = make_unique<uint8_t[]>(listLenInBytes);
     auto sizeLeftToCopy = listLenInBytes;

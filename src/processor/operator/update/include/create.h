@@ -22,10 +22,10 @@ struct CreateNodeInfo {
 
 class CreateNode : public PhysicalOperator {
 public:
-    CreateNode(vector<unique_ptr<CreateNodeInfo>> createNodeInfos,
+    CreateNode(vector<unique_ptr<CreateNodeInfo>> createNodeInfos, RelsStore& relsStore,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, createNodeInfos{
-                                                                    std::move(createNodeInfos)} {}
+        : PhysicalOperator{std::move(child), id, paramsString},
+          createNodeInfos{std::move(createNodeInfos)}, relsStore{relsStore} {}
 
     inline PhysicalOperatorType getOperatorType() override {
         return PhysicalOperatorType::CREATE_NODE;
@@ -41,12 +41,13 @@ public:
             clonedCreateNodeInfos.push_back(createNodeInfo->clone());
         }
         return make_unique<CreateNode>(
-            std::move(clonedCreateNodeInfos), children[0]->clone(), id, paramsString);
+            std::move(clonedCreateNodeInfos), relsStore, children[0]->clone(), id, paramsString);
     }
 
 private:
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
     vector<ValueVector*> outValueVectors;
+    RelsStore& relsStore;
 };
 
 struct CreateRelInfo {

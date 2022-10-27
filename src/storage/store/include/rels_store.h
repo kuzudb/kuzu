@@ -69,6 +69,8 @@ public:
         }
     }
 
+    void initEmptyRelsForNewNode(nodeID_t& nodeID);
+
 private:
     unordered_map<table_id_t, unique_ptr<RelTable>> relTables;
     RelsStatistics relsStatistics;

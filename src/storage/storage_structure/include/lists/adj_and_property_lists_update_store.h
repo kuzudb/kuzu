@@ -14,8 +14,14 @@ namespace storage {
 using namespace processor;
 using namespace catalog;
 
-using InsertedRelsPerNodeOffset = map<node_offset_t, vector<uint64_t>>;
-using InsertedRelsPerChunk = map<uint64_t, InsertedRelsPerNodeOffset>;
+struct ListUpdates {
+    ListUpdates() : emptyListInPersistentStore{false} {}
+    bool emptyListInPersistentStore;
+    vector<uint64_t> insertedRelsTupleIdxInFT;
+};
+
+using ListUpdatesPerNode = map<node_offset_t, ListUpdates>;
+using ListUpdatesPerChunk = map<uint64_t, ListUpdatesPerNode>;
 
 struct InMemList;
 
@@ -32,16 +38,21 @@ public:
     inline bool isEmpty() const { return factorizedTable->isEmpty(); }
     inline void clear() {
         factorizedTable->clear();
-        initInsertedRelsPerTableIDPerDirection();
+        initListUpdatesPerTablePerDirection();
     }
-    inline InsertedRelsPerChunk& getInsertedRelsPerChunk(ListFileID& listFileID) {
+    inline ListUpdatesPerChunk& getListUpdatesPerChunk(ListFileID& listFileID) {
         auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-        return insertedRelsPerTableIDPerDirection[relNodeTableAndDir.dir].at(
+        return listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
             relNodeTableAndDir.srcNodeTableID);
     }
-    inline vector<map<table_id_t, InsertedRelsPerChunk>>& getInsertedRelsPerTableIDPerDirection() {
-        return insertedRelsPerTableIDPerDirection;
+    inline vector<map<table_id_t, ListUpdatesPerChunk>>& getListUpdatesPerTablePerDirection() {
+        return listUpdatesPerTablePerDirection;
     }
+
+    bool isListEmptyInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
+
+    bool hasUpdates() const;
+
     void readInsertionsToList(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
         InMemList& inMemList, uint64_t numElementsInPersistentStore,
         DiskOverflowFile* diskOverflowFile, DataType dataType,
@@ -55,6 +66,17 @@ public:
     void readValues(ListFileID& listFileID, ListSyncState& listSyncState,
         shared_ptr<ValueVector> valueVector) const;
 
+    void initEmptyListInPersistentStore(nodeID_t& nodeID) {
+        for (auto direction : REL_DIRECTIONS) {
+            if (listUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
+                listUpdatesPerTablePerDirection[direction][nodeID.tableID]
+                                               [StorageUtils::getListChunkIdx(nodeID.offset)]
+                                               [nodeID.offset]
+                                                   .emptyListInPersistentStore = true;
+            }
+        }
+    }
+
 private:
     static inline RelNodeTableAndDir getRelNodeTableAndDirFromListFileID(ListFileID& listFileID) {
         assert(listFileID.listType != ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS);
@@ -65,7 +87,7 @@ private:
     uint32_t getColIdxInFT(ListFileID& listFileID) const;
     void validateSrcDstNodeIDAndRelProperties(
         vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties) const;
-    void initInsertedRelsPerTableIDPerDirection();
+    void initListUpdatesPerTablePerDirection();
     static void getErrorMsgForInvalidTableID(uint64_t tableID, bool isSrcTableID, string tableName);
 
 private:
@@ -73,7 +95,7 @@ private:
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
-    vector<map<table_id_t, InsertedRelsPerChunk>> insertedRelsPerTableIDPerDirection;
+    vector<map<table_id_t, ListUpdatesPerChunk>> listUpdatesPerTablePerDirection;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;
 };

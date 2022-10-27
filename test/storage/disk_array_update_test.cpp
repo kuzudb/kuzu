@@ -46,7 +46,7 @@ public:
     // then the WALReplayer will call checkpoint/rollbackInMemory on this UnstructuredPropertyLists;
     // finally UnstructuredPropertyLists will call headerDA->checkpoint/rollbackInMemoryIfNecessary.
     void setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism() {
-        personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(0);
+        personNodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(0);
     }
 
     void testBasicUpdate(bool isCommit, TransactionTestType transactionTestType) {

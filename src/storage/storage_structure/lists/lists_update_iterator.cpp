@@ -7,19 +7,17 @@ namespace storage {
 
 void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemList) {
     seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
-    // We first check if the updated list is a newly inserted list.
-    auto headers = lists->getHeaders();
-    uint64_t numNodes = headers->headersDiskArray->getNumElements(TransactionType::WRITE);
-    assert(nodeOffset <= numNodes);
-    // Updates can be made to:
-    // (i) Existing node offset (i.e.,nodeOffset < numNodes); (ii) A new list for a new node that
-    // has been inserted (so nodeOffset should be numNodes in this case).
-    uint64_t oldHeader;
-    if (nodeOffset == numNodes) {
-        assert(lists->storageStructureIDAndFName.storageStructureID.listFileID.listType ==
-               ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS);
-        oldHeader = ListHeaders::getSmallListHeader(0, 0);
-        headers->headersDiskArray->pushBack(0);
+    list_header_t oldHeader;
+    if (nodeOffset >=
+        lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::READ_ONLY)) {
+        oldHeader = ListHeaders::getSmallListHeader(0 /* csrOffset */, 0 /* numElementsInList */);
+        // If this is a newly inserted node, we should insert a dummy value to the
+        // listHeader. Note: the updateLargeList or updateSmallListAndCurCSROffset is
+        // responsible for correctly updating the header.
+        if (nodeOffset ==
+            lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::WRITE)) {
+            lists->getHeaders()->headersDiskArray->pushBack(oldHeader);
+        }
     } else {
         oldHeader = lists->getHeaders()->headersDiskArray->get(
             curUnprocessedNodeOffset, TransactionType::READ_ONLY);
@@ -37,7 +35,7 @@ void ListsUpdateIterator::appendToLargeList(node_offset_t nodeOffset, InMemList&
     seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
     auto largeListIdx = ListHeaders::getLargeListIdx(
         lists->headers->headersDiskArray->get(nodeOffset, TransactionType::READ_ONLY));
-    auto numElementsInPersistentStore = lists->getNumElementsInPersistentStore(nodeOffset);
+    auto numElementsInPersistentStore = lists->getNumElementsFromListHeader(nodeOffset);
     lists->getListsMetadata().largeListIdxToPageListHeadIdxMap->update(
         2 * largeListIdx + 1, inMemList.numElements + numElementsInPersistentStore);
     auto idInPageGroupAndOffsetInListPage =
@@ -97,7 +95,7 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
                 cursorAndMapper.reset(lists->getListsMetadata(), lists->numElementsPerPage,
                     lists->getHeaders()->getHeader(nodeOffsetToSlide), nodeOffsetToSlide);
                 lists->fillInMemListsFromPersistentStore(cursorAndMapper,
-                    lists->getNumElementsInPersistentStore(nodeOffsetToSlide), inMemList);
+                    lists->getNumElementsFromListHeader(nodeOffsetToSlide), inMemList);
                 updateSmallListAndCurCSROffset(oldHeader, inMemList);
             } else {
                 curCSROffset += listLen;

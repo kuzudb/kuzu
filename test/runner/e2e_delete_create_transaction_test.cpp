@@ -30,7 +30,7 @@ public:
         }
         auto query = "MATCH (a:person) " + predicate + " DELETE a";
         auto result = connection->query(query);
-        assert(result->isSuccess());
+        ASSERT_TRUE(result->isSuccess());
     }
 
     int64_t getCountStarVal(Connection* connection, const string& query) {
@@ -47,7 +47,7 @@ public:
         for (auto i = 0u; i < numNodes; ++i) {
             auto id = 10000 + i;
             auto result = conn->query("CREATE (a:person {ID: " + to_string(id) + "})");
-            assert(result->isSuccess());
+            ASSERT_TRUE(result->isSuccess());
         }
     }
 

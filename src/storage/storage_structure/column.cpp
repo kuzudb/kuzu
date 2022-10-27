@@ -72,6 +72,13 @@ bool Column::isNull(node_offset_t nodeOffset) {
     return isNull;
 }
 
+void Column::setNodeOffsetToNull(node_offset_t nodeOffset) {
+    auto updatedPageInfoAndWALPageFrame =
+        beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, true /* isNull */);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
+}
+
 void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& resultVector, uint32_t vectorPos) {
     if (nodeIDVector->isNull(vectorPos)) {
@@ -98,10 +105,18 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
 
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
+    auto walPageInfo = beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, isNull);
+    if (!isNull) {
+        writeToPage(walPageInfo, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
+    return walPageInfo;
+}
+
+WALPageIdxPosInPageAndFrame Column::beginUpdatingPageAndWriteOnlyNullBit(
+    node_offset_t nodeOffset, bool isNull) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
-    writeToPage(walPageInfo, vectorToWriteFrom, posInVectorToWriteFrom);
-    setNullBitOfAPosInFrame(walPageInfo.frame, walPageInfo.posInPage,
-        vectorToWriteFrom->isNull(posInVectorToWriteFrom));
+    setNullBitOfAPosInFrame(walPageInfo.frame, walPageInfo.posInPage, isNull);
     return walPageInfo;
 }
 

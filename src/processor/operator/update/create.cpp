@@ -26,12 +26,12 @@ bool CreateNode::getNextTuples() {
         auto nodeTable = createNodeInfos[i]->table;
         auto nodeOffset =
             nodeTable->getNodeStatisticsAndDeletedIDs()->addNode(nodeTable->getTableID());
-        // TODO(Ziyi/Xiyang): we should also set emptyList for relTables connected to this node.
-        nodeTable->getUnstrPropertyLists()->setPropertyListEmpty(nodeOffset);
         auto vector = outValueVectors[i];
         auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
         nodeIDValue.tableID = nodeTable->getTableID();
         nodeIDValue.offset = nodeOffset;
+        nodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(nodeOffset);
+        relsStore.initEmptyRelsForNewNode(nodeIDValue);
     }
     metrics->executionTime.stop();
     return true;
