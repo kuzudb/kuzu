@@ -11,6 +11,7 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
+        .def("writeToCSV", &PyQueryResult::writeToCSV)
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF);
 
@@ -31,6 +32,10 @@ py::list PyQueryResult::getNext() {
         result[i] = convertValueToPyObject(*tuple->getResultValue(i));
     }
     return move(result);
+}
+
+void PyQueryResult::writeToCSV(py::str filename) {
+    queryResult->writeToCSV(filename);
 }
 
 void PyQueryResult::close() {

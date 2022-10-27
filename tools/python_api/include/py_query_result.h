@@ -19,6 +19,8 @@ public:
 
     py::list getNext();
 
+    void writeToCSV(py::str filename);
+
     void close();
 
     static py::object convertValueToPyObject(const ResultValue& value);
