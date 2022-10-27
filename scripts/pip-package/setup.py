@@ -1,3 +1,4 @@
+import platform
 import shutil
 import subprocess
 import os
@@ -9,7 +10,7 @@ from setuptools.command.build_py import build_py as _build_py
 
 base_dir = os.path.dirname(__file__)
 
-with open(os.path.join(base_dir, 'tools', 'python_api', 'requirements_dev.txt')) as f:
+with open(os.path.join(base_dir, 'graphflowdb-source', 'tools', 'python_api', 'requirements_dev.txt')) as f:
     requirements = f.read().splitlines()
 
 
@@ -23,29 +24,40 @@ class BazelBuild(build_ext):
     def build_extension(self, ext: BazelExtension) -> None:
         self.announce("Building native extension...", level=3)
         args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3']
-        # It seems bazel does not automatically pick up MACOSX_DEPLOYMENT_TARGET
-        # from the environment, so we need to pass it explicitly.
-        if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
-            args.append("--macos_minimum_os=" +
-                        os.environ["MACOSX_DEPLOYMENT_TARGET"])
+        # Pass the platform architecture for arm64 to bazel for
+        # cross-compilation.
+        if sys.platform == 'darwin':
+            archflags = os.getenv("ARCHFLAGS", "")
+            if len(archflags) > 0:
+                self.announce("The ARCHFLAGS is set to '%s'." %
+                              archflags, level=3)
+            else:
+                self.announce("The ARCHFLAGS is not set.", level=3)
+            if "arm64" in archflags and platform.machine() == "x86_64":
+                args.append("--macos_cpus=arm64")
+                args.append("--cpu=darwin_arm64")
+
+            # It seems bazel does not automatically pick up
+            # MACOSX_DEPLOYMENT_TARGETfrom the environment, so we need to pass
+            # it explicitly.
+            if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
+                args.append("--macos_minimum_os=" +
+                            os.environ["MACOSX_DEPLOYMENT_TARGET"])
         full_cmd = ['bazel', 'build', *args, '//tools/python_api:all']
         env_vars = os.environ.copy()
         env_vars['PYTHON_BIN_PATH'] = sys.executable
-        subprocess.run(full_cmd, cwd=ext.sourcedir, check=True, env=env_vars)
-        self.announce("Done building native extension", level=3)
+        build_dir = os.path.join(ext.sourcedir, 'graphflowdb-source')
+
+        subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
+        self.announce("Done building native extension.", level=3)
         self.announce("Copying native extension...", level=3)
-        shutil.copyfile(os.path.join(ext.sourcedir, 'bazel-bin', 'tools', 'python_api',
+        shutil.copyfile(os.path.join(build_dir, 'bazel-bin', 'tools', 'python_api',
                                      '_graphflowdb.so'), os.path.join(ext.sourcedir, ext.name, '_graphflowdb.so'))
-        self.announce("Done copying native extension", level=3)
-        # Remove bazel's BUILD file for macOS due to naming conflict with python's build file
-        if sys.platform == 'darwin':
-            build_file_path = os.path.join(ext.sourcedir, 'BUILD')
-            if os.path.isfile(build_file_path):
-                os.remove(build_file_path)
+        self.announce("Done copying native extension.", level=3)
 
 
 class BuildExtFirst(_build_py):
-    # Override the build_py command to build the extension first
+    # Override the build_py command to build the extension first.
     def run(self):
         self.run_command("build_ext")
         return super().run()
