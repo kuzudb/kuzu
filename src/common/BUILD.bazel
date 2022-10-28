@@ -103,7 +103,6 @@ cc_library(
         "configs",
         "type_utils",
         "//src/common/types",
-        "//third_party/utf8proc:utf8proc"
     ],
 )
 

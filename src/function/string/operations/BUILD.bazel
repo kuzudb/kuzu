@@ -12,6 +12,5 @@ cc_library(
     ],
     deps = [
         "//src/common/types",
-        "//third_party/utf8proc:utf8proc",
     ],
 )

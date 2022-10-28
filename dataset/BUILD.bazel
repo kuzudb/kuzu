@@ -6,7 +6,6 @@ filegroup(
         "copy-csv-empty-lists-test/**",
         "copy-csv-node-property-test/**",
         "copy-csv-special-char-test/**",
-        "copy-csv-utf8-tests/**",
         "hash-index-test/**",
         "long-string-pk-tests/**",
         "node-insertion-deletion-tests/**",

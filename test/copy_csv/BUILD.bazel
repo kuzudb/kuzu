@@ -14,7 +14,6 @@ cc_test(
     deps = [
         "//src/common:type_utils",
         "//src/common/types",
-        "//third_party/utf8proc:utf8proc",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
