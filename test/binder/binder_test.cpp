@@ -30,7 +30,8 @@ TEST_F(BinderTest, VarLenExtendMaxDepthTest) {
     for (auto i = 0u; i < normalizedQueryPart->getNumReadingClause(); i++) {
         ASSERT_EQ(normalizedQueryPart->getReadingClause(i)->getClauseType(), ClauseType::MATCH);
         auto boundMatchClause = (BoundMatchClause*)normalizedQueryPart->getReadingClause(i);
-        auto queryRel = boundMatchClause->getQueryGraph()->getQueryRel(0);
+        auto queryRel =
+            boundMatchClause->getQueryGraphCollection()->getQueryGraph(0)->getQueryRel(0);
         ASSERT_EQ(queryRel->getLowerBound(), 2);
         ASSERT_EQ(queryRel->getUpperBound(), VAR_LENGTH_EXTEND_MAX_DEPTH);
     }

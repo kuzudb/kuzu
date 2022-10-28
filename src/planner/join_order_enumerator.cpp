@@ -6,6 +6,7 @@
 
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_cross_product.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
@@ -22,10 +23,63 @@ static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftS
     const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
     const expression_vector& expressions);
 
-vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
-    const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
-    vector<unique_ptr<LogicalPlan>> prevPlans) {
-    context->init(queryGraph, queryGraphPredicate, std::move(prevPlans));
+vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
+    const QueryGraphCollection& queryGraphCollection, expression_vector& predicates) {
+    assert(queryGraphCollection.getNumQueryGraphs() > 0);
+    // project predicates on each query graph
+    vector<expression_vector> predicatesToPushDownPerGraph;
+    predicatesToPushDownPerGraph.resize(queryGraphCollection.getNumQueryGraphs());
+    expression_vector predicatesToPullUp;
+    for (auto& predicate : predicates) {
+        bool needToPullUp = true;
+        for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
+            auto queryGraph = queryGraphCollection.getQueryGraph(i);
+            if (queryGraph->canProjectExpression(predicate.get())) {
+                predicatesToPushDownPerGraph[i].push_back(predicate);
+                needToPullUp = false;
+            }
+        }
+        if (needToPullUp) {
+            predicatesToPullUp.push_back(predicate);
+        }
+    }
+    // enumerate plans for each query graph
+    vector<vector<unique_ptr<LogicalPlan>>> plansPerQueryGraph;
+    for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
+        plansPerQueryGraph.push_back(
+            enumerate(queryGraphCollection.getQueryGraph(i), predicatesToPushDownPerGraph[i]));
+    }
+    // take cross products
+    auto result = std::move(plansPerQueryGraph[0]);
+    for (auto i = 1u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
+        result = planCrossProduct(std::move(result), std::move(plansPerQueryGraph[i]));
+    }
+    // apply remaining predicates
+    for (auto& plan : result) {
+        for (auto& predicate : predicatesToPullUp) {
+            enumerator->appendFilter(predicate, *plan);
+        }
+    }
+    return result;
+}
+
+vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::planCrossProduct(
+    vector<unique_ptr<LogicalPlan>> leftPlans, vector<unique_ptr<LogicalPlan>> rightPlans) {
+    vector<unique_ptr<LogicalPlan>> result;
+    for (auto& leftPlan : leftPlans) {
+        for (auto& rightPlan : rightPlans) {
+            auto leftPlanCopy = leftPlan->shallowCopy();
+            auto rightPlanCopy = rightPlan->shallowCopy();
+            appendCrossProduct(*leftPlanCopy, *rightPlanCopy);
+            result.push_back(std::move(leftPlanCopy));
+        }
+    }
+    return result;
+}
+
+vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
+    QueryGraph* queryGraph, expression_vector& predicates) {
+    context->init(queryGraph, predicates);
     if (!context->expressionsToScanFromOuter.empty()) {
         planOuterExpressionsScan(context->expressionsToScanFromOuter);
     }
@@ -69,7 +123,6 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     for (auto& expression : expressions) {
         if (expression->getDataType().typeID == NODE_ID) {
             auto node = static_pointer_cast<NodeExpression>(expression->getChild(0));
-            context->addMatchedNode(node.get());
             auto nodePos = context->getQueryGraph()->getQueryNodePos(*node);
             newSubgraph.addQueryNode(nodePos);
         }
@@ -89,10 +142,6 @@ void JoinOrderEnumerator::planNodeScan() {
     auto queryGraph = context->getQueryGraph();
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
         auto node = queryGraph->getQueryNode(nodePos);
-        if (context->isNodeMatched(node.get())) {
-            continue;
-        }
-        context->addMatchedNode(node.get());
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = make_unique<LogicalPlan>();
@@ -128,10 +177,6 @@ void JoinOrderEnumerator::planRelScan() {
     auto queryGraph = context->getQueryGraph();
     for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
         auto rel = queryGraph->getQueryRel(relPos);
-        if (context->isRelMatched(rel.get())) {
-            continue;
-        }
-        context->addMatchedRel(rel.get());
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryRel(relPos);
         auto predicates = getNewMatchedExpressions(
@@ -278,7 +323,7 @@ void JoinOrderEnumerator::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel)
                 continue;
             }
             auto joinNodePositions = rightSubgraph.getConnectedNodePos(nbrSubgraph);
-            auto joinNodes = context->mergedQueryGraph->getQueryNodes(joinNodePositions);
+            auto joinNodes = context->queryGraph->getQueryNodes(joinNodePositions);
             if (needPruneImplicitJoins(nbrSubgraph, rightSubgraph, joinNodes.size())) {
                 continue;
             }
@@ -585,6 +630,23 @@ void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& inte
     auto logicalIntersect = make_shared<LogicalIntersect>(intersectNode,
         probePlan.getLastOperator(), std::move(buildChildren), std::move(buildInfos));
     probePlan.setLastOperator(std::move(logicalIntersect));
+}
+
+void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto probeSideSchema = probePlan.getSchema();
+    auto buildSideSchema = buildPlan.getSchema();
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
+    SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema);
+    vector<uint64_t> flatOutputGroupPositions;
+    for (auto i = numGroupsBeforeMerging; i < probeSideSchema->getNumGroups(); ++i) {
+        if (probeSideSchema->getGroup(i)->getIsFlat()) {
+            flatOutputGroupPositions.push_back(i);
+        }
+    }
+    auto crossProduct = make_shared<LogicalCrossProduct>(buildSideSchema->copy(),
+        flatOutputGroupPositions, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    probePlan.setLastOperator(std::move(crossProduct));
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(

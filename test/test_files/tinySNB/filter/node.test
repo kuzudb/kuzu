@@ -193,3 +193,9 @@
 #-QUERY MATCH (a:person) WHERE a.unstrTimestampProp2  IS NOT NULL RETURN COUNT(*)
 #---- 1
 #2
+
+-NAME nodeCrossProduct
+-QUERY MATCH (a:person), (b:person) WHERE a.ID = b.ID AND a.ID < 4 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3

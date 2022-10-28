@@ -229,7 +229,7 @@ void ProjectionEnumerator::appendOrderBy(
         }
     }
     auto schemaBeforeOrderBy = schema->copy();
-    SinkOperatorUtil::reComputeSchema(*schemaBeforeOrderBy, *schema);
+    SinkOperatorUtil::recomputeSchema(*schemaBeforeOrderBy, *schema);
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),
         plan.getLastOperator());

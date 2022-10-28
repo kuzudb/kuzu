@@ -42,7 +42,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         if (parent->getOperatorType() == UNION_ALL_SCAN ||
             parent->getOperatorType() == FACTORIZED_TABLE_SCAN ||
             parent->getOperatorType() == HASH_JOIN_PROBE ||
-            parent->getOperatorType() == INTERSECT) {
+            parent->getOperatorType() == INTERSECT || parent->getOperatorType() == CROSS_PRODUCT) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
             parentTask->addChildTask(move(childTask));

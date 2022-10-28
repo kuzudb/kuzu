@@ -283,7 +283,6 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
 unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
     auto [queryGraph, _] = bindGraphPattern(matchClause.getPatternElements());
-    validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto boundMatchClause =
         make_unique<BoundMatchClause>(move(queryGraph), matchClause.getIsOptional());
     if (matchClause.hasWhereClause()) {
@@ -323,37 +322,43 @@ unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause&
 unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
     auto prevVariablesInScope = variablesInScope;
-    auto [queryGraph, collection] = bindGraphPattern(createClause.getPatternElements());
+    auto [queryGraphCollection, propertyCollection] =
+        bindGraphPattern(createClause.getPatternElements());
     vector<shared_ptr<NodeExpression>> nodesToCreate;
     vector<vector<expression_pair>> setItemsPerNode;
-    for (auto i = 0u; i < queryGraph->getNumQueryNodes(); ++i) {
-        auto node = queryGraph->getQueryNode(i);
-        if (!prevVariablesInScope.contains(node->getRawName())) {
-            nodesToCreate.push_back(node);
-        }
-        setItemsPerNode.push_back(collection->getPropertyKeyValPairs(*node));
-    }
     vector<shared_ptr<RelExpression>> relsToCreate;
     vector<vector<expression_pair>> setItemsPerRel;
-    for (auto i = 0u; i < queryGraph->getNumQueryRels(); ++i) {
-        auto rel = queryGraph->getQueryRel(i);
-        if (!prevVariablesInScope.contains(rel->getRawName())) {
-            relsToCreate.push_back(rel);
-        }
-        // CreateRel requires all properties in schema as input. So we rewrite set property to null
-        // if user does not specify a property in the query.
-        vector<expression_pair> setItems;
-        for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel->getTableID())) {
-            if (collection->hasPropertyKeyValPair(*rel, property.name)) {
-                setItems.push_back(collection->getPropertyKeyValPair(*rel, property.name));
-            } else {
-                auto propertyExpression = make_shared<PropertyExpression>(
-                    property.dataType, property.name, property.propertyID, rel);
-                setItems.emplace_back(std::move(propertyExpression),
-                    LiteralExpression::createNullLiteralExpression(property.dataType));
+    for (auto i = 0u; i < queryGraphCollection->getNumQueryGraphs(); ++i) {
+        auto queryGraph = queryGraphCollection->getQueryGraph(i);
+        for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
+            auto node = queryGraph->getQueryNode(j);
+            if (!prevVariablesInScope.contains(node->getRawName())) {
+                nodesToCreate.push_back(node);
             }
+            setItemsPerNode.push_back(propertyCollection->getPropertyKeyValPairs(*node));
         }
-        setItemsPerRel.push_back(std::move(setItems));
+        for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
+            auto rel = queryGraph->getQueryRel(i);
+            if (!prevVariablesInScope.contains(rel->getRawName())) {
+                relsToCreate.push_back(rel);
+            }
+            // CreateRel requires all properties in schema as input. So we rewrite set property to
+            // null if user does not specify a property in the query.
+            vector<expression_pair> setItems;
+            for (auto& property :
+                catalog.getReadOnlyVersion()->getRelProperties(rel->getTableID())) {
+                if (propertyCollection->hasPropertyKeyValPair(*rel, property.name)) {
+                    setItems.push_back(
+                        propertyCollection->getPropertyKeyValPair(*rel, property.name));
+                } else {
+                    auto propertyExpression = make_shared<PropertyExpression>(
+                        property.dataType, property.name, property.propertyID, rel);
+                    setItems.emplace_back(std::move(propertyExpression),
+                        LiteralExpression::createNullLiteralExpression(property.dataType));
+                }
+            }
+            setItemsPerRel.push_back(std::move(setItems));
+        }
     }
     auto boundCreateClause = make_unique<BoundCreateClause>(std::move(nodesToCreate),
         std::move(setItemsPerNode), std::move(relsToCreate), std::move(setItemsPerRel));
@@ -540,24 +545,31 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
 //    - In UPDATE clause, there are properties to set.
 // We do not store key-value pairs in query graph primarily because we will merge key-value pairs
 // with other predicates specified in WHERE clause.
-pair<unique_ptr<QueryGraph>, unique_ptr<PropertyKeyValCollection>> Binder::bindGraphPattern(
-    const vector<unique_ptr<PatternElement>>& graphPattern) {
-    auto prevVariablesInScope = variablesInScope;
-    auto queryGraph = make_unique<QueryGraph>();
-    auto collection = make_unique<PropertyKeyValCollection>();
+pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>>
+Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern) {
+    auto propertyCollection = make_unique<PropertyKeyValCollection>();
+    auto queryGraphCollection = make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
-        auto leftNode =
-            bindQueryNode(*patternElement->getFirstNodePattern(), *queryGraph, *collection);
-        for (auto i = 0u; i < patternElement->getNumPatternElementChains(); ++i) {
-            auto patternElementChain = patternElement->getPatternElementChain(i);
-            auto rightNode =
-                bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, *collection);
-            bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph,
-                *collection);
-            leftNode = rightNode;
-        }
+        queryGraphCollection->addAndMergeQueryGraphIfConnected(
+            bindPatternElement(*patternElement, *propertyCollection));
     }
-    return make_pair(std::move(queryGraph), std::move(collection));
+    return make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
+}
+
+// Grammar ensures pattern element is always connected and thus can be bound as a query graph.
+unique_ptr<QueryGraph> Binder::bindPatternElement(
+    const PatternElement& patternElement, PropertyKeyValCollection& collection) {
+    auto queryGraph = make_unique<QueryGraph>();
+    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
+    for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
+        auto patternElementChain = patternElement.getPatternElementChain(i);
+        auto rightNode =
+            bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, collection);
+        bindQueryRel(
+            *patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
+        leftNode = rightNode;
+    }
+    return queryGraph;
 }
 
 void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
@@ -746,41 +758,6 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
         throw BinderException("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
     }
-}
-
-void Binder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope) {
-    auto visited = unordered_set<string>();
-    for (auto& [name, variable] : prevVariablesInScope) {
-        if (NODE == variable->dataType.typeID) {
-            visited.insert(variable->getUniqueName());
-        }
-    }
-    if (visited.empty()) {
-        visited.insert(queryGraph.getQueryNode(0)->getUniqueName());
-    }
-    auto target = visited;
-    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
-        target.insert(queryGraph.getQueryNode(i)->getUniqueName());
-    }
-    auto frontier = visited;
-    while (!frontier.empty()) {
-        auto nextFrontier = unordered_set<string>();
-        for (auto& nodeInFrontier : frontier) {
-            auto nbrs = queryGraph.getNeighbourNodeNames(nodeInFrontier);
-            for (auto& nbr : nbrs) {
-                if (end(visited) == visited.find(nbr)) {
-                    visited.insert(nbr);
-                    nextFrontier.insert(nbr);
-                }
-            }
-        }
-        if (visited.size() == target.size()) {
-            return;
-        }
-        frontier = nextFrontier;
-    }
-    throw BinderException("Disconnect query graph is not supported.");
 }
 
 void Binder::validateUnionColumnsOfTheSameType(

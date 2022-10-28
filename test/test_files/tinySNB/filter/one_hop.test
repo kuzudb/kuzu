@@ -38,3 +38,9 @@
 #-ENUMERATE
 #---- 1
 #1
+
+-NAME OneHopCrossProduct
+-QUERY MATCH (a:person), (c:person)-[:knows]->(d:person) WHERE a.age = 30 AND d.fName='Greg' RETURN a.ID, c.ID
+-ENUMERATE
+---- 1
+2|7

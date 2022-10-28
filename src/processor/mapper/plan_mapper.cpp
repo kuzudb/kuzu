@@ -51,6 +51,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_INTERSECT: {
         physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_CROSS_PRODUCT: {
+        physicalOperator = mapLogicalCrossProductToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     case LOGICAL_SCAN_NODE_PROPERTY: {
         physicalOperator =
             mapLogicalScanNodePropertyToPhysical(logicalOperator.get(), mapperContext);

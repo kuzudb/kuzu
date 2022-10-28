@@ -96,12 +96,14 @@ private:
 
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
-    pair<unique_ptr<QueryGraph>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
+    pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
         const vector<unique_ptr<PatternElement>>& graphPattern);
+    unique_ptr<QueryGraph> bindPatternElement(
+        const PatternElement& patternElement, PropertyKeyValCollection& collection);
+
     void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
         const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
-
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
@@ -147,9 +149,6 @@ private:
 
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
-
-    static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-        const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope);
 
     static void validateUnionColumnsOfTheSameType(
         const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries);

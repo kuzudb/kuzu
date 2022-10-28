@@ -38,6 +38,7 @@ private:
 
     static void encodeJoinRecursive(LogicalOperator* logicalOperator, string& encodeString);
 
+    static void encodeCrossProduct(LogicalOperator* logicalOperator, string& encodeString);
     static void encodeIntersect(LogicalOperator* logicalOperator, string& encodeString);
     static void encodeHashJoin(LogicalOperator* logicalOperator, string& encodeString);
     static void encodeExtend(LogicalOperator* logicalOperator, string& encodeString);

@@ -26,18 +26,6 @@ private:
     NiceMock<TinySnbCatalog> catalog;
 };
 
-TEST_F(BinderErrorTest, DisconnectedGraph1) {
-    string expectedException = "Binder exception: Disconnect query graph is not supported.";
-    auto input = "MATCH (a:person), (b:person) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, DisconnectedGraph2) {
-    string expectedException = "Binder exception: Disconnect query graph is not supported.";
-    auto input = "MATCH (a:person) WITH * MATCH (b:person) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, NodeTableNotExist) {
     string expectedException = "Binder exception: Node table PERSON does not exist.";
     auto input = "MATCH (a:PERSON) RETURN COUNT(*);";

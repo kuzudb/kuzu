@@ -57,8 +57,10 @@ private:
     void planUnwindClause(
         BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans);
 
-    void planOptionalMatch(const QueryGraph& queryGraph,
-        shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
+    void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+        expression_vector& predicates, LogicalPlan& outerPlan);
+    void planRegularMatch(const QueryGraphCollection& queryGraphCollection,
+        expression_vector& predicates, LogicalPlan& prevPlan);
 
     void planExistsSubquery(shared_ptr<Expression>& subquery, LogicalPlan& outerPlan);
 

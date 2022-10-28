@@ -11,7 +11,9 @@ class SinkOperatorUtil {
 public:
     static void mergeSchema(const Schema& inputSchema, Schema& result, const vector<string>& keys);
 
-    static void reComputeSchema(const Schema& inputSchema, Schema& result);
+    static void mergeSchema(const Schema& inputSchema, Schema& result);
+
+    static void recomputeSchema(const Schema& inputSchema, Schema& result);
 
     static unordered_set<uint32_t> getGroupsPosIgnoringKeyGroups(
         const Schema& schema, const vector<string>& keys);

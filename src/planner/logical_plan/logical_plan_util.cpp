@@ -37,6 +37,14 @@ LogicalOperator* LogicalPlanUtil::getCurrentPipelineSourceOperator(LogicalPlan& 
 
 void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, string& encodeString) {
     switch (logicalOperator->getLogicalOperatorType()) {
+    case LogicalOperatorType::LOGICAL_CROSS_PRODUCT: {
+        encodeCrossProduct(logicalOperator, encodeString);
+        for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
+            encodeString += "{";
+            encodeJoinRecursive(logicalOperator->getChild(i).get(), encodeString);
+            encodeString += "}";
+        }
+    } break;
     case LogicalOperatorType::LOGICAL_INTERSECT: {
         encodeIntersect(logicalOperator, encodeString);
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
@@ -75,6 +83,10 @@ void LogicalPlanUtil::collectOperatorsRecursive(
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         collectOperatorsRecursive(op->getChild(i).get(), operatorType, result);
     }
+}
+
+void LogicalPlanUtil::encodeCrossProduct(LogicalOperator* logicalOperator, string& encodeString) {
+    encodeString += "CP()";
 }
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, string& encodeString) {

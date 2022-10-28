@@ -10,7 +10,7 @@ shared_ptr<ResultSet> FactorizedTableScan::init(ExecutionContext* context) {
         resultSet->dataChunks[pos]->state = DataChunkState::getSingleValueDataChunkState();
     }
     initFurther(context);
-    sharedState->resetState();
+    sharedState->setToInitialState();
     return resultSet;
 }
 
