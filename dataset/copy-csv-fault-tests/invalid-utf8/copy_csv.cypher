@@ -1,0 +1,1 @@
+COPY person FROM "dataset/copy-csv-fault-tests/invalid-utf8/vPerson.csv"

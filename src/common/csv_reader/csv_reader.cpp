@@ -1,10 +1,13 @@
 #include "src/common/include/csv_reader/csv_reader.h"
 
 #include "spdlog/spdlog.h"
+#include "third_party/utf8proc/include/utf8proc_wrapper.h"
 
 #include "src/common/include/configs.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
+
+using namespace graphflow::utf8proc;
 
 namespace graphflow {
 namespace common {
@@ -215,7 +218,14 @@ char* CSVReader::getString() {
         // If the string is too long, truncate it.
         strVal[DEFAULT_PAGE_SIZE] = '\0';
     }
-    return strVal;
+    auto unicodeType = Utf8Proc::analyze(strVal, strlen(strVal));
+    if (unicodeType == UnicodeType::ASCII) {
+        return strVal;
+    } else if (unicodeType == UnicodeType::UNICODE) {
+        return Utf8Proc::normalize(strVal, strlen(strVal));
+    } else {
+        throw CSVReaderException("Invalid UTF-8 character encountered.");
+    }
 }
 
 date_t CSVReader::getDate() {

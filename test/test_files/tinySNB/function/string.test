@@ -283,6 +283,13 @@ kroWsED
 6
 7
 
+-NAME LengthUTF8Str
+-QUERY MATCH (m:movies) RETURN length(m.name)
+---- 3
+18
+17
+4
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LengthUnstructuredStr
 #-QUERY MATCH (o:organisation) RETURN length(o.unstrStr)
@@ -391,6 +398,13 @@ lizabeth
 arooq
 reg
 ubert Blaine
+
+-NAME SubStrUTF8String
+-QUERY MATCH (m:movies) RETURN substr(m.name, 1, 10)
+---- 3
+Sóló cón t
+The 😂😃🧘🏻‍♂️🌍🌦️🍞
+Roma
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME SubStrUnstructuredStrAndLiteralInt
