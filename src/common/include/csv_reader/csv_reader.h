@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "third_party/utf8proc/include/utf8proc_wrapper.h"
+
 #include "src/common/include/configs.h"
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/types_include.h"
