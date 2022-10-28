@@ -10,38 +10,42 @@ on:
 
 env:
   PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
-  
+
 jobs:
-  build-x86-wheels:
-    runs-on: macOS-11
-    env:
-      MACOSX_DEPLOYMENT_TARGET: 10.15
+  build-wheels:
+    runs-on: self-hosted-mac
     steps:
       - uses: actions/checkout@v2
-      - name: fix-permission
-        run: |
-          cd ../ && sudo chown -R runner:staff graphflowdb/ && cd graphflowdb/
-          ls -al
       - name: create-source-distribution
         working-directory: ./scripts/pip-package/
         run: |
           rm -rf wheelhouse graphflowdb.tar.gz
           mkdir wheelhouse
           bash package_tar.sh
-          rm -rf ./sdist && mkdir ./sdist && tar -xf ./graphflowdb.tar.gz -C ./sdist
-          tar -czf sdist.tar.gz ./sdist/
 
-      - name: build-wheel
+      - name: build-arm-wheels
+        uses: pypa/cibuildwheel@v2.11.1
+        env:
+          CIBW_SKIP: pp*
+          CIBW_ARCHS_MACOS: arm64
+          CIBW_BUILD_VERBOSITY: 3
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+        with:
+          package-dir: ./scripts/pip-package/graphflowdb.tar.gz
+          output-dir: ./scripts/pip-package/wheelhouse
+
+      - name: build-x86-wheel
         uses: pypa/cibuildwheel@v2.11.1
         env:
           CIBW_SKIP: pp*
           CIBW_ARCHS_MACOS: x86_64
           CIBW_BUILD_VERBOSITY: 3
+          MACOSX_DEPLOYMENT_TARGET: 10.15
         with:
-          package-dir: ./scripts/pip-package/sdist.tar.gz
+          package-dir: ./scripts/pip-package/graphflowdb.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
       - uses: actions/upload-artifact@v3
         with:
-          name: macos-x86-wheels
+          name: macos-wheels
           path: ./scripts/pip-package/wheelhouse/*.whl
