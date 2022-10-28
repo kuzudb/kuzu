@@ -95,10 +95,6 @@ class CopyCSVLongStringTest : public InMemoryDBTest {
     string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
 };
 
-class CopyCSVUTF8StringTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-utf8-tests/"; }
-};
-
 struct KnowsTablePTablePKnowsLists {
     table_id_t knowsRelTableID;
     table_id_t pNodeTableID;
@@ -357,17 +353,4 @@ TEST_F(CopyCSVLongStringTest, LongStringError) {
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(1, col->readValue(0).val.int64Val);
     EXPECT_EQ(2, col->readValue(1).val.int64Val);
-}
-
-TEST_F(CopyCSVUTF8StringTest, UTF8StringTest) {
-    auto result = conn->query("match (p:person) return p.fName");
-    vector<string> results;
-    while (result->hasNext()) {
-        auto tuple = result->getNext();
-        results.push_back(tuple->getResultValue(0)->getStringVal());
-    }
-    EXPECT_EQ(results[0], "κόσμε");
-    EXPECT_EQ(results[1], "🦆");
-    EXPECT_EQ(results[2], "没頭する");
-    EXPECT_EQ(results[3], "valid Ascii");
 }

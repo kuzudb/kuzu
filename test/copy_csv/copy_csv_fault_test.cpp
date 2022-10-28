@@ -30,16 +30,6 @@ class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
 
 class CopyCSVWrongHeaderTest : public CopyCSVFaultTest {};
 
-class CopyCSVUTF8ByteMismatchTest : public CopyCSVFaultTest {
-public:
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/byte-mismatch/"; }
-};
-
-class CopyCSVUTF8InvalidUTFTest : public CopyCSVFaultTest {
-public:
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/invalid-utf8/"; }
-};
-
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
     ASSERT_EQ(getCopyCSVException(),
         "Failed to execute statement: COPY person FROM "
@@ -97,20 +87,4 @@ TEST_F(CopyCSVWrongHeaderTest, CSVHeaderError) {
     ASSERT_EQ(result->getErrorMessage(),
         "Binder exception: The name of column 1 does not match the column in schema. Expecting "
         "\"prop2\", the column name in csv is \"p2\".");
-}
-
-TEST_F(CopyCSVUTF8ByteMismatchTest, ByteMismatchTest) {
-    ASSERT_EQ(
-        "Failed to execute statement: COPY person FROM "
-        "\"dataset/copy-csv-fault-tests/byte-mismatch/vPerson.csv\".\nError: CSVReader exception: "
-        "Invalid UTF-8 character encountered.",
-        getCopyCSVException());
-}
-
-TEST_F(CopyCSVUTF8InvalidUTFTest, InvalidUTFTest) {
-    ASSERT_EQ(
-        "Failed to execute statement: COPY person FROM "
-        "\"dataset/copy-csv-fault-tests/invalid-utf8/vPerson.csv\".\nError: CSVReader exception: "
-        "Invalid UTF-8 character encountered.",
-        getCopyCSVException());
 }
