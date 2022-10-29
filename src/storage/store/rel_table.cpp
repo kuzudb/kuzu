@@ -7,20 +7,19 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace storage {
 
-RelTable::RelTable(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-    table_id_t tableID, BufferManager& bufferManager, MemoryManager& memoryManager,
-    bool isInMemoryMode, WAL* wal)
+RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
+    MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, tableID{tableID},
       isInMemoryMode{isInMemoryMode},
       adjAndPropertyListsUpdateStore{make_unique<AdjAndPropertyListsUpdateStore>(
           memoryManager, *catalog.getReadOnlyVersion()->getRelTableSchema(tableID))},
       wal{wal} {
-    loadColumnsAndListsFromDisk(catalog, maxNodeOffsetsPerTable, bufferManager);
+    loadColumnsAndListsFromDisk(catalog, bufferManager);
 }
 
-void RelTable::loadColumnsAndListsFromDisk(const catalog::Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager) {
-    initAdjColumnOrLists(catalog, maxNodeOffsetsPerTable, bufferManager, wal);
+void RelTable::loadColumnsAndListsFromDisk(
+    const catalog::Catalog& catalog, BufferManager& bufferManager) {
+    initAdjColumnOrLists(catalog, bufferManager, wal);
     initPropertyListsAndColumns(catalog, bufferManager, wal);
 }
 
@@ -106,8 +105,8 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     adjAndPropertyListsUpdateStore->initEmptyListInPersistentStore(nodeID);
 }
 
-void RelTable::initAdjColumnOrLists(const Catalog& catalog,
-    const vector<uint64_t>& maxNodeOffsetsPerTable, BufferManager& bufferManager, WAL* wal) {
+void RelTable::initAdjColumnOrLists(
+    const Catalog& catalog, BufferManager& bufferManager, WAL* wal) {
     logger->info("Initializing AdjColumns and AdjLists for rel {}.", tableID);
     adjColumns = vector<table_adj_columns_map_t>{2};
     adjLists = vector<table_adj_lists_map_t>{2};

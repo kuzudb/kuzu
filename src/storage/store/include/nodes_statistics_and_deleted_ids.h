@@ -42,12 +42,16 @@ public:
     // offsets and the same tableID.
     void setDeletedNodeOffsetsForMorsel(const shared_ptr<ValueVector>& nodeOffsetVector);
 
-    void setMaxNodeOffset(node_offset_t maxNodeOffset_);
+    void setNumTuples(uint64_t numTuples) override;
 
     vector<node_offset_t> getDeletedNodeOffsets();
 
+    static inline uint64_t geNumTuplesFromMaxNodeOffset(node_offset_t maxNodeOffset) {
+        return (maxNodeOffset == UINT64_MAX) ? 0ull : maxNodeOffset + 1ull;
+    }
+
     static inline uint64_t getMaxNodeOffsetFromNumTuples(uint64_t numTuples) {
-        return numTuples == UINT64_MAX ? UINT64_MAX : numTuples - 1;
+        return numTuples == 0 ? UINT64_MAX : numTuples - 1;
     }
 
 private:
@@ -99,10 +103,10 @@ public:
             directory, DBFileType::ORIGINAL, TransactionType::READ_ONLY);
     }
 
-    inline void setMaxNodeOffsetForTable(table_id_t tableID, node_offset_t nodeOffset) {
+    inline void setNumTuplesForTable(table_id_t tableID, uint64_t numTuples) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
         ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
-            ->setMaxNodeOffset(nodeOffset);
+            ->setNumTuples(numTuples);
     }
 
     inline node_offset_t getMaxNodeOffset(Transaction* transaction, table_id_t tableID) {
@@ -147,7 +151,7 @@ public:
 
     // This function is only used by storageManager to construct relsStore during start-up, so
     // we can just safely return the maxNodeOffsetPerTable for readOnlyVersion.
-    vector<node_offset_t> getMaxNodeOffsetPerTable() const;
+    map<table_id_t, node_offset_t> getMaxNodeOffsetPerTable() const;
 
     void setDeletedNodeOffsetsForMorsel(Transaction* transaction,
         const shared_ptr<ValueVector>& nodeOffsetVector, table_id_t tableID);

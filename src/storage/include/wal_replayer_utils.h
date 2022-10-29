@@ -14,7 +14,7 @@ namespace storage {
 class WALReplayerUtils {
 public:
     static void createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
-        const string& directory, const vector<uint64_t>& maxNodeOffsetsPerTable);
+        const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable);
 
     static void createEmptyDBFilesForNewNodeTable(
         Catalog* catalog, table_id_t tableID, string directory);
@@ -52,12 +52,12 @@ private:
         bool isForRelPropertyColumn);
 
     static void createEmptyDBFilesForColumns(const unordered_set<table_id_t>& nodeTableIDs,
-        const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+        const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
         const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
         RelTableSchema* relTableSchema);
 
     static void createEmptyDBFilesForLists(const unordered_set<table_id_t>& nodeTableIDs,
-        const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+        const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
         const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
         RelTableSchema* relTableSchema);
 

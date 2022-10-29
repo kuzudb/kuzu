@@ -19,8 +19,8 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         auto parsedQuery = (RegularQuery*)statement.get();
         auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
         auto& nodesStatisticsAndDeletedIDs =
-            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
-        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs();
+        auto& relsStatistics = database->getStorageManager()->getRelsStore().getRelsStatistics();
         unique_ptr<LogicalPlan> logicalPlan;
         if (encodedJoin.empty()) {
             logicalPlan = Planner::getBestPlan(

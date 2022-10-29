@@ -32,7 +32,7 @@ void InMemNodeCSVCopier::copy() {
     calcUnstrListsHeadersAndMetadata();
     populateUnstrPropertyLists();
     saveToFile();
-    nodesStatisticsAndDeletedIDs->setMaxNodeOffsetForTable(nodeTableSchema->tableID, numNodes - 1);
+    nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
     logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
         nodeTableSchema->tableID);
 }
@@ -243,7 +243,7 @@ void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
                                           ->unstrPropertiesNameToIdMap;
     while (reader.hasNextLine()) {
         for (auto i = 0u; i < copier->nodeTableSchema->getNumStructuredProperties(); ++i) {
-            reader.hasNextToken();
+            reader.hasNextTokenOrError();
         }
         // TODO(Semih): Uncomment when enabling ad-hoc properties
         //        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset,
@@ -260,7 +260,7 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
     const vector<Property>& structuredProperties, vector<PageByteCursor>& overflowCursors,
     CSVReader& reader, uint64_t nodeOffset) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
-        reader.hasNextToken();
+        reader.hasNextTokenOrError();
         auto column = structuredColumns[columnIdx].get();
         switch (column->getDataType().typeID) {
         case INT64: {

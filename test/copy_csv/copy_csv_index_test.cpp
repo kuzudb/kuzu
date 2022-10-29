@@ -12,7 +12,8 @@ class TinySnbIndexTest : public InMemoryDBTest {
 TEST_F(TinySnbIndexTest, PersonNodeIDIndex) {
     auto storageManager = database->getStorageManager();
     auto& nodesStore = storageManager->getNodesStore();
-    auto personIDIndex = nodesStore.getIDIndex(0);
+    auto personIDIndex = nodesStore.getIDIndex(
+        database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person"));
     int64_t personIDs[8] = {0, 2, 3, 5, 7, 8, 9, 10};
     node_offset_t nodeOffset;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
@@ -24,9 +25,11 @@ TEST_F(TinySnbIndexTest, PersonNodeIDIndex) {
 }
 
 TEST_F(TinySnbIndexTest, OrganisationNodeIDIndex) {
+    cout << "HERE" << endl;
     auto storageManager = database->getStorageManager();
     auto& nodesStore = storageManager->getNodesStore();
-    auto organisationIDIndex = nodesStore.getIDIndex(1);
+    auto organisationIDIndex = nodesStore.getIDIndex(
+        database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("organisation"));
     int64_t organisationIDs[3] = {1, 4, 6};
     node_offset_t nodeOffset;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();

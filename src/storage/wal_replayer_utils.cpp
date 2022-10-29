@@ -6,7 +6,7 @@ namespace graphflow {
 namespace storage {
 
 void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
-    const string& directory, const vector<uint64_t>& maxNodeOffsetsPerTable) {
+    const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
     auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
     for (auto relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
@@ -72,13 +72,13 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
 }
 
 void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id_t>& nodeTableIDs,
-    const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
     RelTableSchema* relTableSchema) {
     for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable[nodeTableID] == UINT64_MAX ?
+        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) == UINT64_MAX ?
                             0 :
-                            maxNodeOffsetsPerTable[nodeTableID] + 1;
+                            maxNodeOffsetsPerTable.at(nodeTableID) + 1;
         make_unique<InMemAdjColumn>(
             StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID, nodeTableID,
                 relDirection, DBFileType::ORIGINAL),
@@ -90,13 +90,13 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id
 }
 
 void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t>& nodeTableIDs,
-    const vector<uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
     RelTableSchema* relTableSchema) {
     for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable[nodeTableID] == UINT64_MAX ?
+        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) == UINT64_MAX ?
                             0 :
-                            maxNodeOffsetsPerTable[nodeTableID] + 1;
+                            maxNodeOffsetsPerTable.at(nodeTableID) + 1;
         auto adjLists = make_unique<InMemAdjLists>(
             StorageUtils::getAdjListsFName(directory, relTableSchema->tableID, nodeTableID,
                 relDirection, DBFileType::ORIGINAL),

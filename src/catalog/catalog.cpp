@@ -181,7 +181,7 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
 namespace graphflow {
 namespace catalog {
 
-CatalogContent::CatalogContent() {
+CatalogContent::CatalogContent() : nextTableID{0} {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
@@ -203,11 +203,12 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     }
     nodeTableNameToIDMap = other.nodeTableNameToIDMap;
     relTableNameToIDMap = other.relTableNameToIDMap;
+    nextTableID = other.nextTableID;
 }
 
 table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
-    table_id_t tableID = getNumNodeTables();
+    table_id_t tableID = assignNextTableID();
     vector<Property> structuredProperties;
     for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
         auto& propertyDefinition = structuredPropertyDefinitions[i];
@@ -223,7 +224,7 @@ table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primary
 
 table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
     vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
-    table_id_t tableID = relTableSchemas.size();
+    table_id_t tableID = assignNextTableID();
     for (auto& srcTableID : srcDstTableIDs.srcTableIDs) {
         nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     }
@@ -296,9 +297,6 @@ vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const 
 
 const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
     table_id_t tableID, RelDirection direction) const {
-    if (tableID >= nodeTableSchemas.size()) {
-        throw CatalogException("Node table " + to_string(tableID) + " is out of bounds.");
-    }
     if (FWD == direction) {
         return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
     }
@@ -329,6 +327,7 @@ void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) 
         offset = SerDeser::serializeValue<RelTableSchema>(
             *relTableSchema.second, fileInfo.get(), offset);
     }
+    SerDeser::serializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
     FileUtils::closeFile(fileInfo->fd);
 }
 
@@ -367,6 +366,7 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     for (auto& relTableSchema : relTableSchemas) {
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
+    SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
     FileUtils::closeFile(fileInfo->fd);
 }
 

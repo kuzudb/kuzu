@@ -20,14 +20,29 @@ class TableStatistics {
 
 public:
     TableStatistics() = default;
-    explicit TableStatistics(uint64_t numTuples) : numTuples{numTuples} {}
+    explicit TableStatistics(uint64_t numTuples) : numTuples{numTuples} {
+        assert(numTuples != UINT64_MAX);
+    }
+
+    inline bool isEmpty() { return numTuples == 0; }
 
     inline uint64_t getNumTuples() const { return numTuples; }
 
-    inline void setNumTuples(uint64_t numTuples_) { numTuples = numTuples_; }
+    virtual inline void setNumTuples(uint64_t numTuples_) {
+        assert(numTuples_ != UINT64_MAX);
+        numTuples = numTuples_;
+    }
 
 private:
     uint64_t numTuples;
+};
+
+class TablesStatisticsContent {
+    unique_ptr<unordered_map<table_id_t, unique_ptr<TableStatistics>>>
+        tableStatisticPerTableForReadOnlyTrx;
+    // This is only needed for RelsStatistics and is a temporary solution until we move to a
+    // uniform node and edge ID scheme (and then open an issue about this.)
+    uint64_t nextRelID;
 };
 
 class TablesStatistics {

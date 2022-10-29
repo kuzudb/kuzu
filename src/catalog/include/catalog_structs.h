@@ -144,7 +144,11 @@ struct RelTableSchema : TableSchema {
     inline SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
-    inline uint32_t getNumPropertiesToReadFromCSV() const { return properties.size(); }
+
+    inline uint32_t getNumPropertiesToReadFromCSV() const {
+        // -1 here is to remove the INTERNAL_ID_SUFFIX = "_id" property.
+        return properties.size() - 1;
+    }
     inline bool isStoredAsLists(RelDirection relDirection) const {
         return relMultiplicity == MANY_MANY ||
                (relMultiplicity == ONE_MANY && relDirection == FWD) ||

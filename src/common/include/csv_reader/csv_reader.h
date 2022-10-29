@@ -33,13 +33,10 @@ struct CSVReaderConfig {
 };
 
 struct CSVDescription {
-    CSVDescription(
-        const string filePath, const CSVReaderConfig csvReaderConfig, uint64_t numberOfFields)
-        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)}, numberOfFields{
-                                                                                numberOfFields} {}
+    CSVDescription(const string filePath, const CSVReaderConfig csvReaderConfig)
+        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)} {}
     const string filePath;
     const CSVReaderConfig csvReaderConfig;
-    const uint64_t numberOfFields;
 };
 
 // TODO(Guodong): we should add a csv reader test to test edge cases and error messages.
@@ -62,7 +59,7 @@ public:
     bool hasNextLine();
     // returns true if the currently-pointed to line has more data to be parsed, else false.
     bool hasNextToken();
-
+    bool hasNextTokenOrError();
     // Marks the currently-pointed to line as processed. hasNextLine() has to be called the move the
     // iterator to the next line.
     void skipLine();

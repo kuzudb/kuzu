@@ -42,7 +42,7 @@ uint64_t InMemStructuresCSVCopier::calculateNumRows(bool hasHeader) {
 static void collectUnstrPropertyNamesInLine(
     CSVReader& reader, uint64_t numTokensToSkip, unordered_set<string>* unstrPropertyNames) {
     for (auto i = 0u; i < numTokensToSkip; ++i) {
-        reader.hasNextToken();
+        reader.hasNextTokenOrError();
     }
     while (reader.hasNextToken()) {
         auto unstrPropertyStr = reader.getString();

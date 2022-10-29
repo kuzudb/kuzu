@@ -86,8 +86,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
             statement.get(), binder, querySummary, preparedStatement.get());
         // planning
         auto logicalPlan = Planner::getBestPlan(*database->catalog,
-            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            database->storageManager->getRelsStore().getRelsStatistics(), *boundStatement);
+            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+            database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundStatement);
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
         auto mapper = PlanMapper(
@@ -186,8 +186,8 @@ vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getAllPlans(*database->catalog,
-        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
+        database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
 }
 
 unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& query) {
@@ -195,8 +195,8 @@ unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& quer
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getBestPlan(*database->catalog,
-        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
+        database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
 }
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {

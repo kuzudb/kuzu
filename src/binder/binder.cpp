@@ -87,14 +87,8 @@ unique_ptr<BoundCopyCSV> Binder::bindCopyCSV(const CopyCSV& copyCSV) {
                                  catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
     auto filePath = copyCSV.getCSVFileName();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    auto csvFields = getFieldNamesForCSV(filePath, csvReaderConfig);
-
-    if (csvReaderConfig.hasHeader) {
-        validateCSVHeader(isNodeTable, csvFields, tableID);
-    }
-    auto numberOfFieldsInCSV = csvFields.size();
-    return make_unique<BoundCopyCSV>(CSVDescription(filePath, csvReaderConfig, numberOfFieldsInCSV),
-        TableSchema(tableName, tableID, isNodeTable));
+    return make_unique<BoundCopyCSV>(
+        CSVDescription(filePath, csvReaderConfig), TableSchema(tableName, tableID, isNodeTable));
 }
 
 unique_ptr<BoundDropTable> Binder::bindDropTable(const DropTable& dropTable) {
@@ -180,60 +174,6 @@ char Binder::bindParsingOptionValue(string parsingOptionValue) {
                               "optional escape character.");
     }
     return parsingOptionValue[parsingOptionValue.length() - 1];
-}
-
-void Binder::validateCSVHeader(
-    bool isNodeTable, const vector<string>& csvFields, table_id_t tableID) {
-    vector<Property> tableProperties;
-    auto csvPropertyStartIdx = 0u;
-    auto csvFieldsSize = 0u;
-
-    if (isNodeTable) {
-        auto tableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
-        tableProperties = tableSchema->getAllNodeProperties();
-        csvFieldsSize = csvFields.size();
-    } else {
-        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-        tableProperties = tableSchema->properties;
-        // Drop "_id" property.
-        tableProperties.pop_back();
-
-        // Find first property column by skipping the "from", "to", and node type columns from
-        // header.
-        for (; csvPropertyStartIdx < csvFields.size(); ++csvPropertyStartIdx) {
-            if (compareStringsCaseInsensitive(
-                    csvFields[csvPropertyStartIdx], tableProperties[0].name)) {
-                break;
-            }
-        }
-        if (csvPropertyStartIdx >= csvFields.size()) {
-            throw BinderException("The first property column \"" + tableProperties[0].name +
-                                  "\" is not found in the csv.");
-        }
-        csvFieldsSize = csvFields.size() - csvPropertyStartIdx;
-    }
-    if (csvFieldsSize < tableProperties.size()) {
-        throw BinderException(
-            "The csv file does not have sufficient property columns. Expecting at least " +
-            to_string(tableProperties.size()) + " column" +
-            (tableProperties.size() > 1 ? "s" : "") + ". The file has " +
-            to_string(csvFields.size() - csvPropertyStartIdx) + " property column" +
-            (csvFieldsSize > 1 ? "s" : "") + ".");
-    }
-    if (csvFieldsSize > tableProperties.size()) {
-        logger->warn(to_string(csvFieldsSize - tableProperties.size()) +
-                     " additional trailing columns is detected in csv header. ");
-    }
-    for (auto i = 0u; i < tableProperties.size(); ++i) {
-        auto tableProperty = tableProperties[i].name;
-        const auto& csvField = csvFields[i + csvPropertyStartIdx];
-        if (compareStringsCaseInsensitive(csvField, tableProperty)) {
-            continue;
-        }
-        throw BinderException("The name of column " + to_string(i) +
-                              " does not match the column in schema. Expecting \"" + tableProperty +
-                              "\", the column name in csv is \"" + csvField + "\".");
-    }
 }
 
 unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
@@ -873,18 +813,6 @@ void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
                 tableIDSchema.second->tableName.c_str()));
         }
     }
-}
-
-vector<string> Binder::getFieldNamesForCSV(
-    const string& filePath, const CSVReaderConfig& csvReaderConfig) {
-    vector<string> result;
-    CSVReader reader(filePath, csvReaderConfig, 0);
-    if (reader.hasNextLine()) {
-        while (reader.hasNextToken()) {
-            result.emplace_back(reader.getString());
-        }
-    }
-    return result;
 }
 
 bool Binder::compareStringsCaseInsensitive(const string& str1, const string& str2) {

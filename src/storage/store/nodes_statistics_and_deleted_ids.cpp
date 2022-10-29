@@ -12,7 +12,7 @@ namespace storage {
 NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
     node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets)
     : tableID{tableID} {
-    setMaxNodeOffset(maxNodeOffset);
+    setNumTuples(geNumTuplesFromMaxNodeOffset(maxNodeOffset));
     for (node_offset_t deletedNodeOffset : deletedNodeOffsets) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);
@@ -27,7 +27,7 @@ NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
 
 node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerMorsel.empty()) {
-        setMaxNodeOffset(getNumTuples() == UINT64_MAX ? 0 : getMaxNodeOffset() + 1);
+        setNumTuples(getNumTuples() + 1);
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find
@@ -101,10 +101,10 @@ void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     }
 }
 
-void NodeStatisticsAndDeletedIDs::setMaxNodeOffset(node_offset_t maxNodeOffset) {
-    setNumTuples(maxNodeOffset == UINT64_MAX ? UINT64_MAX : maxNodeOffset + 1);
-    if (maxNodeOffset != UINT64_MAX) {
-        hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
+void NodeStatisticsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
+    TableStatistics::setNumTuples(numTuples);
+    if (numTuples > 0) {
+        hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
 }
 
@@ -164,17 +164,17 @@ NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
 }
 
 void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
-    for (auto tableID = 0u; tableID < tableStatisticPerTableForReadOnlyTrx->size(); ++tableID) {
-        getNodeStatisticsAndDeletedIDs(tableID)->setAdjListsAndColumns(
-            relsStore->getAdjListsAndColumns(tableID));
+    for (auto& tableIDStatistics : *tableStatisticPerTableForReadOnlyTrx) {
+        getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)
+            ->setAdjListsAndColumns(relsStore->getAdjListsAndColumns(tableIDStatistics.first));
     }
 }
 
-vector<node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
-    vector<node_offset_t> retVal;
-    for (table_id_t tableID = 0u; tableID < tableStatisticPerTableForReadOnlyTrx->size();
-         ++tableID) {
-        retVal.push_back(getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset());
+map<table_id_t, node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
+    map<table_id_t, node_offset_t> retVal;
+    for (auto& tableIDStatistics : *tableStatisticPerTableForReadOnlyTrx) {
+        retVal[tableIDStatistics.first] =
+            getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)->getMaxNodeOffset();
     }
     return retVal;
 }

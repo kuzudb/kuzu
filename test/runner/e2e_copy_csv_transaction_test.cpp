@@ -118,11 +118,12 @@ public:
             relTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
-        ASSERT_EQ(database->storageManager->getRelsStore().getRelsStatistics().getNextRelID(), 0);
+        ASSERT_EQ(
+            database->getStorageManager()->getRelsStore().getRelsStatistics().getNextRelID(), 0);
     }
 
-    void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t tableID) {
-        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
+    void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t knowsTableID) {
+        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(knowsTableID);
         // After checkPointing, we should only have one version of rel column and list
         // files(original version).
         validateRelColumnAndListFilesExistence(
@@ -130,10 +131,11 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
-        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        auto& relsStatistics = database->getStorageManager()->getRelsStore().getRelsStatistics();
         ASSERT_EQ(relsStatistics.getNextRelID(), 14);
         ASSERT_EQ(relsStatistics.getReadOnlyVersion()->size(), 1);
-        auto knowsRelStatistics = (RelStatistics*)((*relsStatistics.getReadOnlyVersion())[0].get());
+        auto knowsRelStatistics =
+            (RelStatistics*)((*relsStatistics.getReadOnlyVersion())[knowsTableID].get());
         ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
         ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::FWD, 0), 14);
         ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::BWD, 0), 14);

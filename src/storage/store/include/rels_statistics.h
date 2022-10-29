@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "table_statistics.h"
 
 #include "src/storage/include/storage_utils.h"
@@ -57,13 +59,26 @@ public:
     inline void setNumRelsForTable(table_id_t tableID, uint64_t numRels) {
         lock_t lck{mtx};
         initTableStatisticPerTableForWriteTrxIfNecessary();
-        assert(tableID < tableStatisticPerTableForWriteTrx->size());
-        ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()))
-            ->setNumTuples(numRels);
+        assert(tableStatisticPerTableForWriteTrx->contains(tableID));
+        auto relStatistics =
+            ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()));
+        relStatistics->setNumTuples(numRels);
+        assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRels);
+        assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRels);
     }
 
+    void assertNumRelsIsSound(
+        unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
+        uint64_t sum = 0;
+        for (auto tableIDNumRels : relsPerBoundTable) {
+            sum += tableIDNumRels.second;
+        }
+        assert(sum == numRels);
+    }
+
+    // Note: This function will not set the numTuples field. That should be called separately.
     void setNumRelsPerDirectionBoundTableID(
-        table_id_t tableID, vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable);
+        table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable);
 
     uint64_t getNextRelID();
 
