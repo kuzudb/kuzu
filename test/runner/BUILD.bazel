@@ -37,9 +37,26 @@ cc_test(
 )
 
 cc_test(
-    name = "e2e_transaction_test",
+    name = "e2e_delete_create_trx_test",
     srcs = [
         "e2e_delete_create_transaction_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "e2e_set_trx_test",
+    srcs = [
         "e2e_set_transaction_test.cpp",
     ],
     copts = [

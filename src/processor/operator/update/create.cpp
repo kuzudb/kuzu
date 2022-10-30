@@ -77,7 +77,7 @@ bool CreateRel::getNextTuples() {
                 ((int64_t*)relIDVector->values)[0] = (int64_t)relsStatistics.getNextRelID();
                 relIDVector->setNull(0, false);
             } else {
-                createRelInfo->evaluators[i]->evaluate();
+                createRelInfo->evaluators[j]->evaluate();
             }
         }
         createRelInfo->table->insertRels(vectorsToInsertPerRel[i]);

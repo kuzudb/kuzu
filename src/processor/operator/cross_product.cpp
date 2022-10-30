@@ -20,14 +20,17 @@ shared_ptr<ResultSet> CrossProduct::init(ExecutionContext* context) {
 
 bool CrossProduct::getNextTuples() {
     metrics->executionTime.start();
+    // Note: we should NOT morselize right table scanning (i.e. calling sharedState.getMorsel)
+    // because every thread should scan its own table.
     auto table = sharedState->getTable();
     if (startIdx == table->getNumTuples()) { // no more to scan from right
-        if (!children[0]->getNextTuples()) {
+        if (!children[0]->getNextTuples()) { // fetch a new left tuple
             metrics->executionTime.stop();
             return false;
         }
-        startIdx = 0; // re-scan right table for a new left tuple
+        startIdx = 0; // reset right table scanning for a new left tuple
     }
+    // scan from right table if there is tuple left
     auto maxNumTuplesToScan = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto numTuplesToScan = min(maxNumTuplesToScan, table->getNumTuples() - startIdx);
     table->scan(vectorsToScan, startIdx, numTuplesToScan, colIndicesToScan);
