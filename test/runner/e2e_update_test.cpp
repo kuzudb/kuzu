@@ -314,14 +314,80 @@ TEST_F(TinySnbUpdateTest, InsertNodeAfterMatchListTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-TEST_F(TinySnbUpdateTest, InsertRelBasicTest) {
+TEST_F(TinySnbUpdateTest, InsertSingleNToNRelTest) {
+    conn->query(
+        "MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 "
+        "CREATE (a)-[:knows {meetTime:timestamp('1976-12-23 11:21:42'), validInterval:interval('2 "
+        "years'), comments:['A', 'k'], date:date('1997-03-22')}]->(b);");
+    auto groundTruth = vector<string>{"9|10|1997-03-22|1976-12-23 11:21:42|2 years|[A,k]|37"};
+    auto result =
+        conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertSingleNTo1RelTest) {
+    // insert studyAt edge between Greg and CsWork
+    conn->query("MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 "
+                "CREATE (a)-[:studyAt {year:2022}]->(b);");
+    auto groundTruth =
+        vector<string>{"8|325|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|16", "9|934|2022||37"};
+    auto result = conn->query(
+        "MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertRepeatedNToNRelTest) {
+    conn->query("MATCH (a:person), (b:person) WHERE a.ID = 7 AND b.ID = 8"
+                "CREATE (a)-[:knows {validInterval:interval('3 years')}]->(b);");
+    auto groundTruth = vector<string>{"8|00:47:58", "8|3 years", "9|00:47:58"};
+    auto result = conn->query(
+        "MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=7 RETURN b.ID, e.validInterval");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+// TODO(Ziyi): this should throw runtime error. We probably shouldn't allow inserting to N-1.
+// TEST_F(TinySnbUpdateTest, InsertRepeatedNTo1RelTest) {
+//    conn->query("MATCH (a:person)-[:studyAt]->(b:organisation) "
+//                "CREATE (a)-[:studyAt]->(b);");
+//    auto groundTruth = vector<string>{"6"};
+//    auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN COUNT(*)");
+//    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+//}
+
+TEST_F(TinySnbUpdateTest, InsertMixedRelTest) {
+    conn->query(
+        "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "
+        "CREATE (b)-[:studyAt]->(c), (a)<-[:knows]-(b)");
+    auto groundTruth = vector<string>{"9"};
+    auto result = conn->query(
+        "MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation) RETURN COUNT(*)");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertMultipleRelsTest) {
     conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 "
-                "CREATE (a)<-[:knows {date:date('1997-03-22')}]-(b);");
+                "CREATE (a)<-[:knows]-(b);");
     auto groundTruth = vector<string>{"7|8|12", "7|9|13", "8|7|37", "9|7|38"};
     auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, "
-                              "b.ID, e._id order by a.ID, b.ID");
-    // After rel insertions,the query will return 4 rels: person7->person8, person7->person9,
-    // person8->person7, person9->person7.
-    ASSERT_EQ(result->getNumTuples(), 4);
+                              "b.ID, e._id");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest) {
+    conn->query(
+        "CREATE (a:person {ID:100})-[:knows {date:date('1997-03-22')}]->(b:person {ID:202})");
+    auto groundTruth = vector<string>{"100|202|1997-03-22"};
+    auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN a.ID, "
+                              "b.ID, e.date");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest2) {
+    conn->query(
+        "CREATE (c:organisation {ID:50})<-[:workAt]-(a:person {ID:100}), (a)-[:studyAt]->(c)");
+    auto groundTruth = vector<string>{"100|50|38|37"};
+    auto result = conn->query(
+        "MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, "
+        "b.ID, e1._id, e2._id");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

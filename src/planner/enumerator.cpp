@@ -333,6 +333,10 @@ void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPl
     auto groupPos = schema->createGroup();
     schema->flattenGroup(groupPos); // Mark group holding constant as flat.
     for (auto& expression : expressions) {
+        // No need to insert repeated constant.
+        if (schema->isExpressionInScope(*expression)) {
+            continue;
+        }
         schema->insertToGroupAndScope(expression, groupPos);
     }
     auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));

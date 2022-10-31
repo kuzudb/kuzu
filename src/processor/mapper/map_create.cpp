@@ -12,14 +12,22 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto& nodesStore = storageManager.getNodesStore();
+    auto catalogContent = catalog->getReadOnlyVersion();
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
     for (auto& node : logicalCreateNode->getNodes()) {
-        auto table = nodesStore.getNodeTable(node->getTableID());
+        auto nodeTableID = node->getTableID();
+        auto table = nodesStore.getNodeTable(nodeTableID);
+        vector<RelTable*> relTablesToInit;
+        for (auto& [relTableID, relTableSchema] : catalogContent->getRelTableSchemas()) {
+            if (relTableSchema->edgeContainsNodeTable(nodeTableID)) {
+                relTablesToInit.push_back(storageManager.getRelsStore().getRelTable(relTableID));
+            }
+        }
         auto outDataPos = mapperContext.getDataPos(node->getIDProperty());
-        createNodeInfos.push_back(make_unique<CreateNodeInfo>(table, outDataPos));
+        createNodeInfos.push_back(make_unique<CreateNodeInfo>(table, relTablesToInit, outDataPos));
     }
-    return make_unique<CreateNode>(std::move(createNodeInfos), storageManager.getRelsStore(),
-        std::move(prevOperator), getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
+    return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
+        getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
@@ -32,7 +40,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
         auto rel = logicalCreateRel->getRel(i);
         auto table = relStore.getRelTable(rel->getTableID());
         auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getIDProperty());
+        auto srcNodeTableID = rel->getSrcNode()->getTableID();
         auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getIDProperty());
+        auto dstNodeTableID = rel->getDstNode()->getTableID();
         vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
         uint32_t relIDEvaluatorIdx = UINT32_MAX;
         auto setItems = logicalCreateRel->getSetItems(i);
@@ -45,8 +55,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
             evaluators.push_back(expressionMapper.mapExpression(rhs, mapperContext));
         }
         assert(relIDEvaluatorIdx != UINT32_MAX);
-        createRelInfos.push_back(make_unique<CreateRelInfo>(
-            table, srcNodePos, dstNodePos, std::move(evaluators), relIDEvaluatorIdx));
+        createRelInfos.push_back(make_unique<CreateRelInfo>(table, srcNodePos, srcNodeTableID,
+            dstNodePos, dstNodeTableID, std::move(evaluators), relIDEvaluatorIdx));
     }
     return make_unique<CreateRel>(relStore.getRelsStatistics(), std::move(createRelInfos),
         std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
