@@ -430,6 +430,13 @@ Farooq
 Greg
 Hubert Blai
 
+-NAME LeftPositiveIdxUTF8String
+-QUERY MATCH (m:movies) RETURN left(m.name, 6)
+---- 3
+Sóló c
+The 😂😃
+Roma
+
 -NAME LeftPositiveIdxStructuredStrAndStructuredInt
 -QUERY MATCH (o:organisation) RETURN left(o.name, o.ID)
 ---- 3
@@ -448,6 +455,13 @@ Elizab
 Far
 G
 Hubert Blaine Wolfeschlegelsteinhausenbergerdo
+
+-NAME LeftNegativeIdxUTF8String
+-QUERY MATCH (m:movies) RETURN left(m.name, -7)
+---- 3
+Sóló cón tu
+The 😂😃🧘🏻‍♂️🌍🌦️🍞
+
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LeftUnstructuredStrAndLiteralInt
@@ -474,6 +488,13 @@ Farooq
 Greg
 ergerdorff
 
+-NAME RightPositiveIdxUTF8String
+-QUERY MATCH (m:movies) RETURN right(m.name, 5)
+---- 3
+árejâ
+movie
+Roma
+
 -NAME RightPositiveIdxStructuredStrAndStructuredInt
 -QUERY MATCH (o:organisation) RETURN right(o.name, o.ID)
 ---- 3
@@ -492,6 +513,13 @@ izabeth
 rooq
 eg
 bert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME RightNegativeIdxUTF8String
+-QUERY MATCH (m:movies) RETURN right(m.name, -3)
+---- 3
+ó cón tu párejâ
+ 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+a
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME RightUnstructuredStrAndLiteralInt

@@ -45,6 +45,9 @@ public:
                     characterCount++;
                     return true;
                 });
+            if (endBytePos == 0) {
+                endBytePos = src.len;
+            }
             // In this case, the function gets the EXACT byte location to start copying from.
             copySubstr(src, startBytePos, endBytePos - startBytePos, result, resultValueVector,
                 false /* isAscii */);
