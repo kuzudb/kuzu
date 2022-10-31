@@ -8,10 +8,23 @@
 namespace graphflow {
 namespace planner {
 
+struct NodeAndPrimaryKey {
+    shared_ptr<NodeExpression> node;
+    shared_ptr<Expression> primaryKey;
+
+    NodeAndPrimaryKey(shared_ptr<NodeExpression> node, shared_ptr<Expression> primaryKey)
+        : node{std::move(node)}, primaryKey{std::move(primaryKey)} {}
+
+    inline unique_ptr<NodeAndPrimaryKey> copy() const {
+        return make_unique<NodeAndPrimaryKey>(node, primaryKey);
+    }
+};
+
 class LogicalCreateNode : public LogicalOperator {
 public:
-    LogicalCreateNode(vector<shared_ptr<NodeExpression>> nodes, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, nodes{std::move(nodes)} {}
+    LogicalCreateNode(
+        vector<unique_ptr<NodeAndPrimaryKey>> nodeAndPrimaryKeys, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{std::move(child)}, nodeAndPrimaryKeys{std::move(nodeAndPrimaryKeys)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_CREATE_NODE;
@@ -19,20 +32,28 @@ public:
 
     inline string getExpressionsForPrinting() const override {
         expression_vector expressions;
-        for (auto& node : nodes) {
-            expressions.push_back(node);
+        for (auto& nodeAndPrimaryKey : nodeAndPrimaryKeys) {
+            expressions.push_back(nodeAndPrimaryKey->node);
         }
         return ExpressionUtil::toString(expressions);
     }
 
-    inline vector<shared_ptr<NodeExpression>> getNodes() const { return nodes; }
+    inline uint32_t getNumNodeAndPrimaryKeys() const { return nodeAndPrimaryKeys.size(); }
+    inline NodeAndPrimaryKey* getNodeAndPrimaryKey(uint32_t idx) {
+        return nodeAndPrimaryKeys[idx].get();
+    }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreateNode>(nodes, children[0]->copy());
+        vector<unique_ptr<NodeAndPrimaryKey>> copiedNodeAndPrimaryKeys;
+        for (auto& nodeAndPrimaryKey : nodeAndPrimaryKeys) {
+            copiedNodeAndPrimaryKeys.push_back(nodeAndPrimaryKey->copy());
+        }
+        return make_unique<LogicalCreateNode>(
+            std::move(copiedNodeAndPrimaryKeys), children[0]->copy());
     }
 
 private:
-    vector<shared_ptr<NodeExpression>> nodes;
+    vector<unique_ptr<NodeAndPrimaryKey>> nodeAndPrimaryKeys;
 };
 
 class LogicalCreateRel : public LogicalOperator {

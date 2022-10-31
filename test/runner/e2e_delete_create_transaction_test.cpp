@@ -17,11 +17,21 @@ class CreateDeleteNodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
     string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
 
+    void addNodes(vector<uint64_t> nodeIDs) {
+        for (auto& nodeID : nodeIDs) {
+            addNode(nodeID);
+        }
+    }
+
     void addNodes(uint64_t numNodes) {
         for (auto i = 0u; i < numNodes; ++i) {
-            auto id = 10000 + i;
-            ASSERT_TRUE(conn->query("CREATE (a:person {ID: " + to_string(id) + "})")->isSuccess());
+            addNode(10000 + i);
         }
+    }
+
+    void addNode(uint64_t nodeID) {
+        auto query = "CREATE (a:person {ID: " + to_string(nodeID) + "})";
+        ASSERT_TRUE(conn->query(query)->isSuccess());
     }
 
     void deleteNodesInRange(uint64_t startOffset, uint64_t endOffset) {
@@ -48,36 +58,94 @@ public:
 
     int64_t getNumNodes(Connection* connection) { return getCount(connection, "MATCH (:person)"); }
 
-    void validateNodesExistOrNot(Connection* connection, vector<uint64_t> nodeIDs, bool isExist) {
+    void validateNodesExistOrNot(Connection* connection, vector<uint64_t> nodeIDs, bool exist) {
         for (auto& nodeID : nodeIDs) {
-            validateNodeExistOrNot(connection, nodeID, isExist);
+            validateNodeExistOrNot(connection, nodeID, exist);
         }
     }
 
-    void validateNodeExistOrNot(Connection* connection, uint64_t nodeID, bool isExist) {
+    // Will trigger index scan.
+    void validateNodeExistOrNot(Connection* connection, uint64_t nodeID, bool exist) {
         auto query = "MATCH (a:person) WHERE a.ID=" + to_string(nodeID);
-        ASSERT_EQ(getCount(connection, query), isExist ? 1 : 0);
+        ASSERT_EQ(getCount(connection, query), exist ? 1 : 0);
     }
 };
 
-// TODO(Guogong): The following test use index scan after node insertion.
-//  Uncomment once create support hash index.
-// TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionCommitNormalExecution) {
-//    auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
-//    conn->beginWriteTransaction();
-//    deleteNodes(nodeIDsToDelete);
-//    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
-//    validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* isExist*/);
-//    conn->commit();
-//    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
-//}
+TEST_F(CreateDeleteNodeTrxTest, MixedInsertDeleteTest) {
+    conn->beginWriteTransaction();
+    deleteNodes(vector<uint64_t>{8000, 9000});
+    addNodes(vector<uint64_t>{8000, 9000, 10001, 10002});
+    ASSERT_EQ(getNumNodes(conn.get()), 10002);
+    ASSERT_EQ(getNumNodes(readConn.get()), 10000);
+    conn->commit();
+    conn->beginWriteTransaction();
+    conn->query("MATCH (a:person) DELETE a");
+    ASSERT_EQ(getNumNodes(conn.get()), 0);
+    ASSERT_EQ(getNumNodes(readConn.get()), 10002);
+    conn->commit();
+    conn->beginWriteTransaction();
+    addNode(0);
+    validateNodeExistOrNot(conn.get(), 0, true /* exist */);
+    validateNodeExistOrNot(readConn.get(), 0, false /* exist */);
+    addNodes(10);
+    ASSERT_EQ(getNumNodes(conn.get()), 11);
+    ASSERT_EQ(getNumNodes(readConn.get()), 0);
+    conn->commit();
+    ASSERT_EQ(getNumNodes(readConn.get()), 11);
+}
+
+TEST_F(CreateDeleteNodeTrxTest, IndexScanAfterInsertionCommitNormalExecution) {
+    auto nodeIDsToInsert = vector<uint64_t>{10003, 10005};
+    conn->beginWriteTransaction();
+    addNodes(nodeIDsToInsert);
+    validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
+    validateNodesExistOrNot(readConn.get(), nodeIDsToInsert, false /* exist */);
+    conn->commit();
+    validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
+}
+
+TEST_F(CreateDeleteNodeTrxTest, IndexScanAfterInsertionCommitRecovery) {
+    auto nodeIDsToInsert = vector<uint64_t>{10003, 10005};
+    conn->beginWriteTransaction();
+    addNodes(nodeIDsToInsert);
+    conn->commitButSkipCheckpointingForTestingRecovery();
+    createDBAndConn(); // run recovery
+    validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
+}
+
+TEST_F(CreateDeleteNodeTrxTest, IndexScanAfterInsertionRollbackNormalExecution) {
+    auto nodeIDsToInsert = vector<uint64_t>{10003, 10005};
+    conn->beginWriteTransaction();
+    addNodes(nodeIDsToInsert);
+    conn->rollback();
+    validateNodesExistOrNot(conn.get(), nodeIDsToInsert, false /* exist */);
+}
+
+TEST_F(CreateDeleteNodeTrxTest, IndexScanAfterInsertionRollbackRecovery) {
+    auto nodeIDsToInsert = vector<uint64_t>{10003, 10005};
+    conn->beginWriteTransaction();
+    addNodes(nodeIDsToInsert);
+    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    createDBAndConn(); // run recovery
+    validateNodesExistOrNot(conn.get(), nodeIDsToInsert, false /* exist */);
+}
+
+TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionCommitNormalExecution) {
+    auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
+    conn->beginWriteTransaction();
+    deleteNodes(nodeIDsToDelete);
+    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* exist */);
+    validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* exist */);
+    conn->commit();
+    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* exist */);
+}
 
 TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionRollbackNormalExecution) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
     conn->beginWriteTransaction();
     deleteNodes(nodeIDsToDelete);
     conn->rollback();
-    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, true /* isExist*/);
+    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, true /* exist */);
 }
 
 TEST_F(CreateDeleteNodeTrxTest, DeleteEntireMorselCommitNormalExecution) {

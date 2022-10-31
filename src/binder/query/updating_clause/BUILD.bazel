@@ -11,6 +11,7 @@ cc_library(
     ],
     deps = [
         "//src/binder/expression:base_expression",
+        "//src/binder/expression:node_rel_expression",
         "//src/common:clause_type",
     ],
 )

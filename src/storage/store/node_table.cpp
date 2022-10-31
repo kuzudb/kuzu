@@ -31,8 +31,12 @@ void NodeTable::loadColumnsAndListsFromDisk(
             nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
-node_offset_t NodeTable::addNode() {
+node_offset_t NodeTable::addNodeAndResetProperties(
+    Transaction* trx, ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+    assert(primaryKeyVector->state->isFlat());
+    IDIndex->insert(
+        trx, primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
     for (auto& column : propertyColumns) {
         column->setNodeOffsetToNull(nodeOffset);
     }
@@ -40,25 +44,25 @@ node_offset_t NodeTable::addNode() {
     return nodeOffset;
 }
 
-void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
+void NodeTable::deleteNodes(
+    Transaction* trx, ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
            primaryKeyVector->hasNoNullsGuarantee());
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        deleteNode(nodeIDVector, primaryKeyVector, pos);
+        deleteNode(trx, nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
     } else {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            deleteNode(nodeIDVector, primaryKeyVector, pos);
+            deleteNode(trx, nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
         }
     }
 }
 
 void NodeTable::deleteNode(
-    ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const {
-    auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+    Transaction* trx, node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
-    // TODO(Guodong): delete primary key index
+    IDIndex->deleteKey(trx, primaryKeyVector, pos);
 }
 
 void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {

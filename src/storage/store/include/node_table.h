@@ -37,8 +37,8 @@ public:
 
     inline table_id_t getTableID() const { return tableID; }
 
-    node_offset_t addNode();
-    void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
+    node_offset_t addNodeAndResetProperties(Transaction* trx, ValueVector* primaryKeyVector);
+    void deleteNodes(Transaction* trx, ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
@@ -52,7 +52,8 @@ public:
     }
 
 private:
-    void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const;
+    void deleteNode(Transaction* trx, node_offset_t nodeOffset, ValueVector* primaryKeyVector,
+        uint32_t pos) const;
 
 public:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

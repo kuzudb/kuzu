@@ -12,6 +12,7 @@ shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
     dataChunk->state = DataChunkState::getSingleValueDataChunkState();
     outVector = make_shared<ValueVector>(NODE_ID);
     dataChunk->insert(outDataPos.valueVectorPos, outVector);
+    indexKeyEvaluator->init(*resultSet, context->memoryManager);
     hasExecuted = false;
     return resultSet;
 }
@@ -22,26 +23,20 @@ bool IndexScan::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     }
+    indexKeyEvaluator->evaluate();
+    auto indexKeyVector = indexKeyEvaluator->resultVector.get();
+    assert(indexKeyVector->state->isFlat());
     node_offset_t nodeOffset;
-    bool isSuccessfulLookup = false;
-    switch (hashKey.dataType.typeID) {
-    case INT64: {
-        isSuccessfulLookup = hashIndex->lookup(transaction, hashKey.val.int64Val, nodeOffset);
-    } break;
-    default:
-        throw RuntimeException("Index look up on data type " +
-                               Types::dataTypeToString(hashKey.dataType) + " is not implemented.");
-    }
+    bool isSuccessfulLookup = hashIndex->lookup(
+        transaction, indexKeyVector, indexKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
     metrics->executionTime.stop();
     if (isSuccessfulLookup) {
         hasExecuted = true;
         auto nodeIDValues = (nodeID_t*)outVector->values;
         nodeIDValues[0].tableID = tableID;
         nodeIDValues[0].offset = nodeOffset;
-        return true;
-    } else {
-        return false;
     }
+    return isSuccessfulLookup;
 }
 
 } // namespace processor

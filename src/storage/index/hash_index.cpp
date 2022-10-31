@@ -2,8 +2,58 @@
 
 #include "include/hash_index_utils.h"
 
+#include "src/common/include/exception.h"
+
+using namespace graphflow::common;
+
 namespace graphflow {
 namespace storage {
+
+bool HashIndex::lookup(
+    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
+    assert(!keyVector->isNull(vectorPos));
+    switch (keyVector->dataType.typeID) {
+    case INT64: {
+        return lookup(trx, ((int64_t*)keyVector->values)[vectorPos], result);
+    }
+    default:
+        throw RuntimeException("Index lookup on data type " +
+                               Types::dataTypeToString(keyVector->dataType) +
+                               " is not implemented.");
+    }
+}
+
+void HashIndex::deleteKey(Transaction* trx, ValueVector* keyVector, uint64_t vectorPos) {
+    assert(!keyVector->isNull(vectorPos));
+    switch (keyVector->dataType.typeID) {
+    case INT64: {
+        deleteKey(trx, ((int64_t*)keyVector->values)[vectorPos]);
+        return;
+    }
+    default:
+        throw RuntimeException("Index delete on data type " +
+                               Types::dataTypeToString(keyVector->dataType) +
+                               " is not implemented.");
+    }
+}
+
+bool HashIndex::insert(
+    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t value) {
+    assert(!keyVector->isNull(vectorPos));
+    switch (keyVector->dataType.typeID) {
+    case INT64: {
+        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        if (!insert(trx, key, value)) {
+            throw RuntimeException("Failed to insert primary key " + to_string(key));
+        }
+        return true;
+    }
+    default:
+        throw RuntimeException("Index insert on data type " +
+                               Types::dataTypeToString(keyVector->dataType) +
+                               " is not implemented.");
+    }
+}
 
 HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
     shared_lock sLck{localStorageSharedMutex};
@@ -254,7 +304,8 @@ void HashIndex::copyAndUpdateSlotHeader(
 void HashIndex::copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot& slot,
     const uint8_t* key, node_offset_t value) {
     if (slot.header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
-        // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's nextOvfSlotId.
+        // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
+        // nextOvfSlotId.
         Slot newSlot;
         auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
         copyAndUpdateSlotHeader(isCopyEntry, newSlot, entryPos, key, value);

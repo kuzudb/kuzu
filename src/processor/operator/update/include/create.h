@@ -10,14 +10,18 @@ using namespace graphflow::evaluator;
 
 struct CreateNodeInfo {
     NodeTable* table;
+    unique_ptr<BaseExpressionEvaluator> primaryKeyEvaluator;
     vector<RelTable*> relTablesToInit;
     DataPos outNodeIDVectorPos;
 
-    CreateNodeInfo(NodeTable* table, vector<RelTable*> relTablesToInit, const DataPos& dataPos)
-        : table{table}, relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{dataPos} {}
+    CreateNodeInfo(NodeTable* table, unique_ptr<BaseExpressionEvaluator> primaryKeyEvaluator,
+        vector<RelTable*> relTablesToInit, const DataPos& dataPos)
+        : table{table}, primaryKeyEvaluator{std::move(primaryKeyEvaluator)},
+          relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{dataPos} {}
 
     inline unique_ptr<CreateNodeInfo> clone() {
-        return make_unique<CreateNodeInfo>(table, relTablesToInit, outNodeIDVectorPos);
+        return make_unique<CreateNodeInfo>(
+            table, primaryKeyEvaluator->clone(), relTablesToInit, outNodeIDVectorPos);
     }
 };
 
