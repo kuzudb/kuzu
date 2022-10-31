@@ -1,16 +1,18 @@
-#include "src/storage/index/include/hash_index.h"
+#include "include/hash_index.h"
+
+#include "include/hash_index_utils.h"
 
 namespace graphflow {
 namespace storage {
 
-// For lookups in the local storage, we first check if the key is marked deleted, then check if it
-// can be found in the localInsertionIndex or not. If the key is neither deleted nor found, we
-// return the state KEY_NOT_EXIST.
 HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
     shared_lock sLck{localStorageSharedMutex};
-    if (localDeletionIndex->lookupInternalWithoutLock(key, result)) {
+    auto keyVal = *(int64_t*)key;
+    if (localDeletions.contains(keyVal)) {
+        result = localDeletions[keyVal];
         return HashIndexLocalLookupState::KEY_DELETED;
-    } else if (localInsertionIndex->lookupInternalWithoutLock(key, result)) {
+    } else if (localInsertions.contains(keyVal)) {
+        result = localInsertions[keyVal];
         return HashIndexLocalLookupState::KEY_FOUND;
     } else {
         return HashIndexLocalLookupState::KEY_NOT_EXIST;
@@ -19,76 +21,45 @@ HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node
 
 void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
     unique_lock xLck{localStorageSharedMutex};
-    if (!localInsertionIndex->deleteInternal(key)) {
-        localDeletionIndex->appendInternal(key, NODE_OFFSET_PLACE_HOLDER);
+    auto keyVal = *(int64_t*)key;
+    if (localInsertions.contains(keyVal)) {
+        localInsertions.erase(keyVal);
+    } else {
+        localDeletions[keyVal] = NODE_OFFSET_PLACE_HOLDER;
     }
 }
 
 bool HashIndexLocalStorage::insert(const uint8_t* key, node_offset_t value) {
     unique_lock xLck{localStorageSharedMutex};
-    // Always delete the key to be inserted from localDeletionIndex first (if any).
-    localDeletionIndex->deleteInternal(key);
-    return localInsertionIndex->appendInternal(key, value);
+    auto keyVal = *(int64_t*)key;
+    if (localDeletions.contains(keyVal)) {
+        localDeletions.erase(keyVal);
+    }
+    if (localInsertions.contains(keyVal)) {
+        return false;
+    }
+    localInsertions[keyVal] = value;
+    return true;
 }
 
 HashIndex::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory)
-    : BaseHashIndex{keyDataType}, storageStructureIDAndFName{storageStructureIDAndFName},
-      isInMemory{isInMemory}, bm{bufferManager} {
-    assert(keyDataType.typeID == INT64 || keyDataType.typeID == STRING);
-    initializeFileAndHeader(keyDataType);
+    const DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
+    : BaseHashIndex{keyDataType}, bm{bufferManager} {
+    assert(keyDataType.typeID == INT64);
+    fileHandle = make_unique<VersionedFileHandle>(
+        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
+    headerArray = make_unique<InMemDiskArray<HashIndexHeader>>(
+        *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal);
+    // Read indexHeader from the headerArray, which contains only one element.
+    indexHeader = make_unique<HashIndexHeader>(headerArray->get(0));
+    assert(indexHeader->keyDataTypeID == keyDataType.typeID);
+    pSlots = make_unique<InMemDiskArray<Slot>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    oSlots = make_unique<InMemDiskArray<Slot>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    pSlotsMutexes.resize(pSlots->getNumElements());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = make_unique<HashIndexLocalStorage>(keyDataType);
-}
-
-HashIndex::~HashIndex() {
-    if (isInMemory) {
-        StorageStructureUtils::unpinEachPageOfFile(*fh, bm);
-    }
-    bm.removeFilePagesFromFrames(*fh);
-}
-
-void HashIndex::initializeFileAndHeader(const DataType& keyDataType) {
-    fh = make_unique<FileHandle>(
-        storageStructureIDAndFName.fName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate);
-    assert(fh->getNumPages() > 0);
-    // Read the index header and page mappings from file.
-    auto buffer = bm.pin(*fh, INDEX_HEADER_PAGE_ID);
-    auto otherIndexHeader = *(HashIndexHeader*)buffer;
-    indexHeader = make_unique<HashIndexHeader>(otherIndexHeader);
-    pSlots = make_unique<SlotWithMutexArray>(nullptr, indexHeader->numSlotsPerPage);
-    oSlots = make_unique<SlotArray>(nullptr, indexHeader->numSlotsPerPage);
-    bm.unpin(*fh, INDEX_HEADER_PAGE_ID);
-    assert(indexHeader->keyDataTypeID == keyDataType.typeID);
-    readPageMapper(pSlots->pagesLogicalToPhysicalMapper, indexHeader->pPagesMapperFirstPageIdx);
-    readPageMapper(oSlots->pagesLogicalToPhysicalMapper, indexHeader->oPagesMapperFirstPageIdx);
-    pSlots->addSlotMutexesForPagesWithoutLock(pSlots->pagesLogicalToPhysicalMapper.size());
-    if (isInMemory) {
-        StorageStructureUtils::pinEachPageOfFile(*fh, bm);
-    }
-    if (indexHeader->keyDataTypeID == STRING) {
-        diskOverflowFile = make_unique<DiskOverflowFile>(
-            storageStructureIDAndFName, bm, isInMemory, nullptr /* no wal for now */);
-    }
-}
-
-void HashIndex::readPageMapper(vector<page_idx_t>& mapper, page_idx_t mapperFirstPageIdx) {
-    auto currentPageIdx = mapperFirstPageIdx;
-    uint64_t elementPosInMapperToCopy = 0;
-    while (currentPageIdx != UINT32_MAX) {
-        auto frame = bm.pin(*fh, currentPageIdx);
-        auto pageElements = (page_idx_t*)frame;
-        auto numElementsInPage = pageElements[0];
-        mapper.resize(elementPosInMapperToCopy + numElementsInPage);
-        memcpy((uint8_t*)&mapper[elementPosInMapperToCopy], (uint8_t*)&pageElements[2],
-            sizeof(page_idx_t) * numElementsInPage);
-        auto nextPageIdx = pageElements[1];
-        bm.unpin(*fh, currentPageIdx);
-        elementPosInMapperToCopy += numElementsInPage;
-        currentPageIdx = nextPageIdx;
-    }
 }
 
 // For read transactions, local storage is skipped, lookups are performed on the persistent storage.
@@ -143,31 +114,26 @@ bool HashIndex::insertInternal(Transaction* transaction, const uint8_t* key, nod
 }
 
 bool HashIndex::lookupInPersistentIndex(const uint8_t* key, node_offset_t& result) {
-    SlotInfo prevSlotInfo{UINT64_MAX, true};
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(key), true};
     SlotInfo currentSlotInfo = pSlotInfo;
-    uint8_t* currentSlot = nullptr;
+    Slot* currentSlot;
     while (currentSlotInfo.isPSlot || currentSlotInfo.slotId > 0) {
-        currentSlot = pinSlot(currentSlotInfo);
+        currentSlot = getSlot(currentSlotInfo);
         if (lookupInSlot(currentSlot, key, result)) {
-            unpinSlot(currentSlotInfo);
             return true;
         }
-        prevSlotInfo = currentSlotInfo;
         currentSlotInfo.slotId = reinterpret_cast<SlotHeader*>(currentSlot)->nextOvfSlotId;
         currentSlotInfo.isPSlot = false;
-        unpinSlot(prevSlotInfo);
     }
     return false;
 }
 
-bool HashIndex::lookupInSlot(uint8_t* slot, const uint8_t* key, node_offset_t& result) const {
-    auto slotHeader = reinterpret_cast<SlotHeader*>(slot);
+bool HashIndex::lookupInSlot(Slot* slot, const uint8_t* key, node_offset_t& result) const {
     for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
-        if (!slotHeader->isEntryValid(entryPos)) {
+        if (!slot->header.isEntryValid(entryPos)) {
             continue;
         }
-        auto entry = getEntryInSlot(const_cast<uint8_t*>(slot), entryPos);
+        auto entry = slot->entries[entryPos].data;
         if (keyEqualsFunc(key, entry, diskOverflowFile.get())) {
             memcpy(&result, entry + Types::getDataTypeSize(indexHeader->keyDataTypeID),
                 sizeof(node_offset_t));
@@ -175,19 +141,6 @@ bool HashIndex::lookupInSlot(uint8_t* slot, const uint8_t* key, node_offset_t& r
         }
     }
     return false;
-}
-
-uint8_t* HashIndex::pinSlot(const SlotInfo& slotInfo) {
-    auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
-                                         oSlots->getPageCursorForSlot(slotInfo.slotId);
-    auto frame = bm.pin(*fh, pageCursor.pageIdx);
-    return frame + (pageCursor.elemPosInPage * indexHeader->numBytesPerSlot);
-}
-
-void HashIndex::unpinSlot(const SlotInfo& slotInfo) {
-    auto pageCursor = slotInfo.isPSlot ? pSlots->getPageCursorForSlot(slotInfo.slotId) :
-                                         oSlots->getPageCursorForSlot(slotInfo.slotId);
-    bm.unpin(*fh, pageCursor.pageIdx);
 }
 
 } // namespace storage

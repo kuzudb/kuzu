@@ -1,6 +1,6 @@
 #include "src/storage/include/wal_replayer_utils.h"
 
-#include "src/storage/index/include/in_mem_hash_index.h"
+#include "src/storage/index/include/hash_index_builder.h"
 
 namespace graphflow {
 namespace storage {
@@ -38,7 +38,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
                                                 nodeTableSchema->tableID, DBFileType::ORIGINAL),
             0 /* numNodes */);
     initLargeListPageListsAndSaveToFile(unstrPropertyLists.get());
-    auto IDIndex = make_unique<InMemHashIndex>(
+    auto IDIndex = make_unique<HashIndexBuilder>(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
         nodeTableSchema->getPrimaryKey().dataType);
     IDIndex->bulkReserve(0 /* numNodes */);

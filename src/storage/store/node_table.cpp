@@ -28,7 +28,7 @@ void NodeTable::loadColumnsAndListsFromDisk(
         bufferManager, isInMemory, wal);
     IDIndex =
         make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
-            nodeTableSchema->getPrimaryKey().dataType, bufferManager, isInMemory);
+            nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {

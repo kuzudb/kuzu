@@ -135,7 +135,7 @@ public:
     inline static shared_ptr<FileHandle> createWALFileHandle(const string& directory) {
         return make_shared<FileHandle>(
             FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)),
-            FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     }
 
     inline string getDirectory() const { return directory; }

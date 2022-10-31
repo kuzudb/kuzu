@@ -86,8 +86,8 @@ vector<string> InMemNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
     logger->info("Populating structured properties and Counting unstructured properties.");
     auto IDIndex =
-        make_unique<InMemHashIndex>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                        nodeTableSchema->tableID, DBFileType::WAL_VERSION),
+        make_unique<HashIndexBuilder>(StorageUtils::getNodeIndexFName(this->outputDirectory,
+                                          nodeTableSchema->tableID, DBFileType::WAL_VERSION),
             nodeTableSchema->getPrimaryKey().dataType);
     IDIndex->bulkReserve(numNodes);
     node_offset_t offsetStart = 0;
@@ -105,8 +105,8 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
 }
 
 template<DataTypeID DT>
-void InMemNodeCSVCopier::addIDsToIndex(
-    InMemColumn* column, InMemHashIndex* hashIndex, node_offset_t startOffset, uint64_t numValues) {
+void InMemNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilder* hashIndex,
+    node_offset_t startOffset, uint64_t numValues) {
     assert(DT == INT64 || DT == STRING);
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
@@ -128,7 +128,7 @@ void InMemNodeCSVCopier::addIDsToIndex(
 }
 
 void InMemNodeCSVCopier::populateIDIndex(
-    InMemColumn* column, InMemHashIndex* IDIndex, node_offset_t startOffset, uint64_t numValues) {
+    InMemColumn* column, HashIndexBuilder* IDIndex, node_offset_t startOffset, uint64_t numValues) {
     switch (column->getDataType().typeID) {
     case INT64: {
         addIDsToIndex<INT64>(column, IDIndex, startOffset, numValues);
@@ -151,7 +151,7 @@ void InMemNodeCSVCopier::skipFirstRowIfNecessary(
 }
 
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-    uint64_t blockId, uint64_t startOffset, InMemHashIndex* IDIndex, InMemNodeCSVCopier* copier) {
+    uint64_t blockId, uint64_t startOffset, HashIndexBuilder* IDIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
     CSVReader reader(

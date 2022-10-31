@@ -7,7 +7,6 @@
 #include "src/common/include/utils.h"
 #include "src/storage/index/include/hash_index.h"
 
-using namespace std;
 using namespace graphflow::common;
 using namespace graphflow::storage;
 
@@ -16,8 +15,7 @@ class HashIndexTest : public testing::Test {
 public:
     HashIndexTest()
         : storageStructureIdAndFName{StorageUtils::getNodeIndexIDAndFName(
-              "" /* dummy directory */, -1 /* dummy node table */)} {
-        storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_ints.hindex";
+              "" /* dummy directory */, 0 /* dummy node table */)} {
         FileUtils::createDir(TEMP_INDEX_DIR);
     }
 
@@ -35,7 +33,7 @@ public:
     LoadedHashIndexInt64KeyTest() : HashIndexTest() {}
 
     void SetUp() override {
-        InMemHashIndex hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
+        HashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
         hashIndexBuilder.bulkReserve(numKeysInsertedToFile);
         // Inserting(key = i, value = i * 2) pairs
         for (int64_t k = 0; k < numKeysInsertedToFile; k++) {
@@ -69,44 +67,44 @@ public:
     }
 };
 
-class LoadedHashIndexStringKeyTest : public HashIndexTest {
-
-public:
-    LoadedHashIndexStringKeyTest() : HashIndexTest() {}
-
-    void SetUp() override {
-        storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_strings.hindex";
-        InMemHashIndex hashIndexBuilder(storageStructureIdAndFName.fName, DataType(STRING));
-        hashIndexBuilder.bulkReserve(numKeysInsertedToFile);
-        ifstream inf(inputFName, ios_base::in);
-        inf.seekg(0, ios_base::end);
-        auto numBlock = 1 + (inf.tellg() / CopyCSVConfig::CSV_READING_BLOCK_SIZE);
-        inf.close();
-        for (auto i = 0u; i < numBlock; i++) {
-            CSVReaderConfig config;
-            CSVReader reader{inputFName, config, i};
-            while (reader.hasNextLine()) {
-                reader.hasNextToken();
-                auto key = string(reader.getString());
-                reader.hasNextToken();
-                node_offset_t value = reader.getInt64();
-                map[key] = value;
-                hashIndexBuilder.append(key.c_str(), value);
-                reader.skipLine();
-            }
-        }
-        hashIndexBuilder.flush();
-    }
-
-public:
-    string inputFName = "dataset/hash-index-test/stringKeyNodeOffset.data";
-    unordered_map<string, node_offset_t> map{};
-};
+// TODO(Guodong): Add the support of string keys back to fix this.
+// class LoadedHashIndexStringKeyTest : public HashIndexTest {
+//
+// public:
+//    LoadedHashIndexStringKeyTest() : HashIndexTest() {}
+//
+//    void SetUp() override {
+//        storageStructureIdAndFName.fName = TEMP_INDEX_DIR + "dummy_strings.hindex";
+//        HashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(STRING));
+//        hashIndexBuilder.bulkReserve(numKeysInsertedToFile);
+//        ifstream inf(inputFName, ios_base::in);
+//        inf.seekg(0, ios_base::end);
+//        auto numBlock = 1 + (inf.tellg() / CopyCSVConfig::CSV_READING_BLOCK_SIZE);
+//        inf.close();
+//        for (auto i = 0u; i < numBlock; i++) {
+//            CSVReaderConfig config;
+//            CSVReader reader{inputFName, config, i};
+//            while (reader.hasNextLine()) {
+//                reader.hasNextToken();
+//                auto key = string(reader.getString());
+//                reader.hasNextToken();
+//                node_offset_t value = reader.getInt64();
+//                map[key] = value;
+//                hashIndexBuilder.append(key.c_str(), value);
+//                reader.skipLine();
+//            }
+//        }
+//        hashIndexBuilder.flush();
+//    }
+//
+// public:
+//    string inputFName = "dataset/hash-index-test/stringKeyNodeOffset.data";
+//    unordered_map<string, node_offset_t> map{};
+//};
 
 TEST_F(LoadedHashIndexInt64KeyTest, InMemHashIndexInt64SequentialLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(
-        storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     node_offset_t result;
     for (int64_t i = 0; i < numKeysInsertedToFile; i++) {
         auto found = hashIndex.lookup(Transaction::getDummyReadOnlyTrx().get(), i, result);
@@ -117,8 +115,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, InMemHashIndexInt64SequentialLookup) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookup) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(
-        storageStructureIdAndFName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -138,22 +135,22 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookup) {
     }
 }
 
-TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookup) {
-    auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(
-        storageStructureIdAndFName, DataType(STRING), *bufferManager, true /*isInMemory*/);
-    node_offset_t result;
-    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    for (auto& entry : map) {
-        auto found = hashIndex.lookup(dummyReadOnlyTrx.get(), entry.first.c_str(), result);
-        ASSERT_TRUE(found);
-        ASSERT_EQ(result, entry.second);
-    }
-}
+// TODO(Guodong): Add the support of string keys back to fix this.
+// TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookup) {
+//    auto bufferManager = make_unique<BufferManager>();
+//    HashIndex hashIndex(storageStructureIdAndFName, DataType(STRING), *bufferManager, nullptr);
+//    node_offset_t result;
+//    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+//    for (auto& entry : map) {
+//        auto found = hashIndex.lookup(dummyReadOnlyTrx.get(), entry.first.c_str(), result);
+//        ASSERT_TRUE(found);
+//        ASSERT_EQ(result, entry.second);
+//    }
+//}
 
 TEST_F(HashIndexTest, InMemHashIndexInt64KeyInsertExists) {
     auto bufferManager = make_unique<BufferManager>();
-    InMemHashIndex hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
+    HashIndexBuilder hashIndexBuilder(storageStructureIdAndFName.fName, DataType(INT64));
     auto numEntries = 10;
     hashIndexBuilder.bulkReserve(10);
     for (uint64_t i = 0; i < numEntries; i++) {
@@ -165,7 +162,7 @@ TEST_F(HashIndexTest, InMemHashIndexInt64KeyInsertExists) {
     hashIndexBuilder.flush();
 }
 
-// TODO(Guodong): Fix the string rehash, and add this test back.
+// TODO(Guodong): Add the support of string keys back to fix this.
 // TEST_F(HashIndexTest, InMemHashIndexStringKeyInsertExists) {
 //    auto bufferManager = make_unique<BufferManager>();
 //    InMemHashIndex hashIndexBuilder(storageStructureIdAndFName.fName, DataType(STRING));
@@ -180,7 +177,7 @@ TEST_F(HashIndexTest, InMemHashIndexInt64KeyInsertExists) {
 //    hashIndexBuilder.flush();
 //}
 
-static void parallel_insert(InMemHashIndex* index, int64_t startId, uint64_t num) {
+static void parallel_insert(HashIndexBuilder* index, int64_t startId, uint64_t num) {
     for (auto i = 0u; i < num; i++) {
         index->append(startId + i, (startId + i) * 2);
     }
@@ -188,7 +185,7 @@ static void parallel_insert(InMemHashIndex* index, int64_t startId, uint64_t num
 
 TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
     auto hashIndexBuilder =
-        make_unique<InMemHashIndex>(storageStructureIdAndFName.fName, DataType(INT64));
+        make_unique<HashIndexBuilder>(storageStructureIdAndFName.fName, DataType(INT64));
     auto numKeysToInsert = 5000;
     hashIndexBuilder->bulkReserve(numKeysToInsert);
     auto numThreads = 10u;
@@ -205,8 +202,8 @@ TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
     hashIndexBuilder->flush();
 
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     node_offset_t result;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < numKeysToInsert; i++) {
@@ -217,8 +214,8 @@ TEST_F(HashIndexTest, ParallelHashIndexInsertions) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, InsertAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
@@ -235,8 +232,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, InsertAndLookupWithLocalStorage) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, DuplicateInsertWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
@@ -251,8 +248,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, DuplicateInsertWithLocalStorage) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, DeleteAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < numKeysInsertedToFile; i++) {
         if (i % 2 == 0) {
@@ -266,8 +263,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, DeleteAndLookupWithLocalStorage) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, InsertDeleteAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     for (auto i = 0u; i < 100; i++) {
         uint64_t key = numKeysInsertedToFile + i;
@@ -285,8 +282,8 @@ TEST_F(LoadedHashIndexInt64KeyTest, InsertDeleteAndLookupWithLocalStorage) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, DeleteInsertAndLookupWithLocalStorage) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>(storageStructureIdAndFName, DataType(INT64), *bufferManager, true);
+    auto hashIndex = make_unique<HashIndex>(
+        storageStructureIdAndFName, DataType(INT64), *bufferManager, nullptr);
     auto dummyWriteTrx = Transaction::getDummyWriteTrx();
     // Delete even keys.
     for (auto i = 0u; i < numKeysInsertedToFile; i++) {

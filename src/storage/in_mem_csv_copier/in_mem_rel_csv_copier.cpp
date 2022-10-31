@@ -20,7 +20,7 @@ InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outp
         IDIndexes[nodeTableID] = make_unique<HashIndex>(
             StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
             catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
-            *bufferManager, true /* isInMemory */);
+            *bufferManager, nullptr /* wal */);
     }
 }
 

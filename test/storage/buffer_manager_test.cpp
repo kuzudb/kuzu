@@ -14,7 +14,7 @@ protected:
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     FileHandle fileHandle(string(TestHelper::TEMP_TEST_DIR) + "bm_test.bin",
-        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     uint64_t numPagesToAdd = 1000;
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         fileHandle.addNewPage();

@@ -42,9 +42,9 @@ public:
     // createIfNotExistsMask only applies to existing db files; tmp i-memory files are not created
     constexpr static uint8_t createIfNotExistsMask{0b0000'0100}; // represents 3rd LSB
 
-    constexpr static uint8_t O_DefaultPagedExistingDBFileDoNotCreate{0b0000'0000};
-    constexpr static uint8_t O_DefaultPagedExistingDBFileCreateIfNotExists{0b0000'0100};
-    constexpr static uint8_t O_LargePagedInMemoryTmpFile{0b0000'0011};
+    constexpr static uint8_t O_PERSISTENT_FILE_NO_CREATE{0b0000'0000};
+    constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
+    constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
 
     FileHandle(const string& path, uint8_t flags);
 
