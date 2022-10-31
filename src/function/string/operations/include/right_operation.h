@@ -21,7 +21,7 @@ public:
         gf_string_t& left, int64_t& right, gf_string_t& result, ValueVector& resultValueVector) {
         int64_t leftLen;
         Length::operation(left, leftLen);
-        int64_t len = (right > 0) ? min(leftLen, right) : max(leftLen + right, 0l);
+        int64_t len = (right > 0) ? min(leftLen, right) : max(leftLen + right, (int64_t)0);
         SubStr::operation(left, leftLen - len + 1, len, result, resultValueVector);
     }
 };
