@@ -242,7 +242,7 @@ void BaseGraphTest::initGraph() {
 }
 
 void BaseGraphTest::commitOrRollbackConnection(
-    bool isCommit, TransactionTestType transactionTestType) {
+    bool isCommit, TransactionTestType transactionTestType) const {
     if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
         if (isCommit) {
             conn->commit();

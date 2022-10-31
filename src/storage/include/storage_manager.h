@@ -24,9 +24,9 @@ public:
     inline RelsStore& getRelsStore() const { return *relsStore; }
     inline NodesStore& getNodesStore() const { return *nodesStore; }
     inline Catalog* getCatalog() { return &catalog; }
-    void prepareListsToCommitOrRollbackIfNecessary(bool isCommit) {
-        nodesStore->prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(isCommit);
-        relsStore->prepareAdjAndRelPropertyListsToCommitOrRollbackIfNecessary(isCommit);
+    inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
+        nodesStore->prepareCommitOrRollbackIfNecessary(isCommit);
+        relsStore->prepareCommitOrRollbackIfNecessary(isCommit);
     }
     inline string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }

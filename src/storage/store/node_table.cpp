@@ -6,7 +6,7 @@ namespace storage {
 NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
     BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{nodeTableSchema->tableID},
-      isInMemory{isInMemory} {
+      isInMemory{isInMemory}, wal{wal} {
     loadColumnsAndListsFromDisk(nodeTableSchema, bufferManager, wal);
 }
 
@@ -59,6 +59,11 @@ void NodeTable::deleteNode(
     auto nodeOffset = nodeIDVector->readNodeOffset(pos);
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     // TODO(Guodong): delete primary key index
+}
+
+void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    unstrPropertyLists->prepareCommitOrRollbackIfNecessary(isCommit);
+    IDIndex->prepareCommitOrRollbackIfNecessary(isCommit);
 }
 
 } // namespace storage

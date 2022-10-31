@@ -62,52 +62,79 @@ uint64_t BaseDiskArray<U>::getNumElementsNoLock(TransactionType trxType) {
 }
 
 template<typename U>
+void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
+    auto currentNumElements = getNumElementsNoLock(trxType);
+    if (idx >= currentNumElements) {
+        throw RuntimeException(StringUtils::string_format(
+            "idx: %d of the DiskArray to be accessed is >= numElements in DiskArray%d.", idx,
+            currentNumElements));
+    }
+}
+
+template<typename U>
+U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
+    shared_lock slock{diskArraySharedMtx};
+    checkOutOfBoundAccess(trxType, idx);
+    auto apCursor = getAPIdxAndOffsetInAP(idx);
+    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
+    if (trxType == READ_ONLY || !hasTransactionalUpdates ||
+        !((VersionedFileHandle&)fileHandle).hasWALPageVersionNoPageLock(apPageIdx)) {
+        auto frame = bufferManager->pin(fileHandle, apPageIdx);
+        auto retVal = *(U*)(frame + apCursor.offsetInPage);
+        bufferManager->unpin(fileHandle, apPageIdx);
+        return retVal;
+    } else {
+        U retVal;
+        StorageStructureUtils::readWALVersionOfPage((VersionedFileHandle&)fileHandle, apPageIdx,
+            *bufferManager, *wal, [&retVal, &apCursor](const uint8_t* frame) -> void {
+                retVal = *(U*)(frame + apCursor.offsetInPage);
+            });
+        return retVal;
+    }
+}
+
+template<typename U>
 void BaseDiskArray<U>::update(uint64_t idx, U val) {
     unique_lock xlock{diskArraySharedMtx};
     hasTransactionalUpdates = true;
-    if (idx >= getNumElementsNoLock(TransactionType::WRITE)) {
-        throw RuntimeException(StringUtils::string_format(
-            "idx: %d of the DiskArray to be updated is >= numElements in DiskArray%d.", idx,
-            getNumElementsNoLock(TransactionType::WRITE)));
-    }
-    page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
-    uint64_t byteOffsetInAP = (idx & header.elementPageOffsetMask) << header.alignedElementSizeLog2;
+    checkOutOfBoundAccess(TransactionType::WRITE, idx);
+    auto apCursor = getAPIdxAndOffsetInAP(idx);
     // TODO: We are currently supporting only DiskArrays that can grow in size and not
     // those that can shrink in size. That is why we can use
     // getAPPageIdxNoLock(apIdx, Transaction::WRITE) directly to compute the physical page Idx
     // because any apIdx is guaranteed to be either in an existing PIP or a new PIP we added, which
-    // getAPPageIdxNoLock will correctly locate: this function simply searches an exising PIP if
-    // apIdx < numAPs stored in "previous" PIP; otherwise one of the newly inserted PIPs stored
-    // inpipPageIdxsOfinsertedPIPs. If within a single transaction we could grow or shrink, then
+    // getAPPageIdxNoLock will correctly locate: this function simply searches an existing PIP if
+    // apIdx < numAPs stored in "previous" PIP; otherwise one of the newly inserted PIPs stored in
+    // pipPageIdxsOfInsertedPIPs. If within a single transaction we could grow or shrink, then
     // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
     // no longer to be guaranteed to be in pips[0].)
-    page_idx_t apPageIdx = getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
+    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
     StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), apPageIdx,
         false /* not inserting a new page */, *bufferManager, *wal,
-        [&byteOffsetInAP, &val](uint8_t* frame) -> void { *(U*)(frame + byteOffsetInAP) = val; });
+        [&apCursor, &val](uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
 }
 
 template<typename U>
-void BaseDiskArray<U>::pushBack(U val) {
+uint64_t BaseDiskArray<U>::pushBack(U val) {
     unique_lock xlock{diskArraySharedMtx};
     hasTransactionalUpdates = true;
+    uint64_t elementIdx;
     StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), headerPageIdx,
         false /* not inserting a new page */, *bufferManager, *wal,
-        [this, &val](uint8_t* frame) -> void {
+        [this, &val, &elementIdx](uint8_t* frame) -> void {
             auto updatedDiskArrayHeader = ((DiskArrayHeader*)frame);
-            auto elementIdx = updatedDiskArrayHeader->numElements;
-            page_idx_t apIdx = elementIdx >> updatedDiskArrayHeader->numElementsPerPageLog2;
-            uint64_t byteOffsetInAP = (elementIdx & updatedDiskArrayHeader->elementPageOffsetMask)
-                                      << updatedDiskArrayHeader->alignedElementSizeLog2;
+            elementIdx = updatedDiskArrayHeader->numElements;
+            auto apCursor = getAPIdxAndOffsetInAP(elementIdx);
             auto [apPageIdx, isNewlyAdded] = getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-                (DiskArrayHeader*)frame, apIdx);
+                (DiskArrayHeader*)frame, apCursor.pageIdx);
             // Now do the push back.
             StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), apPageIdx,
-                isNewlyAdded, *bufferManager, *wal,
-                [&byteOffsetInAP, &val](
-                    uint8_t* frame) -> void { *(U*)(frame + byteOffsetInAP) = val; });
+                isNewlyAdded, *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
+                    *(U*)(frame + apCursor.offsetInPage) = val;
+                });
             updatedDiskArrayHeader->numElements++;
         });
+    return elementIdx;
 }
 
 template<typename U>
@@ -228,7 +255,7 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 template<typename U>
 uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    VersionedFileHandle* versionedFileHandle = reinterpret_cast<VersionedFileHandle*>(&fileHandle);
+    auto versionedFileHandle = reinterpret_cast<VersionedFileHandle*>(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
         !versionedFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
         return readOp(&this->header);
@@ -315,56 +342,11 @@ BaseInMemDiskArray<U>::BaseInMemDiskArray(
 // This changes the contents directly in memory and not on disk (nor on the wal)
 template<typename U>
 U& BaseInMemDiskArray<U>::operator[](uint64_t idx) {
-    page_idx_t apIdx = idx >> this->header.numElementsPerPageLog2;
-    uint64_t byteOffsetInAP = (idx & this->header.elementPageOffsetMask)
-                              << this->header.alignedElementSizeLog2;
-    assert(apIdx < this->header.numAPs);
-    return *(U*)(inMemArrayPages[apIdx].get() + byteOffsetInAP);
+    auto apCursor = BaseDiskArray<U>::getAPIdxAndOffsetInAP(idx);
+    assert(apCursor.pageIdx < this->header.numAPs);
+    return *(U*)(inMemArrayPages[apCursor.pageIdx].get() + apCursor.offsetInPage);
 }
 
-template<typename U>
-U BaseInMemDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
-    shared_lock slock(this->diskArraySharedMtx);
-    page_idx_t apIdx = idx >> this->header.numElementsPerPageLog2;
-    uint64_t byteOffsetInAP = (idx & this->header.elementPageOffsetMask)
-                              << this->header.alignedElementSizeLog2;
-    switch (trxType) {
-    case READ_ONLY: {
-        if (idx >= this->header.numElements) {
-            throw RuntimeException("idx: " + to_string(idx) +
-                                   " of the element in DiskArray is >= this->header.numElements: " +
-                                   to_string(this->header.numElements) + " for read trx.");
-        }
-        return *(U*)(inMemArrayPages[apIdx].get() + byteOffsetInAP);
-    }
-    case WRITE: {
-        if (idx >= this->getNumElementsNoLock(TransactionType::WRITE)) {
-            throw RuntimeException("idx: " + to_string(idx) +
-                                   " of the element in DiskArray is >= this->header.numElements: " +
-                                   to_string(this->header.numElements) + " for write trx.");
-        }
-        VersionedFileHandle& versionedFileHandle = (VersionedFileHandle&)this->fileHandle;
-        page_idx_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
-        if (versionedFileHandle.hasWALPageVersionNoPageLock(apPageIdx)) {
-            // apPageIdx has an updated version, so we read from the WAL version of apPageIdx.
-            U retVal;
-            StorageStructureUtils::readWALVersionOfPage(versionedFileHandle, apPageIdx,
-                *this->bufferManager, *this->wal,
-                [&retVal, &byteOffsetInAP](
-                    const uint8_t* frame) -> void { retVal = *(U*)(frame + byteOffsetInAP); });
-            return retVal;
-        } else {
-            // apPageIdx does not have an updated version, so we directly read from the
-            // inMemArrayPages of the apIdx.
-            return *(U*)(inMemArrayPages[apIdx].get() + byteOffsetInAP);
-        }
-    }
-    default: {
-        throw RuntimeException(
-            "Unrecognized TransactionType: " + to_string(trxType) + ". This should never happen.");
-    }
-    }
-}
 template<typename U>
 void BaseInMemDiskArray<U>::addInMemoryArrayPageAndReadFromFile(page_idx_t apPageIdx) {
     uint64_t apIdx = this->addInMemoryArrayPage(false /* setToZero */);

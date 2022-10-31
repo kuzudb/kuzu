@@ -45,7 +45,7 @@ struct UnstructuredNodePropertyListsID {
     table_id_t tableID;
     UnstructuredNodePropertyListsID() = default;
 
-    UnstructuredNodePropertyListsID(table_id_t tableID) : tableID{tableID} {}
+    explicit UnstructuredNodePropertyListsID(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const UnstructuredNodePropertyListsID& rhs) const {
         return tableID == rhs.tableID;
@@ -57,7 +57,8 @@ struct AdjListsID {
 
     AdjListsID() = default;
 
-    AdjListsID(RelNodeTableAndDir relNodeTableAndDir) : relNodeTableAndDir{relNodeTableAndDir} {}
+    explicit AdjListsID(RelNodeTableAndDir relNodeTableAndDir)
+        : relNodeTableAndDir{relNodeTableAndDir} {}
 
     inline bool operator==(const AdjListsID& rhs) const {
         return relNodeTableAndDir == rhs.relNodeTableAndDir;
@@ -138,7 +139,8 @@ struct AdjColumnID {
 
     AdjColumnID() = default;
 
-    AdjColumnID(RelNodeTableAndDir relNodeTableAndDir) : relNodeTableAndDir{relNodeTableAndDir} {}
+    explicit AdjColumnID(RelNodeTableAndDir relNodeTableAndDir)
+        : relNodeTableAndDir{relNodeTableAndDir} {}
 
     inline bool operator==(const AdjColumnID& rhs) const {
         return relNodeTableAndDir == rhs.relNodeTableAndDir;
@@ -205,7 +207,7 @@ struct NodeIndexID {
 
     NodeIndexID() = default;
 
-    NodeIndexID(table_id_t tableID) : tableID{tableID} {}
+    explicit NodeIndexID(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const NodeIndexID& rhs) const { return tableID == rhs.tableID; }
 };
@@ -310,7 +312,7 @@ struct CommitRecord {
 
     CommitRecord() = default;
 
-    CommitRecord(uint64_t transactionID) : transactionID{transactionID} {}
+    explicit CommitRecord(uint64_t transactionID) : transactionID{transactionID} {}
 
     inline bool operator==(const CommitRecord& rhs) const {
         return transactionID == rhs.transactionID;
@@ -322,7 +324,7 @@ struct NodeTableRecord {
 
     NodeTableRecord() = default;
 
-    NodeTableRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit NodeTableRecord(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const NodeTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -332,7 +334,7 @@ struct RelTableRecord {
 
     RelTableRecord() = default;
 
-    RelTableRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit RelTableRecord(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -358,7 +360,7 @@ struct CopyNodeCSVRecord {
 
     CopyNodeCSVRecord() = default;
 
-    CopyNodeCSVRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyNodeCSVRecord(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const CopyNodeCSVRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -368,7 +370,7 @@ struct CopyRelCSVRecord {
 
     CopyRelCSVRecord() = default;
 
-    CopyRelCSVRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyRelCSVRecord(table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const CopyRelCSVRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -378,7 +380,7 @@ struct TableStatisticsRecord {
 
     TableStatisticsRecord() = default;
 
-    TableStatisticsRecord(bool isNodeTable) : isNodeTable{isNodeTable} {}
+    explicit TableStatisticsRecord(bool isNodeTable) : isNodeTable{isNodeTable} {}
 
     inline bool operator==(const TableStatisticsRecord& rhs) const {
         return isNodeTable == rhs.isNodeTable;

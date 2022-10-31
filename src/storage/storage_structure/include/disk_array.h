@@ -109,11 +109,23 @@ public:
 
     uint64_t getNumElements(TransactionType trxType = TransactionType::READ_ONLY);
 
+    U get(uint64_t idx, TransactionType trxType);
+
     // Note: This function is to be used only by the WRITE trx.
     void update(uint64_t idx, U val);
 
     // Note: This function is to be used only by the WRITE trx.
-    void pushBack(U val);
+    // The return value is the idx of val in array.
+    uint64_t pushBack(U val);
+
+    virtual inline void checkpointInMemoryIfNecessary() {
+        unique_lock xlock{this->diskArraySharedMtx};
+        checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
+    }
+    virtual inline void rollbackInMemoryIfNecessary() {
+        unique_lock xlock{this->diskArraySharedMtx};
+        checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
+    }
 
 protected:
     uint64_t getNumElementsNoLock(TransactionType trxType);
@@ -135,7 +147,18 @@ protected:
 
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
+    inline PageByteCursor getAPIdxAndOffsetInAP(uint64_t idx) {
+        // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
+        // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
+        // directly use them from header here.
+        page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
+        uint16_t byteOffsetInAP = (idx & header.elementPageOffsetMask)
+                                  << header.alignedElementSizeLog2;
+        return PageByteCursor{apIdx, byteOffsetInAP};
+    }
+
 private:
+    void checkOutOfBoundAccess(TransactionType trxType, uint64_t idx);
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
     uint64_t readUInt64HeaderFieldNoLock(
@@ -172,7 +195,6 @@ public:
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
     // memory and not on disk (nor on the wal).
     U& operator[](uint64_t idx);
-    U get(uint64_t idx, TransactionType trxType = TransactionType::READ_ONLY);
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
@@ -202,11 +224,11 @@ public:
     InMemDiskArray(VersionedFileHandle& fileHandle, page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal);
 
-    inline void checkpointInMemoryIfNecessary() {
+    inline void checkpointInMemoryIfNecessary() override {
         unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
-    inline void rollbackInMemoryIfNecessary() {
+    inline void rollbackInMemoryIfNecessary() override {
         unique_lock xlock{this->diskArraySharedMtx};
         InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
@@ -214,7 +236,7 @@ public:
     inline VersionedFileHandle* getFileHandle() { return (VersionedFileHandle*)&this->fileHandle; }
 
 private:
-    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
+    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;
 };
 
 template<typename T>

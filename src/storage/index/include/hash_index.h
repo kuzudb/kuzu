@@ -10,7 +10,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-enum class HashIndexLocalLookupState { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
+enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
+enum class ChainedSlotsAction : uint8_t { LOOKUP_IN_SLOTS, DELETE_IN_SLOTS, FIND_FREE_SLOT };
 
 // Local storage consists of two in memory indexes. One (localInsertionIndex) is to keep track of
 // all newly inserted entries, and the other (localDeletionIndex) is to keep track of newly deleted
@@ -31,7 +32,13 @@ public:
     void deleteKey(const uint8_t* key);
     bool insert(const uint8_t* key, node_offset_t value);
 
-private:
+    inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); };
+    inline void clear() {
+        localInsertions.clear();
+        localDeletions.clear();
+    }
+
+public:
     shared_mutex localStorageSharedMutex;
     unordered_map<int64_t, node_offset_t> localInsertions;
     unordered_map<int64_t, node_offset_t> localDeletions;
@@ -75,25 +82,58 @@ public:
     inline bool insert(Transaction* transaction, int64_t key, node_offset_t value) {
         return insertInternal(transaction, reinterpret_cast<const uint8_t*>(&key), value);
     }
+    void prepareCommitOrRollbackIfNecessary(bool isCommit);
+    void checkpointInMemoryIfNecessary();
+    void rollbackInMemoryIfNecessary() const;
+    inline VersionedFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
     bool lookupInternal(Transaction* transaction, const uint8_t* key, node_offset_t& result);
-    void deleteInternal(Transaction* transaction, const uint8_t* key);
+    void deleteInternal(Transaction* transaction, const uint8_t* key) const;
     bool insertInternal(Transaction* transaction, const uint8_t* key, node_offset_t value);
-    bool lookupInPersistentIndex(const uint8_t* key, node_offset_t& result);
+    template<ChainedSlotsAction action>
+    bool performActionInChainedSlots(TransactionType trxType, HashIndexHeader& header,
+        SlotInfo& slotInfo, const uint8_t* key, node_offset_t& result);
+    bool lookupInPersistentIndex(
+        TransactionType trxType, const uint8_t* key, node_offset_t& result);
+    // The following two functions are only used in prepareCommit, and are not thread-safe.
+    void insertIntoPersistentIndex(const uint8_t* key, node_offset_t value);
+    void deleteFromPersistentIndex(const uint8_t* key);
 
-    bool lookupInSlot(Slot* slot, const uint8_t* key, node_offset_t& result) const;
-    inline Slot* getSlot(const SlotInfo& slotInfo) const {
-        return slotInfo.isPSlot ? &pSlots->operator[](slotInfo.slotId) :
-                                  &oSlots->operator[](slotInfo.slotId);
+    void copyAndUpdateSlotHeader(bool isCopyEntry, Slot& slot, entry_pos_t entryPos,
+        const uint8_t* key, node_offset_t value);
+    void copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot& slot,
+        const uint8_t* key, node_offset_t value);
+    void splitSlot(HashIndexHeader& header);
+    void rehashSlots(HashIndexHeader& header);
+    vector<pair<SlotInfo, Slot>> getChainedSlots(slot_id_t pSlotId);
+    void copyEntryToSlot(slot_id_t slotId, uint8_t* entry);
+
+    void prepareCommit();
+    void prepareRollback();
+
+    entry_pos_t findMatchedEntryInSlot(const Slot& slot, const uint8_t* key) const;
+
+    void loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot& slot);
+
+    inline void updateSlot(const SlotInfo& slotInfo, Slot& slot) const {
+        slotInfo.slotType == SlotType::PRIMARY ? pSlots->update(slotInfo.slotId, slot) :
+                                                 oSlots->update(slotInfo.slotId, slot);
+    }
+    inline Slot getSlot(TransactionType trxType, const SlotInfo& slotInfo) const {
+        return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, trxType) :
+                                                        oSlots->get(slotInfo.slotId, trxType);
     }
 
-private:
+public:
+    StorageStructureIDAndFName storageStructureIDAndFName;
     BufferManager& bm;
+    WAL* wal;
     unique_ptr<VersionedFileHandle> fileHandle;
-    unique_ptr<InMemDiskArray<HashIndexHeader>> headerArray;
-    unique_ptr<InMemDiskArray<Slot>> pSlots;
-    unique_ptr<InMemDiskArray<Slot>> oSlots;
+    unique_ptr<BaseDiskArray<HashIndexHeader>> headerArray;
+    unique_ptr<BaseDiskArray<Slot>> pSlots;
+    unique_ptr<BaseDiskArray<Slot>> oSlots;
+    insert_function_t keyInsertFunc;
     equals_function_t keyEqualsFunc;
     unique_ptr<DiskOverflowFile> diskOverflowFile;
     unique_ptr<HashIndexLocalStorage> localStorage;

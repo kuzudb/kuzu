@@ -11,12 +11,13 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+using insert_function_t =
+    std::function<void(const uint8_t*, node_offset_t, uint8_t*, DiskOverflowFile*)>;
 using hash_function_t = std::function<hash_t(const uint8_t*)>;
 using equals_function_t = std::function<bool(const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
 
 static const uint32_t NUM_BYTES_FOR_INT64_KEY = Types::getDataTypeSize(INT64);
 static const uint32_t NUM_BYTES_FOR_STRING_KEY = Types::getDataTypeSize(STRING);
-constexpr uint64_t INDEX_HEADER_PAGE_ID = 0;
 
 using in_mem_insert_function_t =
     std::function<void(const uint8_t*, node_offset_t, uint8_t*, InMemOverflowFile*)>;
@@ -25,8 +26,8 @@ using in_mem_equals_function_t =
 
 class InMemHashIndexUtils {
 public:
-    static in_mem_equals_function_t initializeEqualsFunc(const DataTypeID& dataTypeID);
-    static in_mem_insert_function_t initializeInsertFunc(const DataTypeID& dataTypeID);
+    static in_mem_equals_function_t initializeEqualsFunc(DataTypeID dataTypeID);
+    static in_mem_insert_function_t initializeInsertFunc(DataTypeID dataTypeID);
 
 private:
     // InsertFunc
@@ -52,6 +53,21 @@ private:
 class HashIndexUtils {
 
 public:
+    // InsertFunc
+    inline static void insertFuncForInt64(const uint8_t* key, node_offset_t offset, uint8_t* entry,
+        DiskOverflowFile* overflowFile = nullptr) {
+        memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
+        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
+    }
+    // TODO(Guodong): this is a place holder, add back insert string function.
+    inline static void insertFuncForString(
+        const uint8_t* key, node_offset_t offset, uint8_t* entry, DiskOverflowFile* overflowFile) {
+        gf_string_t gfString;
+        memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
+        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
+    }
+    static insert_function_t initializeInsertFunc(DataTypeID dataTypeID);
+
     // HashFunc
     inline static hash_t hashFuncForInt64(const uint8_t* key) {
         hash_t hash;
@@ -63,7 +79,7 @@ public:
         function::operation::Hash::operation(string((char*)key), hash);
         return hash;
     }
-    static hash_function_t initializeHashFunc(const DataTypeID& dataTypeID);
+    static hash_function_t initializeHashFunc(DataTypeID dataTypeID);
 
     // EqualsFunc
     static bool isStringPrefixAndLenEquals(
@@ -74,7 +90,7 @@ public:
     }
     static bool equalsFuncForString(
         const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
-    static equals_function_t initializeEqualsFunc(const DataTypeID& dataTypeID);
+    static equals_function_t initializeEqualsFunc(DataTypeID dataTypeID);
 };
 } // namespace storage
 } // namespace graphflow
