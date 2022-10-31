@@ -64,26 +64,30 @@ void AdjAndPropertyListsUpdateStore::readInsertionsToList(ListFileID& listFileID
         nodeIDCompressionScheme);
 }
 
-void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(
-    vector<shared_ptr<ValueVector>>& srcDstNodeIDAndRelProperties) {
-    validateSrcDstNodeIDAndRelProperties(srcDstNodeIDAndRelProperties);
-    auto srcNodeVector = srcDstNodeIDAndRelProperties[0];
-    auto dstNodeVector = srcDstNodeIDAndRelProperties[1];
-    auto pos = srcNodeVector->state->selVector
-                   ->selectedPositions[srcNodeVector->state->getPositionOfCurrIdx()];
-    auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
-    auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
+void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
+    shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+    auto srcNodeID =
+        ((nodeID_t*)srcNodeIDVector
+                ->values)[srcNodeIDVector->state->selVector
+                              ->selectedPositions[srcNodeIDVector->state->getPositionOfCurrIdx()]];
+    auto dstNodeID =
+        ((nodeID_t*)dstNodeIDVector
+                ->values)[dstNodeIDVector->state->selVector
+                              ->selectedPositions[dstNodeIDVector->state->getPositionOfCurrIdx()]];
     bool hasInsertedToFT = false;
+    auto vectorsToAppendToFT = vector<shared_ptr<ValueVector>>{srcNodeIDVector, dstNodeIDVector};
+    vectorsToAppendToFT.insert(
+        vectorsToAppendToFT.end(), relPropertyVectors.begin(), relPropertyVectors.end());
     for (auto direction : REL_DIRECTIONS) {
-        auto nodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
-        auto chunkIdx = StorageUtils::getListChunkIdx(nodeID.offset);
-        if (listUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
+        auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
+        auto chunkIdx = StorageUtils::getListChunkIdx(boundNodeID.offset);
+        if (listUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
             if (!hasInsertedToFT) {
-                factorizedTable->append(srcDstNodeIDAndRelProperties);
+                factorizedTable->append(vectorsToAppendToFT);
                 hasInsertedToFT = true;
             }
             listUpdatesPerTablePerDirection[direction]
-                .at(nodeID.tableID)[chunkIdx][nodeID.offset]
+                .at(boundNodeID.tableID)[chunkIdx][boundNodeID.offset]
                 .insertedRelsTupleIdxInFT.push_back(factorizedTable->getNumTuples() - 1);
         }
     }
@@ -130,52 +134,6 @@ uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) c
     }
 }
 
-// TODO(Ziyi): This function is designed to help implementing the front-end of insertRels. Once the
-// front-end of insertRels has been implemented, we should delete this function.
-void AdjAndPropertyListsUpdateStore::validateSrcDstNodeIDAndRelProperties(
-    vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties) const {
-    // Checks whether the number of vectors inside srcDstNodeIDAndRelProperties matches the number
-    // of columns in factorizedTable.
-    if (factorizedTable->getTableSchema()->getNumColumns() != srcDstNodeIDAndRelProperties.size()) {
-        throw InternalException(
-            StringUtils::string_format("Expected number of valueVectors: %d. Given: %d.",
-                relTableSchema.properties.size() + 2, srcDstNodeIDAndRelProperties.size()));
-    }
-    // Checks whether the dataType of each given vector matches the one defined in tableSchema.
-    for (auto i = 0u; i < srcDstNodeIDAndRelProperties.size(); i++) {
-        // Note that: we store srcNodeID and dstNodeID in the first two columns of factorizedTable.
-        // So, we only need to compare the columns whose colIdx > 2 with tableSchema.
-        if (i >= 2 && srcDstNodeIDAndRelProperties[i]->dataType !=
-                          relTableSchema.properties[i - 2].dataType) {
-            throw InternalException(StringUtils::string_format(
-                "Expected vector with type %s, Given: %s.",
-                Types::dataTypeToString(relTableSchema.properties[i - 2].dataType.typeID).c_str(),
-                Types::dataTypeToString(srcDstNodeIDAndRelProperties[i]->dataType.typeID).c_str()));
-        } else if (i < 2 &&
-                   srcDstNodeIDAndRelProperties[i]->dataType.typeID != DataTypeID(NODE_ID)) {
-            throw InternalException("The first two vectors of srcDstNodeIDAndRelProperties should "
-                                    "be src/dstNodeVector.");
-        }
-    }
-    // Checks whether the srcTableID and dstTableID is a valid src/dst table ID defined in
-    // tableSchema.
-    auto srcNodeVector = srcDstNodeIDAndRelProperties[0];
-    auto dstNodeVector = srcDstNodeIDAndRelProperties[1];
-    auto pos = srcNodeVector->state->selVector
-                   ->selectedPositions[srcNodeVector->state->getPositionOfCurrIdx()];
-    auto srcNodeID = ((nodeID_t*)srcNodeVector->values)[pos];
-    auto dstNodeID = ((nodeID_t*)dstNodeVector->values)[pos];
-    if (relTableSchema.isStoredAsLists(RelDirection::FWD) &&
-        !listUpdatesPerTablePerDirection[RelDirection::FWD].contains(srcNodeID.tableID)) {
-        getErrorMsgForInvalidTableID(
-            srcNodeID.tableID, true /* isSrcTableID */, relTableSchema.tableName);
-    } else if (relTableSchema.isStoredAsLists(RelDirection::BWD) &&
-               !listUpdatesPerTablePerDirection[RelDirection::BWD].contains(dstNodeID.tableID)) {
-        getErrorMsgForInvalidTableID(
-            dstNodeID.tableID, false /* isSrcTableID */, relTableSchema.tableName);
-    }
-}
-
 void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
     listUpdatesPerTablePerDirection.clear();
     auto srcDstTableIDs = relTableSchema.getSrcDstTableIDs();
@@ -189,13 +147,6 @@ void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
             }
         }
     }
-}
-
-void AdjAndPropertyListsUpdateStore::getErrorMsgForInvalidTableID(
-    uint64_t tableID, bool isSrcTableID, string tableName) {
-    throw InternalException(
-        StringUtils::string_format("TableID: %d is not a valid %s tableID in rel %s.", tableID,
-            isSrcTableID ? "src" : "dst", tableName.c_str()));
 }
 
 } // namespace storage

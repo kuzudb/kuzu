@@ -67,33 +67,36 @@ void RelTable::rollbackInMemoryIfNecessary() {
         std::bind(&RelTable::clearAdjAndPropertyListsUpdateStore, this));
 }
 
-// This function assumes that the order of vectors in valueVectorsToInsert as:
-// [srcNodeID, dstNodeID, relProp1, relProp2, ..., relPropN].
-void RelTable::insertRels(vector<shared_ptr<ValueVector>>& valueVectorsToInsert) {
-    auto& srcVector = valueVectorsToInsert[0];
-    auto& dstVector = valueVectorsToInsert[1];
-    auto srcNodeValues = srcVector->values;
-    auto dstNodeValues = dstVector->values;
-    // TODO: assmue flat input
-    auto srcPos = srcVector->state->selVector->selectedPositions
-                      [srcVector->state->isFlat() ? srcVector->state->getPositionOfCurrIdx() : 0];
-    auto dstPos = dstVector->state->selVector->selectedPositions
-                      [dstVector->state->isFlat() ? dstVector->state->getPositionOfCurrIdx() : 0];
-    auto srcTableID = ((nodeID_t*)srcNodeValues)[srcPos].tableID;
-    auto dstTableID = ((nodeID_t*)dstNodeValues)[dstPos].tableID;
+// This function assumes that the order of vectors in relPropertyVectorsPerRelTable as:
+// [relProp1, relProp2, ..., relPropN] and all vectors are flat.
+void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
+    shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+    assert(srcNodeIDVector->state->isFlat());
+    assert(dstNodeIDVector->state->isFlat());
+    auto srcTableID =
+        ((nodeID_t*)srcNodeIDVector
+                ->values)[srcNodeIDVector->state->selVector
+                              ->selectedPositions[srcNodeIDVector->state->getPositionOfCurrIdx()]]
+            .tableID;
+    auto dstTableID =
+        ((nodeID_t*)dstNodeIDVector
+                ->values)[dstNodeIDVector->state->selVector
+                              ->selectedPositions[dstNodeIDVector->state->getPositionOfCurrIdx()]]
+            .tableID;
     for (auto direction : REL_DIRECTIONS) {
         auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
-        auto boundVector = (direction == RelDirection::FWD ? srcVector : dstVector);
-        auto nbrVector = (direction == RelDirection::FWD ? dstVector : srcVector);
+        auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
+        auto nbrVector = (direction == RelDirection::FWD ? dstNodeIDVector : srcNodeIDVector);
         if (adjColumns[direction].contains(boundTableID)) {
             adjColumns[direction].at(boundTableID)->writeValues(boundVector, nbrVector);
-            for (auto i = 2; i < valueVectorsToInsert.size(); i++) {
-                propertyColumns[direction].at(boundTableID)[i - 2]->writeValues(
-                    boundVector, valueVectorsToInsert[i]);
+            for (auto i = 0; i < relPropertyVectors.size(); i++) {
+                propertyColumns[direction].at(boundTableID)[i]->writeValues(
+                    boundVector, relPropertyVectors[i]);
             }
         }
     }
-    adjAndPropertyListsUpdateStore->insertRelIfNecessary(valueVectorsToInsert);
+    adjAndPropertyListsUpdateStore->insertRelIfNecessary(
+        srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
 }
 
 void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {

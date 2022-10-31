@@ -18,10 +18,57 @@ RelsStatistics::RelsStatistics(
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& relStatistic : relStatisticPerTable_) {
-        (*tableStatisticPerTableForReadOnlyTrx)[relStatistic.first] =
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[relStatistic.first] =
             make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
-        (*tableStatisticPerTableForWriteTrx)[relStatistic.first] =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relStatistic.first] =
             make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
+    }
+}
+
+// We should only call this function after we call setNumRelsPerDirectionBoundTableID.
+void RelsStatistics::setNumRelsForTable(table_id_t relTableID, uint64_t numRels) {
+    lock_t lck{mtx};
+    initTableStatisticPerTableForWriteTrxIfNecessary();
+    assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
+    auto relStatistics =
+        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+            .get();
+    tablesStatisticsContentForWriteTrx->nextRelID += (numRels - relStatistics->getNumTuples());
+    relStatistics->setNumTuples(numRels);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRels);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRels);
+}
+
+void RelsStatistics::assertNumRelsIsSound(
+    unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
+    uint64_t sum = 0;
+    for (auto tableIDNumRels : relsPerBoundTable) {
+        sum += tableIDNumRels.second;
+    }
+    assert(sum == numRels);
+}
+
+// We should only call this function after we call incrementNumRelsPerDirectionBoundTableByOne.
+void RelsStatistics::incrementNumRelsByOneForTable(table_id_t relTableID) {
+    lock_t lck{mtx};
+    initTableStatisticPerTableForWriteTrxIfNecessary();
+    lck.unlock();
+    setNumRelsForTable(relTableID,
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)->getNumTuples() +
+            1);
+}
+
+void RelsStatistics::incrementNumRelsPerDirectionBoundTableByOne(
+    table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID) {
+    lock_t lck{mtx};
+    initTableStatisticPerTableForWriteTrxIfNecessary();
+    for (auto relDirection : REL_DIRECTIONS) {
+        auto relStatistics =
+            (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable
+                .at(relTableID)
+                .get();
+        relStatistics->numRelsPerDirectionBoundTable[relDirection].at(
+            relDirection == FWD ? srcTableID : dstTableID)++;
     }
 }
 
@@ -31,20 +78,21 @@ void RelsStatistics::setNumRelsPerDirectionBoundTableID(
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto relDirection : REL_DIRECTIONS) {
         for (auto const& tableIDNumRelPair : directionNumRelsPerTable[relDirection]) {
-            auto boundTableID = tableIDNumRelPair.first;
-            ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()))
+            ((RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID]
+                    .get())
                 ->setNumRelsForDirectionBoundTable(
-                    relDirection, boundTableID, tableIDNumRelPair.second.load());
+                    relDirection, tableIDNumRelPair.first, tableIDNumRelPair.second.load());
         }
     }
 }
 
-uint64_t RelsStatistics::getNextRelID() {
-    auto nextRelID = 0ull;
-    for (auto& tableStatistic : *tableStatisticPerTableForReadOnlyTrx) {
-        nextRelID += ((RelStatistics*)tableStatistic.second.get())->getNumTuples();
-    }
-    return nextRelID;
+uint64_t RelsStatistics::getNextRelID(Transaction* transaction) {
+    lock_t lck{mtx};
+    auto& tableStatisticContent =
+        (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
+            tablesStatisticsContentForReadOnlyTrx :
+            tablesStatisticsContentForWriteTrx;
+    return tableStatisticContent->nextRelID;
 }
 
 unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(

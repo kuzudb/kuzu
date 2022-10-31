@@ -30,8 +30,9 @@ public:
 
 protected:
     void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {
-        auto numTuples =
-            tablesStatistics->getReadOnlyVersion()->at(tableSchema.tableID)->getNumTuples();
+        auto numTuples = tablesStatistics->getReadOnlyVersion()
+                             ->tableStatisticPerTable.at(tableSchema.tableID)
+                             ->getNumTuples();
         if (numTuples > 0) {
             throw CopyCSVException(
                 "COPY CSV commands can be executed only on completely empty tables. Table: " +

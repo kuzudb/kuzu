@@ -41,14 +41,14 @@ public:
         dataChunk->insert(4, srcNodeVector);
         dataChunk->insert(5, dstNodeVector);
         dataChunk->state->currIdx = 0;
-        vectorsToInsertToKnows = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+        vectorsToInsertToKnows = vector<shared_ptr<ValueVector>>{
             lengthPropertyVector, placePropertyVector, tagPropertyVector, relIDPropertyVector};
-        vectorsToInsertToPlays = vector<shared_ptr<ValueVector>>{
-            srcNodeVector, dstNodeVector, placePropertyVector, relIDPropertyVector};
-        vectorsToInsertToHasOwner = vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector,
+        vectorsToInsertToPlays =
+            vector<shared_ptr<ValueVector>>{placePropertyVector, relIDPropertyVector};
+        vectorsToInsertToHasOwner = vector<shared_ptr<ValueVector>>{
             lengthPropertyVector, placePropertyVector, relIDPropertyVector};
-        vectorsToInsertToTeaches = vector<shared_ptr<ValueVector>>{
-            srcNodeVector, dstNodeVector, lengthPropertyVector, relIDPropertyVector};
+        vectorsToInsertToTeaches =
+            vector<shared_ptr<ValueVector>>{lengthPropertyVector, relIDPropertyVector};
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -82,28 +82,33 @@ public:
         ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
     }
 
-    inline void insertOneRelToRelTable(
-        table_id_t relTableID, vector<shared_ptr<ValueVector>> vectorsToInsert) {
+    inline void insertOneRelToRelTable(table_id_t relTableID,
+        shared_ptr<ValueVector>& srcNodeVector, shared_ptr<ValueVector>& dstNodeVector,
+        vector<shared_ptr<ValueVector>>& propertyVectors) {
         database->getStorageManager()
             ->getRelsStore()
             .getRelTable(relTableID)
-            ->insertRels(vectorsToInsert);
+            ->insertRels(srcNodeVector, dstNodeVector, propertyVectors);
     }
 
     inline void insertOneKnowsRel() {
-        insertOneRelToRelTable(KNOWS_TABLE_ID, vectorsToInsertToKnows);
+        insertOneRelToRelTable(
+            KNOWS_TABLE_ID, srcNodeVector, dstNodeVector, vectorsToInsertToKnows);
     }
 
     inline void insertOnePlaysRel() {
-        insertOneRelToRelTable(PLAYS_TABLE_ID, vectorsToInsertToPlays);
+        insertOneRelToRelTable(
+            PLAYS_TABLE_ID, srcNodeVector, dstNodeVector, vectorsToInsertToPlays);
     }
 
     inline void insertOneHasOwnerRel() {
-        insertOneRelToRelTable(HAS_OWNER_TABLE_ID, vectorsToInsertToHasOwner);
+        insertOneRelToRelTable(
+            HAS_OWNER_TABLE_ID, srcNodeVector, dstNodeVector, vectorsToInsertToHasOwner);
     }
 
     inline void insertOneTeachesRel() {
-        insertOneRelToRelTable(TEACHES_TABLE_ID, vectorsToInsertToTeaches);
+        insertOneRelToRelTable(
+            TEACHES_TABLE_ID, srcNodeVector, dstNodeVector, vectorsToInsertToTeaches);
     }
 
     void insertRelsToKnowsTable(table_id_t srcTableID, table_id_t dstTableID,
@@ -133,20 +138,6 @@ public:
             ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, dstTableID);
             insertOneKnowsRel();
         }
-    }
-
-    void incorrectVectorErrorTest(
-        vector<shared_ptr<ValueVector>> srcDstNodeIDAndRelProperties, string errorMsg) {
-        try {
-            database->getStorageManager()
-                ->getRelsStore()
-                .getRelTable(KNOWS_TABLE_ID)
-                ->getAdjAndPropertyListsUpdateStore()
-                ->insertRelIfNecessary(srcDstNodeIDAndRelProperties);
-            FAIL();
-        } catch (InternalException& exception) {
-            ASSERT_EQ(exception.what(), errorMsg);
-        } catch (Exception& e) { FAIL(); }
     }
 
     static void validateInsertedRels(QueryResult* queryResult, uint64_t numInsertedRels,
@@ -600,26 +591,6 @@ TEST_F(RelInsertionTest, SmallListBecomesLargeCommitRecovery) {
 
 TEST_F(RelInsertionTest, SmallListBecomesLargeRollbackRecovery) {
     smallListBecomesLargeTest(false /* isCommit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(RelInsertionTest, InCorrectVectorErrorTest) {
-    incorrectVectorErrorTest(vector<shared_ptr<ValueVector>>{lengthPropertyVector,
-                                 placePropertyVector, relIDPropertyVector, srcNodeVector,
-                                 relIDPropertyVector, tagPropertyVector, dstNodeVector},
-        "Expected number of valueVectors: 6. Given: 7.");
-    incorrectVectorErrorTest(
-        vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector, placePropertyVector,
-            lengthPropertyVector, tagPropertyVector, relIDPropertyVector},
-        "Expected vector with type INT64, Given: STRING.");
-    incorrectVectorErrorTest(
-        vector<shared_ptr<ValueVector>>{srcNodeVector, relIDPropertyVector, lengthPropertyVector,
-            placePropertyVector, tagPropertyVector, relIDPropertyVector},
-        "The first two vectors of srcDstNodeIDAndRelProperties should be src/dstNodeVector.");
-    ((nodeID_t*)srcNodeVector->values)[0].tableID = 5;
-    incorrectVectorErrorTest(
-        vector<shared_ptr<ValueVector>>{srcNodeVector, dstNodeVector, lengthPropertyVector,
-            placePropertyVector, tagPropertyVector, relIDPropertyVector},
-        "TableID: 5 is not a valid src tableID in rel knows.");
 }
 
 TEST_F(RelInsertionTest, InsertRelsToOneToOneRelTableCommitNormalExecution) {

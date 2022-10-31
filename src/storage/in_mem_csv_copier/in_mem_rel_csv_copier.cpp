@@ -8,13 +8,13 @@ namespace storage {
 
 InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog,
-    map<table_id_t, uint64_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+    map<table_id_t, node_offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
     : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
       maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)}, relsStatistics{relsStatistics} {
-    startRelID = relsStatistics->getNextRelID();
-    relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
+    startRelID = relsStatistics->getNextRelID(dummyReadOnlyTrx.get());
+    relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     for (auto& nodeTableID : relTableSchema->getAllNodeTableIDs()) {
         assert(!IDIndexes.contains(nodeTableID));
         IDIndexes[nodeTableID] = make_unique<HashIndex>(

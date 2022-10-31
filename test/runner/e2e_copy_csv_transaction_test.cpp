@@ -118,8 +118,10 @@ public:
             relTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
-        ASSERT_EQ(
-            database->getStorageManager()->getRelsStore().getRelsStatistics().getNextRelID(), 0);
+        auto dummyWriteTrx = Transaction::getDummyWriteTrx();
+        ASSERT_EQ(database->storageManager->getRelsStore().getRelsStatistics().getNextRelID(
+                      dummyWriteTrx.get()),
+            14);
     }
 
     void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t knowsTableID) {
@@ -131,11 +133,13 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
-        auto& relsStatistics = database->getStorageManager()->getRelsStore().getRelsStatistics();
-        ASSERT_EQ(relsStatistics.getNextRelID(), 14);
-        ASSERT_EQ(relsStatistics.getReadOnlyVersion()->size(), 1);
-        auto knowsRelStatistics =
-            (RelStatistics*)((*relsStatistics.getReadOnlyVersion())[knowsTableID].get());
+        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        auto dummyWriteTrx = Transaction::getDummyWriteTrx();
+        ASSERT_EQ(relsStatistics.getNextRelID(dummyWriteTrx.get()), 14);
+        ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
+        auto knowsRelStatistics = (RelStatistics*)relsStatistics.getReadOnlyVersion()
+                                      ->tableStatisticPerTable.at(knowsTableID)
+                                      .get();
         ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
         ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::FWD, 0), 14);
         ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::BWD, 0), 14);
@@ -180,19 +184,19 @@ public:
 } // namespace transaction
 } // namespace graphflow
 
-TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVCommitTest) {
+TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVCommitNormalExecution) {
     copyNodeCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVCommitRecoveryTest) {
+TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVCommitRecovery) {
     copyNodeCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCSVCommitTest) {
+TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCSVCommitNormalExecution) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCSVCommitRecoveryTest) {
+TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCSVCommitRecovery) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 

@@ -314,13 +314,14 @@ TEST_F(TinySnbUpdateTest, InsertNodeAfterMatchListTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-// TODO(ziyi): check this query. If "RETURN a.ID, b.ID, e.ID", then b.ID and e.ID seems to be
-// in-correct.
 TEST_F(TinySnbUpdateTest, InsertRelBasicTest) {
     conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 "
                 "CREATE (a)<-[:knows {date:date('1997-03-22')}]-(b);");
-    auto groundTruth = vector<string>{"4"};
-    auto result =
-        conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN COUNT(*)");
+    auto groundTruth = vector<string>{"7|8|12", "7|9|13", "8|7|37", "9|7|38"};
+    auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, "
+                              "b.ID, e._id order by a.ID, b.ID");
+    // After rel insertions,the query will return 4 rels: person7->person8, person7->person9,
+    // person8->person7, person9->person7.
+    ASSERT_EQ(result->getNumTuples(), 4);
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
