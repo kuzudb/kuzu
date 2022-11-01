@@ -10,22 +10,23 @@ using namespace graphflow::evaluator;
 
 struct CreateNodeInfo {
     NodeTable* table;
+    vector<RelTable*> relTablesToInit;
     DataPos outNodeIDVectorPos;
 
-    CreateNodeInfo(NodeTable* table, const DataPos& dataPos)
-        : table{table}, outNodeIDVectorPos{dataPos} {}
+    CreateNodeInfo(NodeTable* table, vector<RelTable*> relTablesToInit, const DataPos& dataPos)
+        : table{table}, relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{dataPos} {}
 
     inline unique_ptr<CreateNodeInfo> clone() {
-        return make_unique<CreateNodeInfo>(table, outNodeIDVectorPos);
+        return make_unique<CreateNodeInfo>(table, relTablesToInit, outNodeIDVectorPos);
     }
 };
 
 class CreateNode : public PhysicalOperator {
 public:
-    CreateNode(vector<unique_ptr<CreateNodeInfo>> createNodeInfos, RelsStore& relsStore,
+    CreateNode(vector<unique_ptr<CreateNodeInfo>> createNodeInfos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString},
-          createNodeInfos{std::move(createNodeInfos)}, relsStore{relsStore} {}
+        : PhysicalOperator{std::move(child), id, paramsString}, createNodeInfos{
+                                                                    std::move(createNodeInfos)} {}
 
     inline PhysicalOperatorType getOperatorType() override {
         return PhysicalOperatorType::CREATE_NODE;
@@ -41,34 +42,37 @@ public:
             clonedCreateNodeInfos.push_back(createNodeInfo->clone());
         }
         return make_unique<CreateNode>(
-            std::move(clonedCreateNodeInfos), relsStore, children[0]->clone(), id, paramsString);
+            std::move(clonedCreateNodeInfos), children[0]->clone(), id, paramsString);
     }
 
 private:
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
     vector<ValueVector*> outValueVectors;
-    RelsStore& relsStore;
 };
 
 struct CreateRelInfo {
     RelTable* table;
     DataPos srcNodePos;
+    table_id_t srcNodeTableID;
     DataPos dstNodePos;
+    table_id_t dstNodeTableID;
     vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
     uint32_t relIDEvaluatorIdx;
 
-    CreateRelInfo(RelTable* table, const DataPos& srcNodePos, const DataPos& dstNodePos,
+    CreateRelInfo(RelTable* table, const DataPos& srcNodePos, table_id_t srcNodeTableID,
+        const DataPos& dstNodePos, table_id_t dstNodeTableID,
         vector<unique_ptr<BaseExpressionEvaluator>> evaluators, uint32_t relIDEvaluatorIdx)
-        : table{table}, srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
-          evaluators{std::move(evaluators)}, relIDEvaluatorIdx{relIDEvaluatorIdx} {}
+        : table{table}, srcNodePos{srcNodePos}, srcNodeTableID{srcNodeTableID},
+          dstNodePos{dstNodePos}, dstNodeTableID{dstNodeTableID}, evaluators{std::move(evaluators)},
+          relIDEvaluatorIdx{relIDEvaluatorIdx} {}
 
     unique_ptr<CreateRelInfo> clone() {
         vector<unique_ptr<BaseExpressionEvaluator>> clonedEvaluators;
         for (auto& evaluator : evaluators) {
             clonedEvaluators.push_back(evaluator->clone());
         }
-        return make_unique<CreateRelInfo>(
-            table, srcNodePos, dstNodePos, std::move(clonedEvaluators), relIDEvaluatorIdx);
+        return make_unique<CreateRelInfo>(table, srcNodePos, srcNodeTableID, dstNodePos,
+            dstNodeTableID, std::move(clonedEvaluators), relIDEvaluatorIdx);
     }
 };
 
@@ -95,11 +99,16 @@ public:
     }
 
 private:
+    struct CreateRelVectors {
+        shared_ptr<ValueVector> srcNodeIDVector;
+        shared_ptr<ValueVector> dstNodeIDVector;
+        vector<shared_ptr<ValueVector>> propertyVectors;
+    };
+
+private:
     RelsStatistics& relsStatistics;
     vector<unique_ptr<CreateRelInfo>> createRelInfos;
-    vector<shared_ptr<ValueVector>> srcNodeIDVectorPerRelTable;
-    vector<shared_ptr<ValueVector>> dstNodeIDVectorPerRelTable;
-    vector<vector<shared_ptr<ValueVector>>> relPropertyVectorsPerRelTable;
+    vector<unique_ptr<CreateRelVectors>> createRelVectorsPerRel;
 };
 
 } // namespace processor

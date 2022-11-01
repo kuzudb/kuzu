@@ -311,6 +311,11 @@ TEST_F(TinySnbDDLTest, MultipleCreateRelTables) {
     ASSERT_EQ(result->getNumTuples(), 0);
     result = conn->query("MATCH (o:organisation)-[l:employees]->(p1:person) return l.ID");
     ASSERT_FALSE(result->isSuccess());
+    result = conn->query("CREATE (p:person {ID:100})-[:likes]->(p1:person {ID:101})");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query("MATCH (p:person)-[l:likes]->(p1:person) return l");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), 1);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {

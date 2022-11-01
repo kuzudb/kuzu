@@ -278,7 +278,7 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
             setItemsPerNode.push_back(propertyCollection->getPropertyKeyValPairs(*node));
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
-            auto rel = queryGraph->getQueryRel(i);
+            auto rel = queryGraph->getQueryRel(j);
             if (!prevVariablesInScope.contains(rel->getRawName())) {
                 relsToCreate.push_back(rel);
             }

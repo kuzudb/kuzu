@@ -23,6 +23,10 @@ bool CrossProduct::getNextTuples() {
     // Note: we should NOT morselize right table scanning (i.e. calling sharedState.getMorsel)
     // because every thread should scan its own table.
     auto table = sharedState->getTable();
+    if (table->getNumTuples() == 0) {
+        metrics->executionTime.stop();
+        return false;
+    }
     if (startIdx == table->getNumTuples()) { // no more to scan from right
         if (!children[0]->getNextTuples()) { // fetch a new left tuple
             metrics->executionTime.stop();

@@ -28,11 +28,5 @@ pair<vector<AdjLists*>, vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
     return make_pair(adjListsRetVal, adjColumnsRetVal);
 }
 
-void RelsStore::initEmptyRelsForNewNode(nodeID_t& nodeID) {
-    for (auto& relTable : relTables) {
-        relTable.second->initEmptyRelsForNewNode(nodeID);
-    }
-}
-
 } // namespace storage
 } // namespace graphflow
