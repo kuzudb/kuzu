@@ -385,7 +385,8 @@ TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
 
 TEST_F(TinySnbUpdateTest, DeleteNodeAfterInsertTest) { // test reset of property columns
     conn->query("CREATE (a:person {ID:100, fName:'Xiyang', age:26})");
-    conn->query("MATCH (a:person) WHERE a.ID = 100 DELETE a;");
+    // TODO(Guodong): change predicate to a.ID=100 once hash index is supported in node insertion.
+    conn->query("MATCH (a:person) WHERE a.ID > 99 DELETE a;");
     conn->query("CREATE (a:person {ID:101})");
     auto result = conn->query("MATCH (a:person) WHERE a.ID > 10 RETURN a.ID, a.fName, a.age");
     auto groundTruth = vector<string>{"101||"};

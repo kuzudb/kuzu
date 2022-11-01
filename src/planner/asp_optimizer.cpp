@@ -3,7 +3,7 @@
 #include "include/enumerator.h"
 
 #include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
 
 namespace graphflow {
@@ -21,12 +21,12 @@ bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNod
     if (!isLeftPlanFiltered) {
         return false;
     }
-    auto rightScanNodeIDs = LogicalPlanUtil::collectOperators(rightPlan, LOGICAL_SCAN_NODE_ID);
+    auto rightScanNodeIDs = LogicalPlanUtil::collectOperators(rightPlan, LOGICAL_SCAN_NODE);
     // TODO(Xiyang): multiple scan node IDs probably also works, but let's do a separate PR.
     if (rightScanNodeIDs.size() != 1) {
         return false;
     }
-    auto rightScanNodeID = (LogicalScanNodeID*)rightScanNodeIDs[0];
+    auto rightScanNodeID = (LogicalScanNode*)rightScanNodeIDs[0];
     // Semi mask can only be pushed to ScanNodeIDs.
     if (joinNodes[0]->getUniqueName() != rightScanNodeID->getNode()->getUniqueName()) {
         return false;

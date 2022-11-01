@@ -146,7 +146,9 @@ private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
-        diskOverflowFile.readListsToVector(*resultVector);
+        if (!resultVector->isNull(vectorPos)) {
+            diskOverflowFile.scanSingleListOverflow(transaction, *resultVector, vectorPos);
+        }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {

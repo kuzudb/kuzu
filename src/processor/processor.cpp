@@ -72,6 +72,9 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(move(childTask));
     } break;
+    case INDEX_SCAN: {
+        parentTask->setSingleThreadedTask();
+    } break;
     default: {
         // Schedule the right most side (e.g., build side of the hash join) first.
         for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {

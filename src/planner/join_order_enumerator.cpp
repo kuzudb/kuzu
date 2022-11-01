@@ -11,7 +11,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
 namespace graphflow {
@@ -138,25 +138,79 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     context->addPlan(newSubgraph, std::move(plan));
 }
 
-void JoinOrderEnumerator::planNodeScan() {
+void JoinOrderEnumerator::planTableScan() {
     auto queryGraph = context->getQueryGraph();
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
-        auto node = queryGraph->getQueryNode(nodePos);
-        auto newSubgraph = context->getEmptySubqueryGraph();
-        newSubgraph.addQueryNode(nodePos);
-        auto plan = make_unique<LogicalPlan>();
-        appendScanNodeID(node, *plan);
-        // For un-nested subquery, the same table need to be scanned twice in both outer and inner
-        // plan. However, we make sure storage is only scanned once and force inner plan to only
-        // scan node ID.
-        if (!context->nodeNeedScanTwice(node.get())) {
-            auto predicates = getNewMatchedExpressions(
-                context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
-            planFiltersForNode(predicates, *node, *plan);
-            planPropertyScansForNode(*node, *plan);
-        }
-        context->addPlan(newSubgraph, std::move(plan));
+        planNodeScan(nodePos);
     }
+    for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
+        planRelScan(relPos);
+    }
+}
+
+static bool isPrimaryPropertyAndLiteralPair(
+    const Expression& left, const Expression& right, uint32_t primaryKeyID) {
+    if (left.expressionType != PROPERTY || right.expressionType != LITERAL) {
+        return false;
+    }
+    auto propertyExpression = (const PropertyExpression&)left;
+    return propertyExpression.getPropertyKey() == primaryKeyID;
+}
+
+static bool isIndexScanExpression(Expression& expression, uint32_t primaryKeyID) {
+    if (expression.expressionType != EQUALS) { // check equality comparison
+        return false;
+    }
+    auto left = expression.getChild(0);
+    auto right = expression.getChild(1);
+    if (isPrimaryPropertyAndLiteralPair(*left, *right, primaryKeyID) ||
+        isPrimaryPropertyAndLiteralPair(*right, *left, primaryKeyID)) {
+        return true;
+    }
+    return false;
+}
+
+static shared_ptr<Expression> extractIndexExpression(Expression& expression) {
+    if (expression.getChild(0)->expressionType == LITERAL) {
+        return expression.getChild(0);
+    }
+    return expression.getChild(1);
+}
+
+void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
+    auto node = context->queryGraph->getQueryNode(nodePos);
+    auto newSubgraph = context->getEmptySubqueryGraph();
+    newSubgraph.addQueryNode(nodePos);
+    auto plan = make_unique<LogicalPlan>();
+    auto predicates = getNewMatchedExpressions(
+        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+    // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner query
+    // ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer query (a). To avoid
+    // scanning storage twice, we keep track of node table "a" and make sure when planning inner
+    // query, we only scan internal ID of "a".
+    if (!context->nodeNeedScanTwice(node.get())) {
+        auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
+        auto primaryKeyID = nodeTableSchema->getPrimaryKey().propertyID;
+        shared_ptr<Expression> indexExpression;
+        expression_vector predicatesToApply;
+        for (auto& predicate : predicates) { // push predicate into index scan if any.
+            if (isIndexScanExpression(*predicate, primaryKeyID)) {
+                indexExpression = extractIndexExpression(*predicate);
+            } else {
+                predicatesToApply.push_back(predicate);
+            }
+        }
+        if (indexExpression != nullptr) {
+            appendIndexScanNode(node, indexExpression, *plan);
+        } else {
+            appendScanNode(node, *plan);
+        }
+        planFiltersForNode(predicatesToApply, *node, *plan);
+        planPropertyScansForNode(*node, *plan);
+    } else {
+        appendScanNode(node, *plan);
+    }
+    context->addPlan(newSubgraph, std::move(plan));
 }
 
 void JoinOrderEnumerator::planFiltersForNode(
@@ -173,21 +227,18 @@ void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, Logical
     enumerator->appendScanNodePropIfNecessarySwitch(properties, node, plan);
 }
 
-void JoinOrderEnumerator::planRelScan() {
-    auto queryGraph = context->getQueryGraph();
-    for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
-        auto rel = queryGraph->getQueryRel(relPos);
-        auto newSubgraph = context->getEmptySubqueryGraph();
-        newSubgraph.addQueryRel(relPos);
-        auto predicates = getNewMatchedExpressions(
-            context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
-        for (auto direction : REL_DIRECTIONS) {
-            auto plan = make_unique<LogicalPlan>();
-            auto boundNode = direction == FWD ? rel->getSrcNode() : rel->getDstNode();
-            appendScanNodeID(boundNode, *plan);
-            planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
-            context->addPlan(newSubgraph, move(plan));
-        }
+void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
+    auto rel = context->queryGraph->getQueryRel(relPos);
+    auto newSubgraph = context->getEmptySubqueryGraph();
+    newSubgraph.addQueryRel(relPos);
+    auto predicates = getNewMatchedExpressions(
+        context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
+    for (auto direction : REL_DIRECTIONS) {
+        auto plan = make_unique<LogicalPlan>();
+        auto boundNode = direction == FWD ? rel->getSrcNode() : rel->getDstNode();
+        appendScanNode(boundNode, *plan);
+        planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
+        context->addPlan(newSubgraph, move(plan));
     }
 }
 
@@ -453,17 +504,29 @@ void JoinOrderEnumerator::appendFTableScan(
     plan.setLastOperator(std::move(fTableScan));
 }
 
-void JoinOrderEnumerator::appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
+void JoinOrderEnumerator::appendScanNode(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     assert(plan.isEmpty());
     auto schema = plan.getSchema();
-    auto scan = make_shared<LogicalScanNodeID>(node);
+    auto scan = make_shared<LogicalScanNode>(node);
     scan->computeSchema(*schema);
-    plan.setLastOperator(move(scan));
-    // update cardinality estimation info
+    // update cardinality
+    auto group = schema->getGroup(node->getIDProperty());
     auto numNodes = nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(node->getTableID())
-                        ->getMaxNodeOffset() +
-                    1;
-    schema->getGroup(node->getIDProperty())->setMultiplier(numNodes);
+                        ->getNumTuples();
+    group->setMultiplier(numNodes);
+    plan.setLastOperator(std::move(scan));
+}
+
+void JoinOrderEnumerator::appendIndexScanNode(
+    shared_ptr<NodeExpression>& node, shared_ptr<Expression> indexExpression, LogicalPlan& plan) {
+    assert(plan.isEmpty());
+    auto schema = plan.getSchema();
+    auto scan = make_shared<LogicalIndexScanNode>(node, std::move(indexExpression));
+    scan->computeSchema(*schema);
+    // update cardinality
+    auto group = schema->getGroup(node->getIDProperty());
+    group->setMultiplier(1);
+    plan.setLastOperator(std::move(scan));
 }
 
 void JoinOrderEnumerator::appendExtend(
@@ -517,10 +580,10 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
         }
         firstop = firstop->getChild(0).get();
     }
-    if (firstop->getLogicalOperatorType() != LOGICAL_SCAN_NODE_ID) {
+    if (firstop->getLogicalOperatorType() != LOGICAL_SCAN_NODE) {
         return false;
     }
-    auto scanNodeID = (LogicalScanNodeID*)firstop;
+    auto scanNodeID = (LogicalScanNode*)firstop;
     if (scanNodeID->getNode()->getIDProperty() != joinNodeID) {
         return false;
     }
