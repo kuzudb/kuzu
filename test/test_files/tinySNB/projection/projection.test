@@ -341,3 +341,10 @@ Dan|Carol
 17
 18
 19
+
+-NAME QueryOneToOneRelTable
+-QUERY MATCH (:person)-[m:marries]->(:person) RETURN m.usedAddress, m.note
+---- 3
+[toronto]|
+|long long long string
+[vancouver]|short str

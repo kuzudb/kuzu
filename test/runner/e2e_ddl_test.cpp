@@ -140,14 +140,14 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 7);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 7);
         }
     }
 
