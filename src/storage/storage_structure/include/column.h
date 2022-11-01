@@ -33,8 +33,7 @@ public:
 
     // Currently, used only in CopyCSV tests.
     virtual Literal readValue(node_offset_t offset);
-    // Used only for tests.
-    bool isNull(node_offset_t nodeOffset);
+    bool isNull(node_offset_t nodeOffset, Transaction* transaction);
     void setNodeOffsetToNull(node_offset_t nodeOffset);
 
 protected:

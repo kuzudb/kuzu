@@ -18,6 +18,25 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
 }
 
+string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
+    switch (relMultiplicity) {
+    case MANY_MANY: {
+        return "MANY_MANY";
+    }
+    case MANY_ONE: {
+        return "MANY_ONE";
+    }
+    case ONE_ONE: {
+        return "ONE_ONE";
+    }
+    case ONE_MANY: {
+        return "ONE_MANY";
+    }
+    default:
+        assert(false);
+    }
+}
+
 void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
     // TODO(Semih): Uncomment when enabling ad-hoc properties
     assert(unstructuredProperties.empty());

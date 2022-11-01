@@ -13,10 +13,11 @@ public:
         createDBAndConn();
     }
 
-    string getCopyCSVException() {
-        try {
-            initGraph();
-        } catch (Exception& e) { return e.what(); }
+    void validateCopyCSVException(string copyCSVQuery, string expectedException) {
+        initGraph();
+        auto result = conn->query(copyCSVQuery);
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_STREQ(result->getErrorMessage().c_str(), expectedException.c_str());
     }
 };
 
@@ -24,17 +25,20 @@ class CopyCSVDuplicateIDTest : public CopyCSVFaultTest {
     string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/duplicate-ids/"; }
 };
 
-class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
-};
+class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {};
 
 class CopyCSVWrongHeaderTest : public CopyCSVFaultTest {};
 
+class CopyCSVRelTableMultiplicityViolationTest : public CopyCSVFaultTest {
+    string getInputCSVDir() override {
+        return "dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/";
+    }
+};
+
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
-    ASSERT_EQ(getCopyCSVException(),
-        "Failed to execute statement: COPY person FROM "
-        "\"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\".\nError: CopyCSV exception: ID "
-        "value 10 violates the uniqueness constraint for the ID property.");
+    validateCopyCSVException(
+        "COPY person FROM \"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\"",
+        "CopyCSV exception: ID value 10 violates the uniqueness constraint for the ID property.");
 }
 
 TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
@@ -90,4 +94,28 @@ TEST_F(CopyCSVWrongHeaderTest, MissingColumnErrors) {
         "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsMissingColumn.csv\""
         "(HEADER=true)");
     ASSERT_FALSE(result->isSuccess());
+}
+
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, ManyOneMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY knows FROM "
+        "\"dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eKnows.csv\"",
+        "CopyCSV exception: RelTable knows is a MANY_ONE table, but node(nodeOffset: 0, tableName: "
+        "person) has more than one neighbour in the forward direction.");
+}
+
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, OneManyMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY teaches FROM "
+        "\"dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eTeaches.csv\"",
+        "CopyCSV exception: RelTable teaches is a ONE_MANY table, but node(nodeOffset: 2, "
+        "tableName: person) has more than one neighbour in the backward direction.");
+}
+
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY matches FROM "
+        "\"dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eMatches.csv\"",
+        "CopyCSV exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1, "
+        "tableName: person) has more than one neighbour in the forward direction.");
 }

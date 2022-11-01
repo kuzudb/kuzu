@@ -19,7 +19,9 @@ public:
     // Creates an in-memory page with a boolean array to store NULL bits
     InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries);
 
-    uint8_t* write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
+    inline bool isElemPosNull(uint16_t elemPosInPage) const { return nullMask[elemPosInPage]; }
+
+    uint8_t* writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
         const NodeIDCompressionScheme& nodeIDCompressionScheme);
     uint8_t* write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
         uint32_t numBytesForElem);

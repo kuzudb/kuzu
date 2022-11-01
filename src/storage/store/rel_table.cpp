@@ -88,6 +88,17 @@ void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
         auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
         auto nbrVector = (direction == RelDirection::FWD ? dstNodeIDVector : srcNodeIDVector);
         if (adjColumns[direction].contains(boundTableID)) {
+            auto nodeOffset =
+                boundVector->readNodeOffset(boundVector->state->getPositionOfCurrIdx());
+            if (!adjColumns[direction]
+                     .at(boundTableID)
+                     ->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
+                throw RuntimeException(StringUtils::string_format(
+                    "RelTable %d is a %s table, but node(nodeOffset: %d, tableID: %d) has "
+                    "more than one neighbour in the %s direction.",
+                    tableID, inferRelMultiplicity(srcTableID, dstTableID).c_str(), nodeOffset,
+                    boundTableID, getRelDirectionAsString(direction).c_str()));
+            }
             adjColumns[direction].at(boundTableID)->writeValues(boundVector, nbrVector);
             for (auto i = 0; i < relPropertyVectors.size(); i++) {
                 propertyColumns[direction].at(boundTableID)[i]->writeValues(
@@ -230,6 +241,20 @@ void RelTable::performOpOnListsWithUpdates(
     }
     if (adjAndPropertyListsUpdateStore->hasUpdates()) {
         opIfHasUpdates();
+    }
+}
+
+string RelTable::inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTableID) {
+    auto isFWDColumn = adjColumns[RelDirection::FWD].contains(srcTableID);
+    auto isBWDColumn = adjColumns[RelDirection::BWD].contains(dstTableID);
+    if (isFWDColumn && isBWDColumn) {
+        return "ONE_ONE";
+    } else if (isFWDColumn && !isBWDColumn) {
+        return "MANY_ONE";
+    } else if (!isFWDColumn && isBWDColumn) {
+        return "ONE_MANY";
+    } else {
+        return "MANY_MANY";
     }
 }
 

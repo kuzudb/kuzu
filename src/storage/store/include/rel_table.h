@@ -68,6 +68,7 @@ private:
         BufferManager& bufferManager, WAL* wal);
     void performOpOnListsWithUpdates(
         std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasUpdates);
+    string inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTableID);
 
 private:
     shared_ptr<spdlog::logger> logger;

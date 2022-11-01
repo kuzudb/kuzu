@@ -119,6 +119,7 @@ private:
 enum RelDirection : uint8_t { FWD = 0, BWD = 1 };
 const vector<RelDirection> REL_DIRECTIONS = {FWD, BWD};
 RelDirection operator!(RelDirection& direction);
+string getRelDirectionAsString(RelDirection relDirection);
 
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 

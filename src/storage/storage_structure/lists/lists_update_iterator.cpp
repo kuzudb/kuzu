@@ -152,8 +152,8 @@ void ListsUpdateIterator::updateLargeList(list_header_t oldHeader, InMemList& in
         // Note that we can actually directly read from the original
         // largeListIdxToPageListHeadIdxMap here since this listUpdateIterator should be called only
         // once when prepareToCommit on lists is called, and we should be updating each node's list
-        // at most once. Therefore the read and write version of the values for pageListHeadIdx for
-        // the curUnprocessedNodeOffset should be the same.
+        // at most once. Therefore the read and write version of the values for
+        // pageListHeadIdx for the curUnprocessedNodeOffset should be the same.
         pageListHeadIdx =
             (*lists->getListsMetadata().largeListIdxToPageListHeadIdxMap)[2 * largeListIdx];
     } else {

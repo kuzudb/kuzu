@@ -1,6 +1,5 @@
 #include "src/storage/storage_structure/include/in_mem_page.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -32,7 +31,7 @@ void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
     nullEntriesInPage[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
 }
 
-uint8_t* InMemPage::write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
+uint8_t* InMemPage::writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
     const NodeIDCompressionScheme& nodeIDCompressionScheme) {
     nodeIDCompressionScheme.writeNodeID(data + byteOffsetInPage, nodeID);
     if (nullMask) {

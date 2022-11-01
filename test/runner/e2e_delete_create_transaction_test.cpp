@@ -180,7 +180,7 @@ TEST_F(CreateDeleteNodeTrxTest, SimpleAddRollbackRecovery) {
     ASSERT_EQ(getNumNodes(conn.get()), 10000);
 }
 
-class CreateDeleteRelTrxTest : public BaseDeleteCreateTrxTest {
+class CreateRelTrxTest : public BaseDeleteCreateTrxTest {
 public:
     string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
@@ -217,6 +217,13 @@ public:
 
     static string getLongStr(const string& val) { return "long long string prefix " + val; }
 
+    void validateExceptionMessage(string query, string expectedException) {
+        conn->query(query);
+        auto result = conn->query(query);
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_STREQ(result->getErrorMessage().c_str(), expectedException.c_str());
+    }
+
 public:
     static const int64_t smallNumRelsToInsert = 10;
     // For a relTable with simple relation(src,dst nodeIDs are 1): we need to insert at least
@@ -232,7 +239,7 @@ static void validateInsertedRel(
     auto place = to_string(param);
     if (testNullAndLongString) {
         length = ""; // null
-        place = CreateDeleteRelTrxTest::getLongStr(place);
+        place = CreateRelTrxTest::getLongStr(place);
     }
     auto groundTruth = length + "|" + place + "|[" + to_string(param) + "]";
     ASSERT_STREQ(groundTruth.c_str(), result.c_str());
@@ -249,7 +256,7 @@ static void validateInsertRelsToEmptyListFail(vector<string> resultStr) {
     ASSERT_EQ(resultStr.size(), 0);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
     validateInsertRelsToEmptyListSucceed(
@@ -260,7 +267,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListCommitNormalExecution) {
         readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListCommitRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -269,14 +276,14 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListCommitRecovery) {
         readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListRollbackNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
     conn->rollback();
     validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListRollbackRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -284,7 +291,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToEmptyListRollbackRecovery) {
     validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
     validateInsertRelsToEmptyListSucceed(readAllKnowsProperty(conn.get(), "animal", "animal"),
@@ -295,14 +302,14 @@ TEST_F(CreateDeleteRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrCommit
         largeNumRelsToInsert, true /* testNullAndLongString */);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
     conn->rollback();
     validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackRecovery) {
+TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -348,7 +355,7 @@ static void validateInsertRelsToSmallListFail(vector<string> resultStr) {
     validateInsertRelsToSmallListSucceed(resultStr, 0);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
     validateInsertRelsToSmallListSucceed(
@@ -359,7 +366,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListCommitNormalExecution) {
         readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListCommitRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -368,14 +375,14 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListCommitRecovery) {
         readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListRollbackNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
     conn->rollback();
     validateInsertRelsToSmallListFail(readAllKnowsProperty(conn.get(), "animal", "person"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListRollbackRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -383,7 +390,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToSmallListRollbackRecovery) {
     validateInsertRelsToSmallListFail(readAllKnowsProperty(conn.get(), "animal", "person"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertLargeNumRelsToSmallListCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", largeNumRelsToInsert);
     validateInsertRelsToSmallListSucceed(
@@ -394,7 +401,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertLargeNumRelsToSmallListCommitNormalExecutio
         readAllKnowsProperty(conn.get(), "animal", "person"), largeNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertLargeNumRelsToSmallListCommitRecovery) {
+TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", largeNumRelsToInsert);
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -427,7 +434,7 @@ static void validateInsertRelsToLargeListFail(vector<string> resultStr) {
     validateInsertRelsToLargeListSucceed(resultStr, 0);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
     validateInsertRelsToLargeListSucceed(
@@ -438,7 +445,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListCommitNormalExecution) {
         readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListCommitRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
     conn->commitButSkipCheckpointingForTestingRecovery();
@@ -447,14 +454,14 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListCommitRecovery) {
         readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListRollbackNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
     conn->rollback();
     validateInsertRelsToLargeListFail(readAllKnowsProperty(conn.get(), "person", "person"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListRollbackRecovery) {
+TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
     conn->rollbackButSkipCheckpointingForTestingRecovery();
@@ -462,7 +469,7 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListRollbackRecovery) {
     validateInsertRelsToLargeListFail(readAllKnowsProperty(conn.get(), "person", "person"));
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListWithNullCommitNormalExecution) {
+TEST_F(CreateRelTrxTest, InsertRelsToLargeListWithNullCommitNormalExecution) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert, true /* testNullAndLongString */);
     validateInsertRelsToLargeListSucceed(readAllKnowsProperty(conn.get(), "person", "person"),
@@ -473,11 +480,19 @@ TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListWithNullCommitNormalExecutio
         smallNumRelsToInsert, true /* testNullAndLongString */);
 }
 
-TEST_F(CreateDeleteRelTrxTest, InsertRelsToLargeListWithNullCommitRecovery) {
+TEST_F(CreateRelTrxTest, ViolateManyOneMultiplicityError) {
     conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert, true /* testNullAndLongString */);
-    conn->commitButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    validateInsertRelsToLargeListSucceed(readAllKnowsProperty(conn.get(), "person", "person"),
-        smallNumRelsToInsert, true /* testNullAndLongString */);
+    validateExceptionMessage(
+        "MATCH (p1:person), (p2:person) WHERE p1.ID = 10 AND p2.ID = 10 CREATE "
+        "(p1)-[:teaches]->(p2);",
+        "Runtime exception: RelTable 5 is a MANY_ONE table, but node(nodeOffset: 10, tableID: 1) "
+        "has more than one neighbour in the forward direction.");
+}
+
+TEST_F(CreateRelTrxTest, ViolateOneOneMultiplicityError) {
+    conn->beginWriteTransaction();
+    validateExceptionMessage("MATCH (a:animal), (p:person) WHERE a.ID = 10 AND p.ID = 10 CREATE "
+                             "(a)-[:hasOwner]->(p);",
+        "Runtime exception: RelTable 4 is a ONE_ONE table, but node(nodeOffset: 10, tableID: 0) "
+        "has more than one neighbour in the forward direction.");
 }
