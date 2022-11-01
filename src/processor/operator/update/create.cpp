@@ -24,13 +24,11 @@ bool CreateNode::getNextTuples() {
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
         auto nodeTable = createNodeInfos[i]->table;
-        auto nodeOffset =
-            nodeTable->getNodeStatisticsAndDeletedIDs()->addNode(nodeTable->getTableID());
+        auto nodeOffset = nodeTable->addNode();
         auto vector = outValueVectors[i];
         auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
         nodeIDValue.tableID = nodeTable->getTableID();
         nodeIDValue.offset = nodeOffset;
-        nodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(nodeOffset);
         for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
             relTable->initEmptyRelsForNewNode(nodeIDValue);
         }
