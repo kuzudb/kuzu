@@ -611,7 +611,7 @@ static void refreshSingleLine(struct linenoiseState* l) {
         highlightCallback(l->buf, buf, totalRenderWidth, l->pos);
         len = strlen(buf);
     } else {
-        // invalid UTF8: fallback
+        // Invalid UTF8: fallback.
         while ((promptLen + pos) >= l->cols) {
             l->buf++;
             len--;
