@@ -14,6 +14,14 @@ namespace function {
  * operations (e.g. AND, OR, XOR).
  */
 
+struct BinaryBooleanOperationWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+            void* leftValueVector, void* rightValueVector, void* resultValueVector) {
+        OP::operation(left, right, result, false, false);
+    }
+};
+
 struct BinaryOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
