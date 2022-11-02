@@ -18,6 +18,14 @@ public:
     static char* normalize(const char* s, size_t len);
 
     static bool isValid(const char* s, size_t len);
+
+    static size_t nextGraphemeCluster(const char* s, size_t len, size_t charPos);
+
+    static size_t previousGraphemeCluster(const char* s, size_t len, size_t charPos);
+
+    static int32_t utf8ToCodepoint(const char* c, int& size);
+
+    static size_t renderWidth(const char* s, size_t pos);
 };
 
 } // namespace utf8proc

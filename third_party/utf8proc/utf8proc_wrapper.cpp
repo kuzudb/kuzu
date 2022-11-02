@@ -99,5 +99,34 @@ bool Utf8Proc::isValid(const char* s, size_t len) {
     return Utf8Proc::analyze(s, len) != UnicodeType::INVALID;
 }
 
+size_t Utf8Proc::nextGraphemeCluster(const char* s, size_t len, size_t charPos) {
+    return utf8proc_next_grapheme(s, len, charPos);
+}
+
+size_t Utf8Proc::previousGraphemeCluster(const char* s, size_t len, size_t charPos) {
+    if (!Utf8Proc::isValid(s, len)) {
+        return charPos - 1;
+    }
+    size_t currentPos = 0;
+    while (true) {
+        size_t newPos = nextGraphemeCluster(s, len, currentPos);
+        if (newPos <= currentPos || newPos >= charPos) {
+            return currentPos;
+        }
+        currentPos = newPos;
+    }
+}
+
+int32_t Utf8Proc::utf8ToCodepoint(const char* c, int& size) {
+    return utf8proc_codepoint(c, size);
+}
+
+size_t Utf8Proc::renderWidth(const char* s, size_t pos) {
+    int size;
+    auto codepoint = graphflow::utf8proc::utf8proc_codepoint(s + pos, size);
+    auto properties = graphflow::utf8proc::utf8proc_get_property(codepoint);
+    return properties->charwidth;
+}
+
 } // namespace utf8proc
 } // namespace graphflow
