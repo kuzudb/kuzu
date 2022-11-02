@@ -12,7 +12,11 @@ namespace storage {
 NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
     node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets)
     : tableID{tableID} {
-    setNumTuples(geNumTuplesFromMaxNodeOffset(maxNodeOffset));
+    auto numTuples = geNumTuplesFromMaxNodeOffset(maxNodeOffset);
+    TableStatistics::setNumTuples(numTuples);
+    if (numTuples > 0) {
+        hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
+    }
     for (node_offset_t deletedNodeOffset : deletedNodeOffsets) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);

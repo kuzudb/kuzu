@@ -4,6 +4,7 @@ filegroup(
         "empty-db/**",
         "copy-csv-fault-tests/**",
         "copy-csv-empty-lists-test/**",
+        "copy-csv-dos-style-newline/**",
         "copy-csv-node-property-test/**",
         "copy-csv-special-char-test/**",
         "hash-index-test/**",
