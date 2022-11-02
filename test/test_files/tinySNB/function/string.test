@@ -193,6 +193,13 @@ abfsuni
 cswork
 deswork
 
+-NAME LowerUTF8String
+-QUERY MATCH (m:movies) RETURN lower(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LowerUnstructuredStr
 #-QUERY MATCH (o:organisation) RETURN lower(o.unstrStr)
@@ -207,6 +214,13 @@ deswork
 ABFSUNI
 CSWORK
 DESWORK
+
+-NAME UpperUTF8String
+-QUERY MATCH (m:movies) RETURN upper(m.name)
+---- 3
+SÓLÓ CÓN TU PÁREJÂ
+THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
+ROMA
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME UpperUnstructuredStr
