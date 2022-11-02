@@ -282,6 +282,13 @@ inUsFBA
 kroWsC
 kroWsED
 
+-NAME ReverseUTF8String
+-QUERY MATCH (m:movies) RETURN reverse(m.name)
+---- 3
+âjeráp ut nóc ólóS
+eivom 🚗🍞🌦️🌍🧘🏻‍♂️😃😂 ehT
+amoR
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME ReverseUnstructuredStr
 #-QUERY MATCH (o:organisation) RETURN reverse(o.unstrStr)
