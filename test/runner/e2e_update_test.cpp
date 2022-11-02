@@ -231,13 +231,6 @@ TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
 //    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 //}
 
-// Delete clause test
-
-TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
-    auto result = conn->query("MATCH (a:person) WHERE a.ID = 10 DELETE a;");
-    ASSERT_FALSE(result->isSuccess());
-}
-
 // Create clause test
 
 TEST_F(TinySnbUpdateTest, InsertNodeWithoutPrimaryKeyTest) {
@@ -389,5 +382,21 @@ TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest2) {
     auto result = conn->query(
         "MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, "
         "b.ID, e1._id, e2._id");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+// Delete clause test
+
+TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 DELETE a");
+    ASSERT_FALSE(result->isSuccess());
+}
+
+TEST_F(TinySnbUpdateTest, DeleteNodeAfterInsertTest) { // test reset of property columns
+    conn->query("CREATE (a:person {ID:100, fName:'Xiyang', age:26})");
+    conn->query("MATCH (a:person) WHERE a.ID = 100 DELETE a;");
+    conn->query("CREATE (a:person {ID:101})");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID > 10 RETURN a.ID, a.fName, a.age");
+    auto groundTruth = vector<string>{"101||"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

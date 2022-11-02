@@ -37,6 +37,7 @@ public:
 
     inline table_id_t getTableID() const { return tableID; }
 
+    node_offset_t addNode();
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
 private:

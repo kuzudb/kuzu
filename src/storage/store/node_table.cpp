@@ -31,6 +31,15 @@ void NodeTable::loadColumnsAndListsFromDisk(
             nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
+node_offset_t NodeTable::addNode() {
+    auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+    for (auto& column : propertyColumns) {
+        column->setNodeOffsetToNull(nodeOffset);
+    }
+    unstrPropertyLists->initEmptyPropertyLists(nodeOffset);
+    return nodeOffset;
+}
+
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
            primaryKeyVector->hasNoNullsGuarantee());
