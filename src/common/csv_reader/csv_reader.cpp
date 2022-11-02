@@ -69,6 +69,14 @@ bool CSVReader::hasNextLine() {
     // we will seek back to where we were and read it without using getLine (inside the if).
     auto curPos = ftell(fd);
     lineLen = getline(&line, &lineCapacity, fd);
+    // Text files created on DOS/Windows machines have different line endings than files created on
+    // Unix/Linux. DOS uses carriage return and line feed ("\r\n") as a line ending, which Unix uses
+    // just line feed ("\n"). If the current line uses dos-style newline, we should replace the
+    // '\r\n' with the linux-style newline '\n'.
+    if (lineLen > 1 && line[lineLen - 1] == '\n' && line[lineLen - 2] == '\r') {
+        line[lineLen - 2] = '\n';
+        lineLen -= 1;
+    }
     if (feof(fd)) {
         // According to POSIX getline manual (https://man7.org/linux/man-pages/man3/getline.3.html)
         // the behavior of getline when in reaches an end of file is underdefined in terms of how
