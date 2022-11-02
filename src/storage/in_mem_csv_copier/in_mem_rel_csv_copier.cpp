@@ -202,6 +202,18 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
             if (copier->directionTableAdjColumns[relDirection].contains(tableID)) {
+                if (!copier->directionTableAdjColumns[relDirection].at(tableID)->isNullAtNodeOffset(
+                        nodeOffset)) {
+                    auto relTableSchema = copier->relTableSchema;
+                    throw CopyCSVException(StringUtils::string_format(
+                        "RelTable %s is a %s table, but node(nodeOffset: %d, tableName: %s) has "
+                        "more than one neighbour in the %s direction.",
+                        relTableSchema->tableName.c_str(),
+                        getRelMultiplicityAsString(relTableSchema->relMultiplicity).c_str(),
+                        nodeOffset,
+                        copier->catalog.getReadOnlyVersion()->getNodeTableName(tableID).c_str(),
+                        getRelDirectionAsString(relDirection).c_str()));
+                }
                 copier->directionTableAdjColumns[relDirection].at(tableID)->setElement(
                     nodeOffset, (uint8_t*)&nodeIDs[!relDirection]);
             } else {

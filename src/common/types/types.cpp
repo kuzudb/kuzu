@@ -173,5 +173,9 @@ RelDirection operator!(RelDirection& direction) {
     return (FWD == direction) ? BWD : FWD;
 }
 
+string getRelDirectionAsString(RelDirection direction) {
+    return (FWD == direction) ? "forward" : "backward";
+}
+
 } // namespace common
 } // namespace graphflow

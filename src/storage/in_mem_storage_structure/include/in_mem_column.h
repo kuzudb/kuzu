@@ -27,6 +27,11 @@ public:
 
     inline DataType getDataType() { return dataType; }
 
+    inline bool isNullAtNodeOffset(node_offset_t nodeOffset) {
+        auto cursor = getPageElementCursorForOffset(nodeOffset);
+        return inMemFile->getPage(cursor.pageIdx)->isElemPosNull(cursor.elemPosInPage);
+    }
+
 protected:
     inline PageElementCursor getPageElementCursorForOffset(node_offset_t offset) const {
         return PageElementCursor{

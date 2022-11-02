@@ -338,15 +338,6 @@ TEST_F(TinySnbUpdateTest, InsertRepeatedNToNRelTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-// TODO(Ziyi): this should throw runtime error. We probably shouldn't allow inserting to N-1.
-// TEST_F(TinySnbUpdateTest, InsertRepeatedNTo1RelTest) {
-//    conn->query("MATCH (a:person)-[:studyAt]->(b:organisation) "
-//                "CREATE (a)-[:studyAt]->(b);");
-//    auto groundTruth = vector<string>{"6"};
-//    auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN COUNT(*)");
-//    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
-//}
-
 TEST_F(TinySnbUpdateTest, InsertMixedRelTest) {
     conn->query(
         "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "

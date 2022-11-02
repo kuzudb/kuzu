@@ -41,7 +41,7 @@ void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->getPage(cursor.pageIdx)
-        ->write(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
+        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
             nodeIDCompressionScheme);
 }
 

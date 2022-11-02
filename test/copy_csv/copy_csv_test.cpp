@@ -145,14 +145,15 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
     CSVReader csvReader(fName, config);
     int lineIdx = 0;
     uint64_t count = 0;
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     while (csvReader.hasNextLine()) {
         csvReader.hasNextToken();
         csvReader.skipToken();
         csvReader.hasNextToken();
         if ((count % 100) == 0) {
-            ASSERT_TRUE(column->isNull(count /* nodeOffset */));
+            ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
-            ASSERT_FALSE(column->isNull(count /* nodeOffset */));
+            ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
             EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
         }
         lineIdx++;

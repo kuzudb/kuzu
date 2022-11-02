@@ -21,6 +21,7 @@ struct SrcDstTableIDs {
 
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
+string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
 // A PropertyNameDataType consists of its name, id, and dataType. If the property is unstructured,
 // then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported by the system.

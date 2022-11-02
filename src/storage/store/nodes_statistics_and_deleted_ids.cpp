@@ -131,7 +131,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) 
         }
     }
     for (AdjColumn* adjColumn : adjListsAndColumns.second) {
-        if (!adjColumn->isNull(nodeOffset)) {
+        if (!adjColumn->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d  has a 1-1 edge for edge file: %s.",
@@ -184,11 +184,11 @@ void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
     // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
     // is during checkpointing, this function, which is called during scans, cannot be called.
-    // 2) In a read-only transaction, the same morsel cannot be scanned concurrently. 3) A write
-    // transaction cannot have two concurrent pipelines where one is writing and the other is
-    // reading nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a query
-    // where scans/reads happen in a write transaction cannot run concurrently with the pipeline
-    // that performs an add/delete node.
+    // 2) In a read-only transaction, the same morsel cannot be scanned concurrently. 3) A
+    // write transaction cannot have two concurrent pipelines where one is writing and the
+    // other is reading nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a
+    // query where scans/reads happen in a write transaction cannot run concurrently with the
+    // pipeline that performs an add/delete node.
     lock_t lck{mtx};
     (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
         getNodeStatisticsAndDeletedIDs(tableID)->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
