@@ -73,8 +73,10 @@ def merge_libs():
             additional_args = ["--target=arm64-apple-darwin"]
         else:
             additional_args = []
-    subprocess.run([cxx, *additional_args, "-shared", "-o", output_path, *input_files],
-                   cwd=base_dir, env=env_vars, check=True)
+    cxx_cmd = [cxx, *additional_args, "-shared", "-o", output_path]
+    logging.debug("Running command: %s (input objects truncated)..." % cxx_cmd)
+    cxx_cmd.extend(input_files)
+    subprocess.run(cxx_cmd, cwd=base_dir, env=env_vars, check=True)
     logging.info("Shared lib merged")
 
 
