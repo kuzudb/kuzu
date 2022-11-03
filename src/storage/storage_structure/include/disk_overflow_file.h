@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fcntl.h"
+#include <fcntl.h>
 
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
