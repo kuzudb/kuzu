@@ -23,7 +23,7 @@ public:
     }
 
     static void lpadOperation(
-        gf_string_t& src, int64_t count, gf_string_t& characterToPad, vector<char>& paddedResult) {
+        gf_string_t& src, int64_t count, gf_string_t& characterToPad, string& paddedResult) {
         auto srcPadInfo = PadOperation::padCountChars(count, (const char*)src.getData(), src.len);
         auto srcData = (const char*)src.getData();
         PadOperation::insertPadding(count - srcPadInfo.second, characterToPad, paddedResult);

@@ -16,9 +16,9 @@ struct PadOperation {
 public:
     static inline void operation(gf_string_t& src, int64_t count, gf_string_t& characterToPad,
         gf_string_t& result, ValueVector& resultValueVector,
-        void (*padOperation)(gf_string_t& src, int64_t count, gf_string_t& characterToPad,
-            vector<char>& paddedResult)) {
-        vector<char> paddedResult;
+        void (*padOperation)(
+            gf_string_t& src, int64_t count, gf_string_t& characterToPad, string& paddedResult)) {
+        string paddedResult;
         padOperation(src, count, characterToPad, paddedResult);
         result.len = paddedResult.size();
         if (gf_string_t::isShortString(result.len)) {
@@ -44,7 +44,7 @@ public:
         return {byteCount, charCount};
     }
 
-    static void insertPadding(uint32_t charCount, gf_string_t pad, vector<char>& result) {
+    static void insertPadding(uint32_t charCount, gf_string_t pad, string& result) {
         auto padData = pad.getData();
         auto padSize = pad.len;
         uint32_t padByteCount = 0;

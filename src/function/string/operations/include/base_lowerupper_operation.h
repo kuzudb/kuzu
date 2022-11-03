@@ -17,8 +17,7 @@ struct BaseLowerUpperOperation {
 
     static inline void operation(
         gf_string_t& input, gf_string_t& result, ValueVector& resultValueVector, bool isUpper) {
-        uint32_t resultLen =
-            BaseLowerUpperOperation::getResultLen((char*)input.getData(), input.len, isUpper);
+        uint32_t resultLen = getResultLen((char*)input.getData(), input.len, isUpper);
         result.len = resultLen;
         if (resultLen <= gf_string_t::SHORT_STR_LENGTH) {
             convertCase((char*)result.prefix, input.len, (char*)input.getData(), isUpper);
@@ -27,14 +26,14 @@ struct BaseLowerUpperOperation {
                 resultValueVector.getOverflowBuffer().allocateSpace(result.len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             convertCase(buffer, input.len, (char*)input.getData(), isUpper);
-            memcpy(result.prefix, buffer,
-                result.len < gf_string_t::PREFIX_LENGTH ? result.len : gf_string_t::PREFIX_LENGTH);
+            memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
         }
     }
 
     static uint32_t getResultLen(char* inputStr, uint32_t inputLen, bool isUpper) {
         uint32_t outputLength = 0;
         for (uint32_t i = 0; i < inputLen;) {
+            // For UTF-8 characters, changing case can increase / decrease total byte length.
             if (inputStr[i] & 0x80) {
                 int size = 0;
                 int codepoint = utf8proc_codepoint(inputStr + i, size);

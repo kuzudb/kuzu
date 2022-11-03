@@ -17,7 +17,7 @@ struct Lower {
 public:
     static inline void operation(
         gf_string_t& input, gf_string_t& result, ValueVector& resultValueVector) {
-        BaseLowerUpperOperation::operation(input, result, resultValueVector, /* isUpper */ false);
+        BaseLowerUpperOperation::operation(input, result, resultValueVector, false /* isUpper */);
     }
 };
 
