@@ -1,7 +1,7 @@
 #pragma once
 
 #include "expression_binder.h"
-#include "query_normalizer.h"
+#include "rewriter.h"
 
 #include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
 #include "src/binder/bound_ddl/include/bound_create_node_clause.h"
@@ -30,6 +30,7 @@ class logger;
 namespace graphflow {
 namespace binder {
 
+// Binder checks the semantic of input cypher statement against catalog.
 class Binder {
     friend class ExpressionBinder;
 
@@ -177,10 +178,6 @@ private:
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
 
     void validateNodeTableHasNoEdge(table_id_t tableID) const;
-
-    static vector<string> getFieldNamesForCSV(
-        const string& filePath, const CSVReaderConfig& csvReaderConfig);
-    static bool compareStringsCaseInsensitive(const string& str1, const string& str2);
 
 private:
     const Catalog& catalog;

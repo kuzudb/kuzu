@@ -50,9 +50,7 @@ public:
 
 private:
     vector<unique_ptr<BoundReadingClause>> readingClauses;
-
     vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
-
     unique_ptr<BoundProjectionBody> projectionBody;
     shared_ptr<Expression> projectionBodyPredicate;
 };

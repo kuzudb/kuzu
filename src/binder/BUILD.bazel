@@ -24,5 +24,6 @@ cc_library(
         "//src/parser/ddl",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
+        "//src/binder/rewriter_rules:rewriter_rules"
     ],
 )

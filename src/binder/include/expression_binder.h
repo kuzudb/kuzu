@@ -14,6 +14,7 @@ namespace binder {
 
 class Binder;
 
+// ExpressionBinder bind ParsedExpression against catalog and resolves data type bottom-up.
 class ExpressionBinder {
     friend class Binder;
 

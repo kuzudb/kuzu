@@ -1,0 +1,15 @@
+cc_library(
+    name = "rewriter_rules",
+    srcs = glob([
+       "*.cpp"
+    ]),
+    hdrs = glob([
+        "include/*.h"
+    ]),
+    visibility = [
+        "//src/binder:__pkg__",
+    ],
+    deps = [
+           "//src/binder/query",
+    ],
+)

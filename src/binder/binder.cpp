@@ -43,9 +43,9 @@ unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery
     }
     validateUnionColumnsOfTheSameType(boundSingleQueries);
     for (auto& boundSingleQuery : boundSingleQueries) {
-        auto normalizedSingleQuery = QueryNormalizer::normalizeQuery(*boundSingleQuery);
+        auto normalizedSingleQuery = Rewriter::rewrite(*boundSingleQuery);
         validateReadNotFollowUpdate(*normalizedSingleQuery);
-        boundRegularQuery->addSingleQuery(move(normalizedSingleQuery));
+        boundRegularQuery->addSingleQuery(std::move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);
     return boundRegularQuery;
@@ -813,12 +813,6 @@ void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
                 tableIDSchema.second->tableName.c_str()));
         }
     }
-}
-
-bool Binder::compareStringsCaseInsensitive(const string& str1, const string& str2) {
-    return str1.size() == str2.size() &&
-           std::equal(str1.begin(), str1.end(), str2.begin(),
-               [](auto a, auto b) { return std::tolower(a) == std::tolower(b); });
 }
 
 } // namespace binder
