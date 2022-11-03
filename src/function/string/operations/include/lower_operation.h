@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "base_lowerupper_operation.h"
+#include "base_lower_upper_operation.h"
 
 #include "src/common/types/include/gf_string.h"
 

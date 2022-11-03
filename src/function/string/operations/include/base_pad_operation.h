@@ -12,6 +12,8 @@ namespace graphflow {
 namespace function {
 namespace operation {
 
+// Padding logic has been taken from DuckDB:
+// https://github.com/duckdb/duckdb/blob/master/src/function/scalar/string/pad.cpp
 struct PadOperation {
 public:
     static inline void operation(gf_string_t& src, int64_t count, gf_string_t& characterToPad,

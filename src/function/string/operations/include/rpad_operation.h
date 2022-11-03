@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "pad_operation.h"
+#include "base_pad_operation.h"
 
 #include "src/common/types/include/gf_string.h"
 

@@ -34,6 +34,7 @@ struct BaseLowerUpperOperation {
         uint32_t outputLength = 0;
         for (uint32_t i = 0; i < inputLen;) {
             // For UTF-8 characters, changing case can increase / decrease total byte length.
+            // Eg.: 'ß' lower case -> 'SS' upper case [more bytes + more chars]
             if (inputStr[i] & 0x80) {
                 int size = 0;
                 int codepoint = utf8proc_codepoint(inputStr + i, size);
