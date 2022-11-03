@@ -2,20 +2,18 @@
 
 void PyDatabase::initialize(py::handle& m) {
     py::class_<PyDatabase>(m, "database")
-        .def(py::init<const string&, uint64_t, uint64_t>(), py::arg("database_path"),
-            py::arg("default_page_buffer_pool_size") = 0,
-            py::arg("large_page_buffer_pool_size") = 0)
+        .def(py::init<const string&, uint64_t>(), py::arg("database_path"),
+            py::arg("buffer_pool_size") = 0)
         .def("resize_buffer_manager", &PyDatabase::resizeBufferManager, py::arg("new_size"));
 }
 
-PyDatabase::PyDatabase(const string& databasePath, uint64_t defaultPageBufferPoolSize,
-    uint64_t largePageBufferPoolSize) {
+PyDatabase::PyDatabase(const string& databasePath, uint64_t bufferPoolSize) {
     auto systemConfig = SystemConfig();
-    if (defaultPageBufferPoolSize > 0) {
-        systemConfig.defaultPageBufferPoolSize = defaultPageBufferPoolSize;
-    }
-    if (largePageBufferPoolSize > 0) {
-        systemConfig.largePageBufferPoolSize = largePageBufferPoolSize;
+    if (bufferPoolSize > 0) {
+        systemConfig.defaultPageBufferPoolSize =
+            bufferPoolSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO;
+        systemConfig.largePageBufferPoolSize =
+            bufferPoolSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
     }
     database = make_unique<Database>(DatabaseConfig(databasePath), systemConfig);
 }

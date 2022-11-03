@@ -12,7 +12,7 @@ const string BENCHMARK_SUFFIX = ".benchmark";
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
     : config{move(config)} {
     database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode),
-        SystemConfig(this->config->defaultBufferPoolSize, this->config->largeBufferPoolSize));
+        SystemConfig(this->config->bufferPoolSize));
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {

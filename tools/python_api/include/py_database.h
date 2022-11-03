@@ -12,8 +12,7 @@ class PyDatabase {
 public:
     static void initialize(py::handle& m);
 
-    explicit PyDatabase(const string& databasePath, uint64_t defaultPageBufferPoolSize,
-        uint64_t largePageBufferPoolSize);
+    explicit PyDatabase(const string& databasePath, uint64_t bufferPoolSize);
 
     void resizeBufferManager(uint64_t newSize);
 

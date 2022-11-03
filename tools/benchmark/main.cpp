@@ -35,10 +35,8 @@ int main(int argc, char** argv) {
             config->isInMemoryMode = true;
         } else if (arg.starts_with("--profile")) {
             config->enableProfile = true;
-        } else if (arg.starts_with("--default-bm")) {
-            config->defaultBufferPoolSize = (uint64_t)stoull(getArgumentValue(arg)) << 20;
-        } else if (arg.starts_with("--large-bm")) {
-            config->largeBufferPoolSize = (uint64_t)stoull(getArgumentValue(arg)) << 20;
+        } else if (arg.starts_with("--bm-size")) {
+            config->bufferPoolSize = (uint64_t)stoull(getArgumentValue(arg)) << 20;
         } else {
             printf("Unrecognized option %s", arg.c_str());
             exit(1);

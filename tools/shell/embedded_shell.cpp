@@ -183,7 +183,7 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
-            setBufferMangerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
+            setBufferManagerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
             printf("Buffer Manager Debug Info: \n %s \n",
                 database->getBufferManager()->debugInfo()->dump(4).c_str());
@@ -227,7 +227,7 @@ void EmbeddedShell::setNumThreads(const string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
-void EmbeddedShell::setBufferMangerSize(const string& bufferManagerSizeString) {
+void EmbeddedShell::setBufferManagerSize(const string& bufferManagerSizeString) {
     auto newPageSize = 0;
     try {
         newPageSize = stoull(bufferManagerSizeString);
