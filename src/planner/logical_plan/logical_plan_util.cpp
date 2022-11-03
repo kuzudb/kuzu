@@ -3,19 +3,19 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 
 namespace graphflow {
 namespace planner {
 
 shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
     auto pipelineSource = getCurrentPipelineSourceOperator(plan);
-    if (pipelineSource->getLogicalOperatorType() != LOGICAL_SCAN_NODE_ID) {
+    if (pipelineSource->getLogicalOperatorType() != LOGICAL_SCAN_NODE) {
         // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
         // and we loose any sequential guarantees.
         return nullptr;
     }
-    return ((LogicalScanNodeID*)pipelineSource)->getNode();
+    return ((LogicalScanNode*)pipelineSource)->getNode();
 }
 
 vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
@@ -65,7 +65,7 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
         encodeExtend(logicalOperator, encodeString);
         encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
     } break;
-    case LogicalOperatorType::LOGICAL_SCAN_NODE_ID: {
+    case LogicalOperatorType::LOGICAL_SCAN_NODE: {
         encodeScanNodeID(logicalOperator, encodeString);
     } break;
     default:
@@ -106,8 +106,8 @@ void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, string& enc
 }
 
 void LogicalPlanUtil::encodeScanNodeID(LogicalOperator* logicalOperator, string& encodeString) {
-    auto logicalScanNodeID = (LogicalScanNodeID*)logicalOperator;
-    encodeString += "S(" + logicalScanNodeID->getNode()->getRawName() + ")";
+    auto logicalScanNode = (LogicalScanNode*)logicalOperator;
+    encodeString += "S(" + logicalScanNode->getNode()->getRawName() + ")";
 }
 
 } // namespace planner

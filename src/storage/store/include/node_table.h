@@ -52,6 +52,7 @@ private:
     // All unstructured properties of a node are stored inside one UnstructuredPropertyLists.
     unique_ptr<UnstructuredPropertyLists> unstrPropertyLists;
     // The index for ID property.
+    // TODO(Guodong): rename this to primary key index
     unique_ptr<HashIndex> IDIndex;
     table_id_t tableID;
     bool isInMemory;

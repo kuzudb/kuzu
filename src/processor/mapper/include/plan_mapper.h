@@ -30,7 +30,9 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
         const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext);
 
-    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalUnwindToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);

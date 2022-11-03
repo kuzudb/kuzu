@@ -24,8 +24,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getLogicalOperatorType();
     switch (operatorType) {
-    case LOGICAL_SCAN_NODE_ID: {
-        physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), mapperContext);
+    case LOGICAL_SCAN_NODE: {
+        physicalOperator = mapLogicalScanNodeToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_INDEX_SCAN_NODE: {
+        physicalOperator = mapLogicalIndexScanNodeToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_UNWIND: {
         physicalOperator = mapLogicalUnwindToPhysical(logicalOperator.get(), mapperContext);

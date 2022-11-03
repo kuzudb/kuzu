@@ -60,15 +60,17 @@ public:
     }
 };
 
-TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionCommitNormalExecution) {
-    auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
-    conn->beginWriteTransaction();
-    deleteNodes(nodeIDsToDelete);
-    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
-    validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* isExist*/);
-    conn->commit();
-    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
-}
+// TODO(Guogong): The following test use index scan after node insertion.
+//  Uncomment once create support hash index.
+// TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionCommitNormalExecution) {
+//    auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};
+//    conn->beginWriteTransaction();
+//    deleteNodes(nodeIDsToDelete);
+//    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
+//    validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* isExist*/);
+//    conn->commit();
+//    validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* isExist*/);
+//}
 
 TEST_F(CreateDeleteNodeTrxTest, ScanAfterDeletionRollbackNormalExecution) {
     auto nodeIDsToDelete = vector<uint64_t>{10, 1400, 6000};

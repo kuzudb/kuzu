@@ -40,12 +40,12 @@ bool Unwind::getNextTuples() {
             return false;
         }
         expressionEvaluator->evaluate();
-        auto currIndex = expressionEvaluator->resultVector->state->currIdx;
-        if (expressionEvaluator->resultVector->isNull(currIndex)) {
+        auto pos = expressionEvaluator->resultVector->state->getPositionOfCurrIdx();
+        if (expressionEvaluator->resultVector->isNull(pos)) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        inputList = ((gf_list_t*)(expressionEvaluator->resultVector->values))[currIndex];
+        inputList = ((gf_list_t*)(expressionEvaluator->resultVector->values))[pos];
         startIndex = 0;
         auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size);
         copyTuplesToOutVector(0, totalElementsCopy);

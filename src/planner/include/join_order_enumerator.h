@@ -50,18 +50,15 @@ private:
 
     void planOuterExpressionsScan(expression_vector& expressions);
 
-    inline void planTableScan() {
-        planNodeScan();
-        planRelScan();
-    }
+    void planTableScan();
 
-    void planNodeScan();
+    void planNodeScan(uint32_t nodePos);
     // Filter push down for node table.
     void planFiltersForNode(expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
     // Property push down for node table.
     void planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan);
 
-    void planRelScan();
+    void planRelScan(uint32_t relPos);
     inline void planRelExtendFiltersAndProperties(shared_ptr<RelExpression>& rel,
         RelDirection direction, expression_vector& predicates, LogicalPlan& plan) {
         appendExtend(rel, direction, plan);
@@ -94,7 +91,9 @@ private:
     void appendFTableScan(
         LogicalPlan* outerPlan, expression_vector& expressionsToScan, LogicalPlan& plan);
 
-    void appendScanNodeID(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
+    void appendScanNode(shared_ptr<NodeExpression>& node, LogicalPlan& plan);
+    void appendIndexScanNode(shared_ptr<NodeExpression>& node,
+        shared_ptr<Expression> indexExpression, LogicalPlan& plan);
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
 

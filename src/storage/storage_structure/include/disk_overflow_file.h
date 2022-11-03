@@ -66,6 +66,12 @@ public:
         readStringToVector(transaction, gfString, vector.getOverflowBuffer());
     }
     void scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector);
+    inline void scanSingleListOverflow(
+        Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
+        assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
+        auto& gfList = ((gf_list_t*)vector.values)[vectorPos];
+        readListToVector(gfList, vector.dataType, vector.getOverflowBuffer());
+    }
 
     void readListsToVector(ValueVector& valueVector);
 

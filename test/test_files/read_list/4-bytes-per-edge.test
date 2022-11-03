@@ -28,3 +28,18 @@
 -ENUMERATE
 ---- 1
 10001
+
+-NAME IndexScanTest1
+-QUERY MATCH (a:person) WHERE 381 = a.ID RETURN COUNT(*)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+1
+
+-NAME IndexScanTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE 5000 = b.ID RETURN COUNT(*)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+5001
+
