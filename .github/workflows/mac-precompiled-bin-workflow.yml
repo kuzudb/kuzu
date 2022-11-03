@@ -23,19 +23,19 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch arm64"
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-arm64
-          path: |
-            ./graphflowdb
-            ./include
-            ./libgraphflow.so
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-arm64
+      #     path: |
+      #       ./graphflowdb
+      #       ./include
+      #       ./libgraphflow.so
 
-      - name: build-x86_64
-        run: python3 pre_compile.py
-        env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
-          ARCHFLAGS: "-arch x86_64"
+      # - name: build-x86_64
+      #   run: python3 pre_compile.py
+      #   env:
+      #     MACOSX_DEPLOYMENT_TARGET: 10.15
+      #     ARCHFLAGS: "-arch x86_64"
 
       - uses: actions/upload-artifact@v3
         with:
