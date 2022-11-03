@@ -14,7 +14,7 @@ namespace operation {
 
 // Padding logic has been taken from DuckDB:
 // https://github.com/duckdb/duckdb/blob/master/src/function/scalar/string/pad.cpp
-struct PadOperation {
+struct BasePadOperation {
 public:
     static inline void operation(gf_string_t& src, int64_t count, gf_string_t& characterToPad,
         gf_string_t& result, ValueVector& resultValueVector,
