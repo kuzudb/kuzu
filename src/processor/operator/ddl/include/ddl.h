@@ -2,7 +2,6 @@
 
 #include "src/catalog/include/catalog.h"
 #include "src/processor/operator/include/physical_operator.h"
-#include "src/processor/operator/include/source_operator.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -11,24 +10,20 @@ using namespace graphflow::catalog;
 namespace graphflow {
 namespace processor {
 
-class DDL : public PhysicalOperator, public SourceOperator {
+class DDL : public PhysicalOperator {
 
 public:
-    DDL(Catalog* catalog, string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
-        uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{nullptr}, catalog{catalog},
-          tableName{move(tableName)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
+    DDL(Catalog* catalog, uint32_t id, const string& paramsString)
+        : PhysicalOperator{id, paramsString}, catalog{catalog} {}
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override { return nullptr; };
+    virtual string execute() = 0;
 
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
-    }
+    bool getNextTuples() override { assert(false); }
+
+    virtual ~DDL() = default;
 
 protected:
     Catalog* catalog;
-    string tableName;
-    vector<PropertyNameDataType> propertyNameDataTypes;
 };
 
 } // namespace processor

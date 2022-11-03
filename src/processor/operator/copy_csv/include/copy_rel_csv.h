@@ -16,7 +16,7 @@ public:
           nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, relsStatistics{
                                                                           relsStatistics} {}
 
-    void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) override;
+    string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
 
     PhysicalOperatorType getOperatorType() override { return COPY_REL_CSV; }
 

@@ -88,7 +88,12 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         auto logicalPlan = Planner::getBestPlan(*database->catalog,
             database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
             database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundStatement);
-        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+        if (logicalPlan->isDDLOrCopyCSV()) {
+            preparedStatement->createResultHeader(
+                expression_vector{make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg")});
+        } else {
+            preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+        }
         // mapping
         auto mapper = PlanMapper(
             *database->storageManager, database->getMemoryManager(), database->catalog.get());

@@ -3,11 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-bool CreateNodeTable::getNextTuples() {
+string CreateNodeTable::execute() {
     auto newTableID = catalog->addNodeTableSchema(tableName, primaryKeyIdx, propertyNameDataTypes);
     nodesStatisticsAndDeletedIDs->addNodeStatisticsAndDeletedIDs(
         catalog->getWriteVersion()->getNodeTableSchema(newTableID));
-    return false;
+    return StringUtils::string_format("NodeTable: %s has been created.", tableName.c_str());
 }
 
 } // namespace processor

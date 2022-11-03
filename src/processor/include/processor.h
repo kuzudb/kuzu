@@ -23,6 +23,9 @@ private:
     void decomposePlanIntoTasks(PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask,
         ExecutionContext* context);
 
+    static shared_ptr<FactorizedTable> getFactorizedTableForOutputMsg(
+        string& outputMsg, MemoryManager* memoryManager);
+
 private:
     unique_ptr<TaskScheduler> taskScheduler;
 };

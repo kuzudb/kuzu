@@ -90,8 +90,10 @@ public:
         DBTest::SetUp();
         catalog = conn->database->getCatalog();
         profiler = make_unique<Profiler>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         executionContext = make_unique<ExecutionContext>(
-            1, profiler.get(), nullptr /* memoryManager */, nullptr /* bufferManager */);
+            1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
     }
 
     void initWithoutLoadingGraph() {
@@ -220,6 +222,8 @@ public:
     Catalog* catalog;
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<Profiler> profiler;
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
 };
 } // namespace transaction
 } // namespace graphflow
@@ -373,4 +377,19 @@ TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, DDLOutputMsg) {
+    auto result = conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID));");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"NodeTable: university has been created."});
+    result = conn->query("CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY);");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"RelTable: nearTo has been created."});
+    result = conn->query("DROP TABLE nearTo;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"RelTable: nearTo has been dropped."});
+    result = conn->query("DROP TABLE university;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"NodeTable: university has been dropped."});
 }

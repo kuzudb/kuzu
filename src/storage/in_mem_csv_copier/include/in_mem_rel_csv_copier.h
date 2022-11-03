@@ -24,7 +24,7 @@ public:
 
     ~InMemRelCSVCopier() override = default;
 
-    void copy();
+    uint64_t copy();
 
     void saveToFile() override;
 

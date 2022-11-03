@@ -46,6 +46,12 @@ public:
 
     inline string toString() const { return lastOperator->toString(); }
 
+    inline bool isDDLOrCopyCSV() const {
+        return lastOperator->descendantsContainType(
+            unordered_set<LogicalOperatorType>{LOGICAL_COPY_CSV, LOGICAL_CREATE_NODE_TABLE,
+                LOGICAL_CREATE_REL_TABLE, LOGICAL_DROP_TABLE});
+    }
+
     unique_ptr<LogicalPlan> shallowCopy() const;
 
     unique_ptr<LogicalPlan> deepCopy() const;

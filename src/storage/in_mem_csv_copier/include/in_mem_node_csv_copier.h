@@ -17,7 +17,7 @@ public:
 
     ~InMemNodeCSVCopier() override = default;
 
-    void copy();
+    uint64_t copy();
     void saveToFile() override;
 
 private:

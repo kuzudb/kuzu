@@ -14,6 +14,11 @@ public:
         EmptyDBTest::SetUp();
         createDBAndConn();
         catalog = conn->database->getCatalog();
+        profiler = make_unique<Profiler>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+        executionContext = make_unique<ExecutionContext>(
+            1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
     }
 
     void initWithoutLoadingGraph() {
@@ -68,11 +73,11 @@ public:
     }
 
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        conn->query(createPersonTableCmd);
-        auto preparedStatement = conn->prepareNoLock(copyPersonTableCmd);
+        conn->query(createPersonTableCMD);
+        auto preparedStatement = conn->prepareNoLock(copyPersonTableCMD);
         conn->beginTransactionNoLock(WRITE);
         database->queryProcessor->execute(
-            preparedStatement->physicalPlan.get(), nullptr /* executionContext */);
+            preparedStatement->physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -146,17 +151,13 @@ public:
     }
 
     void copyRelCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        conn->query(createPersonTableCmd);
-        conn->query(copyPersonTableCmd);
-        conn->query("create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
-                    "validInterval INTERVAL, comments STRING[], MANY_MANY)");
-        auto preparedStatement =
-            conn->prepareNoLock("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"");
+        conn->query(createPersonTableCMD);
+        conn->query(copyPersonTableCMD);
+        conn->query(createKnowsTableCMD);
+        auto preparedStatement = conn->prepareNoLock(copyKnowsTableCMD);
         conn->beginTransactionNoLock(WRITE);
         auto profiler = make_unique<Profiler>();
         auto bufferManager = make_unique<BufferManager>();
-        auto executionContext = make_unique<ExecutionContext>(
-            1, profiler.get(), nullptr /* memoryManager */, bufferManager.get());
         database->queryProcessor->execute(
             preparedStatement->physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
@@ -173,13 +174,21 @@ public:
     }
 
     Catalog* catalog;
-    string createPersonTableCmd =
-        "create node table person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
+    string createPersonTableCMD =
+        "CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
         "isWorker BOOLEAN, "
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY KEY (ID))";
-    string copyPersonTableCmd = "COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)";
+    string copyPersonTableCMD = "COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)";
+    string createKnowsTableCMD =
+        "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+        "validInterval INTERVAL, comments STRING[], MANY_MANY)";
+    string copyKnowsTableCMD = "COPY knows FROM \"dataset/tinysnb/eKnows.csv\"";
+    unique_ptr<Profiler> profiler;
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
+    unique_ptr<ExecutionContext> executionContext;
 };
 } // namespace transaction
 } // namespace graphflow
@@ -200,11 +209,22 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCSVCommitRecovery) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
+TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVOutputMsg) {
+    conn->query(createPersonTableCMD);
+    conn->query(createKnowsTableCMD);
+    auto result = conn->query(copyPersonTableCMD);
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"8 number of nodes has been copied to nodeTable: person."});
+    result = conn->query(copyKnowsTableCMD);
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"14 number of rels has been copied to relTable: knows."});
+}
+
 TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionErrorTest) {
-    auto re = conn->query(createPersonTableCmd);
+    auto re = conn->query(createPersonTableCMD);
     ASSERT_TRUE(re->isSuccess());
     conn->beginWriteTransaction();
-    auto result = conn->query(copyPersonTableCmd);
+    auto result = conn->query(copyPersonTableCMD);
     ASSERT_EQ(result->getErrorMessage(),
         "DDL and CopyCSV statements are automatically wrapped in a transaction and committed. "
         "As such, they cannot be part of an active transaction, please commit or rollback your "
