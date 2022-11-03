@@ -22,14 +22,12 @@ public:
             src, count, characterToPad, result, resultValueVector, lpadOperation);
     }
 
-    static void lpadOperation(gf_string_t& result, gf_string_t& src, gf_string_t& characterToPad) {
-        auto offset = 0u;
-        if (result.len > src.len) {
-            for (; offset < result.len - src.len; offset++) {
-                memcpy((uint8_t*)result.getData() + offset, characterToPad.getData(), 1);
-            }
-        }
-        memcpy((uint8_t*)result.getData() + offset, src.getData(), src.len);
+    static void lpadOperation(
+        gf_string_t& src, int64_t count, gf_string_t& characterToPad, vector<char>& paddedResult) {
+        auto srcPadInfo = PadOperation::padCountChars(count, (const char*)src.getData(), src.len);
+        auto srcData = (const char*)src.getData();
+        PadOperation::insertPadding(count - srcPadInfo.second, characterToPad, paddedResult);
+        paddedResult.insert(paddedResult.end(), srcData, srcData + srcPadInfo.first);
     }
 };
 

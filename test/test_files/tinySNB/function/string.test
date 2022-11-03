@@ -346,6 +346,13 @@ Faroo
 <Greg
 Huber
 
+-NAME LpadUTF8String
+-QUERY MATCH (m:movies) RETURN lpad(m.name, 25, "âó")
+---- 3
+âóâóâóâSóló cón tu párejâ
+âóâThe 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+âóâóâóâóâóâóâóâóâóâóâRoma
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LpadStructuredStrAndStructuredInt
 #-QUERY MATCH (p:person) RETURN lpad(p.fName, p.ID, "<")
@@ -382,6 +389,13 @@ Elizabeth>>>>>>
 Farooq>>>>>>>>>
 Greg>>>>>>>>>>>
 Hubert Blaine W
+
+-NAME RpadUTF8String
+-QUERY MATCH (m:movies) RETURN rpad(m.name, 45, "âó😂😃🍞🚗")
+---- 3
+Sóló cón tu párejââó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movieâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
+Romaâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
 
 -NAME RpadStructuredStrAndStructuredInt
 -QUERY MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
