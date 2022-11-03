@@ -1,5 +1,7 @@
 #include "include/expression_binder.h"
 
+#include "include/expression_rewriter.h"
+
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/expression/include/function_expression.h"
 #include "src/binder/expression/include/literal_expression.h"
@@ -53,7 +55,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
     }
-    return expression;
+    return ExpressionRewriter::rewrite(expression);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(

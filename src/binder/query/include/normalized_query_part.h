@@ -22,6 +22,9 @@ public:
     inline BoundReadingClause* getReadingClause(uint32_t idx) const {
         return readingClauses[idx].get();
     }
+    inline BoundReadingClause* getLastReadingClause() const {
+        return getReadingClause(readingClauses.size() - 1);
+    }
 
     inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
         updatingClauses.push_back(move(boundUpdatingClause));
@@ -47,6 +50,8 @@ public:
     }
 
     expression_vector getPropertiesToRead() const;
+
+    unique_ptr<NormalizedQueryPart> copy();
 
 private:
     vector<unique_ptr<BoundReadingClause>> readingClauses;

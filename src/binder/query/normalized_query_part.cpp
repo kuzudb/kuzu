@@ -29,5 +29,22 @@ expression_vector NormalizedQueryPart::getPropertiesToRead() const {
     return result;
 }
 
+unique_ptr<NormalizedQueryPart> NormalizedQueryPart::copy() {
+    auto result = make_unique<NormalizedQueryPart>();
+    for (auto& readingClause : readingClauses) {
+        result->addReadingClause(readingClause->copy());
+    }
+    for (auto& updatingClause : updatingClauses) {
+        result->addUpdatingClause(updatingClause->copy());
+    }
+    if (hasProjectionBody()) {
+        result->setProjectionBody(projectionBody->copy());
+        if (hasProjectionBodyPredicate()) {
+            result->setProjectionBodyPredicate(projectionBodyPredicate);
+        }
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace graphflow

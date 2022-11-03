@@ -150,6 +150,8 @@ public:
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
+    void merge(const QueryGraphCollection& other);
+
     expression_vector getNodeIDExpressions() const;
 
     unique_ptr<QueryGraphCollection> copy() const;

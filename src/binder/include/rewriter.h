@@ -11,9 +11,6 @@ namespace binder {
 class Rewriter {
 public:
     static unique_ptr<NormalizedSingleQuery> rewrite(const BoundSingleQuery& singleQuery);
-
-private:
-
 };
 
 } // namespace binder

@@ -21,3 +21,8 @@
 -ENUMERATE
 ---- 1
 12
+
+-NAME QueryPartRewriteTest
+-QUERY MATCH (a:person) WHERE a.gender = 1 MATCH (b:person) WHERE b.gender = 2 MATCH (b:person)-[:knows]->(c:person) WHERE c.fName='Alice' RETURN COUNT(*)
+---- 1
+6

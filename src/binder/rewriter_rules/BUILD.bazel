@@ -10,6 +10,8 @@ cc_library(
         "//src/binder:__pkg__",
     ],
     deps = [
-           "//src/binder/query",
+        "//src/binder/query",
+        "//src/function/boolean:vector_boolean_operations",
+        "//src/binder/expression:expression_implementations",
     ],
 )

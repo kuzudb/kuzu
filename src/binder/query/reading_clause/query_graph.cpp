@@ -209,6 +209,12 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
     }
 }
 
+void QueryGraphCollection::merge(const QueryGraphCollection& other) {
+    for (auto& otherQueryGraph : other.queryGraphs) {
+        addAndMergeQueryGraphIfConnected(otherQueryGraph->copy());
+    }
+}
+
 expression_vector QueryGraphCollection::getNodeIDExpressions() const {
     expression_vector result;
     for (auto& queryGraph : queryGraphs) {
