@@ -1,0 +1,46 @@
+name: Build-Mac-Precompiled-Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      packageVersion:
+        description: "Version of output package"
+        required: true
+        default: "0.0.1"
+
+env:
+  PACKAGE_VERSION: ${{ github.event.inputs.packageVersion }}
+
+jobs:
+  build-precompiled-bin:
+    runs-on: self-hosted-mac
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: build-arm64
+        run: python3 pre_compile.py
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          ARCHFLAGS: "-arch arm64"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-arm64
+          path: |
+            ./graphflowdb
+            ./include
+            ./libgraphflow.so
+
+      - name: build-x86_64
+        run: python3 pre_compile.py
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+          ARCHFLAGS: "-arch x86_64"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-x86_64
+          path: |
+            ./graphflowdb
+            ./include
+            ./libgraphflow.so
