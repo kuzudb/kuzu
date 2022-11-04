@@ -35,6 +35,7 @@ def build():
         if "arm64" in archflags and platform.machine() == "x86_64":
             args.append("--macos_cpus=arm64")
             args.append("--cpu=darwin_arm64")
+            args.append('--cxxopt=--target=arm64-apple-darwin')
 
         # It seems bazel does not automatically pick up
         # MACOSX_DEPLOYMENT_TARGETfrom the environment, so we need to pass
@@ -66,9 +67,16 @@ def merge_libs():
         for file in files:
             if file.endswith(".o"):
                 input_files.append(os.path.join(root, file))
-
-    subprocess.run([cxx, "-shared", "-o", output_path, *input_files],
-                   cwd=base_dir, env=env_vars, check=True)
+    if sys.platform == 'darwin':
+        archflags = os.getenv("ARCHFLAGS", "")
+        if "arm64" in archflags and platform.machine() == "x86_64":
+            additional_args = ["--target=arm64-apple-darwin"]
+        else:
+            additional_args = []
+    cxx_cmd = [cxx, *additional_args, "-shared", "-o", output_path]
+    logging.debug("Running command: %s (input objects truncated)..." % cxx_cmd)
+    cxx_cmd.extend(input_files)
+    subprocess.run(cxx_cmd, cwd=base_dir, env=env_vars, check=True)
     logging.info("Shared lib merged")
 
 

@@ -16,9 +16,10 @@ jobs:
     runs-on: self-hosted-mac
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: build-arm64
         run: python3 pre_compile.py
+        working-directory: ./scripts/pre-compiled-bins/
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch arm64"
@@ -27,12 +28,13 @@ jobs:
         with:
           name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-arm64
           path: |
-            ./graphflowdb
-            ./include
-            ./libgraphflow.so
+            ./scripts/pre-compiled-bins/graphflowdb
+            ./scripts/pre-compiled-bins/include
+            ./scripts/pre-compiled-bins/libgraphflow.so
 
       - name: build-x86_64
         run: python3 pre_compile.py
+        working-directory: ./scripts/pre-compiled-bins/
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
           ARCHFLAGS: "-arch x86_64"
@@ -41,6 +43,9 @@ jobs:
         with:
           name: graphflowdb-${{ github.event.inputs.packageVersion }}-osx-x86_64
           path: |
-            ./graphflowdb
-            ./include
-            ./libgraphflow.so
+            ./scripts/pre-compiled-bins/graphflowdb
+            ./scripts/pre-compiled-bins/include
+            ./scripts/pre-compiled-bins/libgraphflow.so
+
+      - name: cleanup
+        run: rm -rf ./scripts/pre-compiled-bins/graphflowdb ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libgraphflow.so
