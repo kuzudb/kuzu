@@ -1,5 +1,7 @@
 #include "src/binder/include/binder.h"
 
+#include <unordered_set>
+
 #include "spdlog/spdlog.h"
 
 #include "src/binder/expression/include/literal_expression.h"
@@ -57,8 +59,8 @@ unique_ptr<BoundCreateNodeClause> Binder::bindCreateNodeClause(
     if (catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
-    auto boundPropertyNameDataTypes =
-        bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
+    auto boundPropertyNameDataTypes = bindPropertyNameDataTypes(
+        createNodeClause.getPropertyNameDataTypes(), catalog.getReservedPropertyNames());
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
     return make_unique<BoundCreateNodeClause>(
@@ -71,8 +73,8 @@ unique_ptr<BoundCreateRelClause> Binder::bindCreateRelClause(
     if (catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
-    auto propertyNameDataTypes =
-        bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
+    auto propertyNameDataTypes = bindPropertyNameDataTypes(
+        createRelClause.getPropertyNameDataTypes(), catalog.getReservedPropertyNames());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
     auto srcDstTableIDs = bindRelConnections(createRelClause.getRelConnection());
     return make_unique<BoundCreateRelClause>(
@@ -640,12 +642,24 @@ uint32_t Binder::bindPrimaryKey(
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
-    vector<pair<string, string>> propertyNameDataTypes) {
+    vector<pair<string, string>> propertyNameDataTypes,
+    unordered_set<string> reservedPropertyName) {
     vector<PropertyNameDataType> boundPropertyNameDataTypes;
+    unordered_set<string> boundPropertyNames;
     for (auto& propertyNameDataType : propertyNameDataTypes) {
+        if (boundPropertyNames.contains(propertyNameDataType.first)) {
+            throw BinderException(StringUtils::string_format(
+                "Duplicated column name: %s, column name must be unique.",
+                propertyNameDataType.first.c_str()));
+        } else if (reservedPropertyName.contains(propertyNameDataType.first)) {
+            throw BinderException(
+                StringUtils::string_format("PropertyName: %s is an internal reserved propertyName.",
+                    propertyNameDataType.first.c_str()));
+        }
         StringUtils::toUpper(propertyNameDataType.second);
         boundPropertyNameDataTypes.emplace_back(
             propertyNameDataType.first, Types::dataTypeFromString(propertyNameDataType.second));
+        boundPropertyNames.emplace(propertyNameDataType.first);
     }
     return boundPropertyNameDataTypes;
 }

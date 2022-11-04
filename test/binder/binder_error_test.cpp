@@ -306,6 +306,14 @@ TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
+TEST_F(BinderErrorTest, CreateNodeTableDuplicatedColumnName) {
+    string expectedException =
+        "Binder exception: Duplicated column name: eyesight, column name must be unique.";
+    auto input =
+        "CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id));";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
 TEST_F(BinderErrorTest, CopyCSVInvalidParsingOption) {
     string expectedException = "Binder exception: Unrecognized parsing csv option: pk.";
     auto input = R"(COPY person FROM "person_0_0.csv" (pk=","))";
@@ -347,6 +355,20 @@ TEST_F(BinderErrorTest, CreateRelTableInvalidRelMultiplicity) {
 TEST_F(BinderErrorTest, CreateRelTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: SMALLINT";
     auto input = "CREATE REL TABLE knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelTableDuplicatedColumnName) {
+    string expectedException =
+        "Binder exception: Duplicated column name: date, column name must be unique.";
+    auto input = "CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelTableReservedColumnName) {
+    string expectedException =
+        "Binder exception: PropertyName: _id is an internal reserved propertyName.";
+    auto input = "CREATE REL TABLE teaches (FROM person TO person, _id INT64);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
