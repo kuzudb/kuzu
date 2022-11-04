@@ -2,7 +2,8 @@
 
 #include "src/processor/include/processor_task.h"
 #include "src/processor/operator/aggregate/include/base_aggregate.h"
-#include "src/processor/operator/copy_csv/include/copy_rel_csv.h"
+#include "src/processor/operator/copy_csv/include/copy_csv.h"
+#include "src/processor/operator/ddl/include/ddl.h"
 #include "src/processor/operator/include/result_collector.h"
 #include "src/processor/operator/include/sink.h"
 
@@ -19,8 +20,12 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
     if (physicalPlan->isCopyCSV()) {
         auto copyCSV = (CopyCSV*)physicalPlan->lastOperator->getChild(0);
-        copyCSV->execute(*taskScheduler, context);
-        return make_shared<FactorizedTable>(nullptr, make_unique<FactorizedTableSchema>());
+        auto outputMsg = copyCSV->execute(taskScheduler.get(), context);
+        return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
+    } else if (physicalPlan->isDDL()) {
+        auto ddl = (DDL*)physicalPlan->lastOperator->getChild(0);
+        auto outputMsg = ddl->execute();
+        return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
         auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
@@ -82,6 +87,25 @@ void QueryProcessor::decomposePlanIntoTasks(
         }
     } break;
     }
+}
+
+shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
+    string& outputMsg, MemoryManager* memoryManager) {
+    auto ftTableSchema = make_unique<FactorizedTableSchema>();
+    ftTableSchema->appendColumn(make_unique<ColumnSchema>(
+        false /* flat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+    auto factorizedTable = make_shared<FactorizedTable>(memoryManager, move(ftTableSchema));
+    auto outputMsgVector = make_shared<ValueVector>(STRING, memoryManager);
+    auto outputMsgChunk = make_shared<DataChunk>(1 /* numValueVectors */);
+    outputMsgChunk->insert(0 /* pos */, outputMsgVector);
+    gf_string_t outputGFStr = gf_string_t();
+    outputGFStr.overflowPtr = reinterpret_cast<uint64_t>(
+        outputMsgVector->getOverflowBuffer().allocateSpace(outputMsg.length()));
+    outputGFStr.set(outputMsg);
+    ((gf_string_t*)outputMsgVector->values)[0] = outputGFStr;
+    outputMsgVector->state->currIdx = 0;
+    factorizedTable->append(vector<shared_ptr<ValueVector>>{outputMsgVector});
+    return factorizedTable;
 }
 
 } // namespace processor

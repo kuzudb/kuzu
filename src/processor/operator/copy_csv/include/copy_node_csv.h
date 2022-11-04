@@ -14,7 +14,7 @@ public:
         : CopyCSV(catalog, move(csvDescription), move(tableSchema), wal, id, paramsString),
           nodesStore{nodesStore} {}
 
-    void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) override;
+    string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
 
     PhysicalOperatorType getOperatorType() override { return COPY_NODE_CSV; }
 

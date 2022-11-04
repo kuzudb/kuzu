@@ -16,7 +16,7 @@ InMemNodeCSVCopier::InMemNodeCSVCopier(CSVDescription& csvDescription, string ou
     nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 }
 
-void InMemNodeCSVCopier::copy() {
+uint64_t InMemNodeCSVCopier::copy() {
     logger->info(
         "Copying node {} with table {}.", nodeTableSchema->tableName, nodeTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, nodeTableSchema->tableName);
@@ -35,6 +35,7 @@ void InMemNodeCSVCopier::copy() {
     nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
     logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
         nodeTableSchema->tableID);
+    return numNodes;
 }
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {

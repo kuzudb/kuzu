@@ -24,7 +24,7 @@ InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outp
     }
 }
 
-void InMemRelCSVCopier::copy() {
+uint64_t InMemRelCSVCopier::copy() {
     logger->info(
         "Copying rel {} with table {}.", relTableSchema->tableName, relTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, relTableSchema->tableName);
@@ -43,6 +43,7 @@ void InMemRelCSVCopier::copy() {
     relsStatistics->setNumRelsForTable(relTableSchema->tableID, numRels);
     logger->info(
         "Done copying rel {} with table {}.", relTableSchema->tableName, relTableSchema->tableID);
+    return numRels;
 }
 
 void InMemRelCSVCopier::countLinesPerBlock() {

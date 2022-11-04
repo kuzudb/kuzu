@@ -1,10 +1,8 @@
 #pragma once
 
-#include "src/catalog/include/catalog.h"
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/processor/operator/include/physical_operator.h"
-#include "src/processor/operator/include/source_operator.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
 using namespace graphflow::catalog;
@@ -20,13 +18,11 @@ public:
         : PhysicalOperator{id, paramsString}, catalog{catalog},
           csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)}, wal{wal} {}
 
-    virtual void execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) = 0;
+    virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
-    }
+    bool getNextTuples() override { assert(false); }
 
-    bool getNextTuples() override { return false; }
+    virtual ~CopyCSV() = default;
 
 protected:
     void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {

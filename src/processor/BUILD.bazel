@@ -51,5 +51,6 @@ cc_library(
         "//src/processor/operator:result_collector",
         "//src/processor/operator/aggregate",
         "//src/processor/operator/copy_csv",
+        "//src/processor/operator/ddl",
     ],
 )
