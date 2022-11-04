@@ -51,9 +51,10 @@ py_test(
         "test/test_datatype.py",
         "test/test_df.py",
         "test/test_exception.py",
+        "test/test_get_header.py",
         "test/test_main.py",
         "test/test_parameter.py",
-        "test/test_write_to_csv.py"
+        "test/test_write_to_csv.py",
     ],
     data = [
         "//dataset",

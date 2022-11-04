@@ -18,11 +18,15 @@ def init_tiny_snb(tmp_path):
                  "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
                  "KEY (ID))")
     conn.execute("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)")
+    conn.execute(
+        "create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, "
+        "comments STRING[], MANY_MANY);")
+    conn.execute("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"")
     return output_path
 
 
 @pytest.fixture
 def establish_connection(init_tiny_snb):
-    db = gdb.database(init_tiny_snb, buffer_pool_size = 256 * 1024 * 1024)
+    db = gdb.database(init_tiny_snb, buffer_pool_size=256 * 1024 * 1024)
     conn = gdb.connection(db, num_threads=4)
     return conn, db

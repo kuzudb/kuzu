@@ -27,6 +27,10 @@ public:
 
     py::object getAsDF();
 
+    py::list getColumnDataTypes();
+
+    py::list getColumnNames();
+
 private:
     unique_ptr<QueryResult> queryResult;
 };
