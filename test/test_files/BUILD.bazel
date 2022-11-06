@@ -29,3 +29,11 @@ filegroup(
         "//test/runner:__pkg__",
     ],
 )
+
+filegroup(
+    name = "demo_db_queries",
+    srcs = glob(["demo_db/**"]),
+    visibility = [
+        "//test/demo_db:__pkg__",
+    ],
+)
