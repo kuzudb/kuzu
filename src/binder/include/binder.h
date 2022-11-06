@@ -116,7 +116,8 @@ private:
         string pkColName, vector<pair<string, string>> propertyNameDataTypes);
 
     static vector<PropertyNameDataType> bindPropertyNameDataTypes(
-        vector<pair<string, string>> propertyNameDataTypes);
+        vector<pair<string, string>> propertyNameDataTypes,
+        unordered_set<string> reservedPropertyName);
 
     SrcDstTableIDs bindRelConnections(RelConnection relConnections) const;
 
