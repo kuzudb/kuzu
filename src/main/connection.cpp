@@ -261,6 +261,11 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         executingTimer.start();
         shared_ptr<FactorizedTable> table;
         try {
+            if (!preparedStatement->isReadOnly() && activeTransaction &&
+                activeTransaction->isReadOnly()) {
+                throw ConnectionException(
+                    "Can't execute a write query inside a read-only transaction.");
+            }
             if (!preparedStatement->allowActiveTransaction && activeTransaction) {
                 throw ConnectionException(
                     "DDL and CopyCSV statements are automatically wrapped in a "

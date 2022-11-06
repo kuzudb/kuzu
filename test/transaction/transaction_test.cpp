@@ -256,3 +256,10 @@ TEST_F(TransactionTests, RecoverFromCommittedTransaction) {
 TEST_F(TransactionTests, RecoverFromUncommittedTransaction) {
     testRecovery(false /* do not commit the transaction */);
 }
+
+TEST_F(TransactionTests, ExecuteWriteQueryInReadOnlyTrx) {
+    conn->beginReadOnlyTransaction();
+    auto result = conn->query("CREATE (p:person {ID: 20})");
+    ASSERT_EQ(
+        result->getErrorMessage(), "Can't execute a write query inside a read-only transaction.");
+}
