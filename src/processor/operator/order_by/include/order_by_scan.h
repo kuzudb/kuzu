@@ -7,6 +7,16 @@
 namespace graphflow {
 namespace processor {
 
+struct MergedKeyBlockScanState {
+    bool scanSingleTuple;
+    uint32_t nextTupleIdxToReadInMergedKeyBlock;
+    shared_ptr<MergedKeyBlocks> mergedKeyBlock;
+    uint32_t tupleIdxAndFactorizedTableIdxOffset;
+    vector<uint32_t> colsToScan;
+    unique_ptr<uint8_t*[]> tuplesToRead;
+    unique_ptr<BlockPtrInfo> blockPtrInfo;
+};
+
 // To preserve the ordering of tuples, the orderByScan operator will only
 // be executed in single-thread mode.
 class OrderByScan : public PhysicalOperator, public SourceOperator {
@@ -16,9 +26,9 @@ public:
         const vector<DataPos>& outDataPoses,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString},
-          SourceOperator{move(resultSetDescriptor)}, outDataPoses{outDataPoses},
-          sharedState{move(sharedState)}, nextTupleIdxToReadInMergedKeyBlock{0} {}
+        : PhysicalOperator{move(child), id, paramsString}, SourceOperator{move(
+                                                               resultSetDescriptor)},
+          outDataPoses{outDataPoses}, sharedState{move(sharedState)} {}
 
     // This constructor is used for cloning only.
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
@@ -26,8 +36,7 @@ public:
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id,
         const string& paramsString)
         : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{move(sharedState)},
-          nextTupleIdxToReadInMergedKeyBlock{0} {}
+          outDataPoses{outDataPoses}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_SCAN; }
 
@@ -45,16 +54,13 @@ public:
     }
 
 private:
-    bool scanSingleTuple;
+    void initMergedKeyBlockScanStateIfNecessary();
+
+private:
     vector<DataPos> outDataPoses;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
     vector<shared_ptr<ValueVector>> vectorsToRead;
-    uint32_t nextTupleIdxToReadInMergedKeyBlock;
-    shared_ptr<MergedKeyBlocks> mergedKeyBlock;
-    uint32_t tupleIdxAndFactorizedTableIdxOffset;
-    vector<uint32_t> colsToScan;
-    unique_ptr<uint8_t*[]> tuplesToRead;
-    unique_ptr<BlockPtrInfo> blockPtrInfo;
+    unique_ptr<MergedKeyBlockScanState> mergedKeyBlockScanState;
 };
 
 } // namespace processor

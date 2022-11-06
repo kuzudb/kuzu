@@ -234,3 +234,7 @@ Bob
 Carol
 Elizabeth
 Elizabeth
+
+-NAME OrderByEmptyResult
+-QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
+---- 0

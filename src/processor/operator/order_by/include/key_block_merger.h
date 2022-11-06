@@ -189,8 +189,9 @@ class KeyBlockMergeTaskDispatcher {
 public:
     inline bool isDoneMerge() {
         lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
-        // Returns true if there are no more merge task to do.
-        return sortedKeyBlocks->size() == 1 && activeKeyBlockMergeTasks.empty();
+        // Returns true if there are no more merge task to do or the sortedKeyBlocks is empty
+        // (meaning that the resultSet is empty).
+        return sortedKeyBlocks->size() <= 1 && activeKeyBlockMergeTasks.empty();
     }
 
     unique_ptr<KeyBlockMergeMorsel> getMorsel();
