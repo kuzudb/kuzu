@@ -112,3 +112,11 @@ TEST_F(ApiTest, ParamTypeError) {
     ASSERT_STREQ(
         "Parameter n has data type INT64 but expect STRING.", result->getErrorMessage().c_str());
 }
+
+TEST_F(ApiTest, PrepareStatementRepeat) {
+    auto preparedStatement = conn->prepare("MATCH (a:person) RETURN a.fName");
+    auto result1 = conn->execute(preparedStatement.get());
+    auto result2 = conn->execute(preparedStatement.get());
+    ASSERT_TRUE(result1->isSuccess());
+    ASSERT_TRUE(result2->isSuccess());
+}
