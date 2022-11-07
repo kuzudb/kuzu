@@ -3,17 +3,18 @@
 namespace graphflow {
 namespace storage {
 
-slot_id_t BaseHashIndex::getPrimarySlotIdForKey(const uint8_t* key) {
+slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
+    const HashIndexHeader& indexHeader_, const uint8_t* key) {
     auto hash = keyHashFunc(key);
-    auto slotId = hash & indexHeader->levelHashMask;
-    if (slotId < indexHeader->nextSplitSlotId) {
-        slotId = hash & indexHeader->higherLevelHashMask;
+    auto slotId = hash & indexHeader_.levelHashMask;
+    if (slotId < indexHeader_.nextSplitSlotId) {
+        slotId = hash & indexHeader_.higherLevelHashMask;
     }
     return slotId;
 }
 
 HashIndexBuilder::HashIndexBuilder(const string& fName, const DataType& keyDataType)
-    : BaseHashIndex{keyDataType} {
+    : BaseHashIndex{keyDataType}, numEntries{0} {
     assert(keyDataType.typeID == INT64);
     fileHandle = make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     indexHeader = make_unique<HashIndexHeader>();
@@ -27,12 +28,13 @@ HashIndexBuilder::HashIndexBuilder(const string& fName, const DataType& keyDataT
     // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
     oSlots = make_unique<InMemDiskArrayBuilder<Slot>>(
         *fileHandle, O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
+    allocatePSlots(2);
     keyInsertFunc = InMemHashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = InMemHashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
 }
 
 void HashIndexBuilder::bulkReserve(uint32_t numEntries_) {
-    slot_id_t numNewSlotEntries = ceil((numEntries.load() + numEntries_) * DEFAULT_HT_LOAD_FACTOR);
+    slot_id_t numNewSlotEntries = getNumRequiredEntries(numEntries.load(), numEntries_);
     // Build from scratch.
     auto numSlotsToAllocate =
         (numNewSlotEntries + HashIndexConfig::SLOT_CAPACITY - 1) / HashIndexConfig::SLOT_CAPACITY;
@@ -46,11 +48,11 @@ void HashIndexBuilder::bulkReserve(uint32_t numEntries_) {
 }
 
 bool HashIndexBuilder::appendInternal(const uint8_t* key, node_offset_t value) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(key), true /* isPSlot */};
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot* currentSlot = nullptr;
     lockSlot(pSlotInfo);
-    while (currentSlotInfo.isPSlot || currentSlotInfo.slotId > 0) {
+    while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
         if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key)) {
             // Key already exists. No append is allowed.
@@ -61,7 +63,7 @@ bool HashIndexBuilder::appendInternal(const uint8_t* key, node_offset_t value) {
             break;
         }
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
-        currentSlotInfo.isPSlot = false;
+        currentSlotInfo.slotType = SlotType::OVF;
     }
     assert(currentSlot);
     insertToSlotWithoutLock(currentSlot, key, value);
@@ -71,42 +73,42 @@ bool HashIndexBuilder::appendInternal(const uint8_t* key, node_offset_t value) {
 }
 
 bool HashIndexBuilder::lookupInternalWithoutLock(const uint8_t* key, node_offset_t& result) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(key), true /* isPSlot */};
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
     Slot* currentSlot;
-    while (currentSlotInfo.isPSlot || currentSlotInfo.slotId > 0) {
+    while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
         if (lookupOrExistsInSlotWithoutLock<true /* lookup */>(currentSlot, key, &result)) {
             return true;
         }
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
-        currentSlotInfo.isPSlot = false;
+        currentSlotInfo.slotType = SlotType::OVF;
     }
     return false;
 }
 
-uint32_t HashIndexBuilder::allocateSlots(bool isPSlot, uint32_t numSlotsToAllocate) {
-    if (isPSlot) {
-        unique_lock xLock{pSlotSharedMutex};
-        auto oldNumSlots = pSlots->getNumElements();
-        auto newNumSlots = oldNumSlots + numSlotsToAllocate;
-        pSlots->resize(newNumSlots, true /* setToZero */);
-        pSlotsMutexes.resize(newNumSlots);
-        for (auto i = oldNumSlots; i < newNumSlots; i++) {
-            pSlotsMutexes[i] = make_unique<mutex>();
-        }
-        return oldNumSlots;
-    } else {
-        unique_lock xLock{oSlotsSharedMutex};
-        auto oldNumSlots = oSlots->getNumElements();
-        auto newNumSlots = oldNumSlots + numSlotsToAllocate;
-        oSlots->resize(newNumSlots, true /* setToZero */);
-        return oldNumSlots;
+uint32_t HashIndexBuilder::allocatePSlots(uint32_t numSlotsToAllocate) {
+    unique_lock xLock{pSlotSharedMutex};
+    auto oldNumSlots = pSlots->getNumElements();
+    auto newNumSlots = oldNumSlots + numSlotsToAllocate;
+    pSlots->resize(newNumSlots, true /* setToZero */);
+    pSlotsMutexes.resize(newNumSlots);
+    for (auto i = oldNumSlots; i < newNumSlots; i++) {
+        pSlotsMutexes[i] = make_unique<mutex>();
     }
+    return oldNumSlots;
+}
+
+uint32_t HashIndexBuilder::allocateAOSlot() {
+    unique_lock xLock{oSlotsSharedMutex};
+    auto oldNumSlots = oSlots->getNumElements();
+    auto newNumSlots = oldNumSlots + 1;
+    oSlots->resize(newNumSlots, true /* setToZero */);
+    return oldNumSlots;
 }
 
 Slot* HashIndexBuilder::getSlot(const SlotInfo& slotInfo) {
-    if (slotInfo.isPSlot) {
+    if (slotInfo.slotType == SlotType::PRIMARY) {
         shared_lock sLck{pSlotSharedMutex};
         return &pSlots->operator[](slotInfo.slotId);
     } else {
@@ -138,9 +140,9 @@ void HashIndexBuilder::insertToSlotWithoutLock(
     Slot* slot, const uint8_t* key, node_offset_t value) {
     if (slot->header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
         // Allocate a new oSlot and change the nextOvfSlotId.
-        auto ovfSlotId = allocateOSlots(1 /* numSlotsToAllocate */);
+        auto ovfSlotId = allocateAOSlot();
         slot->header.nextOvfSlotId = ovfSlotId;
-        slot = getSlot(SlotInfo{ovfSlotId, false /* isPSlot */});
+        slot = getSlot(SlotInfo{ovfSlotId, SlotType::OVF});
     }
     for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
         if (!slot->header.isEntryValid(entryPos)) {
@@ -153,6 +155,7 @@ void HashIndexBuilder::insertToSlotWithoutLock(
 }
 
 void HashIndexBuilder::flush() {
+    indexHeader->numEntries = numEntries.load();
     headerArray->resize(1, true /* setToZero */);
     headerArray->operator[](0) = *indexHeader;
     headerArray->saveToDisk();

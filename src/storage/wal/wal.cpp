@@ -96,7 +96,7 @@ void WAL::clearWAL() {
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
     StorageUtils::removeAllWALFiles(directory);
-    updatedUnstructuredPropertyLists.clear();
+    updatedNodeTables.clear();
     updatedRelTables.clear();
 }
 

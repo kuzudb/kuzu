@@ -47,9 +47,9 @@ public:
         nodesStatisticsAndDeletedIDs.removeTableStatistic(tableID);
     }
 
-    void prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
-        for (auto& nodeTable : nodeTables) {
-            nodeTable.second->getUnstrPropertyLists()->prepareCommitOrRollbackIfNecessary(isCommit);
+    inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
+        for (auto& [_, nodeTable] : nodeTables) {
+            nodeTable->prepareCommitOrRollbackIfNecessary(isCommit);
         }
     }
 

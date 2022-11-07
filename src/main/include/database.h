@@ -121,7 +121,7 @@ public:
                 catalog->writeCatalogForWALRecord(databaseConfig.databasePath);
             }
         }
-        storageManager->prepareListsToCommitOrRollbackIfNecessary(isCommit);
+        storageManager->prepareCommitOrRollbackIfNecessary(isCommit);
 
         if (isCommit) {
             // Note: It is enough to stop and wait transactions to leave the system instead of

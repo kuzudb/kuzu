@@ -3,15 +3,18 @@
 namespace graphflow {
 namespace storage {
 
-in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(const DataTypeID& dataTypeID) {
+in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64:
+    case INT64: {
         return insertFuncForInt64;
-    case STRING:
+    }
+    case STRING: {
         return insertFuncForString;
-    default:
+    }
+    default: {
         throw StorageException(
             "Hash index insertion not defined for dataType other than INT64 and STRING.");
+    }
     }
 }
 
@@ -40,7 +43,7 @@ bool InMemHashIndexUtils::equalsFuncForString(const uint8_t* keyToLookup, const 
     }
 }
 
-in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(const DataTypeID& dataTypeID) {
+in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case INT64: {
         return equalsFuncForInt64;
@@ -55,14 +58,31 @@ in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(const DataTyp
     }
 }
 
-hash_function_t HashIndexUtils::initializeHashFunc(const DataTypeID& dataTypeID) {
+insert_function_t HashIndexUtils::initializeInsertFunc(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64:
-        return hashFuncForInt64;
-    case STRING:
-        return hashFuncForString;
-    default:
+    case INT64: {
+        return insertFuncForInt64;
+    }
+    case STRING: {
+        return insertFuncForString;
+    }
+    default: {
         throw StorageException("Type " + Types::dataTypeToString(dataTypeID) + " not supported.");
+    }
+    }
+}
+
+hash_function_t HashIndexUtils::initializeHashFunc(DataTypeID dataTypeID) {
+    switch (dataTypeID) {
+    case INT64: {
+        return hashFuncForInt64;
+    }
+    case STRING: {
+        return hashFuncForString;
+    }
+    default: {
+        throw StorageException("Type " + Types::dataTypeToString(dataTypeID) + " not supported.");
+    }
     }
 }
 
@@ -84,15 +104,18 @@ bool HashIndexUtils::equalsFuncForString(
     return false;
 }
 
-equals_function_t HashIndexUtils::initializeEqualsFunc(const DataTypeID& dataTypeID) {
+equals_function_t HashIndexUtils::initializeEqualsFunc(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64:
+    case INT64: {
         return equalsFuncForInt64;
-    case STRING:
+    }
+    case STRING: {
         return equalsFuncForString;
-    default:
+    }
+    default: {
         throw StorageException(
             "Hash index equals is not supported for dataType other than INT64 and STRING.");
+    }
     }
 }
 

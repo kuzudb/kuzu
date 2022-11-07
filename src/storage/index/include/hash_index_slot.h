@@ -13,6 +13,8 @@ using slot_id_t = uint64_t;
 
 class SlotHeader {
 public:
+    static const entry_pos_t INVALID_ENTRY_POS = UINT8_MAX;
+
     SlotHeader() : numEntries{0}, validityMask{0}, nextOvfSlotId{0} {}
 
     void reset() {
@@ -25,6 +27,9 @@ public:
         return validityMask & ((uint32_t)1 << entryPos);
     }
     inline void setEntryValid(entry_pos_t entryPos) { validityMask |= ((uint32_t)1 << entryPos); }
+    inline void setEntryInvalid(entry_pos_t entryPos) {
+        validityMask &= ~((uint32_t)1 << entryPos);
+    }
 
 public:
     entry_pos_t numEntries;

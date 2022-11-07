@@ -64,9 +64,8 @@ void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit
     // database class calls
     // nodesStore->prepareUnstructuredPropertyListsToCommitOrRollbackIfNecessary, which blindly
     // calls each Lists to check if they have something to commit or rollback.
-    wal->addToUpdatedUnstructuredPropertyLists(
-        storageStructureIDAndFName.storageStructureID.listFileID.unstructuredNodePropertyListsID
-            .tableID);
+    wal->addToUpdatedNodeTables(storageStructureIDAndFName.storageStructureID.listFileID
+                                    .unstructuredNodePropertyListsID.tableID);
     Lists::prepareCommitOrRollbackIfNecessary(isCommit);
 }
 

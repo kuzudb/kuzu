@@ -40,6 +40,17 @@ public:
     node_offset_t addNode();
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
+    void prepareCommitOrRollbackIfNecessary(bool isCommit);
+
+    inline void checkpointInMemoryIfNecessary() {
+        unstrPropertyLists->checkpointInMemoryIfNecessary();
+        IDIndex->checkpointInMemoryIfNecessary();
+    }
+    inline void rollbackInMemoryIfNecessary() {
+        unstrPropertyLists->rollbackInMemoryIfNecessary();
+        IDIndex->rollbackInMemoryIfNecessary();
+    }
+
 private:
     void deleteNode(ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const;
 
@@ -56,6 +67,7 @@ private:
     unique_ptr<HashIndex> IDIndex;
     table_id_t tableID;
     bool isInMemory;
+    WAL* wal;
 };
 
 } // namespace storage

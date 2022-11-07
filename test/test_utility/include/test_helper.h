@@ -68,7 +68,7 @@ public:
 
     void initGraph();
 
-    void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType);
+    void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
 
 protected:
     void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);

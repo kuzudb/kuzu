@@ -59,14 +59,14 @@ public:
         WAL& wal);
 
     static void readWALVersionOfPage(VersionedFileHandle& fileHandle, page_idx_t originalPageIdx,
-        BufferManager& bufferManager, WAL& wal, std::function<void(uint8_t*)> readOp);
+        BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& readOp);
 
     // Note: This function updates a page "transactionally", i.e., creates the WAL version of the
     // page if it doesn't exist. For the original page to be updated, the current WRITE trx needs to
     // commit and checkpoint.
     static void updatePage(VersionedFileHandle& fileHandle, page_idx_t originalPageIdx,
         bool isInsertingNewPage, BufferManager& bufferManager, WAL& wal,
-        std::function<void(uint8_t*)> updateOp);
+        const std::function<void(uint8_t*)>& updateOp);
 
     // Unpins the WAL version of a page that was updated and releases the lock of the page (recall
     // we use the same lock to do operations on both the original and WAL versions of the page).

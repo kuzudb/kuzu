@@ -14,9 +14,9 @@ unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         fName = getListFName(directory, storageStructureID);
     } break;
     case NODE_INDEX: {
-        throw RuntimeException("There should not be any code path yet triggering getting "
-                               "NODE_INDEX file name from StorageStructureID.");
-    }
+        fName = getNodeIndexFName(
+            directory, storageStructureID.nodeIndexID.tableID, DBFileType::ORIGINAL);
+    } break;
     default: {
         throw RuntimeException("Unsupported StorageStructureID in "
                                "StorageUtils::getFileInfoFromStorageStructureID.");

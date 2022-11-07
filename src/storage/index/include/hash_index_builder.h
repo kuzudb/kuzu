@@ -13,6 +13,7 @@ namespace storage {
 static constexpr page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
 static constexpr page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
 static constexpr page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
+static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
 
 /**
  * Basic index file consists of three disk arrays: indexHeader, primary slots (pSlots), and overflow
@@ -41,38 +42,33 @@ static constexpr page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
  *
  *  */
 
+enum class SlotType : uint8_t { PRIMARY = 0, OVF = 1 };
+
 struct SlotInfo {
-    slot_id_t slotId;
-    bool isPSlot;
+    slot_id_t slotId{UINT64_MAX};
+    SlotType slotType{SlotType::PRIMARY};
 };
 
 class BaseHashIndex {
 public:
-    explicit BaseHashIndex(const DataType& keyDataType) : numEntries{0} {
+    explicit BaseHashIndex(const DataType& keyDataType) {
         keyHashFunc = HashIndexUtils::initializeHashFunc(keyDataType.typeID);
     }
 
     virtual ~BaseHashIndex() = default;
 
 protected:
-    slot_id_t getPrimarySlotIdForKey(const uint8_t* key);
-    inline void lockSlot(SlotInfo& slotInfo) {
-        assert(slotInfo.isPSlot);
-        shared_lock sLck{pSlotSharedMutex};
-        pSlotsMutexes[slotInfo.slotId]->lock();
-    }
-    inline void unlockSlot(const SlotInfo& slotInfo) {
-        assert(slotInfo.isPSlot);
-        shared_lock sLck{pSlotSharedMutex};
-        pSlotsMutexes[slotInfo.slotId]->unlock();
+    slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, const uint8_t* key);
+
+    static inline uint64_t getNumRequiredEntries(
+        uint64_t numExistingEntries, uint64_t numNewEntries) {
+        return ceil((double)(numExistingEntries + numNewEntries) * DEFAULT_HT_LOAD_FACTOR);
     }
 
 protected:
     unique_ptr<HashIndexHeader> indexHeader;
     shared_mutex pSlotSharedMutex;
     hash_function_t keyHashFunc;
-    vector<unique_ptr<mutex>> pSlotsMutexes;
-    atomic<uint64_t> numEntries;
 };
 
 class HashIndexBuilder : public BaseHashIndex {
@@ -104,18 +100,23 @@ private:
     bool appendInternal(const uint8_t* key, node_offset_t value);
     bool lookupInternalWithoutLock(const uint8_t* key, node_offset_t& result);
 
-    uint32_t allocateSlots(bool isPSlot, uint32_t numSlots);
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
         Slot* slot, const uint8_t* key, node_offset_t* result = nullptr);
     void insertToSlotWithoutLock(Slot* slot, const uint8_t* key, node_offset_t value);
     Slot* getSlot(const SlotInfo& slotInfo);
+    uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
+    uint32_t allocateAOSlot();
 
-    inline uint32_t allocatePSlots(uint32_t numSlots) {
-        return allocateSlots(true /* isPSlot */, numSlots);
+    inline void lockSlot(SlotInfo& slotInfo) {
+        assert(slotInfo.slotType == SlotType::PRIMARY);
+        shared_lock sLck{pSlotSharedMutex};
+        pSlotsMutexes[slotInfo.slotId]->lock();
     }
-    inline uint32_t allocateOSlots(uint32_t numSlots) {
-        return allocateSlots(false /* isPSlot */, numSlots);
+    inline void unlockSlot(const SlotInfo& slotInfo) {
+        assert(slotInfo.slotType == SlotType::PRIMARY);
+        shared_lock sLck{pSlotSharedMutex};
+        pSlotsMutexes[slotInfo.slotId]->unlock();
     }
 
 private:
@@ -124,9 +125,11 @@ private:
     shared_mutex oSlotsSharedMutex;
     unique_ptr<InMemDiskArrayBuilder<Slot>> pSlots;
     unique_ptr<InMemDiskArrayBuilder<Slot>> oSlots;
+    vector<unique_ptr<mutex>> pSlotsMutexes;
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;
     unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    atomic<uint64_t> numEntries;
 };
 
 } // namespace storage

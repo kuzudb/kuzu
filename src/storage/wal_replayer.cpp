@@ -1,6 +1,4 @@
-#include "src/storage/include/wal_replayer.h"
-
-#include "spdlog/spdlog.h"
+#include "include/wal_replayer.h"
 
 #include "src/storage/include/storage_manager.h"
 #include "src/storage/include/storage_utils.h"
@@ -25,6 +23,7 @@ void WALReplayer::init() {
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
+
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     switch (walRecord.recordType) {
     case PAGE_UPDATE_OR_INSERT_RECORD: {
@@ -443,6 +442,11 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
         }
         }
     }
+    case NODE_INDEX: {
+        auto index =
+            storageManager->getNodesStore().getIDIndex(storageStructureID.nodeIndexID.tableID);
+        return index->getFileHandle();
+    }
     default:
         assert(false);
     }
@@ -469,18 +473,17 @@ void WALReplayer::replay() {
         replayWALRecord(walRecord);
     }
 
-    // We next perform an in-memory checkpointing or rolling back of unstructuredPropertyLists.
-    for (auto& nodeTableID : wal->updatedUnstructuredPropertyLists) {
-        auto unstructuredPropertyLists =
-            storageManager->getNodesStore().getNodeUnstrPropertyLists(nodeTableID);
+    // We next perform an in-memory checkpointing or rolling back of nodeTables.
+    for (auto nodeTableID : wal->updatedNodeTables) {
+        auto nodeTable = storageManager->getNodesStore().getNodeTable(nodeTableID);
         if (isCheckpoint) {
-            unstructuredPropertyLists->checkpointInMemoryIfNecessary();
+            nodeTable->checkpointInMemoryIfNecessary();
         } else {
-            unstructuredPropertyLists->rollbackInMemoryIfNecessary();
+            nodeTable->rollbackInMemoryIfNecessary();
         }
     }
     // Then we perform an in-memory checkpointing or rolling back of relTables.
-    for (auto& relTableID : wal->updatedRelTables) {
+    for (auto relTableID : wal->updatedRelTables) {
         auto relTable = storageManager->getRelsStore().getRelTable(relTableID);
         if (isCheckpoint) {
             relTable->checkpointInMemoryIfNecessary();

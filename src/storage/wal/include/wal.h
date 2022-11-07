@@ -140,12 +140,12 @@ public:
 
     inline string getDirectory() const { return directory; }
 
-    inline void addToUpdatedUnstructuredPropertyLists(table_id_t nodeTableID) {
-        updatedUnstructuredPropertyLists.push_back(nodeTableID);
+    inline void addToUpdatedNodeTables(table_id_t nodeTableID) {
+        updatedNodeTables.insert(nodeTableID);
     }
 
     inline void addToUpdatedRelTables(table_id_t relTableID) {
-        updatedRelTables.push_back(relTableID);
+        updatedRelTables.insert(relTableID);
     }
 
 private:
@@ -160,11 +160,10 @@ private:
     void setIsLastRecordCommit();
 
 public:
-    // Ideally we need a pointer to unstructuredPropertyLists but instead we store the nodeTableID
-    // because unstructuredPropertyLists depends on WAL and making WAL depend on
-    // unstructuredPropertyLists would create a circular dependency.
-    vector<table_id_t> updatedUnstructuredPropertyLists;
-    vector<table_id_t> updatedRelTables;
+    // Node/Rel tables that might have changes to their in-memory data structures that need to be
+    // committed/rolled back accordingly during the wal replaying.
+    unordered_set<table_id_t> updatedNodeTables;
+    unordered_set<table_id_t> updatedRelTables;
 
 private:
     shared_ptr<spdlog::logger> logger;

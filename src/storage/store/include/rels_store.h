@@ -63,9 +63,9 @@ public:
         relTables.erase(tableID);
         relsStatistics.removeTableStatistic(tableID);
     }
-    void prepareAdjAndRelPropertyListsToCommitOrRollbackIfNecessary(bool isCommit) {
-        for (auto& relTable : relTables) {
-            relTable.second->prepareCommitOrRollbackIfNecessary(isCommit);
+    void prepareCommitOrRollbackIfNecessary(bool isCommit) {
+        for (auto& [_, relTable] : relTables) {
+            relTable->prepareCommitOrRollbackIfNecessary(isCommit);
         }
     }
 
