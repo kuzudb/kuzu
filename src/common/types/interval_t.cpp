@@ -68,7 +68,7 @@ void Interval::addition(interval_t& result, uint64_t number, string specifierStr
                specifierStr == "us") {
         result.micros += number;
     } else {
-        throw ConversionException("Unrecognized interval specifier string: " + specifierStr);
+        throw ConversionException("Unrecognized interval specifier string: " + specifierStr + ".");
     }
 }
 
@@ -83,7 +83,7 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
         pos++;
     }
     if (pos == len) {
-        throw ConversionException(buf + " is not in a correct format");
+        throw ConversionException("Error occurred during parsing interval. Field name is missing.");
     }
     // Parse intervalPartSpecifier (eg. hours, dates, minutes)
     uint64_t spacePos = string(buf).find(' ', pos);
@@ -111,7 +111,8 @@ interval_t Interval::FromCString(const char* gf_str, uint64_t len) {
         if (isdigit(str[pos])) {
             parseIntervalField(str, pos, len, result);
         } else if (!isspace(str[pos])) {
-            throw ConversionException(str + " is not in a correct format");
+            throw ConversionException(
+                "Error occurred during parsing interval. Given: \"" + str + "\".");
         }
         pos++;
     }

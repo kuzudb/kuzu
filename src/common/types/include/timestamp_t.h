@@ -85,6 +85,12 @@ public:
 
     static bool TryParseUTCOffset(
         const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
+
+private:
+    static string getTimestampConversionExceptionMsg(const char* str, uint64_t len) {
+        return "Error occurred during parsing timestamp. Given: \"" + string(str, len) +
+               "\". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])";
+    }
 };
 
 } // namespace common
