@@ -18,7 +18,7 @@
 ---- 0
 
 -NAME EdgeID
--QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN r._id
+-QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
 -ENUMERATE
 ---- 1
 10000

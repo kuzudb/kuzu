@@ -24,7 +24,7 @@
 0
 
 -NAME EdgeID
--QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN COUNT(DISTINCT r._id)
+-QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN COUNT(DISTINCT ID(r))
 -ENUMERATE
 ---- 1
 10001

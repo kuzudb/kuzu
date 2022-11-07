@@ -308,7 +308,7 @@ Dan|Carol
 2020
 
 -NAME RelID1
--QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN r._id
+-QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
 -ENUMERATE
 ---- 14
 0
@@ -327,7 +327,7 @@ Dan|Carol
 9
 
 -NAME RelID2
--QUERY MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN r._id
+-QUERY MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
 14
@@ -335,7 +335,7 @@ Dan|Carol
 16
 
 -NAME RelID3
--QUERY MATCH (a:person)-[r:workAt]->(o:organisation) RETURN r._id
+-QUERY MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
 17
@@ -343,7 +343,7 @@ Dan|Carol
 19
 
 -NAME QueryOneToOneRelTable
--QUERY MATCH (:person)-[m:marries]->(:person) RETURN m.usedAddress, m.note
+-QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
 [toronto]|
 |long long long string

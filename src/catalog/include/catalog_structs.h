@@ -26,26 +26,20 @@ string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 // A PropertyNameDataType consists of its name, id, and dataType. If the property is unstructured,
 // then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported by the system.
 struct PropertyNameDataType {
-
-public:
     // This constructor is needed for ser/deser functions
     PropertyNameDataType(){};
-
     PropertyNameDataType(string name, DataTypeID dataTypeID)
-        : PropertyNameDataType{move(name), DataType(dataTypeID)} {
+        : PropertyNameDataType{std::move(name), DataType(dataTypeID)} {
         assert(dataTypeID != LIST);
     }
-
     PropertyNameDataType(string name, DataType dataType)
-        : name{move(name)}, dataType{move(dataType)} {};
+        : name{std::move(name)}, dataType{std::move(dataType)} {};
 
-public:
     string name;
     DataType dataType;
 };
 
 struct Property : PropertyNameDataType {
-
 private:
     Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
         : PropertyNameDataType{move(name), move(dataType)}, propertyID{propertyID}, tableID{
@@ -70,7 +64,6 @@ public:
         return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
-public:
     uint32_t propertyID;
     table_id_t tableID;
 };
@@ -79,6 +72,10 @@ struct TableSchema {
 public:
     TableSchema(string tableName, table_id_t tableID, bool isNodeTable)
         : tableName{move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable} {}
+
+    static inline bool isReservedPropertyName(const string& propertyName) {
+        return propertyName == INTERNAL_ID_SUFFIX;
+    }
 
 public:
     string tableName;

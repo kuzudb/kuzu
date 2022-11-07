@@ -233,12 +233,6 @@ TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
 
 // Create clause test
 
-TEST_F(TinySnbUpdateTest, InsertNodeWithoutPrimaryKeyTest) {
-    auto result = conn->query("CREATE (a:person {isWorker:true});");
-    ASSERT_STREQ("Binder exception: Create node a expects primary key ID as input.",
-        result->getErrorMessage().c_str());
-}
-
 TEST_F(TinySnbUpdateTest, InsertNodeWithBoolIntDoubleTest) {
     conn->query("CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1});");
     auto result = conn->query("MATCH (a:person) WHERE a.ID > 8 "
@@ -313,8 +307,8 @@ TEST_F(TinySnbUpdateTest, InsertSingleNToNRelTest) {
         "CREATE (a)-[:knows {meetTime:timestamp('1976-12-23 11:21:42'), validInterval:interval('2 "
         "years'), comments:['A', 'k'], date:date('1997-03-22')}]->(b);");
     auto groundTruth = vector<string>{"9|10|1997-03-22|1976-12-23 11:21:42|2 years|[A,k]|40"};
-    auto result =
-        conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e");
+    auto result = conn->query(
+        "MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
@@ -324,8 +318,8 @@ TEST_F(TinySnbUpdateTest, InsertSingleNTo1RelTest) {
                 "CREATE (a)-[:studyAt {year:2022}]->(b);");
     auto groundTruth =
         vector<string>{"8|325|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|16", "9|934|2022||40"};
-    auto result = conn->query(
-        "MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e");
+    auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 "
+                              "RETURN a.ID, b.orgCode, e, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
@@ -353,7 +347,7 @@ TEST_F(TinySnbUpdateTest, InsertMultipleRelsTest) {
                 "CREATE (a)<-[:knows]-(b);");
     auto groundTruth = vector<string>{"7|8|12", "7|9|13", "8|7|40", "9|7|41"};
     auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, "
-                              "b.ID, e._id");
+                              "b.ID, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
@@ -372,16 +366,11 @@ TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest2) {
     auto groundTruth = vector<string>{"100|50|41|40"};
     auto result = conn->query(
         "MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, "
-        "b.ID, e1._id, e2._id");
+        "b.ID, ID(e1), ID(e2)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
 // Delete clause test
-
-TEST_F(TinySnbUpdateTest, DeleteNodeWithEdgeErrorTest) {
-    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 DELETE a");
-    ASSERT_FALSE(result->isSuccess());
-}
 
 TEST_F(TinySnbUpdateTest, DeleteNodeAfterInsertTest) { // test reset of property columns
     conn->query("CREATE (a:person {ID:100, fName:'Xiyang', age:26})");

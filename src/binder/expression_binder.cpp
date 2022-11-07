@@ -147,12 +147,17 @@ shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     if (catalogContent->containNodeProperty(nodeExpression->getTableID(), propertyName)) {
         auto& property =
             catalogContent->getNodeProperty(nodeExpression->getTableID(), propertyName);
-        return make_shared<PropertyExpression>(
-            property.dataType, propertyName, property.propertyID, move(node));
+        return bindNodePropertyExpression(node, property);
     } else {
         throw BinderException("Node " + nodeExpression->getRawName() + " does not have property " +
                               propertyName + ".");
     }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
+    shared_ptr<Expression> node, const Property& property) {
+    return make_shared<PropertyExpression>(
+        property.dataType, property.name, property.propertyID, move(node));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
@@ -161,12 +166,26 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     auto relExpression = static_pointer_cast<RelExpression>(rel);
     if (catalogContent->containRelProperty(relExpression->getTableID(), propertyName)) {
         auto& property = catalogContent->getRelProperty(relExpression->getTableID(), propertyName);
-        return make_shared<PropertyExpression>(
-            property.dataType, propertyName, property.propertyID, move(rel));
+        if (TableSchema::isReservedPropertyName(propertyName)) {
+            throw BinderException(
+                propertyName + " is reserved for system usage. External access is not allowed.");
+        }
+        return bindRelPropertyExpression(rel, property);
     } else {
         throw BinderException(
             "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
     }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
+    shared_ptr<Expression> rel, const Property& property) {
+    auto relExpression = static_pointer_cast<RelExpression>(rel);
+    if (relExpression->isVariableLength()) {
+        throw BinderException(
+            "Cannot read property of variable length rel " + rel->getRawName() + ".");
+    }
+    return make_shared<PropertyExpression>(
+        property.dataType, property.name, property.propertyID, std::move(rel));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
@@ -224,15 +243,9 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
         // rewrite aggregate on node or rel as aggregate on their internal IDs.
-        if (child->dataType.typeID == NODE) {
-            auto node = static_pointer_cast<NodeExpression>(child);
-            child = node->getNodeIDPropertyExpression();
-        } else if (child->dataType.typeID == REL) {
-            auto rel = static_pointer_cast<RelExpression>(child);
-            auto idProperty = binder->catalog.getReadOnlyVersion()->getRelProperty(
-                rel->getTableID(), INTERNAL_ID_SUFFIX);
-            child = make_shared<PropertyExpression>(
-                idProperty.dataType, INTERNAL_ID_SUFFIX, idProperty.propertyID, std::move(child));
+        // e.g. COUNT(a) -> COUNT(a._id)
+        if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
+            child = bindInternalIDExpression(child);
         }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
@@ -259,16 +272,29 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == ID_FUNC_NAME) {
-        return bindIDFunctionExpression(parsedExpression);
+        return bindInternalIDExpression(parsedExpression);
     }
     assert(false);
 }
 
-shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
+shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, NODE);
-    return ((NodeExpression&)*child).getNodeIDPropertyExpression();
+    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
+    return bindInternalIDExpression(child);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
+    shared_ptr<Expression> nodeOrRel) {
+    if (nodeOrRel->dataType.typeID == NODE) {
+        return ((NodeExpression*)nodeOrRel.get())->getNodeIDPropertyExpression();
+    } else if (nodeOrRel->dataType.typeID == REL) {
+        auto rel = (RelExpression*)nodeOrRel.get();
+        auto relTableSchema =
+            binder->catalog.getReadOnlyVersion()->getRelTableSchema(rel->getTableID());
+        return bindRelPropertyExpression(nodeOrRel, relTableSchema->getRelIDDefinition());
+    }
+    assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(

@@ -205,10 +205,6 @@ public:
         wal->logDropTableRecord(tableSchema->isNodeTable, tableSchema->tableID);
     }
 
-    static inline unordered_set<string> getReservedPropertyNames() {
-        return unordered_set<string>{INTERNAL_ID_SUFFIX};
-    }
-
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
     unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
