@@ -24,7 +24,8 @@ def cleanup():
 
 
 def build():
-    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC', '--cxxopt=-DNDEBUG']
+    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC',
+            '--cxxopt=-DNDEBUG', '--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1']
     if sys.platform == 'darwin':
         archflags = os.getenv("ARCHFLAGS", "")
         if len(archflags) > 0:
