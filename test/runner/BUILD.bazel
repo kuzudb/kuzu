@@ -137,3 +137,19 @@ cc_test(
         "//test/test_utility:test_helper",
     ],
 )
+
+cc_test(
+    name = "e2e_exception_test",
+    srcs = [
+        "e2e_exception_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+    ],
+)

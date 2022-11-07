@@ -452,6 +452,7 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
     if (schema->isExpressionInScope(*expression)) {
         return;
     }
+    assert(!rel.isVariableLength());
     auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
     auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
     auto isColumn =

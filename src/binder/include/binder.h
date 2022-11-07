@@ -116,8 +116,7 @@ private:
         string pkColName, vector<pair<string, string>> propertyNameDataTypes);
 
     static vector<PropertyNameDataType> bindPropertyNameDataTypes(
-        vector<pair<string, string>> propertyNameDataTypes,
-        unordered_set<string> reservedPropertyName);
+        vector<pair<string, string>> propertyNameDataTypes);
 
     SrcDstTableIDs bindRelConnections(RelConnection relConnections) const;
 
@@ -128,8 +127,6 @@ private:
         CSVReaderConfig& csvReaderConfig, const string& copyOptionName, string& copyOptionValue);
 
     static char bindParsingOptionValue(string parsingOptionValue);
-
-    void validateCSVHeader(bool isNodeTable, const vector<string>& csvFields, table_id_t tableID);
 
     /******* validations *********/
     // E.g. Optional MATCH (a) RETURN a.age

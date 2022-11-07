@@ -14,7 +14,7 @@
 24
 
 -NAME RelIDComparison2
--QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE r1._id <> r2._id RETURN COUNT(*)
+-QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE id(r1) <> id(r2) RETURN COUNT(*)
 ---- 1
 26
 
@@ -43,7 +43,7 @@
 2
 
 -NAME RelIDComparison1
--QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE r1._id = r2._id RETURN COUNT(*)
+-QUERY MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE ID(r1) = ID(r2) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 14

@@ -181,6 +181,9 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     }
     result += relTableName + " properties: \n";
     for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
+        if (TableSchema::isReservedPropertyName(property.name)) {
+            continue;
+        }
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
     }
     return result;

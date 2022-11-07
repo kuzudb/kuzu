@@ -59,8 +59,8 @@ unique_ptr<BoundCreateNodeClause> Binder::bindCreateNodeClause(
     if (catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
-    auto boundPropertyNameDataTypes = bindPropertyNameDataTypes(
-        createNodeClause.getPropertyNameDataTypes(), catalog.getReservedPropertyNames());
+    auto boundPropertyNameDataTypes =
+        bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
     return make_unique<BoundCreateNodeClause>(
@@ -73,8 +73,8 @@ unique_ptr<BoundCreateRelClause> Binder::bindCreateRelClause(
     if (catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
-    auto propertyNameDataTypes = bindPropertyNameDataTypes(
-        createRelClause.getPropertyNameDataTypes(), catalog.getReservedPropertyNames());
+    auto propertyNameDataTypes =
+        bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
     auto srcDstTableIDs = bindRelConnections(createRelClause.getRelConnection());
     return make_unique<BoundCreateRelClause>(
@@ -420,8 +420,7 @@ expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getTableID())) {
-        auto propertyExpression = make_shared<PropertyExpression>(
-            property.dataType, property.name, property.propertyID, expression);
+        auto propertyExpression = expressionBinder.bindNodePropertyExpression(expression, property);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
         result.emplace_back(propertyExpression);
     }
@@ -432,8 +431,10 @@ expression_vector Binder::rewriteRelAsAllProperties(const shared_ptr<Expression>
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getTableID())) {
-        auto propertyExpression = make_shared<PropertyExpression>(
-            property.dataType, property.name, property.propertyID, expression);
+        if (TableSchema::isReservedPropertyName(property.name)) {
+            continue;
+        }
+        auto propertyExpression = expressionBinder.bindRelPropertyExpression(expression, property);
         propertyExpression->setRawName(expression->getRawName() + "." + property.name);
         result.emplace_back(propertyExpression);
     }
@@ -656,8 +657,7 @@ uint32_t Binder::bindPrimaryKey(
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
-    vector<pair<string, string>> propertyNameDataTypes,
-    unordered_set<string> reservedPropertyName) {
+    vector<pair<string, string>> propertyNameDataTypes) {
     vector<PropertyNameDataType> boundPropertyNameDataTypes;
     unordered_set<string> boundPropertyNames;
     for (auto& propertyNameDataType : propertyNameDataTypes) {
@@ -665,7 +665,7 @@ vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
             throw BinderException(StringUtils::string_format(
                 "Duplicated column name: %s, column name must be unique.",
                 propertyNameDataType.first.c_str()));
-        } else if (reservedPropertyName.contains(propertyNameDataType.first)) {
+        } else if (TableSchema::isReservedPropertyName(propertyNameDataType.first)) {
             throw BinderException(
                 StringUtils::string_format("PropertyName: %s is an internal reserved propertyName.",
                     propertyNameDataType.first.c_str()));
