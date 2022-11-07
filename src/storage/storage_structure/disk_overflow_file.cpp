@@ -25,15 +25,14 @@ void DiskOverflowFile::readStringToVector(
     if (gf_string_t::isShortString(gfStr.len)) {
         return;
     }
-    page_idx_t pageIdx = UINT32_MAX;
-    uint16_t pagePos = UINT16_MAX;
-    TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, pageIdx, pagePos);
+    PageByteCursor cursor;
+    TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, pageIdx, *wal, transaction->isReadOnly());
+            fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     InMemOverflowBufferUtils::copyString(
-        (char*)(frame + pagePos), gfStr.len, gfStr, inMemOverflowBuffer);
+        (char*)(frame + cursor.offsetInPage), gfStr.len, gfStr, inMemOverflowBuffer);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
@@ -78,35 +77,37 @@ void DiskOverflowFile::scanSequentialStringOverflow(Transaction* transaction, Va
     }
 }
 
-void DiskOverflowFile::readListsToVector(ValueVector& valueVector) {
+void DiskOverflowFile::readListsToVector(Transaction* transaction, ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
     for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
         auto pos = valueVector.state->selVector->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
-            readListToVector(((gf_list_t*)valueVector.values)[pos], valueVector.dataType,
-                valueVector.getOverflowBuffer());
+            readListToVector(transaction, ((gf_list_t*)valueVector.values)[pos],
+                valueVector.dataType, valueVector.getOverflowBuffer());
         }
     }
 }
 
-void DiskOverflowFile::readListToVector(
-    gf_list_t& gfList, const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer) {
+void DiskOverflowFile::readListToVector(Transaction* transaction, gf_list_t& gfList,
+    const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     InMemOverflowBufferUtils::copyListNonRecursive(
         frame + cursor.offsetInPage, gfList, dataType, inMemOverflowBuffer);
-    bufferManager.unpin(fileHandle, cursor.pageIdx);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     if (dataType.childType->typeID == STRING) {
         auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
         for (auto i = 0u; i < gfList.size; i++) {
-            auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-            readStringToVector(dummyReadOnlyTrx.get(), gfStrings[i], inMemOverflowBuffer);
+            readStringToVector(transaction, gfStrings[i], inMemOverflowBuffer);
         }
     } else if (dataType.childType->typeID == LIST) {
         auto gfLists = (gf_list_t*)(gfList.overflowPtr);
         for (auto i = 0u; i < gfList.size; i++) {
-            readListToVector(gfLists[i], *dataType.childType, inMemOverflowBuffer);
+            readListToVector(transaction, gfLists[i], *dataType.childType, inMemOverflowBuffer);
         }
     }
 }
@@ -127,23 +128,28 @@ string DiskOverflowFile::readString(Transaction* transaction, const gf_string_t&
     }
 }
 
-vector<Literal> DiskOverflowFile::readList(const gf_list_t& listVal, const DataType& dataType) {
+vector<Literal> DiskOverflowFile::readList(
+    Transaction* transaction, const gf_list_t& listVal, const DataType& dataType) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
+    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
     vector<Literal> retLiterals;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto gfListVal = *(gf_string_t*)(frame + cursor.offsetInPage);
-            retLiterals.emplace_back(readString(gfListVal));
+            retLiterals.emplace_back(readString(transaction, gfListVal));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else if (dataType.childType->typeID == LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto gfListVal = *(gf_list_t*)(frame + cursor.offsetInPage);
-            retLiterals.emplace_back(readList(gfListVal, *dataType.childType), *dataType.childType);
+            retLiterals.emplace_back(
+                readList(transaction, gfListVal, *dataType.childType), *dataType.childType);
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else {
@@ -152,7 +158,7 @@ vector<Literal> DiskOverflowFile::readList(const gf_list_t& listVal, const DataT
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     }
-    bufferManager.unpin(fileHandle, cursor.pageIdx);
+    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     return retLiterals;
 }
 

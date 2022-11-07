@@ -153,12 +153,12 @@ private:
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(*resultVector);
+        diskOverflowFile.readListsToVector(transaction, *resultVector);
     }
     inline void scanWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(*resultVector);
+        diskOverflowFile.readListsToVector(transaction, *resultVector);
     }
 };
 

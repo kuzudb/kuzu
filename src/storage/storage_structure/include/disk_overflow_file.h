@@ -44,17 +44,6 @@ public:
             StorageUtils::getOverflowFileName(storageStructureIDAndFNameForMainDBFile.fName);
         return copy;
     }
-
-    // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
-    inline void readStringsToVector(ValueVector& valueVector) {
-        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-        readStringsToVector(dummyReadOnlyTrx.get(), valueVector);
-    }
-    inline void readStringToVector(gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer) {
-        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-        readStringToVector(dummyReadOnlyTrx.get(), gfStr, inMemOverflowBuffer);
-    }
-
     void readStringsToVector(Transaction* transaction, ValueVector& valueVector);
     void readStringToVector(
         Transaction* transaction, gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer);
@@ -70,19 +59,15 @@ public:
         Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
         auto& gfList = ((gf_list_t*)vector.values)[vectorPos];
-        readListToVector(gfList, vector.dataType, vector.getOverflowBuffer());
+        readListToVector(transaction, gfList, vector.dataType, vector.getOverflowBuffer());
     }
 
-    void readListsToVector(ValueVector& valueVector);
-
-    // TODO(Semih/Guodong): Remove funcs without trx once all read string calls use a trx.
-    string readString(const gf_string_t& str) {
-        auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-        return readString(dummyReadOnlyTrx.get(), str);
-    }
+    void readListsToVector(Transaction* transaction, ValueVector& valueVector);
 
     string readString(Transaction* transaction, const gf_string_t& str);
-    vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);
+    vector<Literal> readList(
+        Transaction* transaction, const gf_list_t& listVal, const DataType& dataType);
+
     void writeStringOverflowAndUpdateOverflowPtr(
         const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo);
     void writeListOverflowAndUpdateOverflowPtr(const gf_list_t& listToWriteFrom,
@@ -98,8 +83,8 @@ public:
 
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
-    void readListToVector(
-        gf_list_t& gfList, const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer);
+    void readListToVector(Transaction* transaction, gf_list_t& gfList, const DataType& dataType,
+        InMemOverflowBuffer& inMemOverflowBuffer);
     void setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst);
     void setListRecursiveIfNestedWithoutLock(
         const gf_list_t& src, gf_list_t& dst, const DataType& dataType);

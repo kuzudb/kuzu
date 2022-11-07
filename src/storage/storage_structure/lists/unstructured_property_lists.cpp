@@ -177,8 +177,8 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
         numBytesRead += dataTypeSize;
         Literal propertyValueAsLiteral;
         if (STRING == propertyKeyDataType.dataTypeID) {
-            propertyValueAsLiteral =
-                Literal(diskOverflowFile.readString(unstrPropertyValue.val.strVal));
+            propertyValueAsLiteral = Literal(diskOverflowFile.readString(
+                Transaction::getDummyReadOnlyTrx().get(), unstrPropertyValue.val.strVal));
         } else {
             propertyValueAsLiteral = Literal(
                 (uint8_t*)&unstrPropertyValue.val, DataType(propertyKeyDataType.dataTypeID));
