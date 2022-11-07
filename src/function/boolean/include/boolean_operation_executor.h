@@ -14,6 +14,17 @@ namespace function {
 struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
+    static inline void executeOnValueNoNull(ValueVector& left, ValueVector& right,
+        ValueVector& result, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
+        auto lValues = (uint8_t*)left.values;
+        auto rValues = (uint8_t*)right.values;
+        auto resValues = (uint8_t*)result.values;
+        FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos], false /* isLeftNull */,
+            false /* isRightNull */);
+        result.setNull(resPos, false /* isNull */);
+    }
+
+    template<typename FUNC>
     static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
         uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         auto lValues = (uint8_t*)left.values;
@@ -38,13 +49,26 @@ struct BinaryBooleanOperationExecutor {
         result.state = right.state;
         auto lPos = left.state->getPositionOfCurrIdx();
         if (right.state->selVector->isUnfiltered()) {
-            for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
-                executeOnValue<FUNC>(left, right, result, lPos, i, i);
+            if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
+                for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, i, i);
+                }
+            } else {
+                for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
+                    executeOnValue<FUNC>(left, right, result, lPos, i, i);
+                }
             }
         } else {
-            for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
-                auto rPos = right.state->selVector->selectedPositions[i];
-                executeOnValue<FUNC>(left, right, result, lPos, rPos, rPos);
+            if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
+                for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
+                    auto rPos = right.state->selVector->selectedPositions[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, rPos, rPos);
+                }
+            } else {
+                for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
+                    auto rPos = right.state->selVector->selectedPositions[i];
+                    executeOnValue<FUNC>(left, right, result, lPos, rPos, rPos);
+                }
             }
         }
     }
@@ -54,13 +78,26 @@ struct BinaryBooleanOperationExecutor {
         result.state = left.state;
         auto rPos = right.state->getPositionOfCurrIdx();
         if (left.state->selVector->isUnfiltered()) {
-            for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
-                executeOnValue<FUNC>(left, right, result, i, rPos, i);
+            if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, i, rPos, i);
+                }
+            } else {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    executeOnValue<FUNC>(left, right, result, i, rPos, i);
+                }
             }
         } else {
-            for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
-                auto lPos = left.state->selVector->selectedPositions[i];
-                executeOnValue<FUNC>(left, right, result, lPos, rPos, lPos);
+            if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    auto lPos = left.state->selVector->selectedPositions[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, rPos, lPos);
+                }
+            } else {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    auto lPos = left.state->selVector->selectedPositions[i];
+                    executeOnValue<FUNC>(left, right, result, lPos, rPos, lPos);
+                }
             }
         }
     }
@@ -70,13 +107,26 @@ struct BinaryBooleanOperationExecutor {
         assert(left.state == right.state);
         result.state = left.state;
         if (left.state->selVector->isUnfiltered()) {
-            for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
-                executeOnValue<FUNC>(left, right, result, i, i, i);
+            if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, i, i, i);
+                }
+            } else {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    executeOnValue<FUNC>(left, right, result, i, i, i);
+                }
             }
         } else {
-            for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
-                auto pos = left.state->selVector->selectedPositions[i];
-                executeOnValue<FUNC>(left, right, result, pos, pos, pos);
+            if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    auto pos = left.state->selVector->selectedPositions[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, pos, pos, pos);
+                }
+            } else {
+                for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
+                    auto pos = left.state->selVector->selectedPositions[i];
+                    executeOnValue<FUNC>(left, right, result, pos, pos, pos);
+                }
             }
         }
     }
