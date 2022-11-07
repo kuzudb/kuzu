@@ -224,12 +224,26 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
 
 unique_ptr<BoundMatchClause> Binder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
-    auto [queryGraph, _] = bindGraphPattern(matchClause.getPatternElements());
+    auto [queryGraphCollection, propertyCollection] =
+        bindGraphPattern(matchClause.getPatternElements());
     auto boundMatchClause =
-        make_unique<BoundMatchClause>(move(queryGraph), matchClause.getIsOptional());
+        make_unique<BoundMatchClause>(std::move(queryGraphCollection), matchClause.getIsOptional());
+    shared_ptr<Expression> whereExpression;
     if (matchClause.hasWhereClause()) {
-        boundMatchClause->setWhereExpression(bindWhereExpression(*matchClause.getWhereClause()));
+        whereExpression = bindWhereExpression(*matchClause.getWhereClause());
     }
+    // Rewrite key value pairs in MATCH clause as predicate
+    for (auto& keyValPairs : propertyCollection->getAllPropertyKeyValPairs()) {
+        auto predicate = expressionBinder.bindComparisonExpression(
+            EQUALS, expression_vector{keyValPairs.first, keyValPairs.second});
+        if (whereExpression != nullptr) {
+            whereExpression = expressionBinder.bindBooleanExpression(
+                AND, expression_vector{whereExpression, predicate});
+        } else {
+            whereExpression = predicate;
+        }
+    }
+    boundMatchClause->setWhereExpression(std::move(whereExpression));
     return boundMatchClause;
 }
 

@@ -60,32 +60,45 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = bindExpression(*parsedExpression.getChild(i));
-        // Boolean functions are non-overload functions. We cast input to BOOL.
-        child = implicitCastIfNecessary(child, BOOL);
-        children.push_back(move(child));
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
-    auto expressionType = parsedExpression.getExpressionType();
+    return bindBooleanExpression(parsedExpression.getExpressionType(), children);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
+    ExpressionType expressionType, const expression_vector& children) {
+    expression_vector childrenAfterCast;
+    for (auto& child : children) {
+        childrenAfterCast.push_back(implicitCastIfNecessary(child, BOOL));
+    }
     auto functionName = expressionTypeToString(expressionType);
-    auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, children);
-    auto selectFunc = VectorBooleanOperations::bindSelectFunction(expressionType, children);
-    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
-        move(execFunc), move(selectFunc), uniqueExpressionName);
+    auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, childrenAfterCast);
+    auto selectFunc =
+        VectorBooleanOperations::bindSelectFunction(expressionType, childrenAfterCast);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL),
+        move(childrenAfterCast), move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
-    vector<DataType> childrenTypes;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        childrenTypes.push_back(child->dataType);
         children.push_back(move(child));
     }
+    return bindComparisonExpression(parsedExpression.getExpressionType(), std::move(children));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
+    ExpressionType expressionType, const expression_vector& children) {
     auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
-    auto expressionType = parsedExpression.getExpressionType();
-    auto functionName = expressionTypeToString(parsedExpression.getExpressionType());
+    auto functionName = expressionTypeToString(expressionType);
+    vector<DataType> childrenTypes;
+    for (auto& child : children) {
+        childrenTypes.push_back(child->dataType);
+    }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {

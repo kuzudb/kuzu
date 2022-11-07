@@ -166,6 +166,7 @@ public:
 
     void addPropertyKeyValPair(const Expression& variable, expression_pair propertyKeyValPair);
     vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
+    vector<expression_pair> getAllPropertyKeyValPairs() const;
 
     bool hasPropertyKeyValPair(const Expression& variable, const string& propertyName) const;
     expression_pair getPropertyKeyValPair(

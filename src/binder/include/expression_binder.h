@@ -24,8 +24,12 @@ public:
 
 private:
     shared_ptr<Expression> bindBooleanExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindBooleanExpression(
+        ExpressionType expressionType, const expression_vector& children);
 
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindComparisonExpression(
+        ExpressionType expressionType, const expression_vector& children);
 
     shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
 

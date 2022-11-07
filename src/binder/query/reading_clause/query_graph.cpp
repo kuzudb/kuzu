@@ -252,6 +252,16 @@ vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
     return result;
 }
 
+vector<expression_pair> PropertyKeyValCollection::getAllPropertyKeyValPairs() const {
+    vector<expression_pair> result;
+    for (auto& [varName, keyValPairsMap] : varNameToPropertyKeyValPairs) {
+        for (auto& [propertyName, keyValPairs] : keyValPairsMap) {
+            result.push_back(keyValPairs);
+        }
+    }
+    return result;
+}
+
 bool PropertyKeyValCollection::hasPropertyKeyValPair(
     const Expression& variable, const string& propertyName) const {
     auto varName = variable.getUniqueName();
