@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 base_dir = os.path.dirname(__file__)
 bazel_workspace_root = os.path.realpath(os.path.join(base_dir, "..", ".."))
 env_vars = os.environ.copy()
+env_vars['PYTHON_BIN_PATH'] = sys.executable
 if sys.platform == "linux":
     env_vars["CC"] = "gcc"
     env_vars["CXX"] = "g++"
@@ -23,7 +24,8 @@ def cleanup():
 
 
 def build():
-    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC', '--cxxopt=-DNDEBUG']
+    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC',
+            '--cxxopt=-DNDEBUG', '--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1']
     if sys.platform == 'darwin':
         archflags = os.getenv("ARCHFLAGS", "")
         if len(archflags) > 0:
