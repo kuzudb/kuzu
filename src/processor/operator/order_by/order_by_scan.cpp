@@ -91,6 +91,7 @@ void OrderByScan::initMergedKeyBlockScanStateIfNecessary() {
         return;
     }
     mergedKeyBlockScanState = make_unique<MergedKeyBlockScanState>();
+    mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock = 0;
     mergedKeyBlockScanState->mergedKeyBlock = sharedState->sortedKeyBlocks->front();
     mergedKeyBlockScanState->tupleIdxAndFactorizedTableIdxOffset =
         mergedKeyBlockScanState->mergedKeyBlock->getNumBytesPerTuple() - 8;

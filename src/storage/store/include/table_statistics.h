@@ -20,6 +20,9 @@ class TableStatistics {
 
 public:
     TableStatistics() = default;
+
+    virtual ~TableStatistics() = default;
+
     explicit TableStatistics(uint64_t numTuples) : numTuples{numTuples} {
         assert(numTuples != UINT64_MAX);
     }
@@ -50,6 +53,8 @@ class TablesStatistics {
 public:
     TablesStatistics();
 
+    virtual ~TablesStatistics() = default;
+
     inline void writeTablesStatisticsFileForWALRecord(const string& directory) {
         saveToFile(directory, DBFileType::WAL_VERSION, TransactionType::WRITE);
     }
@@ -73,8 +78,6 @@ public:
     inline void removeTableStatistic(table_id_t tableID) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.erase(tableID);
     }
-
-    virtual ~TablesStatistics() = default;
 
 protected:
     virtual inline string getTableTypeForPrinting() const = 0;
