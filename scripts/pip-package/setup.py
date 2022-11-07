@@ -23,7 +23,8 @@ class BazelExtension(Extension):
 class BazelBuild(build_ext):
     def build_extension(self, ext: BazelExtension) -> None:
         self.announce("Building native extension...", level=3)
-        args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3']
+        args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3',
+                '--cxxopt=-fPIC', '--cxxopt=-DNDEBUG']
         # Pass the platform architecture for arm64 to bazel for
         # cross-compilation.
         if sys.platform == 'darwin':

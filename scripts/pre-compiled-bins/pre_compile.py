@@ -23,7 +23,7 @@ def cleanup():
 
 
 def build():
-    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3']
+    args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC', '--cxxopt=-DNDEBUG']
     if sys.platform == 'darwin':
         archflags = os.getenv("ARCHFLAGS", "")
         if len(archflags) > 0:
@@ -60,20 +60,33 @@ def collect_files():
 
 def merge_libs():
     logging.info("Merging objects to shared lib...")
-    cxx = "clang++" if sys.platform == "darwin" else "g++"
-    output_path = os.path.realpath(os.path.join(base_dir, "libgraphflow.so"))
-    input_files = []
-    for root, _, files in os.walk(os.path.join(base_dir, "objs")):
-        for file in files:
-            if file.endswith(".o"):
-                input_files.append(os.path.join(root, file))
+
     if sys.platform == 'darwin':
+
+        cxx = "clang++"
+        output_name = "libgraphflowdb.dylib"
         archflags = os.getenv("ARCHFLAGS", "")
         if "arm64" in archflags and platform.machine() == "x86_64":
             additional_args = ["--target=arm64-apple-darwin"]
         else:
             additional_args = []
-    cxx_cmd = [cxx, *additional_args, "-shared", "-o", output_path]
+        linker_args = ["-dynamiclib", "-undefined", "dynamic_lookup",
+                       "-Wl,-install_name,@rpath/libgraphflowdb.dylib"]
+
+    else:
+        cxx = "g++"
+        output_name = "libgraphflowdb.so"
+        additional_args = []
+        linker_args = ["-shared", "-fPIC", "-Wl,-soname,libgraphflowdb.so"]
+
+    output_path = os.path.realpath(os.path.join(base_dir, output_name))
+    input_files = []
+    for root, _, files in os.walk(os.path.join(base_dir, "objs")):
+        for file in files:
+            if file.endswith(".o"):
+                input_files.append(os.path.join(root, file))
+
+    cxx_cmd = [cxx, *additional_args, *linker_args, "-o", output_path]
     logging.debug("Running command: %s (input objects truncated)..." % cxx_cmd)
     cxx_cmd.extend(input_files)
     subprocess.run(cxx_cmd, cwd=base_dir, env=env_vars, check=True)

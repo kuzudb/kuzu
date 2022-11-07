@@ -30,7 +30,10 @@ jobs:
           path: |
             ./scripts/pre-compiled-bins/graphflowdb
             ./scripts/pre-compiled-bins/include
-            ./scripts/pre-compiled-bins/libgraphflow.so
+            ./scripts/pre-compiled-bins/libgraphflowdb.dylib
+
+      - name: cleanup
+        run: rm -rf ./scripts/pre-compiled-bins/graphflowdb ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libgraphflowdb.dylib
 
       - name: build-x86_64
         run: python3 pre_compile.py
@@ -45,7 +48,7 @@ jobs:
           path: |
             ./scripts/pre-compiled-bins/graphflowdb
             ./scripts/pre-compiled-bins/include
-            ./scripts/pre-compiled-bins/libgraphflow.so
+            ./scripts/pre-compiled-bins/libgraphflowdb.dylib
 
       - name: cleanup
-        run: rm -rf ./scripts/pre-compiled-bins/graphflowdb ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libgraphflow.so
+        run: rm -rf ./scripts/pre-compiled-bins/graphflowdb ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libgraphflowdb.dylib
