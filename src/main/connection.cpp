@@ -304,10 +304,6 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         queryResult->querySummary = move(preparedStatement->querySummary);
         return queryResult;
     }
-    // NOTE: If EXPLAIN is enabled, we still need to init physical plan to register profiler because
-    // our plan printer will try to read from profiler metrics regardless whether it's enabled or
-    // not. A better solution could be that we don't print any metric during EXPLAIN.
-    preparedStatement->physicalPlan->lastOperator->init(executionContext.get());
     preparedStatement->createPlanPrinter(move(profiler));
     queryResult->querySummary = move(preparedStatement->querySummary);
     return queryResult;

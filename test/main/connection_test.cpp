@@ -119,3 +119,18 @@ TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
         FAIL();
     } catch (ConnectionException& e) {}
 }
+
+// These two tests are designed to make sure that the explain and profile statements don't create a
+// segmentation fault.
+TEST_F(ApiTest, Explain) {
+    auto result = conn->query("EXPLAIN MATCH (a:person)-[:knows]->(b:person), "
+                              "(b)-[:knows]->(a) RETURN a.fName, b.fName ORDER BY a.ID");
+    ASSERT_TRUE(result->isSuccess());
+}
+
+TEST_F(ApiTest, Profile) {
+    auto result =
+        conn->query("EXPLAIN MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE "
+                    "b.fName='Farooq' } RETURN a.ID, min(a.age)");
+    ASSERT_TRUE(result->isSuccess());
+}
