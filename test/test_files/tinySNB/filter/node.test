@@ -19,7 +19,7 @@
 5
 
 -NAME PersonNodesAgeFilteredTest5
--QUERY MATCH (a:person) WHERE a.age = 25 RETURN COUNT(*)
+-QUERY MATCH (a:person {age:25}) RETURN COUNT(*)
 ---- 1
 1
 
@@ -49,7 +49,7 @@
 3
 
 -NAME PersonNodesIsWorkerFilteredTest
--QUERY MATCH (a:person) WHERE a.isWorker = true RETURN COUNT(*)
+-QUERY MATCH (a:person {isWorker:true}) RETURN COUNT(*)
 ---- 1
 4
 
@@ -195,13 +195,13 @@
 #2
 
 -NAME nodeCrossProduct
--QUERY MATCH (a:person), (b:person) WHERE a.ID = b.ID AND a.ID < 4 RETURN COUNT(*)
+-QUERY MATCH (a:person), (b:person {ID:a.ID}) WHERE a.ID < 4 RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 3
 
 -NAME nodeCrossProduct
--QUERY MATCH (a:person), (b:person) WHERE a.ID = 1000 RETURN COUNT(*)
+-QUERY MATCH (a:person {ID:1000}), (b:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 0

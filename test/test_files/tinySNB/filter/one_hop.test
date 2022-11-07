@@ -9,7 +9,7 @@
 8
 
 -NAME OneHopKnowsFilteredTest
--QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.gender = 1 AND b.gender = 2 RETURN COUNT(*)
+-QUERY MATCH (a:person {gender:1})-[e:knows]->(b:person{gender:2}) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
@@ -40,7 +40,14 @@
 #1
 
 -NAME OneHopCrossProduct
--QUERY MATCH (a:person), (c:person)-[:knows]->(d:person) WHERE a.age = 30 AND d.fName='Greg' RETURN a.ID, c.ID
+-QUERY MATCH (a:person {age:30}), (c:person)-[:knows]->(d:person{fName:'Greg'}) RETURN a.ID, c.ID
 -ENUMERATE
 ---- 1
 2|7
+
+-NAME EdgeFilter
+-QUERY MATCH (a:person)-[e1:knows {date:date('1905-12-12')}]->(b:person) RETURN a.ID, b.ID
+-ENUMERATE
+---- 2
+7|8
+7|9
