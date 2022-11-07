@@ -10,12 +10,9 @@ int main(int argc, char* argv[]) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<string> inputDirFlag(
         parser, "", "Path to serialized db files.", {'i', "inputDir"}, args::Options::Required);
-    // The default size of buffer pool for holding default page sizes is 1 GB
-    args::ValueFlag<uint64_t> defaultPagedBPSizeInMBFlag(parser, "",
-        "Size of default paged buffer manager in megabytes", {'d', "defaultPageBPSize"}, 1024);
-    // The default size of buffer pool for holding default page sizes is 512 MB
-    args::ValueFlag<uint64_t> largePagedBPSizeInMBFlag(parser, "",
-        "Size of large paged buffer manager in megabytes", {'l', "largePageBPSize"}, 512);
+    args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
+        "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
+        1024);
     args::Flag inMemoryFlag(parser, "", "Runs the system in in-memory mode", {'m', "in-memory"});
     try {
         parser.ParseCLI(argc, argv);
@@ -25,13 +22,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     auto serializedGraphPath = args::get(inputDirFlag);
-    uint64_t defaultPagedBPSizeInMB = args::get(defaultPagedBPSizeInMBFlag);
-    uint64_t largePagedBPSizeInMB = args::get(largePagedBPSizeInMBFlag);
+    uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
     cout << "serializedGraphPath: " << serializedGraphPath << endl;
     cout << "inMemory: " << (inMemoryFlag ? "true" : "false") << endl;
-    cout << "defaultPagedBPSizeInMB: " << to_string(defaultPagedBPSizeInMB) << endl;
-    cout << "largePagedBPSizeInMB: " << to_string(largePagedBPSizeInMB) << endl;
-    SystemConfig systemConfig(defaultPagedBPSizeInMB << 20, largePagedBPSizeInMB << 20);
+    cout << "bufferPoolSizeInMB: " << to_string(bpSizeInMB) << endl;
+    SystemConfig systemConfig(bpSizeInMB << 20);
     DatabaseConfig databaseConfig(serializedGraphPath, inMemoryFlag);
     auto shell = EmbeddedShell(databaseConfig, systemConfig);
     shell.run();

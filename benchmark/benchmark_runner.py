@@ -143,8 +143,7 @@ def run_graphflowdb(serialized_graph_path):
             '--warmup=' + str(num_warmup),
             '--run=' + str(num_run),
             '--out=' + benchmark_log_dir + '/' + group,
-            '--default-bm=20480',
-            '--large-bm=20480',
+            '--bm-size=81920',
             '--profile'
         ]
         process = subprocess.Popen(tuple(benchmark_cmd), stdout=subprocess.PIPE)

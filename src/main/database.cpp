@@ -44,8 +44,6 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
-    // Currently we are resizing both buffer pools to the same size. If needed we can
-    // extend this functionality.
     systemConfig.defaultPageBufferPoolSize = newSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO;
     systemConfig.largePageBufferPoolSize = newSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
     bufferManager->resize(

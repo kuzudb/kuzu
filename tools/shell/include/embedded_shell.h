@@ -19,7 +19,7 @@ public:
 private:
     void setNumThreads(const string& numThreadsString);
 
-    void setBufferMangerSize(const string& bufferManagerSizeString);
+    void setBufferManagerSize(const string& bufferManagerSizeString);
 
     void printNodeSchema(const string& tableName);
     void printRelSchema(const string& tableName);
