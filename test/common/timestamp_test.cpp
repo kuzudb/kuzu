@@ -14,6 +14,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::FromDatetime(Date::FromDate(1968, 12, 42), Time::FromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Date out of range: 1968-12-42.");
     } catch (exception& e) { FAIL(); }
 
     // 2021 is not a leap year, February only has 28 days.
@@ -21,6 +22,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::FromDatetime(Date::FromDate(2021, 2, 29), Time::FromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Date out of range: 2021-2-29.");
     } catch (exception& e) { FAIL(); }
 
     // hour is out of range
@@ -28,6 +30,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::FromDatetime(Date::FromDate(1968, 12, 22), Time::FromTime(25, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 25:32:51[.0].");
     } catch (exception& e) { FAIL(); }
 
     // second is out of range
@@ -35,6 +38,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::FromDatetime(Date::FromDate(2021, 2, 28), Time::FromTime(5, 52, 70));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:70[.0].");
     } catch (exception& e) { FAIL(); }
 
     // microsecond is out of rarnge
@@ -42,6 +46,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::FromDatetime(Date::FromDate(2021, 2, 28), Time::FromTime(5, 52, 42, 1000002));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:42[.1000002].");
     } catch (exception& e) { FAIL(); }
 
     EXPECT_EQ(
@@ -68,27 +73,6 @@ TEST(TimestampTests, Convert) {
 }
 
 TEST(TimestampTests, FromCString) {
-    try {
-        // missing day
-        Timestamp::FromCString("2112-08 08:21:23.005612", strlen("2112-08 08:21:23.005612"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-
-    try {
-        // missing second
-        Timestamp::FromCString("2112-08-04 08:23.005612", strlen("2112-08-04 08:23.005612"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-
-    try {
-        // missing a digit in day
-        Timestamp::FromCString("2112-08-0", strlen("2112-08-0"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-
     EXPECT_EQ(
         Timestamp::FromCString("2112-08-21 08:21:23.005612", strlen("2112-08-21 08:21:23.005612"))
             .value,
@@ -125,33 +109,6 @@ TEST(TimestampTests, FromCString) {
         Timestamp::FromCString("1992-04-28T09:22:56-06:30", strlen("1992-04-28T09:22:56-06:30"))
             .value,
         704476376000000);
-    try {
-        // Invalid timezone format.
-        Timestamp::FromCString("1992-04-28T09:33:56-XX:DD", strlen("1992-04-28T09:33:56-XX:DD"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-    try {
-        // Missing +/- sign.
-        Timestamp::FromCString(
-            "2112-08-21 08:21:23.005612Z02:00", strlen("2112-08-21 08:21:23.005612Z02:00"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-    try {
-        // Incorrect timezone minutes.
-        Timestamp::FromCString(
-            "2112-08-21 08:21:23.005612Z+02:100", strlen("2112-08-21 08:21:23.005612Z+02:100"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
-    try {
-        // Incorrect timezone hours.
-        Timestamp::FromCString(
-            "2112-08-21 08:21:23.005612Z+021", strlen("2112-08-21 08:21:23.005612Z+021"));
-        FAIL();
-    } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
 }
 
 TEST(TimestampTests, toString) {

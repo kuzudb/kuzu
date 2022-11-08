@@ -179,7 +179,7 @@ date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!Date::IsValid(year, month, day)) {
         throw ConversionException(
-            StringUtils::string_format("Date out of range: %d-%d-%d", year, month, day));
+            StringUtils::string_format("Date out of range: %d-%d-%d.", year, month, day));
     }
     while (year < 1970) {
         year += Date::YEAR_INTERVAL;
@@ -295,8 +295,8 @@ date_t Date::FromCString(const char* buf, uint64_t len) {
     date_t result;
     uint64_t pos;
     if (!TryConvertDate(buf, len, pos, result)) {
-        throw ConversionException(
-            "date string " + string(buf, len) + " is not in expected format of (YYYY-MM-DD)");
+        throw ConversionException("Error occurred during parsing date. Given: \"" +
+                                  string(buf, len) + "\". Expected format: (YYYY-MM-DD)");
     }
     return result;
 }
