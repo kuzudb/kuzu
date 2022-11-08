@@ -199,25 +199,25 @@ ListsWithAdjAndPropertyListsUpdateStore::getInMemListWithDataFromUpdateStoreOnly
 void StringPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     ListsWithAdjAndPropertyListsUpdateStore::readFromLargeList(valueVector, listHandle);
-    diskOverflowFile.readStringsToVector(*valueVector);
+    diskOverflowFile.readStringsToVector(Transaction::getDummyReadOnlyTrx().get(), *valueVector);
 }
 
 void StringPropertyLists::readFromSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     ListsWithAdjAndPropertyListsUpdateStore::readFromSmallList(valueVector, listHandle);
-    diskOverflowFile.readStringsToVector(*valueVector);
+    diskOverflowFile.readStringsToVector(Transaction::getDummyReadOnlyTrx().get(), *valueVector);
 }
 
 void ListPropertyLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     ListsWithAdjAndPropertyListsUpdateStore::readFromLargeList(valueVector, listHandle);
-    diskOverflowFile.readListsToVector(*valueVector);
+    diskOverflowFile.readListsToVector(Transaction::getDummyReadOnlyTrx().get(), *valueVector);
 }
 
 void ListPropertyLists::readFromSmallList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     ListsWithAdjAndPropertyListsUpdateStore::readFromSmallList(valueVector, listHandle);
-    diskOverflowFile.readListsToVector(*valueVector);
+    diskOverflowFile.readListsToVector(Transaction::getDummyReadOnlyTrx().get(), *valueVector);
 }
 
 void AdjLists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {

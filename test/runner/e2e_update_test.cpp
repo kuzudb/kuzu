@@ -262,12 +262,17 @@ TEST_F(TinySnbUpdateTest, InsertNodeWithStringTest) {
 }
 
 TEST_F(TinySnbUpdateTest, InsertNodeWithListTest) {
+    auto groundTruth = vector<string>{"10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]",
+        "11|[1,2,3]|[A,this is a long name]", "9|[1]|[Grad]"};
+    conn->beginWriteTransaction();
     conn->query(
         "CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']});");
     auto result = conn->query("MATCH (a:person) WHERE a.ID > 8 "
                               "RETURN a.ID, a.workedHours,a.usedNames");
-    auto groundTruth = vector<string>{"10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]",
-        "11|[1,2,3]|[A,this is a long name]", "9|[1]|[Grad]"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    conn->commit();
+    result = conn->query("MATCH (a:person) WHERE a.ID > 8 "
+                         "RETURN a.ID, a.workedHours,a.usedNames");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
