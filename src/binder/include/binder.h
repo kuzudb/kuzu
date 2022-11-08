@@ -3,32 +3,19 @@
 #include "expression_binder.h"
 #include "query_normalizer.h"
 
-#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
-#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
-#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
-#include "src/binder/bound_ddl/include/bound_drop_table.h"
 #include "src/binder/query/include/bound_regular_query.h"
-#include "src/binder/query/reading_clause/include/bound_unwind_clause.h"
-#include "src/binder/query/updating_clause/include/bound_create_clause.h"
-#include "src/binder/query/updating_clause/include/bound_delete_clause.h"
-#include "src/binder/query/updating_clause/include/bound_set_clause.h"
-#include "src/parser/copy_csv/include/copy_csv.h"
-#include "src/parser/ddl/include/create_node_clause.h"
+#include "src/common/include/csv_reader/csv_reader.h"
 #include "src/parser/ddl/include/create_rel_clause.h"
-#include "src/parser/ddl/include/drop_table.h"
 #include "src/parser/query/include/regular_query.h"
-#include "src/parser/query/reading_clause/include/unwind_clause.h"
-#include "src/parser/query/updating_clause/include/create_clause.h"
 
 using namespace graphflow::parser;
 using namespace graphflow::catalog;
 
-namespace spdlog {
-class logger;
-}
-
 namespace graphflow {
 namespace binder {
+
+class BoundCreateNode;
+class BoundCreateRel;
 
 class Binder {
     friend class ExpressionBinder;
@@ -40,68 +27,79 @@ public:
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
-    unique_ptr<BoundRegularQuery> bindQuery(const RegularQuery& regularQuery);
-
-    unique_ptr<BoundCreateNodeClause> bindCreateNodeClause(
-        const CreateNodeClause& createNodeClause);
-
-    unique_ptr<BoundCreateRelClause> bindCreateRelClause(const CreateRelClause& createRelClause);
-
-    unique_ptr<BoundCopyCSV> bindCopyCSV(const CopyCSV& copyCSV);
-
-    unique_ptr<BoundDropTable> bindDropTable(const DropTable& dropTable);
-
     inline unordered_map<string, shared_ptr<Literal>> getParameterMap() {
         return expressionBinder.parameterMap;
     }
 
 private:
-    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
+    shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
+    table_id_t bindRelTable(const string& tableName) const;
+    table_id_t bindNodeTable(const string& tableName) const;
+
+    /*** bind DDL ***/
+    unique_ptr<BoundStatement> bindCreateNodeClause(const Statement& statement);
+    unique_ptr<BoundStatement> bindCreateRelClause(const Statement& statement);
+    unique_ptr<BoundStatement> bindDropTable(const Statement& statement);
+
+    vector<PropertyNameDataType> bindPropertyNameDataTypes(
+        vector<pair<string, string>> propertyNameDataTypes);
+    uint32_t bindPrimaryKey(string pkColName, vector<pair<string, string>> propertyNameDataTypes);
+
+    /*** bind copy csv ***/
+    unique_ptr<BoundStatement> bindCopyCSV(const Statement& statement);
+
+    CSVReaderConfig bindParsingOptions(
+        const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions);
+    void bindStringParsingOptions(
+        CSVReaderConfig& csvReaderConfig, const string& optionName, string& optionValue);
+    char bindParsingOptionValue(string value);
+
+    /*** bind query ***/
+    unique_ptr<BoundRegularQuery> bindQuery(const RegularQuery& regularQuery);
+    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
 
+    /*** bind reading clause ***/
     unique_ptr<BoundReadingClause> bindReadingClause(const ReadingClause& readingClause);
-    unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
-    unique_ptr<BoundUnwindClause> bindUnwindClause(const UnwindClause& unwindClause);
+    unique_ptr<BoundReadingClause> bindMatchClause(const ReadingClause& readingClause);
+    unique_ptr<BoundReadingClause> bindUnwindClause(const ReadingClause& readingClause);
 
+    /*** bind updating clause ***/
     unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindCreateClause(const UpdatingClause& updatingClause);
+    unique_ptr<BoundUpdatingClause> bindSetClause(const UpdatingClause& updatingClause);
+    unique_ptr<BoundUpdatingClause> bindDeleteClause(const UpdatingClause& updatingClause);
+
     unique_ptr<BoundCreateNode> bindCreateNode(
         shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
     unique_ptr<BoundCreateRel> bindCreateRel(
         shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
-    unique_ptr<BoundUpdatingClause> bindSetClause(const UpdatingClause& updatingClause);
-    unique_ptr<BoundUpdatingClause> bindDeleteClause(const UpdatingClause& updatingClause);
 
+    /*** bind projection clause ***/
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
-
     unique_ptr<BoundReturnClause> bindReturnClause(
         const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery);
 
     expression_vector bindProjectionExpressions(
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
-
     // For RETURN clause, we write variable "v" as all properties of "v"
     expression_vector rewriteProjectionExpressions(const expression_vector& expressions);
-
     expression_vector rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression);
-
     expression_vector rewriteRelAsAllProperties(const shared_ptr<Expression>& expression);
 
     void bindOrderBySkipLimitIfNecessary(
         BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);
-
     expression_vector bindOrderByExpressions(
         const vector<unique_ptr<ParsedExpression>>& orderByExpressions);
-
     uint64_t bindSkipLimitExpression(const ParsedExpression& expression);
 
     void addExpressionsToScope(const expression_vector& projectionExpressions);
 
-    shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
-
+    /*** bind graph pattern ***/
     pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
         const vector<unique_ptr<PatternElement>>& graphPattern);
+
     unique_ptr<QueryGraph> bindPatternElement(
         const PatternElement& patternElement, PropertyKeyValCollection& collection);
 
@@ -112,27 +110,7 @@ private:
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
 
-    table_id_t bindRelTable(const string& tableName) const;
-
-    table_id_t bindNodeTableName(const string& tableName) const;
-
-    static uint32_t bindPrimaryKey(
-        string pkColName, vector<pair<string, string>> propertyNameDataTypes);
-
-    static vector<PropertyNameDataType> bindPropertyNameDataTypes(
-        vector<pair<string, string>> propertyNameDataTypes);
-
-    SrcDstTableIDs bindRelConnections(RelConnection relConnections) const;
-
-    CSVReaderConfig bindParsingOptions(
-        const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions);
-
-    void bindStringParsingOptions(
-        CSVReaderConfig& csvReaderConfig, const string& copyOptionName, string& copyOptionValue);
-
-    static char bindParsingOptionValue(string parsingOptionValue);
-
-    /******* validations *********/
+    /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
     // there is nothing to left join on.
@@ -159,21 +137,17 @@ private:
 
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
 
-    static void validatePrimaryKey(
-        string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
-
-    void validateTableExist(string& tableName) const;
+    static void validateTableExist(const Catalog& _catalog, string& tableName);
 
     static bool validateStringParsingOptionName(string& parsingOptionName);
 
-    /******* helpers *********/
+    static void validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID);
 
+    /*** helpers ***/
     string getUniqueExpressionName(const string& name);
 
     unordered_map<string, shared_ptr<Expression>> enterSubquery();
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
-
-    void validateNodeTableHasNoEdge(table_id_t tableID) const;
 
 private:
     const Catalog& catalog;

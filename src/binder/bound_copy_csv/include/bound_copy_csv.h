@@ -5,10 +5,10 @@
 #include <vector>
 
 #include "src/binder/bound_statement/include/bound_statement.h"
+#include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
-#include "src/common/types/include/node_id_t.h"
 
-using namespace std;
+using namespace graphflow::catalog;
 
 namespace graphflow {
 namespace binder {

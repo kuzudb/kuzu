@@ -4,6 +4,7 @@ cc_library(
     name = "binder",
     srcs = glob([
         "*.cpp",
+        "bind/*.cpp",
     ]),
     hdrs = glob([
         "include/*.h",
