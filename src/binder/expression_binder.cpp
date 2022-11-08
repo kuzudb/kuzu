@@ -344,19 +344,47 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const shared_ptr<Expression>& expression, DataType targetType) {
+    if (targetType.typeID == ANY || expression->dataType == targetType) {
+        return expression;
+    }
+    if (expression->dataType.typeID == ANY) {
+        resolveAnyDataType(*expression, targetType);
+        return expression;
+    }
+    return implicitCast(expression, targetType);
+}
+
+shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
-    if (expression->dataType.typeID == targetTypeID || targetTypeID == ANY) {
+    if (targetTypeID == ANY || expression->dataType.typeID == targetTypeID) {
         return expression;
     }
-    if (expression->dataType.typeID == ANY) { // resolve type for parameter expression
-        auto isParameterExpression = expression->expressionType == PARAMETER;
-        auto isNullLiteralExpression =
-            expression->expressionType == LITERAL && ((LiteralExpression&)*expression).isNull();
-        assert(isParameterExpression || isNullLiteralExpression);
-        static_pointer_cast<ParameterExpression>(expression)->setDataType(DataType(targetTypeID));
+    if (expression->dataType.typeID == ANY) {
+        if (targetTypeID == LIST) {
+            // e.g. len($1) we cannot infer the child type for $1.
+            throw BinderException("Cannot resolve recursive data type for expression " +
+                                  expression->getRawName() + ".");
+        }
+        resolveAnyDataType(*expression, DataType(targetTypeID));
         return expression;
     }
-    switch (targetTypeID) {
+    assert(targetTypeID != LIST);
+    return implicitCast(expression, DataType(targetTypeID));
+}
+
+void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targetType) {
+    if (expression.expressionType == PARAMETER) { // expression is parameter
+        ((ParameterExpression&)expression).setDataType(targetType);
+    } else { // expression is null literal
+        assert(expression.expressionType == LITERAL);
+        ((LiteralExpression&)expression).setDataType(targetType);
+    }
+}
+
+shared_ptr<Expression> ExpressionBinder::implicitCast(
+    const shared_ptr<Expression>& expression, DataType targetType) {
+    switch (targetType.typeID) {
     case BOOL: {
         return implicitCastToBool(expression);
     }
@@ -373,10 +401,10 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return implicitCastToUnstructured(expression);
     }
     default:
-        throw NotImplementedException("Expression " + expression->getRawName() + " has data type " +
-                                      Types::dataTypeToString(expression->dataType) +
-                                      " but expect " + Types::dataTypeToString(targetTypeID) +
-                                      ". Implicit cast is not supported.");
+        throw BinderException("Expression " + expression->getRawName() + " has data type " +
+                              Types::dataTypeToString(expression->dataType) + " but expect " +
+                              Types::dataTypeToString(targetType) +
+                              ". Implicit cast is not supported.");
     }
 }
 

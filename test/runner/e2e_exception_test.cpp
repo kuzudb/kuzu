@@ -113,3 +113,35 @@ TEST_F(TinySnbExceptionTest, CastStrToIntervalError) {
         "Error occurred during parsing interval. Given: \"10 "
         "years 2 days 48 hours 28 seconds microseconds\".");
 }
+
+TEST_F(TinySnbExceptionTest, SetListPropertyError) {
+    auto result = conn->query("MATCH (a:person) SET a.workedHours=['A', 'B']");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Expression ['A', 'B'] has data type STRING[] but expect INT64[]. "
+        "Implicit cast is not supported.");
+}
+
+TEST_F(TinySnbExceptionTest, ListFunctionMatchError1) {
+    auto result = conn->query("MATCH (a:person) RETURN array_concat(a.workedHours, a.age)");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Cannot match a built-in function for given function "
+        "ARRAY_CONCAT(LIST,INT64). Supported inputs are\n(LIST,LIST) -> LIST\n");
+}
+
+TEST_F(TinySnbExceptionTest, ListFunctionMatchError2) {
+    auto result = conn->query("MATCH (a:person) RETURN array_concat(a.workedHours, ['A'])");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Cannot bind LIST_CONCAT with parameter type INT64[] and STRING[].");
+}
+
+TEST_F(TinySnbExceptionTest, ListFunctionMatchError3) {
+    auto result = conn->query("MATCH (a:person) RETURN [a.age, a.fName]");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.");
+}
+
+TEST_F(TinySnbExceptionTest, ListPrepareError) {
+    auto preparedStatement = conn->prepare("MATCH (a:person) RETURN len($1)");
+    ASSERT_STREQ(preparedStatement->getErrorMessage().c_str(),
+        "Binder exception: Cannot resolve recursive data type for expression $1.");
+}

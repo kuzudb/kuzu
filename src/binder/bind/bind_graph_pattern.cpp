@@ -82,7 +82,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         auto [propertyName, rhs] = relPattern.getProperty(i);
         auto boundLhs = expressionBinder.bindRelPropertyExpression(queryRel, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryRel(queryRel);
@@ -109,7 +109,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto [propertyName, rhs] = nodePattern.getProperty(i);
         auto boundLhs = expressionBinder.bindNodePropertyExpression(queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryNode(queryNode);

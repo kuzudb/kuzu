@@ -19,7 +19,13 @@ public:
         assert(dataTypeID != LIST);
     }
 
-    bool isNull() const { return literal->isNull(); }
+    inline bool isNull() const { return literal->isNull(); }
+
+    inline void setDataType(const DataType& targetType) {
+        assert(dataType.typeID == ANY && isNull());
+        dataType = targetType;
+        literal->dataType = targetType;
+    }
 
     static unique_ptr<LiteralExpression> createNullLiteralExpression(DataType dataType) {
         auto nullLiteral = make_unique<Literal>();
