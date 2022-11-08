@@ -289,9 +289,12 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         }
         executingTimer.stop();
         querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->setResultHeaderAndTable(move(preparedStatement->resultHeader), move(table));
+        queryResult->setResultHeaderAndTable(preparedStatement->resultHeader, move(table));
         preparedStatement->createPlanPrinter(move(profiler));
         queryResult->querySummary = move(preparedStatement->querySummary);
+        preparedStatement->querySummary = make_unique<QuerySummary>();
+        preparedStatement->querySummary->isExplain = queryResult->querySummary->isExplain;
+        preparedStatement->querySummary->isProfile = queryResult->querySummary->isProfile;
         return queryResult;
     }
     // NOTE: If EXPLAIN is enabled, we still need to init physical plan to register profiler because

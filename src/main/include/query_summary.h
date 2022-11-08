@@ -26,7 +26,7 @@ private:
     double executionTime = 0;
     bool isExplain = false;
     bool isProfile = false;
-    std::unique_ptr<PlanPrinter> planPrinter;
+    std::shared_ptr<PlanPrinter> planPrinter;
 };
 
 } // namespace main

@@ -28,11 +28,11 @@ public:
     inline string getErrorMessage() const { return errMsg; }
 
     inline void createResultHeader(expression_vector expressions) {
-        resultHeader = make_unique<QueryResultHeader>(move(expressions));
+        resultHeader = make_shared<QueryResultHeader>(move(expressions));
     }
 
     inline void createPlanPrinter(unique_ptr<Profiler> profiler) {
-        querySummary->planPrinter = make_unique<PlanPrinter>(move(physicalPlan), move(profiler));
+        querySummary->planPrinter = make_unique<PlanPrinter>(physicalPlan, move(profiler));
     }
 
     inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
@@ -44,8 +44,8 @@ private:
 
     unique_ptr<QuerySummary> querySummary;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
-    unique_ptr<QueryResultHeader> resultHeader;
-    unique_ptr<PhysicalPlan> physicalPlan;
+    shared_ptr<QueryResultHeader> resultHeader;
+    shared_ptr<PhysicalPlan> physicalPlan;
 };
 
 } // namespace main

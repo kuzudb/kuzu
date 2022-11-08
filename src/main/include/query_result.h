@@ -29,9 +29,9 @@ public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
 
-    inline void setResultHeaderAndTable(std::unique_ptr<QueryResultHeader> header,
+    inline void setResultHeaderAndTable(std::shared_ptr<QueryResultHeader> header,
         std::shared_ptr<processor::FactorizedTable> factorizedTable) {
-        this->header = move(header);
+        this->header = header;
         this->factorizedTable = move(factorizedTable);
         resetIterator();
     }
@@ -67,7 +67,7 @@ private:
     bool success = true;
     std::string errMsg;
 
-    std::unique_ptr<QueryResultHeader> header;
+    std::shared_ptr<QueryResultHeader> header;
     std::shared_ptr<processor::FactorizedTable> factorizedTable;
     std::unique_ptr<processor::FlatTupleIterator> iterator;
     std::unique_ptr<QuerySummary> querySummary;

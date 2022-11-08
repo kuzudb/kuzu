@@ -86,8 +86,8 @@ private:
 class PlanPrinter {
 
 public:
-    PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan, unique_ptr<Profiler> profiler)
-        : physicalPlan{move(physicalPlan)}, profiler{move(profiler)} {}
+    PlanPrinter(shared_ptr<PhysicalPlan> physicalPlan, unique_ptr<Profiler> profiler)
+        : physicalPlan{physicalPlan}, profiler{move(profiler)} {}
 
     inline nlohmann::json printPlanToJson() {
         return toJson(physicalPlan->lastOperator.get(), *profiler);
@@ -109,7 +109,7 @@ private:
     nlohmann::json toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
 
 private:
-    unique_ptr<PhysicalPlan> physicalPlan;
+    shared_ptr<PhysicalPlan> physicalPlan;
     unique_ptr<Profiler> profiler;
 };
 
