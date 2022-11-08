@@ -111,7 +111,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     uint32_t vectorPos, PageElementCursor& cursor) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, cursor.pageIdx, *wal, transaction->isReadOnly());
+            fileHandle, cursor.pageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto vectorBytesOffset = vectorPos * elementSize;
     auto frameBytesOffset = cursor.elemPosInPage * elementSize;
@@ -171,7 +171,7 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_string_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(diskOverflowFile.readString(Transaction::getDummyReadOnlyTrx().get(), gfString));
+    return Literal(diskOverflowFile.readString(TransactionType::READ_ONLY, gfString));
 }
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
@@ -198,8 +198,7 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(
-        diskOverflowFile.readList(Transaction::getDummyReadOnlyTrx().get(), gfList, dataType),
-        dataType);
+        diskOverflowFile.readList(TransactionType::READ_ONLY, gfList, dataType), dataType);
 }
 
 } // namespace storage

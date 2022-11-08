@@ -38,11 +38,21 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
                                                 nodeTableSchema->tableID, DBFileType::ORIGINAL),
             0 /* numNodes */);
     initLargeListPageListsAndSaveToFile(unstrPropertyLists.get());
-    auto IDIndex = make_unique<HashIndexBuilder>(
-        StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
-        nodeTableSchema->getPrimaryKey().dataType);
-    IDIndex->bulkReserve(0 /* numNodes */);
-    IDIndex->flush();
+    if (nodeTableSchema->getPrimaryKey().dataType.typeID == INT64) {
+        auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
+            StorageUtils::getNodeIndexFName(
+                directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
+            nodeTableSchema->getPrimaryKey().dataType);
+        pkIndex->bulkReserve(0 /* numNodes */);
+        pkIndex->flush();
+    } else {
+        auto pkIndex = make_unique<HashIndexBuilder<gf_string_t>>(
+            StorageUtils::getNodeIndexFName(
+                directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
+            nodeTableSchema->getPrimaryKey().dataType);
+        pkIndex->bulkReserve(0 /* numNodes */);
+        pkIndex->flush();
+    }
 }
 
 void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {

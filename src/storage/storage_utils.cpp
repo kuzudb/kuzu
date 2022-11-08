@@ -16,6 +16,9 @@ unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     case NODE_INDEX: {
         fName = getNodeIndexFName(
             directory, storageStructureID.nodeIndexID.tableID, DBFileType::ORIGINAL);
+        if (storageStructureID.isOverflow) {
+            fName = getOverflowFileName(fName);
+        }
     } break;
     default: {
         throw RuntimeException("Unsupported StorageStructureID in "

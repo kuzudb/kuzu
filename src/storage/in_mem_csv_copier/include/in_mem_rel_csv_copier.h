@@ -55,8 +55,9 @@ private:
     void sortAndCopyOverflowValues();
 
     static void inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-        vector<DataType>& nodeIDTypes, const map<table_id_t, unique_ptr<HashIndex>>& IDIndexes,
-        Transaction* transaction, const Catalog& catalog, vector<bool> requireToReadTableLabels);
+        vector<DataType>& nodeIDTypes,
+        const map<table_id_t, unique_ptr<PrimaryKeyIndex>>& pkIndexes, Transaction* transaction,
+        const Catalog& catalog, vector<bool> requireToReadTableLabels);
     static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
         const vector<Property>& properties,
@@ -99,7 +100,7 @@ private:
     RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;
     unique_ptr<Transaction> dummyReadOnlyTrx;
-    map<table_id_t, unique_ptr<HashIndex>> IDIndexes;
+    map<table_id_t, unique_ptr<PrimaryKeyIndex>> pkIndexes;
     vector<map<table_id_t, unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
     vector<map<table_id_t, atomic<uint64_t>>> directionNumRelsPerTable{2};
     vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};

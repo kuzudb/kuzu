@@ -16,8 +16,8 @@ InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outp
     startRelID = relsStatistics->getNextRelID(dummyReadOnlyTrx.get());
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     for (auto& nodeTableID : relTableSchema->getAllNodeTableIDs()) {
-        assert(!IDIndexes.contains(nodeTableID));
-        IDIndexes[nodeTableID] = make_unique<HashIndex>(
+        assert(!pkIndexes.contains(nodeTableID));
+        pkIndexes[nodeTableID] = make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
             catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
             *bufferManager, nullptr /* wal */);
@@ -197,7 +197,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
-        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
+        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->pkIndexes,
             copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
@@ -313,7 +313,7 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
 }
 
 void InMemRelCSVCopier::inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-    vector<DataType>& nodeIDTypes, const map<table_id_t, unique_ptr<HashIndex>>& IDIndexes,
+    vector<DataType>& nodeIDTypes, const map<table_id_t, unique_ptr<PrimaryKeyIndex>>& pkIndexes,
     Transaction* transaction, const Catalog& catalog, vector<bool> requireToReadTableLabels) {
     for (auto& relDirection : REL_DIRECTIONS) {
         reader.hasNextToken();
@@ -331,15 +331,15 @@ void InMemRelCSVCopier::inferTableIDsAndOffsets(CSVReader& reader, vector<nodeID
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
             auto key = TypeUtils::convertToInt64(keyStr);
-            if (!IDIndexes.at(nodeIDs[relDirection].tableID)
+            if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, key, nodeIDs[relDirection].offset)) {
-                throw CopyCSVException("Cannot find key: " + to_string(key) + " in the IDIndex.");
+                throw CopyCSVException("Cannot find key: " + to_string(key) + " in the pkIndex.");
             }
         } break;
         case STRING: {
-            if (!IDIndexes.at(nodeIDs[relDirection].tableID)
+            if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, keyStr, nodeIDs[relDirection].offset)) {
-                throw CopyCSVException("Cannot find key: " + string(keyStr) + " in the IDIndex.");
+                throw CopyCSVException("Cannot find key: " + string(keyStr) + " in the pkIndex.");
             }
         } break;
         default:
@@ -529,7 +529,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
-        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->IDIndexes,
+        inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->pkIndexes,
             copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(

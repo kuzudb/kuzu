@@ -15,10 +15,10 @@ namespace processor {
 class IndexScan : public PhysicalOperator, public SourceOperator {
 public:
     IndexScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, table_id_t tableID,
-        HashIndex* hashIndex, unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator,
+        PrimaryKeyIndex* pkIndex, unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator,
         const DataPos& outDataPos, uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString},
-          SourceOperator{std::move(resultSetDescriptor)}, tableID{tableID}, hashIndex{hashIndex},
+          SourceOperator{std::move(resultSetDescriptor)}, tableID{tableID}, pkIndex{pkIndex},
           indexKeyEvaluator{std::move(indexKeyEvaluator)}, outDataPos{outDataPos} {}
 
     PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::INDEX_SCAN; }
@@ -28,13 +28,13 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<IndexScan>(resultSetDescriptor->copy(), tableID, hashIndex,
+        return make_unique<IndexScan>(resultSetDescriptor->copy(), tableID, pkIndex,
             indexKeyEvaluator->clone(), outDataPos, id, paramsString);
     }
 
 private:
     table_id_t tableID;
-    HashIndex* hashIndex;
+    PrimaryKeyIndex* pkIndex;
     unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator;
     DataPos outDataPos;
 

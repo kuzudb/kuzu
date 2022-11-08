@@ -28,7 +28,7 @@ bool CreateNode::getNextTuples() {
         auto nodeTable = createNodeInfo->table;
         createNodeInfo->primaryKeyEvaluator->evaluate();
         auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
-        auto nodeOffset = nodeTable->addNodeAndResetProperties(transaction, primaryKeyVector);
+        auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
         auto vector = outValueVectors[i];
         auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
         nodeIDValue.tableID = nodeTable->getTableID();

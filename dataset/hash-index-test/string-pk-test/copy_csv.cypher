@@ -1,0 +1,1 @@
+COPY person FROM "dataset/hash-index-test/string-pk-test/vPerson.csv"

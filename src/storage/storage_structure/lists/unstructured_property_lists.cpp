@@ -56,9 +56,9 @@ void UnstructuredPropertyLists::prepareCommitOrRollbackIfNecessary(bool isCommit
     // updatedUnstructuredPropertyLists here instead of for example during WALReplayer when
     // modifying pages for the following reason: Note that until this function is called, no updates
     // to the files of Lists has been made. That is, so far there are no log records in WAL to
-    // indicate a change to this Lists. Therefore suppose a transaction makes changes, which results
-    // in changes to this Lists but then rolls back. Then since there are no log records, we cannot
-    // rely on the log for the WALReplayer to know that we need to rollback this
+    // indicate a change to this Lists. Therefore, suppose a transaction makes changes, which
+    // results in changes to this Lists but then rolls back. Then since there are no log records, we
+    // cannot rely on the log for the WALReplayer to know that we need to roll back this
     // unstructuredPropertyLists in memory. Therefore, we need to manually add this
     // unstructuredPropertyLists to the set of updatedUnstructuredPropertyLists to rollback when the
     // database class calls
@@ -127,7 +127,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
             value->dataType.typeID = propertyKeyDataType.dataTypeID;
             if (propertyKeyDataType.dataTypeID == STRING) {
                 diskOverflowFile.readStringToVector(
-                    transaction, value->val.strVal, vector->getOverflowBuffer());
+                    transaction->getType(), value->val.strVal, vector->getOverflowBuffer());
             }
         }
         // We skipValue regardless of whether we found a property and called
@@ -178,7 +178,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
         Literal propertyValueAsLiteral;
         if (STRING == propertyKeyDataType.dataTypeID) {
             propertyValueAsLiteral = Literal(diskOverflowFile.readString(
-                Transaction::getDummyReadOnlyTrx().get(), unstrPropertyValue.val.strVal));
+                TransactionType::READ_ONLY, unstrPropertyValue.val.strVal));
         } else {
             propertyValueAsLiteral = Literal(
                 (uint8_t*)&unstrPropertyValue.val, DataType(propertyKeyDataType.dataTypeID));

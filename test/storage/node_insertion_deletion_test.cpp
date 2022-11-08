@@ -15,7 +15,7 @@ public:
         initDBAndConnection();
     }
 
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/"; }
+    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/int64-pk/"; }
 
     void initDBAndConnection() {
         createDBAndConn();
@@ -119,6 +119,4 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     conn->beginWriteTransaction();
     ASSERT_EQ(conn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 5000);
     ASSERT_EQ(readConn->query(query)->getNext()->getResultValue(0)->getInt64Val(), 5000);
-    // TODO(Reviewer): we don't commit the write transaction here, is this on purpose, or because it
-    // doesn't matter?
 }

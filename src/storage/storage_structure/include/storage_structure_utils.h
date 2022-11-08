@@ -9,6 +9,7 @@
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
 #include "src/storage/wal/include/wal.h"
+#include "src/transaction/include/transaction.h"
 
 namespace graphflow {
 namespace storage {
@@ -52,7 +53,8 @@ public:
     }
 
     static pair<FileHandle*, page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
-        VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal, bool isReadTrx);
+        VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+        transaction::TransactionType trxType);
 
     static WALPageIdxAndFrame createWALVersionIfNecessaryAndPinPage(page_idx_t originalPageIdx,
         bool insertingNewPage, VersionedFileHandle& fileHandle, BufferManager& bufferManager,

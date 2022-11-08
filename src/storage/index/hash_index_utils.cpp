@@ -94,12 +94,11 @@ bool HashIndexUtils::isStringPrefixAndLenEquals(
            memcmp(keyToLookup, keyInEntry->prefix, prefixLen) == 0;
 }
 
-bool HashIndexUtils::equalsFuncForString(
-    const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
+bool HashIndexUtils::equalsFuncForString(TransactionType trxType, const uint8_t* keyToLookup,
+    const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
     auto keyInEntryString = (gf_string_t*)keyInEntry;
     if (isStringPrefixAndLenEquals(keyToLookup, keyInEntryString)) {
-        auto entryKeyString = diskOverflowFile->readString(
-            Transaction::getDummyReadOnlyTrx().get(), *keyInEntryString);
+        auto entryKeyString = diskOverflowFile->readString(trxType, *keyInEntryString);
         return memcmp(keyToLookup, entryKeyString.c_str(), entryKeyString.length()) == 0;
     }
     return false;

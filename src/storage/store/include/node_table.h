@@ -29,7 +29,7 @@ public:
     inline UnstructuredPropertyLists* getUnstrPropertyLists() const {
         return unstrPropertyLists.get();
     }
-    inline HashIndex* getIDIndex() const { return IDIndex.get(); }
+    inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
 
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
@@ -37,23 +37,22 @@ public:
 
     inline table_id_t getTableID() const { return tableID; }
 
-    node_offset_t addNodeAndResetProperties(Transaction* trx, ValueVector* primaryKeyVector);
-    void deleteNodes(Transaction* trx, ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
+    node_offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
+    void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
     inline void checkpointInMemoryIfNecessary() {
         unstrPropertyLists->checkpointInMemoryIfNecessary();
-        IDIndex->checkpointInMemoryIfNecessary();
+        pkIndex->checkpointInMemoryIfNecessary();
     }
     inline void rollbackInMemoryIfNecessary() {
         unstrPropertyLists->rollbackInMemoryIfNecessary();
-        IDIndex->rollbackInMemoryIfNecessary();
+        pkIndex->rollbackInMemoryIfNecessary();
     }
 
 private:
-    void deleteNode(Transaction* trx, node_offset_t nodeOffset, ValueVector* primaryKeyVector,
-        uint32_t pos) const;
+    void deleteNode(node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 public:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
@@ -65,10 +64,9 @@ private:
     unique_ptr<UnstructuredPropertyLists> unstrPropertyLists;
     // The index for ID property.
     // TODO(Guodong): rename this to primary key index
-    unique_ptr<HashIndex> IDIndex;
+    unique_ptr<PrimaryKeyIndex> pkIndex;
     table_id_t tableID;
     bool isInMemory;
-    WAL* wal;
 };
 
 } // namespace storage

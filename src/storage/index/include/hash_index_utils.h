@@ -14,7 +14,8 @@ namespace storage {
 using insert_function_t =
     std::function<void(const uint8_t*, node_offset_t, uint8_t*, DiskOverflowFile*)>;
 using hash_function_t = std::function<hash_t(const uint8_t*)>;
-using equals_function_t = std::function<bool(const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
+using equals_function_t =
+    std::function<bool(TransactionType trxType, const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
 
 static const uint32_t NUM_BYTES_FOR_INT64_KEY = Types::getDataTypeSize(INT64);
 static const uint32_t NUM_BYTES_FOR_STRING_KEY = Types::getDataTypeSize(STRING);
@@ -59,10 +60,9 @@ public:
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
         memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
     }
-    // TODO(Guodong): this is a place holder, add back insert string function.
     inline static void insertFuncForString(
         const uint8_t* key, node_offset_t offset, uint8_t* entry, DiskOverflowFile* overflowFile) {
-        gf_string_t gfString;
+        auto gfString = overflowFile->writeString((const char*)key);
         memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
     }
@@ -84,12 +84,12 @@ public:
     // EqualsFunc
     static bool isStringPrefixAndLenEquals(
         const uint8_t* keyToLookup, const gf_string_t* keyInEntry);
-    inline static bool equalsFuncForInt64(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* ovfPages) {
-        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
+    inline static bool equalsFuncForInt64(TransactionType trxType, const uint8_t* keyToLookup,
+        const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
+        return *(int64_t*)keyToLookup == *(int64_t*)keyInEntry;
     }
-    static bool equalsFuncForString(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
+    static bool equalsFuncForString(TransactionType trxType, const uint8_t* keyToLookup,
+        const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
     static equals_function_t initializeEqualsFunc(DataTypeID dataTypeID);
 };
 } // namespace storage
