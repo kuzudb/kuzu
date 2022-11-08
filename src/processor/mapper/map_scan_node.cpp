@@ -29,9 +29,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     auto node = logicalIndexScan->getNode();
     auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getTableID());
     auto dataPos = mapperContext.getDataPos(node->getIDProperty());
-    auto indexExpression = (LiteralExpression*)logicalIndexScan->getIndexExpression().get();
+    auto evaluator =
+        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
     return make_unique<IndexScan>(mapperContext.getResultSetDescriptor()->copy(),
-        nodeTable->getTableID(), nodeTable->getIDIndex(), *indexExpression->literal, dataPos,
+        nodeTable->getTableID(), nodeTable->getIDIndex(), std::move(evaluator), dataPos,
         getOperatorID(), logicalIndexScan->getExpressionsForPrinting());
 }
 

@@ -69,6 +69,12 @@ public:
         const DataType& keyDataType, BufferManager& bufferManager, WAL* wal);
 
 public:
+    // TODO(Guodong): consider only expose vector level API.
+    bool lookup(
+        Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result);
+    void deleteKey(Transaction* trx, ValueVector* keyVector, uint64_t vectorPos);
+    bool insert(Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t value);
+
     inline bool lookup(Transaction* transaction, int64_t key, node_offset_t& result) {
         return lookupInternal(transaction, reinterpret_cast<const uint8_t*>(&key), result);
     }
@@ -79,6 +85,7 @@ public:
     inline void deleteKey(Transaction* transaction, int64_t key) {
         deleteInternal(transaction, reinterpret_cast<const uint8_t*>(&key));
     }
+    // TODO(Guodong): should we give trx for write?
     inline bool insert(Transaction* transaction, int64_t key, node_offset_t value) {
         return insertInternal(transaction, reinterpret_cast<const uint8_t*>(&key), value);
     }

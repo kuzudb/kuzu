@@ -379,10 +379,24 @@ TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest2) {
 
 TEST_F(TinySnbUpdateTest, DeleteNodeAfterInsertTest) { // test reset of property columns
     conn->query("CREATE (a:person {ID:100, fName:'Xiyang', age:26})");
-    // TODO(Guodong): change predicate to a.ID=100 once hash index is supported in node insertion.
-    conn->query("MATCH (a:person) WHERE a.ID > 99 DELETE a;");
+    conn->query("MATCH (a:person) WHERE a.ID = 100 DELETE a;");
     conn->query("CREATE (a:person {ID:101})");
-    auto result = conn->query("MATCH (a:person) WHERE a.ID > 10 RETURN a.ID, a.fName, a.age");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 101 RETURN a.ID, a.fName, a.age");
     auto groundTruth = vector<string>{"101||"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, MixedDeleteInsertTest) {
+    conn->query("CREATE (a:organisation {ID:30, mark:3.3})");
+    auto result = conn->query("MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark");
+    auto groundTruth = vector<string>{"|3.300000"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    conn->query("MATCH (a:organisation) WHERE a.ID = 30 DELETE a");
+    result = conn->query("MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark");
+    groundTruth = vector<string>{};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    conn->query("CREATE (a:organisation {ID:30, orgCode:33})");
+    result = conn->query("MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark");
+    groundTruth = vector<string>{"33|"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }

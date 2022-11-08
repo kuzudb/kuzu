@@ -6,6 +6,7 @@ namespace processor {
 shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     for (auto& createNodeInfo : createNodeInfos) {
+        createNodeInfo->primaryKeyEvaluator->init(*resultSet, context->memoryManager);
         auto pos = createNodeInfo->outNodeIDVectorPos;
         auto valueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
         outValueVectors.push_back(valueVector.get());
@@ -23,8 +24,11 @@ bool CreateNode::getNextTuples() {
         return false;
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
-        auto nodeTable = createNodeInfos[i]->table;
-        auto nodeOffset = nodeTable->addNode();
+        auto createNodeInfo = createNodeInfos[i].get();
+        auto nodeTable = createNodeInfo->table;
+        createNodeInfo->primaryKeyEvaluator->evaluate();
+        auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
+        auto nodeOffset = nodeTable->addNodeAndResetProperties(transaction, primaryKeyVector);
         auto vector = outValueVectors[i];
         auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
         nodeIDValue.tableID = nodeTable->getTableID();

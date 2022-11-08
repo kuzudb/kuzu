@@ -68,30 +68,46 @@ void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& pla
     for (auto groupPos = 0u; groupPos < plan.getSchema()->getNumGroups(); ++groupPos) {
         Enumerator::appendFlattenIfNecessary(groupPos, plan);
     }
-    if (createClause.hasNodes()) {
+    if (createClause.hasCreateNode()) {
         appendCreateNode(createClause, plan);
     }
-    if (createClause.hasRels()) {
+    if (createClause.hasCreateRel()) {
         appendCreateRel(createClause, plan);
     }
 }
 
 void UpdatePlanner::appendCreateNode(BoundCreateClause& createClause, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    for (auto& node : createClause.getNodes()) {
+    vector<expression_pair> setItems;
+    vector<unique_ptr<NodeAndPrimaryKey>> nodeAndPrimaryKeyPairs;
+    for (auto i = 0; i < createClause.getNumCreateNodes(); ++i) {
+        auto createNode = createClause.getCreateNode(i);
+        auto node = createNode->getNode();
         auto groupPos = schema->createGroup();
         schema->insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
         schema->flattenGroup(groupPos); // create output is always flat
+        nodeAndPrimaryKeyPairs.push_back(
+            make_unique<NodeAndPrimaryKey>(node, createNode->getPrimaryKeyExpression()));
+        for (auto& setItem : createNode->getSetItems()) {
+            setItems.push_back(setItem);
+        }
     }
     auto createNode =
-        make_shared<LogicalCreateNode>(createClause.getNodes(), plan.getLastOperator());
+        make_shared<LogicalCreateNode>(std::move(nodeAndPrimaryKeyPairs), plan.getLastOperator());
     plan.setLastOperator(createNode);
-    appendSet(createClause.getNodesSetItems(), plan);
+    appendSet(std::move(setItems), plan);
 }
 
 void UpdatePlanner::appendCreateRel(BoundCreateClause& createClause, LogicalPlan& plan) {
+    vector<shared_ptr<RelExpression>> rels;
+    vector<vector<expression_pair>> setItemsPerRel;
+    for (auto i = 0; i < createClause.getNumCreateRels(); ++i) {
+        auto createRel = createClause.getCreateRel(i);
+        rels.push_back(createRel->getRel());
+        setItemsPerRel.push_back(createRel->getSetItems());
+    }
     auto createRel = make_shared<LogicalCreateRel>(
-        createClause.getRels(), createClause.getSetItemsPerRel(), plan.getLastOperator());
+        std::move(rels), std::move(setItemsPerRel), plan.getLastOperator());
     plan.setLastOperator(createRel);
 }
 

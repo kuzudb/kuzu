@@ -24,7 +24,7 @@ bool DeleteNodeStructuredProperty::getNextTuples() {
     }
     for (auto i = 0u; i < nodeTables.size(); ++i) {
         auto nodeTable = nodeTables[i];
-        nodeTable->deleteNodes(nodeIDVectors[i], primaryKeyVectors[i]);
+        nodeTable->deleteNodes(transaction, nodeIDVectors[i], primaryKeyVectors[i]);
     }
     metrics->executionTime.stop();
     return true;

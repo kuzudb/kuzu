@@ -280,46 +280,66 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
     auto prevVariablesInScope = variablesInScope;
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(createClause.getPatternElements());
-    vector<shared_ptr<NodeExpression>> nodesToCreate;
-    vector<vector<expression_pair>> setItemsPerNode;
-    vector<shared_ptr<RelExpression>> relsToCreate;
-    vector<vector<expression_pair>> setItemsPerRel;
+    vector<unique_ptr<BoundCreateNode>> boundCreateNodes;
+    vector<unique_ptr<BoundCreateRel>> boundCreateRels;
     for (auto i = 0u; i < queryGraphCollection->getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
             if (!prevVariablesInScope.contains(node->getRawName())) {
-                nodesToCreate.push_back(node);
+                boundCreateNodes.push_back(bindCreateNode(node, *propertyCollection));
             }
-            setItemsPerNode.push_back(propertyCollection->getPropertyKeyValPairs(*node));
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
             if (!prevVariablesInScope.contains(rel->getRawName())) {
-                relsToCreate.push_back(rel);
+                boundCreateRels.push_back(bindCreateRel(rel, *propertyCollection));
             }
-            // CreateRel requires all properties in schema as input. So we rewrite set property to
-            // null if user does not specify a property in the query.
-            vector<expression_pair> setItems;
-            for (auto& property :
-                catalog.getReadOnlyVersion()->getRelProperties(rel->getTableID())) {
-                if (propertyCollection->hasPropertyKeyValPair(*rel, property.name)) {
-                    setItems.push_back(
-                        propertyCollection->getPropertyKeyValPair(*rel, property.name));
-                } else {
-                    auto propertyExpression = make_shared<PropertyExpression>(
-                        property.dataType, property.name, property.propertyID, rel);
-                    setItems.emplace_back(std::move(propertyExpression),
-                        LiteralExpression::createNullLiteralExpression(property.dataType));
-                }
-            }
-            setItemsPerRel.push_back(std::move(setItems));
         }
     }
-    auto boundCreateClause = make_unique<BoundCreateClause>(std::move(nodesToCreate),
-        std::move(setItemsPerNode), std::move(relsToCreate), std::move(setItemsPerRel));
-    validateCreateNodeHasPrimaryKeyInput(*boundCreateClause, catalog);
+    auto boundCreateClause =
+        make_unique<BoundCreateClause>(std::move(boundCreateNodes), std::move(boundCreateRels));
     return boundCreateClause;
+}
+
+unique_ptr<BoundCreateNode> Binder::bindCreateNode(
+    shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
+    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
+    auto primaryKey = nodeTableSchema->getPrimaryKey();
+    shared_ptr<Expression> primaryKeyExpression;
+    vector<expression_pair> setItems;
+    for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
+        auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
+        if (propertyExpression->getPropertyKey() == primaryKey.propertyID) {
+            primaryKeyExpression = val;
+        }
+        setItems.emplace_back(key, val);
+    }
+    if (primaryKeyExpression == nullptr) {
+        throw BinderException("Create node " + node->getRawName() + " expects primary key " +
+                              primaryKey.name + " as input.");
+    }
+    return make_unique<BoundCreateNode>(
+        std::move(node), std::move(primaryKeyExpression), std::move(setItems));
+}
+
+unique_ptr<BoundCreateRel> Binder::bindCreateRel(
+    shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
+    auto catalogContent = catalog.getReadOnlyVersion();
+    // CreateRel requires all properties in schema as input. So we rewrite set property to
+    // null if user does not specify a property in the query.
+    vector<expression_pair> setItems;
+    for (auto& property : catalogContent->getRelProperties(rel->getTableID())) {
+        if (collection.hasPropertyKeyValPair(*rel, property.name)) {
+            setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
+        } else {
+            auto propertyExpression = make_shared<PropertyExpression>(
+                property.dataType, property.name, property.propertyID, rel);
+            setItems.emplace_back(std::move(propertyExpression),
+                LiteralExpression::createNullLiteralExpression(property.dataType));
+        }
+    }
+    return make_unique<BoundCreateRel>(std::move(rel), std::move(setItems));
 }
 
 unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& updatingClause) {
@@ -770,28 +790,6 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalized
     }
 }
 
-void Binder::validateCreateNodeHasPrimaryKeyInput(
-    const BoundCreateClause& createClause, const Catalog& catalog_) {
-    for (auto i = 0u; i < createClause.getNumNodes(); ++i) {
-        auto node = createClause.getNode(i);
-        auto& primaryKey =
-            catalog_.getReadOnlyVersion()->getNodePrimaryKeyProperty(node->getTableID());
-        validateCreateNodeHasPrimaryKeyInput(*node, createClause.getNodeSetItems(i), primaryKey);
-    }
-}
-
-void Binder::validateCreateNodeHasPrimaryKeyInput(
-    NodeExpression& node, vector<expression_pair> propertyKeyValPairs, const Property& primaryKey) {
-    for (auto& [lhs, _] : propertyKeyValPairs) {
-        auto& property = (PropertyExpression&)*lhs;
-        if (property.getPropertyKey() == primaryKey.propertyID) {
-            return;
-        }
-    }
-    throw BinderException("Create node " + node.getRawName() + " expects primary key " +
-                          primaryKey.name + " as input.");
-}
-
 void Binder::validatePrimaryKey(
     string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties) {
     if (primaryKeyIdx == UINT32_MAX) {
@@ -841,12 +839,6 @@ void Binder::validateNodeTableHasNoEdge(table_id_t tableID) const {
                 tableIDSchema.second->tableName.c_str()));
         }
     }
-}
-
-bool Binder::compareStringsCaseInsensitive(const string& str1, const string& str2) {
-    return str1.size() == str2.size() &&
-           std::equal(str1.begin(), str1.end(), str2.begin(),
-               [](auto a, auto b) { return std::tolower(a) == std::tolower(b); });
 }
 
 } // namespace binder

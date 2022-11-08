@@ -66,6 +66,10 @@ private:
 
     unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindCreateClause(const UpdatingClause& updatingClause);
+    unique_ptr<BoundCreateNode> bindCreateNode(
+        shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
+    unique_ptr<BoundCreateRel> bindCreateRel(
+        shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
     unique_ptr<BoundUpdatingClause> bindSetClause(const UpdatingClause& updatingClause);
     unique_ptr<BoundUpdatingClause> bindDeleteClause(const UpdatingClause& updatingClause);
 
@@ -155,11 +159,6 @@ private:
 
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
 
-    static void validateCreateNodeHasPrimaryKeyInput(
-        const BoundCreateClause& createClause, const Catalog& catalog_);
-    static void validateCreateNodeHasPrimaryKeyInput(NodeExpression& node,
-        vector<expression_pair> propertyKeyValPairs, const Property& primaryKey);
-
     static void validatePrimaryKey(
         string pkColName, uint32_t primaryKeyIdx, vector<pair<string, string>> properties);
 
@@ -175,10 +174,6 @@ private:
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
 
     void validateNodeTableHasNoEdge(table_id_t tableID) const;
-
-    static vector<string> getFieldNamesForCSV(
-        const string& filePath, const CSVReaderConfig& csvReaderConfig);
-    static bool compareStringsCaseInsensitive(const string& str1, const string& str2);
 
 private:
     const Catalog& catalog;
