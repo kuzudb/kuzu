@@ -100,7 +100,7 @@ unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& upda
         auto setItem = setClause.getSetItem(i);
         auto boundLhs = expressionBinder.bindExpression(*setItem->origin);
         auto boundRhs = expressionBinder.bindExpression(*setItem->target);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType.typeID);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         boundSetClause->addSetItem(make_pair(boundLhs, boundRhs));
     }
     return boundSetClause;

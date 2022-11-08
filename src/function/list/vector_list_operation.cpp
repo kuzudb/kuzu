@@ -13,6 +13,12 @@
 namespace graphflow {
 namespace function {
 
+static string getListFunctionIncompatibleChildrenTypeErrorMsg(
+    const string& functionName, const DataType& left, const DataType& right) {
+    return string("Cannot bind " + functionName + " with parameter type " +
+                  Types::dataTypeToString(left) + " and " + Types::dataTypeToString(right) + ".");
+}
+
 void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(!parameters.empty() && result.dataType.typeID == LIST);
@@ -61,7 +67,10 @@ void VectorListOperations::ListCreation(
 void ListCreationVectorOperation::listCreationBindFunc(const vector<DataType>& argumentTypes,
     VectorOperationDefinition* definition, DataType& actualReturnType) {
     for (auto i = 1u; i < argumentTypes.size(); i++) {
-        assert(argumentTypes[i] == argumentTypes[0]);
+        if (argumentTypes[i] != argumentTypes[0]) {
+            throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
+                LIST_CREATION_FUNC_NAME, argumentTypes[0], argumentTypes[i]));
+        }
     }
     definition->returnTypeID = LIST;
     actualReturnType = DataType(LIST, make_unique<DataType>(argumentTypes[0]));
@@ -146,7 +155,10 @@ vector<unique_ptr<VectorOperationDefinition>> ListConcatVectorOperation::getDefi
     auto execFunc = BinaryListExecFunction<gf_list_t, gf_list_t, gf_list_t, operation::ListConcat>;
     auto bindFunc = [](const vector<DataType>& argumentTypes, VectorOperationDefinition* definition,
                         DataType& actualReturnType) {
-        assert(argumentTypes[0] == argumentTypes[1]);
+        if (argumentTypes[0] != argumentTypes[1]) {
+            throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
+                LIST_CONCAT_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+        }
         definition->returnTypeID = argumentTypes[0].typeID;
         actualReturnType = argumentTypes[0];
     };
@@ -157,7 +169,10 @@ vector<unique_ptr<VectorOperationDefinition>> ListConcatVectorOperation::getDefi
 
 void ListAppendVectorOperation::listAppendBindFunc(const vector<DataType>& argumentTypes,
     VectorOperationDefinition* definition, DataType& returnType) {
-    assert(*argumentTypes[0].childType == argumentTypes[1]);
+    if (*argumentTypes[0].childType != argumentTypes[1]) {
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
+            LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    }
     definition->returnTypeID = argumentTypes[0].typeID;
     returnType = argumentTypes[0];
     switch (argumentTypes[1].typeID) {
@@ -209,7 +224,10 @@ vector<unique_ptr<VectorOperationDefinition>> ListAppendVectorOperation::getDefi
 
 void ListPrependVectorOperation::listPrependBindFunc(const vector<DataType>& argumentTypes,
     VectorOperationDefinition* definition, DataType& returnType) {
-    assert(argumentTypes[0] == *argumentTypes[1].childType);
+    if (argumentTypes[0] != *argumentTypes[1].childType) {
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
+            LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    }
     definition->returnTypeID = argumentTypes[1].typeID;
     returnType = argumentTypes[1];
     switch (argumentTypes[0].typeID) {

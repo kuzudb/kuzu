@@ -14,8 +14,8 @@ public:
         : Expression{PARAMETER, ANY, "$" + parameterName /* add $ to avoid conflict between parameter name and variable name */}, literal{move(literal)} {}
 
     inline void setDataType(const DataType& targetType) {
-        assert(this->dataType.typeID == ANY);
-        this->dataType = targetType;
+        assert(dataType.typeID == ANY);
+        dataType = targetType;
         literal->dataType = targetType;
     }
 

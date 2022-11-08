@@ -88,7 +88,6 @@ string Types::dataTypeToString(const DataType& dataType) {
 }
 
 string Types::dataTypeToString(DataTypeID dataTypeID) {
-    assert(dataTypeID != LIST);
     switch (dataTypeID) {
     case ANY:
         return "ANY";
