@@ -77,11 +77,13 @@ void Binder::validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_i
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = unordered_set<string>();
     for (auto& expression : expressions) {
-        if (existColumnNames.contains(expression->getRawName())) {
-            throw BinderException("Multiple result column with the same name " +
-                                  expression->getRawName() + " are not supported.");
+        auto columnName =
+            expression->hasAlias() ? expression->getAlias() : expression->getRawName();
+        if (existColumnNames.contains(columnName)) {
+            throw BinderException(
+                "Multiple result column with the same name " + columnName + " are not supported.");
         }
-        existColumnNames.insert(expression->getRawName());
+        existColumnNames.insert(columnName);
     }
 }
 

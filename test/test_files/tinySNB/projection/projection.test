@@ -15,6 +15,11 @@
 2
 2
 
+-NAME ReturnColumnWithSameExpression
+-QUERY MATCH (a:person) WHERE a.fName='Alice' RETURN a.age, a.age AS k
+---- 1
+35|35
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME IsNullTest1
 #-QUERY MATCH (a:person) RETURN a.fName, a.unstrNumericProp IS NULL, a.unstrDateProp1 IS NOT NULL

@@ -13,22 +13,21 @@ namespace planner {
 
 class Enumerator;
 
-class ProjectionEnumerator {
+class ProjectionPlanner {
     friend class Enumerator;
     friend class JoinOrderEnumerator;
 
 public:
-    explicit ProjectionEnumerator(const Catalog& catalog, Enumerator* enumerator)
+    explicit ProjectionPlanner(const Catalog& catalog, Enumerator* enumerator)
         : catalog{catalog}, enumerator{enumerator} {}
 
-    void enumerateProjectionBody(
+    void planProjectionBody(
         const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans);
 
 private:
-    void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
-    void enumerateOrderBy(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
-    void enumerateProjection(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
-    void enumerateSkipAndLimit(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void planProjectionBody(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void planAggregate(const expression_vector& expressionsToAggregate,
+        const expression_vector& expressionsToGroupBy, LogicalPlan& plan);
 
     void appendProjection(const expression_vector& expressionsToProject, LogicalPlan& plan);
     void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
@@ -41,13 +40,12 @@ private:
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
     static expression_vector getExpressionToGroupBy(
-        const BoundProjectionBody& projectionBody, const Schema& schema);
-
+        const expression_vector& expressionsToProject, const Schema& schema);
     static expression_vector getExpressionsToAggregate(
-        const BoundProjectionBody& projectionBody, const Schema& schema);
+        const expression_vector& expressionsToProject, const Schema& schema);
 
-    static expression_vector getExpressionsToProject(
-        const BoundProjectionBody& projectionBody, const Schema& schema);
+    static expression_vector rewriteExpressionsToProject(
+        const expression_vector& expressionsToProject, const Schema& schema);
 
     static expression_vector getSubAggregateExpressionsNotInScope(
         const shared_ptr<Expression>& expression, const Schema& schema);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "join_order_enumerator.h"
-#include "projection_enumerator.h"
+#include "projection_planner.h"
 #include "update_planner.h"
 
 #include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
@@ -18,7 +18,7 @@ namespace planner {
 
 class Enumerator {
     friend class JoinOrderEnumerator;
-    friend class ProjectionEnumerator;
+    friend class ProjectionPlanner;
     friend class UpdatePlanner;
     friend class ASPOptimizer;
 
@@ -28,7 +28,7 @@ public:
         const RelsStatistics& relsStatistics)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,
                                 relsStatistics, this},
-          projectionEnumerator{catalog, this}, updatePlanner{catalog, this} {}
+          projectionPlanner{catalog, this}, updatePlanner{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -68,7 +68,7 @@ private:
 
     static void appendAccumulate(LogicalPlan& plan);
 
-    static void appendExpressionsScan(expression_vector& expressions, LogicalPlan& plan);
+    static void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
 
     void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
@@ -132,7 +132,7 @@ private:
     const Catalog& catalog;
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
-    ProjectionEnumerator projectionEnumerator;
+    ProjectionPlanner projectionPlanner;
     UpdatePlanner updatePlanner;
 };
 
