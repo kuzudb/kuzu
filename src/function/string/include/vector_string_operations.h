@@ -47,11 +47,15 @@ struct VectorStringOperations : public VectorOperations {
     }
 };
 
-struct ContainsVectorOperation : public VectorStringOperations {
+struct ArrayExtractVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct StartsWithVectorOperation : public VectorStringOperations {
+struct ConcatVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct ContainsVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -59,7 +63,11 @@ struct EndsWithVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct ConcatVectorOperation : public VectorStringOperations {
+struct LeftVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LengthVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -69,16 +77,8 @@ struct LowerVectorOperation : public VectorStringOperations {
     }
 };
 
-struct UpperVectorOperation : public VectorStringOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
-        return getUnaryStrFunctionDefintion<operation::Upper>(UPPER_FUNC_NAME);
-    }
-};
-
-struct TrimVectorOperation : public VectorStringOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
-        return getUnaryStrFunctionDefintion<operation::Trim>(TRIM_FUNC_NAME);
-    }
+struct LpadVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 struct LtrimVectorOperation : public VectorStringOperations {
@@ -87,10 +87,8 @@ struct LtrimVectorOperation : public VectorStringOperations {
     }
 };
 
-struct RtrimVectorOperation : public VectorStringOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
-        return getUnaryStrFunctionDefintion<operation::Rtrim>(RTRIM_FUNC_NAME);
-    }
+struct RepeatVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 struct ReverseVectorOperation : public VectorStringOperations {
@@ -99,15 +97,7 @@ struct ReverseVectorOperation : public VectorStringOperations {
     }
 };
 
-struct LengthVectorOperation : public VectorStringOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct RepeatVectorOperation : public VectorStringOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct LpadVectorOperation : public VectorStringOperations {
+struct RightVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -115,20 +105,30 @@ struct RpadVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct RtrimVectorOperation : public VectorStringOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return getUnaryStrFunctionDefintion<operation::Rtrim>(RTRIM_FUNC_NAME);
+    }
+};
+
+struct StartsWithVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct SubStrVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct LeftVectorOperation : public VectorStringOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+struct TrimVectorOperation : public VectorStringOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return getUnaryStrFunctionDefintion<operation::Trim>(TRIM_FUNC_NAME);
+    }
 };
 
-struct RightVectorOperation : public VectorStringOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct ArrayExtractVectorOperation : public VectorStringOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+struct UpperVectorOperation : public VectorStringOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return getUnaryStrFunctionDefintion<operation::Upper>(UPPER_FUNC_NAME);
+    }
 };
 
 } // namespace function

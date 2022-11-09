@@ -205,49 +205,49 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({MODULO_FUNC_NAME, ModuloVectorOperation::getDefinitions()});
     vectorOperations.insert({POWER_FUNC_NAME, PowerVectorOperation::getDefinitions()});
 
-    vectorOperations.insert({NEGATE_FUNC_NAME, NegateVectorOperation::getDefinitions()});
     vectorOperations.insert({ABS_FUNC_NAME, AbsVectorOperation::getDefinitions()});
-    vectorOperations.insert({FLOOR_FUNC_NAME, FloorVectorOperation::getDefinitions()});
+    vectorOperations.insert({ACOS_FUNC_NAME, AcosVectorOperation::getDefinitions()});
+    vectorOperations.insert({ASIN_FUNC_NAME, AsinVectorOperation::getDefinitions()});
+    vectorOperations.insert({ATAN_FUNC_NAME, AtanVectorOperation::getDefinitions()});
+    vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({CBRT_FUNC_NAME, CbrtVectorOperation::getDefinitions()});
     vectorOperations.insert({CEIL_FUNC_NAME, CeilVectorOperation::getDefinitions()});
     vectorOperations.insert({CEILING_FUNC_NAME, CeilVectorOperation::getDefinitions()});
-
-    vectorOperations.insert({SIN_FUNC_NAME, SinVectorOperation::getDefinitions()});
     vectorOperations.insert({COS_FUNC_NAME, CosVectorOperation::getDefinitions()});
-    vectorOperations.insert({TAN_FUNC_NAME, TanVectorOperation::getDefinitions()});
     vectorOperations.insert({COT_FUNC_NAME, CotVectorOperation::getDefinitions()});
-    vectorOperations.insert({ASIN_FUNC_NAME, AsinVectorOperation::getDefinitions()});
-    vectorOperations.insert({ACOS_FUNC_NAME, AcosVectorOperation::getDefinitions()});
-    vectorOperations.insert({ATAN_FUNC_NAME, AtanVectorOperation::getDefinitions()});
-
+    vectorOperations.insert({DEGREES_FUNC_NAME, DegreesVectorOperation::getDefinitions()});
+    vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
     vectorOperations.insert({FACTORIAL_FUNC_NAME, FactorialVectorOperation::getDefinitions()});
-    vectorOperations.insert({SQRT_FUNC_NAME, SqrtVectorOperation::getDefinitions()});
-    vectorOperations.insert({CBRT_FUNC_NAME, CbrtVectorOperation::getDefinitions()});
+    vectorOperations.insert({FLOOR_FUNC_NAME, FloorVectorOperation::getDefinitions()});
     vectorOperations.insert({GAMMA_FUNC_NAME, GammaVectorOperation::getDefinitions()});
     vectorOperations.insert({LGAMMA_FUNC_NAME, LgammaVectorOperation::getDefinitions()});
     vectorOperations.insert({LN_FUNC_NAME, LnVectorOperation::getDefinitions()});
     vectorOperations.insert({LOG_FUNC_NAME, LogVectorOperation::getDefinitions()});
     vectorOperations.insert({LOG2_FUNC_NAME, Log2VectorOperation::getDefinitions()});
-    vectorOperations.insert({DEGREES_FUNC_NAME, DegreesVectorOperation::getDefinitions()});
-    vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
-    vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
-    vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
-    vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
-    vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
-    vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOG10_FUNC_NAME, LogVectorOperation::getDefinitions()});
+    vectorOperations.insert({NEGATE_FUNC_NAME, NegateVectorOperation::getDefinitions()});
     vectorOperations.insert({PI_FUNC_NAME, PiVectorOperation::getDefinitions()});
+    vectorOperations.insert({POW_FUNC_NAME, PowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
+    vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
+    vectorOperations.insert({SIN_FUNC_NAME, SinVectorOperation::getDefinitions()});
+    vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
+    vectorOperations.insert({SQRT_FUNC_NAME, SqrtVectorOperation::getDefinitions()});
+    vectorOperations.insert({TAN_FUNC_NAME, TanVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerDateOperations() {
-    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
-    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
-    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
+    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
     vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
+    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerTimestampOperations() {
@@ -270,28 +270,30 @@ void BuiltInVectorOperations::registerIntervalOperations() {
 }
 
 void BuiltInVectorOperations::registerStringOperations() {
-    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
-    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
-    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
-    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
-    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-    vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
-    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
-    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
-    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
-    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
-    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
-    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({LCASE_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
+    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
     vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
+    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
+    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
+    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
