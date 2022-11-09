@@ -273,6 +273,12 @@ TEST_F(BinderErrorTest, ReadAfterUpdate2) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
+TEST_F(BinderErrorTest, ReadAfterUpdate3) {
+    string expectedException = "Binder exception: Return/With after update is not supported.";
+    auto input = "MATCH (a:person) SET a.age=3 RETURN a.name";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
 TEST_F(BinderErrorTest, DeleteNodeProperty) {
     string expectedException = "Binder exception: Delete PROPERTY is not supported.";
     auto input = "MATCH (a:person) DELETE a.age";

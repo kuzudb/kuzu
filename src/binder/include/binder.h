@@ -22,8 +22,7 @@ class Binder {
 
 public:
     explicit Binder(const Catalog& catalog)
-        : catalog{catalog}, lastExpressionId{0}, variablesInScope{},
-          expressionBinder{this}, logger{LoggerUtils::getOrCreateSpdLogger("binder")} {}
+        : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
@@ -135,7 +134,12 @@ private:
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
-    static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
+    // We don't support read (reading and projection clause) after write since this requires reading
+    // updated value and multiple property scan is needed which complicates our planning.
+    // e.g. MATCH (a:person) WHERE a.fName='A' SET a.fName='B' RETURN a.fName
+    // In the example above, we need to read fName both before and after SET.
+    static void validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
+    static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
     static void validateTableExist(const Catalog& _catalog, string& tableName);
 
@@ -154,7 +158,6 @@ private:
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
-    shared_ptr<spdlog::logger> logger;
 };
 
 } // namespace binder

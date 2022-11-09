@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "src/binder/bound_statement/include/bound_statement.h"
+#include "src/binder/include/bound_statement.h"
 #include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
 

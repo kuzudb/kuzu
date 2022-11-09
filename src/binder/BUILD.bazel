@@ -1,6 +1,19 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "bound_statement",
+    hdrs = [
+        "include/bound_statement.h"
+    ],
+    visibility = [
+        "//src/binder:__subpackages__",
+    ],
+    deps = [
+        "//src/common:statement_type"
+    ],
+)
+
+cc_library(
     name = "binder",
     srcs = glob([
         "*.cpp",
