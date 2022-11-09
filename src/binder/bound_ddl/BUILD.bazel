@@ -10,6 +10,6 @@ cc_library(
         "//src/planner:__pkg__",
     ],
     deps = [
-        "//src/binder/bound_statement",
+        "//src/binder:bound_statement",
     ],
 )

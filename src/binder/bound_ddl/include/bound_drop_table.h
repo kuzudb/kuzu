@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/bound_statement/include/bound_statement.h"
+#include "src/binder/include/bound_statement.h"
 
 namespace graphflow {
 namespace binder {

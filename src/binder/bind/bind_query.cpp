@@ -16,6 +16,7 @@ unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery
     for (auto& boundSingleQuery : boundSingleQueries) {
         auto normalizedSingleQuery = QueryNormalizer::normalizeQuery(*boundSingleQuery);
         validateReadNotFollowUpdate(*normalizedSingleQuery);
+        validateReturnNotFollowUpdate(*normalizedSingleQuery);
         boundRegularQuery->addSingleQuery(move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);

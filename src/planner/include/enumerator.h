@@ -8,8 +8,8 @@
 #include "src/binder/bound_ddl/include/bound_create_node_clause.h"
 #include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
 #include "src/binder/bound_ddl/include/bound_drop_table.h"
-#include "src/binder/bound_statement/include/bound_statement.h"
 #include "src/binder/expression/include/existential_subquery_expression.h"
+#include "src/binder/include/bound_statement.h"
 
 using namespace graphflow::binder;
 
