@@ -20,7 +20,7 @@ public:
         : variableName{std::move(name)}, tableName{std::move(tableName)},
           propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
-    ~NodePattern() = default;
+    virtual ~NodePattern() = default;
 
     inline string getVariableName() const { return variableName; }
 
@@ -31,7 +31,7 @@ public:
         return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
-    bool operator==(const NodePattern& other) const {
+    virtual bool equals(const NodePattern& other) const {
         if (!(variableName == other.variableName && tableName == other.tableName &&
                 propertyKeyValPairs.size() == other.propertyKeyValPairs.size())) {
             return false;
@@ -46,7 +46,9 @@ public:
         return true;
     }
 
-    bool operator!=(const NodePattern& other) const { return !operator==(other); }
+    bool operator==(const NodePattern& other) const { return equals(other); }
+
+    bool operator!=(const NodePattern& other) const { return !equals(other); }
 
 private:
     string variableName;

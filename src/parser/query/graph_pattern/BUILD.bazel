@@ -1,5 +1,5 @@
 cc_library(
-    name = "updating_clause",
+    name = "graph_pattern",
     srcs = glob([
         "*.cpp",
     ]),
@@ -7,10 +7,10 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/parser/query:__pkg__",
+        "//src/parser/query:__subpackages__",
     ],
     deps = [
         "//src/common:clause_type",
-         "//src/parser/query/graph_pattern",
+        "//src/parser/expression:parsed_expression",
     ],
 )

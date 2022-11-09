@@ -14,20 +14,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto inputNodeIDVectorPos = mapperContext.getDataPos(boundNode->getIDProperty());
     auto propertyName = scanRelProperty->getPropertyName();
-    auto propertyKey = scanRelProperty->getPropertyKey();
+    auto propertyID = scanRelProperty->getPropertyID();
     auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
     mapperContext.addComputedExpressions(propertyName);
     auto& relStore = storageManager.getRelsStore();
     auto paramsString = scanRelProperty->getExpressionsForPrinting();
     if (scanRelProperty->getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(scanRelProperty->getDirection(),
-            scanRelProperty->getRelTableID(), boundNode->getTableID(), propertyKey);
+            scanRelProperty->getRelTableID(), boundNode->getTableID(), propertyID);
         return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
             vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
             getOperatorID(), paramsString);
     }
     auto lists = relStore.getRelPropertyLists(scanRelProperty->getDirection(),
-        boundNode->getTableID(), scanRelProperty->getRelTableID(), propertyKey);
+        boundNode->getTableID(), scanRelProperty->getRelTableID(), propertyID);
     return make_unique<ScanRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
         lists, move(prevOperator), getOperatorID(), paramsString);
 }

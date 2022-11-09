@@ -22,13 +22,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     if (scanProperty.getIsUnstructured()) {
         auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getTableID());
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
-            move(outputPropertyVectorsPos), scanProperty.getPropertyKeys(), lists,
+            move(outputPropertyVectorsPos), scanProperty.getPropertyIDs(), lists,
             move(prevOperator), getOperatorID(), paramsString);
     }
     vector<Column*> propertyColumns;
-    for (auto& propertyKey : scanProperty.getPropertyKeys()) {
+    for (auto& propertyID : scanProperty.getPropertyIDs()) {
         propertyColumns.push_back(
-            nodeStore.getNodePropertyColumn(scanProperty.getTableID(), propertyKey));
+            nodeStore.getNodePropertyColumn(scanProperty.getTableID(), propertyID));
     }
     return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, move(outputPropertyVectorsPos),
         move(propertyColumns), move(prevOperator), getOperatorID(), paramsString);

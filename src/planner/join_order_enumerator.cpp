@@ -154,7 +154,7 @@ static bool isPrimaryPropertyAndLiteralPair(
         return false;
     }
     auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.getPropertyKey() == primaryKeyID;
+    return propertyExpression.getPropertyID() == primaryKeyID;
 }
 
 static bool isIndexScanExpression(Expression& expression, uint32_t primaryKeyID) {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "pattern_element.h"
 #include "reading_clause.h"
 
 #include "src/parser/expression/include/parsed_expression.h"
+#include "src/parser/query/graph_pattern/include/pattern_element.h"
 
 namespace graphflow {
 namespace parser {
