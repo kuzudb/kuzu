@@ -123,39 +123,7 @@ struct PowerVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct NegateVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
 struct AbsVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct FloorVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct CeilVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct SinVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct CosVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct TanVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct CotVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct AsinVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -163,7 +131,43 @@ struct AcosVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct AsinVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct AtanVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct Atan2VectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CbrtVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CeilVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CosVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CotVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct DegreesVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct EvenVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -171,11 +175,7 @@ struct FactorialVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct SqrtVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct CbrtVectorOperation : public VectorArithmeticOperations {
+struct FloorVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -199,7 +199,11 @@ struct Log2VectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct DegreesVectorOperation : public VectorArithmeticOperations {
+struct NegateVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct PiVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -207,7 +211,11 @@ struct RadiansVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct EvenVectorOperation : public VectorArithmeticOperations {
+struct RoundVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct SinVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
@@ -215,19 +223,11 @@ struct SignVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct Atan2VectorOperation : public VectorArithmeticOperations {
+struct SqrtVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct RoundVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
-struct PiVectorOperation : public VectorArithmeticOperations {
+struct TanVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

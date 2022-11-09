@@ -5,47 +5,6 @@
 namespace graphflow {
 namespace function {
 
-vector<unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::getDefinitions() {
-    vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(
-        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{DATE}, STRING,
-            UnaryExecFunction<date_t, gf_string_t, operation::DayName>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
-            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::DayName>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
-            STRING, UnaryExecFunction<Value, gf_string_t, operation::DayName>));
-    return result;
-}
-
-vector<unique_ptr<VectorOperationDefinition>> MonthNameVectorOperation::getDefinitions() {
-    vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(
-        make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{DATE},
-            STRING, UnaryExecFunction<date_t, gf_string_t, operation::MonthName>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
-            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::MonthName>));
-    result.push_back(make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED}, STRING,
-        UnaryExecFunction<Value, gf_string_t, operation::MonthName>));
-    return result;
-}
-
-vector<unique_ptr<VectorOperationDefinition>> LastDayVectorOperation::getDefinitions() {
-    vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME,
-        vector<DataTypeID>{DATE}, DATE, UnaryExecFunction<date_t, date_t, operation::LastDay>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
-            DATE, UnaryExecFunction<timestamp_t, date_t, operation::LastDay>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
-            DATE, UnaryExecFunction<Value, date_t, operation::LastDay>));
-    return result;
-}
-
 vector<unique_ptr<VectorOperationDefinition>> DatePartVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
@@ -77,6 +36,20 @@ vector<unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefin
     return result;
 }
 
+vector<unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(
+        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{DATE}, STRING,
+            UnaryExecFunction<date_t, gf_string_t, operation::DayName>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
+            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::DayName>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
+            STRING, UnaryExecFunction<Value, gf_string_t, operation::DayName>));
+    return result;
+}
+
 vector<unique_ptr<VectorOperationDefinition>> GreatestVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
@@ -88,6 +61,19 @@ vector<unique_ptr<VectorOperationDefinition>> GreatestVectorOperation::getDefini
     result.push_back(make_unique<VectorOperationDefinition>(GREATEST_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
         BinaryExecFunction<Value, Value, Value, operation::Greatest>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> LastDayVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME,
+        vector<DataTypeID>{DATE}, DATE, UnaryExecFunction<date_t, date_t, operation::LastDay>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
+            DATE, UnaryExecFunction<timestamp_t, date_t, operation::LastDay>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
+            DATE, UnaryExecFunction<Value, date_t, operation::LastDay>));
     return result;
 }
 
@@ -110,6 +96,20 @@ vector<unique_ptr<VectorOperationDefinition>> MakeDateVectorOperation::getDefini
     result.push_back(make_unique<VectorOperationDefinition>(MAKE_DATE_FUNC_NAME,
         vector<DataTypeID>{INT64, INT64, INT64}, DATE,
         TernaryExecFunction<int64_t, int64_t, int64_t, date_t, operation::MakeDate>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> MonthNameVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(
+        make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{DATE},
+            STRING, UnaryExecFunction<date_t, gf_string_t, operation::MonthName>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
+            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::MonthName>));
+    result.push_back(make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME,
+        vector<DataTypeID>{UNSTRUCTURED}, STRING,
+        UnaryExecFunction<Value, gf_string_t, operation::MonthName>));
     return result;
 }
 
