@@ -27,8 +27,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
             auto property = static_pointer_cast<PropertyExpression>(expr);
             auto node = static_pointer_cast<NodeExpression>(property->getChild(0));
             nodeIDVectorPositions.push_back(mapperContext.getDataPos(node->getIDProperty()));
-            propertyKeyListPairs.emplace_back(property->getPropertyKey(),
-                nodeStore.getNodeUnstrPropertyLists(node->getTableID()));
+            propertyKeyListPairs.emplace_back(
+                property->getPropertyID(), nodeStore.getNodeUnstrPropertyLists(node->getTableID()));
         }
         return make_unique<SetNodeUnstructuredProperty>(std::move(nodeIDVectorPositions),
             std::move(expressionEvaluators), std::move(propertyKeyListPairs),
@@ -41,7 +41,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
             auto node = static_pointer_cast<NodeExpression>(property->getChild(0));
             nodeIDVectorPositions.push_back(mapperContext.getDataPos(node->getIDProperty()));
             propertyColumns.push_back(
-                nodeStore.getNodePropertyColumn(node->getTableID(), property->getPropertyKey()));
+                nodeStore.getNodePropertyColumn(node->getTableID(), property->getPropertyID()));
         }
         return make_unique<SetNodeStructuredProperty>(std::move(nodeIDVectorPositions),
             std::move(expressionEvaluators), std::move(propertyColumns), std::move(prevOperator),

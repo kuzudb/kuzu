@@ -21,7 +21,6 @@ cc_library(
     name = "expression_implementations",
     srcs = [
         "existential_subquery_expression.cpp",
-        "property_expression.cpp",
     ],
     hdrs = [
         "include/existential_subquery_expression.h",
@@ -47,9 +46,6 @@ cc_library(
 
 cc_library(
     name = "node_rel_expression",  # sub expression implementations needed for query graph
-    srcs = [
-        "property_expression.cpp",
-    ],
     hdrs = [
         "include/node_expression.h",
         "include/property_expression.h",

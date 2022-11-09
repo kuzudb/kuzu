@@ -61,7 +61,7 @@ unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     vector<expression_pair> setItems;
     for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
-        if (propertyExpression->getPropertyKey() == primaryKey.propertyID) {
+        if (propertyExpression->getPropertyID() == primaryKey.propertyID) {
             primaryKeyExpression = val;
         }
         setItems.emplace_back(key, val);

@@ -425,7 +425,7 @@ void Enumerator::appendScanNodePropIfNecessary(
     expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured) {
     auto schema = plan.getSchema();
     vector<string> propertyNames;
-    vector<uint32_t> propertyKeys;
+    vector<uint32_t> propertyIDs;
     auto groupPos = schema->getGroupPos(node.getIDProperty());
     for (auto& expression : properties) {
         if (schema->isExpressionInScope(*expression)) {
@@ -434,7 +434,7 @@ void Enumerator::appendScanNodePropIfNecessary(
         assert(expression->expressionType == PROPERTY);
         auto property = static_pointer_cast<PropertyExpression>(expression);
         propertyNames.push_back(property->getUniqueName());
-        propertyKeys.push_back(property->getPropertyKey());
+        propertyIDs.push_back(property->getPropertyID());
         schema->insertToGroupAndScope(property, groupPos);
     }
     if (propertyNames.empty()) { // all properties have been scanned before
@@ -442,7 +442,7 @@ void Enumerator::appendScanNodePropIfNecessary(
     }
     auto scanNodeProperty =
         make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getTableID(),
-            move(propertyNames), move(propertyKeys), !isStructured, plan.getLastOperator());
+            move(propertyNames), move(propertyIDs), !isStructured, plan.getLastOperator());
     plan.setLastOperator(move(scanNodeProperty));
 }
 
@@ -459,9 +459,9 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
         catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getTableID(), direction);
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getTableID(),
-        direction, property->getUniqueName(), property->getPropertyKey(), isColumn,
-        plan.getLastOperator());
+    auto scanProperty =
+        make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getTableID(), direction,
+            property->getUniqueName(), property->getPropertyID(), isColumn, plan.getLastOperator());
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
     plan.setLastOperator(move(scanProperty));

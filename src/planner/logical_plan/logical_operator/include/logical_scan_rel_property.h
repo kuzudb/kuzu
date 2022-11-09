@@ -12,10 +12,10 @@ class LogicalScanRelProperty : public LogicalOperator {
 public:
     LogicalScanRelProperty(shared_ptr<NodeExpression> boundNodeExpression,
         shared_ptr<NodeExpression> nbrNodeExpression, table_id_t relTableID, RelDirection direction,
-        string propertyName, uint32_t propertyKey, bool isColumn, shared_ptr<LogicalOperator> child)
+        string propertyName, uint32_t propertyID, bool isColumn, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, boundNodeExpression{move(boundNodeExpression)},
           nbrNodeExpression{move(nbrNodeExpression)}, relTableID{relTableID}, direction{direction},
-          propertyName{move(propertyName)}, propertyKey{propertyKey}, isColumn{isColumn} {}
+          propertyName{move(propertyName)}, propertyID{propertyID}, isColumn{isColumn} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;
@@ -28,12 +28,12 @@ public:
     inline table_id_t getRelTableID() const { return relTableID; }
     inline RelDirection getDirection() const { return direction; }
     inline string getPropertyName() const { return propertyName; }
-    inline uint32_t getPropertyKey() const { return propertyKey; }
+    inline uint32_t getPropertyID() const { return propertyID; }
     inline bool getIsColumn() const { return isColumn; }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanRelProperty>(boundNodeExpression, nbrNodeExpression,
-            relTableID, direction, propertyName, propertyKey, isColumn, children[0]->copy());
+            relTableID, direction, propertyName, propertyID, isColumn, children[0]->copy());
     }
 
 private:
@@ -42,7 +42,7 @@ private:
     table_id_t relTableID;
     RelDirection direction;
     string propertyName;
-    uint32_t propertyKey;
+    uint32_t propertyID;
     bool isColumn;
 };
 

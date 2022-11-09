@@ -14,19 +14,6 @@ cc_library(
     deps = [
         "//src/common:clause_type",
         "//src/parser/expression:parsed_expression",
+        "//src/parser/query/graph_pattern",
     ],
 )
-
-cc_library(
-    name = "node_pattern",
-    hdrs = [
-        "include/node_pattern.h",
-    ],
-    visibility = [
-        "//src/parser/query/updating_clause:__pkg__",
-    ],
-    deps = [
-        "//src/parser/expression:parsed_expression",
-    ],
-)
-

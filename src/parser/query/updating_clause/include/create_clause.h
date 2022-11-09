@@ -2,7 +2,7 @@
 
 #include "updating_clause.h"
 
-#include "src/parser/query/reading_clause/include/node_pattern.h"
+#include "src/parser/query/graph_pattern/include/pattern_element.h"
 
 namespace graphflow {
 namespace parser {
