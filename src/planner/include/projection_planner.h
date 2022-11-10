@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
 #include "src/catalog/include/catalog.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
@@ -14,9 +13,6 @@ namespace planner {
 class Enumerator;
 
 class ProjectionPlanner {
-    friend class Enumerator;
-    friend class JoinOrderEnumerator;
-
 public:
     explicit ProjectionPlanner(const Catalog& catalog, Enumerator* enumerator)
         : catalog{catalog}, enumerator{enumerator} {}
@@ -30,7 +26,6 @@ private:
         const expression_vector& expressionsToGroupBy, LogicalPlan& plan);
 
     void appendProjection(const expression_vector& expressionsToProject, LogicalPlan& plan);
-    void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
     void appendAggregate(const expression_vector& expressionsToGroupBy,
         const expression_vector& expressionsToAggregate, LogicalPlan& plan);
     void appendOrderBy(

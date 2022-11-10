@@ -4,10 +4,6 @@
 #include "projection_planner.h"
 #include "update_planner.h"
 
-#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
-#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
-#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
-#include "src/binder/bound_ddl/include/bound_drop_table.h"
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/include/bound_statement.h"
 
@@ -44,33 +40,31 @@ private:
     }
 
     vector<unique_ptr<LogicalPlan>> enumerateSingleQuery(const NormalizedSingleQuery& singleQuery);
-
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
     void planReadingClause(
         BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& prevPlans);
-
     void planMatchClause(
         BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans);
-
     void planUnwindClause(
         BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans);
 
+    // CTE & subquery planning
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan& outerPlan);
     void planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan& prevPlan);
-
     void planExistsSubquery(shared_ptr<Expression>& subquery, LogicalPlan& outerPlan);
-
     void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
     static void appendAccumulate(LogicalPlan& plan);
 
     static void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
 
-    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+    static void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
+
+    static void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
     static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group
@@ -117,16 +111,6 @@ private:
 
     static vector<vector<unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
-
-    static unique_ptr<LogicalPlan> createCreateNodeTablePlan(
-        const BoundCreateNodeClause& boundCreateNodeClause);
-
-    static unique_ptr<LogicalPlan> createCreateRelTablePlan(
-        const BoundCreateRelClause& boundCreateRelClause);
-
-    static unique_ptr<LogicalPlan> createCopyCSVPlan(const BoundCopyCSV& boundCopyCSV);
-
-    static unique_ptr<LogicalPlan> createDropTablePlan(const BoundDropTable& boundDropTable);
 
 private:
     const Catalog& catalog;

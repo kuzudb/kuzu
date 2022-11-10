@@ -353,3 +353,15 @@ Dan|Carol
 [toronto]|
 |long long long string
 [vancouver]|short str
+
+-NAME OneHopMixedTest
+-QUERY MATCH (a:person)-[e:mixed]->(b:person) RETURN a.ID, e, b.ID, b.fName
+-ENUMERATE
+---- 7
+0|1930|2|Bob
+10|2020|2|Bob
+2|1945|5|Dan
+3|2088|7|Elizabeth
+7|2066|3|Carol
+8|2120|3|Carol
+9|2022|3|Carol

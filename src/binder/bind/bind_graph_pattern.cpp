@@ -60,6 +60,9 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         catalog, tableID, rightNode->getTableID(), isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
+    if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
+        throw BinderException("Self-loop rel " + parsedName + " is not supported.");
+    }
     // bind variable length
     auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
