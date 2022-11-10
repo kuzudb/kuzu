@@ -287,6 +287,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printf(">> Compiling time: %.2fms\n", querySummary->getCompilingTime());
         printf(">> Executing time: %.2fms\n", querySummary->getExecutionTime());
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
+        }
         uint32_t lineSeparatorLen = 1u + colsWidth.size();
         string lineSeparator;
         while (queryResult.hasNext()) {
@@ -296,7 +299,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                     continue;
                 }
                 uint32_t fieldLen = tuple->getResultValue(i)->to_string().length() + 2;
-                colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
+                colsWidth[i] =
+                    max(colsWidth[i], (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i]);
             }
         }
         for (auto width : colsWidth) {
@@ -304,6 +308,17 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
         lineSeparator = string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
+
+        if (queryResult.getColumnNames()[0] != "") {
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                printf("| %s", queryResult.getColumnNames()[i].c_str());
+                printf(
+                    "%s", string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ')
+                              .c_str());
+            }
+            printf("|\n");
+            printf("%s\n", lineSeparator.c_str());
+        }
 
         queryResult.resetIterator();
         while (queryResult.hasNext()) {
