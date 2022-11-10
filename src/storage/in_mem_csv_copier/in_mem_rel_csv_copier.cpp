@@ -176,8 +176,8 @@ void InMemRelCSVCopier::skipFirstRowIfNecessary(
 void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->debug("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
-    CSVReader reader(
-        copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    CSVReader reader(copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig,
+        blockId, copier->logger);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTableLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
@@ -507,8 +507,8 @@ void InMemRelCSVCopier::populateAdjAndPropertyLists() {
 void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
-    CSVReader reader(
-        copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
+    CSVReader reader(copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig,
+        blockId, copier->logger);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTableLabels{true, true};
     vector<nodeID_t> nodeIDs{2};

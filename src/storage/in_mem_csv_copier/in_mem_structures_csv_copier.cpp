@@ -56,7 +56,7 @@ void InMemStructuresCSVCopier::countNumLinesAndUnstrPropertiesPerBlockTask(const
     uint64_t blockId, InMemStructuresCSVCopier* copier, uint64_t numTokensToSkip,
     unordered_set<string>* unstrPropertyNames) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
+    CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId, copier->logger);
     copier->numLinesPerBlock[blockId] = 0ull;
     while (reader.hasNextLine()) {
         copier->numLinesPerBlock[blockId]++;

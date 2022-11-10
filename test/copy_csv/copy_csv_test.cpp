@@ -142,7 +142,7 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
     string fName = "dataset/copy-csv-node-property-test/vPerson.csv";
     CSVReaderConfig config;
-    CSVReader csvReader(fName, config);
+    CSVReader csvReader(fName, config, LoggerUtils::getOrCreateSpdLogger("copyNodeCSVTest"));
     int lineIdx = 0;
     uint64_t count = 0;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
