@@ -14,8 +14,7 @@ class Enumerator;
 
 class ProjectionPlanner {
 public:
-    explicit ProjectionPlanner(const Catalog& catalog, Enumerator* enumerator)
-        : catalog{catalog}, enumerator{enumerator} {}
+    explicit ProjectionPlanner(Enumerator* enumerator) : enumerator{enumerator} {}
 
     void planProjectionBody(
         const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans);
@@ -49,7 +48,6 @@ private:
         const Expression& variable, const Schema& schema);
 
 private:
-    const Catalog& catalog;
     Enumerator* enumerator;
 };
 
