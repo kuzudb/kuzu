@@ -27,3 +27,9 @@
 2|30|130
 3|45|130
 5|20|130
+
+-NAME OneHopDistinctAggTest
+-QUERY MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
+-ENUMERATE
+---- 1
+5
