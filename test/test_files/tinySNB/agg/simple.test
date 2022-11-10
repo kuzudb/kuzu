@@ -1,3 +1,10 @@
+-NAME OneHopSimpleAggTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
+--PARALLELISM 4
+-ENUMERATE
+---- 1
+36|Alice|5
+
 # TODO(Semih): Add the following when enabling ad-hoc properties
 # in query: AVG(a.unstrNumericProp); in result: |55.666667
 -NAME SimpleAvgTest

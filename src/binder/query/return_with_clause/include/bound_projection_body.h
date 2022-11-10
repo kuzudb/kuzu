@@ -45,6 +45,8 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
+    inline bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
+
     expression_vector getPropertiesToRead() const;
 
     inline unique_ptr<BoundProjectionBody> copy() const {

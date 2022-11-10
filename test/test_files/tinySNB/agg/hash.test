@@ -69,13 +69,21 @@ Alice|1
 #68.000000|
 #|
 
--NAME TwoHopAggTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*)
+-NAME OneHopHashAggTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*), SUM(b.age)
 --PARALLELISM 4
 -ENUMERATE
 ---- 2
-1|18
-2|18
+1|8|245
+2|6|210
+
+-NAME TwoHopAggTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
+--PARALLELISM 4
+-ENUMERATE
+---- 2
+1|18|4
+2|18|4
 
 -NAME OneHopAggFlatUnflatVecTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)

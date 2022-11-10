@@ -253,6 +253,9 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
     auto uniqueExpressionName =
         AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
+    if (children.empty()) {
+        uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
+    }
     return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
         move(children), function->aggregateFunction->clone(), uniqueExpressionName);
 }

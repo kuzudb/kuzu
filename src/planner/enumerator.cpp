@@ -127,7 +127,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
         updatePlanner.planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
     }
     if (queryPart.hasProjectionBody()) {
-        projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(), plans);
+        projectionPlanner.planProjectionBody(*queryPart.getProjectionBody(), plans);
         if (queryPart.hasProjectionBodyPredicate()) {
             for (auto& plan : plans) {
                 appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
@@ -327,7 +327,7 @@ void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
     plan.setLastOperator(sink);
 }
 
-void Enumerator::appendExpressionsScan(expression_vector& expressions, LogicalPlan& plan) {
+void Enumerator::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
     assert(plan.isEmpty());
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
@@ -503,7 +503,7 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
         firstChildSchema->getExpressionsInScope(), move(schemaBeforeUnion), move(children));
     plan->setLastOperator(logicalUnion);
     if (!isUnionAll) {
-        projectionEnumerator.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
+        projectionPlanner.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
     }
     return plan;
 }

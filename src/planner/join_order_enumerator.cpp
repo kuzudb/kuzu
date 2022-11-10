@@ -2,7 +2,7 @@
 
 #include "include/asp_optimizer.h"
 #include "include/enumerator.h"
-#include "include/projection_enumerator.h"
+#include "include/projection_planner.h"
 
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
@@ -134,7 +134,7 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     for (auto& predicate : predicates) {
         enumerator->appendFilter(predicate, *plan);
     }
-    enumerator->projectionEnumerator.appendDistinct(expressions, *plan);
+    enumerator->projectionPlanner.appendDistinct(expressions, *plan);
     context->addPlan(newSubgraph, std::move(plan));
 }
 

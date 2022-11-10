@@ -1,4 +1,4 @@
-#include "src/planner/include/projection_enumerator.h"
+#include "src/planner/include/projection_planner.h"
 
 #include "src/binder/expression/include/function_expression.h"
 #include "src/planner/include/enumerator.h"
@@ -14,26 +14,52 @@
 namespace graphflow {
 namespace planner {
 
-void ProjectionEnumerator::enumerateProjectionBody(
+void ProjectionPlanner::planProjectionBody(
     const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
-        if (plan->isEmpty()) { // e.g. RETURN 1, COUNT(2)
-            auto expressions = projectionBody.getProjectionExpressions();
-            Enumerator::appendExpressionsScan(expressions, *plan);
-        }
-        enumerateAggregate(projectionBody, *plan);
-        enumerateOrderBy(projectionBody, *plan);
-        enumerateProjection(projectionBody, *plan);
-        enumerateSkipAndLimit(projectionBody, *plan);
+        planProjectionBody(projectionBody, *plan);
     }
 }
 
-void ProjectionEnumerator::enumerateAggregate(
+void ProjectionPlanner::planProjectionBody(
     const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    auto expressionsToAggregate = getExpressionsToAggregate(projectionBody, *plan.getSchema());
-    if (expressionsToAggregate.empty()) {
-        return;
+    auto schema = plan.getSchema();
+    if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
+        Enumerator::appendExpressionsScan(projectionBody.getProjectionExpressions(), plan);
     }
+    // NOTE: As a temporary solution, we rewrite variables in WITH clause as all properties in scope
+    // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
+    // E.g. MATCH (a) WITH a RETURN a.age -> MATCH (a) WITH a.age RETURN a.age
+    // This rewrite should be removed once we add an optimizer that can remove unnecessary columns.
+    auto expressionsToProject =
+        rewriteExpressionsToProject(projectionBody.getProjectionExpressions(), *schema);
+    auto expressionsToAggregate = getExpressionsToAggregate(expressionsToProject, *schema);
+    auto expressionsToGroupBy = getExpressionToGroupBy(expressionsToProject, *schema);
+    if (!expressionsToAggregate.empty()) {
+        planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
+    }
+    if (projectionBody.hasOrderByExpressions()) {
+        appendOrderBy(
+            projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), plan);
+    }
+    appendProjection(expressionsToProject, plan);
+    if (projectionBody.getIsDistinct()) {
+        appendDistinct(expressionsToProject, plan);
+    }
+    if (projectionBody.hasSkipOrLimit()) {
+        appendMultiplicityReducer(plan);
+        if (projectionBody.hasSkip()) {
+            appendSkip(projectionBody.getSkipNumber(), plan);
+        }
+        if (projectionBody.hasLimit()) {
+            appendLimit(projectionBody.getLimitNumber(), plan);
+        }
+    }
+}
+
+void ProjectionPlanner::planAggregate(const expression_vector& expressionsToAggregate,
+    const expression_vector& expressionsToGroupBy, LogicalPlan& plan) {
+    assert(!expressionsToAggregate.empty());
     expression_vector expressionsToProject;
     for (auto& expressionToAggregate : expressionsToAggregate) {
         if (expressionToAggregate->getChildren().empty()) { // skip COUNT(*)
@@ -41,43 +67,11 @@ void ProjectionEnumerator::enumerateAggregate(
         }
         expressionsToProject.push_back(expressionToAggregate->getChild(0));
     }
-    auto expressionsToGroupBy = getExpressionToGroupBy(projectionBody, *plan.getSchema());
     for (auto& expressionToGroupBy : expressionsToGroupBy) {
         expressionsToProject.push_back(expressionToGroupBy);
     }
     appendProjection(expressionsToProject, plan);
     appendAggregate(expressionsToGroupBy, expressionsToAggregate, plan);
-}
-
-void ProjectionEnumerator::enumerateOrderBy(
-    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    if (!projectionBody.hasOrderByExpressions()) {
-        return;
-    }
-    appendOrderBy(projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), plan);
-}
-
-void ProjectionEnumerator::enumerateProjection(
-    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    auto expressionsToProject = getExpressionsToProject(projectionBody, *plan.getSchema());
-    appendProjection(expressionsToProject, plan);
-    if (projectionBody.getIsDistinct()) {
-        appendDistinct(expressionsToProject, plan);
-    }
-}
-
-void ProjectionEnumerator::enumerateSkipAndLimit(
-    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    if (!projectionBody.hasSkip() && !projectionBody.hasLimit()) {
-        return;
-    }
-    appendMultiplicityReducer(plan);
-    if (projectionBody.hasSkip()) {
-        appendSkip(projectionBody.getSkipNumber(), plan);
-    }
-    if (projectionBody.hasLimit()) {
-        appendLimit(projectionBody.getLimitNumber(), plan);
-    }
 }
 
 static unordered_set<uint32_t> getDiscardedGroupsPos(unordered_set<uint32_t>& groupsPosBefore,
@@ -91,7 +85,7 @@ static unordered_set<uint32_t> getDiscardedGroupsPos(unordered_set<uint32_t>& gr
     return discardGroupsPos;
 }
 
-void ProjectionEnumerator::appendProjection(
+void ProjectionPlanner::appendProjection(
     const expression_vector& expressionsToProject, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     expression_vector expressionsToReference;
@@ -137,12 +131,12 @@ void ProjectionEnumerator::appendProjection(
     plan.setLastOperator(std::move(projection));
 }
 
-void ProjectionEnumerator::appendDistinct(
+void ProjectionPlanner::appendDistinct(
     const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     for (auto& expression : expressionsToDistinct) {
         auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-        enumerator->appendFlattens(dependentGroupsPos, plan);
+        Enumerator::appendFlattens(dependentGroupsPos, plan);
     }
     auto distinct =
         make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
@@ -154,7 +148,7 @@ void ProjectionEnumerator::appendDistinct(
     plan.setLastOperator(move(distinct));
 }
 
-void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsToGroupBy,
+void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     bool hasDistinctFunc = false;
@@ -164,33 +158,29 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
             hasDistinctFunc = true;
         }
     }
-    if (hasDistinctFunc) {
+    if (hasDistinctFunc) { // Flatten all inputs.
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
             auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
-            enumerator->appendFlattens(dependentGroupsPos, plan);
+            Enumerator::appendFlattens(dependentGroupsPos, plan);
         }
         for (auto& expressionToAggregate : expressionsToAggregate) {
-            assert(isExpressionAggregate(expressionToAggregate->expressionType));
-            auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
-            if (functionExpression.isDistinct()) {
-                auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
-                enumerator->appendFlattens(dependentGroupsPos, plan);
-            }
+            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
+            Enumerator::appendFlattens(dependentGroupsPos, plan);
         }
     } else {
+        // Flatten all but one for ALL group by keys.
         unordered_set<uint32_t> groupByPoses;
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
             auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
             groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
         }
         Enumerator::appendFlattensButOne(groupByPoses, plan);
-
-        unordered_set<uint32_t> aggPoses;
-        for (auto& expressionToAggregate : expressionsToAggregate) {
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
-            aggPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
+        if (expressionsToAggregate.size() > 1) {
+            for (auto& expressionToAggregate : expressionsToAggregate) {
+                auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
+                Enumerator::appendFlattens(dependentGroupsPos, plan);
+            }
         }
-        Enumerator::appendFlattensButOne(aggPoses, plan);
     }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, schema->copy(), plan.getLastOperator());
@@ -205,7 +195,7 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
     plan.setLastOperator(move(aggregate));
 }
 
-void ProjectionEnumerator::appendOrderBy(
+void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     for (auto& expression : expressions) {
@@ -236,32 +226,32 @@ void ProjectionEnumerator::appendOrderBy(
     plan.setLastOperator(move(orderBy));
 }
 
-void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {
+void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
     plan.setLastOperator(make_shared<LogicalMultiplicityReducer>(plan.getLastOperator()));
 }
 
-void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
+void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
+    auto groupPosToSelect = Enumerator::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(
         limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(limitNumber);
     plan.setLastOperator(move(limit));
 }
 
-void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
+void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
+    auto groupPosToSelect = Enumerator::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(
         skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.setLastOperator(move(skip));
 }
 
-expression_vector ProjectionEnumerator::getExpressionToGroupBy(
-    const BoundProjectionBody& projectionBody, const Schema& schema) {
+expression_vector ProjectionPlanner::getExpressionToGroupBy(
+    const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector expressionsToGroupBy;
-    for (auto& expression : projectionBody.getProjectionExpressions()) {
+    for (auto& expression : expressionsToProject) {
         if (getSubAggregateExpressionsNotInScope(expression, schema).empty()) {
             expressionsToGroupBy.push_back(expression);
         }
@@ -269,10 +259,10 @@ expression_vector ProjectionEnumerator::getExpressionToGroupBy(
     return expressionsToGroupBy;
 }
 
-expression_vector ProjectionEnumerator::getExpressionsToAggregate(
-    const BoundProjectionBody& projectionBody, const Schema& schema) {
+expression_vector ProjectionPlanner::getExpressionsToAggregate(
+    const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector expressionsToAggregate;
-    for (auto& expression : projectionBody.getProjectionExpressions()) {
+    for (auto& expression : expressionsToProject) {
         for (auto& aggExpression : getSubAggregateExpressionsNotInScope(expression, schema)) {
             expressionsToAggregate.push_back(aggExpression);
         }
@@ -280,22 +270,22 @@ expression_vector ProjectionEnumerator::getExpressionsToAggregate(
     return expressionsToAggregate;
 }
 
-expression_vector ProjectionEnumerator::getExpressionsToProject(
-    const BoundProjectionBody& projectionBody, const Schema& schema) {
-    expression_vector expressionsToProject;
-    for (auto& expression : projectionBody.getProjectionExpressions()) {
+expression_vector ProjectionPlanner::rewriteExpressionsToProject(
+    const expression_vector& expressionsToProject, const Schema& schema) {
+    expression_vector result;
+    for (auto& expression : expressionsToProject) {
         if (expression->dataType.typeID == NODE || expression->dataType.typeID == REL) {
             for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
-                expressionsToProject.push_back(property);
+                result.push_back(property);
             }
         } else {
-            expressionsToProject.push_back(expression);
+            result.push_back(expression);
         }
     }
-    return expressionsToProject;
+    return result;
 }
 
-expression_vector ProjectionEnumerator::getSubAggregateExpressionsNotInScope(
+expression_vector ProjectionPlanner::getSubAggregateExpressionsNotInScope(
     const shared_ptr<Expression>& expression, const Schema& schema) {
     expression_vector result;
     if (schema.isExpressionInScope(*expression)) {
@@ -315,7 +305,7 @@ expression_vector ProjectionEnumerator::getSubAggregateExpressionsNotInScope(
     return result;
 }
 
-expression_vector ProjectionEnumerator::rewriteVariableAsAllPropertiesInScope(
+expression_vector ProjectionPlanner::rewriteVariableAsAllPropertiesInScope(
     const Expression& variable, const Schema& schema) {
     expression_vector result;
     for (auto& expression : schema.getExpressionsInScope()) {
