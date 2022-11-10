@@ -3,7 +3,6 @@
 #include "src/binder/expression/include/function_expression.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_multiplcity_reducer.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
@@ -44,7 +43,7 @@ void ProjectionPlanner::planProjectionBody(
     }
     appendProjection(expressionsToProject, plan);
     if (projectionBody.getIsDistinct()) {
-        appendDistinct(expressionsToProject, plan);
+        Enumerator::appendDistinct(expressionsToProject, plan);
     }
     if (projectionBody.hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
@@ -129,23 +128,6 @@ void ProjectionPlanner::appendProjection(
     auto projection = make_shared<LogicalProjection>(
         expressionsToProject, std::move(discardGroupsPos), plan.getLastOperator());
     plan.setLastOperator(std::move(projection));
-}
-
-void ProjectionPlanner::appendDistinct(
-    const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    for (auto& expression : expressionsToDistinct) {
-        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-        Enumerator::appendFlattens(dependentGroupsPos, plan);
-    }
-    auto distinct =
-        make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
-    schema->clear();
-    auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToDistinct) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    plan.setLastOperator(move(distinct));
 }
 
 void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGroupBy,

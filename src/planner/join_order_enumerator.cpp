@@ -134,7 +134,7 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     for (auto& predicate : predicates) {
         enumerator->appendFilter(predicate, *plan);
     }
-    enumerator->projectionPlanner.appendDistinct(expressions, *plan);
+    Enumerator::appendDistinct(expressions, *plan);
     context->addPlan(newSubgraph, std::move(plan));
 }
 

@@ -383,3 +383,9 @@ TEST_F(BinderErrorTest, DropNotExistsTable) {
     auto input = "DROP TABLE person1;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, SelfLoopRel) {
+    string expectedException = "Binder exception: Self-loop rel e is not supported.";
+    auto input = "MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

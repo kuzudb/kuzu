@@ -2,10 +2,7 @@
 
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
@@ -21,59 +18,39 @@ namespace planner {
 
 vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& boundStatement) {
     vector<unique_ptr<LogicalPlan>> resultPlans;
-    if (boundStatement.getStatementType() == StatementType::QUERY) {
-        auto& regularQuery = (BoundRegularQuery&)boundStatement;
-        if (regularQuery.getNumSingleQueries() == 1) {
-            resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
-        } else {
-            vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
-                regularQuery.getNumSingleQueries());
-            for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-                childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
-            }
-            auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
-            for (auto& childrenPlan : childrenPlans) {
-                resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
-            }
+    auto& regularQuery = (BoundRegularQuery&)boundStatement;
+    if (regularQuery.getNumSingleQueries() == 1) {
+        resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
+    } else {
+        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
+            regularQuery.getNumSingleQueries());
+        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+            childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
         }
-        for (auto& plan : resultPlans) {
-            plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
+        auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
+        for (auto& childrenPlan : childrenPlans) {
+            resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
         }
-    } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
-        resultPlans.push_back(createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement));
-    } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
-        resultPlans.push_back(createCreateRelTablePlan((BoundCreateRelClause&)boundStatement));
-    } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
-        resultPlans.push_back(createCopyCSVPlan((BoundCopyCSV&)boundStatement));
-    } else if (boundStatement.getStatementType() == StatementType::DROP_TABLE) {
-        resultPlans.push_back(createDropTablePlan((BoundDropTable&)boundStatement));
+    }
+    for (auto& plan : resultPlans) {
+        plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
     }
     return resultPlans;
 }
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundStatement) {
     unique_ptr<LogicalPlan> bestPlan;
-    if (boundStatement.getStatementType() == StatementType::QUERY) {
-        auto& regularQuery = (BoundRegularQuery&)boundStatement;
-        if (regularQuery.getNumSingleQueries() == 1) {
-            bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
-        } else {
-            vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
-            for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-                childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
-            }
-            bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
+    auto& regularQuery = (BoundRegularQuery&)boundStatement;
+    if (regularQuery.getNumSingleQueries() == 1) {
+        bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
+    } else {
+        vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
+        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+            childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
         }
-        bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
-    } else if (boundStatement.getStatementType() == StatementType::CREATE_NODE_CLAUSE) {
-        bestPlan = createCreateNodeTablePlan((BoundCreateNodeClause&)boundStatement);
-    } else if (boundStatement.getStatementType() == StatementType::CREATE_REL_CLAUSE) {
-        bestPlan = createCreateRelTablePlan((BoundCreateRelClause&)boundStatement);
-    } else if (boundStatement.getStatementType() == StatementType::COPY_CSV) {
-        bestPlan = createCopyCSVPlan((BoundCopyCSV&)boundStatement);
-    } else if (boundStatement.getStatementType() == StatementType::DROP_TABLE) {
-        bestPlan = createDropTablePlan((BoundDropTable&)boundStatement);
+        bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
     }
+    bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
     return bestPlan;
 }
 
@@ -182,8 +159,7 @@ void Enumerator::planUnwindClause(
     auto boundUnwindClause = (BoundUnwindClause*)boundReadingClause;
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
-            expression_vector expressions;
-            expressions.push_back(boundUnwindClause->getExpression());
+            auto expressions = expression_vector{boundUnwindClause->getExpression()};
             Enumerator::appendExpressionsScan(expressions, *plan);
         }
         appendUnwind(*boundUnwindClause, *plan);
@@ -341,6 +317,22 @@ void Enumerator::appendExpressionsScan(const expression_vector& expressions, Log
     }
     auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));
     plan.setLastOperator(std::move(expressionsScan));
+}
+
+void Enumerator::appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    for (auto& expression : expressionsToDistinct) {
+        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+        Enumerator::appendFlattens(dependentGroupsPos, plan);
+    }
+    auto distinct =
+        make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
+    schema->clear();
+    auto groupPos = schema->createGroup();
+    for (auto& expression : expressionsToDistinct) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+    plan.setLastOperator(move(distinct));
 }
 
 void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
@@ -503,7 +495,7 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
         firstChildSchema->getExpressionsInScope(), move(schemaBeforeUnion), move(children));
     plan->setLastOperator(logicalUnion);
     if (!isUnionAll) {
-        projectionPlanner.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
+        appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
     }
     return plan;
 }
@@ -560,37 +552,6 @@ vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlan
         resultChildrenPlans = move(curChildResultLogicalPlans);
     }
     return resultChildrenPlans;
-}
-
-unique_ptr<LogicalPlan> Enumerator::createCreateNodeTablePlan(
-    const BoundCreateNodeClause& boundCreateNodeClause) {
-    auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalCreateNodeTable>(boundCreateNodeClause.getTableName(),
-        boundCreateNodeClause.getPropertyNameDataTypes(),
-        boundCreateNodeClause.getPrimaryKeyIdx()));
-    return plan;
-}
-
-unique_ptr<LogicalPlan> Enumerator::createCreateRelTablePlan(
-    const BoundCreateRelClause& boundCreateRelClause) {
-    auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalCreateRelTable>(boundCreateRelClause.getTableName(),
-        boundCreateRelClause.getPropertyNameDataTypes(), boundCreateRelClause.getRelMultiplicity(),
-        boundCreateRelClause.getSrcDstTableIDs()));
-    return plan;
-}
-
-unique_ptr<LogicalPlan> Enumerator::createCopyCSVPlan(const BoundCopyCSV& boundCopyCSV) {
-    auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalCopyCSV>(
-        boundCopyCSV.getCSVDescription(), boundCopyCSV.getTableSchema()));
-    return plan;
-}
-
-unique_ptr<LogicalPlan> Enumerator::createDropTablePlan(const BoundDropTable& boundDropTable) {
-    auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalDropTable>(boundDropTable.getTableSchema()));
-    return plan;
 }
 
 } // namespace planner
