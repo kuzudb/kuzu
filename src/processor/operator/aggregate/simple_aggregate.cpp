@@ -69,7 +69,9 @@ void SimpleAggregate::execute(ExecutionContext* context) {
                         vector<ValueVector*>{}, aggVector)) {
                     if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
-                            aggVector, resultSet->multiplicity,
+                            aggVector, 1 /* Distinct aggregate should ignore
+                                          multiplicity since they are known to be non-distinct. */
+                            ,
                             aggVector->state->getPositionOfCurrIdx());
                     }
                 }
