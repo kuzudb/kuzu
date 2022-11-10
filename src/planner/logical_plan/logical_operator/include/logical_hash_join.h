@@ -27,11 +27,10 @@ public:
 
     // Mark join.
     LogicalHashJoin(vector<shared_ptr<NodeExpression>> joinNodes, shared_ptr<Expression> mark,
-        unique_ptr<Schema> buildSideSchema, shared_ptr<LogicalOperator> probeSideChild,
-        shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalHashJoin{std::move(joinNodes), JoinType::MARK, std::move(mark),
-              false /* isProbeAcc */, std::move(buildSideSchema),
-              vector<uint64_t>{} /* flatOutputGroupPositions */,
+        bool isProbeAcc, unique_ptr<Schema> buildSideSchema,
+        shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
+        : LogicalHashJoin{std::move(joinNodes), JoinType::MARK, std::move(mark), isProbeAcc,
+              std::move(buildSideSchema), vector<uint64_t>{} /* flatOutputGroupPositions */,
               expression_vector{} /* expressionsToMaterialize */, std::move(probeSideChild),
               std::move(buildSideChild)} {}
 

@@ -18,18 +18,14 @@ class JoinOrderEnumeratorContext;
  * JoinOrderEnumerator is currently responsible for
  *      join order enumeration
  *      filter push down
- *      property push down
  */
 class JoinOrderEnumerator {
-    friend class Enumerator;
     friend class ASPOptimizer;
 
 public:
-    JoinOrderEnumerator(const Catalog& catalog,
-        const NodesStatisticsAndDeletedIDs& nodesStatisticsAndDeletedIDs,
+    JoinOrderEnumerator(const Catalog& catalog, const NodesStatisticsAndDeletedIDs& nodesStatistics,
         const RelsStatistics& relsStatistics, Enumerator* enumerator)
-        : catalog{catalog}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
-          relsStatistics{relsStatistics},
+        : catalog{catalog}, nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics},
           enumerator{enumerator}, context{make_unique<JoinOrderEnumeratorContext>()} {};
 
     vector<unique_ptr<LogicalPlan>> enumerate(
@@ -37,16 +33,32 @@ public:
 
     inline void resetState() { context->resetState(); }
 
+    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
+        expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice);
+    void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
+
+    static inline void planMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+        shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        planJoin(joinNodes, JoinType::MARK, mark, probePlan, buildPlan);
+    }
+    static inline void planInnerHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        planJoin(joinNodes, JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);
+    }
+    static inline void planLeftHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        planJoin(joinNodes, JoinType::LEFT, nullptr /* mark */, probePlan, buildPlan);
+    }
+    static inline void planCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        appendCrossProduct(probePlan, buildPlan);
+    }
+
 private:
     vector<unique_ptr<LogicalPlan>> planCrossProduct(
         vector<unique_ptr<LogicalPlan>> leftPlans, vector<unique_ptr<LogicalPlan>> rightPlans);
 
     vector<unique_ptr<LogicalPlan>> enumerate(
         QueryGraph* queryGraph, expression_vector& predicates);
-
-    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
-        expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice);
-    void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     void planOuterExpressionsScan(expression_vector& expressions);
 
@@ -97,12 +109,13 @@ private:
 
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
 
-    static void planHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
-        bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    static void planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
+        shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
         JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-        const shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        const shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan);
     static void appendIntersect(const shared_ptr<NodeExpression>& intersectNode,
         vector<shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
         vector<unique_ptr<LogicalPlan>>& buildPlans);
@@ -114,7 +127,7 @@ private:
 
 private:
     const catalog::Catalog& catalog;
-    const storage::NodesStatisticsAndDeletedIDs& nodesStatisticsAndDeletedIDs;
+    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics;
     const storage::RelsStatistics& relsStatistics;
     Enumerator* enumerator;
     unique_ptr<JoinOrderEnumeratorContext> context;

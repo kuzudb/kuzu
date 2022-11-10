@@ -24,25 +24,22 @@ public:
         const RelsStatistics& relsStatistics)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,
                                 relsStatistics, this},
-          projectionPlanner{catalog, this}, updatePlanner{catalog, this} {}
+          projectionPlanner{this}, updatePlanner{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
-    unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement);
+    inline unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement) {
+        return getBestPlan(getAllPlans(boundStatement));
+    }
 
 private:
     unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
 
-    vector<unique_ptr<LogicalPlan>> getAllPlans(const NormalizedSingleQuery& singleQuery);
-
-    unique_ptr<LogicalPlan> getBestPlan(const NormalizedSingleQuery& singleQuery) {
-        return getBestPlan(enumerateSingleQuery(singleQuery));
-    }
-
-    vector<unique_ptr<LogicalPlan>> enumerateSingleQuery(const NormalizedSingleQuery& singleQuery);
-    vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
+    vector<unique_ptr<LogicalPlan>> planSingleQuery(const NormalizedSingleQuery& singleQuery);
+    vector<unique_ptr<LogicalPlan>> planQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
+    // Reading clause planning
     void planReadingClause(
         BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& prevPlans);
     void planMatchClause(

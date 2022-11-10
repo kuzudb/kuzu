@@ -455,14 +455,12 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanBuildCopy = rightPlan->shallowCopy();
             auto leftPlanBuildCopy = leftPlan->shallowCopy();
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
-            planHashJoin(joinNodes, JoinType::INNER, false /* isProbeAcc */, *leftPlanProbeCopy,
-                *rightPlanBuildCopy);
+            planInnerHashJoin(joinNodes, *leftPlanProbeCopy, *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
             context->addPlan(newSubgraph, move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
-                planHashJoin(joinNodes, JoinType::INNER, false /* isProbeAcc */,
-                    *rightPlanProbeCopy, *leftPlanBuildCopy);
+                planInnerHashJoin(joinNodes, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, move(rightPlanProbeCopy));
             }
@@ -511,8 +509,8 @@ void JoinOrderEnumerator::appendScanNode(shared_ptr<NodeExpression>& node, Logic
     scan->computeSchema(*schema);
     // update cardinality
     auto group = schema->getGroup(node->getIDProperty());
-    auto numNodes = nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(node->getTableID())
-                        ->getNumTuples();
+    auto numNodes =
+        nodesStatistics.getNodeStatisticsAndDeletedIDs(node->getTableID())->getNumTuples();
     group->setMultiplier(numNodes);
     plan.setLastOperator(std::move(scan));
 }
@@ -552,14 +550,28 @@ void JoinOrderEnumerator::appendExtend(
     plan.increaseCost(plan.getCardinality());
 }
 
-void JoinOrderEnumerator::planHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-    JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+void JoinOrderEnumerator::planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+    JoinType joinType, shared_ptr<Expression> mark, LogicalPlan& probePlan,
+    LogicalPlan& buildPlan) {
+    auto isProbeAcc = false;
     // TODO(Guodong): Fix asp for multiple join nodes.
     if (ASPOptimizer::canApplyASP(joinNodes, isProbeAcc, probePlan, buildPlan)) {
         ASPOptimizer::applyASP(joinNodes[0], probePlan, buildPlan);
         isProbeAcc = true;
     }
-    appendHashJoin(joinNodes, joinType, isProbeAcc, probePlan, buildPlan);
+    switch (joinType) {
+    case JoinType::INNER:
+    case JoinType::LEFT: {
+        assert(mark == nullptr);
+        appendHashJoin(joinNodes, joinType, isProbeAcc, probePlan, buildPlan);
+    } break;
+    case JoinType::MARK: {
+        assert(mark != nullptr);
+        appendMarkJoin(joinNodes, mark, isProbeAcc, probePlan, buildPlan);
+    } break;
+    default:
+        assert(false);
+    }
 }
 
 static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& buildPlan) {
@@ -638,7 +650,8 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
 }
 
 void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-    const shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    const shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
+    LogicalPlan& buildPlan) {
     auto buildSchema = buildPlan.getSchema();
     auto probeSchema = probePlan.getSchema();
     // Apply flattening all but one on join nodes of both probe and build side.
@@ -651,7 +664,7 @@ void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>
     Enumerator::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     probeSchema->insertToGroupAndScope(mark, markGroupPos);
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, buildSchema->copy(),
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, isProbeAcc, buildSchema->copy(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.setLastOperator(std::move(hashJoin));
 }
@@ -731,8 +744,8 @@ uint64_t JoinOrderEnumerator::getExtensionRate(
                         .get())
                        ->getNumRelsForDirectionBoundTable(relDirection, boundTableID);
     return ceil(
-        (double)numRels / nodesStatisticsAndDeletedIDs.getNodeStatisticsAndDeletedIDs(boundTableID)
-                              ->getMaxNodeOffset() +
+        (double)numRels /
+            nodesStatistics.getNodeStatisticsAndDeletedIDs(boundTableID)->getMaxNodeOffset() +
         1);
 }
 

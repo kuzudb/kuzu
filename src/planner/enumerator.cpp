@@ -20,12 +20,12 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
     vector<unique_ptr<LogicalPlan>> resultPlans;
     auto& regularQuery = (BoundRegularQuery&)boundStatement;
     if (regularQuery.getNumSingleQueries() == 1) {
-        resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
+        resultPlans = planSingleQuery(*regularQuery.getSingleQuery(0));
     } else {
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
             regularQuery.getNumSingleQueries());
         for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-            childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
+            childrenLogicalPlans[i] = planSingleQuery(*regularQuery.getSingleQuery(i));
         }
         auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
         for (auto& childrenPlan : childrenPlans) {
@@ -38,46 +38,20 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
     return resultPlans;
 }
 
-unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundStatement& boundStatement) {
-    unique_ptr<LogicalPlan> bestPlan;
-    auto& regularQuery = (BoundRegularQuery&)boundStatement;
-    if (regularQuery.getNumSingleQueries() == 1) {
-        bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
-    } else {
-        vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
-        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-            childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
-        }
-        bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
-    }
-    bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
-    return bestPlan;
-}
-
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
-    auto bestPlan = move(plans[0]);
+    auto bestPlan = std::move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
         if (plans[i]->getCost() < bestPlan->getCost()) {
-            bestPlan = move(plans[i]);
+            bestPlan = std::move(plans[i]);
         }
     }
     return bestPlan;
-}
-
-vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const NormalizedSingleQuery& singleQuery) {
-    vector<unique_ptr<LogicalPlan>> result;
-    for (auto& plan : enumerateSingleQuery(singleQuery)) {
-        // This is copy is to avoid sharing operator across plans. Later optimization requires
-        // each plan to be independent.
-        result.push_back(plan->deepCopy());
-    }
-    return result;
 }
 
 // Note: we cannot append ResultCollector for plans enumerated for single query before there could
 // be a UNION on top which requires further flatten. So we delay ResultCollector appending to
 // enumerate regular query level.
-vector<unique_ptr<LogicalPlan>> Enumerator::enumerateSingleQuery(
+vector<unique_ptr<LogicalPlan>> Enumerator::planSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
     propertiesToScan.clear();
     for (auto& expression : singleQuery.getPropertiesToRead()) {
@@ -87,12 +61,18 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateSingleQuery(
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-        plans = enumerateQueryPart(*singleQuery.getQueryPart(i), move(plans));
+        plans = planQueryPart(*singleQuery.getQueryPart(i), move(plans));
     }
-    return plans;
+    vector<unique_ptr<LogicalPlan>> result;
+    for (auto& plan : plans) {
+        // This is copy is to avoid sharing operator across plans. Later optimization requires
+        // each plan to be independent.
+        result.push_back(plan->deepCopy());
+    }
+    return result;
 }
 
-vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
+vector<unique_ptr<LogicalPlan>> Enumerator::planQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
     vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
     // plan read
@@ -213,8 +193,7 @@ void Enumerator::planOptionalMatch(const QueryGraphCollection& queryGraphCollect
         for (auto& joinNode : joinNodes) {
             appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
         }
-        JoinOrderEnumerator::planHashJoin(
-            joinNodes, JoinType::LEFT, false /* isProbeAcc */, outerPlan, *bestInnerPlan);
+        JoinOrderEnumerator::planLeftHashJoin(joinNodes, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
     }
@@ -244,10 +223,9 @@ void Enumerator::planRegularMatch(const QueryGraphCollection& queryGraphCollecti
     joinOrderEnumerator.exitSubquery(std::move(prevContext));
     auto bestPlan = getBestPlan(std::move(plans));
     if (joinNodes.empty()) {
-        JoinOrderEnumerator::appendCrossProduct(prevPlan, *bestPlan);
+        JoinOrderEnumerator::planCrossProduct(prevPlan, *bestPlan);
     } else {
-        JoinOrderEnumerator::planHashJoin(
-            joinNodes, JoinType::INNER, false /* isProbeAcc */, prevPlan, *bestPlan);
+        JoinOrderEnumerator::planInnerHashJoin(joinNodes, prevPlan, *bestPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
         appendFilter(predicate, prevPlan);
@@ -272,8 +250,7 @@ void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalP
         auto bestInnerPlan = getBestPlan(
             joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        // TODO(Xiyang): add asp.
-        JoinOrderEnumerator::appendMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
+        JoinOrderEnumerator::planMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated exists subquery is not supported.");
     }
