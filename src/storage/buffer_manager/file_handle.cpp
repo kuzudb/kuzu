@@ -11,7 +11,7 @@ namespace graphflow {
 namespace storage {
 
 FileHandle::FileHandle(const string& path, uint8_t flags)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, flags(flags) {
+    : logger{LoggerUtils::getOrCreateLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path);

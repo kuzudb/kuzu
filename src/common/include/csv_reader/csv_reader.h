@@ -46,14 +46,12 @@ class CSVReader {
 
 public:
     // Initializes to read a block in file.
-    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig, uint64_t blockId,
-        shared_ptr<spdlog::logger> logger);
+    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig, uint64_t blockId);
     // Initializes to read the complete file.
-    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig,
-        shared_ptr<spdlog::logger> logger);
+    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig);
     // Initializes to read a part of a line.
-    CSVReader(char* line, uint64_t lineLen, int64_t linePtrStart,
-        const CSVReaderConfig& csvReaderConfig, shared_ptr<spdlog::logger> logger);
+    CSVReader(
+        char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& csvReaderConfig);
 
     ~CSVReader();
 

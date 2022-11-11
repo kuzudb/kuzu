@@ -9,7 +9,7 @@ namespace storage {
 
 RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
     MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, tableID{tableID},
+    : logger{LoggerUtils::getOrCreateLogger("storage")}, tableID{tableID},
       isInMemoryMode{isInMemoryMode},
       adjAndPropertyListsUpdateStore{make_unique<AdjAndPropertyListsUpdateStore>(
           memoryManager, *catalog.getReadOnlyVersion()->getRelTableSchema(tableID))},

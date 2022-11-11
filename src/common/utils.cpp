@@ -6,7 +6,7 @@
 namespace graphflow {
 namespace common {
 
-shared_ptr<spdlog::logger> LoggerUtils::getOrCreateSpdLogger(const string& loggerName) {
+shared_ptr<spdlog::logger> LoggerUtils::getOrCreateLogger(const std::string& loggerName) {
     shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
     if (!logger) {
         logger = spdlog::stdout_logger_mt(loggerName);

@@ -20,9 +20,9 @@ namespace graphflow {
 namespace common {
 
 class LoggerUtils {
-
 public:
-    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(const string& loggerName);
+    // Note: create logger is not thread safe.
+    static shared_ptr<spdlog::logger> getOrCreateLogger(const string& loggerName);
 };
 
 class StringUtils {

@@ -19,7 +19,7 @@ WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager
 }
 
 void WALReplayer::init() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("storage");
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }

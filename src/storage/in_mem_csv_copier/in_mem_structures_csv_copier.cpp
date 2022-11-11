@@ -10,7 +10,7 @@ namespace storage {
 
 InMemStructuresCSVCopier::InMemStructuresCSVCopier(CSVDescription& csvDescription,
     string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
-    : logger{LoggerUtils::getOrCreateSpdLogger("CopyCSV")}, csvDescription{csvDescription},
+    : logger{LoggerUtils::getOrCreateLogger("loader")}, csvDescription{csvDescription},
       outputDirectory{move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog} {}
 
@@ -56,7 +56,7 @@ void InMemStructuresCSVCopier::countNumLinesAndUnstrPropertiesPerBlockTask(const
     uint64_t blockId, InMemStructuresCSVCopier* copier, uint64_t numTokensToSkip,
     unordered_set<string>* unstrPropertyNames) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId, copier->logger);
+    CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
     copier->numLinesPerBlock[blockId] = 0ull;
     while (reader.hasNextLine()) {
         copier->numLinesPerBlock[blockId]++;

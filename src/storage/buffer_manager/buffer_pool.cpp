@@ -42,7 +42,7 @@ bool Frame::acquireFrameLock(bool block) {
 }
 
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
+    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
     for (auto i = 0u; i < numFrames; ++i) {

@@ -9,7 +9,7 @@ namespace graphflow {
 namespace storage {
 
 WAL::WAL(const string& directory, BufferManager& bufferManager)
-    : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, directory{directory},
+    : logger{LoggerUtils::getOrCreateLogger("wal")}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = WAL::createWALFileHandle(directory);
     initCurrentPage();
