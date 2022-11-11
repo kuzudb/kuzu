@@ -182,11 +182,11 @@ namespace graphflow {
 namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("catalog");
 }
 
 CatalogContent::CatalogContent(const string& directory) {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("catalog");
     logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
     logger->info("Initializing catalog done.");

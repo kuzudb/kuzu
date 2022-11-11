@@ -24,7 +24,7 @@ class StorageStructure {
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
-        : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
+        : logger{LoggerUtils::getOrCreateLogger("storage")},
           fileHandle{storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE},
           bufferManager{bufferManager}, isInMemory_{isInMemory}, wal{wal} {
         if (isInMemory) {

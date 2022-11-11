@@ -9,9 +9,8 @@
 namespace graphflow {
 namespace common {
 
-CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId,
-    shared_ptr<spdlog::logger> logger)
-    : CSVReader{fName, config, logger} {
+CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
+    : CSVReader{fName, config} {
     readingBlockStartOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * blockId;
     readingBlockEndOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;
@@ -28,18 +27,18 @@ CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_
     }
 }
 
-CSVReader::CSVReader(
-    const string& fname, const CSVReaderConfig& config, shared_ptr<spdlog::logger> logger)
-    : CSVReader{(char*)malloc(sizeof(char) * 1024), 0, -1l, config, logger} {
+CSVReader::CSVReader(const string& fname, const CSVReaderConfig& config)
+    : CSVReader{(char*)malloc(sizeof(char) * 1024), 0, -1l, config} {
     openFile(fname);
 }
 
-CSVReader::CSVReader(char* line, uint64_t lineLen, int64_t linePtrStart,
-    const CSVReaderConfig& config, shared_ptr<spdlog::logger> logger)
+CSVReader::CSVReader(
+    char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
     : fd{nullptr}, config{config}, nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
-      readingBlockEndOffset{UINT64_MAX}, nextTokenLen{UINT64_MAX}, logger{logger} {}
+      readingBlockEndOffset{UINT64_MAX},
+      nextTokenLen{UINT64_MAX}, logger{LoggerUtils::getOrCreateLogger("csv_reader")} {}
 
 CSVReader::~CSVReader() {
     // fd can be nullptr when the CSVReader is constructed by passing a char*, so it is reading over
@@ -257,7 +256,7 @@ interval_t CSVReader::getInterval() {
 Literal CSVReader::getList(const DataType& dataType) {
     Literal result(DataType(LIST, make_unique<DataType>(dataType)));
     // Move the linePtrStart one character forward, because hasNextToken() will first increment it.
-    CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config, logger);
+    CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config);
     while (listCSVReader.hasNextToken()) {
         if (!listCSVReader.skipTokenIfNull()) {
             switch (dataType.typeID) {

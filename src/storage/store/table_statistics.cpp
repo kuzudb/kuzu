@@ -6,7 +6,7 @@ namespace graphflow {
 namespace storage {
 
 TablesStatistics::TablesStatistics() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("storage");
     tablesStatisticsContentForReadOnlyTrx = make_unique<TablesStatisticsContent>();
 }
 

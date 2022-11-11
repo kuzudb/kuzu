@@ -155,8 +155,8 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint6
     uint64_t blockId, uint64_t startOffset, HashIndexBuilder* IDIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
-    CSVReader reader(copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig,
-        blockId, copier->logger);
+    CSVReader reader(
+        copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
@@ -234,8 +234,8 @@ void InMemNodeCSVCopier::populateUnstrPropertyLists() {
 void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
     uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
-    CSVReader reader(copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig,
-        blockId, copier->logger);
+    CSVReader reader(
+        copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     PageByteCursor inMemOverflowFileCursor;

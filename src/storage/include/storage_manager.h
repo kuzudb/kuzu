@@ -19,7 +19,7 @@ public:
     StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager,
         MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
 
-    virtual ~StorageManager();
+    ~StorageManager() = default;
 
     inline RelsStore& getRelsStore() const { return *relsStore; }
     inline NodesStore& getNodesStore() const { return *nodesStore; }

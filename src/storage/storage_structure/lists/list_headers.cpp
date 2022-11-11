@@ -8,7 +8,7 @@ namespace graphflow {
 namespace storage {
 
 BaseListHeaders::BaseListHeaders() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("storage");
 }
 
 ListHeadersBuilder::ListHeadersBuilder(const string& baseListFName, uint64_t numElements)

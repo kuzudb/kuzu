@@ -19,7 +19,7 @@ class TransactionManager {
 
 public:
     TransactionManager(storage::WAL& wal)
-        : logger{LoggerUtils::getOrCreateSpdLogger("transaction_manager")}, wal{wal},
+        : logger{LoggerUtils::getOrCreateLogger("transaction_manager")}, wal{wal},
           activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
     unique_ptr<Transaction> beginWriteTransaction();
     unique_ptr<Transaction> beginReadOnlyTransaction();
