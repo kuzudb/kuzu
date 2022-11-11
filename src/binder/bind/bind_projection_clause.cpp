@@ -130,9 +130,13 @@ expression_vector Binder::bindOrderByExpressions(
 
 uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
-    auto skipOrLimitNumber = ((LiteralExpression&)(*boundExpression)).literal->val.int64Val;
-    GF_ASSERT(skipOrLimitNumber >= 0);
-    return skipOrLimitNumber;
+    // We currently do not support the number of rows to skip/limit written as an expression (eg.
+    // SKIP 3 + 2 is not supported).
+    if (expression.getExpressionType() != LITERAL ||
+        ((LiteralExpression&)(*boundExpression)).getDataType().typeID != INT64) {
+        throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
+    }
+    return ((LiteralExpression&)(*boundExpression)).literal->val.int64Val;
 }
 
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {
