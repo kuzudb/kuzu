@@ -389,3 +389,17 @@ TEST_F(BinderErrorTest, SelfLoopRel) {
     auto input = "MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, InvalidLimitNumberType) {
+    string expectedException =
+        "Binder exception: The number of rows to skip/limit must be a non-negative integer.";
+    auto input = "MATCH (a:person) RETURN a.age LIMIT \"abc\";";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, NegativeLimitNumber) {
+    string expectedException =
+        "Binder exception: The number of rows to skip/limit must be a non-negative integer.";
+    auto input = "MATCH (a:person) RETURN a.age LIMIT -1;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

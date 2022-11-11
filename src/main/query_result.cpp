@@ -11,7 +11,8 @@ namespace main {
 QueryResultHeader::QueryResultHeader(expression_vector expressions) {
     for (auto& expression : expressions) {
         columnDataTypes.push_back(expression->getDataType());
-        columnNames.push_back(expression->getRawName());
+        columnNames.push_back(
+            expression->hasAlias() ? expression->getAlias() : expression->getRawName());
     }
 }
 
