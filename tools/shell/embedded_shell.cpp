@@ -279,7 +279,8 @@ void EmbeddedShell::printHelp() {
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->getIsExplain()) {
-        querySummary->printPlanToStdOut();
+        auto& oss = querySummary->getPlanAsOstream();
+        printf("%s", oss.str().c_str());
     } else {
         auto numTuples = queryResult.getNumTuples();
         // print query result (numFlatTuples & tuples)
@@ -333,7 +334,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printf("=============== Profiler Summary =============\n");
             printf("==============================================\n");
             printf(">> plan\n");
-            querySummary->printPlanToStdOut();
+            printf("%s", querySummary->getPlanAsOstream().str().c_str());
         }
     }
 }

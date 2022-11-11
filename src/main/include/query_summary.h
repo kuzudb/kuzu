@@ -5,28 +5,37 @@
 namespace graphflow {
 namespace main {
 
+struct PreparedSummary {
+    double compilingTime = 0;
+    bool isExplain = false;
+    bool isProfile = false;
+};
+
 class QuerySummary {
     friend class Connection;
     friend class PreparedStatement;
 
 public:
-    double getCompilingTime() const { return compilingTime; }
+    double getCompilingTime() const { return preparedSummary.compilingTime; }
 
     double getExecutionTime() const { return executionTime; }
 
-    bool getIsExplain() const { return isExplain; }
+    bool getIsExplain() const { return preparedSummary.isExplain; }
 
-    bool getIsProfile() const { return isProfile; }
+    bool getIsProfile() const { return preparedSummary.isProfile; }
 
-    void printPlanToStdOut() { planPrinter->printPlanToShell(); }
-    nlohmann::json printPlanToJson() { return planPrinter->printPlanToJson(); }
+    ostringstream& getPlanAsOstream() { return planInOstream; }
+    nlohmann::json& printPlanToJson() { return planInJson; }
+
+    void setPreparedSummary(PreparedSummary preparedSummary) {
+        this->preparedSummary = preparedSummary;
+    }
 
 private:
-    double compilingTime = 0;
     double executionTime = 0;
-    bool isExplain = false;
-    bool isProfile = false;
-    std::unique_ptr<PlanPrinter> planPrinter;
+    PreparedSummary preparedSummary;
+    nlohmann::json planInJson;
+    ostringstream planInOstream;
 };
 
 } // namespace main

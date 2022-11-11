@@ -172,8 +172,8 @@ protected:
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 
-    void setQuerySummaryAndPreparedStatement(Statement* statement, Binder& binder,
-        QuerySummary* querySummary, PreparedStatement* preparedStatement);
+    void setQuerySummaryAndPreparedStatement(
+        Statement* statement, Binder& binder, PreparedStatement* preparedStatement);
 
     std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query);
 

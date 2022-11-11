@@ -15,6 +15,14 @@ struct QueryResultHeader {
 
     explicit QueryResultHeader(expression_vector expressions);
 
+    QueryResultHeader(
+        std::vector<common::DataType> columnDataTypes, std::vector<std::string> columnNames)
+        : columnDataTypes{move(columnDataTypes)}, columnNames{move(columnNames)} {}
+
+    unique_ptr<QueryResultHeader> copy() const {
+        return make_unique<QueryResultHeader>(columnDataTypes, columnNames);
+    }
+
     std::vector<common::DataType> columnDataTypes;
     std::vector<std::string> columnNames;
 };
@@ -23,8 +31,12 @@ class QueryResult {
     friend class Connection;
 
 public:
+    // Only used when we failed to prepare a query.
     QueryResult() = default;
-    ~QueryResult() = default;
+    explicit QueryResult(PreparedSummary preparedSummary) {
+        querySummary = make_unique<QuerySummary>();
+        querySummary->setPreparedSummary(preparedSummary);
+    }
 
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
