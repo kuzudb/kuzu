@@ -15,7 +15,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
     auto expressionEvaluator =
         expressionMapper.mapExpression(unwind->getExpression(), mapperContext);
     mapperContext.addComputedExpressions(unwind->getAliasExpression()->getUniqueName());
-    return make_unique<Unwind>(move(unwind->getExpression()->getDataType().childType), dataPos,
+    return make_unique<Unwind>(*unwind->getExpression()->getDataType().childType, dataPos,
         move(expressionEvaluator), move(prevOperator), getOperatorID(),
         unwind->getExpressionsForPrinting());
 }

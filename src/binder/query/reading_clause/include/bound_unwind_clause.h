@@ -10,10 +10,10 @@ namespace binder {
 class BoundUnwindClause : public BoundReadingClause {
 
 public:
-    explicit BoundUnwindClause(shared_ptr<Expression> literalExpression,
-        shared_ptr<Expression> aliasExpression, string listAlias)
-        : BoundReadingClause{ClauseType::UNWIND}, expression{move(literalExpression)},
-          aliasExpression{move(aliasExpression)}, alias{move(listAlias)} {}
+    explicit BoundUnwindClause(
+        shared_ptr<Expression> expression, shared_ptr<Expression> aliasExpression)
+        : BoundReadingClause{ClauseType::UNWIND}, expression{std::move(expression)},
+          aliasExpression{std::move(aliasExpression)} {}
 
     ~BoundUnwindClause() = default;
 
@@ -23,12 +23,10 @@ public:
 
     inline shared_ptr<Expression> getAliasExpression() const { return aliasExpression; }
 
-    inline string getAlias() const { return alias; }
-
     inline expression_vector getSubPropertyExpressions() const override {
         expression_vector expressions;
-        if (this->hasExpression()) {
-            for (auto& property : this->getExpression()->getSubPropertyExpressions()) {
+        if (hasExpression()) {
+            for (auto& property : getExpression()->getSubPropertyExpressions()) {
                 expressions.push_back(property);
             }
         }
@@ -42,7 +40,6 @@ public:
 private:
     shared_ptr<Expression> expression;
     shared_ptr<Expression> aliasExpression;
-    string alias;
 };
 } // namespace binder
 } // namespace graphflow

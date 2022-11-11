@@ -14,7 +14,7 @@ namespace processor {
 
 class Unwind : public PhysicalOperator {
 public:
-    Unwind(unique_ptr<DataType> outDataType, DataPos outDataPos,
+    Unwind(DataType outDataType, DataPos outDataPos,
         unique_ptr<BaseExpressionEvaluator> expressionEvaluator, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, outDataType{move(outDataType)},
@@ -27,7 +27,7 @@ public:
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Unwind>(move(outDataType), outDataPos, expressionEvaluator->clone(),
+        return make_unique<Unwind>(outDataType, outDataPos, expressionEvaluator->clone(),
             children[0]->clone(), id, paramsString);
     }
 
@@ -35,7 +35,7 @@ private:
     bool hasMoreToRead() const;
     void copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const;
 
-    unique_ptr<DataType> outDataType;
+    DataType outDataType;
     DataPos outDataPos;
 
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
