@@ -409,3 +409,28 @@ TEST_F(BinderErrorTest, DuplicateVariableName) {
     auto input = "MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, MaxNodeID) {
+    string expectedException =
+        "Binder exception: Cannot match a built-in function for given function MIN(NODE_ID). "
+        "Supported inputs are\nDISTINCT (BOOL) -> BOOL\n(BOOL) -> BOOL\nDISTINCT (INT64) -> "
+        "INT64\n(INT64) -> INT64\nDISTINCT (DOUBLE) -> DOUBLE\n(DOUBLE) -> DOUBLE\nDISTINCT "
+        "(DATE) -> DATE\n(DATE) -> DATE\nDISTINCT (STRING) -> STRING\n(STRING) -> "
+        "STRING\nDISTINCT (UNSTRUCTURED) -> UNSTRUCTURED\n(UNSTRUCTURED) -> UNSTRUCTURED\n";
+    auto input = "MATCH (a:person) RETURN MIN(a);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, OrderByNodeID) {
+    string expectedException =
+        "Binder exception: Cannot order by x. Order by node or rel is not supported.";
+    auto input = "match (p:person) with p as x order by x skip 1 return x;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, ReturnInternalType) {
+    string expectedException =
+        "Binder exception: Cannot return expression ID(p) with internal type NODE_ID";
+    auto input = "match (p:person) return ID(p);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

@@ -124,6 +124,9 @@ private:
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
 
+    // E.g. ... RETURN ID(a)
+    static void validateProjectionColumnHasNoInternalType(const expression_vector& expressions);
+
     // E.g. ... WITH COUNT(*) MATCH ...
     static void validateProjectionColumnsInWithClauseAreAliased(
         const expression_vector& expressions);
