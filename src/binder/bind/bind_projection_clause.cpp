@@ -27,6 +27,7 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = rewriteProjectionExpressions(bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->getContainsStar()));
+    validateProjectionColumnHasNoInternalType(boundProjectionExpressions);
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
         projectionBody->getIsDistinct(), move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
@@ -123,7 +124,12 @@ expression_vector Binder::bindOrderByExpressions(
     const vector<unique_ptr<ParsedExpression>>& orderByExpressions) {
     expression_vector boundOrderByExpressions;
     for (auto& expression : orderByExpressions) {
-        boundOrderByExpressions.push_back(expressionBinder.bindExpression(*expression));
+        auto boundExpression = expressionBinder.bindExpression(*expression);
+        if (boundExpression->dataType.typeID == NODE || boundExpression->dataType.typeID == REL) {
+            throw BinderException("Cannot order by " + boundExpression->getRawName() +
+                                  ". Order by node or rel is not supported.");
+        }
+        boundOrderByExpressions.push_back(std::move(boundExpression));
     }
     return boundOrderByExpressions;
 }
