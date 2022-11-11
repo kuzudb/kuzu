@@ -51,6 +51,18 @@ table_id_t Binder::bindNodeTable(const string& tableName) const {
     return catalog.getReadOnlyVersion()->getNodeTableIDFromName(tableName);
 }
 
+shared_ptr<Expression> Binder::createVariable(const string& name, const DataType& dataType) {
+    if (variablesInScope.contains(name)) {
+        throw BinderException("Variable " + name + " already exists.");
+    }
+    auto uniqueName = getUniqueExpressionName(name);
+    auto variable = make_shared<Expression>(ExpressionType::VARIABLE, dataType, uniqueName);
+    variable->setRawName(name);
+    variable->setAlias(name);
+    variablesInScope.insert({name, variable});
+    return variable;
+}
+
 void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     if (singleQuery.isFirstReadingClauseOptionalMatch()) {
         throw BinderException("First match clause cannot be optional match.");

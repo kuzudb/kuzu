@@ -403,3 +403,9 @@ TEST_F(BinderErrorTest, NegativeLimitNumber) {
     auto input = "MATCH (a:person) RETURN a.age LIMIT -1;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, DuplicateVariableName) {
+    string expectedException = "Binder exception: Variable a already exists.";
+    auto input = "MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

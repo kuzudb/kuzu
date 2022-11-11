@@ -36,6 +36,8 @@ private:
     table_id_t bindRelTable(const string& tableName) const;
     table_id_t bindNodeTable(const string& tableName) const;
 
+    shared_ptr<Expression> createVariable(const string& name, const DataType& dataType);
+
     /*** bind DDL ***/
     unique_ptr<BoundStatement> bindCreateNodeClause(const Statement& statement);
     unique_ptr<BoundStatement> bindCreateRelClause(const Statement& statement);

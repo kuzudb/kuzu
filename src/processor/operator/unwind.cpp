@@ -6,7 +6,7 @@ namespace processor {
 shared_ptr<ResultSet> Unwind::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     expressionEvaluator->init(*resultSet, context->memoryManager);
-    outValueVector = make_shared<ValueVector>(*outDataType, context->memoryManager);
+    outValueVector = make_shared<ValueVector>(outDataType, context->memoryManager);
     resultSet->dataChunks[outDataPos.dataChunkPos]->insert(
         outDataPos.valueVectorPos, outValueVector);
     return resultSet;
@@ -17,7 +17,7 @@ bool Unwind::hasMoreToRead() const {
 }
 
 void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
-    auto numOfBytes = Types::getDataTypeSize(outDataType->typeID);
+    auto numOfBytes = Types::getDataTypeSize(outDataType.typeID);
     for (auto pos = startPos; pos < endPos; pos++) {
         ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(*outValueVector, pos - startPos,
             reinterpret_cast<uint8_t*>(inputList.overflowPtr) + pos * numOfBytes);

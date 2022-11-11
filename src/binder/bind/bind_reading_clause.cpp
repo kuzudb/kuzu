@@ -47,14 +47,10 @@ unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& read
 unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = (UnwindClause&)readingClause;
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    boundExpression->setAlias(unwindClause.getAlias());
-    assert(boundExpression->dataType.childType != nullptr);
-    auto aliasExpression = make_shared<Expression>(
-        ExpressionType::VARIABLE, *(boundExpression->dataType.childType), unwindClause.getAlias());
-    aliasExpression->setRawName(unwindClause.getAlias());
-    variablesInScope.insert({unwindClause.getAlias(), aliasExpression});
-    return make_unique<BoundUnwindClause>(move(boundExpression), move(aliasExpression),
-        getUniqueExpressionName(unwindClause.getAlias()));
+    assert(boundExpression->dataType.typeID == LIST);
+    auto aliasExpression =
+        createVariable(unwindClause.getAlias(), *boundExpression->dataType.childType);
+    return make_unique<BoundUnwindClause>(move(boundExpression), move(aliasExpression));
 }
 
 } // namespace binder

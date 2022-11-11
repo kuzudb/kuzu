@@ -81,3 +81,14 @@ Aida|Alice|Bob|Dan
 ---- 1
 0
 
+-NAME unwind12
+-QUERY UNWIND [1,2,3,4] as val WITH val ORDER BY val SKIP 2 RETURN val
+---- 2
+3
+4
+
+-NAME unwind13
+-QUERY WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x return x
+---- 2
+1
+2
