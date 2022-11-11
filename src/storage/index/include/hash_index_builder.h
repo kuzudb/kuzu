@@ -71,6 +71,7 @@ protected:
     hash_function_t keyHashFunc;
 };
 
+template<typename T>
 class HashIndexBuilder : public BaseHashIndex {
 
 public:
@@ -85,7 +86,6 @@ public:
     inline bool append(int64_t key, node_offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
-    // TODO(Guodong): Add the support of string keys back to fix this.
     inline bool append(const char* key, node_offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
@@ -102,9 +102,9 @@ private:
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
-        Slot* slot, const uint8_t* key, node_offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot* slot, const uint8_t* key, node_offset_t value);
-    Slot* getSlot(const SlotInfo& slotInfo);
+        Slot<T>* slot, const uint8_t* key, node_offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, node_offset_t value);
+    Slot<T>* getSlot(const SlotInfo& slotInfo);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
 
@@ -123,8 +123,8 @@ private:
     unique_ptr<FileHandle> fileHandle;
     unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
     shared_mutex oSlotsSharedMutex;
-    unique_ptr<InMemDiskArrayBuilder<Slot>> pSlots;
-    unique_ptr<InMemDiskArrayBuilder<Slot>> oSlots;
+    unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
+    unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
     vector<unique_ptr<mutex>> pSlotsMutexes;
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;

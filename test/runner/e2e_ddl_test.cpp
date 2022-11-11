@@ -228,15 +228,13 @@ public:
 } // namespace transaction
 } // namespace graphflow
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
-//    testPrimaryKey("firstStrCol");
-//}
+TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
+    testPrimaryKey("firstStrCol");
+}
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(StringPrimaryKeyTest, PrimaryKeySecondColumn) {
-//    testPrimaryKey("secondStrCol");
-//}
+TEST_F(StringPrimaryKeyTest, PrimaryKeySecondColumn) {
+    testPrimaryKey("secondStrCol");
+}
 
 TEST_F(IntPrimaryKeyTest, PrimaryKeyFirstColumn) {
     testPrimaryKey("firstIntCol");
@@ -246,48 +244,45 @@ TEST_F(IntPrimaryKeyTest, PrimaryKeySecondColumn) {
     testPrimaryKey("secondIntCol");
 }
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
-//    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-//                              "STRING, REGISTER_TIME DATE, PRIMARY KEY(NAME))");
-//    ASSERT_TRUE(result->isSuccess());
-//    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-//    result = conn->query(
-//        "CREATE NODE TABLE STUDENT(STUDENT_ID INT64, NAME STRING, PRIMARY KEY(STUDENT_ID))");
-//    ASSERT_TRUE(result->isSuccess());
-//    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-//    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("STUDENT"));
-//    result = conn->query("MATCH (S:STUDENT) return S.STUDENT_ID");
-//    ASSERT_TRUE(result->isSuccess());
-//    ASSERT_EQ(result->getNumTuples(), 0);
-//    result = conn->query("MATCH (U:UNIVERSITY) return U.NAME");
-//    ASSERT_TRUE(result->isSuccess());
-//    ASSERT_EQ(result->getNumTuples(), 0);
-//    result = conn->query("MATCH (C:COLLEGE) return C.NAME");
-//    ASSERT_FALSE(result->isSuccess());
-//}
+TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
+    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
+                              "STRING, REGISTER_TIME DATE, PRIMARY KEY(NAME))");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
+    result = conn->query(
+        "CREATE NODE TABLE STUDENT(STUDENT_ID INT64, NAME STRING, PRIMARY KEY(STUDENT_ID))");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("STUDENT"));
+    result = conn->query("MATCH (S:STUDENT) return S.STUDENT_ID");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("MATCH (U:UNIVERSITY) return U.NAME");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), 0);
+    result = conn->query("MATCH (C:COLLEGE) return C.NAME");
+    ASSERT_FALSE(result->isSuccess());
+}
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
-//    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-//                              "STRING, PRIMARY KEY(NAME))");
-//    ASSERT_TRUE(result->isSuccess());
-//    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-//    result =
-//        conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
-//    ASSERT_TRUE(result->isSuccess());
-//    result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
-//    auto groundTruth = vector<string>{"WATERLOO|WATERLOO.CA"};
-//    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
-//}
+TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
+    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
+                              "STRING, PRIMARY KEY(NAME))");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
+    result =
+        conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
+    auto groundTruth = vector<string>{"WATERLOO|WATERLOO.CA"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
-//    ddlStatementsInsideActiveTransactionErrorTest(
-//        "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-//        "STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))");
-//    ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
-//}
+TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
+    ddlStatementsInsideActiveTransactionErrorTest(
+        "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
+        "STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))");
+    ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
+}
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
     createNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
@@ -361,15 +356,13 @@ TEST_F(TinySnbDDLTest, MultipleDropTables) {
     ASSERT_EQ(result->getNumTuples(), 0);
 }
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
-//    dropNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
-//}
+TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
+    dropNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+}
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
-//    dropNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
-//}
+TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
+    dropNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+}
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);

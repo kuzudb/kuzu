@@ -27,7 +27,7 @@ bool IndexScan::getNextTuples() {
     auto indexKeyVector = indexKeyEvaluator->resultVector.get();
     assert(indexKeyVector->state->isFlat());
     node_offset_t nodeOffset;
-    bool isSuccessfulLookup = hashIndex->lookup(
+    bool isSuccessfulLookup = pkIndex->lookup(
         transaction, indexKeyVector, indexKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
     metrics->executionTime.stop();
     if (isSuccessfulLookup) {

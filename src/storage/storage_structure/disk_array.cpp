@@ -493,16 +493,20 @@ void InMemDiskArrayBuilder<T>::setNumElementsAndAllocateDiskAPsForBuilding(
 }
 
 template class BaseDiskArray<uint32_t>;
-template class BaseDiskArray<Slot>;
+template class BaseDiskArray<Slot<int64_t>>;
+template class BaseDiskArray<Slot<gf_string_t>>;
 template class BaseDiskArray<HashIndexHeader>;
 template class BaseInMemDiskArray<uint32_t>;
-template class BaseInMemDiskArray<Slot>;
+template class BaseInMemDiskArray<Slot<int64_t>>;
+template class BaseInMemDiskArray<Slot<gf_string_t>>;
 template class BaseInMemDiskArray<HashIndexHeader>;
 template class InMemDiskArrayBuilder<uint32_t>;
-template class InMemDiskArrayBuilder<Slot>;
+template class InMemDiskArrayBuilder<Slot<int64_t>>;
+template class InMemDiskArrayBuilder<Slot<gf_string_t>>;
 template class InMemDiskArrayBuilder<HashIndexHeader>;
 template class InMemDiskArray<uint32_t>;
-template class InMemDiskArray<Slot>;
+template class InMemDiskArray<Slot<int64_t>>;
+template class InMemDiskArray<Slot<gf_string_t>>;
 template class InMemDiskArray<HashIndexHeader>;
 
 } // namespace storage

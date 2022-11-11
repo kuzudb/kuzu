@@ -189,6 +189,11 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
             }
         } break;
+        case NODE_INDEX: {
+            auto index =
+                storageManager->getNodesStore().getPKIndex(storageStructureID.nodeIndexID.tableID);
+            diskOverflowFile = index->getDiskOverflowFile();
+        } break;
         default:
             throw RuntimeException("Unsupported storageStructureType " +
                                    to_string(storageStructureID.storageStructureType) +
@@ -444,8 +449,9 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     }
     case NODE_INDEX: {
         auto index =
-            storageManager->getNodesStore().getIDIndex(storageStructureID.nodeIndexID.tableID);
-        return index->getFileHandle();
+            storageManager->getNodesStore().getPKIndex(storageStructureID.nodeIndexID.tableID);
+        return storageStructureID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
+                                               index->getFileHandle();
     }
     default:
         assert(false);

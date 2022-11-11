@@ -44,30 +44,32 @@ public:
             StorageUtils::getOverflowFileName(storageStructureIDAndFNameForMainDBFile.fName);
         return copy;
     }
-    void readStringsToVector(Transaction* transaction, ValueVector& valueVector);
+
+    void readStringsToVector(TransactionType trxType, ValueVector& valueVector);
     void readStringToVector(
-        Transaction* transaction, gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer);
+        TransactionType trxType, gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer);
 
     inline void scanSingleStringOverflow(
-        Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
+        TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == STRING && !vector.isNull(vectorPos));
         auto& gfString = ((gf_string_t*)vector.values)[vectorPos];
-        readStringToVector(transaction, gfString, vector.getOverflowBuffer());
+        readStringToVector(trxType, gfString, vector.getOverflowBuffer());
     }
-    void scanSequentialStringOverflow(Transaction* transaction, ValueVector& vector);
+    void scanSequentialStringOverflow(TransactionType trxType, ValueVector& vector);
     inline void scanSingleListOverflow(
-        Transaction* transaction, ValueVector& vector, uint64_t vectorPos) {
+        TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
         auto& gfList = ((gf_list_t*)vector.values)[vectorPos];
-        readListToVector(transaction, gfList, vector.dataType, vector.getOverflowBuffer());
+        readListToVector(trxType, gfList, vector.dataType, vector.getOverflowBuffer());
     }
 
-    void readListsToVector(Transaction* transaction, ValueVector& valueVector);
+    void readListsToVector(TransactionType trxType, ValueVector& valueVector);
 
-    string readString(Transaction* transaction, const gf_string_t& str);
+    string readString(TransactionType trxType, const gf_string_t& str);
     vector<Literal> readList(
-        Transaction* transaction, const gf_list_t& listVal, const DataType& dataType);
+        TransactionType trxType, const gf_list_t& listVal, const DataType& dataType);
 
+    gf_string_t writeString(const char* rawString);
     void writeStringOverflowAndUpdateOverflowPtr(
         const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo);
     void writeListOverflowAndUpdateOverflowPtr(const gf_list_t& listToWriteFrom,
@@ -83,11 +85,12 @@ public:
 
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
-    void readListToVector(Transaction* transaction, gf_list_t& gfList, const DataType& dataType,
+    void readListToVector(TransactionType trxType, gf_list_t& gfList, const DataType& dataType,
         InMemOverflowBuffer& inMemOverflowBuffer);
-    void setStringOverflowWithoutLock(const gf_string_t& src, gf_string_t& dst);
+    void setStringOverflowWithoutLock(
+        const char* inMemSrcStr, uint64_t len, gf_string_t& diskDstString);
     void setListRecursiveIfNestedWithoutLock(
-        const gf_list_t& src, gf_list_t& dst, const DataType& dataType);
+        const gf_list_t& inMemSrcList, gf_list_t& diskDstList, const DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
 
 private:

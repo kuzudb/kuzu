@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "src/common/include/configs.h"
+#include "src/common/types/include/gf_string.h"
 #include "src/common/types/include/node_id_t.h"
 
 namespace graphflow {
@@ -37,13 +38,15 @@ public:
     slot_id_t nextOvfSlotId;
 };
 
+template<typename T>
 struct SlotEntry {
-    uint8_t data[sizeof(int64_t) + sizeof(common::node_offset_t)];
+    uint8_t data[sizeof(T) + sizeof(common::node_offset_t)];
 };
 
+template<typename T>
 struct Slot {
     SlotHeader header;
-    SlotEntry entries[common::HashIndexConfig::SLOT_CAPACITY];
+    SlotEntry<T> entries[common::HashIndexConfig::SLOT_CAPACITY];
 };
 
 } // namespace storage

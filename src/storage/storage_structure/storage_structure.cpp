@@ -143,7 +143,7 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
     auto nodeValues = (nodeID_t*)vector->values;
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
+            fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
@@ -173,7 +173,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
+            fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto vectorBytesOffset = vectorStartPos * elementSize;
     auto frameBytesOffset = pagePosOfFirstElement * elementSize;
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);

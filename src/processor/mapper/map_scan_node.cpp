@@ -32,7 +32,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     auto evaluator =
         expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
     return make_unique<IndexScan>(mapperContext.getResultSetDescriptor()->copy(),
-        nodeTable->getTableID(), nodeTable->getIDIndex(), std::move(evaluator), dataPos,
+        nodeTable->getTableID(), nodeTable->getPKIndex(), std::move(evaluator), dataPos,
         getOperatorID(), logicalIndexScan->getExpressionsForPrinting());
 }
 

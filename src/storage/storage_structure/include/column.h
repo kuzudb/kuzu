@@ -114,18 +114,19 @@ private:
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         if (!resultVector->isNull(vectorPos)) {
-            diskOverflowFile.scanSingleStringOverflow(transaction, *resultVector, vectorPos);
+            diskOverflowFile.scanSingleStringOverflow(
+                transaction->getType(), *resultVector, vectorPos);
         }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        diskOverflowFile.scanSequentialStringOverflow(transaction, *resultVector);
+        diskOverflowFile.scanSequentialStringOverflow(transaction->getType(), *resultVector);
     }
     void scanWithSelState(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        diskOverflowFile.scanSequentialStringOverflow(transaction, *resultVector);
+        diskOverflowFile.scanSequentialStringOverflow(transaction->getType(), *resultVector);
     }
 };
 
@@ -147,18 +148,19 @@ private:
         uint32_t vectorPos, PageElementCursor& cursor) override {
         Column::lookup(transaction, resultVector, vectorPos, cursor);
         if (!resultVector->isNull(vectorPos)) {
-            diskOverflowFile.scanSingleListOverflow(transaction, *resultVector, vectorPos);
+            diskOverflowFile.scanSingleListOverflow(
+                transaction->getType(), *resultVector, vectorPos);
         }
     }
     inline void scan(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(transaction, *resultVector);
+        diskOverflowFile.readListsToVector(transaction->getType(), *resultVector);
     }
     inline void scanWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& resultVector, PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(transaction, *resultVector);
+        diskOverflowFile.readListsToVector(transaction->getType(), *resultVector);
     }
 };
 

@@ -1,7 +1,6 @@
 #include "include/in_mem_node_csv_copier.h"
 
 #include "include/copy_csv_task.h"
-#include "spdlog/spdlog.h"
 
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
@@ -28,7 +27,19 @@ uint64_t InMemNodeCSVCopier::copy() {
     initializeColumnsAndList();
     // Populate structured columns with the ID hash index and count the size of unstructured
     // lists.
-    populateColumnsAndCountUnstrPropertyListSizes();
+    switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
+    case INT64: {
+        populateColumnsAndCountUnstrPropertyListSizes<int64_t>();
+    } break;
+    case STRING: {
+        populateColumnsAndCountUnstrPropertyListSizes<gf_string_t>();
+    } break;
+    default: {
+        throw CopyCSVException("Unsupported data type " +
+                               Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
+                               " for the ID index.");
+    }
+    }
     calcUnstrListsHeadersAndMetadata();
     populateUnstrPropertyLists();
     saveToFile();
@@ -84,42 +95,42 @@ vector<string> InMemNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
     return mergeUnstrPropertyNamesFromBlocks(unstructuredPropertyNamesPerBlock);
 }
 
+template<typename T>
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
     logger->info("Populating structured properties and Counting unstructured properties.");
-    auto IDIndex =
-        make_unique<HashIndexBuilder>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                          nodeTableSchema->tableID, DBFileType::WAL_VERSION),
+    auto pkIndex =
+        make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
+                                             nodeTableSchema->tableID, DBFileType::WAL_VERSION),
             nodeTableSchema->getPrimaryKey().dataType);
-    IDIndex->bulkReserve(numNodes);
+    pkIndex->bulkReserve(numNodes);
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            populateColumnsAndCountUnstrPropertyListSizesTask,
-            nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, IDIndex.get(), this));
+            populateColumnsAndCountUnstrPropertyListSizesTask<T>,
+            nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(), this));
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->info("Flush the pk index to disk.");
-    IDIndex->flush();
+    pkIndex->flush();
     logger->info("Done populating structured properties, constructing the pk index and counting "
                  "unstructured properties.");
 }
 
-template<DataTypeID DT>
-void InMemNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilder* hashIndex,
+template<typename T>
+void InMemNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilder<T>* hashIndex,
     node_offset_t startOffset, uint64_t numValues) {
-    assert(DT == INT64 || DT == STRING);
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        if constexpr (DT == INT64) {
-            auto key = *(int64_t*)column->getElement(offset);
-            if (!hashIndex->append(key, offset)) {
-                throw CopyCSVException("ID value " + to_string(key) +
+        if constexpr (is_same<T, int64_t>::value) {
+            auto key = (int64_t*)column->getElement(offset);
+            if (!hashIndex->append(*key, offset)) {
+                throw CopyCSVException("ID value " + to_string(*key) +
                                        " violates the uniqueness constraint for the ID property.");
             }
         } else {
-            auto strStoredInInMemOvfFile = ((gf_string_t*)column->getElement(offset));
-            auto key = column->getInMemOverflowFile()->readString(strStoredInInMemOvfFile);
+            auto element = (gf_string_t*)column->getElement(offset);
+            auto key = column->getInMemOverflowFile()->readString(element);
             if (!hashIndex->append(key.c_str(), offset)) {
                 throw CopyCSVException("ID value  " + key +
                                        " violates the uniqueness constraint for the ID property.");
@@ -128,20 +139,10 @@ void InMemNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilder* ha
     }
 }
 
-void InMemNodeCSVCopier::populateIDIndex(
-    InMemColumn* column, HashIndexBuilder* IDIndex, node_offset_t startOffset, uint64_t numValues) {
-    switch (column->getDataType().typeID) {
-    case INT64: {
-        addIDsToIndex<INT64>(column, IDIndex, startOffset, numValues);
-    } break;
-    case STRING: {
-        addIDsToIndex<STRING>(column, IDIndex, startOffset, numValues);
-    } break;
-    default:
-        throw CopyCSVException("Unsupported data type " +
-                               Types::dataTypeToString(column->getDataType()) +
-                               " for the ID index.");
-    }
+template<typename T>
+void InMemNodeCSVCopier::populatePKIndex(InMemColumn* column, HashIndexBuilder<T>* pkIndex,
+    node_offset_t startOffset, uint64_t numValues) {
+    addIDsToIndex(column, pkIndex, startOffset, numValues);
 }
 
 void InMemNodeCSVCopier::skipFirstRowIfNecessary(
@@ -151,8 +152,10 @@ void InMemNodeCSVCopier::skipFirstRowIfNecessary(
     }
 }
 
+template<typename T>
 void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-    uint64_t blockId, uint64_t startOffset, HashIndexBuilder* IDIndex, InMemNodeCSVCopier* copier) {
+    uint64_t blockId, uint64_t startOffset, HashIndexBuilder<T>* pkIndex,
+    InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
     CSVReader reader(
@@ -168,7 +171,7 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint6
         //            reader, startOffset + bufferOffset, copier->unstrPropertyLists.get());
         bufferOffset++;
     }
-    populateIDIndex(copier->structuredColumns[IDColumnIdx].get(), IDIndex, startOffset,
+    populatePKIndex(copier->structuredColumns[IDColumnIdx].get(), pkIndex, startOffset,
         copier->numLinesPerBlock[blockId]);
     copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
 }

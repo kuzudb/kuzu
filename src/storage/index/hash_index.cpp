@@ -9,120 +9,178 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-bool HashIndex::lookup(
-    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
-    assert(!keyVector->isNull(vectorPos));
-    switch (keyVector->dataType.typeID) {
-    case INT64: {
-        return lookup(trx, ((int64_t*)keyVector->values)[vectorPos], result);
-    }
-    default:
-        throw RuntimeException("Index lookup on data type " +
-                               Types::dataTypeToString(keyVector->dataType) +
-                               " is not implemented.");
-    }
-}
-
-void HashIndex::deleteKey(Transaction* trx, ValueVector* keyVector, uint64_t vectorPos) {
-    assert(!keyVector->isNull(vectorPos));
-    switch (keyVector->dataType.typeID) {
-    case INT64: {
-        deleteKey(trx, ((int64_t*)keyVector->values)[vectorPos]);
-        return;
-    }
-    default:
-        throw RuntimeException("Index delete on data type " +
-                               Types::dataTypeToString(keyVector->dataType) +
-                               " is not implemented.");
-    }
-}
-
-bool HashIndex::insert(
-    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t value) {
-    assert(!keyVector->isNull(vectorPos));
-    switch (keyVector->dataType.typeID) {
-    case INT64: {
-        auto key = ((int64_t*)keyVector->values)[vectorPos];
-        if (!insert(trx, key, value)) {
-            throw RuntimeException("Failed to insert primary key " + to_string(key));
-        }
-        return true;
-    }
-    default:
-        throw RuntimeException("Index insert on data type " +
-                               Types::dataTypeToString(keyVector->dataType) +
-                               " is not implemented.");
-    }
-}
-
-HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
-    shared_lock sLck{localStorageSharedMutex};
-    auto keyVal = *(int64_t*)key;
-    if (localDeletions.contains(keyVal)) {
-        result = localDeletions[keyVal];
+template<typename T>
+HashIndexLocalLookupState TemplatedHashIndexLocalStorage<T>::lookup(
+    const T& key, node_offset_t& result) {
+    if (localDeletions.contains(key)) {
         return HashIndexLocalLookupState::KEY_DELETED;
-    } else if (localInsertions.contains(keyVal)) {
-        result = localInsertions[keyVal];
+    } else if (localInsertions.contains(key)) {
+        result = localInsertions[key];
         return HashIndexLocalLookupState::KEY_FOUND;
     } else {
         return HashIndexLocalLookupState::KEY_NOT_EXIST;
     }
 }
 
+template<typename T>
+void TemplatedHashIndexLocalStorage<T>::deleteKey(const T& key) {
+    if (localInsertions.contains(key)) {
+        localInsertions.erase(key);
+    } else {
+        localDeletions.insert(key);
+    }
+}
+
+template<typename T>
+bool TemplatedHashIndexLocalStorage<T>::insert(const T& key, node_offset_t value) {
+    if (localDeletions.contains(key)) {
+        localDeletions.erase(key);
+    }
+    if (localInsertions.contains(key)) {
+        return false;
+    }
+    localInsertions[key] = value;
+    return true;
+}
+
+template class TemplatedHashIndexLocalStorage<int64_t>;
+template class TemplatedHashIndexLocalStorage<string>;
+
+HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
+    shared_lock sLck{localStorageSharedMutex};
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        auto keyVal = *(int64_t*)key;
+        return templatedLocalStorageForInt.lookup(keyVal, result);
+    }
+    case common::STRING: {
+        auto keyVal = string((char*)key);
+        return templatedLocalStorageForString.lookup(keyVal, result);
+    }
+    default:
+        assert(false);
+    }
+}
+
 void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
     unique_lock xLck{localStorageSharedMutex};
-    auto keyVal = *(int64_t*)key;
-    if (localInsertions.contains(keyVal)) {
-        localInsertions.erase(keyVal);
-    } else {
-        localDeletions[keyVal] = NODE_OFFSET_PLACE_HOLDER;
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        auto keyVal = *(int64_t*)key;
+        templatedLocalStorageForInt.deleteKey(keyVal);
+    } break;
+    case common::STRING: {
+        auto keyVal = string((char*)key);
+        templatedLocalStorageForString.deleteKey(keyVal);
+    } break;
+    default:
+        assert(false);
     }
 }
 
 bool HashIndexLocalStorage::insert(const uint8_t* key, node_offset_t value) {
     unique_lock xLck{localStorageSharedMutex};
-    auto keyVal = *(int64_t*)key;
-    if (localDeletions.contains(keyVal)) {
-        localDeletions.erase(keyVal);
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        auto keyVal = *(int64_t*)key;
+        return templatedLocalStorageForInt.insert(keyVal, value);
     }
-    if (localInsertions.contains(keyVal)) {
-        return false;
+    case common::STRING: {
+        auto keyVal = string((char*)key);
+        return templatedLocalStorageForString.insert(keyVal, value);
     }
-    localInsertions[keyVal] = value;
-    return true;
+    default:
+        assert(false);
+    }
 }
 
-HashIndex::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
+void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
+    const std::function<void(const uint8_t*, node_offset_t)>& insertOp) {
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        for (auto& key : templatedLocalStorageForInt.localDeletions) {
+            deleteOp((uint8_t*)&key);
+        }
+        for (auto& [key, val] : templatedLocalStorageForInt.localInsertions) {
+            insertOp((uint8_t*)&key, val);
+        }
+    } break;
+    case common::STRING: {
+        for (auto& key : templatedLocalStorageForString.localDeletions) {
+            deleteOp((uint8_t*)key.c_str());
+        }
+        for (auto& [key, val] : templatedLocalStorageForString.localInsertions) {
+            insertOp((uint8_t*)key.c_str(), val);
+        }
+    } break;
+    default:
+        assert(false);
+    }
+}
+
+bool HashIndexLocalStorage::hasUpdates() const {
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        return templatedLocalStorageForInt.hasUpdates();
+    }
+    case common::STRING: {
+        return templatedLocalStorageForString.hasUpdates();
+    }
+    default:
+        assert(false);
+    }
+}
+
+void HashIndexLocalStorage::clear() {
+    switch (keyDataType.typeID) {
+    case common::INT64: {
+        templatedLocalStorageForInt.clear();
+    } break;
+    case common::STRING: {
+        templatedLocalStorageForString.clear();
+    } break;
+    default:
+        assert(false);
+    }
+}
+
+template<typename T>
+HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
     const DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
-    assert(keyDataType.typeID == INT64);
     fileHandle = make_unique<VersionedFileHandle>(
         storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
-    headerArray = make_unique<InMemDiskArray<HashIndexHeader>>(
+    headerArray = make_unique<BaseDiskArray<HashIndexHeader>>(
         *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal);
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader =
         make_unique<HashIndexHeader>(headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.typeID);
-    pSlots = make_unique<InMemDiskArray<Slot>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
-    oSlots = make_unique<InMemDiskArray<Slot>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    pSlots = make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    oSlots = make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = make_unique<HashIndexLocalStorage>(keyDataType);
+    if (keyDataType.typeID == STRING) {
+        diskOverflowFile = make_unique<DiskOverflowFile>(
+            storageStructureIDAndFName, bm, false /* on disk by default */, wal);
+    }
 }
 
-// For read transactions, local storage is skipped, lookups are performed on the persistent storage.
-// For write transactions, lookups are performed in the local storage first, then in the persistent
-// storage if necessary. In details, there are three cases for the local storage lookup:
+// For read transactions, local storage is skipped, lookups are performed on the persistent
+// storage. For write transactions, lookups are performed in the local storage first, then in
+// the persistent storage if necessary. In details, there are three cases for the local storage
+// lookup:
 // - the key is found in the local storage, directly return true;
 // - the key has been marked as deleted in the local storage, return false;
-// - the key is neither deleted nor found in the local storage, lookup in the persistent storage.
-bool HashIndex::lookupInternal(
+// - the key is neither deleted nor found in the local storage, lookup in the persistent
+// storage.
+template<typename T>
+bool HashIndex<T>::lookupInternal(
     Transaction* transaction, const uint8_t* key, node_offset_t& result) {
-    assert(localStorage && transaction);
     if (transaction->isReadOnly()) {
         return lookupInPersistentIndex(transaction->getType(), key, result);
     } else {
@@ -139,34 +197,36 @@ bool HashIndex::lookupInternal(
     }
 }
 
-// For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check in
-// the persistent storage and directly delete keys in the local storage.
-void HashIndex::deleteInternal(Transaction* transaction, const uint8_t* key) const {
-    assert(localStorage && transaction && transaction->isWriteTransaction());
+// For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
+// in the persistent storage and directly delete keys in the local storage.
+template<typename T>
+void HashIndex<T>::deleteInternal(const uint8_t* key) const {
     localStorage->deleteKey(key);
 }
 
 // For insertions, we first check in the local storage. There are three cases:
 // - the key is found in the local storage, return false;
 // - the key is marked as deleted in the local storage, insert the key to the local storage;
-// - the key doesn't exist in the local storage, check if the key exists in the persistent index, if
+// - the key doesn't exist in the local storage, check if the key exists in the persistent
+// index, if
 //   so, return false, else insert the key to the local storage.
-bool HashIndex::insertInternal(Transaction* transaction, const uint8_t* key, node_offset_t value) {
-    assert(localStorage && transaction && transaction->isWriteTransaction());
+template<typename T>
+bool HashIndex<T>::insertInternal(const uint8_t* key, node_offset_t value) {
     node_offset_t tmpResult;
     auto localLookupState = localStorage->lookup(key, tmpResult);
     if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
         return false;
     } else if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
-        if (lookupInPersistentIndex(transaction->getType(), key, tmpResult)) {
+        if (lookupInPersistentIndex(TransactionType::WRITE, key, tmpResult)) {
             return false;
         }
     }
     return localStorage->insert(key, value);
 }
 
+template<typename T>
 template<ChainedSlotsAction action>
-bool HashIndex::performActionInChainedSlots(TransactionType trxType, HashIndexHeader& header,
+bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashIndexHeader& header,
     SlotInfo& slotInfo, const uint8_t* key, node_offset_t& result) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(trxType, slotInfo);
@@ -177,11 +237,11 @@ bool HashIndex::performActionInChainedSlots(TransactionType trxType, HashIndexHe
                 break;
             }
         } else {
-            auto entryPos = findMatchedEntryInSlot(slot, key);
+            auto entryPos = findMatchedEntryInSlot(trxType, slot, key);
             if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
                 if constexpr (action == ChainedSlotsAction::LOOKUP_IN_SLOTS) {
-                    result = *(node_offset_t*)(slot.entries[entryPos].data +
-                                               Types::getDataTypeSize(indexHeader->keyDataTypeID));
+                    result = *(
+                        node_offset_t*)(slot.entries[entryPos].data + indexHeader->numBytesPerKey);
                 } else if constexpr (action == ChainedSlotsAction::DELETE_IN_SLOTS) {
                     slot.header.setEntryInvalid(entryPos);
                     slot.header.numEntries--;
@@ -197,7 +257,8 @@ bool HashIndex::performActionInChainedSlots(TransactionType trxType, HashIndexHe
     return false;
 }
 
-bool HashIndex::lookupInPersistentIndex(
+template<typename T>
+bool HashIndex<T>::lookupInPersistentIndex(
     TransactionType trxType, const uint8_t* key, node_offset_t& result) {
     auto header = trxType == TransactionType::READ_ONLY ?
                       *indexHeader :
@@ -207,7 +268,8 @@ bool HashIndex::lookupInPersistentIndex(
         trxType, header, slotInfo, key, result);
 }
 
-void HashIndex::insertIntoPersistentIndex(const uint8_t* key, node_offset_t value) {
+template<typename T>
+void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, node_offset_t value) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     slot_id_t numRequiredEntries = getNumRequiredEntries(header.numEntries, 1);
     while (numRequiredEntries >
@@ -225,7 +287,8 @@ void HashIndex::insertIntoPersistentIndex(const uint8_t* key, node_offset_t valu
     headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
-void HashIndex::deleteFromPersistentIndex(const uint8_t* key) {
+template<typename T>
+void HashIndex<T>::deleteFromPersistentIndex(const uint8_t* key) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     SlotInfo slotInfo{getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
     node_offset_t result;
@@ -234,7 +297,8 @@ void HashIndex::deleteFromPersistentIndex(const uint8_t* key) {
     headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
 }
 
-void HashIndex::loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot& slot) {
+template<typename T>
+void HashIndex<T>::loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot<T>& slot) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId > 0) {
         slot = getSlot(TransactionType::WRITE, slotInfo);
         if (slot.header.numEntries < HashIndexConfig::SLOT_CAPACITY ||
@@ -247,13 +311,15 @@ void HashIndex::loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot&
     }
 }
 
-void HashIndex::splitSlot(HashIndexHeader& header) {
-    pSlots->pushBack(Slot{});
+template<typename T>
+void HashIndex<T>::splitSlot(HashIndexHeader& header) {
+    pSlots->pushBack(Slot<T>{});
     rehashSlots(header);
     header.incrementNextSplitSlotId();
 }
 
-void HashIndex::rehashSlots(HashIndexHeader& header) {
+template<typename T>
+void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
     auto slotsToSplit = getChainedSlots(header.nextSplitSlotId);
     for (auto& [slotInfo, slot] : slotsToSplit) {
         auto slotHeader = slot.header;
@@ -264,22 +330,31 @@ void HashIndex::rehashSlots(HashIndexHeader& header) {
                 continue; // Skip invalid entries.
             }
             auto key = slot.entries[entryPos].data;
-            auto newSlotId = keyHashFunc(key) & header.higherLevelHashMask;
+            hash_t hash;
+            if (header.keyDataTypeID == STRING) {
+                auto str = diskOverflowFile->readString(TransactionType::WRITE, *(gf_string_t*)key);
+                hash = keyHashFunc((const uint8_t*)str.c_str());
+            } else {
+                hash = keyHashFunc(key);
+            }
+            auto newSlotId = hash & header.higherLevelHashMask;
             copyEntryToSlot(newSlotId, key);
         }
     }
 }
 
-void HashIndex::copyEntryToSlot(slot_id_t slotId, uint8_t* entry) {
+template<typename T>
+void HashIndex<T>::copyEntryToSlot(slot_id_t slotId, uint8_t* entry) {
     SlotInfo slotInfo{slotId, SlotType::PRIMARY};
-    Slot slot;
+    Slot<T> slot;
     loopChainedSlotsToFindOneWithFreeSpace(slotInfo, slot);
     copyKVOrEntryToSlot(true /* copy entry */, slotInfo, slot, entry, UINT32_MAX);
     updateSlot(slotInfo, slot);
 }
 
-vector<pair<SlotInfo, Slot>> HashIndex::getChainedSlots(slot_id_t pSlotId) {
-    vector<pair<SlotInfo, Slot>> slots;
+template<typename T>
+vector<pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
+    vector<pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(TransactionType::WRITE, slotInfo);
@@ -290,8 +365,9 @@ vector<pair<SlotInfo, Slot>> HashIndex::getChainedSlots(slot_id_t pSlotId) {
     return slots;
 }
 
-void HashIndex::copyAndUpdateSlotHeader(
-    bool isCopyEntry, Slot& slot, entry_pos_t entryPos, const uint8_t* key, node_offset_t value) {
+template<typename T>
+void HashIndex<T>::copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos,
+    const uint8_t* key, node_offset_t value) {
     if (isCopyEntry) {
         memcpy(slot.entries[entryPos].data, key, indexHeader->numBytesPerEntry);
     } else {
@@ -301,12 +377,13 @@ void HashIndex::copyAndUpdateSlotHeader(
     slot.header.numEntries++;
 }
 
-void HashIndex::copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot& slot,
+template<typename T>
+void HashIndex<T>::copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot,
     const uint8_t* key, node_offset_t value) {
     if (slot.header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
         // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
         // nextOvfSlotId.
-        Slot newSlot;
+        Slot<T> newSlot;
         auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
         copyAndUpdateSlotHeader(isCopyEntry, newSlot, entryPos, key, value);
         slot.header.nextOvfSlotId = oSlots->pushBack(newSlot);
@@ -321,42 +398,43 @@ void HashIndex::copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, 
     updateSlot(slotInfo, slot);
 }
 
-entry_pos_t HashIndex::findMatchedEntryInSlot(const Slot& slot, const uint8_t* key) const {
+template<typename T>
+entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
+    TransactionType trxType, const Slot<T>& slot, const uint8_t* key) const {
     for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
         if (!slot.header.isEntryValid(entryPos)) {
             continue;
         }
-        if (keyEqualsFunc(key, slot.entries[entryPos].data, diskOverflowFile.get())) {
+        if (keyEqualsFunc(trxType, key, slot.entries[entryPos].data, diskOverflowFile.get())) {
             return entryPos;
         }
     }
     return SlotHeader::INVALID_ENTRY_POS;
 }
 
-void HashIndex::prepareCommit() {
-    for (auto& [key, val] : localStorage->localDeletions) {
-        deleteFromPersistentIndex((uint8_t*)&key);
-    }
-    for (auto& [key, val] : localStorage->localInsertions) {
-        insertIntoPersistentIndex((uint8_t*)&key, val);
-    }
+template<typename T>
+void HashIndex<T>::prepareCommit() {
+    localStorage->applyLocalChanges(
+        [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
+        [this](const uint8_t* key, node_offset_t value) -> void {
+            this->insertIntoPersistentIndex(key, value);
+        });
 }
 
-void HashIndex::prepareRollback() {
-    indexHeader = make_unique<HashIndexHeader>(
-        headerArray->get(INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, TransactionType::READ_ONLY));
-}
-
-void HashIndex::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+template<typename T>
+void HashIndex<T>::prepareCommitOrRollbackIfNecessary(bool isCommit) {
     unique_lock xlock{localStorage->localStorageSharedMutex};
     if (!localStorage->hasUpdates()) {
         return;
     }
     wal->addToUpdatedNodeTables(storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
-    isCommit ? prepareCommit() : prepareRollback();
+    if (isCommit) {
+        prepareCommit();
+    }
 }
 
-void HashIndex::checkpointInMemoryIfNecessary() {
+template<typename T>
+void HashIndex<T>::checkpointInMemoryIfNecessary() {
     if (!localStorage->hasUpdates()) {
         return;
     }
@@ -368,7 +446,8 @@ void HashIndex::checkpointInMemoryIfNecessary() {
     localStorage->clear();
 }
 
-void HashIndex::rollbackInMemoryIfNecessary() const {
+template<typename T>
+void HashIndex<T>::rollbackInMemoryIfNecessary() const {
     if (!localStorage->hasUpdates()) {
         return;
     }
@@ -376,6 +455,46 @@ void HashIndex::rollbackInMemoryIfNecessary() const {
     pSlots->rollbackInMemoryIfNecessary();
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();
+}
+
+template class HashIndex<int64_t>;
+template class HashIndex<gf_string_t>;
+
+bool PrimaryKeyIndex::lookup(
+    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
+    assert(!keyVector->isNull(vectorPos));
+    if (keyDataTypeID == INT64) {
+        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        return hashIndexForInt64->lookupInternal(
+            trx, reinterpret_cast<const uint8_t*>(&key), result);
+    } else {
+        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        return hashIndexForString->lookupInternal(
+            trx, reinterpret_cast<const uint8_t*>(key.c_str()), result);
+    }
+}
+
+void PrimaryKeyIndex::deleteKey(ValueVector* keyVector, uint64_t vectorPos) {
+    assert(!keyVector->isNull(vectorPos));
+    if (keyDataTypeID == INT64) {
+        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
+    } else {
+        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
+    }
+}
+
+bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, node_offset_t value) {
+    assert(!keyVector->isNull(vectorPos));
+    if (keyDataTypeID == INT64) {
+        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
+    } else {
+        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        return hashIndexForString->insertInternal(
+            reinterpret_cast<const uint8_t*>(key.c_str()), value);
+    }
 }
 
 } // namespace storage

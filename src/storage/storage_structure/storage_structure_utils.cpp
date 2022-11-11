@@ -4,8 +4,10 @@ namespace graphflow {
 namespace storage {
 
 pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-    VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal, bool isReadTrx) {
-    if (isReadTrx || !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
+    VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+    transaction::TransactionType trxType) {
+    if (trxType == transaction::TransactionType::READ_ONLY ||
+        !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
         return make_pair((FileHandle*)&fileHandle, physicalPageIdx);
     } else {
         return make_pair(

@@ -15,6 +15,7 @@ StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
 
 StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
     StorageStructureID retVal;
+    retVal.isOverflow = false;
     retVal.storageStructureType = NODE_INDEX;
     retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;

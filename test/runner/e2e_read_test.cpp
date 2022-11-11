@@ -12,10 +12,9 @@ public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
-// TODO(Guodong): Add the support of string keys back to fix this.
-// TEST_F(LongStringPKTest, LongStringPKTest) {
-//    runTest("test/test_files/long_string_pk/long_string_pk.test");
-//}
+TEST_F(LongStringPKTest, LongStringPKTest) {
+    runTest("test/test_files/long_string_pk/long_string_pk.test");
+}
 
 TEST_F(TinySnbReadTest, MatchExecute) {
     runTest("test/test_files/tinySNB/match/node.test");
