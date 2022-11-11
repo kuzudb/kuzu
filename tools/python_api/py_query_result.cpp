@@ -13,8 +13,9 @@ void PyQueryResult::initialize(py::handle& m) {
         .def("getNext", &PyQueryResult::getNext)
         .def("writeToCSV", &PyQueryResult::writeToCSV)
         .def("close", &PyQueryResult::close)
-        .def("getAsDF", &PyQueryResult::getAsDF);
-
+        .def("getAsDF", &PyQueryResult::getAsDF)
+        .def("getColumnNames", &PyQueryResult::getColumnNames)
+        .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes);
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
     // https://docs.python.org/3/c-api/datetime.html for details.
@@ -102,4 +103,22 @@ py::object PyQueryResult::convertValueToPyObject(const ResultValue& value) {
 
 py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();
+}
+
+py::list PyQueryResult::getColumnDataTypes() {
+    auto columnDataTypes = queryResult->getColumnDataTypes();
+    py::tuple result(columnDataTypes.size());
+    for (auto i = 0u; i < columnDataTypes.size(); ++i) {
+        result[i] = py::cast(Types::dataTypeToString(columnDataTypes[i]));
+    }
+    return move(result);
+}
+
+py::list PyQueryResult::getColumnNames() {
+    auto columnNames = queryResult->getColumnNames();
+    py::tuple result(columnNames.size());
+    for (auto i = 0u; i < columnNames.size(); ++i) {
+        result[i] = py::cast(columnNames[i]);
+    }
+    return move(result);
 }
