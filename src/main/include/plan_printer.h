@@ -51,7 +51,7 @@ private:
 
     void printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& oss) const;
 
-    void prettyPrintPlanTitle() const;
+    void prettyPrintPlanTitle(ostringstream& oss) const;
 
     static string genHorizLine(uint32_t len);
 

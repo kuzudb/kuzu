@@ -76,8 +76,8 @@ void printSpaceIfNecessary(uint32_t idx, ostringstream& oss) {
 }
 
 ostringstream OpProfileTree::printPlanToOstream() const {
-    prettyPrintPlanTitle();
     ostringstream oss;
+    prettyPrintPlanTitle(oss);
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
         printOpProfileBoxUpperFrame(i, oss);
         printOpProfileBoxes(i, oss);
@@ -233,19 +233,17 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& 
     oss << endl;
 }
 
-void OpProfileTree::prettyPrintPlanTitle() const {
-    ostringstream title;
+void OpProfileTree::prettyPrintPlanTitle(ostringstream& oss) const {
     const string physicalPlan = "Physical Plan";
-    title << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << endl;
-    title << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << endl;
+    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << endl;
+    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << endl;
     auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
         opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
-    title << "││" << string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
-          << string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << endl;
-    title << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << endl;
-    title << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << endl;
-    printf("%s", title.str().c_str());
+    oss << "││" << string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
+        << string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << endl;
+    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << endl;
+    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << endl;
 }
 
 string OpProfileTree::genHorizLine(uint32_t len) {

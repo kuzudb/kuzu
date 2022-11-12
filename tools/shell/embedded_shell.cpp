@@ -310,7 +310,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         lineSeparator = string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
 
-        if (queryResult.getColumnNames()[0] != "") {
+        if (queryResult.getNumColumns() != 0 && queryResult.getColumnNames()[0] != "") {
             for (auto i = 0u; i < colsWidth.size(); i++) {
                 printf("| %s", queryResult.getColumnNames()[i].c_str());
                 printf(
