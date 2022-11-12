@@ -21,18 +21,11 @@ class PreparedStatement {
     friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
-    PreparedStatement() { querySummary = make_unique<QuerySummary>(); }
-    ~PreparedStatement() = default;
-
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
 
     inline void createResultHeader(expression_vector expressions) {
         resultHeader = make_unique<QueryResultHeader>(move(expressions));
-    }
-
-    inline void createPlanPrinter(unique_ptr<Profiler> profiler) {
-        querySummary->planPrinter = make_unique<PlanPrinter>(move(physicalPlan), move(profiler));
     }
 
     inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
@@ -41,8 +34,7 @@ private:
     bool allowActiveTransaction;
     bool success = true;
     string errMsg;
-
-    unique_ptr<QuerySummary> querySummary;
+    PreparedSummary preparedSummary;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
     unique_ptr<QueryResultHeader> resultHeader;
     unique_ptr<PhysicalPlan> physicalPlan;

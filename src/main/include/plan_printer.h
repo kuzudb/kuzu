@@ -36,7 +36,7 @@ class OpProfileTree {
 public:
     OpProfileTree(PhysicalOperator* opProfileBoxes, Profiler& profiler);
 
-    void prettyPrintToShell() const;
+    ostringstream printPlanToOstream() const;
 
 private:
     static void calculateNumRowsAndColsForOp(
@@ -86,15 +86,15 @@ private:
 class PlanPrinter {
 
 public:
-    PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan, unique_ptr<Profiler> profiler)
-        : physicalPlan{move(physicalPlan)}, profiler{move(profiler)} {}
+    PlanPrinter(PhysicalPlan* physicalPlan, unique_ptr<Profiler> profiler)
+        : physicalPlan{physicalPlan}, profiler{move(profiler)} {}
 
     inline nlohmann::json printPlanToJson() {
         return toJson(physicalPlan->lastOperator.get(), *profiler);
     }
 
-    inline void printPlanToShell() {
-        OpProfileTree(physicalPlan->lastOperator.get(), *profiler).prettyPrintToShell();
+    inline ostringstream printPlanToOstream() {
+        return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
     }
 
     static inline string getOperatorName(PhysicalOperator* physicalOperator) {
@@ -109,7 +109,7 @@ private:
     nlohmann::json toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
 
 private:
-    unique_ptr<PhysicalPlan> physicalPlan;
+    PhysicalPlan* physicalPlan;
     unique_ptr<Profiler> profiler;
 };
 

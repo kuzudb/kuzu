@@ -75,7 +75,7 @@ void printSpaceIfNecessary(uint32_t idx, ostringstream& oss) {
     }
 }
 
-void OpProfileTree::prettyPrintToShell() const {
+ostringstream OpProfileTree::printPlanToOstream() const {
     prettyPrintPlanTitle();
     ostringstream oss;
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
@@ -83,7 +83,7 @@ void OpProfileTree::prettyPrintToShell() const {
         printOpProfileBoxes(i, oss);
         printOpProfileBoxLowerFrame(i, oss);
     }
-    printf("%s", oss.str().c_str());
+    return oss;
 }
 
 void OpProfileTree::calculateNumRowsAndColsForOp(

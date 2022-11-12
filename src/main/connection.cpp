@@ -47,13 +47,13 @@ unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
     return queryResult;
 }
 
-void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binder& binder,
-    QuerySummary* querySummary, PreparedStatement* preparedStatement) {
+void Connection::setQuerySummaryAndPreparedStatement(
+    Statement* statement, Binder& binder, PreparedStatement* preparedStatement) {
     switch (statement->getStatementType()) {
     case StatementType::QUERY: {
         auto parsedQuery = (RegularQuery*)statement;
-        querySummary->isExplain = parsedQuery->isEnableExplain();
-        querySummary->isProfile = parsedQuery->isEnableProfile();
+        preparedStatement->preparedSummary.isExplain = parsedQuery->isEnableExplain();
+        preparedStatement->preparedSummary.isProfile = parsedQuery->isEnableProfile();
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->allowActiveTransaction = true;
     } break;
@@ -73,7 +73,6 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     if (query.empty()) {
         throw Exception("Input query is empty.");
     }
-    auto querySummary = preparedStatement->querySummary.get();
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
     unique_ptr<ExecutionContext> executionContext;
@@ -82,8 +81,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         auto statement = Parser::parseQuery(query);
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
-        setQuerySummaryAndPreparedStatement(
-            statement.get(), binder, querySummary, preparedStatement.get());
+        setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
         // planning
         auto logicalPlan = Planner::getBestPlan(*database->catalog,
             database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
@@ -103,7 +101,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         preparedStatement->errMsg = exception.what();
     }
     compilingTimer.stop();
-    querySummary->compilingTime = compilingTimer.getElapsedTimeMS();
+    preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
     preparedStatement->physicalPlan = move(physicalPlan);
     return preparedStatement;
 }
@@ -252,17 +250,16 @@ void Connection::bindParametersNoLock(
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
-    auto queryResult = make_unique<QueryResult>();
-    auto querySummary = preparedStatement->querySummary.get();
+    auto queryResult = make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
         profiler.get(), database->memoryManager.get(), database->bufferManager.get());
-    // executing if not EXPLAIN
-    if (!querySummary->isExplain) {
-        profiler->enabled = querySummary->isProfile;
+    // Execute query if EXPLAIN is not enabled.
+    if (!preparedStatement->preparedSummary.isExplain) {
+        profiler->enabled = preparedStatement->preparedSummary.isProfile;
         auto executingTimer = TimeMetric(true /* enable */);
         executingTimer.start();
-        shared_ptr<FactorizedTable> table;
+        shared_ptr<FactorizedTable> resultFT;
         try {
             if (!preparedStatement->isReadOnly() && activeTransaction &&
                 activeTransaction->isReadOnly()) {
@@ -290,7 +287,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                     "transaction or set the transaction mode of the connection to AUTO_COMMIT");
             }
             executionContext->transaction = activeTransaction.get();
-            table = database->queryProcessor->execute(
+            resultFT = database->queryProcessor->execute(
                 preparedStatement->physicalPlan.get(), executionContext.get());
             if (AUTO_COMMIT == transactionMode) {
                 commitNoLock();
@@ -301,14 +298,14 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             return queryResultWithError(errMsg);
         }
         executingTimer.stop();
-        querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->setResultHeaderAndTable(move(preparedStatement->resultHeader), move(table));
-        preparedStatement->createPlanPrinter(move(profiler));
-        queryResult->querySummary = move(preparedStatement->querySummary);
-        return queryResult;
+        queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
+        queryResult->setResultHeaderAndTable(
+            preparedStatement->resultHeader->copy(), move(resultFT));
     }
-    preparedStatement->createPlanPrinter(move(profiler));
-    queryResult->querySummary = move(preparedStatement->querySummary);
+    auto planPrinter =
+        make_unique<PlanPrinter>(preparedStatement->physicalPlan.get(), move(profiler));
+    queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
+    queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;
 }
 
