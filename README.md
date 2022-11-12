@@ -5,12 +5,12 @@
 ### Bazel configuration
 
 - Create bazel configuration file with `touch .bazelrc`
-- Add bazel configuration `echo build --cxxopt="-std=c++2a" --cxxopt='-fopenmp' --linkopt='-lgomp' > .bazelrc`
+- Add bazel configuration `echo build --cxxopt="-std=c++2a" --cxxopt='-O3' > .bazelrc`
 
 ### Bazel build
 
 - To do a full clean build
-    - `bazel clean`
+    - `bazel clean --expunge`
     - `bazel build //...:all`
 - To test
     - `bazel test //...:all`
