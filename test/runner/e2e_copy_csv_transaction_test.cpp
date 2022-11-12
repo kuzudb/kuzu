@@ -2,6 +2,8 @@
 
 #include "test/test_utility/include/test_helper.h"
 
+#include "src/processor/mapper/include/plan_mapper.h"
+
 using namespace graphflow::testing;
 
 namespace graphflow {
@@ -15,10 +17,8 @@ public:
         createDBAndConn();
         catalog = conn->database->getCatalog();
         profiler = make_unique<Profiler>();
-        bufferManager = make_unique<BufferManager>();
-        memoryManager = make_unique<MemoryManager>(bufferManager.get());
-        executionContext = make_unique<ExecutionContext>(
-            1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
+        executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
+            database->getMemoryManager(), database->getBufferManager());
     }
 
     void initWithoutLoadingGraph() {
@@ -76,8 +76,10 @@ public:
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepareNoLock(copyPersonTableCMD);
         conn->beginTransactionNoLock(WRITE);
-        database->queryProcessor->execute(
-            preparedStatement->physicalPlan.get(), executionContext.get());
+        auto mapper = PlanMapper(
+            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -156,10 +158,10 @@ public:
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepareNoLock(copyKnowsTableCMD);
         conn->beginTransactionNoLock(WRITE);
-        auto profiler = make_unique<Profiler>();
-        auto bufferManager = make_unique<BufferManager>();
-        database->queryProcessor->execute(
-            preparedStatement->physicalPlan.get(), executionContext.get());
+        auto mapper = PlanMapper(
+            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
         validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -186,8 +188,6 @@ public:
         "validInterval INTERVAL, comments STRING[], MANY_MANY)";
     string copyKnowsTableCMD = "COPY knows FROM \"dataset/tinysnb/eKnows.csv\"";
     unique_ptr<Profiler> profiler;
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> executionContext;
 };
 } // namespace transaction

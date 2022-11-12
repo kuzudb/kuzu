@@ -11,7 +11,7 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace processor {
 
-unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan) {
+unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->getSchema()));
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);
     auto lastOperator = appendResultCollector(logicalPlan->getExpressionsToCollect(),

@@ -24,7 +24,7 @@ public:
         : storageManager{storageManager}, memoryManager{memoryManager},
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
-    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
+    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(LogicalPlan* logicalPlan);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(

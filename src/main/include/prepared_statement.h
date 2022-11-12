@@ -28,7 +28,7 @@ public:
         resultHeader = make_unique<QueryResultHeader>(move(expressions));
     }
 
-    inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
+    inline bool isReadOnly() { return logicalPlan->isReadOnly(); }
 
 private:
     bool allowActiveTransaction;
@@ -37,7 +37,7 @@ private:
     PreparedSummary preparedSummary;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
     unique_ptr<QueryResultHeader> resultHeader;
-    unique_ptr<PhysicalPlan> physicalPlan;
+    unique_ptr<LogicalPlan> logicalPlan;
 };
 
 } // namespace main
