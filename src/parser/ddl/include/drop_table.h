@@ -2,7 +2,7 @@
 
 #include "src/parser/ddl/include/ddl.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 using namespace std;
@@ -13,4 +13,4 @@ public:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

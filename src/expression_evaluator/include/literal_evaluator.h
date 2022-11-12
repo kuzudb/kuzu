@@ -2,7 +2,7 @@
 
 #include "base_evaluator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
@@ -28,4 +28,4 @@ private:
 };
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

@@ -2,9 +2,9 @@
 
 #include "src/processor/mapper/include/plan_mapper.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 class PrimaryKeyTest : public EmptyDBTest {
@@ -226,7 +226,7 @@ public:
     unique_ptr<Profiler> profiler;
 };
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
 TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
     testPrimaryKey("firstStrCol");

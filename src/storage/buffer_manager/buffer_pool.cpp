@@ -6,9 +6,9 @@
 #include "src/common/include/utils.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 Frame::Frame(uint64_t pageSize) : frameLock{ATOMIC_FLAG_INIT} {
@@ -284,4 +284,4 @@ void BufferPool::unpinWithoutAcquiringPageLock(FileHandle& fileHandle, page_idx_
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

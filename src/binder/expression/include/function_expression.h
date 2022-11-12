@@ -5,9 +5,9 @@
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/function/include/vector_operations.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class FunctionExpression : public Expression {
@@ -81,4 +81,4 @@ public:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

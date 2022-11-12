@@ -3,7 +3,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 shared_ptr<spdlog::logger> LoggerUtils::getOrCreateLogger(const std::string& loggerName) {
@@ -34,4 +34,4 @@ string ThreadUtils::getThreadIDString() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

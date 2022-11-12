@@ -1,6 +1,6 @@
 #include "src/parser/antlr_parser/include/parser_error_strategy.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 void ParserErrorStrategy::reportNoViableAlternative(
@@ -18,4 +18,4 @@ void ParserErrorStrategy::reportNoViableAlternative(
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

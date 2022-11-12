@@ -8,9 +8,9 @@
 #include "src/common/include/configs.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 
-using namespace graphflow::storage;
+using namespace kuzu::storage;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 struct MemoryBlock {
@@ -47,4 +47,4 @@ private:
     mutex memMgrLock;
 };
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

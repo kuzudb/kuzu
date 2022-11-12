@@ -3,7 +3,7 @@
 #include "include/copy_csv_task.h"
 #include "spdlog/spdlog.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,
@@ -289,19 +289,19 @@ void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                auto gfStr = inMemOverflowFilePerPropertyID[propertyIdx]->copyString(
+                auto kuStr = inMemOverflowFilePerPropertyID[propertyIdx]->copyString(
                     strVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
-                    reinterpret_cast<uint8_t*>(&gfStr));
+                    reinterpret_cast<uint8_t*>(&kuStr));
             }
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
-                auto gfList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
+                auto kuList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
                     listVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
-                    reinterpret_cast<uint8_t*>(&gfList));
+                    reinterpret_cast<uint8_t*>(&kuList));
             }
         } break;
         default:
@@ -423,19 +423,19 @@ void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                auto gfStr = inMemOverflowFilesPerProperty[propertyIdx]->copyString(
+                auto kuStr = inMemOverflowFilesPerProperty[propertyIdx]->copyString(
                     strVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
-                    nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfStr));
+                    nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
             }
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
-                auto gfList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
+                auto kuList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
                     listVal, inMemOverflowFileCursors[propertyIdx]);
                 putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
-                    nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&gfList));
+                    nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
             }
         } break;
         default:
@@ -558,27 +558,27 @@ void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
     copier->logger->trace("End: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
 }
 
-void InMemRelCSVCopier::copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
+void InMemRelCSVCopier::copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile) {
-    if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
-        TypeUtils::decodeOverflowPtr(gfStr->overflowPtr, unorderedOverflowCursor.pageIdx,
+    if (kuStr->len > ku_string_t::SHORT_STR_LENGTH) {
+        TypeUtils::decodeOverflowPtr(kuStr->overflowPtr, unorderedOverflowCursor.pageIdx,
             unorderedOverflowCursor.offsetInPage);
         orderedOverflowFile->copyStringOverflow(orderedOverflowCursor,
             unorderedOverflowFile->getPage(unorderedOverflowCursor.pageIdx)->data +
                 unorderedOverflowCursor.offsetInPage,
-            gfStr);
+            kuStr);
     }
 }
 
-void InMemRelCSVCopier::copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
+void InMemRelCSVCopier::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
     const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
     PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
     InMemOverflowFile* orderedOverflowFile) {
     TypeUtils::decodeOverflowPtr(
-        gfList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
+        kuList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
     orderedOverflowFile->copyListOverflow(unorderedOverflowFile, unorderedOverflowCursor,
-        orderedOverflowCursor, gfList, dataType.childType.get());
+        orderedOverflowCursor, kuList, dataType.childType.get());
 }
 
 void InMemRelCSVCopier::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
@@ -587,12 +587,12 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyColumnTask(const DataType& d
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
         if (dataType.typeID == STRING) {
-            auto gfStr = reinterpret_cast<gf_string_t*>(propertyColumn->getElement(offsetStart));
-            copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
+            auto kuStr = reinterpret_cast<ku_string_t*>(propertyColumn->getElement(offsetStart));
+            copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
         } else if (dataType.typeID == LIST) {
-            auto gfList = reinterpret_cast<gf_list_t*>(propertyColumn->getElement(offsetStart));
-            copyListOverflowFromUnorderedToOrderedPages(gfList, dataType, unorderedOverflowCursor,
+            auto kuList = reinterpret_cast<ku_list_t*>(propertyColumn->getElement(offsetStart));
+            copyListOverflowFromUnorderedToOrderedPages(kuList, dataType, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
         } else {
             assert(false);
@@ -618,14 +618,14 @@ void InMemRelCSVCopier::sortOverflowValuesOfPropertyListsTask(const DataType& da
                 Types::getDataTypeSize(dataType), offsetStart,
                 *propertyLists->getListsMetadataBuilder(), true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
-                auto gfStr = reinterpret_cast<gf_string_t*>(propertyLists->getMemPtrToLoc(
+                auto kuStr = reinterpret_cast<ku_string_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
-                copyStringOverflowFromUnorderedToOrderedPages(gfStr, unorderedOverflowCursor,
+                copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
             } else if (dataType.typeID == LIST) {
-                auto gfList = reinterpret_cast<gf_list_t*>(propertyLists->getMemPtrToLoc(
+                auto kuList = reinterpret_cast<ku_list_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
-                copyListOverflowFromUnorderedToOrderedPages(gfList, dataType,
+                copyListOverflowFromUnorderedToOrderedPages(kuList, dataType,
                     unorderedOverflowCursor, orderedOverflowCursor, unorderedInMemOverflowFile,
                     orderedInMemOverflowFile);
             } else {
@@ -720,4 +720,4 @@ void InMemRelCSVCopier::saveToFile() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

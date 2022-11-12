@@ -4,9 +4,9 @@
 
 #include "src/function/comparison/operations/include/comparison_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
@@ -175,7 +175,7 @@ void RadixSort::findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* ke
                 // not equal.
                 break;
             }
-            if constexpr (is_same<TYPE, gf_string_t>::value) {
+            if constexpr (is_same<TYPE, ku_string_t>::value) {
                 // We do an optimization here to minimize the number of times that we fetch
                 // tuples from factorizedTable. If both left and right string are short, they
                 // must equal to each other (since they have the same prefix). If one string is
@@ -259,9 +259,9 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
 
             if (keyColInfo.isStrCol) {
                 auto result = (keyColInfo.isAscOrder ==
-                               (factorizedTable.getData<gf_string_t>(
+                               (factorizedTable.getData<ku_string_t>(
                                     leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT) <
-                                   factorizedTable.getData<gf_string_t>(
+                                   factorizedTable.getData<ku_string_t>(
                                        rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT)));
                 return result;
             } else {
@@ -281,11 +281,11 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);
     if (keyColInfo.isStrCol) {
-        findStringAndUnstructuredTies<gf_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
+        findStringAndUnstructuredTies<ku_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
     } else {
         findStringAndUnstructuredTies<Value>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
     }
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

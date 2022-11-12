@@ -7,9 +7,9 @@
 #include "src/common/include/expression_type.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ParsedExpression {
@@ -53,4 +53,4 @@ protected:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/in_mem_column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemColumn::InMemColumn(
@@ -66,4 +66,4 @@ unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

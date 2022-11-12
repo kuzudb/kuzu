@@ -2,7 +2,7 @@
 
 #include "src/binder/expression/include/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundProjectionBody {
@@ -63,4 +63,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

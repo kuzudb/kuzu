@@ -2,7 +2,7 @@
 
 #include "src/function/include/unary_operation_executor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct NullOperationExecutor {
@@ -62,4 +62,4 @@ struct NullOperationExecutor {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

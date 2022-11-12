@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 struct FileInfo {
@@ -50,4 +50,4 @@ public:
     }
 };
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

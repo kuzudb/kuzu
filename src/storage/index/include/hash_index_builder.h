@@ -7,7 +7,7 @@
 #include "src/storage/storage_structure/include/disk_array.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 static constexpr page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
@@ -133,4 +133,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -5,7 +5,7 @@
 
 #include "src/binder/expression/include/node_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 struct LogicalIntersectBuildInfo {
@@ -56,4 +56,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

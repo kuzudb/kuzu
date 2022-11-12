@@ -1,6 +1,6 @@
 #include "include/query_part.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool QueryPart::operator==(const QueryPart& other) const {
@@ -17,4 +17,4 @@ bool QueryPart::operator==(const QueryPart& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

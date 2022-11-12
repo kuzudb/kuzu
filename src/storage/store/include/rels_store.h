@@ -6,10 +6,10 @@
 #include "src/common/include/file_utils.h"
 #include "src/storage/store/include/rel_table.h"
 
-using namespace graphflow::common;
-using namespace graphflow::catalog;
+using namespace kuzu::common;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 // RelsStore stores adjacent rels of a node as well as the properties of rels in the system.
@@ -76,4 +76,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

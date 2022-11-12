@@ -8,7 +8,7 @@
 #include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 
 using ::testing::Test;
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 using namespace std;
 
 class OrderByKeyEncoderTest : public Test {

@@ -3,9 +3,9 @@
 
 #include "src/common/include/statement_type.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundStatement {
@@ -19,4 +19,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

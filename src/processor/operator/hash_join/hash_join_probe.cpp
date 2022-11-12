@@ -3,9 +3,9 @@
 #include "src/function/hash/include/vector_hash_operations.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
@@ -200,4 +200,4 @@ bool HashJoinProbe::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

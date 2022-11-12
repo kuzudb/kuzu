@@ -7,9 +7,9 @@
 #include "src/common/include/utils.h"
 #include "src/common/types/include/value.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -77,7 +77,7 @@ inline void Hash::operation(const string& key, hash_t& result) {
 }
 
 template<>
-inline void Hash::operation(const gf_string_t& key, hash_t& result) {
+inline void Hash::operation(const ku_string_t& key, hash_t& result) {
     result = std::hash<string>()(key.getAsString());
 }
 
@@ -131,7 +131,7 @@ inline void Hash::operation(const Value& key, hash_t& result) {
         Hash::operation<double_t>(key.val.doubleVal, result);
     } break;
     case STRING: {
-        Hash::operation<gf_string_t>(key.val.strVal, result);
+        Hash::operation<ku_string_t>(key.val.strVal, result);
     } break;
     case DATE: {
         Hash::operation<date_t>(key.val.dateVal, result);
@@ -181,7 +181,7 @@ struct HashOnBytes {
             Hash::operation<double_t>(*(double_t*)key, isNull, result);
         } break;
         case STRING: {
-            Hash::operation<gf_string_t>(*(gf_string_t*)key, isNull, result);
+            Hash::operation<ku_string_t>(*(ku_string_t*)key, isNull, result);
         } break;
         case DATE: {
             Hash::operation<date_t>(*(date_t*)key, isNull, result);
@@ -204,4 +204,4 @@ struct HashOnBytes {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

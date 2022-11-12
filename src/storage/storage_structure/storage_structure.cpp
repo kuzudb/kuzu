@@ -2,7 +2,7 @@
 
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 // check if val is in range [start, end)
@@ -207,4 +207,4 @@ void BaseColumnOrList::setNullBitOfAPosInFrame(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

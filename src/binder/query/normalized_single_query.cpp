@@ -1,6 +1,6 @@
 #include "include/normalized_single_query.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 expression_vector NormalizedSingleQuery::getPropertiesToRead() const {
@@ -14,4 +14,4 @@ expression_vector NormalizedSingleQuery::getPropertiesToRead() const {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

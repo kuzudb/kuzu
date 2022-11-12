@@ -5,7 +5,7 @@
 #include "src/processor/operator/include/result_collector.h"
 #include "src/processor/operator/table_scan/include/factorized_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
@@ -61,4 +61,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

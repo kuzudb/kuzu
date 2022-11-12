@@ -4,9 +4,9 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/storage/store/include/node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
 struct CreateNodeInfo {
     NodeTable* table;
@@ -116,4 +116,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 #include "src/processor/operator/scan_column/include/scan_column.h"
 #include "src/storage/storage_structure/include/column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class AdjColumnExtend : public ScanSingleColumn, public FilteringOperator {
@@ -33,4 +33,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

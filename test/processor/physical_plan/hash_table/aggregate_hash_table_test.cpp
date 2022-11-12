@@ -7,8 +7,8 @@
 #include "src/processor/result/include/result_set.h"
 
 using ::testing::Test;
-using namespace graphflow::function;
-using namespace graphflow::processor;
+using namespace kuzu::function;
+using namespace kuzu::processor;
 
 class AggregateHashTableTest : public Test {
 

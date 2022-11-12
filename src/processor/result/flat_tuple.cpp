@@ -7,7 +7,7 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void ResultValue::set(const uint8_t* value, DataType& valueType) {
@@ -22,7 +22,7 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
         val.doubleVal = *((double*)value);
     } break;
     case STRING: {
-        stringVal = ((gf_string_t*)value)->getAsString();
+        stringVal = ((ku_string_t*)value)->getAsString();
     } break;
     case UNSTRUCTURED: {
         setFromUnstructuredValue(*(Value*)value);
@@ -37,7 +37,7 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
         val.intervalVal = *((interval_t*)value);
     } break;
     case LIST: {
-        listVal = convertGFListToVector(*(gf_list_t*)value);
+        listVal = convertKUListToVector(*(ku_list_t*)value);
     } break;
     default:
         assert(false);
@@ -76,7 +76,7 @@ string ResultValue::to_string() const {
     }
 }
 
-vector<ResultValue> ResultValue::convertGFListToVector(gf_list_t& list) const {
+vector<ResultValue> ResultValue::convertKUListToVector(ku_list_t& list) const {
     vector<ResultValue> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
     for (auto i = 0; i < list.size; i++) {
@@ -148,4 +148,4 @@ string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& deli
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -8,7 +8,7 @@
 #include "src/function/string/operations/include/trim_operation.h"
 #include "src/function/string/operations/include/upper_operation.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct VectorStringOperations : public VectorOperations {
@@ -42,7 +42,7 @@ struct VectorStringOperations : public VectorOperations {
         vector<unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(funcName,
             vector<DataTypeID>{STRING}, STRING,
-            UnaryStringExecFunction<gf_string_t, gf_string_t, OPERATION>, false /* isVarLength */));
+            UnaryStringExecFunction<ku_string_t, ku_string_t, OPERATION>, false /* isVarLength */));
         return definitions;
     }
 };
@@ -132,4 +132,4 @@ struct UpperVectorOperation : public VectorStringOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

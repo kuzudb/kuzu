@@ -2,7 +2,7 @@
 
 #include "src/common/include/configs.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> OrderByMerge::init(ExecutionContext* context) {
@@ -37,4 +37,4 @@ void OrderByMerge::execute(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

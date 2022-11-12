@@ -3,7 +3,7 @@
 #include "base_logical_operator.h"
 #include "logical_ddl.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalCreateRelTable : public LogicalDDL {
@@ -33,4 +33,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

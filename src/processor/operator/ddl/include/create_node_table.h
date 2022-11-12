@@ -3,7 +3,7 @@
 #include "src/processor/operator/ddl/include/create_table.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CreateNodeTable : public CreateTable {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

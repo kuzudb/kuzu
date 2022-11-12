@@ -3,20 +3,20 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_list.h"
+#include "src/common/types/include/ku_list.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct ListLen {
 public:
-    static inline void operation(gf_list_t& input, int64_t& result) { result = input.size; }
+    static inline void operation(ku_list_t& input, int64_t& result) { result = input.size; }
 };
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -3,9 +3,9 @@
 #include "src/processor/operator/scan_column/include/scan_column.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
-using namespace graphflow::storage;
+using namespace kuzu::storage;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 // Although scan unstructured property is reading from list, it's access is aligned to reading from
@@ -42,4 +42,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

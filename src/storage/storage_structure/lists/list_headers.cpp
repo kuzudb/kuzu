@@ -4,7 +4,7 @@
 
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 BaseListHeaders::BaseListHeaders() {
@@ -42,4 +42,4 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName storageStructureIDAndF
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

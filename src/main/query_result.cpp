@@ -3,9 +3,9 @@
 #include <fstream>
 
 using namespace std;
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 QueryResultHeader::QueryResultHeader(expression_vector expressions) {
@@ -85,4 +85,4 @@ void QueryResult::validateQuerySucceed() {
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

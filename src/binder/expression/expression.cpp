@@ -1,6 +1,6 @@
 #include "include/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unordered_set<string> Expression::getDependentVariableNames() {
@@ -103,4 +103,4 @@ string ExpressionUtil::toString(const expression_vector& expressions) {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

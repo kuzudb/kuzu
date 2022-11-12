@@ -7,10 +7,10 @@
 #include "src/processor/result/include/result_set.h"
 #include "src/processor/result/include/result_set_descriptor.h"
 
-using namespace graphflow::binder;
-using namespace graphflow::evaluator;
+using namespace kuzu::binder;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class PlanMapper;
@@ -36,4 +36,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

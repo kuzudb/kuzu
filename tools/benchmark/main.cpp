@@ -2,7 +2,7 @@
 
 #include "src/common/include/utils.h"
 
-using namespace graphflow::benchmark;
+using namespace kuzu::benchmark;
 
 static string getArgumentValue(const string& arg) {
     auto splits = StringUtils::split(arg, "=");

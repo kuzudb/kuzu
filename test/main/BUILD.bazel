@@ -6,7 +6,7 @@ cc_library(
         "include/main_test_helper.h",
     ],
     deps = [
-        "//src/main:graphflowdb",
+        "//src/main:kuzu",
         "//test/test_utility:test_helper",
     ],
 )

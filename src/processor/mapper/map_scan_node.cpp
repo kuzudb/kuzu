@@ -5,7 +5,7 @@
 #include "src/processor/operator/include/index_scan.h"
 #include "src/processor/operator/include/scan_node_id.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
@@ -37,4 +37,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

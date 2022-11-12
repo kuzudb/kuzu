@@ -3,8 +3,8 @@
 #include "src/common/include/exception.h"
 #include "src/storage/wal/include/wal_record.h"
 
-using namespace graphflow::common;
-using namespace graphflow::storage;
+using namespace kuzu::common;
+using namespace kuzu::storage;
 using ::testing::Test;
 
 class WALRecordTest : public Test {

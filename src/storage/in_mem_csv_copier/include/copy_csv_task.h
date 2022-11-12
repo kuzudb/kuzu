@@ -2,7 +2,7 @@
 
 #include "src/common/include/task_system/task.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class CopyCSVTask : public Task {
@@ -37,4 +37,4 @@ public:
     };
 };
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

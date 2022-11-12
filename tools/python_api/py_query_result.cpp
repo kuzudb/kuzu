@@ -5,7 +5,7 @@
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")

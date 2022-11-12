@@ -2,7 +2,7 @@
 
 #include "src/common/include/vector/value_vector.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class ValueVectorUtils {
@@ -25,4 +25,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

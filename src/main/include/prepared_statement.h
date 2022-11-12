@@ -4,21 +4,21 @@
 #include "query_result.h"
 #include "query_summary.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 class TinySnbDDLTest;
 class TinySnbCopyCSVTransactionTest;
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 class PreparedStatement {
     friend class Connection;
     friend class JOConnection;
-    friend class graphflow::transaction::TinySnbDDLTest;
-    friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
+    friend class kuzu::transaction::TinySnbDDLTest;
+    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     inline bool isSuccess() const { return success; }
@@ -41,4 +41,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

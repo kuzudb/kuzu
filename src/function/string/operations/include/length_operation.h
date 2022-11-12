@@ -3,19 +3,19 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Length {
-    static inline void operation(gf_string_t& input, int64_t& result) { result = input.len; }
+    static inline void operation(ku_string_t& input, int64_t& result) { result = input.len; }
 };
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

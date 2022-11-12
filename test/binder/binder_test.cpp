@@ -5,8 +5,8 @@
 #include "src/common/include/configs.h"
 #include "src/parser/include/parser.h"
 
-using namespace graphflow::parser;
-using namespace graphflow::binder;
+using namespace kuzu::parser;
+using namespace kuzu::binder;
 
 using ::testing::Test;
 

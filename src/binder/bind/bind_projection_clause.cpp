@@ -1,7 +1,7 @@
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/binder/include/binder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
@@ -154,4 +154,4 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "src/common/include/metric.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 TimeMetric::TimeMetric(bool enable) : Metric(enable) {
@@ -52,4 +52,4 @@ void NumericMetric::incrementByOne() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

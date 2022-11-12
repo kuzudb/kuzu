@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 void LogicalPlan::setLastOperator(shared_ptr<LogicalOperator> op) {
@@ -24,4 +24,4 @@ unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

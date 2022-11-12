@@ -4,7 +4,7 @@
 #include "test/test_utility/include/test_helper.h"
 
 using ::testing::Test;
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class EndToEndReadLists2BytesPerEdgeTest : public DBTest {
 public:

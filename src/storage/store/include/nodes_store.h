@@ -7,9 +7,9 @@
 
 #include "src/storage/store/include/node_table.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class NodesStore {
@@ -58,4 +58,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

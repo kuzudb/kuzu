@@ -6,7 +6,7 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    args::ArgumentParser parser("GraphflowDB Shell");
+    args::ArgumentParser parser("KuzuDB Shell");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<string> inputDirFlag(
         parser, "", "Path to serialized db files.", {'i', "inputDir"}, args::Options::Required);

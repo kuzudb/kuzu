@@ -6,11 +6,11 @@ tar --exclude="$(pwd)" \
     --exclude="./scripts" \
     --exclude="./.?*" \
     -cf\
-    graphflowdb-source.tar\
+    kuzu-source.tar\
     -C ../../. .
-rm -rf graphflowdb-source && mkdir graphflowdb-source
-tar -xf graphflowdb-source.tar -C ./graphflowdb-source
-rm -rf graphflowdb-source.tar
+rm -rf kuzu-source && mkdir kuzu-source
+tar -xf kuzu-source.tar -C ./kuzu-source
+rm -rf kuzu-source.tar
 
 # Add all files under current directory
 touch sdist.tar
@@ -20,6 +20,6 @@ tar -xf sdist.tar -C ./sdist
 rm -rf sdist.tar
 
 # Create tar.gz for PyPI
-rm -rf graphflowdb.tar.gz
-tar -czf graphflowdb.tar.gz sdist
-rm -rf sdist graphflowdb-source
+rm -rf kuzu.tar.gz
+tar -czf kuzu.tar.gz sdist
+rm -rf sdist kuzu-source

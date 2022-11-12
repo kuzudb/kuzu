@@ -4,9 +4,9 @@
 
 #include "src/processor/mapper/include/plan_mapper.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 class TinySnbCopyCSVTransactionTest : public EmptyDBTest {
@@ -191,7 +191,7 @@ public:
     unique_ptr<ExecutionContext> executionContext;
 };
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVCommitNormalExecution) {
     copyNodeCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);

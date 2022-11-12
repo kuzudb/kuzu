@@ -1,6 +1,6 @@
 #include "src/processor/operator/table_scan/include/base_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void BaseTableScan::initFurther(ExecutionContext* context) {
@@ -28,4 +28,4 @@ bool BaseTableScan::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

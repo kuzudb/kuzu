@@ -6,7 +6,7 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
@@ -313,4 +313,4 @@ void CSVReader::openFile(const string& fName) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

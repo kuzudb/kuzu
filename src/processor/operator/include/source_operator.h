@@ -3,7 +3,7 @@
 #include "src/processor/result/include/result_set.h"
 #include "src/processor/result/include/result_set_descriptor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class SourceOperator {
@@ -27,4 +27,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

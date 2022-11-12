@@ -2,7 +2,7 @@
 
 #include "query_part.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class SingleQuery {
@@ -49,4 +49,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

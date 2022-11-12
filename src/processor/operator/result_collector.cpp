@@ -1,6 +1,6 @@
 #include "include/result_collector.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void FTableSharedState::initTableIfNecessary(
@@ -56,4 +56,4 @@ void ResultCollector::execute(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

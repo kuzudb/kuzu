@@ -2,7 +2,7 @@
 
 #include "src/processor/operator/include/physical_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class Sink : public PhysicalOperator {
@@ -23,4 +23,4 @@ public:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

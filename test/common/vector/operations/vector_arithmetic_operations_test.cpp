@@ -8,9 +8,9 @@
 #include "src/function/include/binary_operation_executor.h"
 #include "src/function/include/unary_operation_executor.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::function;
+using namespace kuzu::testing;
 using namespace std;
 
 // Creates two vectors: vector1: [0, 1, ..., 100] and vector2: [110, 109, ...., 8, 9].

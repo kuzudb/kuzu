@@ -3,7 +3,7 @@
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/common/types/include/value.h"
 
-using namespace graphflow;
+using namespace kuzu;
 using namespace common;
 
 void ValueVectorUtils::addLiteralToStructuredVector(
@@ -56,10 +56,10 @@ void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, con
     uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer) {
     if (dataType.typeID == STRING) {
         InMemOverflowBufferUtils::copyString(
-            *(gf_string_t*)srcData, *(gf_string_t*)dstData, inMemOverflowBuffer);
+            *(ku_string_t*)srcData, *(ku_string_t*)dstData, inMemOverflowBuffer);
     } else if (dataType.typeID == LIST) {
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
-            *(gf_list_t*)srcData, *(gf_list_t*)dstData, dataType, inMemOverflowBuffer);
+            *(ku_list_t*)srcData, *(ku_list_t*)dstData, dataType, inMemOverflowBuffer);
     } else {
         // Regardless of whether the dataType is unstructured or a structured non-string type, we
         // first copy over the data in the src to the dst.

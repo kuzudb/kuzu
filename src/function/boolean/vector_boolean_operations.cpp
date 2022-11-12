@@ -2,7 +2,7 @@
 
 #include "operations/include/boolean_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 scalar_exec_func VectorBooleanOperations::bindExecFunction(
@@ -92,4 +92,4 @@ scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

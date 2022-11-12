@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 struct timestamp_t;
@@ -101,4 +101,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

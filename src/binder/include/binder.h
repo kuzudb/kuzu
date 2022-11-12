@@ -8,10 +8,10 @@
 #include "src/parser/ddl/include/create_rel_clause.h"
 #include "src/parser/query/include/regular_query.h"
 
-using namespace graphflow::parser;
-using namespace graphflow::catalog;
+using namespace kuzu::parser;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundCreateNode;
@@ -166,4 +166,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

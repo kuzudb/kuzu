@@ -2,7 +2,7 @@
 
 #include "src/common/include/configs.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class TransactionTests : public DBTest {
 public:

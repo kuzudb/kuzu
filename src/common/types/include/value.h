@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class Value {
@@ -43,16 +43,16 @@ public:
         bool booleanVal;
         int64_t int64Val;
         double doubleVal;
-        gf_string_t strVal;
+        ku_string_t strVal;
         nodeID_t nodeID;
         date_t dateVal;
         timestamp_t timestampVal;
         interval_t intervalVal;
-        gf_list_t listVal;
+        ku_list_t listVal;
     } val;
     // Note: dataType cannot be UNSTRUCTURED. Any Value has a fixed known data type.
     DataType dataType;
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

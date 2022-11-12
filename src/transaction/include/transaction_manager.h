@@ -12,7 +12,7 @@
 using namespace std;
 using lock_t = unique_lock<mutex>;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 class TransactionManager {
@@ -87,4 +87,4 @@ private:
         DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
 };
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu

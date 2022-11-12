@@ -6,9 +6,9 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class ResultValue {
@@ -43,7 +43,7 @@ public:
     string to_string() const;
 
 private:
-    vector<ResultValue> convertGFListToVector(gf_list_t& list) const;
+    vector<ResultValue> convertKUListToVector(ku_list_t& list) const;
 
     void setFromUnstructuredValue(Value& value);
 
@@ -85,4 +85,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

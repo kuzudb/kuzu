@@ -4,7 +4,7 @@
 #include "src/common/include/join_type.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class ASPOptimizer {
@@ -20,4 +20,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

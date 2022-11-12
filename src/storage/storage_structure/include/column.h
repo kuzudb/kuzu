@@ -5,11 +5,11 @@
 #include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
-using namespace graphflow::common;
-using namespace graphflow::catalog;
+using namespace kuzu::common;
+using namespace kuzu::catalog;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class Column : public BaseColumnOrList {
@@ -232,4 +232,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

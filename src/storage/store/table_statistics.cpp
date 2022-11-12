@@ -2,7 +2,7 @@
 
 #include "src/storage/include/storage_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 TablesStatistics::TablesStatistics() {
@@ -66,4 +66,4 @@ void TablesStatistics::initTableStatisticPerTableForWriteTrxIfNecessary() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -7,9 +7,9 @@
 #include "src/processor/result/include/factorized_table.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-using namespace graphflow::storage;
+using namespace kuzu::storage;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class QueryProcessor {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

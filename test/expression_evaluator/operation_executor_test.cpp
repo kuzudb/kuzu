@@ -10,8 +10,8 @@
 
 using ::testing::Test;
 
-using namespace graphflow::processor;
-using namespace graphflow::function;
+using namespace kuzu::processor;
+using namespace kuzu::function;
 
 class OperationExecutorTest : public Test {
 
@@ -54,7 +54,7 @@ public:
 
     void validateStringResultValueVector(
         shared_ptr<ValueVector>& valueVector, const vector<string>& expectedValues) {
-        auto actualValues = (gf_string_t*)valueVector->values;
+        auto actualValues = (ku_string_t*)valueVector->values;
         if (valueVector->state->isFlat()) {
             assert(expectedValues.size() == 1);
             ASSERT_EQ(actualValues[valueVector->state->getPositionOfCurrIdx()].getAsString(),
@@ -104,12 +104,12 @@ public:
         shared_ptr<ValueVector>& valueVectorA, shared_ptr<ValueVector>& valueVectorB,
         shared_ptr<ValueVector>& valueVectorC, shared_ptr<ValueVector>& resultValueVector,
         shared_ptr<ValueVector>& valueVectorToSetHasNoNullGuarantee) {
-        TernaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, int64_t, gf_string_t,
+        TernaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, int64_t, ku_string_t,
             operation::SubStr>(*valueVectorA, *valueVectorB, *valueVectorC, *resultValueVector);
         validateStringResultValueVector(resultValueVector, expectedStr);
 
         setHasNoNullGuaranteeToFalse(valueVectorToSetHasNoNullGuarantee);
-        TernaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, int64_t, gf_string_t,
+        TernaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, int64_t, ku_string_t,
             operation::SubStr>(*valueVectorA, *valueVectorB, *valueVectorC, *resultValueVector);
         validateStringResultValueVector(resultValueVector, expectedStr);
     }
@@ -118,12 +118,12 @@ public:
         shared_ptr<ValueVector>& valueVectorA, shared_ptr<ValueVector>& valueVectorB,
         shared_ptr<ValueVector>& resultValueVector,
         shared_ptr<ValueVector>& valueVectorToSetHasNoNullGuarantee) {
-        BinaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, gf_string_t,
+        BinaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, ku_string_t,
             operation::Left>(*valueVectorA, *valueVectorB, *resultValueVector);
         validateStringResultValueVector(resultValueVector, expectedStr);
 
         setHasNoNullGuaranteeToFalse(valueVectorToSetHasNoNullGuarantee);
-        BinaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, gf_string_t,
+        BinaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, ku_string_t,
             operation::Left>(*valueVectorA, *valueVectorB, *resultValueVector);
         validateStringResultValueVector(resultValueVector, expectedStr);
     }
@@ -166,7 +166,7 @@ public:
 
 TEST_F(OperationExecutorTest, BinaryOperationExecutorAllFlat) {
     vector<string> expectedStr = {"Th"};
-    BinaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, gf_string_t,
+    BinaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, ku_string_t,
         operation::Left>(*flatValueVectorA, *flatValueVectorB, *flatResultValueVector);
     validateStringResultValueVector(flatResultValueVector, expectedStr);
 }
@@ -226,7 +226,7 @@ TEST_F(OperationExecutorTest, BinaryOperationExecutorUnFlatFlatWithNull) {
 
 TEST_F(OperationExecutorTest, TernaryOperationExecutorAllFlat) {
     vector<string> expectedStr = {"his is "};
-    TernaryOperationExecutor::executeStringAndList<gf_string_t, int64_t, int64_t, gf_string_t,
+    TernaryOperationExecutor::executeStringAndList<ku_string_t, int64_t, int64_t, ku_string_t,
         operation::SubStr>(
         *flatValueVectorA, *flatValueVectorB, *flatValueVectorC, *flatResultValueVector);
     validateStringResultValueVector(flatResultValueVector, expectedStr);

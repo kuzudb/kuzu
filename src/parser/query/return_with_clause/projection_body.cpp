@@ -1,6 +1,6 @@
 #include "include/projection_body.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool ProjectionBody::operator==(const ProjectionBody& other) const {
@@ -32,4 +32,4 @@ bool ProjectionBody::operator==(const ProjectionBody& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "operations/include/arithmetic_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 static DataTypeID resolveResultType(DataTypeID leftTypeID, DataTypeID rightTypeID) {
@@ -389,4 +389,4 @@ vector<unique_ptr<VectorOperationDefinition>> PiVectorOperation::getDefinitions(
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

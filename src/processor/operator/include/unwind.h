@@ -7,9 +7,9 @@
 #include "src/processor/operator/include/source_operator.h"
 #include "src/processor/result/include/result_set.h"
 
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class Unwind : public PhysicalOperator {
@@ -41,8 +41,8 @@ private:
     unique_ptr<BaseExpressionEvaluator> expressionEvaluator;
     shared_ptr<ValueVector> outValueVector;
     uint32_t startIndex;
-    gf_list_t inputList;
+    ku_list_t inputList;
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

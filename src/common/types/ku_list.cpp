@@ -1,16 +1,16 @@
-#include "include/gf_list.h"
+#include "include/ku_list.h"
 
 #include <cassert>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-void gf_list_t::set(const uint8_t* values, const DataType& dataType) const {
+void ku_list_t::set(const uint8_t* values, const DataType& dataType) const {
     memcpy(reinterpret_cast<uint8_t*>(overflowPtr), values,
         size * Types::getDataTypeSize(*dataType.childType));
 }
 
-void gf_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) {
+void ku_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) {
     this->size = parameters.size();
     auto numBytesOfListElement = Types::getDataTypeSize(childTypeId);
     for (auto i = 0u; i < parameters.size(); i++) {
@@ -20,4 +20,4 @@ void gf_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) 
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

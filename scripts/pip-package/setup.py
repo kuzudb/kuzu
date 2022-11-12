@@ -10,7 +10,7 @@ from setuptools.command.build_py import build_py as _build_py
 
 base_dir = os.path.dirname(__file__)
 
-with open(os.path.join(base_dir, 'graphflowdb-source', 'tools', 'python_api', 'requirements_dev.txt')) as f:
+with open(os.path.join(base_dir, 'kuzu-source', 'tools', 'python_api', 'requirements_dev.txt')) as f:
     requirements = f.read().splitlines()
 
 
@@ -47,13 +47,13 @@ class BazelBuild(build_ext):
         full_cmd = ['bazel', 'build', *args, '//tools/python_api:all']
         env_vars = os.environ.copy()
         env_vars['PYTHON_BIN_PATH'] = sys.executable
-        build_dir = os.path.join(ext.sourcedir, 'graphflowdb-source')
+        build_dir = os.path.join(ext.sourcedir, 'kuzu-source')
 
         subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
         self.announce("Done building native extension.", level=3)
         self.announce("Copying native extension...", level=3)
         shutil.copyfile(os.path.join(build_dir, 'bazel-bin', 'tools', 'python_api',
-                                     '_graphflowdb.so'), os.path.join(ext.sourcedir, ext.name, '_graphflowdb.so'))
+                                     '_kuzu.so'), os.path.join(ext.sourcedir, ext.name, '_kuzu.so'))
         self.announce("Done copying native extension.", level=3)
 
 
@@ -64,15 +64,15 @@ class BuildExtFirst(_build_py):
         return super().run()
 
 
-setup(name='graphflowdb',
+setup(name='kuzu',
       version=os.environ['PYTHON_PACKAGE_VERSION'] if 'PYTHON_PACKAGE_VERSION' in os.environ else '0.0.1',
       install_requires=requirements,
       ext_modules=[BazelExtension(
-          name="graphflowdb", sourcedir=base_dir)],
-      description='GraphflowDB Python API',
+          name="kuzu", sourcedir=base_dir)],
+      description='KuzuDB Python API',
       long_description=open(os.path.join(base_dir, "README.md"), 'r').read(),
       long_description_content_type="text/markdown",
-      packages=["graphflowdb"],
+      packages=["kuzu"],
       zip_safe=True,
       include_package_data=True,
       cmdclass={

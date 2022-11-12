@@ -5,7 +5,7 @@
 using namespace antlr4;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ParserErrorStrategy : public DefaultErrorStrategy {
@@ -15,4 +15,4 @@ protected:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

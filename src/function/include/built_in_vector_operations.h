@@ -2,7 +2,7 @@
 
 #include "vector_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class BuiltInVectorOperations {
@@ -56,4 +56,4 @@ private:
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemNodeCSVCopier::InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
@@ -32,7 +32,7 @@ uint64_t InMemNodeCSVCopier::copy() {
         populateColumnsAndCountUnstrPropertyListSizes<int64_t>();
     } break;
     case STRING: {
-        populateColumnsAndCountUnstrPropertyListSizes<gf_string_t>();
+        populateColumnsAndCountUnstrPropertyListSizes<ku_string_t>();
     } break;
     default: {
         throw CopyCSVException("Unsupported data type " +
@@ -129,7 +129,7 @@ void InMemNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilder<T>*
                                        " violates the uniqueness constraint for the ID property.");
             }
         } else {
-            auto element = (gf_string_t*)column->getElement(offset);
+            auto element = (ku_string_t*)column->getElement(offset);
             auto key = column->getInMemOverflowFile()->readString(element);
             if (!hashIndex->append(key.c_str(), offset)) {
                 throw CopyCSVException("ID value  " + key +
@@ -306,17 +306,17 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                auto gfStr =
+                auto kuStr =
                     column->getInMemOverflowFile()->copyString(strVal, overflowCursors[columnIdx]);
-                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfStr));
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuStr));
             }
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
                 auto listVal = reader.getList(*column->getDataType().childType);
-                auto gfList =
+                auto kuList =
                     column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
-                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfList));
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
             }
         } break;
         default:
@@ -411,4 +411,4 @@ void InMemNodeCSVCopier::saveToFile() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

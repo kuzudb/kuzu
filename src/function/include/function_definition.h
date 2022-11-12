@@ -2,9 +2,9 @@
 
 #include "src/common/include/expression_type.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct FunctionDefinition {
@@ -24,4 +24,4 @@ struct FunctionDefinition {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

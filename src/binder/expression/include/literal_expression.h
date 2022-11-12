@@ -4,7 +4,7 @@
 
 #include "src/common/include/type_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class LiteralExpression : public Expression {
@@ -38,4 +38,4 @@ public:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

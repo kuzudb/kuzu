@@ -6,9 +6,9 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/function/include/function_definition.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class AggregateFunction;
@@ -117,4 +117,4 @@ private:
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

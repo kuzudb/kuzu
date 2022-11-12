@@ -8,9 +8,9 @@
 #include "src/catalog/include/catalog_structs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundCopyCSV : public BoundStatement {
@@ -29,4 +29,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

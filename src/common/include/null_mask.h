@@ -6,7 +6,7 @@
 
 #include "src/common/include/configs.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 constexpr uint64_t NULL_BITMASKS_WITH_SINGLE_ONE[64] = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
@@ -132,4 +132,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

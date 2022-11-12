@@ -13,7 +13,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_unwind.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& boundStatement) {
@@ -265,7 +265,7 @@ void Enumerator::planSubqueryIfNecessary(
     }
 }
 
-void Enumerator::appendAccumulate(graphflow::planner::LogicalPlan& plan) {
+void Enumerator::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
     SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
@@ -532,4 +532,4 @@ vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlan
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

@@ -2,8 +2,8 @@
 
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
 
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 // Tests the core update functionality of DiskArray and InMemDiskArray. Specifically tests that
 // updates to DiskArrays happen transactionally. The tests use ListHeaders, which consists of a

@@ -2,7 +2,7 @@
 
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
@@ -150,4 +150,4 @@ void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

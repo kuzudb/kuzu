@@ -7,10 +7,10 @@
 #include "src/catalog/include/catalog.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
 class Enumerator;
 
@@ -48,4 +48,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

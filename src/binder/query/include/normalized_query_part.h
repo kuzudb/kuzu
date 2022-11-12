@@ -5,7 +5,7 @@
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class NormalizedQueryPart {
@@ -58,4 +58,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

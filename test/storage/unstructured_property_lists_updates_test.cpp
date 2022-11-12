@@ -2,8 +2,8 @@
 
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
 
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 // Note: ID and nodeOffsetForPropKeys in this test are equal for each node, so we use nodeID and
 // nodeOffsetForPropKeys interchangeably.

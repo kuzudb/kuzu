@@ -6,7 +6,7 @@
 #include "src/common/types/include/value.h"
 #include "src/function/string/include/vector_string_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 scalar_exec_func VectorCastOperations::bindImplicitCastToBool(const expression_vector& children) {
@@ -42,7 +42,7 @@ scalar_exec_func VectorCastOperations::bindImplicitCastToString(const expression
     auto child = children[0];
     switch (child->dataType.typeID) {
     case UNSTRUCTURED: {
-        return UnaryCastExecFunction<Value, gf_string_t, operation::CastToString>;
+        return UnaryCastExecFunction<Value, ku_string_t, operation::CastToString>;
     }
     default:
         throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
@@ -96,7 +96,7 @@ scalar_exec_func VectorCastOperations::bindImplicitCastToUnstructured(
             operation::CastToUnstructured>;
     }
     case STRING: {
-        return VectorStringOperations::UnaryStringExecFunction<gf_string_t, Value,
+        return VectorStringOperations::UnaryStringExecFunction<ku_string_t, Value,
             operation::CastToUnstructured>;
     }
     default:
@@ -110,7 +110,7 @@ vector<unique_ptr<VectorOperationDefinition>> CastToDateVectorOperation::getDefi
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME, vector<DataTypeID>{STRING},
-            DATE, UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>));
+            DATE, UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>));
     return result;
 }
 
@@ -118,7 +118,7 @@ vector<unique_ptr<VectorOperationDefinition>> CastToTimestampVectorOperation::ge
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
         vector<DataTypeID>{STRING}, TIMESTAMP,
-        UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>));
+        UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;
 }
 
@@ -126,7 +126,7 @@ vector<unique_ptr<VectorOperationDefinition>> CastToIntervalVectorOperation::get
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
         vector<DataTypeID>{STRING}, INTERVAL,
-        UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>));
+        UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>));
     return result;
 }
 
@@ -134,33 +134,33 @@ vector<unique_ptr<VectorOperationDefinition>> CastToStringVectorOperation::getDe
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{BOOL},
-            STRING, UnaryCastExecFunction<bool, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{INT64},
-            STRING, UnaryCastExecFunction<int64_t, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<int64_t, ku_string_t, operation::CastToString>));
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{DOUBLE},
-            STRING, UnaryCastExecFunction<double_t, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<double_t, ku_string_t, operation::CastToString>));
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{DATE},
-            STRING, UnaryCastExecFunction<date_t, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<date_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         vector<DataTypeID>{TIMESTAMP}, STRING,
-        UnaryCastExecFunction<timestamp_t, gf_string_t, operation::CastToString>));
+        UnaryCastExecFunction<timestamp_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         vector<DataTypeID>{INTERVAL}, STRING,
-        UnaryCastExecFunction<interval_t, gf_string_t, operation::CastToString>));
+        UnaryCastExecFunction<interval_t, ku_string_t, operation::CastToString>));
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{STRING},
-            STRING, UnaryCastExecFunction<gf_string_t, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<ku_string_t, ku_string_t, operation::CastToString>));
     result.push_back(
         make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME, vector<DataTypeID>{LIST},
-            STRING, UnaryCastExecFunction<gf_list_t, gf_string_t, operation::CastToString>));
+            STRING, UnaryCastExecFunction<ku_list_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED}, STRING,
-        UnaryCastExecFunction<Value, gf_string_t, operation::CastToString>));
+        UnaryCastExecFunction<Value, ku_string_t, operation::CastToString>));
     return result;
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

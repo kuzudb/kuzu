@@ -6,7 +6,7 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 static_assert(sizeof(dtime_t) == sizeof(int64_t), "dtime_t was padded");
@@ -142,4 +142,4 @@ void Time::Convert(dtime_t dtime, int32_t& hour, int32_t& min, int32_t& sec, int
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

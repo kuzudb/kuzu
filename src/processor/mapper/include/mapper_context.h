@@ -2,7 +2,7 @@
 
 #include "src/processor/result/include/result_set_descriptor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class MapperContext {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

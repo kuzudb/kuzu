@@ -3,9 +3,9 @@
 
 #include "src/function/comparison/include/vector_comparison_operations.h"
 
-using namespace graphflow::function;
-using namespace graphflow::common;
-using namespace graphflow::testing;
+using namespace kuzu::function;
+using namespace kuzu::common;
+using namespace kuzu::testing;
 using namespace std;
 
 // Creates two vectors: vector1: [0, 1, ..., 100] and vector2: [90, 89, ...., -8, -9].
@@ -213,11 +213,11 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 
     auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(0, lVector);
-    auto lData = ((gf_string_t*)lVector->values);
+    auto lData = ((ku_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(1, rVector);
-    auto rData = ((gf_string_t*)rVector->values);
+    auto rData = ((ku_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, memoryManager.get());
     dataChunk->insert(2, result);
@@ -226,56 +226,56 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     string value = "abcdefgh";
     lData[0].len = 8;
     rData[0].len = 8;
-    memcpy(lData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
-    memcpy(rData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
+    memcpy(lData[0].prefix, value.data(), ku_string_t::PREFIX_LENGTH);
+    memcpy(rData[0].prefix, value.data(), ku_string_t::PREFIX_LENGTH);
     memcpy(
-        lData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
+        lData[0].data, value.data() + ku_string_t::PREFIX_LENGTH, 8 - ku_string_t::PREFIX_LENGTH);
     memcpy(
-        rData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
+        rData[0].data, value.data() + ku_string_t::PREFIX_LENGTH, 8 - ku_string_t::PREFIX_LENGTH);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::Equals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::Equals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
     rData[0].data[3] = 'i';
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::Equals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::Equals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::NotEquals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::NotEquals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::LessThan,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::LessThan,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::LessThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThan, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
     rData[0].data[3] = 'a';
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::LessThan,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::LessThan,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::LessThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThan, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 }
@@ -291,11 +291,11 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
 
     auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(0, lVector);
-    auto lData = ((gf_string_t*)lVector->values);
+    auto lData = ((ku_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, memoryManager.get());
     dataChunk->insert(1, rVector);
-    auto rData = ((gf_string_t*)rVector->values);
+    auto rData = ((ku_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, memoryManager.get());
     dataChunk->insert(2, result);
@@ -304,8 +304,8 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     string value = "abcdefghijklmnopqrstuvwxy"; // 25.
     lData[0].len = 25;
     rData[0].len = 25;
-    memcpy(lData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
-    memcpy(rData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
+    memcpy(lData[0].prefix, value.data(), ku_string_t::PREFIX_LENGTH);
+    memcpy(rData[0].prefix, value.data(), ku_string_t::PREFIX_LENGTH);
     auto overflowLen = 25;
     char lOverflow[overflowLen];
     memcpy(lOverflow, value.data(), overflowLen);
@@ -314,49 +314,49 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     memcpy(rOverflow, value.data(), overflowLen);
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::Equals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::Equals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
     rOverflow[overflowLen - 1] = 'z';
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::Equals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::Equals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::NotEquals,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::NotEquals,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::LessThan,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::LessThan,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::LessThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThan, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
     rOverflow[overflowLen - 1] = 'a';
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t, operation::LessThan,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t, operation::LessThan,
         BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::LessThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThan, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, uint8_t,
+    BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, uint8_t,
         operation::GreaterThanEquals, BinaryOperationWrapper>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 }

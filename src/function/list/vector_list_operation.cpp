@@ -1,6 +1,6 @@
 #include "include/vector_list_operations.h"
 
-#include "src/common/types/include/gf_list.h"
+#include "src/common/types/include/ku_list.h"
 #include "src/function/list/operations/include/list_append_operation.h"
 #include "src/function/list/operations/include/list_concat_operation.h"
 #include "src/function/list/operations/include/list_contains.h"
@@ -10,7 +10,7 @@
 #include "src/function/list/operations/include/list_prepend_operation.h"
 #include "src/function/list/operations/include/list_slice_operation.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 static string getListFunctionIncompatibleChildrenTypeErrorMsg(
@@ -35,20 +35,20 @@ void VectorListOperations::ListCreation(
     auto elements = make_unique<uint8_t[]>(parameters.size() * numBytesOfListElement);
     if (result.state->isFlat()) {
         auto pos = result.state->getPositionOfCurrIdx();
-        auto& gfList = ((gf_list_t*)result.values)[pos];
+        auto& kuList = ((ku_list_t*)result.values)[pos];
         for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
             assert(parameters[paramIdx]->state->isFlat());
             memcpy(elements.get() + paramIdx * numBytesOfListElement,
                 parameters[paramIdx]->values + pos * numBytesOfListElement, numBytesOfListElement);
         }
-        gf_list_t tmpList(parameters.size(), (uint64_t)elements.get());
+        ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
-            tmpList, gfList, result.dataType, result.getOverflowBuffer());
+            tmpList, kuList, result.dataType, result.getOverflowBuffer());
     } else {
         for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
              ++selectedPos) {
             auto pos = result.state->selVector->selectedPositions[selectedPos];
-            auto& gfList = ((gf_list_t*)result.values)[pos];
+            auto& kuList = ((ku_list_t*)result.values)[pos];
             for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
                 auto parameterPos = parameters[paramIdx]->state->isFlat() ?
                                         parameters[paramIdx]->state->getPositionOfCurrIdx() :
@@ -57,9 +57,9 @@ void VectorListOperations::ListCreation(
                     parameters[paramIdx]->values + parameterPos * numBytesOfListElement,
                     numBytesOfListElement);
             }
-            gf_list_t tmpList(parameters.size(), (uint64_t)elements.get());
+            ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());
             InMemOverflowBufferUtils::copyListRecursiveIfNested(
-                tmpList, gfList, result.dataType, result.getOverflowBuffer());
+                tmpList, kuList, result.dataType, result.getOverflowBuffer());
         }
     }
 }
@@ -86,7 +86,7 @@ vector<unique_ptr<VectorOperationDefinition>> ListCreationVectorOperation::getDe
 
 vector<unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    auto execFunc = UnaryExecFunction<gf_list_t, int64_t, operation::ListLen>;
+    auto execFunc = UnaryExecFunction<ku_list_t, int64_t, operation::ListLen>;
     result.push_back(make_unique<VectorOperationDefinition>(
         LIST_LEN_FUNC_NAME, vector<DataTypeID>{LIST}, INT64, execFunc, true /* isVarlength*/));
     return result;
@@ -99,35 +99,35 @@ void ListExtractVectorOperation::listExtractBindFunc(const vector<DataType>& arg
     switch (definition->returnTypeID) {
     case BOOL: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, uint8_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, uint8_t, operation::ListExtract>;
     } break;
     case INT64: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, int64_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, int64_t, operation::ListExtract>;
     } break;
     case DOUBLE: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, double_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, double_t, operation::ListExtract>;
     } break;
     case DATE: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, date_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, date_t, operation::ListExtract>;
     } break;
     case TIMESTAMP: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, timestamp_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, timestamp_t, operation::ListExtract>;
     } break;
     case INTERVAL: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, interval_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, interval_t, operation::ListExtract>;
     } break;
     case STRING: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, gf_string_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, ku_string_t, operation::ListExtract>;
     } break;
     case LIST: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, gf_list_t, operation::ListExtract>;
+            BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListExtract>;
     } break;
     default: {
         assert(false);
@@ -145,14 +145,14 @@ vector<unique_ptr<VectorOperationDefinition>> ListExtractVectorOperation::getDef
         false /* isVarlength*/));
     result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64}, STRING,
-        BinaryExecFunction<gf_string_t, int64_t, gf_string_t, operation::ListExtract>,
+        BinaryExecFunction<ku_string_t, int64_t, ku_string_t, operation::ListExtract>,
         false /* isVarlength */));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> ListConcatVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    auto execFunc = BinaryListExecFunction<gf_list_t, gf_list_t, gf_list_t, operation::ListConcat>;
+    auto execFunc = BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListConcat>;
     auto bindFunc = [](const vector<DataType>& argumentTypes, VectorOperationDefinition* definition,
                         DataType& actualReturnType) {
         if (argumentTypes[0] != argumentTypes[1]) {
@@ -178,35 +178,35 @@ void ListAppendVectorOperation::listAppendBindFunc(const vector<DataType>& argum
     switch (argumentTypes[1].typeID) {
     case INT64: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, int64_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListAppend>;
     } break;
     case DOUBLE: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, double_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, double_t, ku_list_t, operation::ListAppend>;
     } break;
     case BOOL: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, uint8_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, uint8_t, ku_list_t, operation::ListAppend>;
     } break;
     case STRING: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, gf_string_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, ku_string_t, ku_list_t, operation::ListAppend>;
     } break;
     case DATE: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, date_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, date_t, ku_list_t, operation::ListAppend>;
     } break;
     case TIMESTAMP: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, timestamp_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, timestamp_t, ku_list_t, operation::ListAppend>;
     } break;
     case INTERVAL: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, interval_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, interval_t, ku_list_t, operation::ListAppend>;
     } break;
     case LIST: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, gf_list_t, gf_list_t, operation::ListAppend>;
+            BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListAppend>;
     } break;
     default: {
         assert(false);
@@ -233,35 +233,35 @@ void ListPrependVectorOperation::listPrependBindFunc(const vector<DataType>& arg
     switch (argumentTypes[0].typeID) {
     case INT64: {
         definition->execFunc =
-            BinaryListExecFunction<int64_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<int64_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case DOUBLE: {
         definition->execFunc =
-            BinaryListExecFunction<double_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<double_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case BOOL: {
         definition->execFunc =
-            BinaryListExecFunction<uint8_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<uint8_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case STRING: {
         definition->execFunc =
-            BinaryListExecFunction<gf_string_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<ku_string_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case DATE: {
         definition->execFunc =
-            BinaryListExecFunction<date_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<date_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case TIMESTAMP: {
         definition->execFunc =
-            BinaryListExecFunction<timestamp_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<timestamp_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case INTERVAL: {
         definition->execFunc =
-            BinaryListExecFunction<interval_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<interval_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case LIST: {
         definition->execFunc =
-            BinaryListExecFunction<gf_list_t, gf_list_t, gf_list_t, operation::ListPrepend>;
+            BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     default: {
         assert(false);
@@ -296,11 +296,11 @@ vector<unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefin
     };
     result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         vector<DataTypeID>{LIST, INT64, INT64}, LIST,
-        TernaryListExecFunction<gf_list_t, int64_t, int64_t, gf_list_t, operation::ListSlice>,
+        TernaryListExecFunction<ku_list_t, int64_t, int64_t, ku_list_t, operation::ListSlice>,
         nullptr, bindFunc, false /* isVarlength*/));
     result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, INT64}, STRING,
-        TernaryListExecFunction<gf_string_t, int64_t, int64_t, gf_string_t, operation::ListSlice>,
+        TernaryListExecFunction<ku_string_t, int64_t, int64_t, ku_string_t, operation::ListSlice>,
         false /* isVarlength */));
     result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED, INT64, INT64}, UNSTRUCTURED,
@@ -310,4 +310,4 @@ vector<unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefin
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -2,9 +2,9 @@
 
 #include "pybind_include.h"
 
-#include "src/main/include/graphflowdb.h"
+#include "src/main/include/kuzu.h"
 
-using namespace graphflow::main;
+using namespace kuzu::main;
 
 class PyDatabase {
     friend class PyConnection;

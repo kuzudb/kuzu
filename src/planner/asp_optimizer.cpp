@@ -6,7 +6,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNodes, bool isLeftAcc,
@@ -46,4 +46,4 @@ void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, Logi
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

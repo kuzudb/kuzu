@@ -3,9 +3,9 @@
 #include "src/binder/expression/include/expression.h"
 #include "src/common/include/clause_type.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundUpdatingClause {
@@ -25,4 +25,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

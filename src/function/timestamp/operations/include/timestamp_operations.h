@@ -3,9 +3,9 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/date_t.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -29,4 +29,4 @@ struct ToTimestamp {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

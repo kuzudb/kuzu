@@ -1,6 +1,6 @@
 #include "include/built_in_aggregate_functions.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 AggregateFunctionDefinition* BuiltInAggregateFunctions::matchFunction(
@@ -140,4 +140,4 @@ void BuiltInAggregateFunctions::registerMax() {
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

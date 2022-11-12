@@ -2,7 +2,7 @@
 
 #include "src/binder/bound_ddl/include/bound_create_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundCreateNodeClause : public BoundCreateTable {
@@ -20,4 +20,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

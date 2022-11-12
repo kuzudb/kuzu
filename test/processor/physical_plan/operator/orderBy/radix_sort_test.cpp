@@ -12,7 +12,7 @@
 #include "src/processor/operator/order_by/include/radix_sort.h"
 
 using ::testing::Test;
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 using namespace std;
 
 class RadixSortTest : public Test {
@@ -59,8 +59,8 @@ public:
     void singleOrderByColTest(const vector<T>& sortingData, const vector<bool>& nullMasks,
         const vector<uint64_t>& expectedBlockOffsetOrder, const DataTypeID dataTypeID,
         const bool isAsc, bool hasPayLoadCol) {
-        GF_ASSERT(sortingData.size() == nullMasks.size());
-        GF_ASSERT(sortingData.size() == expectedBlockOffsetOrder.size());
+        KU_ASSERT(sortingData.size() == nullMasks.size());
+        KU_ASSERT(sortingData.size() == expectedBlockOffsetOrder.size());
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
@@ -136,7 +136,7 @@ public:
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             tableSchema->appendColumn(make_unique<ColumnSchema>(
-                false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
+                false /* isUnflat */, 0 /* dataChunkPos */, sizeof(ku_string_t)));
             stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
                 tableSchema->getColOffset(stringAndUnstructuredKeyColInfo.size()),
                 stringAndUnstructuredKeyColInfo.size() *

@@ -1,6 +1,6 @@
 #include "include/intersect_hash_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
@@ -33,4 +33,4 @@ void IntersectHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsTo
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

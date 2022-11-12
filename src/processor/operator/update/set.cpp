@@ -1,6 +1,6 @@
 #include "include/set.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> BaseSetNodeProperty::init(ExecutionContext* context) {
@@ -66,4 +66,4 @@ unique_ptr<PhysicalOperator> SetNodeUnstructuredProperty::clone() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

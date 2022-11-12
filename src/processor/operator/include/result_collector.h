@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/sink.h"
 #include "src/processor/result/include/factorized_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct FTableScanMorsel {
@@ -79,4 +79,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

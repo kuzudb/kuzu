@@ -3,7 +3,7 @@
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/storage/storage_structure/include/storage_structure_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
@@ -151,12 +151,12 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
         auto stringToWriteTo =
-            ((gf_string_t*)(updatedPageInfoAndWALPageFrame.frame +
+            ((ku_string_t*)(updatedPageInfoAndWALPageFrame.frame +
                             mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
-        auto stringToWriteFrom = ((gf_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        auto stringToWriteFrom = ((ku_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
         // If the string we write is a long string, it's overflowPtr is currently pointing to
         // the overflow buffer of vectorToWriteFrom. We need to move it to storage.
-        if (!gf_string_t::isShortString(stringToWriteFrom.len)) {
+        if (!ku_string_t::isShortString(stringToWriteFrom.len)) {
             diskOverflowFile.writeStringOverflowAndUpdateOverflowPtr(
                 stringToWriteFrom, *stringToWriteTo);
         }
@@ -167,11 +167,11 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
 
 Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
-    gf_string_t gfString;
+    ku_string_t kuString;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    memcpy(&gfString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_string_t));
+    memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_string_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(diskOverflowFile.readString(TransactionType::READ_ONLY, gfString));
+    return Literal(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
@@ -180,12 +180,12 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        auto gfListToWriteTo =
-            ((gf_list_t*)(updatedPageInfoAndWALPageFrame.frame +
+        auto kuListToWriteTo =
+            ((ku_list_t*)(updatedPageInfoAndWALPageFrame.frame +
                           mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
-        auto gfListToWriteFrom = ((gf_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        auto kuListToWriteFrom = ((ku_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
         diskOverflowFile.writeListOverflowAndUpdateOverflowPtr(
-            gfListToWriteFrom, *gfListToWriteTo, vectorToWriteFrom->dataType);
+            kuListToWriteFrom, *kuListToWriteTo, vectorToWriteFrom->dataType);
     }
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
@@ -193,13 +193,13 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
 
 Literal ListPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
-    gf_list_t gfList;
+    ku_list_t kuList;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(gf_list_t));
+    memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return Literal(
-        diskOverflowFile.readList(TransactionType::READ_ONLY, gfList, dataType), dataType);
+        diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType), dataType);
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

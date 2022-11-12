@@ -2,7 +2,7 @@
 
 #include "plan_printer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 struct PreparedSummary {
@@ -39,4 +39,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

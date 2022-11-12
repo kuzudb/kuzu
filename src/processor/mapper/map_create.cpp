@@ -4,7 +4,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_create.h"
 #include "src/processor/operator/update/include/create.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
@@ -67,4 +67,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

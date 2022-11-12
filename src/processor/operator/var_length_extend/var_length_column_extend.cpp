@@ -2,7 +2,7 @@
 
 #include "src/common/types/include/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void ColumnExtendDFSLevelInfo::reset() {
@@ -78,4 +78,4 @@ bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

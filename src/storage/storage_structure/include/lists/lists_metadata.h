@@ -4,19 +4,19 @@
 #include "src/storage/storage_structure/include/storage_structure.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 class CopyCSVEmptyListsTest;
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class BaseListsMetadata {
@@ -41,7 +41,7 @@ protected:
 };
 
 class ListsMetadata : public BaseListsMetadata {
-    friend class graphflow::testing::CopyCSVEmptyListsTest;
+    friend class kuzu::testing::CopyCSVEmptyListsTest;
     friend class ListsUpdateIterator;
 
 public:
@@ -157,4 +157,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

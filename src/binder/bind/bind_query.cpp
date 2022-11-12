@@ -1,6 +1,6 @@
 #include "src/binder/include/binder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
@@ -55,4 +55,4 @@ unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

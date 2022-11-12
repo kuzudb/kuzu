@@ -1,6 +1,6 @@
 #include "include/logical_projection.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 string LogicalProjection::getExpressionsForPrinting() const {
@@ -12,4 +12,4 @@ string LogicalProjection::getExpressionsForPrinting() const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

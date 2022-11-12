@@ -1,6 +1,6 @@
 #include "include/result_set_descriptor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
@@ -31,4 +31,4 @@ DataPos ResultSetDescriptor::getDataPos(const string& name) const {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

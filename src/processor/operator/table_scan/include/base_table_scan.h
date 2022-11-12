@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/result_collector.h"
 #include "src/processor/operator/include/source_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseTableScan : public PhysicalOperator, public SourceOperator {
@@ -60,4 +60,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

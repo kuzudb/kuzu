@@ -12,7 +12,7 @@ namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 struct CSVReaderConfig {
@@ -96,4 +96,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

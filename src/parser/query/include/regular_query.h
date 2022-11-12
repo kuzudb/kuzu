@@ -4,7 +4,7 @@
 
 #include "src/parser/include/statement.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class RegularQuery : public Statement {
@@ -44,4 +44,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -6,7 +6,7 @@
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/processor/mapper/include/plan_mapper.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 unique_ptr<QueryResult> JOConnection::query(const string& query, const string& encodedJoin) {
@@ -46,4 +46,4 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

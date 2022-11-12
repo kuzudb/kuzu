@@ -1,6 +1,6 @@
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void UnstrPropListWrapper::increaseCapacityIfNeeded(uint64_t requiredCapacity) {
@@ -51,4 +51,4 @@ void UnstrPropListIterator::skipValue() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -7,10 +7,10 @@
 #include "src/planner/logical_plan/logical_operator/include/schema.h"
 #include "src/processor/include/data_pos.h"
 
-using namespace graphflow::planner;
+using namespace kuzu::planner;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class DataChunkDescriptor {
@@ -65,4 +65,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

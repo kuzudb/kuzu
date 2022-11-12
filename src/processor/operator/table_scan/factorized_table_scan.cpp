@@ -1,6 +1,6 @@
 #include "include/factorized_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> FactorizedTableScan::init(ExecutionContext* context) {
@@ -15,4 +15,4 @@ shared_ptr<ResultSet> FactorizedTableScan::init(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

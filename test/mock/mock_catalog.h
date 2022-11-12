@@ -35,7 +35,7 @@ using ::testing::ReturnRef;
 using ::testing::StrEq;
 using ::testing::Throw;
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
 class MockCatalogContent : public CatalogContent {
 

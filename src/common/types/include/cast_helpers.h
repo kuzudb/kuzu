@@ -4,7 +4,7 @@
 
 #include "interval_t.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 // This is copied from third_party/fmt/include/fmt/format.h and format-inl.h.
@@ -290,4 +290,4 @@ struct IntervalToStringCast {
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

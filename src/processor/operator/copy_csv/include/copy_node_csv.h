@@ -3,7 +3,7 @@
 #include "src/processor/operator/copy_csv/include/copy_csv.h"
 #include "src/storage/store/include/nodes_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CopyNodeCSV : public CopyCSV {
@@ -28,4 +28,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

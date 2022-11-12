@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class ScanList : public PhysicalOperator {
@@ -42,4 +42,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

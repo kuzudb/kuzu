@@ -7,7 +7,7 @@
 #include "src/parser/expression/include/parsed_expression.h"
 #include "src/parser/include/statement.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 using namespace std;
@@ -32,4 +32,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

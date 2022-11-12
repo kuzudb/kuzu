@@ -14,7 +14,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
@@ -778,4 +778,4 @@ expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

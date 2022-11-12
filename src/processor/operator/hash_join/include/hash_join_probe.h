@@ -6,7 +6,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/processor/result/include/result_set.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct ProbeState {
@@ -103,4 +103,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

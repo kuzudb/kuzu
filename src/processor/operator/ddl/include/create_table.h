@@ -2,7 +2,7 @@
 
 #include "ddl.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CreateTable : public DDL {
@@ -21,4 +21,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

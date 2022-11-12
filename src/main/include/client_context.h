@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 // Contain client side configuration.
@@ -20,4 +20,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

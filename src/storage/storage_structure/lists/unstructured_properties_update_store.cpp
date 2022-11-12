@@ -1,8 +1,8 @@
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 bool UnstructuredPropertiesUpdateStore::hasUpdatedList(node_offset_t nodeOffset) {
@@ -75,12 +75,12 @@ void UnstructuredPropertiesUpdateStore::setValue(
     memcpy(updatedListData + offsetInUpdatedList, reinterpret_cast<uint8_t*>(&value->val),
         dataTypeSize);
     if (STRING == value->dataType.typeID) {
-        if (!gf_string_t::isShortString(value->val.strVal.len)) {
+        if (!ku_string_t::isShortString(value->val.strVal.len)) {
             // If the string we write is a long string, its overflowPtr is currently
             // pointing to the overflow buffer of vectorToWriteFrom. We need to move it
             // to storage.
-            gf_string_t* stringToWriteTo = (gf_string_t*)(updatedListData + offsetInUpdatedList);
-            gf_string_t* stringToWriteFrom = (gf_string_t*)&value->val;
+            ku_string_t* stringToWriteTo = (ku_string_t*)(updatedListData + offsetInUpdatedList);
+            ku_string_t* stringToWriteFrom = (ku_string_t*)&value->val;
             stringDiskOverflowFile.writeStringOverflowAndUpdateOverflowPtr(
                 *stringToWriteFrom, *stringToWriteTo);
         }
@@ -115,4 +115,4 @@ uint64_t UnstructuredPropertiesUpdateStore::getChunkIdxAndInsertUpdatedChunkIfNe
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

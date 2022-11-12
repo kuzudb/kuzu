@@ -6,10 +6,10 @@
 #include "src/processor/include/data_pos.h"
 #include "src/storage/storage_structure/include/lists/list_sync_state.h"
 
-using namespace graphflow::common;
-using namespace graphflow::storage;
+using namespace kuzu::common;
+using namespace kuzu::storage;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class ResultSet {
@@ -53,4 +53,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

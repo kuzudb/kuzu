@@ -3,7 +3,7 @@
 #include "src/function/include/vector_operations.h"
 #include "src/function/interval/operations/include/interval_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class VectorIntervalOperations : public VectorOperations {
@@ -75,4 +75,4 @@ struct ToMicrosecondsVectorOperation : public VectorIntervalOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

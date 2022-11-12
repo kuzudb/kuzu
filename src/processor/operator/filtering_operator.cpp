@@ -1,6 +1,6 @@
 #include "include/filtering_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void FilteringOperator::restoreSelVector(
@@ -32,4 +32,4 @@ void FilteringOperator::saveSelVector(SelectionVector* prevSelVector, SelectionV
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

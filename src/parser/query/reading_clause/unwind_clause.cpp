@@ -1,6 +1,6 @@
 #include "include/unwind_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool UnwindClause::equals(const ReadingClause& other) const {
@@ -16,4 +16,4 @@ bool UnwindClause::equals(const ReadingClause& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

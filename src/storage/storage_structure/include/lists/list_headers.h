@@ -7,13 +7,13 @@
 #include "src/storage/storage_structure/include/disk_array.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 /**
@@ -135,4 +135,4 @@ private:
     StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

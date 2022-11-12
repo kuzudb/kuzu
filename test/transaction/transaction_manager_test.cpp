@@ -4,9 +4,9 @@
 #include "src/common/include/exception.h"
 #include "src/transaction/include/transaction_manager.h"
 
-using namespace graphflow::common;
-using namespace graphflow::testing;
-using namespace graphflow::transaction;
+using namespace kuzu::common;
+using namespace kuzu::testing;
+using namespace kuzu::transaction;
 using ::testing::Test;
 
 class TransactionManagerTest : public Test {

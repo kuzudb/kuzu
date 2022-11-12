@@ -7,7 +7,7 @@
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 #include "src/storage/include/wal_replayer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager,
@@ -21,4 +21,4 @@ StorageManager::StorageManager(catalog::Catalog& catalog, BufferManager& bufferM
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

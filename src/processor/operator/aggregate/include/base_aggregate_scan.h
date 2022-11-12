@@ -4,9 +4,9 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/processor/operator/include/source_operator.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseAggregateScan : public PhysicalOperator, public SourceOperator {
@@ -48,4 +48,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

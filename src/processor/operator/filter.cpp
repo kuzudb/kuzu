@@ -1,6 +1,6 @@
 #include "include/filter.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> Filter::init(ExecutionContext* context) {
@@ -33,4 +33,4 @@ bool Filter::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

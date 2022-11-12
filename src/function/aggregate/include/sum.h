@@ -4,9 +4,9 @@
 
 #include "src/function/arithmetic/operations/include/arithmetic_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 template<typename T>
@@ -76,4 +76,4 @@ struct SumFunction {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

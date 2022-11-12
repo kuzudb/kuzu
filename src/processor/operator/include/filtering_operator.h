@@ -3,10 +3,10 @@
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/data_chunk/data_chunk_state.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class FilteringOperator {
@@ -45,4 +45,4 @@ private:
     vector<unique_ptr<SelectionVector>> prevSelVectors;
 };
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

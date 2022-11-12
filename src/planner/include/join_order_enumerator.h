@@ -6,9 +6,9 @@
 #include "src/planner/include/join_order_enumerator_context.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class Enumerator;
@@ -134,4 +134,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

@@ -2,9 +2,9 @@
 
 #include "src/common/include/clause_type.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ReadingClause {
@@ -24,4 +24,4 @@ private:
     ClauseType clauseType;
 };
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

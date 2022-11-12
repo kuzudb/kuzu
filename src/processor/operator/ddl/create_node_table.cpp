@@ -1,6 +1,6 @@
 #include "include/create_node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 string CreateNodeTable::execute() {
@@ -11,4 +11,4 @@ string CreateNodeTable::execute() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

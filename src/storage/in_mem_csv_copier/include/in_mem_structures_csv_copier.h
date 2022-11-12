@@ -6,10 +6,10 @@
 #include "src/storage/in_mem_storage_structure/include/in_mem_column.h"
 #include "src/storage/in_mem_storage_structure/include/in_mem_lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
 class InMemStructuresCSVCopier {
 protected:
@@ -63,4 +63,4 @@ protected:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

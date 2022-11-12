@@ -2,20 +2,20 @@
 
 #include "operations/include/date_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 vector<unique_ptr<VectorOperationDefinition>> DatePartVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         vector<DataTypeID>{STRING, DATE}, INT64,
-        BinaryExecFunction<gf_string_t, date_t, int64_t, operation::DatePart>));
+        BinaryExecFunction<ku_string_t, date_t, int64_t, operation::DatePart>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         vector<DataTypeID>{STRING, TIMESTAMP}, INT64,
-        BinaryExecFunction<gf_string_t, timestamp_t, int64_t, operation::DatePart>));
+        BinaryExecFunction<ku_string_t, timestamp_t, int64_t, operation::DatePart>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         vector<DataTypeID>{STRING, INTERVAL}, INT64,
-        BinaryExecFunction<gf_string_t, interval_t, int64_t, operation::DatePart>));
+        BinaryExecFunction<ku_string_t, interval_t, int64_t, operation::DatePart>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, INT64,
         BinaryExecFunction<Value, Value, int64_t, operation::DatePart>));
@@ -26,10 +26,10 @@ vector<unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefin
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
         vector<DataTypeID>{STRING, DATE}, DATE,
-        BinaryExecFunction<gf_string_t, date_t, date_t, operation::DateTrunc>));
+        BinaryExecFunction<ku_string_t, date_t, date_t, operation::DateTrunc>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
         vector<DataTypeID>{STRING, TIMESTAMP}, TIMESTAMP,
-        BinaryExecFunction<gf_string_t, timestamp_t, timestamp_t, operation::DateTrunc>));
+        BinaryExecFunction<ku_string_t, timestamp_t, timestamp_t, operation::DateTrunc>));
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
         BinaryExecFunction<Value, Value, Value, operation::DateTrunc>));
@@ -40,13 +40,13 @@ vector<unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::getDefinit
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
         make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{DATE}, STRING,
-            UnaryExecFunction<date_t, gf_string_t, operation::DayName>));
+            UnaryExecFunction<date_t, ku_string_t, operation::DayName>));
     result.push_back(
         make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
-            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::DayName>));
+            STRING, UnaryExecFunction<timestamp_t, ku_string_t, operation::DayName>));
     result.push_back(
         make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
-            STRING, UnaryExecFunction<Value, gf_string_t, operation::DayName>));
+            STRING, UnaryExecFunction<Value, ku_string_t, operation::DayName>));
     return result;
 }
 
@@ -103,15 +103,15 @@ vector<unique_ptr<VectorOperationDefinition>> MonthNameVectorOperation::getDefin
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
         make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{DATE},
-            STRING, UnaryExecFunction<date_t, gf_string_t, operation::MonthName>));
+            STRING, UnaryExecFunction<date_t, ku_string_t, operation::MonthName>));
     result.push_back(
         make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
-            STRING, UnaryExecFunction<timestamp_t, gf_string_t, operation::MonthName>));
+            STRING, UnaryExecFunction<timestamp_t, ku_string_t, operation::MonthName>));
     result.push_back(make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME,
         vector<DataTypeID>{UNSTRUCTURED}, STRING,
-        UnaryExecFunction<Value, gf_string_t, operation::MonthName>));
+        UnaryExecFunction<Value, ku_string_t, operation::MonthName>));
     return result;
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

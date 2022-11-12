@@ -5,7 +5,7 @@
 
 #include "statement.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 using namespace std;
@@ -17,4 +17,4 @@ public:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -5,7 +5,7 @@
 
 #include "src/storage/store/include/rels_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class NodeStatisticsAndDeletedIDs : public TableStatistics {
@@ -198,4 +198,4 @@ protected:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

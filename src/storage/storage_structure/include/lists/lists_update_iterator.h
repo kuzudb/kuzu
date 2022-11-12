@@ -2,7 +2,7 @@
 
 #include "unstructured_property_lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 /*
@@ -149,4 +149,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

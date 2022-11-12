@@ -2,7 +2,7 @@
 
 #include "node_pattern.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
@@ -28,7 +28,7 @@ public:
 
     inline ArrowDirection getDirection() const { return arrowDirection; }
 
-    bool equals(const graphflow::parser::NodePattern& other) const override {
+    bool equals(const kuzu::parser::NodePattern& other) const override {
         auto& otherRel = (RelPattern&)other;
         return NodePattern::equals(other) && lowerBound == otherRel.lowerBound &&
                upperBound == otherRel.upperBound && arrowDirection == otherRel.arrowDirection;
@@ -41,4 +41,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

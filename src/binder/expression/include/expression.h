@@ -8,10 +8,10 @@
 #include "src/common/include/expression_type.h"
 #include "src/common/types/include/types_include.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class Expression;
@@ -113,4 +113,4 @@ public:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

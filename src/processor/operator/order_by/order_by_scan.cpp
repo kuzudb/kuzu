@@ -1,6 +1,6 @@
 #include "include/order_by_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
@@ -107,4 +107,4 @@ void OrderByScan::initMergedKeyBlockScanStateIfNecessary() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

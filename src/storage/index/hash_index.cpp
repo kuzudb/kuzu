@@ -4,9 +4,9 @@
 
 #include "src/common/include/exception.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 template<typename T>
@@ -332,7 +332,7 @@ void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
             auto key = slot.entries[entryPos].data;
             hash_t hash;
             if (header.keyDataTypeID == STRING) {
-                auto str = diskOverflowFile->readString(TransactionType::WRITE, *(gf_string_t*)key);
+                auto str = diskOverflowFile->readString(TransactionType::WRITE, *(ku_string_t*)key);
                 hash = keyHashFunc((const uint8_t*)str.c_str());
             } else {
                 hash = keyHashFunc(key);
@@ -458,7 +458,7 @@ void HashIndex<T>::rollbackInMemoryIfNecessary() const {
 }
 
 template class HashIndex<int64_t>;
-template class HashIndex<gf_string_t>;
+template class HashIndex<ku_string_t>;
 
 bool PrimaryKeyIndex::lookup(
     Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
@@ -468,7 +468,7 @@ bool PrimaryKeyIndex::lookup(
         return hashIndexForInt64->lookupInternal(
             trx, reinterpret_cast<const uint8_t*>(&key), result);
     } else {
-        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
         return hashIndexForString->lookupInternal(
             trx, reinterpret_cast<const uint8_t*>(key.c_str()), result);
     }
@@ -480,7 +480,7 @@ void PrimaryKeyIndex::deleteKey(ValueVector* keyVector, uint64_t vectorPos) {
         auto key = ((int64_t*)keyVector->values)[vectorPos];
         hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
     } else {
-        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
         hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
     }
 }
@@ -491,11 +491,11 @@ bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, node_of
         auto key = ((int64_t*)keyVector->values)[vectorPos];
         return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
     } else {
-        auto key = ((gf_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
         return hashIndexForString->insertInternal(
             reinterpret_cast<const uint8_t*>(key.c_str()), value);
     }
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

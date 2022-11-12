@@ -11,13 +11,13 @@ cc_library(
         "include/linenoise.h",
     ],
     deps = [
-        "//src/main:graphflowdb",
+        "//src/main:kuzu",
         "@Taywee_args",
     ],
 )
 
 cc_binary(
-    name = "graphflowdb",
+    name = "kuzu",
     srcs = [
         "shell_runner.cpp",
     ],

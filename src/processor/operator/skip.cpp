@@ -1,6 +1,6 @@
 #include "include/skip.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 bool Skip::getNextTuples() {
@@ -49,4 +49,4 @@ bool Skip::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

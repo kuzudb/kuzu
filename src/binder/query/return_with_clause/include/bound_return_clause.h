@@ -2,7 +2,7 @@
 
 #include "bound_projection_body.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundReturnClause {
@@ -18,4 +18,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

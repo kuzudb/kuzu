@@ -7,7 +7,7 @@
 
 #include "src/common/include/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 DataType::DataType(const DataType& other) : typeID{other.typeID} {
@@ -157,11 +157,11 @@ const uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     case INTERVAL:
         return sizeof(interval_t);
     case STRING:
-        return sizeof(gf_string_t);
+        return sizeof(ku_string_t);
     case UNSTRUCTURED:
         return sizeof(Value);
     case LIST:
-        return sizeof(gf_list_t);
+        return sizeof(ku_list_t);
     default:
         throw Exception(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
@@ -177,4 +177,4 @@ string getRelDirectionAsString(RelDirection direction) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "src/function/hash/include/vector_hash_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
@@ -124,4 +124,4 @@ uint8_t* JoinHashTable::insertEntry(uint8_t* tuple) const {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -3,9 +3,9 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
 #include "src/processor/operator/table_scan/include/union_all_scan.h"
 
-using namespace graphflow::planner;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
@@ -44,4 +44,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

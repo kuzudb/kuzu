@@ -7,7 +7,7 @@
 #include "src/common/include/type_utils.h"
 
 // prompt for user input
-const char* PROMPT = "graphflowdb> ";
+const char* PROMPT = "kuzu> ";
 // file to read/write shell history
 const char* HISTORY_PATH = "history.txt";
 

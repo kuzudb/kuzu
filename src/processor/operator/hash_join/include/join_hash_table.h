@@ -5,10 +5,10 @@
 #include "src/processor/operator/include/base_hash_table.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function::operation;
+using namespace kuzu::common;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class JoinHashTable : public BaseHashTable {
@@ -57,4 +57,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

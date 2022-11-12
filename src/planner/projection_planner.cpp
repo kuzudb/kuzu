@@ -10,7 +10,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 void ProjectionPlanner::planProjectionBody(
@@ -300,4 +300,4 @@ expression_vector ProjectionPlanner::rewriteVariableAsAllPropertiesInScope(
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

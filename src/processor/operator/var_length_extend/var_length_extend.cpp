@@ -1,6 +1,6 @@
 #include "include/var_length_extend.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 VarLengthExtend::VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
@@ -23,4 +23,4 @@ shared_ptr<ResultSet> VarLengthExtend::init(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

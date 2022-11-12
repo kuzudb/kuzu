@@ -1,6 +1,6 @@
 #include "include/simple_aggregate_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 bool SimpleAggregateScan::getNextTuples() {
@@ -26,4 +26,4 @@ bool SimpleAggregateScan::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

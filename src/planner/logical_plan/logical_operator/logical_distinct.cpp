@@ -1,6 +1,6 @@
 #include "include/logical_distinct.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 string LogicalDistinct::getExpressionsForPrinting() const {
@@ -12,4 +12,4 @@ string LogicalDistinct::getExpressionsForPrinting() const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

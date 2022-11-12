@@ -8,7 +8,7 @@
 #include "src/common/include/ser_deser.h"
 #include "src/transaction/include/transaction.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using lock_t = unique_lock<mutex>;
@@ -112,4 +112,4 @@ protected:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -6,9 +6,9 @@
 #include "src/storage/in_mem_storage_structure/include/in_mem_column.h"
 #include "src/storage/in_mem_storage_structure/include/in_mem_lists.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class WALReplayerUtils {
@@ -84,4 +84,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

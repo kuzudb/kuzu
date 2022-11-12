@@ -4,7 +4,7 @@
 
 #include "src/binder/expression/include/rel_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundCreateNodeOrRel {
@@ -79,4 +79,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

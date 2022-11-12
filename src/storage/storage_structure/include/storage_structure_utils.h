@@ -11,7 +11,7 @@
 #include "src/storage/wal/include/wal.h"
 #include "src/transaction/include/transaction.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 struct WALPageIdxAndFrame {
@@ -81,4 +81,4 @@ private:
         WAL& wal);
 };
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

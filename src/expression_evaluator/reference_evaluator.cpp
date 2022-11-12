@@ -1,6 +1,6 @@
 #include "include/reference_evaluator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 inline static bool isTrue(ValueVector& vector, uint64_t pos) {
@@ -39,4 +39,4 @@ bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
 }
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class ProcessorTask : public Task {
@@ -23,4 +23,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -5,11 +5,11 @@
 #include "src/common/types/include/literal.h"
 #include "src/parser/expression/include/parsed_expression.h"
 
-using namespace graphflow::common;
-using namespace graphflow::parser;
-using namespace graphflow::catalog;
+using namespace kuzu::common;
+using namespace kuzu::parser;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class Binder;
@@ -99,4 +99,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

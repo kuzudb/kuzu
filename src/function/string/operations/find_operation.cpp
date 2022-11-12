@@ -2,9 +2,9 @@
 
 #include <cstring>
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -129,4 +129,4 @@ int64_t Find::find(
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

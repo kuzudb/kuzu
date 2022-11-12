@@ -3,9 +3,9 @@
 #include "src/storage/storage_structure/include/lists/lists_update_iterator.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists_utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void UnstructuredPropertyLists::readProperties(Transaction* transaction, ValueVector* nodeIDVector,
@@ -293,4 +293,4 @@ void UnstructuredPropertyLists::rollbackInMemoryIfNecessary() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

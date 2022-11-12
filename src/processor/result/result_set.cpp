@@ -1,6 +1,6 @@
 #include "include/result_set.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 uint64_t ResultSet::getNumTuplesWithoutMultiplicity(
@@ -15,4 +15,4 @@ uint64_t ResultSet::getNumTuplesWithoutMultiplicity(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

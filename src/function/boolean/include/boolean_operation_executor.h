@@ -3,7 +3,7 @@
 #include "src/function/boolean/operations/include/boolean_operations.h"
 #include "src/function/include/binary_operation_executor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 /**
@@ -325,4 +325,4 @@ struct UnaryBooleanOperationExecutor {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

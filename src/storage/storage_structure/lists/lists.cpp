@@ -2,9 +2,9 @@
 
 #include "src/storage/storage_structure/include/lists/lists_update_iterator.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
@@ -361,4 +361,4 @@ void AdjLists::readFromAdjAndPropertyListsUpdateStore(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

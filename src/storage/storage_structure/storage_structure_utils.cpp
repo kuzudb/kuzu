@@ -1,6 +1,6 @@
 #include "src/storage/storage_structure/include/storage_structure_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
@@ -78,4 +78,4 @@ void StorageStructureUtils::unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx
     fileHandle.releasePageLock(originalPageIdx);
 }
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

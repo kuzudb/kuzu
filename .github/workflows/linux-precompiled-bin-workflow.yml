@@ -23,11 +23,11 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: graphflowdb-${{ github.event.inputs.packageVersion }}-linux-x86_64
+          name: kuzu-${{ github.event.inputs.packageVersion }}-linux-x86_64
           path: |
-            ./scripts/pre-compiled-bins/graphflowdb
+            ./scripts/pre-compiled-bins/kuzu
             ./scripts/pre-compiled-bins/include
-            ./scripts/pre-compiled-bins/libgraphflowdb.so
+            ./scripts/pre-compiled-bins/libkuzu.so
 
       - name: cleanup
-        run: rm -rf ./scripts/pre-compiled-bins/graphflowdb ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libgraphflowdb.so
+        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libkuzu.so

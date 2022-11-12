@@ -4,10 +4,10 @@
 #include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/processor/include/physical_plan.h"
 
-using namespace graphflow::planner;
-using namespace graphflow::processor;
+using namespace kuzu::planner;
+using namespace kuzu::processor;
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 class OpProfileBox {
@@ -114,4 +114,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

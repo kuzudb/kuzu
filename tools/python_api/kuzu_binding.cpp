@@ -10,6 +10,6 @@ void bind(py::module& m) {
     m.doc() = "GrpahflowDB is an embedded graph database";
 }
 
-PYBIND11_MODULE(_graphflowdb, m) {
+PYBIND11_MODULE(_kuzu, m) {
     bind(m);
 }

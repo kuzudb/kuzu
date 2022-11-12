@@ -3,33 +3,33 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct PadOperation {
 public:
-    static inline void operation(gf_string_t& src, int64_t count, gf_string_t& characterToPad,
-        gf_string_t& result, ValueVector& resultValueVector,
-        void (*padOperation)(gf_string_t& result, gf_string_t& src, gf_string_t& characterToPad)) {
+    static inline void operation(ku_string_t& src, int64_t count, ku_string_t& characterToPad,
+        ku_string_t& result, ValueVector& resultValueVector,
+        void (*padOperation)(ku_string_t& result, ku_string_t& src, ku_string_t& characterToPad)) {
         assert(characterToPad.len == 1);
         result.len = count;
-        if (!gf_string_t::isShortString(result.len)) {
+        if (!ku_string_t::isShortString(result.len)) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 resultValueVector.getOverflowBuffer().allocateSpace(result.len));
         }
         padOperation(result, src, characterToPad);
-        if (!gf_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, result.getData(), gf_string_t::PREFIX_LENGTH);
+        if (!ku_string_t::isShortString(result.len)) {
+            memcpy(result.prefix, result.getData(), ku_string_t::PREFIX_LENGTH);
         }
     }
 };
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

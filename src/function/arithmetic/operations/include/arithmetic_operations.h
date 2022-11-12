@@ -7,9 +7,9 @@
 #include "src/common/types/include/value.h"
 #include "src/function/string/operations/include/concat_operation.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -649,4 +649,4 @@ inline void Round::operation(Value& left, Value& right, double_t& result) {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

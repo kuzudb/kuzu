@@ -1,6 +1,6 @@
 #include "include/unwind.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> Unwind::init(ExecutionContext* context) {
@@ -45,7 +45,7 @@ bool Unwind::getNextTuples() {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        inputList = ((gf_list_t*)(expressionEvaluator->resultVector->values))[pos];
+        inputList = ((ku_list_t*)(expressionEvaluator->resultVector->values))[pos];
         startIndex = 0;
         auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size);
         copyTuplesToOutVector(0, totalElementsCopy);
@@ -57,4 +57,4 @@ bool Unwind::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

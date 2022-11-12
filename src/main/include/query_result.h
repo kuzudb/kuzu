@@ -6,9 +6,9 @@
 #include "src/processor/result/include/factorized_table.h"
 #include "src/processor/result/include/flat_tuple.h"
 
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 struct QueryResultHeader {
@@ -86,4 +86,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

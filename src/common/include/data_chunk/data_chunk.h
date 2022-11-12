@@ -8,7 +8,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 // A DataChunk represents tuples as a set of value vectors and a selector array.
@@ -43,4 +43,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

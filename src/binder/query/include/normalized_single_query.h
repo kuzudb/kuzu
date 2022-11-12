@@ -2,7 +2,7 @@
 
 #include "normalized_query_part.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 /**
@@ -36,4 +36,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

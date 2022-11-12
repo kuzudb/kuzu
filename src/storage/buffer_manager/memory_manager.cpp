@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
@@ -32,4 +32,4 @@ void MemoryManager::freeBlock(page_idx_t pageIdx) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

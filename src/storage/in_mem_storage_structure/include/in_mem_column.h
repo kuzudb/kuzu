@@ -3,7 +3,7 @@
 #include "src/storage/include/node_id_compression_scheme.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class InMemColumn {
@@ -102,4 +102,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

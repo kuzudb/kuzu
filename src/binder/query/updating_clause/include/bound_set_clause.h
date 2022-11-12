@@ -2,7 +2,7 @@
 
 #include "bound_updating_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundSetClause : public BoundUpdatingClause {
@@ -38,4 +38,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/existential_subquery_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames() {
@@ -27,4 +27,4 @@ expression_vector ExistentialSubqueryExpression::getChildren() const {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

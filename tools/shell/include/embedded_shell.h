@@ -2,9 +2,9 @@
 
 #include "tools/shell/include/linenoise.h"
 
-#include "src/main/include/graphflowdb.h"
+#include "src/main/include/kuzu.h"
 
-using namespace graphflow::main;
+using namespace kuzu::main;
 
 /**
  * Embedded shell simulate a session that directly connects to the system.

@@ -5,7 +5,7 @@
 #include "src/binder/expression/include/expression.h"
 #include "src/binder/expression/include/rel_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 struct NodeAndPrimaryKey {
@@ -89,4 +89,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

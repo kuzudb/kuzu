@@ -1,6 +1,6 @@
 #include "include/hash_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void HashAggregateSharedState::appendAggregateHashTable(
@@ -96,4 +96,4 @@ unique_ptr<PhysicalOperator> HashAggregate::clone() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

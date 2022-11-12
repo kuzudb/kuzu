@@ -2,7 +2,7 @@
 
 #include "src/storage/index/include/hash_index_builder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
@@ -46,7 +46,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     } else {
-        auto pkIndex = make_unique<HashIndexBuilder<gf_string_t>>(
+        auto pkIndex = make_unique<HashIndexBuilder<ku_string_t>>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
             nodeTableSchema->getPrimaryKey().dataType);
@@ -205,4 +205,4 @@ void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSche
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

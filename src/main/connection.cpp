@@ -8,13 +8,13 @@
 #include "src/processor/mapper/include/plan_mapper.h"
 
 using namespace std;
-using namespace graphflow::parser;
-using namespace graphflow::binder;
-using namespace graphflow::planner;
-using namespace graphflow::processor;
-using namespace graphflow::transaction;
+using namespace kuzu::parser;
+using namespace kuzu::binder;
+using namespace kuzu::planner;
+using namespace kuzu::processor;
+using namespace kuzu::transaction;
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 Connection::Connection(Database* database) {
@@ -332,4 +332,4 @@ void Connection::commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTes
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

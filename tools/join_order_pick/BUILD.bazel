@@ -10,7 +10,7 @@ cc_library(
         "//tools/benchmark:__pkg__",
     ],
     deps = [
-        "//src/main:graphflowdb",
+        "//src/main:kuzu",
         "//src/planner/logical_plan:logical_plan_util",
     ],
 )

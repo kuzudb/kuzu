@@ -4,7 +4,7 @@
 #include "src/storage/include/storage_utils.h"
 #include "src/storage/include/wal_replayer_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal{wal} {
@@ -500,4 +500,4 @@ void WALReplayer::replay() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

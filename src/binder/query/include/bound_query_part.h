@@ -4,7 +4,7 @@
 #include "src/binder/query/return_with_clause/include/bound_with_clause.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 /**
@@ -46,4 +46,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

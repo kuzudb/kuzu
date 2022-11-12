@@ -1,6 +1,6 @@
 #include "include/logical_order_by.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 string LogicalOrderBy::getExpressionsForPrinting() const {
@@ -12,4 +12,4 @@ string LogicalOrderBy::getExpressionsForPrinting() const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

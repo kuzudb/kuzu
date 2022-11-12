@@ -3,9 +3,9 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 void ParserErrorListener::syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
@@ -32,4 +32,4 @@ string ParserErrorListener::formatUnderLineError(
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

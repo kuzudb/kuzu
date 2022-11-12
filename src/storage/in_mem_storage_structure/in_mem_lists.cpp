@@ -1,6 +1,6 @@
 #include "include/in_mem_lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
@@ -95,13 +95,13 @@ void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case STRING: {
-        auto gfString = overflowInMemFile->copyString((const char*)val, *overflowCursor);
-        val = (uint8_t*)(&gfString);
+        auto kuString = overflowInMemFile->copyString((const char*)val, *overflowCursor);
+        val = (uint8_t*)(&kuString);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     case LIST: {
-        auto gfList = overflowInMemFile->copyList(*(Literal*)val, *overflowCursor);
-        val = (uint8_t*)(&gfList);
+        auto kuList = overflowInMemFile->copyList(*(Literal*)val, *overflowCursor);
+        val = (uint8_t*)(&kuList);
         setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
     } break;
     default:
@@ -154,4 +154,4 @@ unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

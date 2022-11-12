@@ -8,7 +8,7 @@
 
 #include "src/common/include/file_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class SerDeser {
@@ -100,4 +100,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

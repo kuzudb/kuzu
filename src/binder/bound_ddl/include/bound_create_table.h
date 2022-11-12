@@ -3,9 +3,9 @@
 #include "src/binder/include/bound_statement.h"
 #include "src/catalog/include/catalog_structs.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundCreateTable : public BoundStatement {
@@ -26,4 +26,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

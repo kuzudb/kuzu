@@ -1,6 +1,6 @@
 #include "include/logical_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 string LogicalAggregate::getExpressionsForPrinting() const {
@@ -17,4 +17,4 @@ string LogicalAggregate::getExpressionsForPrinting() const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

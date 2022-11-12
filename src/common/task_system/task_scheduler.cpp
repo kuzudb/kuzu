@@ -4,9 +4,9 @@
 
 #include "src/common/include/configs.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
@@ -150,4 +150,4 @@ void TaskScheduler::runWorkerThread() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

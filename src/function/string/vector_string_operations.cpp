@@ -13,14 +13,14 @@
 #include "operations/include/starts_with_operation.h"
 #include "operations/include/substr_operation.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 vector<unique_ptr<VectorOperationDefinition>> ArrayExtractVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ARRAY_EXTRACT_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64}, STRING,
-        BinaryExecFunction<gf_string_t, int64_t, gf_string_t, operation::ArrayExtract>,
+        BinaryExecFunction<ku_string_t, int64_t, ku_string_t, operation::ArrayExtract>,
         false /* isVarLength */));
     return definitions;
 }
@@ -29,7 +29,7 @@ vector<unique_ptr<VectorOperationDefinition>> ConcatVectorOperation::getDefiniti
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(CONCAT_FUNC_NAME,
         vector<DataTypeID>{STRING, STRING}, STRING,
-        BinaryStringExecFunction<gf_string_t, gf_string_t, gf_string_t, operation::Concat>,
+        BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, operation::Concat>,
         false /* isVarLength */));
     return definitions;
 }
@@ -38,8 +38,8 @@ vector<unique_ptr<VectorOperationDefinition>> ContainsVectorOperation::getDefini
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(CONTAINS_FUNC_NAME,
         vector<DataTypeID>{STRING, STRING}, BOOL,
-        BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::Contains>,
-        BinarySelectFunction<gf_string_t, gf_string_t, operation::Contains>,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::Contains>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::Contains>,
         false /* isVarLength */));
     return definitions;
 }
@@ -48,8 +48,8 @@ vector<unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefini
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ENDS_WITH_FUNC_NAME,
         vector<DataTypeID>{STRING, STRING}, BOOL,
-        BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::EndsWith>,
-        BinarySelectFunction<gf_string_t, gf_string_t, operation::EndsWith>,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::EndsWith>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::EndsWith>,
         false /* isVarLength */));
     return definitions;
 }
@@ -58,7 +58,7 @@ vector<unique_ptr<VectorOperationDefinition>> LeftVectorOperation::getDefinition
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(
         make_unique<VectorOperationDefinition>(LEFT_FUNC_NAME, vector<DataTypeID>{STRING, INT64},
-            STRING, BinaryStringExecFunction<gf_string_t, int64_t, gf_string_t, operation::Left>,
+            STRING, BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, operation::Left>,
             false /* isVarLength */));
     return definitions;
 }
@@ -67,7 +67,7 @@ vector<unique_ptr<VectorOperationDefinition>> LengthVectorOperation::getDefiniti
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(
         make_unique<VectorOperationDefinition>(LENGTH_FUNC_NAME, vector<DataTypeID>{STRING}, INT64,
-            UnaryExecFunction<gf_string_t, int64_t, operation::Length>, false /* isVarLength */));
+            UnaryExecFunction<ku_string_t, int64_t, operation::Length>, false /* isVarLength */));
     return definitions;
 }
 
@@ -75,7 +75,7 @@ vector<unique_ptr<VectorOperationDefinition>> LpadVectorOperation::getDefinition
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(LPAD_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, STRING}, STRING,
-        TernaryStringExecFunction<gf_string_t, int64_t, gf_string_t, gf_string_t, operation::Lpad>,
+        TernaryStringExecFunction<ku_string_t, int64_t, ku_string_t, ku_string_t, operation::Lpad>,
         false /* isVarLength */));
     return definitions;
 }
@@ -84,7 +84,7 @@ vector<unique_ptr<VectorOperationDefinition>> RepeatVectorOperation::getDefiniti
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(
         make_unique<VectorOperationDefinition>(REPEAT_FUNC_NAME, vector<DataTypeID>{STRING, INT64},
-            STRING, BinaryStringExecFunction<gf_string_t, int64_t, gf_string_t, operation::Repeat>,
+            STRING, BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, operation::Repeat>,
             false /* isVarLength */));
     return definitions;
 }
@@ -93,7 +93,7 @@ vector<unique_ptr<VectorOperationDefinition>> RightVectorOperation::getDefinitio
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(
         make_unique<VectorOperationDefinition>(RIGHT_FUNC_NAME, vector<DataTypeID>{STRING, INT64},
-            STRING, BinaryStringExecFunction<gf_string_t, int64_t, gf_string_t, operation::Right>,
+            STRING, BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, operation::Right>,
             false /* isVarLength */));
     return definitions;
 }
@@ -102,7 +102,7 @@ vector<unique_ptr<VectorOperationDefinition>> RpadVectorOperation::getDefinition
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(RPAD_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, STRING}, STRING,
-        TernaryStringExecFunction<gf_string_t, int64_t, gf_string_t, gf_string_t, operation::Rpad>,
+        TernaryStringExecFunction<ku_string_t, int64_t, ku_string_t, ku_string_t, operation::Rpad>,
         false /* isVarLength */));
     return definitions;
 }
@@ -111,8 +111,8 @@ vector<unique_ptr<VectorOperationDefinition>> StartsWithVectorOperation::getDefi
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(STARTS_WITH_FUNC_NAME,
         vector<DataTypeID>{STRING, STRING}, BOOL,
-        BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::StartsWith>,
-        BinarySelectFunction<gf_string_t, gf_string_t, operation::StartsWith>,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::StartsWith>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::StartsWith>,
         false /* isVarLength */));
     return definitions;
 }
@@ -121,10 +121,10 @@ vector<unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::getDefiniti
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(SUBSTRING_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, INT64}, STRING,
-        TernaryStringExecFunction<gf_string_t, int64_t, int64_t, gf_string_t, operation::SubStr>,
+        TernaryStringExecFunction<ku_string_t, int64_t, int64_t, ku_string_t, operation::SubStr>,
         false /* isVarLength */));
     return definitions;
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

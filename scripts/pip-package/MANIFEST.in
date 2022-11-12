@@ -1,1 +1,1 @@
-include graphflowdb/*.so
+include kuzu/*.so

@@ -7,7 +7,7 @@
 #include "src/common/include/utils.h"
 #include "src/common/types/include/value.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 int64_t TypeUtils::convertToInt64(const char* data) {
@@ -72,15 +72,15 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
     case INTERVAL:
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
     case STRING:
-        return TypeUtils::toString(((gf_string_t*)overflowPtr)[pos]);
+        return TypeUtils::toString(((ku_string_t*)overflowPtr)[pos]);
     case LIST:
-        return TypeUtils::toString(((gf_list_t*)overflowPtr)[pos], dataType);
+        return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
         assert(false);
     }
 }
 
-string TypeUtils::toString(const gf_list_t& val, const DataType& dataType) {
+string TypeUtils::toString(const ku_list_t& val, const DataType& dataType) {
     string result = "[";
     for (auto i = 0u; i < val.size - 1; ++i) {
         result +=
@@ -180,4 +180,4 @@ void TypeUtils::throwConversionExceptionOutOfRange(const char* data, DataTypeID 
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 Literal::Literal(uint8_t* value, const DataType& dataType) : _isNull{false}, dataType{dataType} {
@@ -75,4 +75,4 @@ void Literal::bind(const Literal& other) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

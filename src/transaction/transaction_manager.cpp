@@ -2,9 +2,9 @@
 
 #include "src/common/include/exception.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
@@ -102,4 +102,4 @@ void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
 }
 
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu

@@ -11,7 +11,7 @@ namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class NodeTable {
@@ -70,4 +70,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

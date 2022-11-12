@@ -1,6 +1,6 @@
 #include "include/create.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
@@ -96,4 +96,4 @@ bool CreateRel::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

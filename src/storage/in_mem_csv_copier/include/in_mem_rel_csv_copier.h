@@ -5,7 +5,7 @@
 #include "src/storage/index/include/hash_index.h"
 #include "src/storage/store/include/rels_statistics.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using table_adj_in_mem_columns_map_t = unordered_map<table_id_t, unique_ptr<InMemAdjColumn>>;
@@ -40,7 +40,7 @@ private:
     void populateAdjAndPropertyLists();
     // We store rel properties with overflows, e.g., strings or lists, in
     // InMemColumn/ListsWithOverflowFile (e.g., InMemStringLists). When loading these properties
-    // from csv, we first save the overflow pointers of the gf_list_t or gf_string_t in temporary
+    // from csv, we first save the overflow pointers of the ku_list_t or ku_string_t in temporary
     // "unordered" InMemOverflowFiles in an unordered format, instead of the InMemOverflowFiles of
     // the actual InMemColumn/ListsWithOverflowFile. In these temporary unordered
     // InMemOverflowFiles, the string of nodeOffset100's overflow data may be stored before
@@ -71,10 +71,10 @@ private:
         unordered_map<uint32_t, unique_ptr<InMemOverflowFile>>& inMemOverflowFilesPerProperty,
         vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos);
-    static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
+    static void copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,
         PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
         InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
-    static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList,
+    static void copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
         const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
         PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
         InMemOverflowFile* orderedOverflowFile);
@@ -112,4 +112,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

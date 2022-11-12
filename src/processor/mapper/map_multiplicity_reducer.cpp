@@ -2,7 +2,7 @@
 
 #include "src/processor/operator/include/multiplicity_reducer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
@@ -13,4 +13,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

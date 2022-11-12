@@ -9,14 +9,14 @@
 #include "src/storage/buffer_manager/include/buffer_pool.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 /**
@@ -110,4 +110,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

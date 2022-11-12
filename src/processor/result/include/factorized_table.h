@@ -10,9 +10,9 @@
 #include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct BlockAppendingInfo {
@@ -359,4 +359,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

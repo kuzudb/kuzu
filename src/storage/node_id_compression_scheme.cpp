@@ -1,6 +1,6 @@
 #include "src/storage/include/node_id_compression_scheme.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 void NodeIDCompressionScheme::readNodeID(uint8_t* data, nodeID_t* nodeID) const {
@@ -21,4 +21,4 @@ void NodeIDCompressionScheme::writeNodeID(uint8_t* data, nodeID_t* nodeID) const
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

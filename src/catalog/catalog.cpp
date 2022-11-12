@@ -5,9 +5,9 @@
 #include "src/storage/include/storage_utils.h"
 
 using namespace std;
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 /**
@@ -176,9 +176,9 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
@@ -429,4 +429,4 @@ table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMulti
 }
 
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/create_rel_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 string CreateRelTable::execute() {
@@ -11,4 +11,4 @@ string CreateRelTable::execute() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

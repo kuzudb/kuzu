@@ -7,9 +7,9 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -63,7 +63,7 @@ inline void CastToUnstructured::operation(
 
 template<>
 inline void CastToUnstructured::operation(
-    gf_string_t& input, Value& result, ValueVector& resultVector) {
+    ku_string_t& input, Value& result, ValueVector& resultVector) {
     InMemOverflowBufferUtils::copyString(
         input, result.val.strVal, resultVector.getOverflowBuffer());
     result.dataType.typeID = STRING;
@@ -84,19 +84,19 @@ struct CastUnstructuredToTimestamp {
 };
 
 struct CastStringToDate {
-    static inline void operation(gf_string_t& input, date_t& result) {
+    static inline void operation(ku_string_t& input, date_t& result) {
         result = Date::FromCString((const char*)input.getData(), input.len);
     }
 };
 
 struct CastStringToTimestamp {
-    static inline void operation(gf_string_t& input, timestamp_t& result) {
+    static inline void operation(ku_string_t& input, timestamp_t& result) {
         result = Timestamp::FromCString((const char*)input.getData(), input.len);
     }
 };
 
 struct CastStringToInterval {
-    static inline void operation(gf_string_t& input, interval_t& result) {
+    static inline void operation(ku_string_t& input, interval_t& result) {
         result = Interval::FromCString((const char*)input.getData(), input.len);
     }
 };
@@ -110,9 +110,9 @@ struct CastToString {
 
     template<typename T>
     static inline void operation(
-        T& input, gf_string_t& result, ValueVector& resultVector, const DataType& dataType) {
+        T& input, ku_string_t& result, ValueVector& resultVector, const DataType& dataType) {
         string resultStr = castToStringWithDataType(input, dataType);
-        if (resultStr.length() > gf_string_t::SHORT_STR_LENGTH) {
+        if (resultStr.length() > ku_string_t::SHORT_STR_LENGTH) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 resultVector.getOverflowBuffer().allocateSpace(resultStr.length()));
         }
@@ -121,10 +121,10 @@ struct CastToString {
 };
 
 template<>
-inline string CastToString::castToStringWithDataType(gf_list_t& input, const DataType& dataType) {
+inline string CastToString::castToStringWithDataType(ku_list_t& input, const DataType& dataType) {
     return TypeUtils::toString(input, dataType);
 }
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

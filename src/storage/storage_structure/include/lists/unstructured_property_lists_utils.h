@@ -5,10 +5,10 @@
 #include "src/common/include/configs.h"
 #include "src/common/types/include/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 struct UnstructuredPropertyKeyDataType {
     uint32_t keyIdx;
@@ -77,4 +77,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

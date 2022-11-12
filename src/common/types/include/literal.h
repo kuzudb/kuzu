@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class Literal {
@@ -122,4 +122,4 @@ inline Literal Literal::createLiteral(string value) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

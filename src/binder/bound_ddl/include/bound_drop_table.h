@@ -2,7 +2,7 @@
 
 #include "src/binder/include/bound_statement.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundDropTable : public BoundStatement {
@@ -17,4 +17,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

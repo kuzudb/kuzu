@@ -2,7 +2,7 @@
 
 #include "src/common/include/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
@@ -40,4 +40,4 @@ bool IndexScan::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

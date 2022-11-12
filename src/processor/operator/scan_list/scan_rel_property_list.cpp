@@ -1,6 +1,6 @@
 #include "include/scan_rel_property_list.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> ScanRelPropertyList::init(ExecutionContext* context) {
@@ -25,4 +25,4 @@ bool ScanRelPropertyList::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

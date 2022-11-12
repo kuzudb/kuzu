@@ -1,6 +1,6 @@
 #include "include/cross_product.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> CrossProduct::init(ExecutionContext* context) {
@@ -45,4 +45,4 @@ bool CrossProduct::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

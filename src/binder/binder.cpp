@@ -1,6 +1,6 @@
 #include "src/binder/include/binder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
@@ -216,4 +216,4 @@ void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVari
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

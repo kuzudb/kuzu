@@ -1,6 +1,6 @@
 #pragma once
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 typedef uint64_t table_id_t;
@@ -37,4 +37,4 @@ struct nodeID_t {
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

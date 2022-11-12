@@ -3,7 +3,7 @@
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
 #include "src/common/types/include/value.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
@@ -21,7 +21,7 @@ ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
 
 void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
     assert(dataType.typeID == STRING);
-    auto vectorData = (gf_string_t*)values;
+    auto vectorData = (ku_string_t*)values;
     auto& result = vectorData[pos];
     InMemOverflowBufferUtils::copyString(value, len, result, *inMemOverflowBuffer);
 }
@@ -58,4 +58,4 @@ bool NodeIDVector::discardNull(ValueVector& vector) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

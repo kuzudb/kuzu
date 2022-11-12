@@ -1,6 +1,6 @@
 #include "include/match_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool MatchClause::equals(const ReadingClause& other) const {
@@ -24,4 +24,4 @@ bool MatchClause::equals(const ReadingClause& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

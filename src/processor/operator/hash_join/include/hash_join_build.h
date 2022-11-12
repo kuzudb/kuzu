@@ -8,9 +8,9 @@
 #include "src/processor/result/include/factorized_table.h"
 #include "src/processor/result/include/result_set.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 // This is a shared state between HashJoinBuild and HashJoinProbe operators.
@@ -93,4 +93,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

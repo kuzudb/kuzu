@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from tools.python_api import _graphflowdb as gdb
+from tools.python_api import _kuzu as gdb
 
 
 # Note conftest is the default file name for sharing fixture through multiple test files. Do not change file name.

@@ -1,6 +1,6 @@
 #include "include/pattern_element.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool PatternElement::operator==(const PatternElement& other) const {
@@ -17,4 +17,4 @@ bool PatternElement::operator==(const PatternElement& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

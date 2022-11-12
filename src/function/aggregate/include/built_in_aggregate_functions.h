@@ -2,7 +2,7 @@
 
 #include "aggregate_function.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class BuiltInAggregateFunctions {
@@ -38,4 +38,4 @@ private:
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 enum class JoinType : uint8_t {
@@ -12,4 +12,4 @@ enum class JoinType : uint8_t {
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

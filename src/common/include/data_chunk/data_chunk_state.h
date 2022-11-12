@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class SelectionVector {
@@ -77,4 +77,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

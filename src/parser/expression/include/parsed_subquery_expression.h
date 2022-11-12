@@ -4,7 +4,7 @@
 
 #include "src/parser/query/reading_clause/include/match_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ParsedSubqueryExpression : public ParsedExpression {
@@ -46,4 +46,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

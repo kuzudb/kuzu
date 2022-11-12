@@ -2,7 +2,7 @@
 
 #include "src/binder/expression/include/function_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
@@ -43,4 +43,4 @@ unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 }
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

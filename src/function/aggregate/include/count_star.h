@@ -2,7 +2,7 @@
 
 #include "base_count.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct CountStarFunction : public BaseCountFunction {
@@ -22,4 +22,4 @@ struct CountStarFunction : public BaseCountFunction {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

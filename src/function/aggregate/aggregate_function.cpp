@@ -6,7 +6,7 @@
 #include "include/min_max.h"
 #include "include/sum.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountStarFunction() {
@@ -97,10 +97,10 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
             MinMaxFunction<date_t>::combine<FUNC>, MinMaxFunction<date_t>::finalize, inputType,
             isDistinct);
     case STRING:
-        return make_unique<AggregateFunction>(MinMaxFunction<gf_string_t>::initialize,
-            MinMaxFunction<gf_string_t>::updateAll<FUNC>,
-            MinMaxFunction<gf_string_t>::updatePos<FUNC>,
-            MinMaxFunction<gf_string_t>::combine<FUNC>, MinMaxFunction<gf_string_t>::finalize,
+        return make_unique<AggregateFunction>(MinMaxFunction<ku_string_t>::initialize,
+            MinMaxFunction<ku_string_t>::updateAll<FUNC>,
+            MinMaxFunction<ku_string_t>::updatePos<FUNC>,
+            MinMaxFunction<ku_string_t>::combine<FUNC>, MinMaxFunction<ku_string_t>::finalize,
             inputType, isDistinct);
     case NODE_ID:
         return make_unique<AggregateFunction>(MinMaxFunction<nodeID_t>::initialize,
@@ -118,4 +118,4 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

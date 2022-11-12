@@ -1,6 +1,6 @@
 #include "include/adj_list_extend.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
@@ -42,4 +42,4 @@ bool AdjListExtend::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

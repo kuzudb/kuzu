@@ -6,7 +6,7 @@
 #include "src/storage/include/storage_utils.h"
 #include "src/storage/storage_structure/include/storage_structure_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 ListsMetadata::ListsMetadata(
@@ -132,4 +132,4 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     }
 }
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

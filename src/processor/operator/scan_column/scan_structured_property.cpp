@@ -1,8 +1,8 @@
 #include "include/scan_structured_property.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> ScanStructuredProperty::init(ExecutionContext* context) {
@@ -32,4 +32,4 @@ bool ScanStructuredProperty::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

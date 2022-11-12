@@ -2,7 +2,7 @@
 
 #include "base_logical_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalMultiplicityReducer : public LogicalOperator {
@@ -23,4 +23,4 @@ public:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

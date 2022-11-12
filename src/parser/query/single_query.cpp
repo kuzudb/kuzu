@@ -1,6 +1,6 @@
 #include "src/parser/query/include/single_query.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool SingleQuery::isFirstReadingClauseOptionalMatch() const {
@@ -38,4 +38,4 @@ bool SingleQuery::operator==(const SingleQuery& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

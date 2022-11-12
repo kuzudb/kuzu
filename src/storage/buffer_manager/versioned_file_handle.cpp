@@ -1,6 +1,6 @@
 #include "src/storage/buffer_manager/include/versioned_file_handle.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 VersionedFileHandle::VersionedFileHandle(
@@ -89,4 +89,4 @@ void VersionedFileHandle::resizePageGroupLocksAndPageVersionsToNumPageGroupsWith
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

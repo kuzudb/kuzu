@@ -4,12 +4,12 @@
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::catalog;
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::catalog;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 
 class CopyNodeCSVPropertyTest : public InMemoryDBTest {
@@ -131,7 +131,7 @@ ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* s
     return retVal;
 }
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu
 
 TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
     auto graph = database->getStorageManager();

@@ -5,7 +5,7 @@
 #include "src/storage/index/include/hash_index_builder.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class InMemNodeCSVCopier : public InMemStructuresCSVCopier {
@@ -66,4 +66,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

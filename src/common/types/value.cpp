@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 Value& Value::operator=(const Value& other) {
@@ -38,4 +38,4 @@ Value& Value::operator=(const Value& other) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

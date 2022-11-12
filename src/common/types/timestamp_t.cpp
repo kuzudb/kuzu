@@ -2,7 +2,7 @@
 
 #include "src/common/include/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 timestamp_t timestamp_t::operator+(const interval_t& interval) const {
@@ -240,4 +240,4 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

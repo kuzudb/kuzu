@@ -3,7 +3,7 @@
 #include "src/processor/operator/ddl/include/create_table.h"
 #include "src/storage/store/include/rels_statistics.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CreateRelTable : public CreateTable {
@@ -33,4 +33,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

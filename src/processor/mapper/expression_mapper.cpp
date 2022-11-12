@@ -6,7 +6,7 @@
 #include "src/expression_evaluator/include/literal_evaluator.h"
 #include "src/expression_evaluator/include/reference_evaluator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
@@ -53,4 +53,4 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

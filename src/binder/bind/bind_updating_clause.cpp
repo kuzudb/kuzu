@@ -7,7 +7,7 @@
 #include "src/parser/query/updating_clause/include/delete_clause.h"
 #include "src/parser/query/updating_clause/include/set_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause& updatingClause) {
@@ -122,4 +122,4 @@ unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& u
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

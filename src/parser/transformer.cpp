@@ -12,13 +12,13 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 unique_ptr<Statement> Transformer::transform() {
     if (root.oC_Statement()) {
         return transformQuery();
-    } else if (root.gF_DDL()) {
+    } else if (root.kU_DDL()) {
         return transformDDL();
     } else {
         return transformCopyCSV();
@@ -56,7 +56,7 @@ unique_ptr<SingleQuery> Transformer::transformSingleQuery(
             transformSinglePartQuery(*ctx.oC_MultiPartQuery()->oC_SinglePartQuery()) :
             transformSinglePartQuery(*ctx.oC_SinglePartQuery());
     if (ctx.oC_MultiPartQuery()) {
-        for (auto queryPart : ctx.oC_MultiPartQuery()->gF_QueryPart()) {
+        for (auto queryPart : ctx.oC_MultiPartQuery()->kU_QueryPart()) {
             singleQuery->addQueryPart(transformQueryPart(*queryPart));
         }
     }
@@ -78,7 +78,7 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     return singleQuery;
 }
 
-unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPartContext& ctx) {
+unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::KU_QueryPartContext& ctx) {
     auto queryPart = make_unique<QueryPart>(transformWith(*ctx.oC_With()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
         queryPart->addReadingClause(transformReadingClause(*readingClause));
@@ -247,7 +247,7 @@ unique_ptr<NodePattern> Transformer::transformNodePattern(
     CypherParser::OC_NodePatternContext& ctx) {
     auto variable = ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string();
     auto nodeLabel = ctx.oC_NodeLabel() ? transformNodeLabel(*ctx.oC_NodeLabel()) : string();
-    auto properties = ctx.gF_Properties() ? transformProperties(*ctx.gF_Properties()) :
+    auto properties = ctx.kU_Properties() ? transformProperties(*ctx.kU_Properties()) :
                                             vector<pair<string, unique_ptr<ParsedExpression>>>{};
     return make_unique<NodePattern>(move(variable), move(nodeLabel), move(properties));
 }
@@ -273,12 +273,12 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
         relDetail->oC_RelTypeName() ? transformRelTypeName(*relDetail->oC_RelTypeName()) : string(),
         lowerBound, upperBound,
         ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT,
-        relDetail->gF_Properties() ? transformProperties(*relDetail->gF_Properties()) :
+        relDetail->kU_Properties() ? transformProperties(*relDetail->kU_Properties()) :
                                      vector<pair<string, unique_ptr<ParsedExpression>>>{});
 }
 
 vector<pair<string, unique_ptr<ParsedExpression>>> Transformer::transformProperties(
-    CypherParser::GF_PropertiesContext& ctx) {
+    CypherParser::KU_PropertiesContext& ctx) {
     vector<pair<string, unique_ptr<ParsedExpression>>> result;
     assert(ctx.oC_PropertyKeyName().size() == ctx.oC_Expression().size());
     for (auto i = 0u; i < ctx.oC_PropertyKeyName().size(); ++i) {
@@ -367,10 +367,10 @@ unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
     }
     // Antlr parser throws error for conjunctive comparison.
     // Transformer should only handle the case of single comparison operator.
-    assert(ctx.gF_ComparisonOperator().size() == 1);
+    assert(ctx.kU_ComparisonOperator().size() == 1);
     auto left = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0));
     auto right = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(1));
-    auto comparisonOperator = ctx.gF_ComparisonOperator()[0]->getText();
+    auto comparisonOperator = ctx.kU_ComparisonOperator()[0]->getText();
     if (comparisonOperator == "=") {
         return make_unique<ParsedExpression>(EQUALS, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == "<>") {
@@ -398,7 +398,7 @@ unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto arithmeticOperator = ctx.gF_AddOrSubtractOperator(i - 1)->getText();
+            auto arithmeticOperator = ctx.kU_AddOrSubtractOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
             expression = make_unique<ParsedFunctionExpression>(
@@ -416,7 +416,7 @@ unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpressio
         if (!expression) {
             expression = move(next);
         } else {
-            auto arithmeticOperator = ctx.gF_MultiplyDivideModuloOperator(i - 1)->getText();
+            auto arithmeticOperator = ctx.kU_MultiplyDivideModuloOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
             expression = make_unique<ParsedFunctionExpression>(
@@ -709,78 +709,78 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
 }
 
 unique_ptr<DDL> Transformer::transformDDL() {
-    if (root.gF_DDL()->gF_CreateNode()) {
-        return transformCreateNodeClause(*root.gF_DDL()->gF_CreateNode());
-    } else if (root.gF_DDL()->gF_CreateRel()) {
-        return transformCreateRelClause(*root.gF_DDL()->gF_CreateRel());
+    if (root.kU_DDL()->kU_CreateNode()) {
+        return transformCreateNodeClause(*root.kU_DDL()->kU_CreateNode());
+    } else if (root.kU_DDL()->kU_CreateRel()) {
+        return transformCreateRelClause(*root.kU_DDL()->kU_CreateRel());
     } else {
-        return transformDropTable(*root.gF_DDL()->gF_DropTable());
+        return transformDropTable(*root.kU_DDL()->kU_DropTable());
     }
 }
 
 unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
-    CypherParser::GF_CreateNodeContext& ctx) {
+    CypherParser::KU_CreateNodeContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
-    auto propertyDefinitions = transformPropertyDefinitions(*ctx.gF_PropertyDefinitions());
+    auto propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     auto pkColName =
-        ctx.gF_CreateNodeConstraint() ? transformPrimaryKey(*ctx.gF_CreateNodeConstraint()) : "";
+        ctx.kU_CreateNodeConstraint() ? transformPrimaryKey(*ctx.kU_CreateNodeConstraint()) : "";
     return make_unique<CreateNodeClause>(move(schemaName), move(propertyDefinitions), pkColName);
 }
 
 unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
-    CypherParser::GF_CreateRelContext& ctx) {
+    CypherParser::KU_CreateRelContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
-    auto propertyDefinitions = ctx.gF_PropertyDefinitions() ?
-                                   transformPropertyDefinitions(*ctx.gF_PropertyDefinitions()) :
+    auto propertyDefinitions = ctx.kU_PropertyDefinitions() ?
+                                   transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()) :
                                    vector<pair<string, string>>();
     auto relMultiplicity =
         ctx.oC_SymbolicName() ? transformSymbolicName(*ctx.oC_SymbolicName()) : "MANY_MANY";
-    auto relConnections = transformRelConnection(*ctx.gF_RelConnections());
+    auto relConnections = transformRelConnection(*ctx.kU_RelConnections());
     return make_unique<CreateRelClause>(
         move(schemaName), move(propertyDefinitions), relMultiplicity, move(relConnections));
 }
 
-unique_ptr<DropTable> Transformer::transformDropTable(CypherParser::GF_DropTableContext& ctx) {
+unique_ptr<DropTable> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
     return make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(
-    CypherParser::GF_PropertyDefinitionsContext& ctx) {
+    CypherParser::KU_PropertyDefinitionsContext& ctx) {
     vector<pair<string, string>> propertyNameDataTypes;
-    for (auto property : ctx.gF_PropertyDefinition()) {
+    for (auto property : ctx.kU_PropertyDefinition()) {
         propertyNameDataTypes.emplace_back(
             transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            transformDataType(*property->gF_DataType()));
+            transformDataType(*property->kU_DataType()));
     }
     return propertyNameDataTypes;
 }
 
-string Transformer::transformDataType(CypherParser::GF_DataTypeContext& ctx) {
+string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
     auto dataType = transformSymbolicName(*ctx.oC_SymbolicName());
-    if (ctx.gF_ListIdentifiers()) {
-        dataType += transformListIdentifiers(*ctx.gF_ListIdentifiers());
+    if (ctx.kU_ListIdentifiers()) {
+        dataType += transformListIdentifiers(*ctx.kU_ListIdentifiers());
     }
     return dataType;
 }
 
-string Transformer::transformListIdentifiers(CypherParser::GF_ListIdentifiersContext& ctx) {
+string Transformer::transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx) {
     string listIdentifiers;
-    for (auto& listIdentifier : ctx.gF_ListIdentifier()) {
+    for (auto& listIdentifier : ctx.kU_ListIdentifier()) {
         listIdentifiers += listIdentifier->getText();
     }
     return listIdentifiers;
 }
 
-string Transformer::transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx) {
+string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx) {
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 
-RelConnection Transformer::transformRelConnection(CypherParser::GF_RelConnectionsContext& ctx) {
+RelConnection Transformer::transformRelConnection(CypherParser::KU_RelConnectionsContext& ctx) {
     vector<string> srcTableNames, dstTableNames;
-    if (!ctx.gF_RelConnection().empty()) {
-        for (auto& relConnection : ctx.gF_RelConnection()) {
-            auto newSrcTableNames = transformNodeLabels(*relConnection->gF_NodeLabels()[0]);
-            auto newDstTableNames = transformNodeLabels(*relConnection->gF_NodeLabels()[1]);
+    if (!ctx.kU_RelConnection().empty()) {
+        for (auto& relConnection : ctx.kU_RelConnection()) {
+            auto newSrcTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[0]);
+            auto newDstTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[1]);
             srcTableNames.insert(
                 srcTableNames.end(), newSrcTableNames.begin(), newSrcTableNames.end());
             dstTableNames.insert(
@@ -790,7 +790,7 @@ RelConnection Transformer::transformRelConnection(CypherParser::GF_RelConnection
     return RelConnection(move(srcTableNames), move(dstTableNames));
 }
 
-vector<string> Transformer::transformNodeLabels(CypherParser::GF_NodeLabelsContext& ctx) {
+vector<string> Transformer::transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx) {
     vector<string> nodeLabels;
     for (auto& nodeLabel : ctx.oC_SchemaName()) {
         nodeLabels.push_back(transformSchemaName(*nodeLabel));
@@ -799,19 +799,19 @@ vector<string> Transformer::transformNodeLabels(CypherParser::GF_NodeLabelsConte
 }
 
 unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
-    auto& ctx = *root.gF_CopyCSV();
+    auto& ctx = *root.kU_CopyCSV();
     auto csvFileName = transformStringLiteral(*ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto parsingOptions = ctx.gF_ParsingOptions() ?
-                              transformParsingOptions(*ctx.gF_ParsingOptions()) :
+    auto parsingOptions = ctx.kU_ParsingOptions() ?
+                              transformParsingOptions(*ctx.kU_ParsingOptions()) :
                               unordered_map<string, unique_ptr<ParsedExpression>>();
     return make_unique<CopyCSV>(move(csvFileName), move(tableName), move(parsingOptions));
 }
 
 unordered_map<string, unique_ptr<ParsedExpression>> Transformer::transformParsingOptions(
-    CypherParser::GF_ParsingOptionsContext& ctx) {
+    CypherParser::KU_ParsingOptionsContext& ctx) {
     unordered_map<string, unique_ptr<ParsedExpression>> copyOptions;
-    for (auto loadOption : ctx.gF_ParsingOption()) {
+    for (auto loadOption : ctx.kU_ParsingOption()) {
         auto optionName = transformSymbolicName(*loadOption->oC_SymbolicName());
         copyOptions.emplace(optionName, transformLiteral(*loadOption->oC_Literal()));
     }
@@ -824,4 +824,4 @@ string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLit
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

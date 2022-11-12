@@ -6,9 +6,9 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
@@ -120,4 +120,4 @@ unique_ptr<nlohmann::json> BufferManager::debugInfo() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

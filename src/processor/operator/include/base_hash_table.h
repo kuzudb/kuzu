@@ -5,10 +5,10 @@
 #include "src/processor/result/include/factorized_table.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function::operation;
+using namespace kuzu::common;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseHashTable {
@@ -30,4 +30,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

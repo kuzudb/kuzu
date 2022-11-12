@@ -1,4 +1,4 @@
-# graphflowDB
+# kuzu
 
 ## Compilation
 
@@ -17,7 +17,7 @@
   
 ## CLI
 
-- To start CLI `bazel run //tools/shell:graphflowdb -- -i <serialized-graph-path>`
+- To start CLI `bazel run //tools/shell:kuzu -- -i <serialized-graph-path>`
 - CLI built in commands
   :help get command list
   :clear clear shell
@@ -28,7 +28,7 @@
 
 ## Benchmark runner
 
-Benchmark runner is designed to be used in graphflowdb-benchmark. Deirectly using benchmark runner is not recommended.
+Benchmark runner is designed to be used in kuzu-benchmark. Deirectly using benchmark runner is not recommended.
 
 - benchmark file should have the following format
 

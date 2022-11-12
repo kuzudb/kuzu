@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class Timer {
@@ -40,4 +40,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 enum class StatementType : uint8_t {
@@ -14,4 +14,4 @@ enum class StatementType : uint8_t {
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

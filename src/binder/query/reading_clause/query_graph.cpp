@@ -1,6 +1,6 @@
 #include "include/query_graph.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
@@ -240,7 +240,7 @@ void PropertyKeyValCollection::addPropertyKeyValPair(
 }
 
 vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
-    const graphflow::binder::Expression& variable) const {
+    const kuzu::binder::Expression& variable) const {
     auto varName = variable.getUniqueName();
     if (!varNameToPropertyKeyValPairs.contains(varName)) {
         return vector<expression_pair>{};
@@ -281,4 +281,4 @@ expression_pair PropertyKeyValCollection::getPropertyKeyValPair(
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

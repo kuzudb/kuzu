@@ -6,9 +6,9 @@
 #include "src/function/boolean/include/boolean_operation_executor.h"
 #include "src/function/include/unary_operation_executor.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::function;
+using namespace kuzu::testing;
 using namespace std;
 
 /**

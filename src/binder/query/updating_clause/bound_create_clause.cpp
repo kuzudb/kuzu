@@ -1,6 +1,6 @@
 #include "include/bound_create_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 vector<expression_pair> BoundCreateClause::getAllSetItems() const {
@@ -42,4 +42,4 @@ unique_ptr<BoundUpdatingClause> BoundCreateClause::copy() {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

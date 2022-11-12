@@ -1,6 +1,6 @@
 #include "include/base_evaluator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 BaseExpressionEvaluator::BaseExpressionEvaluator(unique_ptr<BaseExpressionEvaluator> child) {
@@ -20,4 +20,4 @@ void BaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
 }
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

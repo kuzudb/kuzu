@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 enum LogicalOperatorType : uint8_t {
@@ -87,4 +87,4 @@ protected:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

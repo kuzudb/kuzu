@@ -9,7 +9,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
@@ -78,4 +78,4 @@ unique_ptr<LogicalPlan> Planner::planCopyCSV(const BoundStatement& statement) {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

@@ -5,7 +5,7 @@
 
 #include "src/common/include/metric.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class Profiler {
@@ -29,4 +29,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

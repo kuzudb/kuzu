@@ -6,7 +6,7 @@
 #include "src/storage/storage_structure/include/column.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using table_adj_columns_map_t = unordered_map<table_id_t, unique_ptr<AdjColumn>>;
@@ -83,4 +83,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

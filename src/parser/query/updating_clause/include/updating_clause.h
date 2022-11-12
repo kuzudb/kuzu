@@ -2,9 +2,9 @@
 
 #include "src/common/include/clause_type.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class UpdatingClause {
@@ -20,4 +20,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

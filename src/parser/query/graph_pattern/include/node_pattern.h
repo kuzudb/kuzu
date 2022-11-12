@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 /**
@@ -57,4 +57,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu
