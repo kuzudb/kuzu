@@ -18,6 +18,7 @@ filegroup(
         "tinysnb-variant/**",
         "unstructured-property-lists-updates-tests/**",
         "rel-insertion-tests/**",
+        "demo-db/**",
     ]),
     visibility = ["//visibility:public"],
 )
