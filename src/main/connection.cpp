@@ -76,14 +76,14 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
     unique_ptr<ExecutionContext> executionContext;
-    unique_ptr<PhysicalPlan> physicalPlan;
+    unique_ptr<LogicalPlan> logicalPlan;
     try {
         auto statement = Parser::parseQuery(query);
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
         setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
         // planning
-        auto logicalPlan = Planner::getBestPlan(*database->catalog,
+        logicalPlan = Planner::getBestPlan(*database->catalog,
             database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
             database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundStatement);
         if (logicalPlan->isDDLOrCopyCSV()) {
@@ -92,17 +92,13 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         } else {
             preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         }
-        // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
-        physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     } catch (Exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
     compilingTimer.stop();
     preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
-    preparedStatement->physicalPlan = move(physicalPlan);
+    preparedStatement->logicalPlan = std::move(logicalPlan);
     return preparedStatement;
 }
 
@@ -209,10 +205,7 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    auto mapper =
-        PlanMapper(*database->storageManager, database->getMemoryManager(), database->getCatalog());
-    auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
-    preparedStatement->physicalPlan = move(physicalPlan);
+    preparedStatement->logicalPlan = std::move(logicalPlan);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
@@ -250,6 +243,9 @@ void Connection::bindParametersNoLock(
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
+    auto mapper = PlanMapper(
+        *database->storageManager, database->getMemoryManager(), database->catalog.get());
+    auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
     auto queryResult = make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
@@ -287,8 +283,8 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                     "transaction or set the transaction mode of the connection to AUTO_COMMIT");
             }
             executionContext->transaction = activeTransaction.get();
-            resultFT = database->queryProcessor->execute(
-                preparedStatement->physicalPlan.get(), executionContext.get());
+            resultFT =
+                database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
@@ -302,8 +298,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         queryResult->setResultHeaderAndTable(
             preparedStatement->resultHeader->copy(), move(resultFT));
     }
-    auto planPrinter =
-        make_unique<PlanPrinter>(preparedStatement->physicalPlan.get(), move(profiler));
+    auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), move(profiler));
     queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
     queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;

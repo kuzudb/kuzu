@@ -114,7 +114,12 @@ TEST_F(ApiTest, ParamTypeError) {
 }
 
 TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {
-    auto preparedStatement = conn->prepare("MATCH (o:organisation) RETURN 2 + $a");
-    ASSERT_TRUE(conn->execute(preparedStatement.get(), make_pair(string("a"), (int64_t)1)));
-    ASSERT_TRUE(conn->execute(preparedStatement.get(), make_pair(string("a"), (int64_t)2)));
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN a.ID, a.fName");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
+    auto groundTruth = vector<string>{"0|Alice"};
+    ASSERT_EQ(groundTruth, TestHelper::convertResultToString(*result));
+    result = conn->execute(preparedStatement.get(), make_pair(string("n"), "B"));
+    groundTruth = vector<string>{"2|Bob"};
+    ASSERT_EQ(groundTruth, TestHelper::convertResultToString(*result));
 }

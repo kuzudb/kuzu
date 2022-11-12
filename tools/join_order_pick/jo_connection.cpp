@@ -37,10 +37,7 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
             }
         }
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-        // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
-        preparedStatement->physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
+        preparedStatement->logicalPlan = std::move(logicalPlan);
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {
         string errMsg = exception.what();
