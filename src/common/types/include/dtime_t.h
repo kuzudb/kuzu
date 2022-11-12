@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 // Type used to represent time (microseconds)
@@ -56,4 +56,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

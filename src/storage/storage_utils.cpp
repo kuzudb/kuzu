@@ -1,6 +1,6 @@
 #include "src/storage/include/storage_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
@@ -125,4 +125,4 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

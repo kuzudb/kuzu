@@ -1,6 +1,6 @@
 #include "include/physical_plan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 vector<PhysicalOperator*> PhysicalPlanUtil::collectOperators(
@@ -21,4 +21,4 @@ void PhysicalPlanUtil::collectOperatorsRecursive(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

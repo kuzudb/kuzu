@@ -2,10 +2,10 @@
 
 #include "src/function/comparison/operations/include/comparison_operations.h"
 
-using namespace graphflow::processor;
-using namespace graphflow::function::operation;
+using namespace kuzu::processor;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 MergedKeyBlocks::MergedKeyBlocks(
@@ -223,9 +223,9 @@ bool KeyBlockMerger::compareTuplePtrWithStringAndUnstructuredCol(
                 factorizedTables[OrderByKeyEncoder::getEncodedFTIdx(rightTupleInfo)];
             uint8_t result;
             if (stringAndUnstructuredKeyInfo.isStrCol) {
-                auto leftStr = leftFactorizedTable->getData<gf_string_t>(
+                auto leftStr = leftFactorizedTable->getData<ku_string_t>(
                     leftBlockIdx, leftBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                auto rightStr = rightFactorizedTable->getData<gf_string_t>(
+                auto rightStr = rightFactorizedTable->getData<ku_string_t>(
                     rightBlockIdx, rightBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
                 result = (leftStr == rightStr);
                 if (result) {
@@ -335,4 +335,4 @@ void KeyBlockMergeTaskDispatcher::initIfNecessary(MemoryManager* memoryManager,
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 using lock_t = unique_lock<mutex>;
@@ -102,4 +102,4 @@ protected:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

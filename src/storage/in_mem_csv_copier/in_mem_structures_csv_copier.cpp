@@ -5,7 +5,7 @@
 #include "src/common/include/configs.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemStructuresCSVCopier::InMemStructuresCSVCopier(CSVDescription& csvDescription,
@@ -159,4 +159,4 @@ void InMemStructuresCSVCopier::calculateListsMetadataAndAllocateInMemListPagesTa
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

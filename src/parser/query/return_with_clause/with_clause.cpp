@@ -1,6 +1,6 @@
 #include "include/with_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 bool WithClause::operator==(const WithClause& other) const {
@@ -14,4 +14,4 @@ bool WithClause::operator==(const WithClause& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

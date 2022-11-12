@@ -1,6 +1,6 @@
 #include "include/bound_projection_body.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 bool BoundProjectionBody::hasAggregationExpressions() const {
@@ -34,4 +34,4 @@ expression_vector BoundProjectionBody::getPropertiesToRead() const {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

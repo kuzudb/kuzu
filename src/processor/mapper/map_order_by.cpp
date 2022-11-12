@@ -5,7 +5,7 @@
 #include "src/processor/operator/order_by/include/order_by_merge.h"
 #include "src/processor/operator/order_by/include/order_by_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
@@ -47,4 +47,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

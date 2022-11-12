@@ -4,7 +4,7 @@
 
 #include "src/binder/query/reading_clause/include/bound_match_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class ExistentialSubqueryExpression : public Expression {
@@ -34,4 +34,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

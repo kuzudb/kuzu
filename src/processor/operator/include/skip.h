@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/filtering_operator.h"
 #include "src/processor/operator/include/physical_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class Skip : public PhysicalOperator, public FilteringOperator {
@@ -35,4 +35,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

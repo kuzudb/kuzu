@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 OpProfileBox::OpProfileBox(string opName, string paramsName, vector<string> attributes)
@@ -304,4 +304,4 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

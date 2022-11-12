@@ -4,7 +4,7 @@
 
 #include "src/parser/query/graph_pattern/include/pattern_element.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class CreateClause : public UpdatingClause {
@@ -22,4 +22,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

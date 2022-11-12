@@ -3,7 +3,7 @@
 #include "src/binder/include/binder.h"
 #include "src/parser/copy_csv/include/copy_csv.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundStatement> Binder::bindCopyCSV(const Statement& statement) {
@@ -77,4 +77,4 @@ char Binder::bindParsingOptionValue(string value) {
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

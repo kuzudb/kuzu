@@ -4,9 +4,9 @@
 
 #include "src/binder/expression/include/expression.h"
 
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalFlatten : public LogicalOperator {
@@ -37,4 +37,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

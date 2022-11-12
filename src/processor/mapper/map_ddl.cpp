@@ -10,7 +10,7 @@
 #include "src/processor/operator/ddl/include/create_rel_table.h"
 #include "src/processor/operator/ddl/include/drop_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
@@ -56,4 +56,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

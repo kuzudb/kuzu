@@ -3,10 +3,10 @@
 #include <cstdint>
 
 #include "src/common/include/configs.h"
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 #include "src/common/types/include/node_id_t.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using entry_pos_t = uint8_t;
@@ -50,4 +50,4 @@ struct Slot {
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

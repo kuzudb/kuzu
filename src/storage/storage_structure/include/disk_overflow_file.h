@@ -11,10 +11,10 @@
 #include "src/storage/wal/include/wal.h"
 #include "src/transaction/include/transaction.h"
 
-using namespace graphflow::common;
-using namespace graphflow::transaction;
+using namespace kuzu::common;
+using namespace kuzu::transaction;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class DiskOverflowFile : public StorageStructure {
@@ -47,33 +47,33 @@ public:
 
     void readStringsToVector(TransactionType trxType, ValueVector& valueVector);
     void readStringToVector(
-        TransactionType trxType, gf_string_t& gfStr, InMemOverflowBuffer& inMemOverflowBuffer);
+        TransactionType trxType, ku_string_t& kuStr, InMemOverflowBuffer& inMemOverflowBuffer);
 
     inline void scanSingleStringOverflow(
         TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == STRING && !vector.isNull(vectorPos));
-        auto& gfString = ((gf_string_t*)vector.values)[vectorPos];
-        readStringToVector(trxType, gfString, vector.getOverflowBuffer());
+        auto& kuString = ((ku_string_t*)vector.values)[vectorPos];
+        readStringToVector(trxType, kuString, vector.getOverflowBuffer());
     }
     void scanSequentialStringOverflow(TransactionType trxType, ValueVector& vector);
     inline void scanSingleListOverflow(
         TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
-        auto& gfList = ((gf_list_t*)vector.values)[vectorPos];
-        readListToVector(trxType, gfList, vector.dataType, vector.getOverflowBuffer());
+        auto& kuList = ((ku_list_t*)vector.values)[vectorPos];
+        readListToVector(trxType, kuList, vector.dataType, vector.getOverflowBuffer());
     }
 
     void readListsToVector(TransactionType trxType, ValueVector& valueVector);
 
-    string readString(TransactionType trxType, const gf_string_t& str);
+    string readString(TransactionType trxType, const ku_string_t& str);
     vector<Literal> readList(
-        TransactionType trxType, const gf_list_t& listVal, const DataType& dataType);
+        TransactionType trxType, const ku_list_t& listVal, const DataType& dataType);
 
-    gf_string_t writeString(const char* rawString);
+    ku_string_t writeString(const char* rawString);
     void writeStringOverflowAndUpdateOverflowPtr(
-        const gf_string_t& strToWriteFrom, gf_string_t& strToWriteTo);
-    void writeListOverflowAndUpdateOverflowPtr(const gf_list_t& listToWriteFrom,
-        gf_list_t& listToWriteTo, const DataType& elementDataType);
+        const ku_string_t& strToWriteFrom, ku_string_t& strToWriteTo);
+    void writeListOverflowAndUpdateOverflowPtr(const ku_list_t& listToWriteFrom,
+        ku_list_t& listToWriteTo, const DataType& elementDataType);
 
     inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {
         nextBytePosToWriteTo = nextBytePosToWriteTo_;
@@ -85,12 +85,12 @@ public:
 
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
-    void readListToVector(TransactionType trxType, gf_list_t& gfList, const DataType& dataType,
+    void readListToVector(TransactionType trxType, ku_list_t& kuList, const DataType& dataType,
         InMemOverflowBuffer& inMemOverflowBuffer);
     void setStringOverflowWithoutLock(
-        const char* inMemSrcStr, uint64_t len, gf_string_t& diskDstString);
+        const char* inMemSrcStr, uint64_t len, ku_string_t& diskDstString);
     void setListRecursiveIfNestedWithoutLock(
-        const gf_list_t& inMemSrcList, gf_list_t& diskDstList, const DataType& dataType);
+        const ku_list_t& inMemSrcList, ku_list_t& diskDstList, const DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
 
 private:
@@ -106,4 +106,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

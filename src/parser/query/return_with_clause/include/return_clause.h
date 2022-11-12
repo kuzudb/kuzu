@@ -2,7 +2,7 @@
 
 #include "projection_body.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ReturnClause {
@@ -26,4 +26,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

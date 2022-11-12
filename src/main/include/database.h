@@ -9,18 +9,18 @@
 #include "src/transaction/include/transaction.h"
 #include "src/transaction/include/transaction_manager.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 class TinySnbDDLTest;
 class TinySnbCopyCSVTransactionTest;
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 struct SystemConfig {
@@ -47,8 +47,8 @@ struct DatabaseConfig {
 class Database {
     friend class Connection;
     friend class JOConnection;
-    friend class graphflow::transaction::TinySnbDDLTest;
-    friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
+    friend class kuzu::transaction::TinySnbDDLTest;
+    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)
@@ -114,4 +114,4 @@ private:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

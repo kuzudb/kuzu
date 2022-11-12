@@ -2,7 +2,7 @@
 
 #include "test/test_utility/include/test_helper.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class ApiTest : public EmptyDBTest {
 

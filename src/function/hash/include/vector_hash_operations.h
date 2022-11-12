@@ -3,7 +3,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/function/hash/operations/include/hash_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct UnaryHashOperationExecutor {
@@ -62,4 +62,4 @@ struct VectorHashOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 
 #include "pattern_element_chain.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 /**
@@ -39,4 +39,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

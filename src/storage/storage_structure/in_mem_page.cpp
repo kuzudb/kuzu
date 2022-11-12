@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstring>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
@@ -61,4 +61,4 @@ void InMemPage::encodeNullBits() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

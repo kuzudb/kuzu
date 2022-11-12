@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 /**
@@ -207,4 +207,4 @@ bool isExpressionSubquery(ExpressionType type);
 string expressionTypeToString(ExpressionType type);
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

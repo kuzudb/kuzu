@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/processor/operator/include/scan_node_id.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class SemiMasker : public PhysicalOperator {
@@ -45,4 +45,4 @@ private:
     ScanNodeIDSharedState* scanNodeIDSharedState;
 };
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

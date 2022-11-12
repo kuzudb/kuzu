@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/storage/store/include/node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class DeleteNodeStructuredProperty : public PhysicalOperator {
@@ -37,4 +37,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/base_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 BaseAggregateSharedState::BaseAggregateSharedState(
@@ -35,4 +35,4 @@ shared_ptr<ResultSet> BaseAggregate::init(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

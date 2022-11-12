@@ -1,6 +1,6 @@
 #include "include/simple_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 SimpleAggregateSharedState::SimpleAggregateSharedState(
@@ -103,4 +103,4 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

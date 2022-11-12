@@ -2,7 +2,7 @@
 
 #include "src/parser/ddl/include/create_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 using namespace std;
@@ -32,4 +32,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

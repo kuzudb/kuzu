@@ -4,10 +4,10 @@
 
 #include "src/common/include/data_chunk/data_chunk.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using ::testing::Test;
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 
 class TwoOperands {
@@ -68,4 +68,4 @@ public:
 };
 
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu

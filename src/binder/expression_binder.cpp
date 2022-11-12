@@ -17,9 +17,9 @@
 #include "src/parser/expression/include/parsed_subquery_expression.h"
 #include "src/parser/expression/include/parsed_variable_expression.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
@@ -483,4 +483,4 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

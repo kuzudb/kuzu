@@ -9,10 +9,10 @@
 #include "src/storage/include/storage_manager.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
-using namespace graphflow::storage;
-using namespace graphflow::planner;
+using namespace kuzu::storage;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct BuildDataInfo;
@@ -128,4 +128,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

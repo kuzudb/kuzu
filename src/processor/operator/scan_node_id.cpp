@@ -1,6 +1,6 @@
 #include "include/scan_node_id.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
@@ -8,7 +8,7 @@ void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
     morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
 }
 
-void ScanNodeIDSharedState::initialize(graphflow::transaction::Transaction* transaction) {
+void ScanNodeIDSharedState::initialize(kuzu::transaction::Transaction* transaction) {
     unique_lock uLck{mtx};
     if (initialized) {
         return;
@@ -101,4 +101,4 @@ void ScanNodeID::setSelVector(node_offset_t startOffset, node_offset_t endOffset
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

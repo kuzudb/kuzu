@@ -4,7 +4,7 @@
 
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using lock_t = unique_lock<mutex>;
@@ -81,4 +81,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

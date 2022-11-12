@@ -5,9 +5,9 @@
 #include "spdlog/spdlog.h"
 
 using namespace std;
-using namespace graphflow::planner;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 
 vector<unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
@@ -260,4 +260,4 @@ void BaseGraphTest::commitOrRollbackConnection(
 }
 
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu

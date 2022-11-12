@@ -7,7 +7,7 @@
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/storage/storage_structure/include/disk_overflow_file.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
@@ -156,7 +156,7 @@ public:
             hashIndexForInt64 = make_unique<HashIndex<int64_t>>(
                 storageStructureIDAndFName, keyDataType, bufferManager, wal);
         } else {
-            hashIndexForString = make_unique<HashIndex<gf_string_t>>(
+            hashIndexForString = make_unique<HashIndex<ku_string_t>>(
                 storageStructureIDAndFName, keyDataType, bufferManager, wal);
         }
     }
@@ -222,8 +222,8 @@ private:
 private:
     DataTypeID keyDataTypeID;
     unique_ptr<HashIndex<int64_t>> hashIndexForInt64;
-    unique_ptr<HashIndex<gf_string_t>> hashIndexForString;
+    unique_ptr<HashIndex<ku_string_t>> hashIndexForString;
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -3,7 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/processor/operator/include/flatten.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
@@ -17,4 +17,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

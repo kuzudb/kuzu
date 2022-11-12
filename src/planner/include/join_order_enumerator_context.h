@@ -4,7 +4,7 @@
 #include "src/planner/include/subplans_table.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class JoinOrderEnumeratorContext {
@@ -60,4 +60,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

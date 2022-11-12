@@ -2,7 +2,7 @@
 
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
@@ -24,4 +24,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 #include "src/storage/storage_structure/include/lists/list_headers.h"
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
@@ -140,4 +140,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -3,7 +3,7 @@
 #include "date_t.h"
 #include "dtime_t.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 // Type used to represent timestamps (value is in microseconds since 1970-01-01)
@@ -94,4 +94,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -7,7 +7,7 @@
 #include "src/parser/include/parser.h"
 #include "src/parser/query/include/regular_query.h"
 
-using namespace graphflow::parser;
+using namespace kuzu::parser;
 
 const string EMPTY = string();
 

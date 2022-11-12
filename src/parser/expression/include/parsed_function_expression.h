@@ -2,7 +2,7 @@
 
 #include "parsed_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ParsedFunctionExpression : public ParsedExpression {
@@ -41,4 +41,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

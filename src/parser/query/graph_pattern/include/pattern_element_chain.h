@@ -2,7 +2,7 @@
 
 #include "rel_pattern.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 /**
@@ -32,4 +32,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

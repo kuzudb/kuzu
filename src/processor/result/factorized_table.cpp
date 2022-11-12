@@ -3,10 +3,10 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/vector/value_vector_utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 ColumnSchema::ColumnSchema(const ColumnSchema& other) {
@@ -617,15 +617,15 @@ void FactorizedTable::copyOverflowIfNecessary(
     uint8_t* dst, uint8_t* src, DataType type, DiskOverflowFile* diskOverflowFile) {
     switch (type.typeID) {
     case STRING: {
-        gf_string_t* stringToWriteFrom = (gf_string_t*)src;
-        if (!gf_string_t::isShortString(stringToWriteFrom->len)) {
+        ku_string_t* stringToWriteFrom = (ku_string_t*)src;
+        if (!ku_string_t::isShortString(stringToWriteFrom->len)) {
             diskOverflowFile->writeStringOverflowAndUpdateOverflowPtr(
-                *stringToWriteFrom, *(gf_string_t*)dst);
+                *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
     case LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
-            *(gf_list_t*)src, *(gf_list_t*)dst, type);
+            *(ku_list_t*)src, *(ku_list_t*)dst, type);
     } break;
     default:
         return;
@@ -750,4 +750,4 @@ void FlatTupleIterator::updateFlatTuplePositionsInDataChunk() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

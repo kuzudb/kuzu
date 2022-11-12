@@ -7,9 +7,9 @@
 #include "src/binder/query/reading_clause/include/query_graph.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class SubPlansTable {
@@ -35,4 +35,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

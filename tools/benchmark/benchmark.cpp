@@ -6,9 +6,9 @@
 #include "spdlog/spdlog.h"
 #include "test/test_utility/include/test_helper.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 Benchmark::Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config)
@@ -92,4 +92,4 @@ void Benchmark::verify(vector<string>& actualOutput) const {
 }
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

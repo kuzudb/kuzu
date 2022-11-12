@@ -6,9 +6,9 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -144,4 +144,4 @@ inline void LessThanEquals::operation(const Value& left, const Value& right, uin
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

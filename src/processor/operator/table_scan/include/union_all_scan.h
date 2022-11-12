@@ -2,7 +2,7 @@
 
 #include "src/processor/operator/table_scan/include/base_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class UnionAllScanSharedState {
@@ -65,4 +65,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

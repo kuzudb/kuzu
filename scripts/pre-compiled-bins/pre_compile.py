@@ -18,14 +18,19 @@ if sys.platform == "linux":
 
 def cleanup():
     logging.info("Cleaning up Bazel workspace...")
-    subprocess.run(['bazel', 'clean'], cwd=bazel_workspace_root,
-                   check=True, env=env_vars)
+    try:
+        subprocess.run(['bazel', 'clean'], cwd=bazel_workspace_root,
+                       check=True, env=env_vars)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        logging.error("Failed with return code %d" % return_code)
+        sys.exit(1)
     logging.info("Bazel workspace cleaned up")
 
 
 def build():
     args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3', '--cxxopt=-fPIC',
-            '--cxxopt=-DNDEBUG', '--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1']
+            '--cxxopt=-DNDEBUG']
     if sys.platform == 'darwin':
         archflags = os.getenv("ARCHFLAGS", "")
         if len(archflags) > 0:
@@ -45,18 +50,29 @@ def build():
         if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
             args.append("--macos_minimum_os=" +
                         os.environ["MACOSX_DEPLOYMENT_TARGET"])
-
+    elif sys.platform == "linux":
+        args.append('--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=1')
     full_cmd = ['bazel', 'build', *args, '//...:all']
     logging.info("Running command: %s" % full_cmd)
-    subprocess.run(full_cmd, cwd=bazel_workspace_root,
-                   check=True, env=env_vars)
+    try:
+        subprocess.run(full_cmd, cwd=bazel_workspace_root,
+                       check=True, env=env_vars)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        logging.error("Failed with return code %d" % return_code)
+        sys.exit(1)
     logging.info("Build completed")
 
 
 def collect_files():
     logging.info("Running script to collect files...")
-    subprocess.run([sys.executable, 'collect_files.py'],
-                   cwd=base_dir)
+    try:
+        subprocess.run([sys.executable, 'collect_files.py'],
+                       cwd=base_dir)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        logging.error("Failed with return code %d" % return_code)
+        sys.exit(1)
     logging.info("Files collected")
 
 
@@ -64,22 +80,20 @@ def merge_libs():
     logging.info("Merging objects to shared lib...")
 
     if sys.platform == 'darwin':
-
         cxx = "clang++"
-        output_name = "libgraphflowdb.dylib"
+        output_name = "libkuzu.dylib"
         archflags = os.getenv("ARCHFLAGS", "")
         if "arm64" in archflags and platform.machine() == "x86_64":
             additional_args = ["--target=arm64-apple-darwin"]
         else:
             additional_args = []
         linker_args = ["-dynamiclib", "-undefined", "dynamic_lookup",
-                       "-Wl,-install_name,@rpath/libgraphflowdb.dylib"]
-
-    else:
+                       "-Wl,-install_name,@rpath/libkuzu.dylib"]
+    elif sys.platform == "linux":
         cxx = "g++"
-        output_name = "libgraphflowdb.so"
+        output_name = "libkuzu.so"
         additional_args = []
-        linker_args = ["-shared", "-fPIC", "-Wl,-soname,libgraphflowdb.so"]
+        linker_args = ["-shared", "-fPIC", "-Wl,-soname,libkuzu.so"]
 
     output_path = os.path.realpath(os.path.join(base_dir, output_name))
     input_files = []
@@ -91,7 +105,12 @@ def merge_libs():
     cxx_cmd = [cxx, *additional_args, *linker_args, "-o", output_path]
     logging.debug("Running command: %s (input objects truncated)..." % cxx_cmd)
     cxx_cmd.extend(input_files)
-    subprocess.run(cxx_cmd, cwd=base_dir, env=env_vars, check=True)
+    try:
+        subprocess.run(cxx_cmd, cwd=base_dir, env=env_vars, check=True)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        logging.error("Failed with return code %d" % return_code)
+        sys.exit(1)
     logging.info("Shared lib merged")
 
 

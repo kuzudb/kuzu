@@ -1,6 +1,6 @@
 #include "include/scan_column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> BaseScanColumn::init(ExecutionContext* context) {
@@ -11,4 +11,4 @@ shared_ptr<ResultSet> BaseScanColumn::init(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

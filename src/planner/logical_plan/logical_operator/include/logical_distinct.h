@@ -3,7 +3,7 @@
 #include "base_logical_operator.h"
 #include "schema.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalDistinct : public LogicalOperator {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

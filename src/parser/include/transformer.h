@@ -13,7 +13,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class Transformer {
@@ -34,7 +34,7 @@ private:
 
     unique_ptr<SingleQuery> transformSinglePartQuery(CypherParser::OC_SinglePartQueryContext& ctx);
 
-    unique_ptr<QueryPart> transformQueryPart(CypherParser::GF_QueryPartContext& ctx);
+    unique_ptr<QueryPart> transformQueryPart(CypherParser::KU_QueryPartContext& ctx);
 
     unique_ptr<UpdatingClause> transformUpdatingClause(CypherParser::OC_UpdatingClauseContext& ctx);
 
@@ -84,7 +84,7 @@ private:
         CypherParser::OC_RelationshipPatternContext& ctx);
 
     vector<pair<string, unique_ptr<ParsedExpression>>> transformProperties(
-        CypherParser::GF_PropertiesContext& ctx);
+        CypherParser::KU_PropertiesContext& ctx);
 
     string transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx);
 
@@ -179,29 +179,29 @@ private:
 
     unique_ptr<DDL> transformDDL();
 
-    unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::GF_CreateNodeContext& ctx);
+    unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
 
-    unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::GF_CreateRelContext& ctx);
+    unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);
 
-    unique_ptr<DropTable> transformDropTable(CypherParser::GF_DropTableContext& ctx);
+    unique_ptr<DropTable> transformDropTable(CypherParser::KU_DropTableContext& ctx);
 
-    string transformDataType(CypherParser::GF_DataTypeContext& ctx);
+    string transformDataType(CypherParser::KU_DataTypeContext& ctx);
 
-    string transformListIdentifiers(CypherParser::GF_ListIdentifiersContext& ctx);
+    string transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx);
 
-    string transformPrimaryKey(CypherParser::GF_CreateNodeConstraintContext& ctx);
+    string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
 
     vector<pair<string, string>> transformPropertyDefinitions(
-        CypherParser::GF_PropertyDefinitionsContext& ctx);
+        CypherParser::KU_PropertyDefinitionsContext& ctx);
 
-    RelConnection transformRelConnection(CypherParser::GF_RelConnectionsContext& ctx);
+    RelConnection transformRelConnection(CypherParser::KU_RelConnectionsContext& ctx);
 
-    vector<string> transformNodeLabels(CypherParser::GF_NodeLabelsContext& ctx);
+    vector<string> transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx);
 
     unique_ptr<CopyCSV> transformCopyCSV();
 
     unordered_map<string, unique_ptr<ParsedExpression>> transformParsingOptions(
-        CypherParser::GF_ParsingOptionsContext& ctx);
+        CypherParser::KU_ParsingOptionsContext& ctx);
 
     string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
 
@@ -210,4 +210,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -6,7 +6,7 @@
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/include/storage_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 // VersionedFileHandle is the in-memory representation of a file whose pages can have multiple
@@ -75,4 +75,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

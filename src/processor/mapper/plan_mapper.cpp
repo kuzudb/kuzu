@@ -6,9 +6,9 @@
 
 #include "src/processor/operator/include/result_collector.h"
 
-using namespace graphflow::planner;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan) {
@@ -148,4 +148,4 @@ unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

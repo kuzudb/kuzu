@@ -4,7 +4,7 @@
 
 #include "src/common/include/vector/value_vector.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct ConstOperationExecutor {
@@ -20,4 +20,4 @@ struct ConstOperationExecutor {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

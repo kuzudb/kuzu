@@ -2,7 +2,7 @@
 
 #include "src/function/include/vector_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 class VectorTimestampOperations : public VectorOperations {};
 
@@ -19,4 +19,4 @@ struct ToTimestampVectorOperation : public VectorTimestampOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

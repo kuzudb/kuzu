@@ -15,14 +15,14 @@
 #include "src/function/include/built_in_vector_operations.h"
 #include "src/storage/wal/include/wal.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function;
+using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
 typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
@@ -214,4 +214,4 @@ protected:
 };
 
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 
 #include "src/processor/operator/hash_join/include/hash_join_build.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class IntersectSharedState : public HashJoinSharedState {
@@ -26,7 +26,7 @@ public:
 
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<IntersectBuild>(
-            gf_reinterpret_pointer_cast<HashJoinSharedState, IntersectSharedState>(sharedState),
+            ku_reinterpret_pointer_cast<HashJoinSharedState, IntersectSharedState>(sharedState),
             buildDataInfo, children[0]->clone(), id, paramsString);
     }
 
@@ -36,4 +36,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

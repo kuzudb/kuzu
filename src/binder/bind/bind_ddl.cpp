@@ -5,7 +5,7 @@
 #include "src/parser/ddl/include/create_node_clause.h"
 #include "src/parser/ddl/include/drop_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& statement) {
@@ -101,4 +101,4 @@ uint32_t Binder::bindPrimaryKey(
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

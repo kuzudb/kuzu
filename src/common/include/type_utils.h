@@ -4,7 +4,7 @@
 #include "src/common/types/include/types_include.h"
 #include "src/common/types/include/value.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class TypeUtils {
@@ -24,9 +24,9 @@ public:
     static inline string toString(const date_t& val) { return Date::toString(val); }
     static inline string toString(const timestamp_t& val) { return Timestamp::toString(val); }
     static inline string toString(const interval_t& val) { return Interval::toString(val); }
-    static inline string toString(const gf_string_t& val) { return val.getAsString(); }
+    static inline string toString(const ku_string_t& val) { return val.getAsString(); }
     static inline string toString(const string& val) { return val; }
-    static string toString(const gf_list_t& val, const DataType& dataType);
+    static string toString(const ku_list_t& val, const DataType& dataType);
     static string toString(const Literal& literal);
     static string toString(const Value& val);
 
@@ -58,7 +58,7 @@ private:
 };
 
 template<>
-inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const DataType& leftDataType,
+inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const DataType& leftDataType,
     const DataType& rightDataType) {
     if (leftDataType != rightDataType || left.size != right.size) {
         return false;
@@ -88,8 +88,8 @@ inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const Dat
             }
         } break;
         case STRING: {
-            if (!isValueEqual(reinterpret_cast<gf_string_t*>(left.overflowPtr)[i],
-                    reinterpret_cast<gf_string_t*>(right.overflowPtr)[i], *leftDataType.childType,
+            if (!isValueEqual(reinterpret_cast<ku_string_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<ku_string_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
@@ -116,8 +116,8 @@ inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const Dat
             }
         } break;
         case LIST: {
-            if (!isValueEqual(reinterpret_cast<gf_list_t*>(left.overflowPtr)[i],
-                    reinterpret_cast<gf_list_t*>(right.overflowPtr)[i], *leftDataType.childType,
+            if (!isValueEqual(reinterpret_cast<ku_list_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<ku_list_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
@@ -131,4 +131,4 @@ inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const Dat
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -10,13 +10,13 @@
 #include "src/storage/storage_structure/include/lists/lists_metadata.h"
 #include "src/storage/storage_structure/include/storage_structure.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 class CopyCSVEmptyListsTest;
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 struct InMemList {
@@ -82,7 +82,7 @@ struct ListHandle {
  * actual physical location in the Lists file on disk.
  * */
 class Lists : public BaseColumnOrList {
-    friend class graphflow::testing::CopyCSVEmptyListsTest;
+    friend class kuzu::testing::CopyCSVEmptyListsTest;
     friend class ListsUpdateIterator;
     friend class ListsUpdateIteratorFactory;
 
@@ -309,4 +309,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

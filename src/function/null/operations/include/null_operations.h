@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -22,4 +22,4 @@ struct IsNotNull {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

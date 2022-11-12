@@ -4,7 +4,7 @@
 
 #include "src/binder/expression/include/node_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalPlanUtil {
@@ -46,4 +46,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

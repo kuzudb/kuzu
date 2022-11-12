@@ -1,8 +1,8 @@
 #include "test/test_utility/include/test_helper.h"
 #include "tools/join_order_pick/include/jo_connection.h"
 
-using namespace graphflow::main;
-using namespace graphflow::testing;
+using namespace kuzu::main;
+using namespace kuzu::testing;
 using ::testing::Test;
 
 class JoinOrderPickTest : public Test {

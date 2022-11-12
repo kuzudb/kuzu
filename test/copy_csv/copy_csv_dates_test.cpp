@@ -1,9 +1,9 @@
 #include "test/test_utility/include/test_helper.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 class TinySnbCopyCSVDateTest : public InMemoryDBTest {
     string getInputCSVDir() override { return "dataset/tinysnb/"; }

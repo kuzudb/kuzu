@@ -1,6 +1,6 @@
 #include "src/planner/logical_plan/logical_operator/include/schema.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 uint32_t Schema::createGroup() {
@@ -93,4 +93,4 @@ void Schema::clear() {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

@@ -7,7 +7,7 @@
 #include "src/common/include/null_mask.h"
 #include "src/common/types/include/literal.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 //! A Vector represents values of the same data type.
@@ -98,4 +98,4 @@ public:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -8,9 +8,9 @@
 #include "src/common/types/include/node_id_t.h"
 #include "src/storage/include/node_id_compression_scheme.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class InMemPage {
@@ -42,4 +42,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

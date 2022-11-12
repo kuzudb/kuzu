@@ -1,7 +1,7 @@
 #include "test/test_utility/include/test_helper.h"
 
 using ::testing::Test;
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class LongStringPKTest : public DBTest {
     string getInputCSVDir() override { return "dataset/long-string-pk-tests/"; }

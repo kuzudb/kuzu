@@ -3,7 +3,7 @@
 #include "src/processor/operator/aggregate/include/aggregate_hash_table.h"
 #include "src/processor/operator/aggregate/include/base_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class SimpleAggregateSharedState : public BaseAggregateSharedState {
@@ -51,4 +51,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

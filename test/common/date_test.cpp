@@ -4,7 +4,7 @@
 
 #include "src/common/types/include/types_include.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
 TEST(DateTests, IsLeapYearTest) {

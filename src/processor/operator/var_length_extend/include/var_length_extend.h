@@ -4,9 +4,9 @@
 #include "src/processor/result/include/result_set.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct DFSLevelInfo {
@@ -44,4 +44,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

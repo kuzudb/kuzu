@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class Exception : public exception {
@@ -85,4 +85,4 @@ public:
     explicit TransactionManagerException(const string& msg) : Exception(msg){};
 };
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

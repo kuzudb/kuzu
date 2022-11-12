@@ -11,14 +11,14 @@
 #include "src/common/include/file_utils.h"
 #include "src/common/types/include/types.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using lock_t = unique_lock<mutex>;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class BufferPool;
@@ -140,4 +140,4 @@ protected:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

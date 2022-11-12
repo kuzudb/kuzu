@@ -4,7 +4,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
 #include "src/processor/operator/table_scan/include/factorized_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
@@ -49,4 +49,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

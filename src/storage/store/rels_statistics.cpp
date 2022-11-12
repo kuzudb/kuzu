@@ -1,6 +1,6 @@
 #include "src/storage/store/include/rels_statistics.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 RelStatistics::RelStatistics(SrcDstTableIDs srcDstTableIDs) : TableStatistics{0} {
@@ -113,4 +113,4 @@ void RelsStatistics::serializeTableStatistics(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

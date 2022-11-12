@@ -2,7 +2,7 @@
 
 #include "src/common/types/include/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionContext& context)
@@ -102,4 +102,4 @@ bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

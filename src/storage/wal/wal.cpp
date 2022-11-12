@@ -5,7 +5,7 @@
 #include "src/common/include/utils.h"
 #include "src/storage/include/storage_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 WAL::WAL(const string& directory, BufferManager& bufferManager)
@@ -184,4 +184,4 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

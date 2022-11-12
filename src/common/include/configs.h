@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
@@ -111,4 +111,4 @@ struct EnumeratorKnobs {
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "src/common/include/exception.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 using namespace std;
 
 class CopyCSVFaultTest : public EmptyDBTest {

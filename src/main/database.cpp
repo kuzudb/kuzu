@@ -5,7 +5,7 @@
 #include "src/common/include/configs.h"
 #include "src/storage/include/wal_replayer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig)
@@ -164,4 +164,4 @@ void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpo
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

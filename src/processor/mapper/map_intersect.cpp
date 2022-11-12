@@ -4,9 +4,9 @@
 #include "src/processor/operator/intersect/include/intersect.h"
 #include "src/processor/operator/intersect/include/intersect_build.h"
 
-using namespace graphflow::planner;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
@@ -56,4 +56,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

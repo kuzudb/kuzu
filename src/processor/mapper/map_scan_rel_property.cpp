@@ -4,7 +4,7 @@
 #include "src/processor/operator/scan_column/include/scan_structured_property.h"
 #include "src/processor/operator/scan_list/include/scan_rel_property_list.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
@@ -33,4 +33,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

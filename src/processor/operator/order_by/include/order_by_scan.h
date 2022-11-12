@@ -4,7 +4,7 @@
 #include "src/processor/operator/include/source_operator.h"
 #include "src/processor/operator/order_by/include/order_by.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct MergedKeyBlockScanState {
@@ -64,4 +64,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

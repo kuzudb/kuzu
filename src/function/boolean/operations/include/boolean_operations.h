@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -124,4 +124,4 @@ struct Not {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

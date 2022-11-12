@@ -2,7 +2,7 @@
 
 #include "src/storage/storage_structure/include/storage_structure_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemList) {
@@ -331,4 +331,4 @@ void ListsUpdateIterator::writeAtOffset(InMemList& inMemList, page_idx_t pageLis
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

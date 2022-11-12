@@ -6,9 +6,9 @@
 #include "src/common/include/configs.h"
 #include "src/common/types/include/types_include.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
 struct SrcDstTableIDs {
@@ -163,4 +163,4 @@ struct RelTableSchema : TableSchema {
     SrcDstTableIDs srcDstTableIDs;
 };
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

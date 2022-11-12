@@ -1,6 +1,6 @@
 #include "include/order_by.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
@@ -103,4 +103,4 @@ void OrderBy::execute(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

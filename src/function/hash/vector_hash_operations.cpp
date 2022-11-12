@@ -3,7 +3,7 @@
 #include "src/function/include/binary_operation_executor.h"
 #include "src/function/include/unary_operation_executor.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result) {
@@ -22,7 +22,7 @@ void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result
         UnaryHashOperationExecutor::execute<double, hash_t>(*operand, *result);
     } break;
     case STRING: {
-        UnaryHashOperationExecutor::execute<gf_string_t, hash_t>(*operand, *result);
+        UnaryHashOperationExecutor::execute<ku_string_t, hash_t>(*operand, *result);
     } break;
     case DATE: {
         UnaryHashOperationExecutor::execute<date_t, hash_t>(*operand, *result);
@@ -52,4 +52,4 @@ void VectorHashOperations::combineHash(ValueVector* left, ValueVector* right, Va
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

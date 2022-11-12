@@ -5,9 +5,9 @@
 #include "src/function/aggregate/include/base_count.h"
 #include "src/function/hash/include/vector_hash_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
@@ -680,7 +680,7 @@ compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID ty
         return compareEntryWithKeys<double_t>;
     }
     case STRING: {
-        return compareEntryWithKeys<gf_string_t>;
+        return compareEntryWithKeys<ku_string_t>;
     }
     case DATE: {
         return compareEntryWithKeys<date_t>;
@@ -892,4 +892,4 @@ vector<unique_ptr<AggregateHashTable>> AggregateHashTableUtils::createDistinctHa
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

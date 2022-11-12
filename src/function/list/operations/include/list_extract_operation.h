@@ -3,13 +3,13 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_list.h"
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_list.h"
+#include "src/common/types/include/ku_string.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -24,7 +24,7 @@ public:
     // is 1).
     template<typename T>
     static inline void operation(
-        gf_list_t& list, int64_t pos, T& result, ValueVector& resultValueVector) {
+        ku_list_t& list, int64_t pos, T& result, ValueVector& resultValueVector) {
         auto uint64Pos = (uint64_t)pos;
         if (list.size < uint64Pos) {
             throw RuntimeException("list_extract(list, index): index=" + TypeUtils::toString(pos) +
@@ -35,7 +35,7 @@ public:
         setValue(values[uint64Pos - 1], result, resultValueVector);
     }
 
-    static inline void operation(gf_string_t& str, int64_t& idx, gf_string_t& result) {
+    static inline void operation(ku_string_t& str, int64_t& idx, ku_string_t& result) {
         auto pos = idx > 0 ? min(idx, (int64_t)str.len) : max(str.len + idx, (int64_t)0) + 1;
         result.set((char*)(str.getData() + pos - 1), 1 /* length */);
     }
@@ -55,8 +55,8 @@ public:
 
 template<>
 inline void ListExtract::setValue(
-    gf_string_t& src, gf_string_t& dest, ValueVector& resultValueVector) {
-    if (!gf_string_t::isShortString(src.len)) {
+    ku_string_t& src, ku_string_t& dest, ValueVector& resultValueVector) {
+    if (!ku_string_t::isShortString(src.len)) {
         dest.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace(src.len));
     }
@@ -64,11 +64,11 @@ inline void ListExtract::setValue(
 }
 
 template<>
-inline void ListExtract::setValue(gf_list_t& src, gf_list_t& dest, ValueVector& resultValueVector) {
+inline void ListExtract::setValue(ku_list_t& src, ku_list_t& dest, ValueVector& resultValueVector) {
     InMemOverflowBufferUtils::copyListRecursiveIfNested(
         src, dest, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
 }
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

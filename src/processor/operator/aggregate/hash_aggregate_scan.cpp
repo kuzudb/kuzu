@@ -1,6 +1,6 @@
 #include "include/hash_aggregate_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> HashAggregateScan::init(ExecutionContext* context) {
@@ -43,4 +43,4 @@ bool HashAggregateScan::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

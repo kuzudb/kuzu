@@ -2,7 +2,7 @@
 
 #include "tools/benchmark/include/benchmark.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 // Class stores information of a benchmark
@@ -29,4 +29,4 @@ public:
 };
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "interval_t.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 struct timestamp_t;
@@ -111,4 +111,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

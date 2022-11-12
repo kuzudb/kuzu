@@ -1,6 +1,6 @@
 #include "include/sink_util.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 void SinkOperatorUtil::mergeSchema(
@@ -111,4 +111,4 @@ uint32_t SinkOperatorUtil::appendPayloadsToNewGroup(Schema& schema, expression_v
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

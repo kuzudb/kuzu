@@ -1,6 +1,6 @@
 #include "include/multiplicity_reducer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 bool MultiplicityReducer::getNextTuples() {
@@ -23,4 +23,4 @@ bool MultiplicityReducer::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

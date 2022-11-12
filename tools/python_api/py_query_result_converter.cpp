@@ -1,7 +1,7 @@
 #include "include/py_query_result_converter.h"
 
 #include "include/py_query_result.h"
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
     : type{type}, numElements{0} {

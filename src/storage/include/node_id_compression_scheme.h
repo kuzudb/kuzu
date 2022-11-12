@@ -4,7 +4,7 @@
 
 #include "src/common/types/include/types_include.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 class NodeIDCompressionScheme {
@@ -28,4 +28,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

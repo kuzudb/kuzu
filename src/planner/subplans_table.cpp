@@ -2,7 +2,7 @@
 
 #include "src/common/include/assert.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 const uint64_t MAX_NUM_PLANS_PER_SUBGRAPH = 100;
@@ -22,7 +22,7 @@ bool SubPlansTable::containSubgraphPlans(const SubqueryGraph& subqueryGraph) con
 vector<unique_ptr<LogicalPlan>>& SubPlansTable::getSubgraphPlans(
     const SubqueryGraph& subqueryGraph) {
     auto subqueryGraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
-    GF_ASSERT(subqueryGraphPlansMap->contains(subqueryGraph));
+    KU_ASSERT(subqueryGraphPlansMap->contains(subqueryGraph));
     return subqueryGraphPlansMap->at(subqueryGraph);
 }
 
@@ -63,4 +63,4 @@ void SubPlansTable::clear() {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

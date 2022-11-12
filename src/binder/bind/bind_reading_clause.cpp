@@ -2,7 +2,7 @@
 #include "src/binder/query/reading_clause/include/bound_unwind_clause.h"
 #include "src/parser/query/reading_clause/include/unwind_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
@@ -54,4 +54,4 @@ unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& rea
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

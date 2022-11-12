@@ -2,7 +2,7 @@
 
 #include "src/parser/expression/include/parsed_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ProjectionBody {
@@ -68,4 +68,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

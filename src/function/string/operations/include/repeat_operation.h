@@ -3,28 +3,28 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Repeat {
 public:
     static inline void operation(
-        gf_string_t& left, int64_t& right, gf_string_t& result, ValueVector& resultValueVector) {
+        ku_string_t& left, int64_t& right, ku_string_t& result, ValueVector& resultValueVector) {
         result.len = left.len * right;
-        if (result.len <= gf_string_t::SHORT_STR_LENGTH) {
+        if (result.len <= ku_string_t::SHORT_STR_LENGTH) {
             repeatStr((char*)result.prefix, left.getAsString(), right);
         } else {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 resultValueVector.getOverflowBuffer().allocateSpace(result.len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             repeatStr(buffer, left.getAsString(), right);
-            memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
+            memcpy(result.prefix, buffer, ku_string_t::PREFIX_LENGTH);
         }
     }
 
@@ -38,4 +38,4 @@ private:
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

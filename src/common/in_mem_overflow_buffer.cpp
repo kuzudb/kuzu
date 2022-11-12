@@ -1,6 +1,6 @@
 #include "src/common/include/in_mem_overflow_buffer.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
@@ -21,4 +21,4 @@ void InMemOverflowBuffer::allocateNewBlock() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

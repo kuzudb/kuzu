@@ -5,9 +5,9 @@
 #include "src/common/include/file_utils.h"
 #include "src/common/include/utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 FileHandle::FileHandle(const string& path, uint8_t flags)
@@ -108,4 +108,4 @@ void FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(page_idx_t pageI
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -8,10 +8,10 @@
 
 #include "src/binder/expression/include/expression.h"
 
-using namespace graphflow::common;
-using namespace graphflow::binder;
+using namespace kuzu::common;
+using namespace kuzu::binder;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 // Forward declaration of VectorOperationDefinition.
@@ -95,4 +95,4 @@ public:
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

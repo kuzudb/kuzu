@@ -7,9 +7,9 @@
 #include "src/processor/operator/include/result_collector.h"
 #include "src/processor/operator/include/sink.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
@@ -98,15 +98,15 @@ shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     auto outputMsgVector = make_shared<ValueVector>(STRING, memoryManager);
     auto outputMsgChunk = make_shared<DataChunk>(1 /* numValueVectors */);
     outputMsgChunk->insert(0 /* pos */, outputMsgVector);
-    gf_string_t outputGFStr = gf_string_t();
-    outputGFStr.overflowPtr = reinterpret_cast<uint64_t>(
+    ku_string_t outputKUStr = ku_string_t();
+    outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
         outputMsgVector->getOverflowBuffer().allocateSpace(outputMsg.length()));
-    outputGFStr.set(outputMsg);
-    ((gf_string_t*)outputMsgVector->values)[0] = outputGFStr;
+    outputKUStr.set(outputMsg);
+    ((ku_string_t*)outputMsgVector->values)[0] = outputKUStr;
     outputMsgVector->state->currIdx = 0;
     factorizedTable->append(vector<shared_ptr<ValueVector>>{outputMsgVector});
     return factorizedTable;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

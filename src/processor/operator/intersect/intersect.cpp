@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
@@ -185,4 +185,4 @@ bool Intersect::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

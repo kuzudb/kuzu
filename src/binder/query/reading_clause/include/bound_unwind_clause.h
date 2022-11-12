@@ -4,7 +4,7 @@
 
 #include "src/binder/expression/include/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundUnwindClause : public BoundReadingClause {
@@ -42,4 +42,4 @@ private:
     shared_ptr<Expression> aliasExpression;
 };
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

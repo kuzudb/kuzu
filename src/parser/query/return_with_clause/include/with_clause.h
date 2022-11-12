@@ -2,7 +2,7 @@
 
 #include "return_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 /**
@@ -28,4 +28,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

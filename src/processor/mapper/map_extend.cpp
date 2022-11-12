@@ -6,7 +6,7 @@
 #include "src/processor/operator/var_length_extend/include/var_length_adj_list_extend.h"
 #include "src/processor/operator/var_length_extend/include/var_length_column_extend.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
@@ -46,4 +46,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

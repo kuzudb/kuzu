@@ -1,6 +1,6 @@
 #include "src/binder/include/binder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 // A graph pattern contains node/rel and a set of key-value pairs associated with the variable. We
@@ -100,7 +100,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         auto otherTableID = bindNodeTable(nodePattern.getTableName());
-        GF_ASSERT(queryNode->getTableID() != ANY_TABLE_ID);
+        KU_ASSERT(queryNode->getTableID() != ANY_TABLE_ID);
         if (otherTableID != ANY_TABLE_ID && queryNode->getTableID() != otherTableID) {
             throw BinderException(
                 "Multi-table is not supported. Node " + parsedName + " is given multiple tables.");
@@ -136,4 +136,4 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

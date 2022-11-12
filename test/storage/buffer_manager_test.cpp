@@ -2,7 +2,7 @@
 
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class BufferManagerTests : public Test {
 

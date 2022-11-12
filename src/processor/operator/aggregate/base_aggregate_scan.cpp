@@ -1,6 +1,6 @@
 #include "include/base_aggregate_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> BaseAggregateScan::init(ExecutionContext* context) {
@@ -26,4 +26,4 @@ void BaseAggregateScan::writeAggregateResultToVector(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

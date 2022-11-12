@@ -2,7 +2,7 @@
 
 #include "src/function/include/vector_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class VectorArithmeticOperations : public VectorOperations {
@@ -232,4 +232,4 @@ struct TanVectorOperation : public VectorArithmeticOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void HashJoinSharedState::initEmptyHashTableIfNecessary(MemoryManager& memoryManager,
@@ -80,4 +80,4 @@ void HashJoinBuild::execute(ExecutionContext* context) {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

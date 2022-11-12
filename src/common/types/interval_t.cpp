@@ -6,7 +6,7 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 bool interval_t::operator>(const interval_t& rhs) const {
@@ -95,8 +95,8 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
     addition(result, number, specifierStr);
 }
 
-interval_t Interval::FromCString(const char* gf_str, uint64_t len) {
-    string str = string(gf_str, len);
+interval_t Interval::FromCString(const char* ku_str, uint64_t len) {
+    string str = string(ku_str, len);
     interval_t result;
     uint64_t pos = 0;
     result.days = 0;
@@ -226,4 +226,4 @@ int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& inter
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

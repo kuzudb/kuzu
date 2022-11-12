@@ -5,9 +5,9 @@
 #include "src/function/arithmetic/operations/include/arithmetic_operations.h"
 
 using namespace std;
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 template<typename T>
@@ -94,4 +94,4 @@ inline void AvgFunction<Value>::finalize(uint8_t* state_) {
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

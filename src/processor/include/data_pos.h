@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct DataPos {
@@ -23,4 +23,4 @@ public:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

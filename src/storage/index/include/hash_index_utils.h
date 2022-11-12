@@ -6,9 +6,9 @@
 #include "src/storage/storage_structure/include/disk_overflow_file.h"
 #include "src/storage/storage_structure/include/in_mem_file.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using insert_function_t =
@@ -39,8 +39,8 @@ private:
     }
     inline static void insertFuncForString(const uint8_t* key, node_offset_t offset, uint8_t* entry,
         InMemOverflowFile* inMemOverflowFile) {
-        auto gfString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
-        memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
+        auto kuString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
+        memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
@@ -62,8 +62,8 @@ public:
     }
     inline static void insertFuncForString(
         const uint8_t* key, node_offset_t offset, uint8_t* entry, DiskOverflowFile* overflowFile) {
-        auto gfString = overflowFile->writeString((const char*)key);
-        memcpy(entry, &gfString, NUM_BYTES_FOR_STRING_KEY);
+        auto kuString = overflowFile->writeString((const char*)key);
+        memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
     }
     static insert_function_t initializeInsertFunc(DataTypeID dataTypeID);
@@ -83,7 +83,7 @@ public:
 
     // EqualsFunc
     static bool isStringPrefixAndLenEquals(
-        const uint8_t* keyToLookup, const gf_string_t* keyInEntry);
+        const uint8_t* keyToLookup, const ku_string_t* keyInEntry);
     inline static bool equalsFuncForInt64(TransactionType trxType, const uint8_t* keyToLookup,
         const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
         return *(int64_t*)keyToLookup == *(int64_t*)keyInEntry;
@@ -93,4 +93,4 @@ public:
     static equals_function_t initializeEqualsFunc(DataTypeID dataTypeID);
 };
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

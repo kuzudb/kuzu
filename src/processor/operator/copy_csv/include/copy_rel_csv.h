@@ -3,7 +3,7 @@
 #include "src/processor/operator/copy_csv/include/copy_csv.h"
 #include "src/storage/store/include/rels_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CopyRelCSV : public CopyCSV {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
 TEST(ValueVectorTests, TestDefaultHasNull) {

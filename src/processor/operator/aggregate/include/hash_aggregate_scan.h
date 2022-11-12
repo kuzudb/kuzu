@@ -3,7 +3,7 @@
 #include "src/processor/operator/aggregate/include/base_aggregate_scan.h"
 #include "src/processor/operator/aggregate/include/hash_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class HashAggregateScan : public BaseAggregateScan {
@@ -49,4 +49,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

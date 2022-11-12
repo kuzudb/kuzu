@@ -7,7 +7,7 @@
 using namespace std;
 using namespace antlr4;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class ParserErrorListener : public BaseErrorListener {
@@ -22,4 +22,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

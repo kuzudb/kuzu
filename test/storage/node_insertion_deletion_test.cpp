@@ -2,8 +2,8 @@
 
 #include "src/storage/include/wal_replayer.h"
 
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 // Note: ID and nodeOffset in this test are equal for each node, so we use nodeID and nodeOffset
 // interchangeably.

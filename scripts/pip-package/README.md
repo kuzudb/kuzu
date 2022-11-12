@@ -2,7 +2,7 @@
 ```
 chmod +x package_tar.sh
 ./package_tar.sh
-pip install graphflowdb.tar.gz    
+pip install kuzu.tar.gz    
 ```
 
 Note: installing from source requires the full toolchain for building the project, including bazel, OpenJDK, and a compiler compatible with C++20. The package works for both Linux and macOS.
@@ -13,14 +13,14 @@ The container for manylinux builder automatically builds and upload wheels compa
 
 ## Build
 ```
-docker build -t graphflow-self-hosted-linux-builder .
+docker build -t kuzu-self-hosted-linux-builder .
 ```
 
 ## Start container
 ```
 docker run  --name self-hosted-linux-builder --detach --restart=always\
             -e GITHUB_ACCESS_TOKEN=YOUR_GITHUB_ACCESS_TOKEN\
-            -e MACHINE_NAME=NAME_OF_THE_PHYSICAL_MACHINE graphflow-self-hosted-linux-builder
+            -e MACHINE_NAME=NAME_OF_THE_PHYSICAL_MACHINE kuzu-self-hosted-linux-builder
 ```
 
 Note: `GITHUB_ACCESS_TOKEN` is the account-level access token that can be acquired at [GitHub developer settings](https://github.com/settings/tokens).

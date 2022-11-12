@@ -1,7 +1,7 @@
 #include "test/test_utility/include/test_helper.h"
 
-using namespace graphflow::testing;
-using namespace graphflow::storage;
+using namespace kuzu::testing;
+using namespace kuzu::storage;
 
 class WALTests : public Test {
 

@@ -5,9 +5,9 @@
 #include "src/processor/operator/include/base_hash_table.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct HashSlot {
@@ -240,4 +240,4 @@ public:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

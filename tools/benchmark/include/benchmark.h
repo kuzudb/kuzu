@@ -3,11 +3,11 @@
 #include "tools/benchmark/include/benchmark_config.h"
 #include "tools/join_order_pick/include/jo_connection.h"
 
-#include "src/main/include/graphflowdb.h"
+#include "src/main/include/kuzu.h"
 
-using namespace graphflow::main;
+using namespace kuzu::main;
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 /**
@@ -36,4 +36,4 @@ public:
 };
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

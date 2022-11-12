@@ -3,9 +3,9 @@
 #include "src/common/include/type_utils.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 class TinySnbListTest : public InMemoryDBTest {
 

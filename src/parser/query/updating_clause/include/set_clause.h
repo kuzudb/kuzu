@@ -4,7 +4,7 @@
 
 #include "src/parser/expression/include/parsed_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 struct SetItem {
@@ -31,4 +31,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -4,7 +4,7 @@
 
 #include "src/processor/operator/aggregate/include/base_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class HashAggregateSharedState : public BaseAggregateSharedState {
@@ -68,4 +68,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

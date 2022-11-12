@@ -3,11 +3,11 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
@@ -15,7 +15,7 @@ namespace operation {
 // https://github.com/duckdb/duckdb/blob/master/src/function/scalar/string/contains.cpp
 
 struct Find {
-    static inline void operation(gf_string_t& left, gf_string_t& right, int64_t& result) {
+    static inline void operation(ku_string_t& left, ku_string_t& right, int64_t& result) {
         if (right.len == 0) {
             result = 1;
         } else if (right.len > left.len) {
@@ -44,4 +44,4 @@ private:
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

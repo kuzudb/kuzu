@@ -5,7 +5,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
@@ -111,4 +111,4 @@ void LogicalPlanUtil::encodeScanNodeID(LogicalOperator* logicalOperator, string&
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

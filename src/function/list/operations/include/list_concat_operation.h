@@ -3,24 +3,24 @@
 #include <cassert>
 #include <cstring>
 
-#include "src/common/types/include/gf_list.h"
+#include "src/common/types/include/ku_list.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct ListConcat {
 public:
     static inline void operation(
-        gf_list_t& left, gf_list_t& right, gf_list_t& result, ValueVector& resultValueVector) {
+        ku_list_t& left, ku_list_t& right, ku_list_t& result, ValueVector& resultValueVector) {
         auto elementSize = Types::getDataTypeSize(resultValueVector.dataType.childType->typeID);
         result.overflowPtr =
             reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(
                 (left.size + right.size) * elementSize));
-        gf_list_t tmpList1, tmpList2;
+        ku_list_t tmpList1, tmpList2;
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
             left, tmpList1, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
@@ -35,4 +35,4 @@ public:
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

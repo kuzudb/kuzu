@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 typedef uint16_t sel_t;
@@ -124,4 +124,4 @@ string getRelDirectionAsString(RelDirection relDirection);
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

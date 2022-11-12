@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 /**
@@ -26,4 +26,4 @@ struct BenchmarkConfig {
 };
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

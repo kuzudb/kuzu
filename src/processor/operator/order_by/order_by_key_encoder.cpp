@@ -6,9 +6,9 @@
 #include <cstdint>
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
@@ -69,7 +69,7 @@ uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
         return 2;
     case STRING:
         // 1 byte for null flag + 1 byte to indicate long/short string + 12 bytes for string prefix
-        return 2 + gf_string_t::SHORT_STR_LENGTH;
+        return 2 + ku_string_t::SHORT_STR_LENGTH;
     default:
         return 1 + Types::getDataTypeSize(dataType);
     }
@@ -211,7 +211,7 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
         return encodeTemplate<double>;
     }
     case STRING: {
-        return encodeTemplate<gf_string_t>;
+        return encodeTemplate<ku_string_t>;
     }
     case DATE: {
         return encodeTemplate<date_t>;
@@ -291,12 +291,12 @@ void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swa
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(gf_string_t data, uint8_t* resultPtr, bool swapBytes) {
-    // Only encode the prefix of gf_string.
+void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
+    // Only encode the prefix of ku_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
-        min((uint32_t)gf_string_t::SHORT_STR_LENGTH, data.len));
-    if (gf_string_t::isShortString(data.len)) {
-        memset(resultPtr + data.len, '\0', gf_string_t::SHORT_STR_LENGTH + 1 - data.len);
+        min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));
+    if (ku_string_t::isShortString(data.len)) {
+        memset(resultPtr + data.len, '\0', ku_string_t::SHORT_STR_LENGTH + 1 - data.len);
     } else {
         resultPtr[12] = UINT8_MAX;
     }
@@ -310,4 +310,4 @@ void OrderByKeyEncoder::encodeData(Value data, uint8_t* resultPtr, bool swapByte
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

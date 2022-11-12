@@ -6,7 +6,7 @@
 #include "src/processor/operator/include/source_operator.h"
 #include "src/storage/store/include/node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct Mask {
@@ -130,4 +130,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

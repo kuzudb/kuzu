@@ -7,7 +7,7 @@
 #include "src/common/include/task_system/task.h"
 #include "src/common/include/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 struct ScheduledTask {
@@ -95,4 +95,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

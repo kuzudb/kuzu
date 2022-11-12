@@ -4,7 +4,7 @@
 
 #include "src/common/types/include/literal.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class ParameterExpression : public Expression {
@@ -26,4 +26,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

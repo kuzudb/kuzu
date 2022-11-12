@@ -3,7 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/processor/operator/include/limit.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
@@ -17,4 +17,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

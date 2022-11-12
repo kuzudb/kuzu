@@ -1,6 +1,6 @@
 #include "src/storage/store/include/rels_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, BufferManager& bufferManager,
@@ -29,4 +29,4 @@ pair<vector<AdjLists*>, vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

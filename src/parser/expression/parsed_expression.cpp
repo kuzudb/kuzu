@@ -1,6 +1,6 @@
 #include "include/parsed_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 ParsedExpression::ParsedExpression(
@@ -29,4 +29,4 @@ bool ParsedExpression::equals(const ParsedExpression& other) const {
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

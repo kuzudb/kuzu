@@ -5,10 +5,10 @@
 #include "src/storage/buffer_manager/include/file_handle.h"
 #include "src/storage/buffer_manager/include/memory_manager.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-using namespace graphflow::storage;
+using namespace kuzu::storage;
 
 struct BufferBlock {
 public:
@@ -88,4 +88,4 @@ private:
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

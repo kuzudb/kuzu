@@ -1,10 +1,10 @@
 #pragma once
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
-void gfAssertInternal(bool condition, const char* condition_name, const char* file, int linenr);
+void kuAssertInternal(bool condition, const char* condition_name, const char* file, int linenr);
 
-#define GF_ASSERT(condition)                                                                       \
-    graphflow::common::gfAssertInternal(bool(condition), #condition, __FILE__, __LINE__)
+#define KU_ASSERT(condition)                                                                       \
+    kuzu::common::kuAssertInternal(bool(condition), #condition, __FILE__, __LINE__)
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

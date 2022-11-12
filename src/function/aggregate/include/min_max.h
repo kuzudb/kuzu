@@ -4,9 +4,9 @@
 
 #include "src/function/comparison/operations/include/comparison_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 template<typename T>
@@ -80,4 +80,4 @@ struct MinMaxFunction {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

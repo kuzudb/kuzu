@@ -1,6 +1,6 @@
 #include "include/limit.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 bool Limit::getNextTuples() {
@@ -34,4 +34,4 @@ bool Limit::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

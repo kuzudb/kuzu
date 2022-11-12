@@ -1,6 +1,6 @@
 #include "include/semi_masker.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> SemiMasker::init(ExecutionContext* context) {
@@ -32,4 +32,4 @@ bool SemiMasker::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

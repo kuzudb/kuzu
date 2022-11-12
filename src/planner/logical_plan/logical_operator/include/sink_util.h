@@ -2,9 +2,9 @@
 
 #include "schema.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
 // This class contains the logic for re-computing factorization structure after
 class SinkOperatorUtil {
@@ -42,4 +42,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

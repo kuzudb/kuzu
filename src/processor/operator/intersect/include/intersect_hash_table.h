@@ -2,7 +2,7 @@
 
 #include "src/processor/operator/hash_join/include/join_hash_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class IntersectHashTable : public JoinHashTable {
@@ -14,4 +14,4 @@ public:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

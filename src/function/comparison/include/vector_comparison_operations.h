@@ -4,7 +4,7 @@
 #include "src/function/comparison/operations/include/comparison_operations.h"
 #include "src/function/include/vector_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 class VectorComparisonOperations : public VectorOperations {
@@ -70,7 +70,7 @@ private:
         }
         case STRING: {
             assert(rightTypeID == STRING);
-            return BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, FUNC>;
+            return BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, FUNC>;
         }
         case NODE_ID: {
             assert(rightTypeID == NODE_ID);
@@ -146,7 +146,7 @@ private:
         }
         case STRING: {
             assert(rightTypeID == STRING);
-            return BinarySelectFunction<gf_string_t, gf_string_t, FUNC>;
+            return BinarySelectFunction<ku_string_t, ku_string_t, FUNC>;
         }
         case NODE_ID: {
             assert(rightTypeID == NODE_ID);
@@ -231,4 +231,4 @@ struct LessThanEqualsVectorOperation : public VectorComparisonOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

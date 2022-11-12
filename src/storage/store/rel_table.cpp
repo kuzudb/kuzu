@@ -2,9 +2,9 @@
 
 #include "spdlog/spdlog.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
@@ -259,4 +259,4 @@ string RelTable::inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTable
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

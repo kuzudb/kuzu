@@ -2,9 +2,9 @@
 
 #include "src/function/include/vector_operations.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct VectorListOperations : public VectorOperations {
@@ -45,35 +45,35 @@ struct VectorListOperations : public VectorOperations {
             vector<DataTypeID>{BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST}) {
             switch (rightTypeID) {
             case BOOL: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, uint8_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, uint8_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case INT64: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, int64_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, int64_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case DOUBLE: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, double_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, double_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case STRING: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, gf_string_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, ku_string_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case DATE: {
                 execFunc =
-                    BinaryListPosAndContainsExecFunction<gf_list_t, date_t, RESULT_TYPE, OPERATION>;
+                    BinaryListPosAndContainsExecFunction<ku_list_t, date_t, RESULT_TYPE, OPERATION>;
             } break;
             case TIMESTAMP: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, timestamp_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, timestamp_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case INTERVAL: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, interval_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, interval_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             case LIST: {
-                execFunc = BinaryListPosAndContainsExecFunction<gf_list_t, gf_list_t, RESULT_TYPE,
+                execFunc = BinaryListPosAndContainsExecFunction<ku_list_t, ku_list_t, RESULT_TYPE,
                     OPERATION>;
             } break;
             default: {
@@ -133,4 +133,4 @@ struct ListSliceVectorOperation : public VectorListOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

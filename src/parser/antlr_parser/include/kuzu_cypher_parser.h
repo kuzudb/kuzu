@@ -2,13 +2,13 @@
 
 #include "src/antlr4/CypherParser.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
-class GraphflowCypherParser : public CypherParser {
+class KuzuCypherParser : public CypherParser {
 
 public:
-    explicit GraphflowCypherParser(antlr4::TokenStream* input) : CypherParser(input) {}
+    explicit KuzuCypherParser(antlr4::TokenStream* input) : CypherParser(input) {}
 
     void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) override;
 
@@ -25,4 +25,4 @@ public:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/delete.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> DeleteNodeStructuredProperty::init(ExecutionContext* context) {
@@ -31,4 +31,4 @@ bool DeleteNodeStructuredProperty::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

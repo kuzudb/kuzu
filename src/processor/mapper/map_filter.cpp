@@ -3,7 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/processor/operator/include/filter.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
@@ -17,4 +17,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

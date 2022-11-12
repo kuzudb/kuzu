@@ -1,6 +1,6 @@
 #include "src/storage/wal/include/wal_record.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
@@ -166,4 +166,4 @@ void WALRecord::writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

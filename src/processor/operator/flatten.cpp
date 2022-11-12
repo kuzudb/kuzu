@@ -1,6 +1,6 @@
 #include "include/flatten.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
@@ -26,4 +26,4 @@ bool Flatten::getNextTuples() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

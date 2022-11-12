@@ -4,9 +4,9 @@
 
 #include "src/binder/expression/include/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
 class LogicalFTableScan : public LogicalOperator {
 public:
@@ -42,4 +42,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

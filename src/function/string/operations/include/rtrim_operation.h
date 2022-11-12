@@ -5,18 +5,18 @@
 
 #include "base_str_operation.h"
 
-#include "src/common/types/include/gf_string.h"
+#include "src/common/types/include/ku_string.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Rtrim {
     static inline void operation(
-        gf_string_t& input, gf_string_t& result, ValueVector& resultValueVector) {
+        ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector) {
         BaseStrOperation::operation(input, result, resultValueVector, rtrim);
     }
 
@@ -33,4 +33,4 @@ struct Rtrim {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

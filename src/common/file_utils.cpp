@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 unique_ptr<FileInfo> FileUtils::openFile(const string& path, int flags) {
@@ -117,4 +117,4 @@ void FileUtils::truncateFileToEmpty(FileInfo* fileInfo) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

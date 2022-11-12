@@ -3,9 +3,9 @@
 #include "src/function/aggregate/include/aggregate_function.h"
 #include "src/processor/operator/include/sink.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseAggregateSharedState {
@@ -53,4 +53,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

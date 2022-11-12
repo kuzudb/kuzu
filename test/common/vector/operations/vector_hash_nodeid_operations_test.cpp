@@ -4,8 +4,8 @@
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/function/include/unary_operation_executor.h"
 
-using namespace graphflow::common;
-using namespace graphflow::function;
+using namespace kuzu::common;
+using namespace kuzu::function;
 using namespace std;
 
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {

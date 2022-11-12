@@ -12,7 +12,7 @@ cc_library(
         "include/benchmark_runner.h",
     ],
     deps = [
-        "//src/main:graphflowdb",
+        "//src/main:kuzu",
         "//test/test_utility:test_helper",
         "//tools/join_order_pick:jo_connection",
     ],

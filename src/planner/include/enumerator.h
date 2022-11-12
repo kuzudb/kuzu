@@ -7,9 +7,9 @@
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/include/bound_statement.h"
 
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class Enumerator {
@@ -118,4 +118,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

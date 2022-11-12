@@ -3,9 +3,9 @@
 #include "src/function/cast/operations/include/cast_operations.h"
 #include "src/function/include/vector_operations.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 /**
@@ -55,4 +55,4 @@ struct CastToStringVectorOperation : public VectorCastOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

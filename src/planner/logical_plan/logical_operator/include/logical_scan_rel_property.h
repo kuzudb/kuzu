@@ -4,9 +4,9 @@
 
 #include "src/binder/expression/include/node_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
 class LogicalScanRelProperty : public LogicalOperator {
 public:
@@ -47,4 +47,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

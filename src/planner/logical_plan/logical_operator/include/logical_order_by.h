@@ -3,9 +3,9 @@
 #include "base_logical_operator.h"
 #include "schema.h"
 
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalOrderBy : public LogicalOperator {
@@ -43,4 +43,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

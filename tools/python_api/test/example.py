@@ -1,4 +1,4 @@
-from tools.python_api import _graphflowdb as gdb
+from tools.python_api import _kuzu as gdb
 
 
 databaseDir = "path_to_serialized_database"

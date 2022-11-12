@@ -4,7 +4,7 @@
 
 #include "src/common/include/type_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemFile::InMemFile(
@@ -44,14 +44,14 @@ void InMemFile::flush() {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-gf_string_t InMemOverflowFile::appendString(const char* rawString) {
-    gf_string_t result;
+ku_string_t InMemOverflowFile::appendString(const char* rawString) {
+    ku_string_t result;
     auto length = strlen(rawString);
     result.len = length;
-    if (length <= gf_string_t::SHORT_STR_LENGTH) {
+    if (length <= ku_string_t::SHORT_STR_LENGTH) {
         memcpy(result.prefix, rawString, length);
     } else {
-        memcpy(&result.prefix, rawString, gf_string_t::PREFIX_LENGTH);
+        memcpy(&result.prefix, rawString, ku_string_t::PREFIX_LENGTH);
         unique_lock lck{lock};
         // Allocate a new page if necessary.
         if (nextOffsetInPageToAppend + length >= DEFAULT_PAGE_SIZE) {
@@ -68,17 +68,17 @@ gf_string_t InMemOverflowFile::appendString(const char* rawString) {
     return result;
 }
 
-gf_string_t InMemOverflowFile::copyString(const char* rawString, PageByteCursor& overflowCursor) {
-    gf_string_t gfString;
-    gfString.len = strlen(rawString);
-    if (gfString.len <= gf_string_t::SHORT_STR_LENGTH) {
-        memcpy(gfString.prefix, rawString, gfString.len);
-        return gfString;
+ku_string_t InMemOverflowFile::copyString(const char* rawString, PageByteCursor& overflowCursor) {
+    ku_string_t kuString;
+    kuString.len = strlen(rawString);
+    if (kuString.len <= ku_string_t::SHORT_STR_LENGTH) {
+        memcpy(kuString.prefix, rawString, kuString.len);
+        return kuString;
     } else {
-        memcpy(&gfString.prefix, rawString, gf_string_t::PREFIX_LENGTH);
-        copyStringOverflow(overflowCursor, (uint8_t*)rawString, &gfString);
+        memcpy(&kuString.prefix, rawString, ku_string_t::PREFIX_LENGTH);
+        copyStringOverflow(overflowCursor, (uint8_t*)rawString, &kuString);
     }
-    return gfString;
+    return kuString;
 }
 
 void InMemOverflowFile::copyFixedSizedValuesToPages(
@@ -92,34 +92,34 @@ void InMemOverflowFile::copyFixedSizedValuesToPages(
 }
 
 template<DataTypeID DT>
-void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
+void InMemOverflowFile::copyVarSizedValuesToPages(ku_list_t& resultKUList,
     const Literal& listLiteral, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     assert(DT == STRING || DT == LIST);
     auto overflowPageOffset = overflowCursor.offsetInPage;
-    // Reserve space for gf_list or gf_string objects.
-    overflowCursor.offsetInPage += (resultGFList.size * numBytesOfListElement);
+    // Reserve space for ku_list or ku_string objects.
+    overflowCursor.offsetInPage += (resultKUList.size * numBytesOfListElement);
     if constexpr (DT == STRING) {
-        vector<gf_string_t> gfStrings(listLiteral.listVal.size());
+        vector<ku_string_t> kuStrings(listLiteral.listVal.size());
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             assert(listLiteral.listVal[i].dataType.typeID == STRING);
-            gfStrings[i] = copyString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
+            kuStrings[i] = copyString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             pages[overflowCursor.pageIdx]->write(overflowPageOffset + (i * numBytesOfListElement),
-                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfStrings[i],
+                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&kuStrings[i],
                 numBytesOfListElement);
         }
     } else if (DT == LIST) {
-        vector<gf_list_t> gfLists(listLiteral.listVal.size());
+        vector<ku_list_t> kuLists(listLiteral.listVal.size());
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             assert(listLiteral.listVal[i].dataType.typeID == LIST);
-            gfLists[i] = copyList(listLiteral.listVal[i], overflowCursor);
+            kuLists[i] = copyList(listLiteral.listVal[i], overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
             pages[overflowCursor.pageIdx]->write(overflowPageOffset + (i * numBytesOfListElement),
-                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfLists[i],
+                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&kuLists[i],
                 numBytesOfListElement);
         }
     } else {
@@ -127,21 +127,21 @@ void InMemOverflowFile::copyVarSizedValuesToPages(gf_list_t& resultGFList,
     }
 }
 
-gf_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
+ku_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
     assert(listLiteral.dataType.typeID == LIST && !listLiteral.listVal.empty());
-    gf_list_t resultGFList;
+    ku_list_t resultKUList;
     auto childDataTypeID = listLiteral.listVal[0].dataType.typeID;
     auto numBytesOfListElement = Types::getDataTypeSize(childDataTypeID);
-    resultGFList.size = listLiteral.listVal.size();
+    resultKUList.size = listLiteral.listVal.size();
     // Allocate a new page if necessary.
-    if (overflowCursor.offsetInPage + (resultGFList.size * numBytesOfListElement) >=
+    if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
             DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
         overflowCursor.pageIdx = addANewOverflowPage();
     }
     TypeUtils::encodeOverflowPtr(
-        resultGFList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
+        resultKUList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
     switch (childDataTypeID) {
     case INT64:
     case DOUBLE:
@@ -153,41 +153,41 @@ gf_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor
     } break;
     case STRING: {
         copyVarSizedValuesToPages<STRING>(
-            resultGFList, listLiteral, overflowCursor, numBytesOfListElement);
+            resultKUList, listLiteral, overflowCursor, numBytesOfListElement);
     } break;
     case LIST: {
         copyVarSizedValuesToPages<LIST>(
-            resultGFList, listLiteral, overflowCursor, numBytesOfListElement);
+            resultKUList, listLiteral, overflowCursor, numBytesOfListElement);
     } break;
     default: {
         throw CopyCSVException("Unsupported data type inside LIST.");
     }
     }
-    return resultGFList;
+    return resultKUList;
 }
 
 void InMemOverflowFile::copyStringOverflow(
-    PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString) {
+    PageByteCursor& overflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString) {
     // Allocate a new page if necessary.
-    if (overflowCursor.offsetInPage + dstGFString->len >= DEFAULT_PAGE_SIZE ||
+    if (overflowCursor.offsetInPage + dstKUString->len >= DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
         overflowCursor.pageIdx = addANewOverflowPage();
     }
     TypeUtils::encodeOverflowPtr(
-        dstGFString->overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
+        dstKUString->overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
     shared_lock lck(lock);
     pages[overflowCursor.pageIdx]->write(
-        overflowCursor.offsetInPage, overflowCursor.offsetInPage, srcOverflow, dstGFString->len);
-    overflowCursor.offsetInPage += dstGFString->len;
+        overflowCursor.offsetInPage, overflowCursor.offsetInPage, srcOverflow, dstKUString->len);
+    overflowCursor.offsetInPage += dstKUString->len;
 }
 
 void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcInMemOverflowFile,
     const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
-    gf_list_t* dstGFList, DataType* listChildDataType) {
+    ku_list_t* dstKUList, DataType* listChildDataType) {
     auto numBytesOfListElement = Types::getDataTypeSize(*listChildDataType);
     // Allocate a new page if necessary.
-    if (dstOverflowCursor.offsetInPage + (dstGFList->size * numBytesOfListElement) >=
+    if (dstOverflowCursor.offsetInPage + (dstKUList->size * numBytesOfListElement) >=
             DEFAULT_PAGE_SIZE ||
         dstOverflowCursor.pageIdx == UINT32_MAX) {
         dstOverflowCursor.offsetInPage = 0;
@@ -195,15 +195,15 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcInMemOverflowFile
     }
     shared_lock lck(lock);
     TypeUtils::encodeOverflowPtr(
-        dstGFList->overflowPtr, dstOverflowCursor.pageIdx, dstOverflowCursor.offsetInPage);
+        dstKUList->overflowPtr, dstOverflowCursor.pageIdx, dstOverflowCursor.offsetInPage);
     auto dataToCopyFrom = srcInMemOverflowFile->pages[srcOverflowCursor.pageIdx]->data +
                           srcOverflowCursor.offsetInPage;
-    auto gfListElements = pages[dstOverflowCursor.pageIdx]->write(dstOverflowCursor.offsetInPage,
-        dstOverflowCursor.offsetInPage, dataToCopyFrom, dstGFList->size * numBytesOfListElement);
-    dstOverflowCursor.offsetInPage += dstGFList->size * numBytesOfListElement;
+    auto kuListElements = pages[dstOverflowCursor.pageIdx]->write(dstOverflowCursor.offsetInPage,
+        dstOverflowCursor.offsetInPage, dataToCopyFrom, dstKUList->size * numBytesOfListElement);
+    dstOverflowCursor.offsetInPage += dstKUList->size * numBytesOfListElement;
     if (listChildDataType->typeID == LIST) {
-        auto elementsInList = (gf_list_t*)gfListElements;
-        for (auto i = 0u; i < dstGFList->size; i++) {
+        auto elementsInList = (ku_list_t*)kuListElements;
+        for (auto i = 0u; i < dstKUList->size; i++) {
             PageByteCursor elementCursor;
             TypeUtils::decodeOverflowPtr(
                 elementsInList[i].overflowPtr, elementCursor.pageIdx, elementCursor.offsetInPage);
@@ -211,9 +211,9 @@ void InMemOverflowFile::copyListOverflow(InMemOverflowFile* srcInMemOverflowFile
                 &elementsInList[i], listChildDataType->childType.get());
         }
     } else if (listChildDataType->typeID == STRING) {
-        auto elementsInList = (gf_string_t*)gfListElements;
-        for (auto i = 0u; i < dstGFList->size; i++) {
-            if (elementsInList[i].len > gf_string_t::SHORT_STR_LENGTH) {
+        auto elementsInList = (ku_string_t*)kuListElements;
+        for (auto i = 0u; i < dstKUList->size; i++) {
+            if (elementsInList[i].len > ku_string_t::SHORT_STR_LENGTH) {
                 PageByteCursor elementCursor;
                 TypeUtils::decodeOverflowPtr(elementsInList[i].overflowPtr, elementCursor.pageIdx,
                     elementCursor.offsetInPage);
@@ -233,8 +233,8 @@ uint32_t InMemOverflowFile::addANewOverflowPage() {
     return newPageIdx;
 }
 
-string InMemOverflowFile::readString(gf_string_t* strInInMemOvfFile) {
-    if (gf_string_t::isShortString(strInInMemOvfFile->len)) {
+string InMemOverflowFile::readString(ku_string_t* strInInMemOvfFile) {
+    if (ku_string_t::isShortString(strInInMemOvfFile->len)) {
         return strInInMemOvfFile->getAsShortString();
     } else {
         page_idx_t pageIdx = UINT32_MAX;
@@ -246,4 +246,4 @@ string InMemOverflowFile::readString(gf_string_t* strInInMemOvfFile) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

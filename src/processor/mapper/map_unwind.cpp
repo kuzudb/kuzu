@@ -4,7 +4,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/processor/operator/include/unwind.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
@@ -21,4 +21,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -11,7 +11,7 @@ namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using lock_t = unique_lock<mutex>;
@@ -195,4 +195,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

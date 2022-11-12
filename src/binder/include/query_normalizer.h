@@ -3,7 +3,7 @@
 #include "src/binder/query/include/bound_single_query.h"
 #include "src/binder/query/include/normalized_single_query.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class QueryNormalizer {
@@ -19,4 +19,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

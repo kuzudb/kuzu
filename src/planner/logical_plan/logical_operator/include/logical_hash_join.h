@@ -8,9 +8,9 @@
 #include "src/binder/expression/include/node_expression.h"
 #include "src/common/include/join_type.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
-using namespace graphflow::binder;
+using namespace kuzu::binder;
 
 // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
 class LogicalHashJoin : public LogicalOperator {
@@ -88,4 +88,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

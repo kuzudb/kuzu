@@ -5,7 +5,7 @@
 #include "src/processor/result/include/result_set.h"
 #include "src/storage/buffer_manager/include/buffer_manager.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 // Sort in alphabetical order
@@ -143,4 +143,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

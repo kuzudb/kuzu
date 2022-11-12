@@ -3,13 +3,13 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/file_utils.h"
-#include "src/main/include/graphflowdb.h"
+#include "src/main/include/kuzu.h"
 
 using namespace std;
-using namespace graphflow::main;
+using namespace kuzu::main;
 using ::testing::Test;
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 
 enum class TransactionTestType : uint8_t {
@@ -132,4 +132,4 @@ public:
 };
 
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu

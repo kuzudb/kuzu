@@ -4,7 +4,7 @@
 
 #include "spdlog/spdlog.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 const string BENCHMARK_SUFFIX = ".benchmark";
@@ -66,4 +66,4 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
 }
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

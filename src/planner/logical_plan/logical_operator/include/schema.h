@@ -4,10 +4,10 @@
 
 #include "src/binder/expression/include/expression.h"
 
-using namespace graphflow::binder;
-using namespace graphflow::common;
+using namespace kuzu::binder;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class FactorizationGroup {
@@ -100,4 +100,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

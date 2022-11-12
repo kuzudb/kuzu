@@ -5,10 +5,10 @@
 #include "src/binder/expression/include/expression.h"
 #include "src/processor/result/include/result_set.h"
 
-using namespace graphflow::binder;
-using namespace graphflow::processor;
+using namespace kuzu::binder;
+using namespace kuzu::processor;
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 using binary_exec_operation = std::function<void(ValueVector&, ValueVector&, ValueVector&)>;
@@ -51,4 +51,4 @@ protected:
 };
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

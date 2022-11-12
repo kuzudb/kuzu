@@ -4,10 +4,10 @@
 #include "src/processor/operator/include/physical_operator.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::catalog;
+using namespace kuzu::common;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class DDL : public PhysicalOperator {
@@ -27,4 +27,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

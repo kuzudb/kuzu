@@ -6,7 +6,7 @@
 #include "src/parser/query/return_with_clause/include/with_clause.h"
 #include "src/parser/query/updating_clause/include/updating_clause.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class QueryPart {
@@ -41,4 +41,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

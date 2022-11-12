@@ -6,7 +6,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 struct TernaryOperationWrapper {
@@ -406,4 +406,4 @@ struct TernaryOperationExecutor {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

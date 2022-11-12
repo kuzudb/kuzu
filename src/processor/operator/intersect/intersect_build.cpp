@@ -1,6 +1,6 @@
 #include "include/intersect_build.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void IntersectSharedState::initEmptyHashTableIfNecessary(MemoryManager& memoryManager,
@@ -21,4 +21,4 @@ void IntersectBuild::initHashTable(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

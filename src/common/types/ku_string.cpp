@@ -1,15 +1,15 @@
-#include "include/gf_string.h"
+#include "include/ku_string.h"
 
 #include <cstring>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-void gf_string_t::set(const string& value) {
+void ku_string_t::set(const string& value) {
     set(value.data(), value.length());
 }
 
-void gf_string_t::set(const char* value, uint64_t length) {
+void ku_string_t::set(const char* value, uint64_t length) {
     this->len = length;
     if (length <= SHORT_STR_LENGTH) {
         memcpy(prefix, value, length);
@@ -19,7 +19,7 @@ void gf_string_t::set(const char* value, uint64_t length) {
     }
 }
 
-void gf_string_t::set(const gf_string_t& value) {
+void ku_string_t::set(const ku_string_t& value) {
     this->len = value.len;
     if (value.len <= SHORT_STR_LENGTH) {
         memcpy(prefix, value.prefix, value.len);
@@ -30,11 +30,11 @@ void gf_string_t::set(const gf_string_t& value) {
     }
 }
 
-string gf_string_t::getAsShortString() const {
+string ku_string_t::getAsShortString() const {
     return string((char*)prefix, len);
 }
 
-string gf_string_t::getAsString() const {
+string ku_string_t::getAsString() const {
     if (len <= SHORT_STR_LENGTH) {
         return getAsShortString();
     } else {
@@ -42,10 +42,10 @@ string gf_string_t::getAsString() const {
     }
 }
 
-bool gf_string_t::operator==(const gf_string_t& rhs) const {
+bool ku_string_t::operator==(const ku_string_t& rhs) const {
     // First compare the length and prefix of the strings.
     auto numBytesOfLenAndPrefix =
-        sizeof(uint32_t) + min((uint64_t)len, static_cast<uint64_t>(gf_string_t::PREFIX_LENGTH));
+        sizeof(uint32_t) + min((uint64_t)len, static_cast<uint64_t>(ku_string_t::PREFIX_LENGTH));
     if (!memcmp(this, &rhs, numBytesOfLenAndPrefix)) {
         // If length and prefix of a and b are equal, we compare the overflow buffer.
         return !memcmp(getData(), rhs.getData(), len);
@@ -53,13 +53,13 @@ bool gf_string_t::operator==(const gf_string_t& rhs) const {
     return false;
 }
 
-bool gf_string_t::operator>(const gf_string_t& rhs) const {
-    // Compare gf_string_t up to the shared length.
+bool ku_string_t::operator>(const ku_string_t& rhs) const {
+    // Compare ku_string_t up to the shared length.
     // If there is a tie, we just need to compare the string lengths.
     auto sharedLen = min(len, rhs.len);
     auto memcmpResult = memcmp(prefix, rhs.prefix,
-        sharedLen <= gf_string_t::PREFIX_LENGTH ? sharedLen : gf_string_t::PREFIX_LENGTH);
-    if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
+        sharedLen <= ku_string_t::PREFIX_LENGTH ? sharedLen : ku_string_t::PREFIX_LENGTH);
+    if (memcmpResult == 0 && len > ku_string_t::PREFIX_LENGTH) {
         memcmpResult = memcmp(getData(), rhs.getData(), sharedLen);
     }
     if (memcmpResult == 0) {
@@ -69,4 +69,4 @@ bool gf_string_t::operator>(const gf_string_t& rhs) const {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

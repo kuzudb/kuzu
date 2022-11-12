@@ -15,53 +15,53 @@ grammar Cypher;
 
 oC_Cypher
     : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF
-        | SP ? gF_DDL ( SP? ';' )? SP? EOF
-        | SP ? gF_CopyCSV ( SP? ';' )? SP? EOF ;
+        | SP ? kU_DDL ( SP? ';' )? SP? EOF
+        | SP ? kU_CopyCSV ( SP? ';' )? SP? EOF ;
 
-gF_CopyCSV
-    : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP? '(' SP? gF_ParsingOptions SP? ')' )? ;
+kU_CopyCSV
+    : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
-gF_ParsingOptions
-    : gF_ParsingOption ( SP? ',' SP? gF_ParsingOption )* ;
+kU_ParsingOptions
+    : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;
 
-gF_ParsingOption
+kU_ParsingOption
     : oC_SymbolicName SP? '=' SP? oC_Literal;
 
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
-gF_DDL
-    : gF_CreateNode
-        | gF_CreateRel
-        | gF_DropTable;
+kU_DDL
+    : kU_CreateNode
+        | kU_CreateRel
+        | kU_DropTable;
 
-gF_CreateNode
-    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? gF_PropertyDefinitions SP? ( ',' SP? gF_CreateNodeConstraint ) SP? ')' ;
+kU_CreateNode
+    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
 
 NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
-gF_CreateRel
-    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? gF_RelConnections SP? ( ',' SP? gF_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+kU_CreateRel
+    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelConnections SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
-gF_DropTable
+kU_DropTable
     : DROP SP TABLE SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
-gF_RelConnections : gF_RelConnection ( SP? ',' SP? gF_RelConnection )* ;
+kU_RelConnections : kU_RelConnection ( SP? ',' SP? kU_RelConnection )* ;
 
-gF_RelConnection: FROM SP gF_NodeLabels SP TO SP gF_NodeLabels ;
+kU_RelConnection: FROM SP kU_NodeLabels SP TO SP kU_NodeLabels ;
 
-gF_NodeLabels: oC_SchemaName ( SP? '|' SP ? oC_SchemaName )* ;
+kU_NodeLabels: oC_SchemaName ( SP? '|' SP ? oC_SchemaName )* ;
 
-gF_PropertyDefinitions : gF_PropertyDefinition ( SP? ',' SP? gF_PropertyDefinition )* ;
+kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-gF_PropertyDefinition : oC_PropertyKeyName SP gF_DataType ;
+kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
 
-gF_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
+kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
 PRIMARY: ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'Y' | 'y' ) ;
 
@@ -71,13 +71,13 @@ REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
 
 TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
-gF_DataType
+kU_DataType
     : oC_SymbolicName
-        | ( oC_SymbolicName gF_ListIdentifiers ) ;
+        | ( oC_SymbolicName kU_ListIdentifiers ) ;
 
-gF_ListIdentifiers : gF_ListIdentifier ( gF_ListIdentifier )* ;
+kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
-gF_ListIdentifier : '[' ']' ;
+kU_ListIdentifier : '[' ']' ;
 
 oC_AnyCypherOption
     : oC_Explain
@@ -124,9 +124,9 @@ oC_SinglePartQuery
         ;
 
 oC_MultiPartQuery
-    : ( gF_QueryPart SP? )+ oC_SinglePartQuery;
+    : ( kU_QueryPart SP? )+ oC_SinglePartQuery;
 
-gF_QueryPart
+kU_QueryPart
     : (oC_ReadingClause SP? )* ( oC_UpdatingClause SP? )* oC_With ;
 
 oC_UpdatingClause
@@ -246,8 +246,8 @@ oC_PatternElement
         ;
 
 oC_NodePattern
-    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( gF_Properties SP? )? ')'
-        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( gF_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
+    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? ')'
+        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
         ;
 
 oC_PatternElementChain
@@ -259,12 +259,12 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ( gF_Properties SP? ) ? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.
 // We then substitute with oC_MapLiteral definition. We create oC_MapLiteral only when we decide to add MAP type.
-gF_Properties
+kU_Properties
     : '{' SP? ( oC_PropertyKeyName SP? ':' SP? oC_Expression SP? ( ',' SP? oC_PropertyKeyName SP? ':' SP? oC_Expression SP? )* )? '}';
 
 oC_NodeLabel
@@ -303,24 +303,24 @@ oC_NotExpression
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
 oC_ComparisonExpression
-    : oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )?
+    : oC_AddOrSubtractExpression ( SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression )?
         | oC_AddOrSubtractExpression ( SP? INVALID_NOT_EQUAL SP? oC_AddOrSubtractExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
-        | oC_AddOrSubtractExpression SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )+ { notifyNonBinaryComparison($ctx->start); }
+        | oC_AddOrSubtractExpression SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression ( SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression )+ { notifyNonBinaryComparison($ctx->start); }
         ;
 
-gF_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
+kU_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
 
 INVALID_NOT_EQUAL : '!=' ;
 
 oC_AddOrSubtractExpression
-    : oC_MultiplyDivideModuloExpression ( SP? gF_AddOrSubtractOperator SP? oC_MultiplyDivideModuloExpression )* ;
+    : oC_MultiplyDivideModuloExpression ( SP? kU_AddOrSubtractOperator SP? oC_MultiplyDivideModuloExpression )* ;
 
-gF_AddOrSubtractOperator : '+' | '-' ;
+kU_AddOrSubtractOperator : '+' | '-' ;
 
 oC_MultiplyDivideModuloExpression
-    : oC_PowerOfExpression ( SP? gF_MultiplyDivideModuloOperator SP? oC_PowerOfExpression )* ;
+    : oC_PowerOfExpression ( SP? kU_MultiplyDivideModuloOperator SP? oC_PowerOfExpression )* ;
 
-gF_MultiplyDivideModuloOperator : '*' | '/' | '%' ;
+kU_MultiplyDivideModuloOperator : '*' | '/' | '%' ;
 
 oC_PowerOfExpression
     : oC_UnaryAddOrSubtractExpression ( SP? '^' SP? oC_UnaryAddOrSubtractExpression )* ;

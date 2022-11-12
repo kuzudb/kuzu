@@ -11,7 +11,7 @@
 #include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 
 using ::testing::Test;
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 using namespace std;
 
 class KeyBlockMergerTest : public Test {
@@ -47,7 +47,7 @@ public:
         const vector<bool>& nullMasks, DataTypeID dataTypeID, bool isAsc,
         uint16_t factorizedTableIdx, bool hasPayLoadCol,
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk) {
-        GF_ASSERT(sortingData.size() == nullMasks.size());
+        KU_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
         auto values = (T*)valueVector->values;

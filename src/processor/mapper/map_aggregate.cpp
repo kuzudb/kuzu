@@ -7,7 +7,7 @@
 #include "src/processor/operator/aggregate/include/simple_aggregate.h"
 #include "src/processor/operator/aggregate/include/simple_aggregate_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
@@ -130,4 +130,4 @@ void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpres
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

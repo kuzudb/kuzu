@@ -5,9 +5,9 @@
 #include "src/common/types/include/node_id_t.h"
 #include "src/common/types/include/types.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 enum class ListSourceStore : uint8_t {
@@ -67,4 +67,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

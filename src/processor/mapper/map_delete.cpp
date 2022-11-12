@@ -4,7 +4,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
 #include "src/processor/operator/update/include/delete.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteToPhysical(
@@ -31,4 +31,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

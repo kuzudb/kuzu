@@ -2,7 +2,7 @@
 
 #include "result_collector.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CrossProduct : public PhysicalOperator {
@@ -29,7 +29,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::CROSS_PRODUCT; }
 
-    shared_ptr<ResultSet> init(graphflow::processor::ExecutionContext* context) override;
+    shared_ptr<ResultSet> init(kuzu::processor::ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
@@ -49,4 +49,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

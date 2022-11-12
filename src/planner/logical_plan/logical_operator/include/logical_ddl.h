@@ -4,7 +4,7 @@
 
 #include "base_logical_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalDDL : public LogicalOperator {
@@ -28,4 +28,4 @@ protected:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

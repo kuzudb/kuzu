@@ -3,27 +3,27 @@
 #include "src/common/include/type_utils.h"
 #include "src/common/types/include/date_t.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 namespace operation {
 
 struct DayName {
     template<class T>
-    static inline void operation(T& input, gf_string_t& result) {
+    static inline void operation(T& input, ku_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void DayName::operation(date_t& input, gf_string_t& result) {
+inline void DayName::operation(date_t& input, ku_string_t& result) {
     string dayName = Date::getDayName(input);
     result.set(dayName);
 }
 
 template<>
-inline void DayName::operation(timestamp_t& input, gf_string_t& result) {
+inline void DayName::operation(timestamp_t& input, ku_string_t& result) {
     dtime_t time{};
     date_t date{};
     Timestamp::Convert(input, date, time);
@@ -32,7 +32,7 @@ inline void DayName::operation(timestamp_t& input, gf_string_t& result) {
 }
 
 template<>
-inline void DayName::operation(Value& input, gf_string_t& result) {
+inline void DayName::operation(Value& input, ku_string_t& result) {
     switch (input.dataType.typeID) {
     case DATE: {
         DayName::operation(input.val.dateVal, result);
@@ -48,19 +48,19 @@ inline void DayName::operation(Value& input, gf_string_t& result) {
 
 struct MonthName {
     template<class T>
-    static inline void operation(T& input, gf_string_t& result) {
+    static inline void operation(T& input, ku_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void MonthName::operation(date_t& input, gf_string_t& result) {
+inline void MonthName::operation(date_t& input, ku_string_t& result) {
     string monthName = Date::getMonthName(input);
     result.set(monthName);
 }
 
 template<>
-inline void MonthName::operation(timestamp_t& input, gf_string_t& result) {
+inline void MonthName::operation(timestamp_t& input, ku_string_t& result) {
     dtime_t time{};
     date_t date{};
     Timestamp::Convert(input, date, time);
@@ -69,7 +69,7 @@ inline void MonthName::operation(timestamp_t& input, gf_string_t& result) {
 }
 
 template<>
-inline void MonthName::operation(Value& input, gf_string_t& result) {
+inline void MonthName::operation(Value& input, ku_string_t& result) {
     switch (input.dataType.typeID) {
     case DATE: {
         MonthName::operation(input.val.dateVal, result);
@@ -126,21 +126,21 @@ struct DatePart {
 };
 
 template<>
-inline void DatePart::operation(gf_string_t& partSpecifier, date_t& input, int64_t& result) {
+inline void DatePart::operation(ku_string_t& partSpecifier, date_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Date::getDatePart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(gf_string_t& partSpecifier, timestamp_t& input, int64_t& result) {
+inline void DatePart::operation(ku_string_t& partSpecifier, timestamp_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Timestamp::getTimestampPart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(gf_string_t& partSpecifier, interval_t& input, int64_t& result) {
+inline void DatePart::operation(ku_string_t& partSpecifier, interval_t& input, int64_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Interval::getIntervalPart(specifier, input);
@@ -174,7 +174,7 @@ struct DateTrunc {
 };
 
 template<>
-inline void DateTrunc::operation(gf_string_t& partSpecifier, date_t& input, date_t& result) {
+inline void DateTrunc::operation(ku_string_t& partSpecifier, date_t& input, date_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Date::trunc(specifier, input);
@@ -182,7 +182,7 @@ inline void DateTrunc::operation(gf_string_t& partSpecifier, date_t& input, date
 
 template<>
 inline void DateTrunc::operation(
-    gf_string_t& partSpecifier, timestamp_t& input, timestamp_t& result) {
+    ku_string_t& partSpecifier, timestamp_t& input, timestamp_t& result) {
     DatePartSpecifier specifier;
     Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = Timestamp::trunc(specifier, input);
@@ -267,4 +267,4 @@ struct MakeDate {
 
 } // namespace operation
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

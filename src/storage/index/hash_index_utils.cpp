@@ -1,6 +1,6 @@
 #include "include/hash_index_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(DataTypeID dataTypeID) {
@@ -20,26 +20,26 @@ in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(DataTypeID da
 
 bool InMemHashIndexUtils::equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
     const InMemOverflowFile* inMemOverflowFile) {
-    auto gfStringInEntry = (gf_string_t*)keyInEntry;
+    auto kuStringInEntry = (ku_string_t*)keyInEntry;
     // Checks if prefix and len matches first.
-    if (!HashIndexUtils::isStringPrefixAndLenEquals(keyToLookup, gfStringInEntry)) {
+    if (!HashIndexUtils::isStringPrefixAndLenEquals(keyToLookup, kuStringInEntry)) {
         return false;
     }
-    if (gfStringInEntry->len <= gf_string_t::PREFIX_LENGTH) {
+    if (kuStringInEntry->len <= ku_string_t::PREFIX_LENGTH) {
         // For strings shorter than PREFIX_LENGTH, the result must be true.
         return true;
-    } else if (gfStringInEntry->len <= gf_string_t::SHORT_STR_LENGTH) {
+    } else if (kuStringInEntry->len <= ku_string_t::SHORT_STR_LENGTH) {
         // For short strings, whose lengths are larger than PREFIX_LENGTH, check if their actual
         // values are equal.
-        return memcmp(keyToLookup, gfStringInEntry->prefix, gfStringInEntry->len) == 0;
+        return memcmp(keyToLookup, kuStringInEntry->prefix, kuStringInEntry->len) == 0;
     } else {
         // For long strings, read overflow values and check if they are true.
         PageByteCursor cursor;
         TypeUtils::decodeOverflowPtr(
-            gfStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+            kuStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
         return memcmp(keyToLookup,
                    inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
-                   gfStringInEntry->len) == 0;
+                   kuStringInEntry->len) == 0;
     }
 }
 
@@ -87,16 +87,16 @@ hash_function_t HashIndexUtils::initializeHashFunc(DataTypeID dataTypeID) {
 }
 
 bool HashIndexUtils::isStringPrefixAndLenEquals(
-    const uint8_t* keyToLookup, const gf_string_t* keyInEntry) {
+    const uint8_t* keyToLookup, const ku_string_t* keyInEntry) {
     auto prefixLen =
-        min((uint64_t)keyInEntry->len, static_cast<uint64_t>(gf_string_t::PREFIX_LENGTH));
+        min((uint64_t)keyInEntry->len, static_cast<uint64_t>(ku_string_t::PREFIX_LENGTH));
     return strlen(reinterpret_cast<const char*>(keyToLookup)) == keyInEntry->len &&
            memcmp(keyToLookup, keyInEntry->prefix, prefixLen) == 0;
 }
 
 bool HashIndexUtils::equalsFuncForString(TransactionType trxType, const uint8_t* keyToLookup,
     const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
-    auto keyInEntryString = (gf_string_t*)keyInEntry;
+    auto keyInEntryString = (ku_string_t*)keyInEntry;
     if (isStringPrefixAndLenEquals(keyToLookup, keyInEntryString)) {
         auto entryKeyString = diskOverflowFile->readString(trxType, *keyInEntryString);
         return memcmp(keyToLookup, entryKeyString.c_str(), entryKeyString.length()) == 0;
@@ -120,4 +120,4 @@ equals_function_t HashIndexUtils::initializeEqualsFunc(DataTypeID dataTypeID) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

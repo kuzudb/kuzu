@@ -4,9 +4,9 @@
 
 #include "src/storage/include/storage_manager.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class DropTable : public DDL {
@@ -35,4 +35,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

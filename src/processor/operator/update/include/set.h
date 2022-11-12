@@ -5,9 +5,9 @@
 #include "src/storage/storage_structure/include/column.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseSetNodeProperty : public PhysicalOperator {
@@ -78,4 +78,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

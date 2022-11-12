@@ -3,7 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/base_logical_operator.h"
 #include "src/planner/logical_plan/logical_operator/include/schema.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class LogicalPlan {
@@ -66,4 +66,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "src/common/include/vector/value_vector_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 void LiteralExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
@@ -19,4 +19,4 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 }
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "operations/include/timestamp_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 vector<unique_ptr<VectorOperationDefinition>> CenturyVectorOperation::getDefinitions() {
@@ -30,4 +30,4 @@ vector<unique_ptr<VectorOperationDefinition>> ToTimestampVectorOperation::getDef
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

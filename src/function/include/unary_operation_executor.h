@@ -4,7 +4,7 @@
 
 #include "src/common/include/vector/value_vector.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 /**
@@ -112,4 +112,4 @@ struct UnaryOperationExecutor {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

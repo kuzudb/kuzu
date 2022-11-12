@@ -4,10 +4,10 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
 #include "src/processor/operator/update/include/set.h"
 
-using namespace graphflow::binder;
-using namespace graphflow::planner;
+using namespace kuzu::binder;
+using namespace kuzu::planner;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
@@ -50,4 +50,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

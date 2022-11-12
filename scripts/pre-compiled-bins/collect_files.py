@@ -12,8 +12,12 @@ logging.basicConfig(level=logging.DEBUG)
 
 MAIN_HEADER_PATH = os.path.realpath(
     os.path.join(os.path.dirname(__file__), '../../src/'))
+MAIN_DIR_NAME = os.path.basename(os.path.realpath(
+    os.path.join(os.path.dirname(__file__), '../../')))
+
+BAZEL_WORKSPACE_NAME = 'bazel-%s' % MAIN_DIR_NAME
 EXTERNAL_HEADER_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../bazel-graphflowdb/external'))
+    os.path.join(os.path.dirname(__file__), '../../%s/external' % BAZEL_WORKSPACE_NAME))
 
 MAIN_OBJ_PATH = os.path.realpath(
     os.path.join(os.path.dirname(__file__), '../../bazel-bin/src'))
@@ -21,7 +25,7 @@ EXTERNAL_OBJ_PATH = os.path.realpath(
     os.path.join(os.path.dirname(__file__), '../../bazel-bin/external'))
 
 MAIN_EXE_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../bazel-bin/tools/shell/graphflowdb'))
+    os.path.join(os.path.dirname(__file__), '../../bazel-bin/tools/shell/kuzu'))
 
 UNUSED_HEADER_EXCLUDE_PREFIXES = [
     'src/main',
@@ -243,7 +247,7 @@ def collect_obj_files(external_lib_names):
 def collect_executable():
     logging.info("Collecting executable...")
     dest = os.path.realpath(
-        os.path.join('.', 'graphflowdb'))
+        os.path.join('.', 'kuzu'))
     logging.debug("Copying executable: " + MAIN_EXE_PATH + " -> " + dest)
     shutil.copyfile(MAIN_EXE_PATH, dest)
     logging.debug("Fixing permissions for executable: " + dest)

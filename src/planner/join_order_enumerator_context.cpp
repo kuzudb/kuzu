@@ -1,6 +1,6 @@
 #include "src/planner/include/join_order_enumerator_context.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 void JoinOrderEnumeratorContext::init(QueryGraph* queryGraph, expression_vector& predicates) {
@@ -31,4 +31,4 @@ void JoinOrderEnumeratorContext::resetState() {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

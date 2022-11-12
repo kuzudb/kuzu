@@ -2,7 +2,7 @@
 
 #include <regex>
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 PhysicalOperator::PhysicalOperator(
@@ -90,4 +90,4 @@ vector<string> PhysicalOperator::getAttributes(Profiler& profiler) const {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

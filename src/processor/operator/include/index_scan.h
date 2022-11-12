@@ -6,9 +6,9 @@
 #include "src/expression_evaluator/include/base_evaluator.h"
 #include "src/storage/index/include/hash_index.h"
 
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 // Index scan does not run in parallel. So there is no shared state.
@@ -43,4 +43,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

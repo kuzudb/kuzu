@@ -5,7 +5,7 @@
 
 #include "src/binder/expression/include/rel_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 const table_id_t ANY_TABLE_ID = numeric_limits<uint32_t>::max();
@@ -183,4 +183,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

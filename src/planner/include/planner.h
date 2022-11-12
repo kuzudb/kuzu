@@ -2,7 +2,7 @@
 
 #include "src/planner/include/enumerator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 class Planner {
@@ -26,4 +26,4 @@ private:
 };
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

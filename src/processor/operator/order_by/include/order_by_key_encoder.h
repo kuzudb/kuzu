@@ -10,9 +10,9 @@
 #include "src/processor/result/include/factorized_table.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 #define BSWAP64(x)                                                                                 \
@@ -136,4 +136,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

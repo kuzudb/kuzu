@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 class TransactionManager;
@@ -33,4 +33,4 @@ private:
 };
 
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu

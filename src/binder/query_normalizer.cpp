@@ -2,7 +2,7 @@
 
 #include "src/binder/expression/include/existential_subquery_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
@@ -52,4 +52,4 @@ unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

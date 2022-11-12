@@ -11,23 +11,23 @@
 #include "src/storage/wal/include/wal.h"
 #include "src/transaction/include/transaction_manager.h"
 
-using namespace graphflow::planner;
-using namespace graphflow::transaction;
+using namespace kuzu::planner;
+using namespace kuzu::transaction;
 using lock_t = unique_lock<mutex>;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 class TinySnbDDLTest;
 class TinySnbCopyCSVTransactionTest;
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 class Connection {
-    friend class graphflow::transaction::TinySnbDDLTest;
-    friend class graphflow::transaction::TinySnbCopyCSVTransactionTest;
+    friend class kuzu::transaction::TinySnbDDLTest;
+    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     /**
@@ -202,4 +202,4 @@ protected:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

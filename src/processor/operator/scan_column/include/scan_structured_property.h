@@ -3,7 +3,7 @@
 #include "src/processor/operator/scan_column/include/scan_column.h"
 #include "src/storage/storage_structure/include/column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class ScanStructuredProperty : public ScanMultipleColumns {
@@ -32,4 +32,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 
 pybind_library(
-    name = "_graphflowdb_py",
+    name = "_kuzu_py",
     srcs = [
         "py_connection.cpp",
         "py_database.cpp",
@@ -17,29 +17,29 @@ pybind_library(
         "include/pybind_include.h",
     ],
     deps = [
-        "//src/main:graphflowdb",
+        "//src/main:kuzu",
     ],
 )
 
 pybind_extension(
-    name = "_graphflowdb",
+    name = "_kuzu",
     srcs = [
-        "graphflowdb_binding.cpp",
+        "kuzu_binding.cpp",
     ],
     features = ["-use_header_modules"],
     linkstatic = True,
     deps = [
-        "_graphflowdb_py",
+        "_kuzu_py",
     ],
 )
 
 py_library(
-    name = "graphflowdb",
+    name = "kuzu",
     srcs = [
         "__init__.py",
     ],
     data = [
-        "//tools/python_api:_graphflowdb.so",
+        "//tools/python_api:_kuzu.so",
     ],
     srcs_version = "PY3",
 )
@@ -63,7 +63,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":graphflowdb",
+        ":kuzu",
     ],
 )
 
@@ -77,6 +77,6 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":graphflowdb",
+        ":kuzu",
     ],
 )

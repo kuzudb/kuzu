@@ -2,7 +2,7 @@
 
 #include "src/processor/operator/scan_list/include/scan_list.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class AdjListExtend : public ScanList {
@@ -26,4 +26,4 @@ public:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

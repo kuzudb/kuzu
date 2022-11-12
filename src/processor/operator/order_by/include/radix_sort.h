@@ -8,9 +8,9 @@
 #include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 #include "src/processor/result/include/factorized_table.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct TieRange {
@@ -82,4 +82,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

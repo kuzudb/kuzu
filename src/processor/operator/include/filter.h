@@ -4,9 +4,9 @@
 #include "src/processor/operator/include/filtering_operator.h"
 #include "src/processor/operator/include/physical_operator.h"
 
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class Filter : public PhysicalOperator, public FilteringOperator {
@@ -38,4 +38,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

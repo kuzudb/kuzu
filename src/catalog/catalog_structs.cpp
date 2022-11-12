@@ -2,7 +2,7 @@
 
 #include "src/common/include/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString) {
@@ -64,4 +64,4 @@ unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
 }
 
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

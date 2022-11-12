@@ -3,7 +3,7 @@
 #include "src/storage/storage_structure/include/lists/lists.h"
 #include "src/storage/storage_structure/include/lists/unstructured_property_lists_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 using UpdatedChunk = map<node_offset_t, unique_ptr<UnstrPropListWrapper>>;
@@ -44,4 +44,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

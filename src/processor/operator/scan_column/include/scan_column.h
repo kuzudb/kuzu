@@ -2,9 +2,9 @@
 
 #include "src/processor/operator/include/physical_operator.h"
 
-using namespace graphflow::storage;
+using namespace kuzu::storage;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class BaseScanColumn : public PhysicalOperator {
@@ -54,4 +54,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

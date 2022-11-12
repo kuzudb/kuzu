@@ -4,7 +4,7 @@
 
 #include "src/common/types/include/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class HashIndexHeader {
@@ -45,4 +45,4 @@ public:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

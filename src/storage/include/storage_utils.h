@@ -10,10 +10,10 @@
 #include "src/common/types/include/types_include.h"
 #include "src/storage/wal/include/wal_record.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
@@ -292,4 +292,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

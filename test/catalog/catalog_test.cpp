@@ -3,7 +3,7 @@
 #include "src/catalog/include/catalog.h"
 
 using namespace std;
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
 class CatalogTest : public testing::Test {
 public:

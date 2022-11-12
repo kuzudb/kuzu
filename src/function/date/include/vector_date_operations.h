@@ -2,7 +2,7 @@
 
 #include "src/function/include/vector_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 class VectorDateOperations : public VectorOperations {};
 
@@ -39,4 +39,4 @@ struct MonthNameVectorOperation : public VectorDateOperations {
 };
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

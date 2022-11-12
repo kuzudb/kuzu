@@ -10,9 +10,9 @@
 #include "src/processor/result/include/result_set.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 // This class contains factorizedTables, nextFactorizedTableIdx, stringAndUnstructuredKeyColInfo,
@@ -143,4 +143,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

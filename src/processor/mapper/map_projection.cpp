@@ -3,7 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
 #include "src/processor/operator/include/projection.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
@@ -23,4 +23,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

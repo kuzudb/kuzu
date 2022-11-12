@@ -9,7 +9,7 @@
 #include "string/include/vector_string_operations.h"
 #include "timestamp/include/vector_timestamp_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 void BuiltInVectorOperations::registerVectorOperations() {
@@ -353,4 +353,4 @@ void BuiltInVectorOperations::registerInternalIDOperation() {
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

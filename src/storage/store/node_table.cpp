@@ -1,6 +1,6 @@
 #include "src/storage/store/include/node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
@@ -68,4 +68,4 @@ void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

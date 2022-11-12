@@ -2,8 +2,8 @@
 
 #include "src/storage/include/wal_replayer.h"
 
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 class WALReplayerTests : public DBTest {
     string getInputCSVDir() override { return "dataset/tinysnb/"; }

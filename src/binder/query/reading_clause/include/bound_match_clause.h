@@ -5,7 +5,7 @@
 
 #include "src/binder/expression/include/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 /**
@@ -61,4 +61,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

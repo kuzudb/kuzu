@@ -2,7 +2,7 @@
 
 #include "src/common/include/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 bool isExpressionUnary(ExpressionType type) {
@@ -84,4 +84,4 @@ string expressionTypeToString(ExpressionType type) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

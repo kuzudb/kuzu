@@ -3,7 +3,7 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/processor/operator/intersect/include/intersect_build.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct IntersectDataInfo {
@@ -64,4 +64,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

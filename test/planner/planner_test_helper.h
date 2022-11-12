@@ -10,8 +10,8 @@
 using ::testing::NiceMock;
 using ::testing::Test;
 
-using namespace graphflow::planner;
-using namespace graphflow::storage;
+using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 class PlannerTest : public Test {
 

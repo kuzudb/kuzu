@@ -5,7 +5,7 @@
 #include "src/parser/expression/include/parsed_expression.h"
 #include "src/parser/query/graph_pattern/include/pattern_element.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 class MatchClause : public ReadingClause {
@@ -38,4 +38,4 @@ private:
 };
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

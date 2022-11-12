@@ -1,6 +1,6 @@
 #include "include/processor_task.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void ProcessorTask::run() {
@@ -18,4 +18,4 @@ void ProcessorTask::finalizeIfNecessary() {
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

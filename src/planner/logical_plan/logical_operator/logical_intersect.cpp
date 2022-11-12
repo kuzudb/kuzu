@@ -1,6 +1,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 unique_ptr<LogicalOperator> LogicalIntersect::copy() {
@@ -16,4 +16,4 @@ unique_ptr<LogicalOperator> LogicalIntersect::copy() {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

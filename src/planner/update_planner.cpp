@@ -7,7 +7,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
 #include "src/planner/logical_plan/logical_operator/include/sink_util.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
@@ -161,4 +161,4 @@ vector<expression_pair> UpdatePlanner::splitSetItems(
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

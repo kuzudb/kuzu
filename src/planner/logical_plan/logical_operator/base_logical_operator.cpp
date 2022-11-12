@@ -1,6 +1,6 @@
 #include "include/base_logical_operator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace planner {
 
 LogicalOperator::LogicalOperator(shared_ptr<LogicalOperator> child) {
@@ -48,4 +48,4 @@ string LogicalOperator::toString(uint64_t depth) const {
 }
 
 } // namespace planner
-} // namespace graphflow
+} // namespace kuzu

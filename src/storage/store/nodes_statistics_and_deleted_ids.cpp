@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
@@ -226,4 +226,4 @@ void NodesStatisticsAndDeletedIDs::serializeTableStatistics(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

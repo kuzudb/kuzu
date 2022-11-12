@@ -5,11 +5,11 @@
 #include "src/storage/buffer_manager/include/memory_manager.h"
 #include "src/transaction/include/transaction.h"
 
-using namespace graphflow::common;
-using namespace graphflow::storage;
-using namespace graphflow::transaction;
+using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct ExecutionContext {
@@ -28,4 +28,4 @@ struct ExecutionContext {
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

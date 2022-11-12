@@ -4,9 +4,9 @@
 #include "src/storage/storage_structure/include/lists/lists.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 struct AdjListExtendDFSLevelInfo : DFSLevelInfo {
@@ -50,4 +50,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

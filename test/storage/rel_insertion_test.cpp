@@ -4,7 +4,7 @@
 #include "src/planner/include/planner.h"
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class RelInsertionTest : public DBTest {
 
@@ -28,12 +28,12 @@ public:
         lengthPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
         lengthValues = (int64_t*)lengthPropertyVector->values;
         placePropertyVector = make_shared<ValueVector>(STRING, memoryManager.get());
-        placeValues = (gf_string_t*)placePropertyVector->values;
+        placeValues = (ku_string_t*)placePropertyVector->values;
         srcNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         dstNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         tagPropertyVector = make_shared<ValueVector>(
             DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
-        tagValues = (gf_list_t*)tagPropertyVector->values;
+        tagValues = (ku_list_t*)tagPropertyVector->values;
         dataChunk->insert(0, relIDPropertyVector);
         dataChunk->insert(1, lengthPropertyVector);
         dataChunk->insert(2, placePropertyVector);
@@ -114,12 +114,12 @@ public:
     void insertRelsToKnowsTable(table_id_t srcTableID, table_id_t dstTableID,
         uint64_t numValuesToInsert = 100, bool insertNullValues = false,
         bool testLongString = false) {
-        auto placeStr = gf_string_t();
+        auto placeStr = ku_string_t();
         if (testLongString) {
             placeStr.overflowPtr = reinterpret_cast<uint64_t>(
                 placePropertyVector->getOverflowBuffer().allocateSpace(100));
         }
-        auto tagList = gf_list_t();
+        auto tagList = ku_list_t();
         tagList.overflowPtr =
             reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
         tagList.size = 1;
@@ -185,8 +185,8 @@ public:
     }
 
     void insertRelsToNode(node_offset_t srcNodeOffset) {
-        auto placeStr = gf_string_t();
-        auto tagList = gf_list_t();
+        auto placeStr = ku_string_t();
+        auto tagList = ku_list_t();
         tagList.overflowPtr =
             reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
         tagList.size = 1;
@@ -306,7 +306,7 @@ public:
         auto numValuesToInsert = 260;
         auto numValuesInList = 10;
         auto totalNumValuesAfterInsertion = numValuesToInsert + numValuesInList;
-        auto placeStr = gf_string_t();
+        auto placeStr = ku_string_t();
         auto relDirections = vector<RelDirection>{RelDirection::FWD, RelDirection::BWD};
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 10 + i;
@@ -373,7 +373,7 @@ public:
     void insertRelsToOneToOneRelTable(bool isCommit, TransactionTestType transactionTestType,
         bool testLongString = false, bool testNull = false) {
         auto query = "match (a:animal)-[h:hasOwner]->(:person) return h.length, h.place";
-        auto placeStr = gf_string_t();
+        auto placeStr = ku_string_t();
         placeStr.overflowPtr =
             reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
         // We insert 2 rels to eHasOwner:
@@ -494,8 +494,8 @@ public:
         insertNodesToPersonTable();
         auto& srcNode = ((nodeID_t*)(srcNodeVector->values))[0];
         auto& dstNode = ((nodeID_t*)(dstNodeVector->values))[0];
-        auto placeStr = gf_string_t();
-        auto tagList = gf_list_t();
+        auto placeStr = ku_string_t();
+        auto tagList = ku_list_t();
         tagList.overflowPtr =
             reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
         tagList.size = 1;
@@ -531,9 +531,9 @@ public:
     shared_ptr<ValueVector> lengthPropertyVector;
     int64_t* lengthValues;
     shared_ptr<ValueVector> placePropertyVector;
-    gf_string_t* placeValues;
+    ku_string_t* placeValues;
     shared_ptr<ValueVector> tagPropertyVector;
-    gf_list_t* tagValues;
+    ku_list_t* tagValues;
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);

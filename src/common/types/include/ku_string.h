@@ -4,10 +4,10 @@
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-struct gf_string_t {
+struct ku_string_t {
 
     static const uint64_t PREFIX_LENGTH = 4;
     static const uint64_t INLINED_SUFFIX_LENGTH = 8;
@@ -20,7 +20,7 @@ struct gf_string_t {
         uint64_t overflowPtr;
     };
 
-    gf_string_t() : len{0}, overflowPtr{0} {}
+    ku_string_t() : len{0}, overflowPtr{0} {}
 
     static bool isShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }
 
@@ -32,23 +32,23 @@ struct gf_string_t {
     // set the length.
     void set(const string& value);
     void set(const char* value, uint64_t length);
-    void set(const gf_string_t& value);
+    void set(const ku_string_t& value);
 
     string getAsShortString() const;
     string getAsString() const;
 
-    bool operator==(const gf_string_t& rhs) const;
+    bool operator==(const ku_string_t& rhs) const;
 
-    inline bool operator!=(const gf_string_t& rhs) const { return !(*this == rhs); }
+    inline bool operator!=(const ku_string_t& rhs) const { return !(*this == rhs); }
 
-    bool operator>(const gf_string_t& rhs) const;
+    bool operator>(const ku_string_t& rhs) const;
 
-    inline bool operator>=(const gf_string_t& rhs) const { return (*this > rhs) || (*this == rhs); }
+    inline bool operator>=(const ku_string_t& rhs) const { return (*this > rhs) || (*this == rhs); }
 
-    inline bool operator<(const gf_string_t& rhs) const { return !(*this >= rhs); }
+    inline bool operator<(const ku_string_t& rhs) const { return !(*this >= rhs); }
 
-    inline bool operator<=(const gf_string_t& rhs) const { return !(*this > rhs); }
+    inline bool operator<=(const ku_string_t& rhs) const { return !(*this > rhs); }
 };
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
 #include "include/hash_index_builder.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
@@ -181,7 +181,7 @@ void HashIndexBuilder<T>::flush() {
 }
 
 template class HashIndexBuilder<int64_t>;
-template class HashIndexBuilder<gf_string_t>;
+template class HashIndexBuilder<ku_string_t>;
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

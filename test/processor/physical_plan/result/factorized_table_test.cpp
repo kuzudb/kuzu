@@ -4,7 +4,7 @@
 #include "src/processor/result/include/factorized_table.h"
 #include "src/processor/result/include/result_set.h"
 
-using namespace graphflow::processor;
+using namespace kuzu::processor;
 
 class FactorizedTableTest : public ::testing::Test {
 
@@ -215,7 +215,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     }
     unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(
-        make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)));
+        make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(ku_string_t)));
     auto factorizedTable = make_unique<FactorizedTable>(
         memoryManager.get(), make_unique<FactorizedTableSchema>(*tableSchema));
     auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));

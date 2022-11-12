@@ -3,9 +3,9 @@
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 enum ListType : uint8_t {
     UNSTRUCTURED_NODE_PROPERTY_LISTS = 0,
@@ -483,4 +483,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

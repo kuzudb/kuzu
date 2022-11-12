@@ -1,6 +1,6 @@
 #include "src/common/include/data_chunk/data_chunk.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 void DataChunk::insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
@@ -10,4 +10,4 @@ void DataChunk::insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector)
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

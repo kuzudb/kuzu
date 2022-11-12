@@ -5,9 +5,9 @@
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class CopyCSV : public PhysicalOperator {
@@ -44,4 +44,4 @@ protected:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

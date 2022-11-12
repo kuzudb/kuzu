@@ -19,7 +19,7 @@ jobs:
       - name: create-source-distribution
         working-directory: ./scripts/pip-package/
         run: |
-          rm -rf wheelhouse graphflowdb.tar.gz
+          rm -rf wheelhouse kuzu.tar.gz
           mkdir wheelhouse
           bash package_tar.sh
 
@@ -31,7 +31,7 @@ jobs:
           CIBW_BUILD_VERBOSITY: 3
           MACOSX_DEPLOYMENT_TARGET: 11.0
         with:
-          package-dir: ./scripts/pip-package/graphflowdb.tar.gz
+          package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
       - name: build-x86-wheel
@@ -42,7 +42,7 @@ jobs:
           CIBW_BUILD_VERBOSITY: 3
           MACOSX_DEPLOYMENT_TARGET: 10.15
         with:
-          package-dir: ./scripts/pip-package/graphflowdb.tar.gz
+          package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
       - uses: actions/upload-artifact@v3

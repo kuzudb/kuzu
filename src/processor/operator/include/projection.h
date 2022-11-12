@@ -5,9 +5,9 @@
 #include "src/expression_evaluator/include/base_evaluator.h"
 #include "src/processor/operator/include/physical_operator.h"
 
-using namespace graphflow::evaluator;
+using namespace kuzu::evaluator;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 class Projection : public PhysicalOperator {
@@ -43,4 +43,4 @@ private:
 };
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

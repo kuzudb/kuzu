@@ -4,9 +4,9 @@
 
 #include "src/function/include/vector_operations.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 class FunctionExpressionEvaluator : public BaseExpressionEvaluator {
@@ -32,4 +32,4 @@ private:
 };
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

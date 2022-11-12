@@ -2,7 +2,7 @@
 
 #include "src/storage/in_mem_csv_copier/include/in_mem_node_csv_copier.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
@@ -19,4 +19,4 @@ string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* exec
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

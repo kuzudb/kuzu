@@ -6,9 +6,9 @@
 #include "src/common/include/clause_type.h"
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class BoundReadingClause {
@@ -27,4 +27,4 @@ private:
     ClauseType clauseType;
 };
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

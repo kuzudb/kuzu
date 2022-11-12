@@ -8,13 +8,13 @@
 #include "src/common/include/metric.h"
 #include "src/storage/buffer_manager/include/file_handle.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
 namespace spdlog {
 class logger;
 }
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 struct BufferManagerMetrics {
@@ -137,4 +137,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -9,7 +9,7 @@
 #include "src/processor/operator/include/semi_masker.h"
 #include "src/processor/operator/table_scan/include/factorized_table_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
@@ -183,4 +183,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include "node_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 class RelExpression : public Expression {
@@ -38,4 +38,4 @@ private:
 };
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

@@ -8,10 +8,10 @@
 #include "src/storage/wal/include/wal.h"
 #include "src/transaction/include/transaction.h"
 
-using namespace graphflow::common;
-using namespace graphflow::transaction;
+using namespace kuzu::common;
+using namespace kuzu::transaction;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class FileHandle;
@@ -263,4 +263,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu
