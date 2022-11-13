@@ -27,7 +27,7 @@ Dan|Carol
 ---- 1
 24
 
--NAME TriangleTest
+-NAME TriangleTestWithEdgeFilter
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date=DATE('1950-05-14') RETURN a.fName, e1.date, b.fName, e2.date, c.fName, e3.date
 -ENUMERATE
 ---- 8

@@ -32,6 +32,10 @@ public:
     inline void resetSelectorToValuePosBuffer() {
         selectedPositions = selectedPositionsBuffer.get();
     }
+    inline void resetSelectorToValuePosBufferWithSize(sel_t size) {
+        selectedPositions = selectedPositionsBuffer.get();
+        selectedSize = size;
+    }
     inline sel_t* getSelectedPositionsBuffer() { return selectedPositionsBuffer.get(); }
 
     static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
