@@ -17,12 +17,6 @@
 namespace kuzu {
 namespace planner {
 
-static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
-    const SubqueryGraph& newSubgraph, const expression_vector& expressions);
-static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
-    const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
-    const expression_vector& expressions);
-
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     const QueryGraphCollection& queryGraphCollection, expression_vector& predicates) {
     assert(queryGraphCollection.getNumQueryGraphs() > 0);
@@ -129,7 +123,7 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     }
     auto plan = make_unique<LogicalPlan>();
     appendFTableScan(context->outerPlan, expressions, *plan);
-    auto predicates = getNewMatchedExpressions(
+    auto predicates = getNewlyMatchedExpressions(
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     for (auto& predicate : predicates) {
         enumerator->appendFilter(predicate, *plan);
@@ -182,7 +176,7 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     auto newSubgraph = context->getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = make_unique<LogicalPlan>();
-    auto predicates = getNewMatchedExpressions(
+    auto predicates = getNewlyMatchedExpressions(
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner query
     // ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer query (a). To avoid
@@ -231,7 +225,7 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
     auto rel = context->queryGraph->getQueryRel(relPos);
     auto newSubgraph = context->getEmptySubqueryGraph();
     newSubgraph.addQueryRel(relPos);
-    auto predicates = getNewMatchedExpressions(
+    auto predicates = getNewlyMatchedExpressions(
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     for (auto direction : REL_DIRECTIONS) {
         auto plan = make_unique<LogicalPlan>();
@@ -315,6 +309,8 @@ static unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
 void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
     vector<shared_ptr<RelExpression>> rels, const shared_ptr<NodeExpression>& intersectNode) {
     auto newSubgraph = subgraph;
+    vector<SubqueryGraph> prevSubgraphs;
+    prevSubgraphs.push_back(subgraph);
     vector<shared_ptr<NodeExpression>> boundNodes;
     vector<unique_ptr<LogicalPlan>> relPlans;
     for (auto& rel : rels) {
@@ -323,6 +319,9 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
                              rel->getSrcNode();
         boundNodes.push_back(boundNode);
         auto relPos = context->getQueryGraph()->getQueryRelPos(rel->getUniqueName());
+        auto prevSubgraph = context->getEmptySubqueryGraph();
+        prevSubgraph.addQueryRel(relPos);
+        prevSubgraphs.push_back(subgraph);
         newSubgraph.addQueryRel(relPos);
         // fetch build plans for rel
         auto relSubgraph = context->getEmptySubqueryGraph();
@@ -332,6 +331,8 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
         assert(relPlanCandidates.size() == 2); // 2 directions
         relPlans.push_back(getWCOJBuildPlanForRel(relPlanCandidates, *boundNode));
     }
+    auto predicates =
+        getNewlyMatchedExpressions(prevSubgraphs, newSubgraph, context->getWhereExpressions());
     for (auto& leftPlan : context->getPlans(subgraph)) {
         auto leftPlanCopy = leftPlan->shallowCopy();
         vector<unique_ptr<LogicalPlan>> rightPlansCopy;
@@ -339,6 +340,9 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
             rightPlansCopy.push_back(relPlan->shallowCopy());
         }
         appendIntersect(intersectNode, boundNodes, *leftPlanCopy, rightPlansCopy);
+        for (auto& predicate : predicates) {
+            enumerator->appendFilter(predicate, *leftPlanCopy);
+        }
         context->subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
     }
 }
@@ -431,7 +435,7 @@ void JoinOrderEnumerator::planInnerINLJoin(const SubqueryGraph& subgraph,
     auto newSubgraph = subgraph;
     newSubgraph.addQueryRel(relPos);
     auto predicates =
-        getNewMatchedExpressions(subgraph, newSubgraph, context->getWhereExpressions());
+        getNewlyMatchedExpressions(subgraph, newSubgraph, context->getWhereExpressions());
     for (auto& prevPlan : context->getPlans(subgraph)) {
         if (isNodeSequential(*prevPlan, joinNodes[0].get())) {
             auto plan = prevPlan->shallowCopy();
@@ -447,8 +451,8 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
     bool flipPlan) {
     auto newSubgraph = subgraph;
     newSubgraph.addSubqueryGraph(otherSubgraph);
-    auto predicates = getNewMatchedExpressions(
-        subgraph, otherSubgraph, newSubgraph, context->getWhereExpressions());
+    auto predicates = getNewlyMatchedExpressions(vector<SubqueryGraph>{subgraph, otherSubgraph},
+        newSubgraph, context->getWhereExpressions());
     for (auto& leftPlan : context->getPlans(subgraph)) {
         for (auto& rightPlan : context->getPlans(otherSubgraph)) {
             auto leftPlanProbeCopy = leftPlan->shallowCopy();
@@ -749,32 +753,27 @@ uint64_t JoinOrderEnumerator::getExtensionRate(
         1);
 }
 
-expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
-    const SubqueryGraph& newSubgraph, const expression_vector& expressions) {
-    expression_vector newMatchedExpressions;
+expression_vector JoinOrderEnumerator::getNewlyMatchedExpressions(
+    const vector<SubqueryGraph>& prevSubgraphs, const SubqueryGraph& newSubgraph,
+    const expression_vector& expressions) {
+    expression_vector result;
     for (auto& expression : expressions) {
-        auto includedVariables = expression->getDependentVariableNames();
-        if (newSubgraph.containAllVariables(includedVariables) &&
-            !prevSubgraph.containAllVariables(includedVariables)) {
-            newMatchedExpressions.push_back(expression);
+        if (isExpressionNewlyMatched(prevSubgraphs, newSubgraph, *expression)) {
+            result.push_back(expression);
         }
     }
-    return newMatchedExpressions;
+    return result;
 }
 
-expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
-    const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
-    const expression_vector& expressions) {
-    expression_vector newMatchedExpressions;
-    for (auto& expression : expressions) {
-        auto includedVariables = expression->getDependentVariableNames();
-        if (newSubgraph.containAllVariables(includedVariables) &&
-            !prevLeftSubgraph.containAllVariables(includedVariables) &&
-            !prevRightSubgraph.containAllVariables(includedVariables)) {
-            newMatchedExpressions.push_back(expression);
+bool JoinOrderEnumerator::isExpressionNewlyMatched(const vector<SubqueryGraph>& prevSubgraphs,
+    const SubqueryGraph& newSubgraph, Expression& expression) {
+    auto variables = expression.getDependentVariableNames();
+    for (auto& prevSubgraph : prevSubgraphs) {
+        if (prevSubgraph.containAllVariables(variables)) {
+            return false; // matched in prev subgraph
         }
     }
-    return newMatchedExpressions;
+    return newSubgraph.containAllVariables(variables);
 }
 
 } // namespace planner

@@ -125,6 +125,16 @@ private:
     uint64_t getExtensionRate(
         table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);
 
+    static expression_vector getNewlyMatchedExpressions(const SubqueryGraph& prevSubgraph,
+        const SubqueryGraph& newSubgraph, const expression_vector& expressions) {
+        return getNewlyMatchedExpressions(
+            vector<SubqueryGraph>{prevSubgraph}, newSubgraph, expressions);
+    }
+    static expression_vector getNewlyMatchedExpressions(const vector<SubqueryGraph>& prevSubgraphs,
+        const SubqueryGraph& newSubgraph, const expression_vector& expressions);
+    static bool isExpressionNewlyMatched(const vector<SubqueryGraph>& prevSubgraphs,
+        const SubqueryGraph& newSubgraph, Expression& expression);
+
 private:
     const catalog::Catalog& catalog;
     const storage::NodesStatisticsAndDeletedIDs& nodesStatistics;
