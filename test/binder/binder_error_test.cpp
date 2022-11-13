@@ -434,3 +434,9 @@ TEST_F(BinderErrorTest, ReturnInternalType) {
     auto input = "match (p:person) return ID(p);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, UpdateRelProperty) {
+    string expectedException = "Binder exception: Only updating node properties is supported.";
+    auto input = "match (p:person)-[e:knows]->(:person) set e.knowsdate = 2025";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

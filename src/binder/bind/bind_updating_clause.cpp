@@ -99,6 +99,9 @@ unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& upda
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
         auto boundLhs = expressionBinder.bindExpression(*setItem->origin);
+        if (boundLhs->getChild(0)->dataType.typeID != NODE) {
+            throw BinderException("Only updating node properties is supported.");
+        }
         auto boundRhs = expressionBinder.bindExpression(*setItem->target);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         boundSetClause->addSetItem(make_pair(boundLhs, boundRhs));
