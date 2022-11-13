@@ -15,6 +15,12 @@ public:
 public:
     const char* what() const noexcept override { return exception_message_.c_str(); }
 
+    static string getExistedPKExceptionMsg(const string& pkString) {
+        auto result = "A node is created with an existed primary key " + pkString +
+                      ", which violates the uniqueness constraint of the primary key property.";
+        return result;
+    };
+
 private:
     std::string exception_message_;
 };
@@ -84,5 +90,6 @@ class TransactionManagerException : public Exception {
 public:
     explicit TransactionManagerException(const string& msg) : Exception(msg){};
 };
+
 } // namespace common
 } // namespace kuzu

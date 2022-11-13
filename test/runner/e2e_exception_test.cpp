@@ -35,6 +35,20 @@ TEST_F(TinySnbExceptionTest, InsertNodeWithoutPrimaryKeyTest) {
         result->getErrorMessage().c_str());
 }
 
+TEST_F(TinySnbExceptionTest, InsertNodeWithExistedPKError1) {
+    auto result = conn->query("CREATE (a:person {ID:0, fName:'Charlie'});");
+    auto expectedErrorMsg = "Runtime exception: " + Exception::getExistedPKExceptionMsg("0");
+    ASSERT_STREQ(expectedErrorMsg.c_str(), result->getErrorMessage().c_str());
+}
+
+TEST_F(TinySnbExceptionTest, InsertNodeWithExistedPKError2) {
+    auto result = conn->query("CREATE (a:person {ID:100, fName:'Charlie'});");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query("CREATE (a:person {ID:100, fName:'Guodong'});");
+    auto expectedErrorMsg = "Runtime exception: " + Exception::getExistedPKExceptionMsg("100");
+    ASSERT_STREQ(expectedErrorMsg.c_str(), result->getErrorMessage().c_str());
+}
+
 TEST_F(TinySnbExceptionTest, DeleteNodeWithEdgeErrorTest) {
     auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 DELETE a");
     ASSERT_FALSE(result->isSuccess());
