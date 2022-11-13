@@ -1,7 +1,7 @@
 #include "src/planner/include/projection_planner.h"
 
 #include "src/binder/expression/include/function_expression.h"
-#include "src/planner/include/enumerator.h"
+#include "src/planner/include/query_planner.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_multiplcity_reducer.h"
@@ -24,7 +24,7 @@ void ProjectionPlanner::planProjectionBody(
     const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
-        Enumerator::appendExpressionsScan(projectionBody.getProjectionExpressions(), plan);
+        QueryPlanner::appendExpressionsScan(projectionBody.getProjectionExpressions(), plan);
     }
     // NOTE: As a temporary solution, we rewrite variables in WITH clause as all properties in scope
     // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
@@ -43,7 +43,7 @@ void ProjectionPlanner::planProjectionBody(
     }
     appendProjection(expressionsToProject, plan);
     if (projectionBody.getIsDistinct()) {
-        Enumerator::appendDistinct(expressionsToProject, plan);
+        QueryPlanner::appendDistinct(expressionsToProject, plan);
     }
     if (projectionBody.hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
@@ -92,7 +92,7 @@ void ProjectionPlanner::appendProjection(
     expression_vector expressionsToEvaluate;
     vector<uint32_t> expressionsToEvaluateOutputPos;
     for (auto& expression : expressionsToProject) {
-        enumerator->planSubqueryIfNecessary(expression, plan);
+        queryPlanner->planSubqueryIfNecessary(expression, plan);
         if (schema->isExpressionInScope(*expression)) {
             expressionsToReference.push_back(expression);
             expressionsToReferenceOutputPos.push_back(schema->getGroupPos(*expression));
@@ -104,7 +104,7 @@ void ProjectionPlanner::appendProjection(
                 outputPos = schema->createGroup();
                 schema->flattenGroup(outputPos); // Mark group holding constant as flat.
             } else {
-                outputPos = Enumerator::appendFlattensButOne(dependentGroupsPos, plan);
+                outputPos = QueryPlanner::appendFlattensButOne(dependentGroupsPos, plan);
             }
             expressionsToEvaluateOutputPos.push_back(outputPos);
         }
@@ -143,11 +143,11 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
     if (hasDistinctFunc) { // Flatten all inputs.
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
             auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
-            Enumerator::appendFlattens(dependentGroupsPos, plan);
+            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
         for (auto& expressionToAggregate : expressionsToAggregate) {
             auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
-            Enumerator::appendFlattens(dependentGroupsPos, plan);
+            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
     } else {
         // Flatten all but one for ALL group by keys.
@@ -156,11 +156,11 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
             auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
             groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
         }
-        Enumerator::appendFlattensButOne(groupByPoses, plan);
+        QueryPlanner::appendFlattensButOne(groupByPoses, plan);
         if (expressionsToAggregate.size() > 1) {
             for (auto& expressionToAggregate : expressionsToAggregate) {
                 auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
-                Enumerator::appendFlattens(dependentGroupsPos, plan);
+                QueryPlanner::appendFlattens(dependentGroupsPos, plan);
             }
         }
     }
@@ -181,7 +181,7 @@ void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     for (auto& expression : expressions) {
-        enumerator->planSubqueryIfNecessary(expression, plan);
+        queryPlanner->planSubqueryIfNecessary(expression, plan);
         // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
         // group and there is no other factorized group in the schema, so any payload is also unflat
         // and part of the same factorization group. The rationale for this limitation is this: (1)
@@ -197,7 +197,7 @@ void ProjectionPlanner::appendOrderBy(
         // cannot read back a flat column into an unflat vector.
         if (schema->getNumGroups() > 1) {
             auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-            Enumerator::appendFlattens(dependentGroupsPos, plan);
+            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
     }
     auto schemaBeforeOrderBy = schema->copy();
@@ -214,7 +214,7 @@ void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto groupPosToSelect = Enumerator::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
+    auto groupPosToSelect = QueryPlanner::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(
         limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(limitNumber);
@@ -223,7 +223,7 @@ void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto groupPosToSelect = Enumerator::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
+    auto groupPosToSelect = QueryPlanner::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(
         skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
     plan.setCardinality(plan.getCardinality() - skipNumber);

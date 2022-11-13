@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/planner/include/enumerator.h"
+#include "src/planner/include/query_planner.h"
 
 namespace kuzu {
 namespace planner {

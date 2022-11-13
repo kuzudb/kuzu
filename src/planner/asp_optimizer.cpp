@@ -1,6 +1,6 @@
 #include "include/asp_optimizer.h"
 
-#include "include/enumerator.h"
+#include "include/query_planner.h"
 
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
@@ -37,7 +37,7 @@ bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNod
 void ASPOptimizer::applyASP(
     const shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
     appendSemiMasker(joinNode, leftPlan);
-    Enumerator::appendAccumulate(leftPlan);
+    QueryPlanner::appendAccumulate(leftPlan);
 }
 
 void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, LogicalPlan& plan) {

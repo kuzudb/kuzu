@@ -1,6 +1,6 @@
 #include "include/update_planner.h"
 
-#include "include/enumerator.h"
+#include "include/query_planner.h"
 
 #include "src/planner/logical_plan/logical_operator/include/logical_create.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
@@ -19,20 +19,20 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
             for (auto& setItem : createClause.getAllSetItems()) {
                 expressions.push_back(setItem.second);
             }
-            Enumerator::appendExpressionsScan(expressions, plan);
+            QueryPlanner::appendExpressionsScan(expressions, plan);
         } else {
-            Enumerator::appendAccumulate(plan);
+            QueryPlanner::appendAccumulate(plan);
         }
         planCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
-        Enumerator::appendAccumulate(plan);
+        QueryPlanner::appendAccumulate(plan);
         appendSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
-        Enumerator::appendAccumulate(plan);
+        QueryPlanner::appendAccumulate(plan);
         appendDelete((BoundDeleteClause&)updatingClause, plan);
         return;
     }
@@ -53,11 +53,11 @@ void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
     // Check RHS
     auto rhsDependentGroupsPos = schema->getDependentGroupsPos(rhs);
     if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
-        auto rhsPos = Enumerator::appendFlattensButOne(rhsDependentGroupsPos, plan);
+        auto rhsPos = QueryPlanner::appendFlattensButOne(rhsDependentGroupsPos, plan);
         auto isRhsFlat = schema->getGroup(rhsPos)->getIsFlat();
         // If both are unflat and from different groups, we flatten LHS.
         if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
-            Enumerator::appendFlattenIfNecessary(lhsGroupPos, plan);
+            QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
         }
     }
 }
@@ -66,7 +66,7 @@ void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& pla
     // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
     // match clause. This is to simplify operator implementation.
     for (auto groupPos = 0u; groupPos < plan.getSchema()->getNumGroups(); ++groupPos) {
-        Enumerator::appendFlattenIfNecessary(groupPos, plan);
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
     if (createClause.hasCreateNode()) {
         appendCreateNode(createClause, plan);
@@ -138,7 +138,7 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
             catalog.getReadOnlyVersion()->getNodePrimaryKeyProperty(nodeExpression.getTableID());
         auto pkExpression =
             make_shared<PropertyExpression>(pk.dataType, pk.name, pk.propertyID, expression);
-        enumerator->appendScanNodePropIfNecessarySwitch(pkExpression, nodeExpression, plan);
+        queryPlanner->appendScanNodePropIfNecessarySwitch(pkExpression, nodeExpression, plan);
         nodeExpressions.push_back(expression);
         primaryKeyExpressions.push_back(pkExpression);
     }

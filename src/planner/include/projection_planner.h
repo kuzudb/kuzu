@@ -10,11 +10,11 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-class Enumerator;
+class QueryPlanner;
 
 class ProjectionPlanner {
 public:
-    explicit ProjectionPlanner(Enumerator* enumerator) : enumerator{enumerator} {}
+    explicit ProjectionPlanner(QueryPlanner* queryPlanner) : queryPlanner{queryPlanner} {}
 
     void planProjectionBody(
         const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans);
@@ -48,7 +48,7 @@ private:
         const Expression& variable, const Schema& schema);
 
 private:
-    Enumerator* enumerator;
+    QueryPlanner* queryPlanner;
 };
 
 } // namespace planner

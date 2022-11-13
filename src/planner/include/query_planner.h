@@ -12,14 +12,14 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-class Enumerator {
+class QueryPlanner {
     friend class JoinOrderEnumerator;
     friend class ProjectionPlanner;
     friend class UpdatePlanner;
     friend class ASPOptimizer;
 
 public:
-    explicit Enumerator(const Catalog& catalog,
+    explicit QueryPlanner(const Catalog& catalog,
         const NodesStatisticsAndDeletedIDs& nodesStatisticsAndDeletedIDs,
         const RelsStatistics& relsStatistics)
         : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,

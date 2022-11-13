@@ -12,12 +12,12 @@ namespace planner {
 
 using namespace kuzu::catalog;
 
-class Enumerator;
+class QueryPlanner;
 
 class UpdatePlanner {
 public:
-    UpdatePlanner(const catalog::Catalog& catalog, Enumerator* enumerator)
-        : catalog{catalog}, enumerator{enumerator} {};
+    UpdatePlanner(const catalog::Catalog& catalog, QueryPlanner* queryPlanner)
+        : catalog{catalog}, queryPlanner{queryPlanner} {};
 
     inline void planUpdatingClause(
         BoundUpdatingClause& updatingClause, vector<unique_ptr<LogicalPlan>>& plans) {
@@ -44,7 +44,7 @@ private:
 
 private:
     const Catalog& catalog;
-    Enumerator* enumerator;
+    QueryPlanner* queryPlanner;
 };
 
 } // namespace planner
