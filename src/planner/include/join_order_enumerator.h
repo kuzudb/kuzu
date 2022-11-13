@@ -11,7 +11,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace planner {
 
-class Enumerator;
+class QueryPlanner;
 class JoinOrderEnumeratorContext;
 
 /**
@@ -24,9 +24,9 @@ class JoinOrderEnumerator {
 
 public:
     JoinOrderEnumerator(const Catalog& catalog, const NodesStatisticsAndDeletedIDs& nodesStatistics,
-        const RelsStatistics& relsStatistics, Enumerator* enumerator)
+        const RelsStatistics& relsStatistics, QueryPlanner* queryPlanner)
         : catalog{catalog}, nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics},
-          enumerator{enumerator}, context{make_unique<JoinOrderEnumeratorContext>()} {};
+          queryPlanner{queryPlanner}, context{make_unique<JoinOrderEnumeratorContext>()} {};
 
     vector<unique_ptr<LogicalPlan>> enumerate(
         const QueryGraphCollection& queryGraphCollection, expression_vector& predicates);
@@ -139,7 +139,7 @@ private:
     const catalog::Catalog& catalog;
     const storage::NodesStatisticsAndDeletedIDs& nodesStatistics;
     const storage::RelsStatistics& relsStatistics;
-    Enumerator* enumerator;
+    QueryPlanner* queryPlanner;
     unique_ptr<JoinOrderEnumeratorContext> context;
 };
 

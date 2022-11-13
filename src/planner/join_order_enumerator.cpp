@@ -1,8 +1,8 @@
 #include "include/join_order_enumerator.h"
 
 #include "include/asp_optimizer.h"
-#include "include/enumerator.h"
 #include "include/projection_planner.h"
+#include "include/query_planner.h"
 
 #include "src/planner/logical_plan/include/logical_plan_util.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
@@ -51,7 +51,7 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     // apply remaining predicates
     for (auto& plan : result) {
         for (auto& predicate : predicatesToPullUp) {
-            enumerator->appendFilter(predicate, *plan);
+            queryPlanner->appendFilter(predicate, *plan);
         }
     }
     return result;
@@ -126,9 +126,9 @@ void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expression
     auto predicates = getNewlyMatchedExpressions(
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     for (auto& predicate : predicates) {
-        enumerator->appendFilter(predicate, *plan);
+        queryPlanner->appendFilter(predicate, *plan);
     }
-    Enumerator::appendDistinct(expressions, *plan);
+    QueryPlanner::appendDistinct(expressions, *plan);
     context->addPlan(newSubgraph, std::move(plan));
 }
 
@@ -211,14 +211,14 @@ void JoinOrderEnumerator::planFiltersForNode(
     expression_vector& predicates, NodeExpression& node, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
         auto propertiesToScan = getPropertiesForVariable(*predicate, node);
-        enumerator->appendScanNodePropIfNecessarySwitch(propertiesToScan, node, plan);
-        enumerator->appendFilter(predicate, plan);
+        queryPlanner->appendScanNodePropIfNecessarySwitch(propertiesToScan, node, plan);
+        queryPlanner->appendFilter(predicate, plan);
     }
 }
 
 void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan) {
-    auto properties = enumerator->getPropertiesForNode(node);
-    enumerator->appendScanNodePropIfNecessarySwitch(properties, node, plan);
+    auto properties = queryPlanner->getPropertiesForNode(node);
+    queryPlanner->appendScanNodePropIfNecessarySwitch(properties, node, plan);
 }
 
 void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
@@ -240,15 +240,15 @@ void JoinOrderEnumerator::planFiltersForRel(
     expression_vector& predicates, RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
         auto relPropertiesToScan = getPropertiesForVariable(*predicate, rel);
-        enumerator->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, direction, plan);
-        enumerator->appendFilter(predicate, plan);
+        queryPlanner->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, direction, plan);
+        queryPlanner->appendFilter(predicate, plan);
     }
 }
 
 void JoinOrderEnumerator::planPropertyScansForRel(
     RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
-    auto relProperties = enumerator->getPropertiesForRel(rel);
-    enumerator->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
+    auto relProperties = queryPlanner->getPropertiesForRel(rel);
+    queryPlanner->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
 }
 
 static unordered_map<uint32_t, vector<shared_ptr<RelExpression>>> populateIntersectRelCandidates(
@@ -341,7 +341,7 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
         }
         appendIntersect(intersectNode, boundNodes, *leftPlanCopy, rightPlansCopy);
         for (auto& predicate : predicates) {
-            enumerator->appendFilter(predicate, *leftPlanCopy);
+            queryPlanner->appendFilter(predicate, *leftPlanCopy);
         }
         context->subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
     }
@@ -474,7 +474,7 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
 
 void JoinOrderEnumerator::planFiltersForHashJoin(expression_vector& predicates, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
-        enumerator->appendFilter(predicate, plan);
+        queryPlanner->appendFilter(predicate, plan);
     }
 }
 
@@ -539,7 +539,7 @@ void JoinOrderEnumerator::appendExtend(
     auto isColumn =
         catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getTableID(), direction);
     if (rel->isVariableLength() || !isColumn) {
-        Enumerator::appendFlattenIfNecessary(boundNode->getNodeIDPropertyExpression(), plan);
+        QueryPlanner::appendFlattenIfNecessary(boundNode->getNodeIDPropertyExpression(), plan);
     }
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getTableID(), direction,
         isColumn, rel->getLowerBound(), rel->getUpperBound(), plan.getLastOperator());
@@ -622,7 +622,7 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
         !isJoinKeyUniqueOnBuildSide(joinNodes[0]->getIDProperty(), buildPlan)) {
         for (auto& joinNode : joinNodes) {
             auto probeSideKeyGroupPos = probeSideSchema->getGroupPos(joinNode->getIDProperty());
-            Enumerator::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
+            QueryPlanner::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
         }
         probePlan.multiplyCardinality(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
@@ -633,7 +633,7 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     for (auto& joinNode : joinNodes) {
         joinNodesGroupPos.insert(buildSideSchema.getGroupPos(joinNode->getIDProperty()));
     }
-    Enumerator::appendFlattensButOne(joinNodesGroupPos, buildPlan);
+    QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
 
     auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
     vector<string> keys;
@@ -664,8 +664,8 @@ void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>
         joinNodeGroupsPosInProbeSide.insert(probeSchema->getGroupPos(joinNode->getIDProperty()));
         joinNodeGroupsPosInBuildSide.insert(buildSchema->getGroupPos(joinNode->getIDProperty()));
     }
-    auto markGroupPos = Enumerator::appendFlattensButOne(joinNodeGroupsPosInProbeSide, probePlan);
-    Enumerator::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
+    auto markGroupPos = QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInProbeSide, probePlan);
+    QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     probeSchema->insertToGroupAndScope(mark, markGroupPos);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, isProbeAcc, buildSchema->copy(),
@@ -687,11 +687,11 @@ void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& inte
     vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         auto boundNode = boundNodes[i];
-        Enumerator::appendFlattenIfNecessary(
+        QueryPlanner::appendFlattenIfNecessary(
             probeSchema->getGroupPos(boundNode->getIDProperty()), probePlan);
         auto buildPlan = buildPlans[i].get();
         auto buildSchema = buildPlan->getSchema();
-        Enumerator::appendFlattenIfNecessary(
+        QueryPlanner::appendFlattenIfNecessary(
             buildSchema->getGroupPos(boundNode->getIDProperty()), *buildPlan);
         auto expressions = buildSchema->getExpressionsInScope();
         // Write rel properties into output group.

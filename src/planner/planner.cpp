@@ -17,7 +17,7 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     const BoundStatement& statement) {
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        return Enumerator(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
+        return QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
     }
     case StatementType::CREATE_NODE_CLAUSE: {
         return planCreateNodeTable(statement);
@@ -42,7 +42,7 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
     // We enumerate all plans for our testing framework. This API should only be used for QUERY but
     // not DDL or COPY_CSV.
     assert(statement.getStatementType() == StatementType::QUERY);
-    return Enumerator(catalog, nodesStatistics, relsStatistics).getAllPlans(statement);
+    return QueryPlanner(catalog, nodesStatistics, relsStatistics).getAllPlans(statement);
 }
 
 unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {

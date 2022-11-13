@@ -1,4 +1,4 @@
-#include "src/planner/include/enumerator.h"
+#include "src/planner/include/query_planner.h"
 
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
@@ -16,7 +16,7 @@
 namespace kuzu {
 namespace planner {
 
-vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& boundStatement) {
+vector<unique_ptr<LogicalPlan>> QueryPlanner::getAllPlans(const BoundStatement& boundStatement) {
     vector<unique_ptr<LogicalPlan>> resultPlans;
     auto& regularQuery = (BoundRegularQuery&)boundStatement;
     if (regularQuery.getNumSingleQueries() == 1) {
@@ -38,7 +38,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundStatement& bo
     return resultPlans;
 }
 
-unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
+unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
     auto bestPlan = std::move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
         if (plans[i]->getCost() < bestPlan->getCost()) {
@@ -51,7 +51,7 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> 
 // Note: we cannot append ResultCollector for plans enumerated for single query before there could
 // be a UNION on top which requires further flatten. So we delay ResultCollector appending to
 // enumerate regular query level.
-vector<unique_ptr<LogicalPlan>> Enumerator::planSingleQuery(
+vector<unique_ptr<LogicalPlan>> QueryPlanner::planSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
     propertiesToScan.clear();
     for (auto& expression : singleQuery.getPropertiesToRead()) {
@@ -72,7 +72,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::planSingleQuery(
     return result;
 }
 
-vector<unique_ptr<LogicalPlan>> Enumerator::planQueryPart(
+vector<unique_ptr<LogicalPlan>> QueryPlanner::planQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
     vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
     // plan read
@@ -94,7 +94,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::planQueryPart(
     return plans;
 }
 
-void Enumerator::planReadingClause(
+void QueryPlanner::planReadingClause(
     BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& prevPlans) {
     auto readingClauseType = boundReadingClause->getClauseType();
     switch (readingClauseType) {
@@ -109,7 +109,7 @@ void Enumerator::planReadingClause(
     }
 }
 
-void Enumerator::planMatchClause(
+void QueryPlanner::planMatchClause(
     BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
@@ -134,13 +134,13 @@ void Enumerator::planMatchClause(
     }
 }
 
-void Enumerator::planUnwindClause(
+void QueryPlanner::planUnwindClause(
     BoundReadingClause* boundReadingClause, vector<unique_ptr<LogicalPlan>>& plans) {
     auto boundUnwindClause = (BoundUnwindClause*)boundReadingClause;
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             auto expressions = expression_vector{boundUnwindClause->getExpression()};
-            Enumerator::appendExpressionsScan(expressions, *plan);
+            appendExpressionsScan(expressions, *plan);
         }
         appendUnwind(*boundUnwindClause, *plan);
     }
@@ -173,7 +173,7 @@ static vector<shared_ptr<NodeExpression>> getJoinNodes(expression_vector& expres
     return joinNodes;
 }
 
-void Enumerator::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
+void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     expression_vector& predicates, LogicalPlan& outerPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraphCollection, predicates, outerPlan.getSchema());
@@ -199,7 +199,7 @@ void Enumerator::planOptionalMatch(const QueryGraphCollection& queryGraphCollect
     }
 }
 
-void Enumerator::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
+void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     expression_vector& predicates, LogicalPlan& prevPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraphCollection, predicates, prevPlan.getSchema());
@@ -232,7 +232,7 @@ void Enumerator::planRegularMatch(const QueryGraphCollection& queryGraphCollecti
     }
 }
 
-void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
+void QueryPlanner::planExistsSubquery(shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
     assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
     auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
@@ -256,7 +256,7 @@ void Enumerator::planExistsSubquery(shared_ptr<Expression>& expression, LogicalP
     }
 }
 
-void Enumerator::planSubqueryIfNecessary(
+void QueryPlanner::planSubqueryIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     if (expression->hasSubqueryExpression()) {
         for (auto& expr : expression->getTopLevelSubSubqueryExpressions()) {
@@ -265,7 +265,7 @@ void Enumerator::planSubqueryIfNecessary(
     }
 }
 
-void Enumerator::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
+void QueryPlanner::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
     SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
@@ -280,7 +280,7 @@ void Enumerator::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
     plan.setLastOperator(sink);
 }
 
-void Enumerator::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
+void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
     assert(plan.isEmpty());
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
@@ -296,11 +296,12 @@ void Enumerator::appendExpressionsScan(const expression_vector& expressions, Log
     plan.setLastOperator(std::move(expressionsScan));
 }
 
-void Enumerator::appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
+void QueryPlanner::appendDistinct(
+    const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     for (auto& expression : expressionsToDistinct) {
         auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-        Enumerator::appendFlattens(dependentGroupsPos, plan);
+        appendFlattens(dependentGroupsPos, plan);
     }
     auto distinct =
         make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
@@ -312,11 +313,11 @@ void Enumerator::appendDistinct(const expression_vector& expressionsToDistinct, 
     plan.setLastOperator(move(distinct));
 }
 
-void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
+void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto dependentGroupPos = schema->getDependentGroupsPos(boundUnwindClause.getExpression());
     if (!dependentGroupPos.empty()) {
-        Enumerator::appendFlattens(dependentGroupPos, plan);
+        appendFlattens(dependentGroupPos, plan);
     }
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(boundUnwindClause.getAliasExpression(), groupPos);
@@ -325,13 +326,13 @@ void Enumerator::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan&
     plan.setLastOperator(logicalUnwind);
 }
 
-void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
+void QueryPlanner::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
     for (auto& groupPos : groupsPos) {
         appendFlattenIfNecessary(groupPos, plan);
     }
 }
 
-uint32_t Enumerator::appendFlattensButOne(
+uint32_t QueryPlanner::appendFlattensButOne(
     const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
     if (groupsPos.empty()) {
         // an expression may not depend on any group. E.g. COUNT(*).
@@ -352,7 +353,7 @@ uint32_t Enumerator::appendFlattensButOne(
     return unFlatGroupsPos[0];
 }
 
-void Enumerator::appendFlattenIfNecessary(
+void QueryPlanner::appendFlattenIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto group = schema->getGroup(expression);
@@ -366,7 +367,7 @@ void Enumerator::appendFlattenIfNecessary(
     plan.multiplyCardinality(group->getMultiplier());
 }
 
-void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
+void QueryPlanner::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     planSubqueryIfNecessary(expression, plan);
     auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
@@ -375,7 +376,7 @@ void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalP
     plan.setLastOperator(std::move(filter));
 }
 
-void Enumerator::appendScanNodePropIfNecessarySwitch(
+void QueryPlanner::appendScanNodePropIfNecessarySwitch(
     expression_vector& properties, NodeExpression& node, LogicalPlan& plan) {
     expression_vector structuredProperties;
     expression_vector unstructuredProperties;
@@ -390,7 +391,7 @@ void Enumerator::appendScanNodePropIfNecessarySwitch(
     appendScanNodePropIfNecessary(unstructuredProperties, node, plan, false /* isUnstructured */);
 }
 
-void Enumerator::appendScanNodePropIfNecessary(
+void QueryPlanner::appendScanNodePropIfNecessary(
     expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured) {
     auto schema = plan.getSchema();
     vector<string> propertyNames;
@@ -415,7 +416,7 @@ void Enumerator::appendScanNodePropIfNecessary(
     plan.setLastOperator(move(scanNodeProperty));
 }
 
-void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
+void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
     RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     if (schema->isExpressionInScope(*expression)) {
@@ -436,7 +437,7 @@ void Enumerator::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression
     plan.setLastOperator(move(scanProperty));
 }
 
-unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
+unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
     // If an expression to union has different flat/unflat state in different child, we
     // need to flatten that expression in all the single queries.
@@ -477,13 +478,13 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     return plan;
 }
 
-vector<unique_ptr<LogicalPlan>> Enumerator::getInitialEmptyPlans() {
+vector<unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
     vector<unique_ptr<LogicalPlan>> plans;
     plans.push_back(make_unique<LogicalPlan>());
     return plans;
 }
 
-expression_vector Enumerator::getPropertiesForNode(NodeExpression& node) {
+expression_vector QueryPlanner::getPropertiesForNode(NodeExpression& node) {
     expression_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == node.getUniqueName()) {
@@ -494,7 +495,7 @@ expression_vector Enumerator::getPropertiesForNode(NodeExpression& node) {
     return result;
 }
 
-expression_vector Enumerator::getPropertiesForRel(RelExpression& rel) {
+expression_vector QueryPlanner::getPropertiesForRel(RelExpression& rel) {
     expression_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == rel.getUniqueName()) {
@@ -505,7 +506,7 @@ expression_vector Enumerator::getPropertiesForRel(RelExpression& rel) {
     return result;
 }
 
-vector<vector<unique_ptr<LogicalPlan>>> Enumerator::cartesianProductChildrenPlans(
+vector<vector<unique_ptr<LogicalPlan>>> QueryPlanner::cartesianProductChildrenPlans(
     vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans) {
     vector<vector<unique_ptr<LogicalPlan>>> resultChildrenPlans;
     for (auto& childLogicalPlans : childrenLogicalPlans) {
