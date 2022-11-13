@@ -34,7 +34,14 @@ void NodeTable::loadColumnsAndListsFromDisk(
 node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
     assert(primaryKeyVector->state->isFlat());
-    pkIndex->insert(primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
+    if (!pkIndex->insert(
+            primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset)) {
+        auto pkValPos = primaryKeyVector->state->getPositionOfCurrIdx();
+        string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
+                           to_string(((int64_t*)(primaryKeyVector->values))[pkValPos]) :
+                           (((ku_string_t*)primaryKeyVector->values))[pkValPos].getAsString();
+        throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
+    }
     for (auto& column : propertyColumns) {
         column->setNodeOffsetToNull(nodeOffset);
     }

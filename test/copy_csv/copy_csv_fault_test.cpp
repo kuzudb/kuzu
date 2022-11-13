@@ -38,7 +38,7 @@ class CopyCSVRelTableMultiplicityViolationTest : public CopyCSVFaultTest {
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
     validateCopyCSVException(
         "COPY person FROM \"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\"",
-        "CopyCSV exception: ID value 10 violates the uniqueness constraint for the ID property.");
+        "CopyCSV exception: " + Exception::getExistedPKExceptionMsg("10"));
 }
 
 TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
