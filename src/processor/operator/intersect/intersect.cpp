@@ -15,11 +15,10 @@ shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
         vector<uint32_t> columnIdxesToScanFrom;
         vector<shared_ptr<ValueVector>> vectorsToReadInto;
         for (auto i = 0u; i < dataInfo.payloadsDataPos.size(); i++) {
-            auto payloadDataPos = dataInfo.payloadsDataPos[i];
+            auto dataPos = dataInfo.payloadsDataPos[i];
             auto vector = make_shared<ValueVector>(dataInfo.payloadsDataType[i]);
-            resultSet->dataChunks[payloadDataPos.dataChunkPos]->insert(
-                payloadDataPos.valueVectorPos, vector);
-            // Always skip the first two columns: build key and intersect key.
+            resultSet->dataChunks[dataPos.dataChunkPos]->insert(dataPos.valueVectorPos, vector);
+            // Always skip the first two columns in the fTable: build key and intersect key.
             columnIdxesToScanFrom.push_back(i + 2);
             vectorsToReadInto.push_back(vector);
         }
@@ -41,7 +40,7 @@ vector<uint8_t*> Intersect::probeHTs(const vector<nodeID_t>& keys) {
         tuples[i] = sharedHTs[i]->getHashTable()->getTupleForHash(tmpHash);
         while (tuples[i]) {
             if (*(nodeID_t*)tuples[i] == keys[i]) {
-                break;
+                break; // The build side should guarantee each key only has one matching tuple.
             }
             tuples[i] = *sharedHTs[i]->getHashTable()->getPrevTuple(tuples[i]);
         }
@@ -97,15 +96,12 @@ static vector<overflow_value_t> fetchListsToIntersectFromTuples(
     const vector<uint8_t*>& tuples, const vector<bool>& isFlatValue) {
     vector<overflow_value_t> listsToIntersect(tuples.size());
     for (auto i = 0u; i < tuples.size(); i++) {
-        if (tuples[i]) {
-            if (isFlatValue[i]) {
-                listsToIntersect[i].numElements = 1;
-                listsToIntersect[i].value = tuples[i] + sizeof(nodeID_t);
-            } else {
-                // The list to intersect is placed right after the key in tuple.
-                listsToIntersect[i] = *(overflow_value_t*)(tuples[i] + sizeof(nodeID_t));
-            }
+        if (!tuples[i]) {
+            continue; // overflow_value will be initialized with size 0 for non-matching tuples.
         }
+        listsToIntersect[i] =
+            isFlatValue[i] ? overflow_value_t{1 /* numElements */, tuples[i] + sizeof(nodeID_t)} :
+                             *(overflow_value_t*)(tuples[i] + sizeof(nodeID_t));
     }
     return listsToIntersect;
 }
@@ -114,11 +110,9 @@ static vector<uint32_t> swapSmallestListToFront(vector<overflow_value_t>& lists)
     assert(lists.size() >= 2);
     vector<uint32_t> listIdxes(lists.size());
     iota(listIdxes.begin(), listIdxes.end(), 0);
-    uint32_t smallestListSize = lists[0].numElements;
     uint32_t smallestListIdx = 0;
     for (auto i = 1u; i < lists.size(); i++) {
-        if (lists[i].numElements < smallestListSize) {
-            smallestListSize = lists[i].numElements;
+        if (lists[i].numElements < lists[smallestListIdx].numElements) {
             smallestListIdx = i;
         }
     }
@@ -130,35 +124,36 @@ static vector<uint32_t> swapSmallestListToFront(vector<overflow_value_t>& lists)
 }
 
 void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect) {
-    if (listsToIntersect[0].numElements == 0) {
+    // The anchorList will hold intersected result throughout intersections of all lists.
+    auto& anchorList = listsToIntersect[0];
+    if (anchorList.numElements == 0) {
         outKeyVector->state->selVector->selectedSize = 0;
         return;
     }
-    assert(listsToIntersect[0].numElements <= DEFAULT_VECTOR_CAPACITY);
+    assert(anchorList.numElements <= DEFAULT_VECTOR_CAPACITY);
+    auto anchorSelVector = intersectSelVectors[0].get();
+    anchorSelVector->resetSelectorToUnselectedWithSize(anchorList.numElements);
     vector<SelectionVector*> lSelVectors;
-    intersectSelVectors[0]->resetSelectorToUnselected();
-    // We use the first list as the anchor list to intersect with all other lists.
-    auto anchorListValues = (nodeID_t*)listsToIntersect[0].value;
     for (auto i = 0u; i < listsToIntersect.size() - 1; i++) {
         lSelVectors.push_back(intersectSelVectors[i].get());
-        intersectSelVectors[i + 1]->resetSelectorToUnselected();
-        twoWayIntersect(anchorListValues, listsToIntersect[0].numElements, lSelVectors,
+        intersectSelVectors[i + 1]->resetSelectorToUnselectedWithSize(
+            listsToIntersect[i + 1].numElements);
+        twoWayIntersect((nodeID_t*)anchorList.value, anchorList.numElements, lSelVectors,
             (nodeID_t*)listsToIntersect[i + 1].value, listsToIntersect[i + 1].numElements,
             intersectSelVectors[i + 1].get());
     }
     // Populate intersect key (nodeIDs).
     auto outKeyValues = (nodeID_t*)outKeyVector->values;
-    for (auto i = 0u; i < intersectSelVectors[0]->selectedSize; i++) {
-        outKeyValues[i] = anchorListValues[intersectSelVectors[0]->selectedPositions[i]];
+    for (auto i = 0u; i < anchorSelVector->selectedSize; i++) {
+        outKeyValues[i] = ((nodeID_t*)anchorList.value)[anchorSelVector->selectedPositions[i]];
     }
-    outKeyVector->state->selVector->selectedSize = intersectSelVectors[0]->selectedSize;
+    outKeyVector->state->selVector->selectedSize = anchorSelVector->selectedSize;
 }
 
 void Intersect::populatePayloads(
     const vector<uint8_t*>& tuples, const vector<uint32_t>& listIdxes) {
     for (auto i = 0u; i < listIdxes.size(); i++) {
         auto listIdx = listIdxes[i];
-        auto dataInfo = intersectDataInfos[listIdx];
         sharedHTs[i]->getHashTable()->getFactorizedTable()->lookup(
             payloadVectorsToScanInto[listIdx], intersectSelVectors[i].get(),
             payloadColumnIdxesToScanFrom[listIdx], tuples[listIdx]);

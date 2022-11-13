@@ -25,6 +25,10 @@ public:
     inline void resetSelectorToUnselected() {
         selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
     }
+    inline void resetSelectorToUnselectedWithSize(sel_t size) {
+        selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
+        selectedSize = size;
+    }
     inline void resetSelectorToValuePosBuffer() {
         selectedPositions = selectedPositionsBuffer.get();
     }
