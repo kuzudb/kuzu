@@ -88,3 +88,8 @@ Zhang
 name|Amy
 name|Bob
 name|Carol
+
+-NAME Cyclic
+-QUERY MATCH (a:User)-[:Follows]->(b:User)-[:Follows]->(c:User), (a)-[:Follows]->(c) RETURN COUNT(*);
+---- 1
+1
