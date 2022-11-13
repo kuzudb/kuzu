@@ -44,9 +44,8 @@ private:
     vector<nodeID_t> getProbeKeys();
     vector<uint8_t*> probeHTs(const vector<nodeID_t>& keys);
     // Left is always the one with less num of values.
-    static void twoWayIntersect(nodeID_t* leftNodeIDs, uint64_t leftSize,
-        vector<SelectionVector*>& lSelVectors, nodeID_t* rightNodeIDs, uint64_t rightSize,
-        SelectionVector* rSelVector);
+    static void twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
+        nodeID_t* rightNodeIDs, SelectionVector& rSelVector);
     void intersectLists(const vector<overflow_value_t>& listsToIntersect);
     void populatePayloads(const vector<uint8_t*>& tuples, const vector<uint32_t>& listIdxes);
 
