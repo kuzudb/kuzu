@@ -51,6 +51,12 @@ TEST_F(TinySnbUpdateTest, SetNodeTimestampPropTest) {
         Timestamp::FromDatetime(Date::FromDate(2200, 10, 10), Time::FromTime(12, 1, 1)));
 }
 
+TEST_F(TinySnbUpdateTest, SetNodeEmptyStringPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=''");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "");
+}
+
 TEST_F(TinySnbUpdateTest, SetNodeShortStringPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdef'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
