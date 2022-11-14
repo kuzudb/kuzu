@@ -21,14 +21,13 @@ public:
         createDBAndConn();
         readConn = make_unique<Connection>(database.get());
         table_id_t personTableID =
-            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable =
-            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
-        uint32_t idPropertyID = database->getCatalog()
+            getCatalog(*database)->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        personNodeTable = getStorageManager(*database)->getNodesStore().getNodeTable(personTableID);
+        uint32_t idPropertyID = getCatalog(*database)
                                     ->getReadOnlyVersion()
                                     ->getNodeProperty(personTableID, "ID")
                                     .propertyID;
-        idColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
+        idColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
             personTableID, idPropertyID);
         conn->beginWriteTransaction();
     }
@@ -45,9 +44,9 @@ public:
         auto dataChunk = make_shared<DataChunk>(2);
         // Flatten the data chunk
         dataChunk->state->currIdx = 0;
-        auto nodeIDVector = make_shared<ValueVector>(NODE_ID, database->getMemoryManager());
+        auto nodeIDVector = make_shared<ValueVector>(NODE_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeIDVector);
-        auto idVector = make_shared<ValueVector>(INT64, database->getMemoryManager());
+        auto idVector = make_shared<ValueVector>(INT64, getMemoryManager(*database));
         dataChunk->insert(1, idVector);
         ((nodeID_t*)nodeIDVector->values)[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);

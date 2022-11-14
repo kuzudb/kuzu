@@ -34,11 +34,11 @@ CSVReader::CSVReader(const string& fname, const CSVReaderConfig& config)
 
 CSVReader::CSVReader(
     char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
-    : fd{nullptr}, config{config}, nextLineIsNotProcessed{false}, isEndOfBlock{false},
+    : fd{nullptr}, config{config}, logger{LoggerUtils::getOrCreateLogger("csv_reader")},
+      nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
-      readingBlockEndOffset{UINT64_MAX},
-      nextTokenLen{UINT64_MAX}, logger{LoggerUtils::getOrCreateLogger("csv_reader")} {}
+      readingBlockEndOffset{UINT64_MAX}, nextTokenLen{UINT64_MAX} {}
 
 CSVReader::~CSVReader() {
     // fd can be nullptr when the CSVReader is constructed by passing a char*, so it is reading over

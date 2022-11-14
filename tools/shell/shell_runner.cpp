@@ -4,6 +4,7 @@
 #include "tools/shell/include/embedded_shell.h"
 
 using namespace std;
+using namespace kuzu::main;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");

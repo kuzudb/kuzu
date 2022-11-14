@@ -71,6 +71,38 @@ public:
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
 
 protected:
+    static inline catalog::Catalog* getCatalog(Database& database) {
+        return database.catalog.get();
+    }
+    static inline storage::StorageManager* getStorageManager(Database& database) {
+        return database.storageManager.get();
+    }
+    static inline storage::BufferManager* getBufferManager(Database& database) {
+        return database.bufferManager.get();
+    }
+    static inline storage::MemoryManager* getMemoryManager(Database& database) {
+        return database.memoryManager.get();
+    }
+    static inline transaction::TransactionManager* getTransactionManager(Database& database) {
+        return database.transactionManager.get();
+    }
+    static inline uint64_t getDefaultBMSize(Database& database) {
+        return database.systemConfig.defaultPageBufferPoolSize;
+    }
+    static inline uint64_t getLargeBMSize(Database& database) {
+        return database.systemConfig.largePageBufferPoolSize;
+    }
+    static inline WAL* getWAL(Database& database) { return database.wal.get(); }
+    static inline void commitAndCheckpointOrRollback(Database& database,
+        transaction::Transaction* writeTransaction, bool isCommit,
+        bool skipCheckpointForTestingRecovery = false) {
+        database.commitAndCheckpointOrRollback(
+            writeTransaction, isCommit, skipCheckpointForTestingRecovery);
+    }
+    static inline QueryProcessor* getQueryProcessor(Database& database) {
+        return database.queryProcessor.get();
+    }
+
     void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);
 
     void validateListFilesExistence(

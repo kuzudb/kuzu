@@ -13,11 +13,12 @@ class TinySnbCopyCSVDateTest : public InMemoryDBTest {
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbCopyCSVDateTest, NodePropertyColumnWithDate) {
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
-    auto col = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
-        tableID, propertyIdx.propertyID);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
+    auto storageManager = getStorageManager(*database);
+    auto col =
+        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     ASSERT_FALSE(col->isNull(0, dummyReadOnlyTrx.get()));
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, col->readValue(0).val.dateVal.days);

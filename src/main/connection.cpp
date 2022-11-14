@@ -7,7 +7,6 @@
 #include "src/planner/include/planner.h"
 #include "src/processor/mapper/include/plan_mapper.h"
 
-using namespace std;
 using namespace kuzu::parser;
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -81,8 +80,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
         // planning
         logicalPlan = Planner::getBestPlan(*database->catalog,
-            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundStatement);
+            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+            database->storageManager->getRelsStore().getRelsStatistics(), *boundStatement);
         if (logicalPlan->isDDLOrCopyCSV()) {
             preparedStatement->createResultHeader(
                 expression_vector{make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg")});
@@ -185,8 +184,8 @@ vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getAllPlans(*database->catalog,
-        database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
+        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
 }
 
 unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& query) {
@@ -194,8 +193,8 @@ unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& quer
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
     return Planner::getBestPlan(*database->catalog,
-        database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
+        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
 }
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
@@ -241,7 +240,7 @@ void Connection::bindParametersNoLock(
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
     auto mapper = PlanMapper(
-        *database->storageManager, database->getMemoryManager(), database->catalog.get());
+        *database->storageManager, database->memoryManager.get(), database->catalog.get());
     unique_ptr<PhysicalPlan> physicalPlan;
     if (preparedStatement->isSuccess()) {
         try {
@@ -281,9 +280,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         executingTimer.stop();
         queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
         queryResult->setResultHeaderAndTable(
-            preparedStatement->resultHeader->copy(), move(resultFT));
+            preparedStatement->resultHeader->copy(), std::move(resultFT));
     }
-    auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), move(profiler));
+    auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
     queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
     queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;

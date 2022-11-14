@@ -15,10 +15,10 @@ class TinySnbCopyCSVIntervalTest : public InMemoryDBTest {
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbCopyCSVIntervalTest, NodePropertyColumnWithInterval) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
+    auto graph = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),

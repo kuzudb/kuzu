@@ -49,10 +49,10 @@ public:
     // requires the code to be inside CopyCSVEmptyListsTest class, which is a friend class to
     // Lists and ListsMetadata.
     void testCopyCSVEmptyListsTest() {
-        auto& catalog = *database->getCatalog();
-        table_id_t pTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
+        auto catalog = getCatalog(*database);
+        table_id_t pTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         auto unstrPropLists =
-            database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pTableID);
+            getStorageManager(*database)->getNodesStore().getNodeUnstrPropertyLists(pTableID);
         // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk
         // idx 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
         // point to UINT32_MAX (representing null), while chunk 2 should point to 0.
@@ -77,7 +77,7 @@ public:
         }
         // There are no large lists so largeListIdxToPageListHeadIdxMap should have 0 elements.
         EXPECT_EQ(0, unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.numElements);
-        uint64_t maxPersonOffset = database->getStorageManager()
+        uint64_t maxPersonOffset = getStorageManager(*database)
                                        ->getNodesStore()
                                        .getNodesStatisticsAndDeletedIDs()
                                        .getNodeStatisticsAndDeletedIDs(pTableID)
@@ -134,10 +134,10 @@ ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* s
 } // namespace kuzu
 
 TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto graph = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
     string fName = "dataset/copy-csv-node-property-test/vPerson.csv";
@@ -275,39 +275,39 @@ void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsList
 
 TEST_F(CopyCSVReadLists2BytesPerEdgeTest, ReadLists2BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists3BytesPerEdgeTest, ReadLists3BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
+        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
 }
 
 TEST_F(CopyCSVReadLists4BytesPerEdgeTest, ReadLists4BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
+        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
     verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
-    auto storageManager = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
@@ -319,8 +319,8 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("this is a ##plain## #string", col->readValue(5).strVal);
     EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6).strVal);
 
-    tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("organisation");
-    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "name");
+    tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
+    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
@@ -333,10 +333,10 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
 //}
 
 TEST_F(CopyCSVLongStringTest, LongStringError) {
-    auto storageManager = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "fName");
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "fName");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
@@ -350,7 +350,7 @@ TEST_F(CopyCSVLongStringTest, LongStringError) {
     EXPECT_EQ(os.str().substr(0, 4096), col->readValue(0).strVal);
     EXPECT_EQ("Bob", col->readValue(1).strVal);
 
-    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "gender");
+    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "gender");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(1, col->readValue(0).val.int64Val);
     EXPECT_EQ(2, col->readValue(1).val.int64Val);
