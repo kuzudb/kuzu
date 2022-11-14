@@ -25,7 +25,7 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     transactionManager = make_unique<transaction::TransactionManager>(*wal);
 }
 
-void Database::initDBDirAndCoreFilesIfNecessary() {
+void Database::initDBDirAndCoreFilesIfNecessary() const {
     if (!FileUtils::fileOrPathExists(databaseConfig.databasePath)) {
         FileUtils::createDir(databaseConfig.databasePath);
     }
@@ -70,7 +70,7 @@ void Database::commitAndCheckpointOrRollback(
     // nodesStatisticsAndDeletedIDs/relStatistics record if there has been updates to
     // nodesStatisticsAndDeletedIDs/relStatistics. This is because we need to commit or rollback
     // the in-memory state of NodesStatisticsAndDeletedIDs/relStatistics, which is done during
-    // wal replaying and committing/rollingback each record, so a TABLE_STATISTICS_RECORD needs
+    // wal replaying and committing/rolling back each record, so a TABLE_STATISTICS_RECORD needs
     // to appear in the log.
     bool nodeTableHasUpdates =
         storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().hasUpdates();
@@ -104,7 +104,7 @@ void Database::commitAndCheckpointOrRollback(
         // Note: It is enough to stop and wait transactions to leave the system instead of
         // for example checking on the query processor's task scheduler. This is because the
         // first and last steps that a connection performs when executing a query is to
-        // start and comming/rollback transaction. The query processor also ensures that it
+        // start and commit/rollback transaction. The query processor also ensures that it
         // will only return results or error after all threads working on the tasks of a
         // query stop working on the tasks of the query and these tasks are removed from the
         // query.

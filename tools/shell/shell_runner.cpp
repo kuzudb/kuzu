@@ -23,7 +23,8 @@ int main(int argc, char* argv[]) {
     }
     auto databasePath = args::get(inputDirFlag);
     uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
-    cout << "Database path: " << databasePath << endl;
+    cout << "Opened the database at path: " << databasePath << endl;
+    cout << "Enter \":help\" for usage hints." << endl;
     SystemConfig systemConfig(bpSizeInMB << 20);
     DatabaseConfig databaseConfig(databasePath, inMemoryFlag);
     spdlog::set_level(spdlog::level::err);
