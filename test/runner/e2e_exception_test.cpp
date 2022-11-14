@@ -49,6 +49,12 @@ TEST_F(TinySnbExceptionTest, InsertNodeWithExistedPKError2) {
     ASSERT_STREQ(expectedErrorMsg.c_str(), result->getErrorMessage().c_str());
 }
 
+TEST_F(TinySnbExceptionTest, InsertNodeWithNullPK) {
+    auto result = conn->query("CREATE (a:person {ID:NULL, fName:'Guodong'});");
+    string expectedErrorMsg = "Runtime exception: Null is not allowed as a primary key value.";
+    ASSERT_STREQ(expectedErrorMsg.c_str(), result->getErrorMessage().c_str());
+}
+
 TEST_F(TinySnbExceptionTest, DeleteNodeWithEdgeErrorTest) {
     auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 DELETE a");
     ASSERT_FALSE(result->isSuccess());
