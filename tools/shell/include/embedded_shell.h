@@ -4,7 +4,8 @@
 
 #include "src/main/include/kuzu.h"
 
-using namespace kuzu::main;
+namespace kuzu {
+namespace main {
 
 /**
  * Embedded shell simulate a session that directly connects to the system.
@@ -34,3 +35,6 @@ private:
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;
 };
+
+} // namespace main
+} // namespace kuzu

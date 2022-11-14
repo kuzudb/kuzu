@@ -18,37 +18,37 @@ public:
         // Note we do not actually use the connection field in these tests. We only need the
         // database.
         createDBAndConn();
-        writeTrx = database->getTransactionManager()->beginWriteTransaction();
-        readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
+        writeTrx = getTransactionManager(*database)->beginWriteTransaction();
+        readTrx = getTransactionManager(*database)->beginReadOnlyTransaction();
 
         table_id_t personTableID =
-            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        uint32_t agePropertyID = database->getCatalog()
+            getCatalog(*database)->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        uint32_t agePropertyID = getCatalog(*database)
                                      ->getReadOnlyVersion()
                                      ->getNodeProperty(personTableID, "age")
                                      .propertyID;
-        uint32_t eyeSightPropertyID = database->getCatalog()
+        uint32_t eyeSightPropertyID = getCatalog(*database)
                                           ->getReadOnlyVersion()
                                           ->getNodeProperty(personTableID, "eyeSight")
                                           .propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
-        nodeVector = make_shared<ValueVector>(NODE_ID, database->getMemoryManager());
+        nodeVector = make_shared<ValueVector>(NODE_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeVector);
         ((nodeID_t*)nodeVector->values)[0].offset = 0;
         ((nodeID_t*)nodeVector->values)[1].offset = 1;
 
         agePropertyVectorToReadDataInto =
-            make_shared<ValueVector>(INT64, database->getMemoryManager());
+            make_shared<ValueVector>(INT64, getMemoryManager(*database));
         dataChunk->insert(1, agePropertyVectorToReadDataInto);
         eyeSightVectorToReadDataInto =
-            make_shared<ValueVector>(DOUBLE, database->getMemoryManager());
+            make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
         dataChunk->insert(2, eyeSightVectorToReadDataInto);
 
-        personAgeColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
+        personAgeColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
             personTableID, agePropertyID);
 
-        personEyeSightColumn = database->getStorageManager()->getNodesStore().getNodePropertyColumn(
+        personEyeSightColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
             personTableID, eyeSightPropertyID);
     }
 
@@ -81,7 +81,7 @@ public:
     void writeToAgePropertyNode(uint64_t nodeOffset, int64_t expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            make_shared<ValueVector>(INT64, database->getMemoryManager());
+            make_shared<ValueVector>(INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
@@ -97,7 +97,7 @@ public:
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            make_shared<ValueVector>(DOUBLE, database->getMemoryManager());
+            make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
@@ -151,10 +151,10 @@ public:
 
     void testRecovery(bool committingTransaction) {
         assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
-        database->getTransactionManager()->commit(readTrx.get());
-        database->commitAndCheckpointOrRollback(
-            writeTrx.get(), committingTransaction, true /* skip checkpointing */);
-        readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
+        getTransactionManager(*database)->commit(readTrx.get());
+        commitAndCheckpointOrRollback(
+            *database, writeTrx.get(), committingTransaction, true /* skip checkpointing */);
+        readTrx = getTransactionManager(*database)->beginReadOnlyTransaction();
         // We next destroy and reconstruct the database to start up the system.
         // initWithoutLoadingGraph will construct a completely new databse, writeTrx, readTrx,
         // and personAgeColumn, and personEyeSightColumn classes. We could use completely
@@ -203,16 +203,16 @@ TEST_F(TransactionTests, Concurrent1Write1ReadTransactionCommitAndCheckpoint) {
 
     // We need to commit the read transaction because  commitAndCheckpointOrRollback requires all
     // read transactions to leave the system.
-    database->getTransactionManager()->commit(readTrx.get());
-    database->commitAndCheckpointOrRollback(writeTrx.get(), true /* isCommit */);
+    getTransactionManager(*database)->commit(readTrx.get());
+    commitAndCheckpointOrRollback(*database, writeTrx.get(), true /* isCommit */);
 
     // At this point, the write transaction no longer is valid and is not registered in the
     // TransactionManager, so in normal operation, we would need to create new transactions.
     // Although this is not needed, we still do it. This is not needed because this test directly
     // accesses the columns with a transaction and the storage_structures assume that the given
     // transaction is active.
-    writeTrx = database->getTransactionManager()->beginWriteTransaction();
-    readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
+    writeTrx = getTransactionManager(*database)->beginWriteTransaction();
+    readTrx = getTransactionManager(*database)->beginReadOnlyTransaction();
 
     assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
     assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
@@ -224,11 +224,11 @@ TEST_F(TransactionTests, Concurrent1Write1ReadTransactionCommitAndCheckpoint) {
 // new  transaction).
 TEST_F(TransactionTests, OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
     // Note that TransactionTests starts 1 read and 1 write transaction by default.
-    database->getTransactionManager()->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+    getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
         10000 /* 10ms */);
     updateAgeAndEyeSightPropertiesForNodes0And1();
     try {
-        database->commitAndCheckpointOrRollback(writeTrx.get(), true /* isCommit */);
+        commitAndCheckpointOrRollback(*database, writeTrx.get(), true /* isCommit */);
         FAIL();
     } catch (TransactionManagerException e) {
     } catch (Exception& e) { FAIL(); }
@@ -238,12 +238,12 @@ TEST_F(TransactionTests, OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTran
 TEST_F(TransactionTests, Concurrent1Write1ReadTransactionRollback) {
     assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
 
-    database->commitAndCheckpointOrRollback(writeTrx.get(), false /* rollback */);
+    commitAndCheckpointOrRollback(*database, writeTrx.get(), false /* rollback */);
 
     // See the comment inside Concurrent1Write1ReadTransactionCommitAndCheckpoint for why we create
     // these new transactions
-    writeTrx = database->getTransactionManager()->beginWriteTransaction();
-    readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
+    writeTrx = getTransactionManager(*database)->beginWriteTransaction();
+    readTrx = getTransactionManager(*database)->beginReadOnlyTransaction();
 
     assertOriginalAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
     assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());

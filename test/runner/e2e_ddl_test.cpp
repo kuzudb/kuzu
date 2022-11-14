@@ -90,15 +90,15 @@ class TinySnbDDLTest : public DBTest {
 public:
     void SetUp() override {
         DBTest::SetUp();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*conn->database);
         profiler = make_unique<Profiler>();
         executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            database->getMemoryManager(), database->getBufferManager());
+            getMemoryManager(*database), getBufferManager(*database));
     }
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*conn->database);
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
@@ -112,14 +112,14 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
+            ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 2);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
+            ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
@@ -127,7 +127,7 @@ public:
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
+            ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
@@ -142,14 +142,14 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->commitButSkipCheckpointingForTestingRecovery();
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 7);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 7);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
         }
     }
 
@@ -216,9 +216,9 @@ public:
         auto preparedStatement = conn->prepareNoLock(query);
         conn->beginTransactionNoLock(WRITE);
         auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
-        database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
+        getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
     Catalog* catalog;

@@ -24,12 +24,11 @@ public:
             inMemOverflowBuffer.reset();
         }
         createDBAndConn();
-        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(database->getMemoryManager());
+        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(getMemoryManager(*database));
         readConn = make_unique<Connection>(database.get());
         personTableID =
-            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable =
-            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
+            getCatalog(*database)->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        personNodeTable = getStorageManager(*database)->getNodesStore().getNodeTable(personTableID);
 
         existingStrVal.dataType = DataType(DataTypeID::STRING);
         string existingStr = "abcdefghijklmn";
@@ -63,7 +62,7 @@ public:
     // TODO(Xiyang): Currently we are manually calling set in getUnstrPropertyLists. Once we have
     // frontend support, these sets should also be done through Cypher queries.
     void setPropertyOfNode(node_offset_t nodeOffset, string propKey, Value& newVal) {
-        uint32_t unstrPropKey = database->getCatalog()
+        uint32_t unstrPropKey = getCatalog(*database)
                                     ->getReadOnlyVersion()
                                     ->getNodeProperty(personTableID, propKey)
                                     .propertyID;
@@ -71,7 +70,7 @@ public:
     }
 
     void removeProperty(node_offset_t nodeOffset, string propKey) {
-        uint32_t unstrPropKey = database->getCatalog()
+        uint32_t unstrPropKey = getCatalog(*database)
                                     ->getReadOnlyVersion()
                                     ->getNodeProperty(personTableID, propKey)
                                     .propertyID;
@@ -251,11 +250,11 @@ public:
     }
 
     void addNewListsTest(bool isCommit, TransactionTestType transactionTestType) {
-        uint32_t unstrIntPropKey = database->getCatalog()
+        uint32_t unstrIntPropKey = getCatalog(*database)
                                        ->getReadOnlyVersion()
                                        ->getNodeProperty(personTableID, "ui0")
                                        .propertyID;
-        uint32_t unstrStrPropKey = database->getCatalog()
+        uint32_t unstrStrPropKey = getCatalog(*database)
                                        ->getReadOnlyVersion()
                                        ->getNodeProperty(personTableID, "us0")
                                        .propertyID;

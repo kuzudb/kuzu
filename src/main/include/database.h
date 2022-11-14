@@ -10,10 +10,9 @@
 #include "src/transaction/include/transaction_manager.h"
 
 namespace kuzu {
-namespace transaction {
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
-} // namespace transaction
+namespace testing {
+class BaseGraphTest;
+} // namespace testing
 } // namespace kuzu
 
 namespace spdlog {
@@ -45,10 +44,10 @@ struct DatabaseConfig {
 };
 
 class Database {
+    friend class EmbeddedShell;
     friend class Connection;
     friend class JOConnection;
-    friend class kuzu::transaction::TinySnbDDLTest;
-    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
+    friend class kuzu::testing::BaseGraphTest;
 
 public:
     explicit Database(const DatabaseConfig& databaseConfig)
@@ -60,23 +59,7 @@ public:
 
     void resizeBufferManager(uint64_t newSize);
 
-    // TODO: interface below might need to be removed eventually
-    inline catalog::Catalog* getCatalog() { return catalog.get(); }
-    // used in storage test
-    inline storage::StorageManager* getStorageManager() { return storageManager.get(); }
-    // used in shell for getting debug info
-    inline storage::BufferManager* getBufferManager() { return bufferManager.get(); }
-    // Needed for tests currently.
-    inline storage::MemoryManager* getMemoryManager() { return memoryManager.get(); }
-    // Needed for tests currently.
-    inline transaction::TransactionManager* getTransactionManager() {
-        return transactionManager.get();
-    }
-    // used in API test
-    inline uint64_t getDefaultBMSize() const { return systemConfig.defaultPageBufferPoolSize; }
-    inline uint64_t getLargeBMSize() const { return systemConfig.largePageBufferPoolSize; }
-    inline WAL* getWAL() const { return wal.get(); }
-
+private:
     // TODO(Semih): This is refactored here for now to be able to test transaction behavior
     // in absence of the frontend support. Consider moving this code to connection.cpp.
     // Commits and checkpoints a write transaction or rolls that transaction back. This involves
@@ -86,7 +69,6 @@ public:
     void commitAndCheckpointOrRollback(transaction::Transaction* writeTransaction, bool isCommit,
         bool skipCheckpointForTestingRecovery = false);
 
-private:
     void initDBDirAndCoreFilesIfNecessary() const;
     void initLoggers();
 

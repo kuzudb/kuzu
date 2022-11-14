@@ -15,15 +15,15 @@ public:
     void SetUp() override {
         EmptyDBTest::SetUp();
         createDBAndConn();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*conn->database);
         profiler = make_unique<Profiler>();
         executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            database->getMemoryManager(), database->getBufferManager());
+            getMemoryManager(*conn->database), getBufferManager(*conn->database));
     }
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*conn->database);
     }
 
     void validateTinysnbPersonAgeProperty() {
@@ -49,7 +49,8 @@ public:
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
             0);
-        ASSERT_EQ(database->storageManager->getNodesStore()
+        ASSERT_EQ(getStorageManager(*database)
+                      ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
                       .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
             UINT64_MAX);
@@ -65,7 +66,7 @@ public:
         validateNodeColumnAndListFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
-        ASSERT_EQ(database->getStorageManager()
+        ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
                       .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
@@ -77,9 +78,9 @@ public:
         auto preparedStatement = conn->prepareNoLock(copyPersonTableCMD);
         conn->beginTransactionNoLock(WRITE);
         auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
-        database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
+        getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -126,7 +127,7 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         auto dummyWriteTrx = Transaction::getDummyWriteTrx();
-        ASSERT_EQ(database->storageManager->getRelsStore().getRelsStatistics().getNextRelID(
+        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getRelsStatistics().getNextRelID(
                       dummyWriteTrx.get()),
             14);
     }
@@ -140,7 +141,7 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
-        auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        auto& relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
         auto dummyWriteTrx = Transaction::getDummyWriteTrx();
         ASSERT_EQ(relsStatistics.getNextRelID(dummyWriteTrx.get()), 14);
         ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
@@ -159,9 +160,9 @@ public:
         auto preparedStatement = conn->prepareNoLock(copyKnowsTableCMD);
         conn->beginTransactionNoLock(WRITE);
         auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
-        database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
+        getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
         validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -175,7 +176,7 @@ public:
         }
     }
 
-    Catalog* catalog;
+    Catalog* catalog = nullptr;
     string createPersonTableCMD =
         "CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
         "isWorker BOOLEAN, "

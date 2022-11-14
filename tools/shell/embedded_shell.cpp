@@ -6,6 +6,9 @@
 
 #include "src/common/include/type_utils.h"
 
+namespace kuzu {
+namespace main {
+
 // prompt for user input
 const char* PROMPT = "kuzu> ";
 // file to read/write shell history
@@ -50,10 +53,10 @@ vector<string> relTableNames;
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getNodeTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
         nodeTableNames.push_back(tableSchema.second->tableName);
     }
-    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getRelTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
         relTableNames.push_back(tableSchema.second->tableName);
     }
 }
@@ -184,7 +187,7 @@ void EmbeddedShell::run() {
             setBufferManagerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
             printf("Buffer Manager Debug Info: \n %s \n",
-                database->getBufferManager()->debugInfo()->dump(4).c_str());
+                database->bufferManager->debugInfo()->dump(4).c_str());
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
@@ -275,7 +278,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         auto& oss = querySummary->getPlanAsOstream();
         printf("%s", oss.str().c_str());
     } else {
-        auto numTuples = queryResult.getNumTuples();
+        uint64_t numTuples = queryResult.getNumTuples();
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
@@ -336,3 +339,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
     }
 }
+
+} // namespace main
+} // namespace kuzu

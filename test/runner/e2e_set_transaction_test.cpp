@@ -135,7 +135,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, Concurrent1Write1ReadTransactionRol
 
 TEST_F(SetNodeStructuredPropTransactionTest,
     OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
-    database->getTransactionManager()->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+    getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
         10000 /* 10ms */);
     readConn->beginReadOnlyTransaction();
     conn->beginWriteTransaction();
@@ -339,40 +339,40 @@ public:
 //    readAndAssertNodeProperty(conn.get(), 123, "us125", vector<string>{""});
 //}
 
-static void insertALargeNumberOfProperties(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui" + to_string(i) + "=" + intParam +
-                    ",a.us" + to_string(i) + "='" + strParam + "'");
-    }
-}
+// static void insertALargeNumberOfProperties(
+//    Connection* conn, const string& intParam, const string& strParam) {
+//    for (auto i = 0u; i <= 200; ++i) {
+//        conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui" + to_string(i) + "=" + intParam +
+//                    ",a.us" + to_string(i) + "='" + strParam + "'");
+//    }
+//}
 
-static void validateInsertALargeNumberOfPropertiesSucceeds(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-            conn, 123, "ui" + to_string(i), vector<string>{intParam});
-        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-            conn, 123, "us" + to_string(i), vector<string>{strParam});
-    }
-}
+// static void validateInsertALargeNumberOfPropertiesSucceeds(
+//    Connection* conn, const string& intParam, const string& strParam) {
+//    for (auto i = 0u; i <= 200; ++i) {
+//        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//            conn, 123, "ui" + to_string(i), vector<string>{intParam});
+//        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//            conn, 123, "us" + to_string(i), vector<string>{strParam});
+//    }
+//}
 
-static void validateInsertALargeNumberOfPropertiesFails(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        if (i == 123) {
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "ui123", vector<string>{intParam});
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "us123", vector<string>{strParam});
-        } else {
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "ui" + to_string(i), vector<string>{""});
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "us" + to_string(i), vector<string>{""});
-        }
-    }
-}
+// static void validateInsertALargeNumberOfPropertiesFails(
+//    Connection* conn, const string& intParam, const string& strParam) {
+//    for (auto i = 0u; i <= 200; ++i) {
+//        if (i == 123) {
+//            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//                conn, 123, "ui123", vector<string>{intParam});
+//            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//                conn, 123, "us123", vector<string>{strParam});
+//        } else {
+//            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//                conn, 123, "ui" + to_string(i), vector<string>{""});
+//            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
+//                conn, 123, "us" + to_string(i), vector<string>{""});
+//        }
+//    }
+//}
 
 // TODO(Semih): Uncomment when enabling ad-hoc properties
 // TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesInTrx) {

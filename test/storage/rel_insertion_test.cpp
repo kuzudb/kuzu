@@ -14,7 +14,7 @@ public:
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
         // Set tableIDs
-        auto catalogContents = database->getCatalog()->getReadOnlyVersion();
+        auto catalogContents = getCatalog(*database)->getReadOnlyVersion();
         ANIMAL_TABLE_ID = catalogContents->getNodeTableIDFromName("animal");
         PERSON_TABLE_ID = catalogContents->getNodeTableIDFromName("person");
         KNOWS_TABLE_ID = catalogContents->getRelTableIDFromName("knows");
@@ -72,20 +72,20 @@ public:
     string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
 
     void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
-        auto catalog = database->getCatalog();
+        auto catalog = getCatalog(*database);
         auto statement = Parser::parseQuery(query);
         auto parsedQuery = (RegularQuery*)statement.get();
         auto boundQuery = Binder(*catalog).bind(*parsedQuery);
         auto plan = Planner::getBestPlan(*catalog,
-            database->getStorageManager()->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            database->getStorageManager()->getRelsStore().getRelsStatistics(), *boundQuery);
+            getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+            getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
         ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
     }
 
     inline void insertOneRelToRelTable(table_id_t relTableID,
         shared_ptr<ValueVector>& srcNodeVector, shared_ptr<ValueVector>& dstNodeVector,
         vector<shared_ptr<ValueVector>>& propertyVectors) {
-        database->getStorageManager()
+        getStorageManager(*database)
             ->getRelsStore()
             .getRelTable(relTableID)
             ->insertRels(srcNodeVector, dstNodeVector, propertyVectors);
