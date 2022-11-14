@@ -34,6 +34,9 @@ void NodeTable::loadColumnsAndListsFromDisk(
 node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
     assert(primaryKeyVector->state->isFlat());
+    if (primaryKeyVector->isNull(primaryKeyVector->state->getPositionOfCurrIdx())) {
+        throw RuntimeException("Null is not allowed as a primary key value.");
+    }
     if (!pkIndex->insert(
             primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset)) {
         auto pkValPos = primaryKeyVector->state->getPositionOfCurrIdx();
