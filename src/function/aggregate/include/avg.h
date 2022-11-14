@@ -78,8 +78,9 @@ struct AvgFunction {
 
     static void finalize(uint8_t* state_) {
         auto state = reinterpret_cast<AvgState*>(state_);
-        assert(!state->isNull);
-        state->avg = state->sum / (double_t)state->count;
+        if (!state->isNull) {
+            state->avg = state->sum / (double_t)state->count;
+        }
     }
 };
 

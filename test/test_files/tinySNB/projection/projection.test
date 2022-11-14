@@ -15,6 +15,11 @@
 2
 2
 
+-NAME ReturnNullLiteral
+-QUERY RETURN (NULL = NULL) IS NOT NULL, NULL, NULL = NULL
+---- 1
+False||
+
 -NAME ReturnAggOnConst
 -QUERY MATCH (a:person) RETURN COUNT(3)
 ---- 1

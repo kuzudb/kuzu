@@ -96,6 +96,7 @@ private:
     uint64_t bindSkipLimitExpression(const ParsedExpression& expression);
 
     void addExpressionsToScope(const expression_vector& projectionExpressions);
+    void resolveAnyDataTypeWithDefaultType(const expression_vector& expressions);
 
     /*** bind graph pattern ***/
     pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
