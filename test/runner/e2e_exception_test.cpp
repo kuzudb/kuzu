@@ -166,13 +166,18 @@ TEST_F(TinySnbExceptionTest, ListPrepareError) {
         "Binder exception: Cannot resolve recursive data type for expression $1.");
 }
 
-TEST_F(TinySnbExceptionTest, MapperError) {
+TEST_F(TinySnbExceptionTest, ParsingErrorRollbackTest) {
     conn->beginWriteTransaction();
     conn->query("create (p:person {ID: 100})");
-    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)"))[0],
-        to_string(9));
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
+        vector<string>{"9"});
     auto result = conn->query("RETURN make_date(2011,1,32)");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Date out of range: 2011-1-32.");
-    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)"))[0],
-        to_string(8));
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
+        vector<string>{"8"});
+}
+
+TEST_F(TinySnbExceptionTest, DivideBy0Error) {
+    auto result = conn->query("RETURN 1 / 0");
+    ASSERT_STREQ(result->getErrorMessage().c_str(), "Runtime exception: Divide by zero.");
 }
