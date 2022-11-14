@@ -752,3 +752,12 @@ TEST_F(CreateRelTrxTest, ViolateOneOneMultiplicityError) {
         "Runtime exception: RelTable 4 is a ONE_ONE table, but node(nodeOffset: 10, tableID: 0) "
         "has more than one neighbour in the forward direction.");
 }
+
+TEST_F(CreateRelTrxTest, CreateRelToEmptyRelTable) {
+    conn->query("create node table student(id INT64, PRIMARY KEY(id))");
+    conn->query("create rel table follows(FROM student TO student)");
+    conn->query("CREATE (s:student {id: 1})");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("match (s:student)-[:follows]->(:student) return count(s.id)"))[0],
+        to_string(0));
+}
