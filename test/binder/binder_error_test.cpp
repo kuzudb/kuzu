@@ -299,13 +299,6 @@ TEST_F(BinderErrorTest, CreateNodeTablePKColNameNotExists) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, CreateNodeTableInvalidPKDataType) {
-    string expectedException = "Binder exception: Invalid primary key type: date.";
-    auto input =
-        "CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (birthdate))";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: BIGINT";
     auto input = "CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))";

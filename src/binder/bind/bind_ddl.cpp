@@ -93,6 +93,7 @@ uint32_t Binder::bindPrimaryKey(
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
     auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
+    StringUtils::toUpper(primaryKey.second);
     // We only support INT64 and STRING column as the primary key.
     if ((primaryKey.second != string("INT64")) && (primaryKey.second != string("STRING"))) {
         throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
