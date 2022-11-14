@@ -4,6 +4,7 @@
 
 #include "src/common/include/exception.h"
 #include "src/common/include/type_utils.h"
+#include "src/common/include/utils.h"
 #include "src/common/types/include/value.h"
 
 using namespace kuzu::common;
@@ -18,21 +19,45 @@ public:
 
     inline void setNull(bool isNull) { this->isNull = isNull; }
 
-    inline bool getBooleanVal() const { return val.booleanVal; }
+    inline bool getBooleanVal() const {
+        errorIfTypeMismatch(BOOL);
+        return val.booleanVal;
+    }
 
-    inline int64_t getInt64Val() const { return val.int64Val; }
+    inline int64_t getInt64Val() const {
+        errorIfTypeMismatch(INT64);
+        return val.int64Val;
+    }
 
-    inline double getDoubleVal() const { return val.doubleVal; }
+    inline double getDoubleVal() const {
+        errorIfTypeMismatch(DOUBLE);
+        return val.doubleVal;
+    }
 
-    inline date_t getDateVal() const { return val.dateVal; }
+    inline date_t getDateVal() const {
+        errorIfTypeMismatch(DATE);
+        return val.dateVal;
+    }
 
-    inline timestamp_t getTimestampVal() const { return val.timestampVal; }
+    inline timestamp_t getTimestampVal() const {
+        errorIfTypeMismatch(TIMESTAMP);
+        return val.timestampVal;
+    }
 
-    inline interval_t getIntervalVal() const { return val.intervalVal; }
+    inline interval_t getIntervalVal() const {
+        errorIfTypeMismatch(INTERVAL);
+        return val.intervalVal;
+    }
 
-    inline string getStringVal() const { return stringVal; }
+    inline string getStringVal() const {
+        errorIfTypeMismatch(STRING);
+        return stringVal;
+    }
 
-    inline vector<ResultValue> getListVal() const { return listVal; }
+    inline vector<ResultValue> getListVal() const {
+        errorIfTypeMismatch(LIST);
+        return listVal;
+    }
 
     inline bool isNullVal() const { return isNull; }
 
@@ -43,6 +68,15 @@ public:
     string toString() const;
 
 private:
+    inline void errorIfTypeMismatch(DataTypeID typeID) const {
+        if (typeID != dataType.typeID) {
+            throw RuntimeException(
+                StringUtils::string_format("Cannot get %s value from the %s result value.",
+                    Types::dataTypeToString(typeID).c_str(),
+                    Types::dataTypeToString(dataType.typeID).c_str()));
+        }
+    }
+
     vector<ResultValue> convertKUListToVector(ku_list_t& list) const;
 
     void setFromUnstructuredValue(Value& value);
