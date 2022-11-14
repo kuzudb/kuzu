@@ -11,8 +11,8 @@ class LiteralExpression : public Expression {
 
 public:
     LiteralExpression(DataType dataType, unique_ptr<Literal> literal)
-        : Expression(LITERAL, move(dataType), TypeUtils::toString(*literal)), literal{
-                                                                                  move(literal)} {}
+        : Expression(LITERAL, move(dataType), "_" + TypeUtils::toString(*literal)), literal{move(
+                                                                                        literal)} {}
 
     LiteralExpression(DataTypeID dataTypeID, unique_ptr<Literal> literal)
         : LiteralExpression{DataType(dataTypeID), move(literal)} {
