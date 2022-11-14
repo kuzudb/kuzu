@@ -117,6 +117,7 @@
 #include <unistd.h>
 
 #include <cstddef>
+#include <string>
 
 #include <sys/ioctl.h>
 
@@ -180,6 +181,9 @@ enum KEY_ACTION {
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char* line);
 static void refreshLine(struct linenoiseState* l);
+
+std::string oldInput = "";
+bool inputLeft;
 
 /* Debugging macro. */
 #if 0
@@ -680,6 +684,14 @@ static void refreshLine(struct linenoiseState* l) {
         refreshSingleLine(l);
 }
 
+bool pastedInput(int ifd) {
+    struct pollfd fd {
+        ifd, POLLIN, 0
+    };
+    int isPasted = poll(&fd, 1, 0);
+    return (isPasted != 0);
+}
+
 /* Insert the character 'c' at cursor current position.
  *
  * On error writing to the terminal -1 is returned, otherwise 0. */
@@ -695,11 +707,7 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
                 if (write(l->ofd, &d, 1) == -1)
                     return -1;
             }
-            struct pollfd fd {
-                l->ifd, POLLIN, 0
-            };
-            int pastedInput = poll(&fd, 1, 0);
-            if (pastedInput == 0) {
+            if (!pastedInput(l->ifd)) {
                 refreshLine(l);
             }
         } else {
@@ -878,9 +886,18 @@ static int linenoiseEdit(
         int nread;
         char seq[3];
 
-        nread = read(l.ifd, &c, 1);
-        if (nread <= 0)
-            return l.len;
+        if (inputLeft) {
+            c = oldInput[0];
+            oldInput.erase(0, 1);
+            if (!c) {
+                inputLeft = false;
+            }
+        }
+        if (!inputLeft) {
+            nread = read(l.ifd, &c, 1);
+            if (nread <= 0)
+                return l.len;
+        }
 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
@@ -894,9 +911,16 @@ static int linenoiseEdit(
             if (c == 0)
                 continue;
         }
-
         switch (c) {
         case ENTER: /* enter */
+            if (pastedInput(l.ifd)) {
+                linenoiseEditInsert(&l, ' ');
+                inputLeft = true;
+                while (pastedInput(l.ifd)) {
+                    read(l.ifd, &c, 1);
+                    oldInput += c;
+                }
+            }
             history_len--;
             free(history[history_len]);
             if (mlmode)

@@ -8,6 +8,7 @@
 
 // prompt for user input
 const char* PROMPT = "kuzu> ";
+const char* ALTPROMPT = "..> ";
 // file to read/write shell history
 const char* HISTORY_PATH = "history.txt";
 
@@ -47,6 +48,9 @@ const regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
 vector<string> nodeTableNames;
 vector<string> relTableNames;
+
+bool continueLine = false;
+string currLine;
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
@@ -171,8 +175,15 @@ EmbeddedShell::EmbeddedShell(
 
 void EmbeddedShell::run() {
     char* line;
-    while ((line = linenoise(PROMPT)) != nullptr) {
+    string query;
+    stringstream ss;
+    while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = string(line);
+        if (continueLine) {
+            lineStr = currLine + lineStr;
+            currLine = "";
+            continueLine = false;
+        }
         if (line == shellCommand.HELP) {
             printHelp();
         } else if (line == shellCommand.CLEAR) {
@@ -198,11 +209,20 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
             printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
         } else if (!lineStr.empty()) {
-            auto queryResult = conn->query(lineStr);
-            if (queryResult->isSuccess()) {
-                printExecutionResult(*queryResult);
-            } else {
-                printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+            ss.clear();
+            ss.str(lineStr);
+            while (getline(ss, query, ';')) {
+                if (ss.eof() && ss.peek() == -1) {
+                    continueLine = true;
+                    currLine += query + " ";
+                } else {
+                    auto queryResult = conn->query(query);
+                    if (queryResult->isSuccess()) {
+                        printExecutionResult(*queryResult);
+                    } else {
+                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    }
+                }
             }
         }
         updateTableNames();
