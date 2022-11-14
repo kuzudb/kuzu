@@ -49,6 +49,7 @@ expression_vector Binder::bindProjectionExpressions(
             boundProjectionExpressions.push_back(expression);
         }
     }
+    resolveAnyDataTypeWithDefaultType(boundProjectionExpressions);
     validateProjectionColumnNamesAreUnique(boundProjectionExpressions);
     return boundProjectionExpressions;
 }
@@ -131,6 +132,7 @@ expression_vector Binder::bindOrderByExpressions(
         }
         boundOrderByExpressions.push_back(std::move(boundExpression));
     }
+    resolveAnyDataTypeWithDefaultType(boundOrderByExpressions);
     return boundOrderByExpressions;
 }
 
@@ -150,6 +152,14 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->getRawName();
         variablesInScope.insert({alias, expression});
+    }
+}
+
+void Binder::resolveAnyDataTypeWithDefaultType(const expression_vector& expressions) {
+    for (auto& expression : expressions) {
+        if (expression->dataType.typeID == ANY) {
+            ExpressionBinder::implicitCastIfNecessary(expression, STRING);
+        }
     }
 }
 
