@@ -10,7 +10,8 @@ void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemL
     list_header_t oldHeader;
     if (nodeOffset >=
         lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::READ_ONLY)) {
-        oldHeader = ListHeaders::getSmallListHeader(0 /* csrOffset */, 0 /* numElementsInList */);
+        oldHeader = ListHeaders::getSmallListHeader(
+            UINT32_MAX /* csrOffset */, UINT32_MAX /* numElementsInList */);
         // If this is a newly inserted node, we should insert a dummy value to the
         // listHeader. Note: the updateLargeList or updateSmallListAndCurCSROffset is
         // responsible for correctly updating the header.
@@ -200,10 +201,7 @@ void ListsUpdateIterator::updateSmallListAndCurCSROffset(
     // the header, so the below updateSmallListHeaderIfNecessary(...) will only update the
     // header if the executing class is adjOrUnstructuredPropertyListsUpdateIterator.
     updateSmallListHeaderIfNecessary(oldHeader, newHeader);
-    // If the newList is empty we can return. Changing the header is enough.
-    if (inMemList.numElements <= 0) {
-        return;
-    }
+
     // 2: Find the pageListHeadIdx for the chunk. If this chunk is "new", i.e., a new list was
     // inserted that created this chunk, then insert a NULL chunk head Idx.
     page_idx_t pageListHeadIdx;
@@ -215,6 +213,11 @@ void ListsUpdateIterator::updateSmallListAndCurCSROffset(
     } else {
         pageListHeadIdx = lists->getListsMetadata().chunkToPageListHeadIdxMap->get(
             curChunkIdx, TransactionType::WRITE);
+    }
+
+    // If the newList is empty we can return. Changing the header is enough.
+    if (inMemList.numElements <= 0) {
+        return;
     }
 
     // If the chunk head idx is null, insert an initial page group for the chunk.
