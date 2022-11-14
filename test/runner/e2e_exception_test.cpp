@@ -181,3 +181,8 @@ TEST_F(TinySnbExceptionTest, DivideBy0Error) {
     auto result = conn->query("RETURN 1 / 0");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Runtime exception: Divide by zero.");
 }
+
+TEST_F(TinySnbExceptionTest, ModuloBy0Error) {
+    auto result = conn->query("RETURN 1 % 0");
+    ASSERT_STREQ(result->getErrorMessage().c_str(), "Runtime exception: Modulo by zero.");
+}
