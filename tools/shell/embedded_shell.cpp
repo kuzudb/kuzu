@@ -19,13 +19,12 @@ struct ShellCommand {
     const string THREAD = ":thread";
     const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
     const string BUFFER_MANAGER_DEBUG_INFO = ":bm_debug_info";
-    const string BUILT_IN_FUNCTIONS = ":functions";
     const string LIST_NODES = ":list_nodes";
     const string LIST_RELS = ":list_rels";
     const string SHOW_NODE = ":show_node";
     const string SHOW_REL = ":show_rel";
     const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        BUFFER_MANAGER_DEBUG_INFO, BUILT_IN_FUNCTIONS, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL};
+        BUFFER_MANAGER_DEBUG_INFO, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -186,8 +185,6 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
             printf("Buffer Manager Debug Info: \n %s \n",
                 database->getBufferManager()->debugInfo()->dump(4).c_str());
-        } else if (lineStr.rfind(shellCommand.BUILT_IN_FUNCTIONS) == 0) {
-            printf("%s", conn->getBuiltInFunctionNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
@@ -262,13 +259,10 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP.c_str(), TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR.c_str(), TAB);
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
-    printf("%s%s [num_threads] %sset number of threads for execution\n", TAB,
+    printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
         shellCommand.THREAD.c_str(), TAB);
-    printf("%s%s [buffer_manager_size] %sset buffer manager size in bytes\n", TAB,
+    printf("%s%s [bm_size_in_bytes] %sset buffer manager size in bytes\n", TAB,
         shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
-    printf("%s%s %sdebug information about the buffer manager\n", TAB,
-        shellCommand.BUFFER_MANAGER_DEBUG_INFO.c_str(), TAB);
-    printf("%s%s %slist built-in functions\n", TAB, shellCommand.BUILT_IN_FUNCTIONS.c_str(), TAB);
     printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
     printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
     printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
