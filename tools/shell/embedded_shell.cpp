@@ -59,7 +59,7 @@ void EmbeddedShell::updateTableNames() {
     }
 }
 
-void addTableCompletion(string buf, string tableName, linenoiseCompletions* lc) {
+void addTableCompletion(string buf, const string& tableName, linenoiseCompletions* lc) {
     string prefix, suffix;
     auto prefixPos = buf.rfind(':') + 1;
     prefix = buf.substr(0, prefixPos);
@@ -82,9 +82,8 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         return;
     }
 
-    // Node table name completion. Matches patterns that
-    // include an open bracket `(` with no closing bracket
-    // `)`, and a colon `:` sometime after the open bracket.
+    // Node table name completion. Match patterns that include an open bracket `(` with no closing
+    // bracket `)`, and a colon `:` sometime after the open bracket.
     if (regex_search(buf, regex("^[^]*\\([^\\)]*:[^\\)]*$"))) {
         for (auto& node : nodeTableNames) {
             addTableCompletion(buf, node, lc);
@@ -144,7 +143,7 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     tokenList.emplace_back(word);
     for (string& token : tokenList) {
         if (token.find(' ') == std::string::npos) {
-            for (string keyword : keywordList) {
+            for (const string& keyword : keywordList) {
                 if (regex_search(token, regex("^" + keyword + "$", regex_constants::icase)) ||
                     regex_search(token, regex("^" + keyword + "\\(", regex_constants::icase))) {
                     token =
@@ -265,7 +264,7 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
     printf("%s%s [num_threads] %sset number of threads for execution\n", TAB,
         shellCommand.THREAD.c_str(), TAB);
-    printf("%s%s [buffer_manager_size] %sset buffer manager size\n", TAB,
+    printf("%s%s [buffer_manager_size] %sset buffer manager size in bytes\n", TAB,
         shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
     printf("%s%s %sdebug information about the buffer manager\n", TAB,
         shellCommand.BUFFER_MANAGER_DEBUG_INFO.c_str(), TAB);
@@ -283,10 +282,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printf("%s", oss.str().c_str());
     } else {
         auto numTuples = queryResult.getNumTuples();
-        // print query result (numFlatTuples & tuples)
-        printf(">> Number of output tuples: %lu\n", numTuples);
-        printf(">> Compiling time: %.2fms\n", querySummary->getCompilingTime());
-        printf(">> Executing time: %.2fms\n", querySummary->getExecutionTime());
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
@@ -310,7 +305,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         lineSeparator = string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
 
-        if (queryResult.getNumColumns() != 0 && queryResult.getColumnNames()[0] != "") {
+        if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
             for (auto i = 0u; i < colsWidth.size(); i++) {
                 printf("| %s", queryResult.getColumnNames()[i].c_str());
                 printf(
@@ -327,6 +322,15 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
             printf("%s\n", lineSeparator.c_str());
         }
+
+        // print query result (numFlatTuples & tuples)
+        if (numTuples == 1) {
+            printf("(1 tuple)\n");
+        } else {
+            printf("(%llu tuples)\n", numTuples);
+        }
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
 
         if (querySummary->getIsProfile()) {
             // print plan with profiling metrics

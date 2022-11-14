@@ -87,7 +87,7 @@ public:
         bool skipCheckpointForTestingRecovery = false);
 
 private:
-    void initDBDirAndCoreFilesIfNecessary();
+    void initDBDirAndCoreFilesIfNecessary() const;
     void initLoggers();
 
     inline void checkpointAndClearWAL() {
