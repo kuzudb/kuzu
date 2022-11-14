@@ -159,3 +159,14 @@ TEST_F(TinySnbExceptionTest, ListPrepareError) {
     ASSERT_STREQ(preparedStatement->getErrorMessage().c_str(),
         "Binder exception: Cannot resolve recursive data type for expression $1.");
 }
+
+TEST_F(TinySnbExceptionTest, MapperError) {
+    conn->beginWriteTransaction();
+    conn->query("create (p:person {ID: 100})");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)"))[0],
+        to_string(9));
+    auto result = conn->query("RETURN make_date(2011,1,32)");
+    ASSERT_STREQ(result->getErrorMessage().c_str(), "Date out of range: 2011-1-32.");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)"))[0],
+        to_string(8));
+}

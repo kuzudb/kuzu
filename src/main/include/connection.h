@@ -167,7 +167,13 @@ protected:
 
     void beginTransactionNoLock(TransactionType type);
     inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
-    inline void rollbackNoLock() { commitOrRollbackNoLock(false /* is rollback */); }
+    inline void rollbackIfNecessaryNoLock() {
+        // If there is no active transaction in the system (eg. an exception occurs during
+        // planning), we shouldn't rollback the transaction.
+        if (activeTransaction != nullptr) {
+            commitOrRollbackNoLock(false /* is rollback */);
+        }
+    }
     void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
@@ -192,6 +198,8 @@ protected:
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement);
+
+    void beginTransactionIfAutoCommit(PreparedStatement* preparedStatement);
 
 protected:
     Database* database;

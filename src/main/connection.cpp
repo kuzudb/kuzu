@@ -34,10 +34,7 @@ unique_ptr<QueryResult> Connection::query(const string& query) {
     lock_t lck{mtx};
     unique_ptr<PreparedStatement> preparedStatement;
     preparedStatement = prepareNoLock(query);
-    if (preparedStatement->success) {
-        return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
-    }
-    return queryResultWithError(preparedStatement->errMsg);
+    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
 unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
@@ -245,7 +242,19 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
     auto mapper = PlanMapper(
         *database->storageManager, database->getMemoryManager(), database->catalog.get());
-    auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+    unique_ptr<PhysicalPlan> physicalPlan;
+    if (preparedStatement->isSuccess()) {
+        try {
+            physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        } catch (Exception& e) {
+            preparedStatement->success = false;
+            preparedStatement->errMsg = e.what();
+        }
+    }
+    if (!preparedStatement->isSuccess()) {
+        rollbackIfNecessaryNoLock();
+        return queryResultWithError(preparedStatement->errMsg);
+    }
     auto queryResult = make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
@@ -257,31 +266,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         executingTimer.start();
         shared_ptr<FactorizedTable> resultFT;
         try {
-            if (!preparedStatement->isReadOnly() && activeTransaction &&
-                activeTransaction->isReadOnly()) {
-                throw ConnectionException(
-                    "Can't execute a write query inside a read-only transaction.");
-            }
-            if (!preparedStatement->allowActiveTransaction && activeTransaction) {
-                throw ConnectionException(
-                    "DDL and CopyCSV statements are automatically wrapped in a "
-                    "transaction and committed. As such, they cannot be part of an "
-                    "active transaction, please commit or rollback your previous transaction and "
-                    "issue a ddl query without opening a transaction.");
-            }
-            if (AUTO_COMMIT == transactionMode) {
-                assert(!activeTransaction);
-                // If the caller didn't explicitly start a transaction, we do so now and commit or
-                // rollback here if necessary, i.e., if the given prepared statement has write
-                // operations.
-                beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
-            }
-            if (!activeTransaction) {
-                assert(MANUAL == transactionMode);
-                throw ConnectionException(
-                    "Transaction mode is manual but there is no active transaction. Please begin a "
-                    "transaction or set the transaction mode of the connection to AUTO_COMMIT");
-            }
+            beginTransactionIfAutoCommit(preparedStatement);
             executionContext->transaction = activeTransaction.get();
             resultFT =
                 database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
@@ -289,7 +274,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                 commitNoLock();
             }
         } catch (Exception& exception) {
-            rollbackNoLock();
+            rollbackIfNecessaryNoLock();
             string errMsg = exception.what();
             return queryResultWithError(errMsg);
         }
@@ -328,6 +313,32 @@ void Connection::commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTes
         }
         activeTransaction.reset();
         transactionMode = AUTO_COMMIT;
+    }
+}
+
+void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStatement) {
+    if (!preparedStatement->isReadOnly() && activeTransaction && activeTransaction->isReadOnly()) {
+        throw ConnectionException("Can't execute a write query inside a read-only transaction.");
+    }
+    if (!preparedStatement->allowActiveTransaction && activeTransaction) {
+        throw ConnectionException(
+            "DDL and CopyCSV statements are automatically wrapped in a "
+            "transaction and committed. As such, they cannot be part of an "
+            "active transaction, please commit or rollback your previous transaction and "
+            "issue a ddl query without opening a transaction.");
+    }
+    if (AUTO_COMMIT == transactionMode) {
+        assert(!activeTransaction);
+        // If the caller didn't explicitly start a transaction, we do so now and commit or
+        // rollback here if necessary, i.e., if the given prepared statement has write
+        // operations.
+        beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
+    }
+    if (!activeTransaction) {
+        assert(MANUAL == transactionMode);
+        throw ConnectionException(
+            "Transaction mode is manual but there is no active transaction. Please begin a "
+            "transaction or set the transaction mode of the connection to AUTO_COMMIT");
     }
 }
 
