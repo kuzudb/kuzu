@@ -116,10 +116,6 @@ public:
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& inputParams);
 
-    // Catalog utility interfaces
-    inline string getBuiltInFunctionNames() {
-        return getBuiltInScalarFunctionNames() + "\n" + getBuiltInAggregateFunctionNames();
-    }
     string getBuiltInScalarFunctionNames();
     string getBuiltInAggregateFunctionNames();
     string getNodeTableNames();
