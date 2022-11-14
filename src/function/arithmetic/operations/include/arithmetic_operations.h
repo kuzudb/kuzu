@@ -41,6 +41,29 @@ struct Divide {
     }
 };
 
+template<>
+inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
+    if (right == 0) {
+        throw RuntimeException("Divide by zero.");
+    }
+    result = left / right;
+}
+
+template<>
+inline void Divide::operation(int64_t& left, double_t& right, double_t& result) {
+    result = left / right;
+}
+
+template<>
+inline void Divide::operation(double_t& left, int64_t& right, double_t& result) {
+    result = left / right;
+}
+
+template<>
+inline void Divide::operation(double_t& left, double_t& right, double_t& result) {
+    result = left / right;
+}
+
 struct Modulo {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
