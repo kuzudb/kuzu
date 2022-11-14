@@ -30,7 +30,7 @@ constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
 
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
-constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
+constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 
 // The number of pages for which we maintain a lock and a page version array for. Multi version file
 // design is meant to not contain any page version arrays if a group of pages do not contain
