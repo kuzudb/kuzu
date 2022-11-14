@@ -299,7 +299,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 if (tuple->getResultValue(i)->isNullVal()) {
                     continue;
                 }
-                uint32_t fieldLen = tuple->getResultValue(i)->to_string().length() + 2;
+                uint32_t fieldLen = tuple->getResultValue(i)->toString().length() + 2;
                 colsWidth[i] =
                     max(colsWidth[i], (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i]);
             }

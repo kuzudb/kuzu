@@ -31,14 +31,14 @@ shared_ptr<FlatTuple> QueryResult::getNext() {
     return iterator->getNextFlatTuple();
 }
 
-void QueryResult::writeToCSV(string filename) {
+void QueryResult::writeToCSV(string fileName) {
     ofstream file;
-    file.open(filename);
+    file.open(fileName);
     shared_ptr<FlatTuple> nextTuple;
     while (hasNext()) {
         nextTuple = getNext();
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            string resultVal = nextTuple->getResultValue(idx)->to_string();
+            string resultVal = nextTuple->getResultValue(idx)->toString();
             bool isStringList = false;
             if (Types::dataTypeToString(nextTuple->getResultValue(idx)->getDataType()) ==
                 "STRING[]") {

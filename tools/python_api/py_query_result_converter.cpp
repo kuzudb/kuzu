@@ -52,7 +52,7 @@ void NPArrayWrapper::appendElement(ResultValue* value) {
             break;
         }
         case UNSTRUCTURED: {
-            auto str = value->to_string();
+            auto str = value->toString();
             ((PyObject**)dataBuffer)[numElements] =
                 PyUnicode_FromStringAndSize(str.c_str(), str.size());
             break;
