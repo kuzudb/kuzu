@@ -4,6 +4,8 @@
 
 #include "types_include.h"
 
+#include "src/common/include/exception.h"
+
 using namespace std;
 
 namespace kuzu {
@@ -59,7 +61,7 @@ public:
 
     template<typename T>
     static Literal createLiteral(T value) {
-        assert(false);
+        throw NotImplementedException("Unimplemented template for createLiteral.");
     }
 
 public:

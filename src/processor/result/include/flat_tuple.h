@@ -40,7 +40,7 @@ public:
 
     void set(const uint8_t* value, DataType& valueType);
 
-    string to_string() const;
+    string toString() const;
 
 private:
     vector<ResultValue> convertKUListToVector(ku_list_t& list) const;

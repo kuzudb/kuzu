@@ -44,7 +44,7 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
     }
 }
 
-string ResultValue::to_string() const {
+string ResultValue::toString() const {
     if (isNull) {
         return "";
     }
@@ -66,7 +66,7 @@ string ResultValue::to_string() const {
     case LIST: {
         string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
-            result += listVal[i].to_string();
+            result += listVal[i].toString();
             result += (i == listVal.size() - 1 ? "]" : ",");
         }
         return result;
@@ -135,7 +135,7 @@ ResultValue* FlatTuple::getResultValue(uint32_t valIdx) {
 string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& delimiter) {
     ostringstream result;
     for (auto i = 0ul; i < resultValues.size(); i++) {
-        string value = resultValues[i]->to_string();
+        string value = resultValues[i]->toString();
         if (colsWidth[i] != 0) {
             value = " " + value + " ";
         }
