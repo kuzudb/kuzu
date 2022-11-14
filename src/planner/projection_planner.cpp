@@ -24,7 +24,17 @@ void ProjectionPlanner::planProjectionBody(
     const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
-        QueryPlanner::appendExpressionsScan(projectionBody.getProjectionExpressions(), plan);
+        expression_vector expressionsToScan;
+        for (auto& expression : projectionBody.getProjectionExpressions()) {
+            if (expression->expressionType == AGGREGATE_FUNCTION) { // aggregate on const
+                if (expression->getNumChildren() != 0) {            // skip count(*)
+                    expressionsToScan.push_back(expression->getChild(0));
+                }
+            } else {
+                expressionsToScan.push_back(expression);
+            }
+        }
+        QueryPlanner::appendExpressionsScan(expressionsToScan, plan);
     }
     // NOTE: As a temporary solution, we rewrite variables in WITH clause as all properties in scope
     // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
