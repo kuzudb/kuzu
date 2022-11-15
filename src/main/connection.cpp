@@ -88,7 +88,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
         } else {
             preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         }
-    } catch (Exception& exception) {
+    } catch (exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
@@ -245,9 +245,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     if (preparedStatement->isSuccess()) {
         try {
             physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
-        } catch (Exception& e) {
+        } catch (exception& exception) {
             preparedStatement->success = false;
-            preparedStatement->errMsg = e.what();
+            preparedStatement->errMsg = exception.what();
         }
     }
     if (!preparedStatement->isSuccess()) {

@@ -56,7 +56,7 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
 
 void BufferPool::resize(uint64_t newSize) {
     if ((numFrames * pageSize) > newSize) {
-        throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported!");
+        throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported.");
     }
     auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
     assert(newNumFrames < UINT32_MAX);

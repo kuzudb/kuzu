@@ -235,7 +235,7 @@ void EmbeddedShell::setBufferManagerSize(const string& bufferManagerSizeString) 
     }
     try {
         database->resizeBufferManager(newPageSize);
-    } catch (Exception& e) { printf("%s", e.what()); }
+    } catch (Exception& e) { printf("%s\n", e.what()); }
 }
 
 static inline string ltrim(const string& input) {

@@ -7,7 +7,7 @@ void bind(py::module& m) {
     PyConnection::initialize(m);
     PyQueryResult::initialize(m);
 
-    m.doc() = "GrpahflowDB is an embedded graph database";
+    m.doc() = "Kuzu is an embedded graph database";
 }
 
 PYBIND11_MODULE(_kuzu, m) {
