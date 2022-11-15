@@ -12,12 +12,12 @@ namespace processor {
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
     auto expressionType = expression->expressionType;
-    if (isExpressionLiteral(expressionType)) {
+    if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
+        return mapReferenceExpression(expression, mapperContext);
+    } else if (isExpressionLiteral(expressionType)) {
         return mapLiteralExpression(expression);
     } else if (PARAMETER == expressionType) {
         return mapParameterExpression((expression));
-    } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
-        return mapReferenceExpression(expression, mapperContext);
     } else {
         return mapFunctionExpression(expression, mapperContext);
     }

@@ -86,8 +86,11 @@ unique_ptr<BoundCreateRel> Binder::bindCreateRel(
         } else {
             auto propertyExpression = make_shared<PropertyExpression>(
                 property.dataType, property.name, property.propertyID, rel);
-            setItems.emplace_back(std::move(propertyExpression),
-                LiteralExpression::createNullLiteralExpression(property.dataType));
+            shared_ptr<Expression> nullExpression =
+                LiteralExpression::createNullLiteralExpression(getUniqueExpressionName("NULL"));
+            nullExpression = ExpressionBinder::implicitCastIfNecessary(
+                nullExpression, propertyExpression->dataType);
+            setItems.emplace_back(std::move(propertyExpression), std::move(nullExpression));
         }
     }
     return make_unique<BoundCreateRel>(std::move(rel), std::move(setItems));
