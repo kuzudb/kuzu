@@ -28,7 +28,6 @@ int main(int argc, char* argv[]) {
     cout << "Enter \":help\" for usage hints." << endl;
     SystemConfig systemConfig(bpSizeInMB << 20);
     DatabaseConfig databaseConfig(databasePath, inMemoryFlag);
-    spdlog::set_level(spdlog::level::err);
     auto shell = EmbeddedShell(databaseConfig, systemConfig);
     shell.run();
     return 0;

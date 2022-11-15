@@ -67,7 +67,9 @@ void Connection::setQuerySummaryAndPreparedStatement(
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
-        throw Exception("Input query is empty.");
+        preparedStatement->success = false;
+        preparedStatement->errMsg = "Connection Exception: Query is empty.";
+        return preparedStatement;
     }
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();

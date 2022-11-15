@@ -13,6 +13,7 @@ public:
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<JOConnection>(database.get());
         initDB();
+        spdlog::set_level(spdlog::level::debug);
     }
 
     void TearDown() override { FileUtils::removeDir(TEMP_DIR); }
