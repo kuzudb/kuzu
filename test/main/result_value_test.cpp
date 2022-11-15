@@ -1,5 +1,7 @@
 #include "include/main_test_helper.h"
 
+using namespace kuzu::testing;
+
 class ResultValueTest : public ApiTest {};
 
 TEST_F(ResultValueTest, getNextException) {

@@ -2,6 +2,8 @@
 
 #include "include/main_test_helper.h"
 
+using namespace kuzu::testing;
+
 class CSVOutputTest : public ApiTest {};
 
 TEST_F(CSVOutputTest, BasicCSVTest) {

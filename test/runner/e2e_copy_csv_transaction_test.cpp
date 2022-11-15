@@ -15,15 +15,15 @@ public:
     void SetUp() override {
         EmptyDBTest::SetUp();
         createDBAndConn();
-        catalog = getCatalog(*conn->database);
+        catalog = getCatalog(*database);
         profiler = make_unique<Profiler>();
         executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            getMemoryManager(*conn->database), getBufferManager(*conn->database));
+            getMemoryManager(*database), getBufferManager(*database));
     }
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        catalog = getCatalog(*conn->database);
+        catalog = getCatalog(*database);
     }
 
     void validateTinysnbPersonAgeProperty() {
@@ -75,8 +75,8 @@ public:
 
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
-        auto preparedStatement = conn->prepareNoLock(copyPersonTableCMD);
-        conn->beginTransactionNoLock(WRITE);
+        auto preparedStatement = conn->prepare(copyPersonTableCMD);
+        conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
@@ -84,7 +84,7 @@ public:
         auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyNodeCSV(tableID);
@@ -157,8 +157,8 @@ public:
         conn->query(createPersonTableCMD);
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
-        auto preparedStatement = conn->prepareNoLock(copyKnowsTableCMD);
-        conn->beginTransactionNoLock(WRITE);
+        auto preparedStatement = conn->prepare(copyKnowsTableCMD);
+        conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
@@ -166,7 +166,7 @@ public:
         auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
         validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyRelCSV(tableID);

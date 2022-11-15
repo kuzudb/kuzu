@@ -90,7 +90,7 @@ class TinySnbDDLTest : public DBTest {
 public:
     void SetUp() override {
         DBTest::SetUp();
-        catalog = getCatalog(*conn->database);
+        catalog = getCatalog(*database);
         profiler = make_unique<Profiler>();
         executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
             getMemoryManager(*database), getBufferManager(*database));
@@ -98,7 +98,7 @@ public:
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        catalog = getCatalog(*conn->database);
+        catalog = getCatalog(*database);
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
@@ -110,7 +110,7 @@ public:
             "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
             ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
@@ -140,7 +140,7 @@ public:
             "CREATE REL TABLE likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
             ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
@@ -162,7 +162,7 @@ public:
         validateNodeColumnAndListFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             validateNodeColumnAndListFilesExistence(
                 nodeTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
@@ -186,7 +186,7 @@ public:
         validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             validateRelColumnAndListFilesExistence(
                 relTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
@@ -213,8 +213,8 @@ public:
     }
 
     void executeDDLWithoutCommit(string query) {
-        auto preparedStatement = conn->prepareNoLock(query);
-        conn->beginTransactionNoLock(WRITE);
+        auto preparedStatement = conn->prepare(query);
+        conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());

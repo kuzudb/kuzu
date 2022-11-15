@@ -104,7 +104,7 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     auto numPassedPlans = 0u;
     for (auto i = 0u; i < plans.size(); ++i) {
         auto planStr = plans[i]->toString();
-        auto result = conn.executePlan(move(plans[i]));
+        auto result = conn.executePlan(std::move(plans[i]));
         assert(result->isSuccess());
         vector<string> resultTuples = convertResultToString(*result, config->checkOutputOrder);
         if (resultTuples.size() == result->getNumTuples() &&

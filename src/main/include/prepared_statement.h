@@ -24,10 +24,10 @@ public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
 
+private:
     inline void createResultHeader(expression_vector expressions) {
-        resultHeader = make_unique<QueryResultHeader>(move(expressions));
+        resultHeader = make_unique<QueryResultHeader>(std::move(expressions));
     }
-
     inline bool isReadOnly() { return logicalPlan->isReadOnly(); }
 
 private:
