@@ -317,6 +317,10 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
     auto literal = literalExpression.getLiteral();
+    if (literal->isNull()) {
+        return LiteralExpression::createNullLiteralExpression(
+            binder->getUniqueExpressionName("NULL"));
+    }
     return make_shared<LiteralExpression>(literal->dataType, make_unique<Literal>(*literal));
 }
 

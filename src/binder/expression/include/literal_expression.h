@@ -11,13 +11,19 @@ class LiteralExpression : public Expression {
 
 public:
     LiteralExpression(DataType dataType, unique_ptr<Literal> literal)
-        : Expression(LITERAL, move(dataType), "_" + TypeUtils::toString(*literal)), literal{move(
-                                                                                        literal)} {}
+        : Expression(LITERAL, std::move(dataType), "_" + TypeUtils::toString(*literal)),
+          literal{std::move(literal)} {
+        assert(!isNull());
+    }
 
     LiteralExpression(DataTypeID dataTypeID, unique_ptr<Literal> literal)
-        : LiteralExpression{DataType(dataTypeID), move(literal)} {
+        : LiteralExpression{DataType(dataTypeID), std::move(literal)} {
         assert(dataTypeID != LIST);
     }
+
+    LiteralExpression(DataType dataType, unique_ptr<Literal> literal, string uniqueName)
+        : Expression{LITERAL, std::move(dataType), std::move(uniqueName)}, literal{std::move(
+                                                                               literal)} {}
 
     inline bool isNull() const { return literal->isNull(); }
 
@@ -27,10 +33,9 @@ public:
         literal->dataType = targetType;
     }
 
-    static unique_ptr<LiteralExpression> createNullLiteralExpression(DataType dataType) {
+    static unique_ptr<LiteralExpression> createNullLiteralExpression(const string& uniqueName) {
         auto nullLiteral = make_unique<Literal>();
-        nullLiteral->dataType = dataType;
-        return make_unique<LiteralExpression>(dataType, std::move(nullLiteral));
+        return make_unique<LiteralExpression>(DataType(ANY), std::move(nullLiteral), uniqueName);
     }
 
 public:

@@ -1,3 +1,8 @@
+-NAME ReturnLiteral3
+-QUERY RETURN "abc", MIN(1)
+---- 1
+abc|1
+
 -NAME ReturnLiteral1
 -QUERY RETURN 3 * 2, COUNT(*), MIN(2), COUNT(5)
 ---- 1
