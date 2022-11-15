@@ -64,6 +64,7 @@ public:
     inline void createDBAndConn() {
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<Connection>(database.get());
+        spdlog::set_level(spdlog::level::debug);
     }
 
     void initGraph();

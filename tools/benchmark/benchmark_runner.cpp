@@ -13,6 +13,7 @@ BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<Benchmark
     : config{move(config)} {
     database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode),
         SystemConfig(this->config->bufferPoolSize));
+    spdlog::set_level(spdlog::level::debug);
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {

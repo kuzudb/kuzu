@@ -55,6 +55,7 @@ void Database::initLoggers() {
     LoggerUtils::getOrCreateLogger("storage");
     LoggerUtils::getOrCreateLogger("transaction_manager");
     LoggerUtils::getOrCreateLogger("wal");
+    spdlog::set_level(spdlog::level::err);
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
