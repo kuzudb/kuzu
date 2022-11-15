@@ -2,7 +2,8 @@
 
 #include "test/test_utility/include/test_helper.h"
 
-using namespace kuzu::testing;
+namespace kuzu {
+namespace testing {
 
 class ApiTest : public EmptyDBTest {
 
@@ -25,3 +26,5 @@ public:
         ASSERT_FALSE(result->hasNext());
     }
 };
+} // namespace testing
+} // namespace kuzu

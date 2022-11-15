@@ -71,6 +71,7 @@ public:
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
 
 protected:
+    // Static functions to access Database's non-public properties/interfaces.
     static inline catalog::Catalog* getCatalog(Database& database) {
         return database.catalog.get();
     }
@@ -101,6 +102,37 @@ protected:
     }
     static inline QueryProcessor* getQueryProcessor(Database& database) {
         return database.queryProcessor.get();
+    }
+
+    // Static functions to access Connection's non-public properties/interfaces.
+    static inline Connection::ConnectionTransactionMode getTransactionMode(Connection& connection) {
+        return connection.getTransactionMode();
+    }
+    static inline void setTransactionModeNoLock(
+        Connection& connection, Connection::ConnectionTransactionMode newTransactionMode) {
+        connection.setTransactionModeNoLock(newTransactionMode);
+    }
+    static inline void commitButSkipCheckpointingForTestingRecovery(Connection& connection) {
+        connection.commitButSkipCheckpointingForTestingRecovery();
+    }
+    static inline void rollbackButSkipCheckpointingForTestingRecovery(Connection& connection) {
+        connection.rollbackButSkipCheckpointingForTestingRecovery();
+    }
+    static inline Transaction* getActiveTransaction(Connection& connection) {
+        return connection.getActiveTransaction();
+    }
+    static inline uint64_t getMaxNumThreadForExec(Connection& connection) {
+        return connection.getMaxNumThreadForExec();
+    }
+    static inline uint64_t getActiveTransactionID(Connection& connection) {
+        return connection.getActiveTransactionID();
+    }
+    static inline bool hasActiveTransaction(Connection& connection) {
+        return connection.hasActiveTransaction();
+    }
+    static inline void commitNoLock(Connection& connection) { connection.commitNoLock(); }
+    static inline void rollbackIfNecessaryNoLock(Connection& connection) {
+        connection.rollbackIfNecessaryNoLock();
     }
 
     void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);

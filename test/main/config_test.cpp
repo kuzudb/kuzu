@@ -1,5 +1,7 @@
 #include "include/main_test_helper.h"
 
+using namespace kuzu::testing;
+
 TEST_F(ApiTest, DatabaseConfig) {
     auto db = make_unique<Database>(DatabaseConfig(TestHelper::TEMP_TEST_DIR));
     ASSERT_NO_THROW(db->resizeBufferManager(StorageConfig::DEFAULT_BUFFER_POOL_SIZE * 2));

@@ -1,5 +1,7 @@
 #include "include/main_test_helper.h"
 
+using namespace kuzu::testing;
+
 TEST_F(ApiTest, MultiParamsPrepare) {
     auto preparedStatement = conn->prepare(
         "MATCH (a:person) WHERE a.fName STARTS WITH $n OR a.fName CONTAINS $xx RETURN COUNT(*)");

@@ -98,25 +98,6 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     return preparedStatement;
 }
 
-string Connection::getBuiltInScalarFunctionNames() {
-    lock_t lck{mtx};
-    string result = "Built-in scalar functions: \n";
-    for (auto& functionName : database->catalog->getBuiltInScalarFunctions()->getFunctionNames()) {
-        result += functionName + "\n";
-    }
-    return result;
-}
-
-string Connection::getBuiltInAggregateFunctionNames() {
-    lock_t lck{mtx};
-    string result = "Built-in aggregate functions: \n";
-    for (auto& functionName :
-        database->catalog->getBuiltInAggregateFunction()->getFunctionNames()) {
-        result += functionName + "\n";
-    }
-    return result;
-}
-
 string Connection::getNodeTableNames() {
     lock_t lck{mtx};
     string result = "Node tables: \n";

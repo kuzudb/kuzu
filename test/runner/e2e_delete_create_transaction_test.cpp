@@ -526,7 +526,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    conn->commitButSkipCheckpointingForTestingRecovery();
+    commitButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToEmptyListSucceed(
         readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
@@ -542,7 +542,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    rollbackButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
 }
@@ -568,7 +568,7 @@ TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackNorm
 TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    rollbackButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
 }
@@ -625,7 +625,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    conn->commitButSkipCheckpointingForTestingRecovery();
+    commitButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToSmallListSucceed(
         readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
@@ -641,7 +641,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    rollbackButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToSmallListFail(readAllKnowsProperty(conn.get(), "animal", "person"));
 }
@@ -660,7 +660,7 @@ TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("animal", "person", largeNumRelsToInsert);
-    conn->commitButSkipCheckpointingForTestingRecovery();
+    commitButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToSmallListSucceed(
         readAllKnowsProperty(conn.get(), "animal", "person"), largeNumRelsToInsert);
@@ -704,7 +704,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
-    conn->commitButSkipCheckpointingForTestingRecovery();
+    commitButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToLargeListSucceed(
         readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
@@ -720,7 +720,7 @@ TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackNormalExecution) {
 TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackRecovery) {
     conn->beginWriteTransaction();
     insertKnowsRels("person", "person", smallNumRelsToInsert);
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
+    rollbackButSkipCheckpointingForTestingRecovery(*conn);
     createDBAndConn(); // run recovery
     validateInsertRelsToLargeListFail(readAllKnowsProperty(conn.get(), "person", "person"));
 }

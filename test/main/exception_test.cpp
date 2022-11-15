@@ -1,5 +1,7 @@
 #include "include/main_test_helper.h"
 
+using namespace kuzu::testing;
+
 TEST_F(ApiTest, Exception) {
     unique_ptr<QueryResult> result;
     unique_ptr<PreparedStatement> preparedStatement;

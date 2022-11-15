@@ -16,18 +16,20 @@ using namespace kuzu::transaction;
 using lock_t = unique_lock<mutex>;
 
 namespace kuzu {
-namespace transaction {
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
-} // namespace transaction
+namespace testing {
+class ApiTest;
+class BaseGraphTest;
+class TestHelper;
+} // namespace testing
 } // namespace kuzu
 
 namespace kuzu {
 namespace main {
 
 class Connection {
-    friend class kuzu::transaction::TinySnbDDLTest;
-    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
+    friend class kuzu::testing::ApiTest;
+    friend class kuzu::testing::BaseGraphTest;
+    friend class kuzu::testing::TestHelper;
 
 public:
     /**
@@ -53,11 +55,6 @@ public:
 
     ~Connection();
 
-    inline ConnectionTransactionMode getTransactionMode() {
-        lock_t lck{mtx};
-        return transactionMode;
-    }
-
     inline void beginReadOnlyTransaction() {
         lock_t lck{mtx};
         setTransactionModeNoLock(MANUAL);
@@ -70,24 +67,11 @@ public:
         beginTransactionNoLock(WRITE);
     }
 
-    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
-    // this otherwise.
-    inline void commitButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
-    }
-
     inline void commit() {
         lock_t lck{mtx};
         commitOrRollbackNoLock(true /* isCommit */);
     }
 
-    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
-    // this otherwise.
-    inline void rollbackButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
-    }
     inline void rollback() {
         lock_t lck{mtx};
         commitOrRollbackNoLock(false /* is rollback */);
@@ -95,6 +79,10 @@ public:
 
     inline void setMaxNumThreadForExec(uint64_t numThreads) {
         clientContext->numThreadsForExecution = numThreads;
+    }
+    inline uint64_t getMaxNumThreadForExec() {
+        lock_t lck{mtx};
+        return clientContext->numThreadsForExecution;
     }
 
     std::unique_ptr<QueryResult> query(const std::string& query);
@@ -110,66 +98,74 @@ public:
         unordered_map<string, shared_ptr<Literal>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
     }
-
     // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
     // executeLock(...).
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& inputParams);
 
-    string getBuiltInScalarFunctionNames();
-    string getBuiltInAggregateFunctionNames();
     string getNodeTableNames();
     string getRelTableNames();
     string getNodePropertyNames(const string& tableName);
     string getRelPropertyNames(const string& relTableName);
 
-    // Used in test helper. Note: for our testing framework, we should not catch exception and
-    // instead let IDE catch these exceptions.
-    std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
-    unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
-    std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
-    // used in API test
-    inline uint64_t getMaxNumThreadForExec() {
+protected:
+    inline ConnectionTransactionMode getTransactionMode() {
         lock_t lck{mtx};
-        return clientContext->numThreadsForExecution;
+        return transactionMode;
     }
-
+    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
+        if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
+            throw ConnectionException(
+                "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
+                "active transaction. Need to first commit or rollback the active transaction.");
+        }
+        transactionMode = newTransactionMode;
+    }
+    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
+    // this otherwise.
+    inline void commitButSkipCheckpointingForTestingRecovery() {
+        lock_t lck{mtx};
+        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
+    }
+    // Note: This is only added for testing recovery algorithms in unit tests. Do not use
+    // this otherwise.
+    inline void rollbackButSkipCheckpointingForTestingRecovery() {
+        lock_t lck{mtx};
+        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
+    }
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
     inline Transaction* getActiveTransaction() {
         lock_t lck{mtx};
         return activeTransaction.get();
     }
+    // used in API test
 
     inline uint64_t getActiveTransactionID() {
         lock_t lck{mtx};
         return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
     }
-
     inline bool hasActiveTransaction() {
         lock_t lck{mtx};
         return activeTransaction != nullptr;
     }
-
-protected:
-    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
-        if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
-            throw ConnectionException(
-                "Cannot change transaction mode from MANUAL to AUTO_COMMING when there is an "
-                "active transaction. Need to first commit or rollback the active transaction.");
-        }
-        transactionMode = newTransactionMode;
-    }
-
-    void beginTransactionNoLock(TransactionType type);
     inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
     inline void rollbackIfNecessaryNoLock() {
-        // If there is no active transaction in the system (eg. an exception occurs during
-        // planning), we shouldn't rollback the transaction.
+        // If there is no active transaction in the system (e.g., an exception occurs during
+        // planning), we shouldn't roll back the transaction.
         if (activeTransaction != nullptr) {
             commitOrRollbackNoLock(false /* is rollback */);
         }
     }
+
+    // Used in test helper. Note: for our testing framework, we should not catch exception and
+    // instead let IDE catch these exceptions.
+    std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
+    std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
+
+    void beginTransactionNoLock(TransactionType type);
+
     void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);

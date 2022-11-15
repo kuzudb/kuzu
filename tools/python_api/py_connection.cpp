@@ -1,6 +1,7 @@
 #include "include/py_connection.h"
 
 #include "datetime.h" // from Python
+
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
