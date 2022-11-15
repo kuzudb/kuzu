@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Collect source files
+cp ../../LICENSE ./LICENSE.txt
 tar --exclude="$(pwd)" \
     --exclude="./bazel-*" \
     --exclude="./scripts" \
@@ -23,3 +24,4 @@ rm -rf sdist.tar
 rm -rf kuzu.tar.gz
 tar -czf kuzu.tar.gz sdist
 rm -rf sdist kuzu-source
+rm -rf LICENSE.txt
