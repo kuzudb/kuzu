@@ -343,6 +343,18 @@ Huber
 #
 #
 
+-NAME LpadOutOfRange
+-QUERY MATCH (p:person) RETURN lpad(p.fName, -10, "t")
+---- 8
+
+
+
+
+
+
+
+
+
 -NAME RpadStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN rpad(p.fName, 15, ">")
 ---- 8
@@ -379,6 +391,13 @@ Hubert Bla
 #
 #
 #
+
+-NAME RpadOutOfRange
+-QUERY MATCH (o:organisation) RETURN rpad(o.name, -8, "y")
+---- 3
+
+
+
 
 -NAME SubStrStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN substr(p.fName, 2, 12)
@@ -424,16 +443,16 @@ CsWo
 DEsWor
 
 -NAME LeftNegativeIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN left(p.fName, -3)
+-QUERY MATCH (p:person) RETURN left(p.fName, -4)
 ---- 8
-Al
+A
 
-Ca
+C
 
-Elizab
-Far
-G
-Hubert Blaine Wolfeschlegelsteinhausenbergerdo
+Eliza
+Fa
+
+Hubert Blaine Wolfeschlegelsteinhausenbergerd
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LeftUnstructuredStrAndLiteralInt
@@ -468,16 +487,16 @@ Work
 EsWork
 
 -NAME RightNegativeIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN right(p.fName, -2)
+-QUERY MATCH (p:person) RETURN right(p.fName, -4)
 ---- 8
-ice
-b
-rol
-n
-izabeth
-rooq
-eg
-bert Blaine Wolfeschlegelsteinhausenbergerdorff
+e
+
+l
+
+abeth
+oq
+
+rt Blaine Wolfeschlegelsteinhausenbergerdorff
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME RightUnstructuredStrAndLiteralInt
@@ -512,6 +531,25 @@ D
 B
 s
 E
+
+-NAME ListExtractOutOfRange
+-QUERY MATCH (a:person) RETURN a.fName[8]
+---- 8
+
+
+
+
+t
+
+
+B
+
+-NAME ListExtractNegativeIndex
+-QUERY MATCH (o:organisation) RETURN o.name[-2]
+---- 3
+n
+r
+r
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME ListExtractUnstructuredString

@@ -36,8 +36,12 @@ public:
     }
 
     static inline void operation(ku_string_t& str, int64_t& idx, ku_string_t& result) {
-        auto pos = idx > 0 ? min(idx, (int64_t)str.len) : max(str.len + idx, (int64_t)0) + 1;
-        result.set((char*)(str.getData() + pos - 1), 1 /* length */);
+        if (str.len < idx) {
+            result.set("", 0);
+        } else {
+            auto pos = idx > 0 ? min(idx, (int64_t)str.len) : max(str.len + idx, (int64_t)0) + 1;
+            result.set((char*)(str.getData() + pos - 1), 1 /* length */);
+        }
     }
 
     static inline void operation(Value& item, int64_t& pos, Value& result) {
