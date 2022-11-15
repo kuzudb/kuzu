@@ -70,6 +70,7 @@ setup(name='kuzu',
       ext_modules=[BazelExtension(
           name="kuzu", sourcedir=base_dir)],
       description='KuzuDB Python API',
+      license='MIT',
       long_description=open(os.path.join(base_dir, "README.md"), 'r').read(),
       long_description_content_type="text/markdown",
       packages=["kuzu"],
