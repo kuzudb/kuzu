@@ -186,3 +186,8 @@ TEST_F(TinySnbExceptionTest, ModuloBy0Error) {
     auto result = conn->query("RETURN 1 % 0");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Runtime exception: Modulo by zero.");
 }
+
+TEST_F(TinySnbExceptionTest, ParserError) {
+    auto result = conn->query("MATCH");
+    ASSERT_STREQ(result->getErrorMessage().c_str(), "basic_string::_M_construct null not valid");
+}

@@ -14,5 +14,6 @@ def test_exception(establish_connection):
     # with pytest.raises(RuntimeError, match="Runtime exception: Cannot abs `INTERVAL`"):
     #    conn.execute("MATCH (a:person) RETURN abs(a.lastJobDuration);")
 
-    with pytest.raises(RuntimeError, match="Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported!"):
+    with pytest.raises(RuntimeError,
+                       match="Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported."):
         db.resize_buffer_manager(1)
