@@ -226,3 +226,18 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "logging_level_util",
+    srcs = [
+        "logging_level_utils.cpp",
+    ],
+    hdrs = [
+        "include/logging_level_utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "utils",
+        "@gabime_spdlog",
+    ],
+)

@@ -4,6 +4,7 @@
 #include <cctype>
 #include <regex>
 
+#include "src/common/include/logging_level_utils.h"
 #include "src/common/include/type_utils.h"
 
 namespace kuzu {
@@ -27,8 +28,9 @@ struct ShellCommand {
     const string LIST_RELS = ":list_rels";
     const string SHOW_NODE = ":show_node";
     const string SHOW_REL = ":show_rel";
+    const string LOGGING_LEVEL = ":logging_level";
     const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        BUFFER_MANAGER_DEBUG_INFO, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL};
+        BUFFER_MANAGER_DEBUG_INFO, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -207,6 +209,8 @@ void EmbeddedShell::run() {
             printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
         } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
             printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
+        } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
+            setLoggingLevel(lineStr.substr(shellCommand.LOGGING_LEVEL.length()));
         } else if (!lineStr.empty()) {
             ss.clear();
             ss.str(lineStr);
@@ -286,6 +290,9 @@ void EmbeddedShell::printHelp() {
         shellCommand.THREAD.c_str(), TAB);
     printf("%s%s [bm_size_in_bytes] %sset buffer manager size in bytes\n", TAB,
         shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
+    printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
+           "err\n",
+        TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
     printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
     printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
     printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
@@ -358,6 +365,15 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printf("%s", querySummary->getPlanAsOstream().str().c_str());
         }
     }
+}
+
+void EmbeddedShell::setLoggingLevel(const string& loggingLevel) {
+    auto level = ltrim(loggingLevel);
+    try {
+        auto logLevelEnum = LoggingLevelUtils::convertStrToLevelEnum(level);
+        database->setLoggingLevel(logLevelEnum);
+        printf("logging level has been set to: %s.\n", level.c_str());
+    } catch (ConversionException& e) { printf("%s", e.what()); }
 }
 
 } // namespace main

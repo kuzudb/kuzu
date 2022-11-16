@@ -13,6 +13,7 @@ cc_library(
     ],
     deps = [
         "//src/binder",
+        "//src/common:logging_level_util",
         "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",

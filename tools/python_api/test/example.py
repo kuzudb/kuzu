@@ -1,11 +1,10 @@
-from tools.python_api import _kuzu as gdb
+from tools.python_api import _kuzu as kuzu
 
-
-databaseDir = "path_to_serialized_database"
-db = gdb.database(databaseDir)
-conn = gdb.connection(db)
+databaseDir = "path to database file"
+db = kuzu.database(databaseDir)
+conn = kuzu.connection(db)
 query = "MATCH (a:person) RETURN *;"
-result = conn.query(query)
+result = conn.execute(query)
 while result.hasNext():
     print(result.getNext())
 result.close()

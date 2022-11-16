@@ -31,6 +31,8 @@ private:
 
     void updateTableNames();
 
+    void setLoggingLevel(const string& loggingLevel);
+
 private:
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;
