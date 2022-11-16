@@ -17,6 +17,10 @@ public:
     static inline void operation(ku_string_t& src, int64_t count, ku_string_t& characterToPad,
         ku_string_t& result, ValueVector& resultValueVector,
         void (*padOperation)(ku_string_t& result, ku_string_t& src, ku_string_t& characterToPad)) {
+        if (count <= 0) {
+            result.set("", 0);
+            return;
+        }
         assert(characterToPad.len == 1);
         result.len = count;
         if (!ku_string_t::isShortString(result.len)) {
