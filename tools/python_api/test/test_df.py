@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas import Timestamp, Timedelta, isna
+from tools.python_api import _kuzu as kuzu
 
 
 def test_to_df(establish_connection):
@@ -76,4 +77,13 @@ def test_to_df(establish_connection):
 
     db.resize_buffer_manager(512 * 1024 * 1024)
     conn.set_max_threads_for_exec(4)
+    _test_to_df(conn)
+
+    db.set_logging_level(kuzu.loggingLevel.debug)
+    _test_to_df(conn)
+
+    db.set_logging_level(kuzu.loggingLevel.info)
+    _test_to_df(conn)
+
+    db.set_logging_level(kuzu.loggingLevel.err)
     _test_to_df(conn)

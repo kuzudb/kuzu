@@ -55,9 +55,11 @@ public:
 
     explicit Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig);
 
-    ~Database() = default;
+    void setLoggingLevel(spdlog::level::level_enum loggingLevel);
 
     void resizeBufferManager(uint64_t newSize);
+
+    ~Database() = default;
 
 private:
     // TODO(Semih): This is refactored here for now to be able to test transaction behavior

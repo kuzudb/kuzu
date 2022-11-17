@@ -3,6 +3,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
+#include "src/common/include/logging_level_utils.h"
 #include "src/storage/include/wal_replayer.h"
 
 namespace kuzu {
@@ -56,6 +57,17 @@ void Database::initLoggers() {
     LoggerUtils::getOrCreateLogger("transaction_manager");
     LoggerUtils::getOrCreateLogger("wal");
     spdlog::set_level(spdlog::level::err);
+}
+
+void Database::setLoggingLevel(spdlog::level::level_enum loggingLevel) {
+    if (loggingLevel != spdlog::level::level_enum::debug &&
+        loggingLevel != spdlog::level::level_enum::info &&
+        loggingLevel != spdlog::level::level_enum::err) {
+        printf("Unsupported logging level: %s.",
+            LoggingLevelUtils::convertLevelEnumToStr(loggingLevel).c_str());
+        return;
+    }
+    spdlog::set_level(loggingLevel);
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
