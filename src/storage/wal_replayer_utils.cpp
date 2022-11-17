@@ -9,17 +9,14 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_
     const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
     auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+        auto boundTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
             tableID, relDirection);
-        auto directionNodeIDCompressionScheme = NodeIDCompressionScheme(
-            catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                tableID, !relDirection));
         if (catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(tableID, relDirection)) {
-            createEmptyDBFilesForColumns(nodeTableIDs, maxNodeOffsetsPerTable, relDirection,
-                directory, directionNodeIDCompressionScheme, relTableSchema);
+            createEmptyDBFilesForColumns(
+                boundTableIDs, maxNodeOffsetsPerTable, relDirection, directory, relTableSchema);
         } else {
-            createEmptyDBFilesForLists(nodeTableIDs, maxNodeOffsetsPerTable, relDirection,
-                directory, directionNodeIDCompressionScheme, relTableSchema);
+            createEmptyDBFilesForLists(
+                boundTableIDs, maxNodeOffsetsPerTable, relDirection, directory, relTableSchema);
         }
     }
 }
@@ -81,38 +78,40 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
     }
 }
 
-void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id_t>& nodeTableIDs,
+void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id_t>& boundTableIDs,
     const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-    const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-    RelTableSchema* relTableSchema) {
-    for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) == UINT64_MAX ?
+    const string& directory, RelTableSchema* relTableSchema) {
+    for (auto boundTableID : boundTableIDs) {
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == UINT64_MAX ?
                             0 :
-                            maxNodeOffsetsPerTable.at(nodeTableID) + 1;
+                            maxNodeOffsetsPerTable.at(boundTableID) + 1;
         make_unique<InMemAdjColumn>(
-            StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID, nodeTableID,
+            StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID, boundTableID,
                 relDirection, DBFileType::ORIGINAL),
-            directionNodeIDCompressionScheme, numNodes)
+            NodeIDCompressionScheme{relTableSchema->getUniqueNbrTableIDsForBoundTableIDDirection(
+                relDirection, boundTableID)},
+            numNodes)
             ->saveToFile();
-        createEmptyDBFilesForRelProperties(relTableSchema, nodeTableID, directory, relDirection,
+        createEmptyDBFilesForRelProperties(relTableSchema, boundTableID, directory, relDirection,
             numNodes, true /* isForRelPropertyColumn */);
     }
 }
 
-void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t>& nodeTableIDs,
+void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t>& boundTableIDs,
     const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-    const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-    RelTableSchema* relTableSchema) {
-    for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) == UINT64_MAX ?
+    const string& directory, RelTableSchema* relTableSchema) {
+    for (auto boundTableID : boundTableIDs) {
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == UINT64_MAX ?
                             0 :
-                            maxNodeOffsetsPerTable.at(nodeTableID) + 1;
+                            maxNodeOffsetsPerTable.at(boundTableID) + 1;
         auto adjLists = make_unique<InMemAdjLists>(
-            StorageUtils::getAdjListsFName(directory, relTableSchema->tableID, nodeTableID,
+            StorageUtils::getAdjListsFName(directory, relTableSchema->tableID, boundTableID,
                 relDirection, DBFileType::ORIGINAL),
-            directionNodeIDCompressionScheme, numNodes);
+            NodeIDCompressionScheme{relTableSchema->getUniqueNbrTableIDsForBoundTableIDDirection(
+                relDirection, boundTableID)},
+            numNodes);
         initLargeListPageListsAndSaveToFile(adjLists.get());
-        createEmptyDBFilesForRelProperties(relTableSchema, nodeTableID, directory, relDirection,
+        createEmptyDBFilesForRelProperties(relTableSchema, boundTableID, directory, relDirection,
             numNodes, false /* isForRelPropertyColumn */);
     }
 }
@@ -169,19 +168,19 @@ void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema, s
     const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+        auto boundTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
             relTableSchema->tableID, relDirection);
-        for (auto nodeTableID : nodeTableIDs) {
+        for (auto boundTableID : boundTableIDs) {
             auto isColumnProperty = catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relTableSchema->tableID, relDirection);
             if (isColumnProperty) {
                 columnFileOperation(StorageUtils::getAdjColumnFName(directory,
-                    relTableSchema->tableID, nodeTableID, relDirection, DBFileType::ORIGINAL));
+                    relTableSchema->tableID, boundTableID, relDirection, DBFileType::ORIGINAL));
             } else {
                 listFileOperation(StorageUtils::getAdjListsFName(directory, relTableSchema->tableID,
-                    nodeTableID, relDirection, DBFileType::ORIGINAL));
+                    boundTableID, relDirection, DBFileType::ORIGINAL));
             }
-            fileOperationOnRelPropertyFiles(relTableSchema, nodeTableID, directory, relDirection,
+            fileOperationOnRelPropertyFiles(relTableSchema, boundTableID, directory, relDirection,
                 isColumnProperty, columnFileOperation, listFileOperation);
         }
     }

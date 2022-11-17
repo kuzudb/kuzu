@@ -156,10 +156,8 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    return SerDeser::serializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::serializeVector<pair<table_id_t, table_id_t>>(
+        value.srcDstTableIDs, fileInfo, offset);
 }
 
 template<>
@@ -169,10 +167,8 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    return SerDeser::deserializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::deserializeVector<pair<table_id_t, table_id_t>>(
+        value.srcDstTableIDs, fileInfo, offset);
 }
 
 } // namespace common
@@ -223,12 +219,11 @@ table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primary
 }
 
 table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    vector<PropertyNameDataType> structuredPropertyDefinitions,
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs) {
     table_id_t tableID = assignNextTableID();
-    for (auto& srcTableID : srcDstTableIDs.srcTableIDs) {
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
         nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
-    }
-    for (auto& dstTableID : srcDstTableIDs.dstTableIDs) {
         nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     }
     vector<Property> structuredProperties;
@@ -301,14 +296,6 @@ const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirec
         return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
     }
     return nodeTableSchemas.at(tableID)->bwdRelTableIDSet;
-}
-
-const unordered_set<table_id_t>& CatalogContent::getNodeTableIDsForRelTableDirection(
-    table_id_t tableID, RelDirection direction) const {
-    if (FWD == direction) {
-        return relTableSchemas.at(tableID)->srcDstTableIDs.srcTableIDs;
-    }
-    return relTableSchemas.at(tableID)->srcDstTableIDs.dstTableIDs;
 }
 
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
@@ -420,7 +407,8 @@ table_id_t Catalog::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
 }
 
 table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    vector<PropertyNameDataType> structuredPropertyDefinitions,
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(move(tableName), relMultiplicity,
         move(structuredPropertyDefinitions), move(srcDstTableIDs));

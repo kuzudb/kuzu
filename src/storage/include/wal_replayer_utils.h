@@ -53,13 +53,11 @@ private:
 
     static void createEmptyDBFilesForColumns(const unordered_set<table_id_t>& nodeTableIDs,
         const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-        const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-        RelTableSchema* relTableSchema);
+        const string& directory, RelTableSchema* relTableSchema);
 
-    static void createEmptyDBFilesForLists(const unordered_set<table_id_t>& nodeTableIDs,
+    static void createEmptyDBFilesForLists(const unordered_set<table_id_t>& boundTableIDs,
         const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-        const string& directory, const NodeIDCompressionScheme& directionNodeIDCompressionScheme,
-        RelTableSchema* relTableSchema);
+        const string& directory, RelTableSchema* relTableSchema);
 
     static void replaceOriginalColumnFilesWithWALVersionIfExists(string originalColFileName);
 

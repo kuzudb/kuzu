@@ -31,15 +31,13 @@ unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statemen
     auto propertyNameDataTypes =
         bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    unordered_set<table_id_t> srcTableIDs, dstTableIDs;
-    for (auto& srcTableName : createRelClause.getRelConnection().srcTableNames) {
-        for (auto& dstTableName : createRelClause.getRelConnection().dstTableNames) {
-            srcTableIDs.insert(bindNodeTable(srcTableName));
-            dstTableIDs.insert(bindNodeTable(dstTableName));
-        }
+    auto relConnections = createRelClause.getRelConnections();
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
+    for (auto& [srcTableName, dstTableName] : relConnections) {
+        srcDstTableIDs.emplace_back(bindNodeTable(srcTableName), bindNodeTable(dstTableName));
     }
-    return make_unique<BoundCreateRelClause>(tableName, move(propertyNameDataTypes),
-        relMultiplicity, SrcDstTableIDs(move(srcTableIDs), move(dstTableIDs)));
+    return make_unique<BoundCreateRelClause>(
+        tableName, move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);
 }
 
 unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {

@@ -168,25 +168,25 @@ void BaseGraphTest::validateNodeColumnAndListFilesExistence(
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
-        unordered_set<table_id_t> nodeTableIDs = relDirection == FWD ?
-                                                     relTableSchema->srcDstTableIDs.srcTableIDs :
-                                                     relTableSchema->srcDstTableIDs.dstTableIDs;
+        unordered_set<table_id_t> boundTableIDs = relDirection == FWD ?
+                                                      relTableSchema->getUniqueSrcTableIDs() :
+                                                      relTableSchema->getUniqueDstTableIDs();
         if (relTableSchema->relMultiplicity) {
-            for (auto nodeTableID : nodeTableIDs) {
+            for (auto boundTableID : boundTableIDs) {
                 validateColumnFilesExistence(
                     StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, nodeTableID, relDirection, dbFileType),
+                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
                     existence, false /* hasOverflow */);
-                validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
+                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
                     true /* isColumnProperty */, dbFileType, existence);
             }
         } else {
-            for (auto nodeTableID : nodeTableIDs) {
+            for (auto boundTableID : boundTableIDs) {
                 validateListFilesExistence(
                     StorageUtils::getAdjListsFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, nodeTableID, relDirection, dbFileType),
+                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
                     existence, false /* hasOverflow */, true /* hasHeader */);
-                validateRelPropertyFiles(relTableSchema, nodeTableID, relDirection,
+                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
                     false /* isColumnProperty */, dbFileType, existence);
             }
         }

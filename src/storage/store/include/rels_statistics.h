@@ -17,7 +17,7 @@ public:
         uint64_t numRels, vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable)
         : TableStatistics{numRels}, numRelsPerDirectionBoundTable{
                                         move(numRelsPerDirectionBoundTable)} {}
-    RelStatistics(SrcDstTableIDs srcDstTableIDs);
+    RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     inline uint64_t getNumRelsForDirectionBoundTable(
         RelDirection relDirection, table_id_t boundNodeTableID) const {

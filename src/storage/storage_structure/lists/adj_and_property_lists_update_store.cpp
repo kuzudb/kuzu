@@ -133,14 +133,15 @@ uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) c
 
 void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
     listUpdatesPerTablePerDirection.clear();
-    auto srcDstTableIDs = relTableSchema.getSrcDstTableIDs();
     for (auto direction : REL_DIRECTIONS) {
         listUpdatesPerTablePerDirection.push_back(map<table_id_t, ListUpdatesPerChunk>{});
-        auto tableIDs = direction == RelDirection::FWD ? srcDstTableIDs.srcTableIDs :
-                                                         srcDstTableIDs.dstTableIDs;
+        auto boundTableIDs = direction == RelDirection::FWD ?
+                                 relTableSchema.getUniqueSrcTableIDs() :
+                                 relTableSchema.getUniqueDstTableIDs();
         if (relTableSchema.isStoredAsLists(direction)) {
-            for (auto tableID : tableIDs) {
-                listUpdatesPerTablePerDirection[direction].emplace(tableID, ListUpdatesPerChunk{});
+            for (auto boundTableID : boundTableIDs) {
+                listUpdatesPerTablePerDirection[direction].emplace(
+                    boundTableID, ListUpdatesPerChunk{});
             }
         }
     }

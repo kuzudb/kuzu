@@ -59,6 +59,7 @@ public:
     MOCK_METHOD(string, getNodeTableName, (table_id_t tableID), (const, override));
     MOCK_METHOD(string, getRelTableName, (table_id_t tableID), (const, override));
     MOCK_METHOD(uint64_t, getNumNodes, (table_id_t tableID), (const override));
+    MOCK_METHOD(RelTableSchema*, getRelTableSchema, (table_id_t tableID), (const override));
 };
 
 /**
@@ -73,8 +74,8 @@ public:
     void setUp() {
         setSrcNodeTableToRelTables();
         setDstNodeTableToRelTables();
+        setRelTableSchemas();
         setProperties();
-
         setActionForContainNodeProperty();
         setActionForContainRelProperty();
         secActionForGetNodeProperty();
@@ -87,6 +88,7 @@ public:
         setActionForGetRelTableFromString();
         setActionForGetNodeTableName();
         setActionForGetRelTableName();
+        setActionForGetRelTableSchema();
     }
 
 private:
@@ -190,6 +192,13 @@ private:
         ON_CALL(*this, getRelTableName(WORKAT_TABLE_ID)).WillByDefault(Return(WORKAT_TABLE_STR));
     }
 
+    void setActionForGetRelTableSchema() {
+        ON_CALL(*this, getRelTableSchema(KNOWS_TABLE_ID))
+            .WillByDefault(Return(knowsTableSchema.get()));
+        ON_CALL(*this, getRelTableSchema(WORKAT_TABLE_ID))
+            .WillByDefault(Return(workAtTableSchema.get()));
+    }
+
     void setSrcNodeTableToRelTables() {
         unordered_set<table_id_t> personToRelTableIDs = {KNOWS_TABLE_ID, WORKAT_TABLE_ID};
         unordered_set<table_id_t> organisationToRelTableIDs = {};
@@ -226,9 +235,20 @@ private:
             knowsDatePropertyDefinition, KNOWSDATE_PROPERTY_KEY_ID, KNOWS_TABLE_ID);
     }
 
+    void setRelTableSchemas() {
+        knowsTableSchema =
+            make_unique<RelTableSchema>("knows", KNOWS_TABLE_ID, MANY_MANY, vector<Property>{},
+                vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, PERSON_TABLE_ID}});
+        workAtTableSchema =
+            make_unique<RelTableSchema>("workAt", WORKAT_TABLE_ID, MANY_ONE, vector<Property>{},
+                vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, ORGANISATION_TABLE_ID}});
+    }
+
     vector<unordered_set<table_id_t>> srcNodeIDToRelIDs, dstNodeIDToRelIDs;
     Property ageProperty, nameProperty, descriptionProperty, birthDateProperty,
         registerTimeProperty, knowsDateProperty;
+    unique_ptr<RelTableSchema> knowsTableSchema;
+    unique_ptr<RelTableSchema> workAtTableSchema;
 };
 
 class TinySnbCatalog : public Catalog {

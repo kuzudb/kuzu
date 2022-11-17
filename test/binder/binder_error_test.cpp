@@ -34,7 +34,7 @@ TEST_F(BinderErrorTest, NodeTableNotExist) {
 
 TEST_F(BinderErrorTest, NodeRelNotConnect) {
     string expectedException =
-        "Binder exception: Node table person doesn't connect to rel table workAt.";
+        "Binder exception: Node table person doesn't connect to person through rel table workAt.";
     auto input = "MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

@@ -69,21 +69,19 @@ void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     }
 }
 
-void Binder::validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_id_t relTableID,
-    table_id_t nodeTableID, RelDirection direction) {
-    assert(relTableID != ANY_TABLE_ID);
-    assert(nodeTableID != ANY_TABLE_ID);
-    auto connectedRelTableIDs =
-        catalog_.getReadOnlyVersion()->getRelTableIDsForNodeTableDirection(nodeTableID, direction);
-    for (auto& connectedRelTableID : connectedRelTableIDs) {
-        if (relTableID == connectedRelTableID) {
+void Binder::validateNodeAndRelTableIsConnected(
+    const Catalog& catalog_, table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID) {
+    assert(relTableID != ANY_TABLE_ID && srcTableID != ANY_TABLE_ID && dstTableID != ANY_TABLE_ID);
+    for (auto& [srcTableID_, dstTableID_] :
+        catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID)->srcDstTableIDs) {
+        if (srcTableID_ == srcTableID && dstTableID_ == dstTableID) {
             return;
         }
     }
-    throw BinderException("Node table " +
-                          catalog_.getReadOnlyVersion()->getNodeTableName(nodeTableID) +
-                          " doesn't connect to rel table " +
-                          catalog_.getReadOnlyVersion()->getRelTableName(relTableID) + ".");
+    throw BinderException(
+        "Node table " + catalog_.getReadOnlyVersion()->getNodeTableName(srcTableID) +
+        " doesn't connect to " + catalog_.getReadOnlyVersion()->getNodeTableName(dstTableID) +
+        " through rel table " + catalog_.getReadOnlyVersion()->getRelTableName(relTableID) + ".");
 }
 
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
