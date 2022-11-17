@@ -14,7 +14,8 @@ class TransactionManagerTest : public Test {
 protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
-        bufferManager = make_unique<BufferManager>();
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
         transactionManager = make_unique<TransactionManager>(*wal);
     }

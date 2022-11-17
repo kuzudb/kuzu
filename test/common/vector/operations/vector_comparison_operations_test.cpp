@@ -208,7 +208,8 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto dataChunk = make_shared<DataChunk>(3);
     dataChunk->state->selVector->selectedSize = numTuples;
     dataChunk->state->currIdx = 0;
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());
@@ -286,7 +287,8 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto dataChunk = make_shared<DataChunk>(3);
     dataChunk->state->selVector->selectedSize = VECTOR_SIZE;
     dataChunk->state->currIdx = 0;
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto lVector = make_shared<ValueVector>(STRING, memoryManager.get());

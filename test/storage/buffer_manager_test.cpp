@@ -19,7 +19,8 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         fileHandle.addNewPage();
     }
-    BufferManager* bufferManager = new BufferManager();
+    BufferManager* bufferManager =
+        new BufferManager(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     // Pin and unpin some pages
     bufferManager->pinWithoutReadingFromFile(fileHandle, 10);
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);

@@ -53,7 +53,8 @@ private:
 class BaseGraphTest : public Test {
 public:
     void SetUp() override {
-        systemConfig = make_unique<SystemConfig>();
+        systemConfig =
+            make_unique<SystemConfig>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
     }
 
@@ -173,7 +174,6 @@ class DBTest : public BaseGraphTest {
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
-        systemConfig->largePageBufferPoolSize = (1ull << 23);
         createDBAndConn();
         initGraph();
     }

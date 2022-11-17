@@ -16,7 +16,8 @@ public:
     virtual DataTypeID getDataTypeOfResultVector() = 0;
 
     void initVectors() {
-        bufferManager = make_unique<BufferManager>();
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         vector1 = make_shared<ValueVector>(getDataTypeOfOperands(), memoryManager.get());
         vector2 = make_shared<ValueVector>(getDataTypeOfOperands(), memoryManager.get());
