@@ -1,0 +1,1 @@
+create node table arrow (ID INT64, f1 INT64, f2 INT64, f3 INT64, f4 INT64, f5 INT64, f6 INT64, f7 INT64, f8 INT64, f9 INT64, PRIMARY KEY (ID));
