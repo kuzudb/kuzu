@@ -17,10 +17,10 @@ struct UnstructuredPropertyKeyDataType {
 
 struct UnstrPropListWrapper {
 
-    UnstrPropListWrapper(unique_ptr<uint8_t[]> data, uint64_t size, uint64_t capacity)
-        : data{move(data)}, size{size}, capacity{capacity} {}
+    UnstrPropListWrapper(std::unique_ptr<uint8_t[]> data, uint64_t size, uint64_t capacity)
+        : data{std::move(data)}, size{size}, capacity{capacity} {}
 
-    unique_ptr<uint8_t[]> data;
+    std::unique_ptr<uint8_t[]> data;
     uint64_t size;
     uint64_t capacity;
 
@@ -38,7 +38,7 @@ class UnstrPropListIterator {
 
 public:
     UnstrPropListIterator() : UnstrPropListIterator(nullptr) {}
-    UnstrPropListIterator(UnstrPropListWrapper* unstrPropListWrapper)
+    explicit UnstrPropListIterator(UnstrPropListWrapper* unstrPropListWrapper)
         : unstrPropListWrapper{unstrPropListWrapper}, curOff{0} {}
 
     inline bool hasNext() { return curOff < unstrPropListWrapper->size; }
@@ -47,14 +47,14 @@ public:
 
     void skipValue();
 
-    inline uint64_t getCurOff() { return curOff; }
+    inline uint64_t getCurOff() const { return curOff; }
 
-    inline uint64_t getDataTypeSizeOfCurrProp() {
+    inline uint64_t getDataTypeSizeOfCurrProp() const {
         assert(propKeyDataTypeForRetVal.keyIdx != UINT32_MAX);
         return Types::getDataTypeSize(propKeyDataTypeForRetVal.dataTypeID);
     }
 
-    inline uint64_t getOffsetAtBeginningOfCurrProp() {
+    inline uint64_t getOffsetAtBeginningOfCurrProp() const {
         assert(propKeyDataTypeForRetVal.keyIdx != UINT32_MAX);
         return curOff - StorageConfig::UNSTR_PROP_HEADER_LEN;
     }

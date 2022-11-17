@@ -40,16 +40,16 @@ struct UnaryOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeOnValue(ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue,
         ValueVector& resultValueVector) {
-        auto operandValues = (OPERAND_TYPE*)operand.values;
         OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-            operandValues[operandPos], resultValue, (void*)&resultValueVector, operand.dataType);
+            ((OPERAND_TYPE*)operand.getData())[operandPos], resultValue, (void*)&resultValueVector,
+            operand.dataType);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
         result.state = operand.state;
-        auto resultValues = (RESULT_TYPE*)result.values;
+        auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             result.setNull(pos, operand.isNull(pos));

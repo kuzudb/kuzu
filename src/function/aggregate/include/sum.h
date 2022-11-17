@@ -47,13 +47,13 @@ struct SumFunction {
 
     static void updateSingleValue(
         SumState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
-        auto inputValues = (T*)input->values;
+        T val = input->getValue<T>(pos);
         for (auto j = 0u; j < multiplicity; ++j) {
             if (state->isNull) {
-                state->sum = inputValues[pos];
+                state->sum = val;
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, inputValues[pos], state->sum);
+                Add::operation(state->sum, val, state->sum);
             }
         }
     }

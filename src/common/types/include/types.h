@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -60,22 +58,23 @@ public:
     explicit DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
         assert(typeID != LIST);
     }
-    DataType(DataTypeID typeID, unique_ptr<DataType> childType)
-        : typeID{typeID}, childType{move(childType)} {
+    DataType(DataTypeID typeID, std::unique_ptr<DataType> childType)
+        : typeID{typeID}, childType{std::move(childType)} {
         assert(typeID == LIST);
     }
 
     DataType(const DataType& other);
-    DataType(DataType&& other) noexcept : typeID{other.typeID}, childType{move(other.childType)} {}
+    DataType(DataType&& other) noexcept
+        : typeID{other.typeID}, childType{std::move(other.childType)} {}
 
-    static inline vector<DataTypeID> getNumericalTypeIDs() {
-        return vector<DataTypeID>{INT64, DOUBLE};
+    static inline std::vector<DataTypeID> getNumericalTypeIDs() {
+        return std::vector<DataTypeID>{INT64, DOUBLE};
     }
-    static inline vector<DataTypeID> getNumericalAndUnstructuredTypeIDs() {
-        return vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
+    static inline std::vector<DataTypeID> getNumericalAndUnstructuredTypeIDs() {
+        return std::vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
     }
-    static inline vector<DataTypeID> getAllValidTypeIDs() {
-        return vector<DataTypeID>{
+    static inline std::vector<DataTypeID> getAllValidTypeIDs() {
+        return std::vector<DataTypeID>{
             NODE_ID, BOOL, INT64, DOUBLE, STRING, UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL, LIST};
     }
 
@@ -87,39 +86,39 @@ public:
 
     inline DataType& operator=(DataType&& other) noexcept {
         typeID = other.typeID;
-        childType = move(other.childType);
+        childType = std::move(other.childType);
         return *this;
     }
 
 public:
     DataTypeID typeID;
-    unique_ptr<DataType> childType;
+    std::unique_ptr<DataType> childType;
 
 private:
-    unique_ptr<DataType> copy();
+    std::unique_ptr<DataType> copy();
 };
 
 class Types {
 public:
-    static string dataTypeToString(const DataType& dataType);
-    static string dataTypeToString(DataTypeID dataTypeID);
-    static string dataTypesToString(const vector<DataType>& dataTypes);
-    static string dataTypesToString(const vector<DataTypeID>& dataTypeIDs);
-    static DataType dataTypeFromString(const string& dataTypeString);
-    static const uint32_t getDataTypeSize(DataTypeID dataTypeID);
-    static inline const uint32_t getDataTypeSize(const DataType& dataType) {
+    static std::string dataTypeToString(const DataType& dataType);
+    static std::string dataTypeToString(DataTypeID dataTypeID);
+    static std::string dataTypesToString(const std::vector<DataType>& dataTypes);
+    static std::string dataTypesToString(const std::vector<DataTypeID>& dataTypeIDs);
+    static DataType dataTypeFromString(const std::string& dataTypeString);
+    static uint32_t getDataTypeSize(DataTypeID dataTypeID);
+    static inline uint32_t getDataTypeSize(const DataType& dataType) {
         return getDataTypeSize(dataType.typeID);
     }
 
 private:
-    static DataTypeID dataTypeIDFromString(const string& dataTypeIDString);
+    static DataTypeID dataTypeIDFromString(const std::string& dataTypeIDString);
 };
 
 // RelDirection
 enum RelDirection : uint8_t { FWD = 0, BWD = 1 };
-const vector<RelDirection> REL_DIRECTIONS = {FWD, BWD};
+const std::vector<RelDirection> REL_DIRECTIONS = {FWD, BWD};
 RelDirection operator!(RelDirection& direction);
-string getRelDirectionAsString(RelDirection relDirection);
+std::string getRelDirectionAsString(RelDirection relDirection);
 
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 

@@ -25,14 +25,11 @@ public:
         stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
         unStrValueVector = make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
         dataChunk = make_shared<DataChunk>(4);
-        auto int64Values = (int64_t*)int64ValueVector->values;
-        auto doubleValues = (double_t*)doubleValueVector->values;
-        auto unStrValues = (Value*)unStrValueVector->values;
         for (auto i = 0u; i < 100; i++) {
-            int64Values[i] = i;
-            doubleValues[i] = (double)i * 1.5;
-            stringValueVector->addString(i, to_string(i));
-            unStrValues[i] = Value((int64_t)i);
+            int64ValueVector->setValue(i, (int64_t)i);
+            doubleValueVector->setValue(i, (double_t)(i * 1.5));
+            unStrValueVector->setValue(i, Value((int64_t)i));
+            stringValueVector->setValue(i, to_string(i));
             if (i % 2 == 0) {
                 int64ValueVector->setNull(i, true /* isNull */);
                 doubleValueVector->setNull(i, true /* isNull */);

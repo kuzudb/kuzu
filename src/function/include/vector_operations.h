@@ -27,22 +27,23 @@ struct VectorOperationDefinition : public FunctionDefinition {
 
     VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
         DataTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
-        : VectorOperationDefinition{move(name), move(parameterTypeIDs), returnTypeID,
-              move(execFunc), nullptr, isVarLength} {}
+        : VectorOperationDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(execFunc), nullptr, isVarLength} {}
 
     VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
         DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
         bool isVarLength = false)
-        : FunctionDefinition{move(name), move(parameterTypeIDs), returnTypeID}, execFunc{move(
-                                                                                    execFunc)},
-          selectFunc(move(selectFunc)), isVarLength{isVarLength} {}
+        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
+          execFunc{std::move(execFunc)},
+          selectFunc(std::move(selectFunc)), isVarLength{isVarLength} {}
 
     VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
         DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
         scalar_bind_func bindFunc, bool isVarLength = false)
-        : FunctionDefinition{move(name), move(parameterTypeIDs), returnTypeID}, execFunc{move(
-                                                                                    execFunc)},
-          selectFunc(move(selectFunc)), bindFunc{move(bindFunc)}, isVarLength{isVarLength} {}
+        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
+          execFunc{std::move(execFunc)},
+          selectFunc(std::move(selectFunc)), bindFunc{std::move(bindFunc)}, isVarLength{
+                                                                                isVarLength} {}
 
     scalar_exec_func execFunc;
     scalar_select_func selectFunc;

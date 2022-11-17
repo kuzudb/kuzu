@@ -32,9 +32,8 @@ bool IndexScan::getNextTuples() {
     metrics->executionTime.stop();
     if (isSuccessfulLookup) {
         hasExecuted = true;
-        auto nodeIDValues = (nodeID_t*)outVector->values;
-        nodeIDValues[0].tableID = tableID;
-        nodeIDValues[0].offset = nodeOffset;
+        nodeID_t nodeID{nodeOffset, tableID};
+        outVector->setValue<nodeID_t>(0, nodeID);
     }
     return isSuccessfulLookup;
 }

@@ -115,7 +115,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto vectorBytesOffset = vectorPos * elementSize;
     auto frameBytesOffset = cursor.elemPosInPage * elementSize;
-    memcpy(resultVector->values + vectorBytesOffset, frame + frameBytesOffset, elementSize);
+    memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
     readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
@@ -153,7 +153,7 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
         auto stringToWriteTo =
             ((ku_string_t*)(updatedPageInfoAndWALPageFrame.frame +
                             mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
-        auto stringToWriteFrom = ((ku_string_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        auto stringToWriteFrom = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
         // If the string we write is a long string, it's overflowPtr is currently pointing to
         // the overflow buffer of vectorToWriteFrom. We need to move it to storage.
         if (!ku_string_t::isShortString(stringToWriteFrom.len)) {
@@ -183,7 +183,7 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
         auto kuListToWriteTo =
             ((ku_list_t*)(updatedPageInfoAndWALPageFrame.frame +
                           mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
-        auto kuListToWriteFrom = ((ku_list_t*)vectorToWriteFrom->values)[posInVectorToWriteFrom];
+        auto kuListToWriteFrom = vectorToWriteFrom->getValue<ku_list_t>(posInVectorToWriteFrom);
         diskOverflowFile.writeListOverflowAndUpdateOverflowPtr(
             kuListToWriteFrom, *kuListToWriteTo, vectorToWriteFrom->dataType);
     }

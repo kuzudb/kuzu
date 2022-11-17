@@ -14,25 +14,25 @@ void ValueVectorUtils::addLiteralToStructuredVector(
     }
     switch (literal.dataType.typeID) {
     case INT64: {
-        ((int64_t*)resultVector.values)[pos] = literal.val.int64Val;
+        resultVector.setValue(pos, literal.val.int64Val);
     } break;
     case DOUBLE: {
-        ((double_t*)resultVector.values)[pos] = literal.val.doubleVal;
+        resultVector.setValue(pos, literal.val.doubleVal);
     } break;
     case BOOL: {
-        ((bool*)resultVector.values)[pos] = literal.val.booleanVal;
+        resultVector.setValue(pos, literal.val.booleanVal);
     } break;
     case DATE: {
-        ((date_t*)resultVector.values)[pos] = literal.val.dateVal;
+        resultVector.setValue(pos, literal.val.dateVal);
     } break;
     case TIMESTAMP: {
-        ((timestamp_t*)resultVector.values)[pos] = literal.val.timestampVal;
+        resultVector.setValue(pos, literal.val.timestampVal);
     } break;
     case INTERVAL: {
-        ((interval_t*)resultVector.values)[pos] = literal.val.intervalVal;
+        resultVector.setValue(pos, literal.val.intervalVal);
     } break;
     case STRING: {
-        resultVector.addString(pos, literal.strVal);
+        resultVector.setValue(pos, literal.strVal);
     } break;
     default:
         assert(false);
@@ -42,14 +42,14 @@ void ValueVectorUtils::addLiteralToStructuredVector(
 void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
     copyNonNullDataWithSameType(resultVector.dataType, srcData,
-        resultVector.values + pos * resultVector.getNumBytesPerValue(),
+        resultVector.getData() + pos * resultVector.getNumBytesPerValue(),
         resultVector.getOverflowBuffer());
 }
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector,
     uint64_t pos, uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer) {
     copyNonNullDataWithSameType(srcVector.dataType,
-        srcVector.values + pos * srcVector.getNumBytesPerValue(), dstData, dstOverflowBuffer);
+        srcVector.getData() + pos * srcVector.getNumBytesPerValue(), dstData, dstOverflowBuffer);
 }
 
 void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,

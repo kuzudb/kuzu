@@ -35,8 +35,8 @@ public:
         dataChunk = make_shared<DataChunk>(3);
         nodeVector = make_shared<ValueVector>(NODE_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeVector);
-        ((nodeID_t*)nodeVector->values)[0].offset = 0;
-        ((nodeID_t*)nodeVector->values)[1].offset = 1;
+        ((nodeID_t*)nodeVector->getData())[0].offset = 0;
+        ((nodeID_t*)nodeVector->getData())[1].offset = 1;
 
         agePropertyVectorToReadDataInto =
             make_shared<ValueVector>(INT64, getMemoryManager(*database));
@@ -61,7 +61,7 @@ public:
         } else {
             ASSERT_FALSE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
             ASSERT_EQ(expectedValue,
-                ((uint64_t*)agePropertyVectorToReadDataInto->values)[dataChunk->state->currIdx]);
+                agePropertyVectorToReadDataInto->getValue<uint64_t>(dataChunk->state->currIdx));
         }
     }
 
@@ -74,7 +74,7 @@ public:
         } else {
             ASSERT_FALSE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
             ASSERT_EQ(expectedValue,
-                ((double*)eyeSightVectorToReadDataInto->values)[dataChunk->state->currIdx]);
+                eyeSightVectorToReadDataInto->getValue<double_t>(dataChunk->state->currIdx));
         }
     }
 
@@ -88,8 +88,8 @@ public:
         } else {
             propertyVectorToWriteDataTo->setNull(
                 dataChunk->state->currIdx, false /* is not null */);
-            ((uint64_t*)propertyVectorToWriteDataTo->values)[dataChunk->state->currIdx] =
-                expectedValue;
+            propertyVectorToWriteDataTo->setValue(
+                dataChunk->state->currIdx, (uint64_t)expectedValue);
         }
         personAgeColumn->writeValues(nodeVector, propertyVectorToWriteDataTo);
     }
@@ -104,8 +104,8 @@ public:
         } else {
             propertyVectorToWriteDataTo->setNull(
                 dataChunk->state->currIdx, false /* is not null */);
-            ((double*)propertyVectorToWriteDataTo->values)[dataChunk->state->currIdx] =
-                expectedValue;
+            propertyVectorToWriteDataTo->setValue(
+                dataChunk->state->currIdx, (double_t)expectedValue);
         }
         personEyeSightColumn->writeValues(nodeVector, propertyVectorToWriteDataTo);
     }

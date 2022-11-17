@@ -50,7 +50,7 @@ void QueryProcessor::decomposePlanIntoTasks(
             parent->getOperatorType() == INTERSECT || parent->getOperatorType() == CROSS_PRODUCT) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-            parentTask->addChildTask(move(childTask));
+            parentTask->addChildTask(std::move(childTask));
         } else {
             decomposePlanIntoTasks(op->getChild(0), op, parentTask, context);
         }
@@ -58,7 +58,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     case ORDER_BY_MERGE: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(move(childTask));
+        parentTask->addChildTask(std::move(childTask));
         parentTask->setSingleThreadedTask();
     } break;
     case ORDER_BY:
@@ -66,7 +66,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     case INTERSECT_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(move(childTask));
+        parentTask->addChildTask(std::move(childTask));
     } break;
     case AGGREGATE: {
         auto aggregate = (BaseAggregate*)op;
@@ -75,7 +75,7 @@ void QueryProcessor::decomposePlanIntoTasks(
             childTask->setSingleThreadedTask();
         }
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(move(childTask));
+        parentTask->addChildTask(std::move(childTask));
     } break;
     case INDEX_SCAN: {
         parentTask->setSingleThreadedTask();
@@ -94,7 +94,7 @@ shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     auto ftTableSchema = make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(make_unique<ColumnSchema>(
         false /* flat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
-    auto factorizedTable = make_shared<FactorizedTable>(memoryManager, move(ftTableSchema));
+    auto factorizedTable = make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
     auto outputMsgVector = make_shared<ValueVector>(STRING, memoryManager);
     auto outputMsgChunk = make_shared<DataChunk>(1 /* numValueVectors */);
     outputMsgChunk->insert(0 /* pos */, outputMsgVector);
@@ -102,7 +102,7 @@ shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
         outputMsgVector->getOverflowBuffer().allocateSpace(outputMsg.length()));
     outputKUStr.set(outputMsg);
-    ((ku_string_t*)outputMsgVector->values)[0] = outputKUStr;
+    outputMsgVector->setValue(0, outputKUStr);
     outputMsgVector->state->currIdx = 0;
     factorizedTable->append(vector<shared_ptr<ValueVector>>{outputMsgVector});
     return factorizedTable;

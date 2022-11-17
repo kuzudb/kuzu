@@ -187,11 +187,6 @@ TEST_F(TinySnbExceptionTest, ModuloBy0Error) {
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Runtime exception: Modulo by zero.");
 }
 
-TEST_F(TinySnbExceptionTest, ParserError) {
-    auto result = conn->query("MATCH");
-    ASSERT_STREQ(result->getErrorMessage().c_str(), "basic_string::_M_construct null not valid");
-}
-
 TEST_F(TinySnbExceptionTest, EmptyQuery) {
     auto result = conn->query("");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Connection Exception: Query is empty.");

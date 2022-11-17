@@ -17,7 +17,7 @@ TEST(ValueVectorTests, TestDefaultHasNull) {
     valueVector.setState(dataChunkState);
     valueVector.state->selVector->selectedSize = 3;
     for (int i = 0; i < 3; ++i) {
-        ((uint64_t*)valueVector.values)[i] = i;
+        valueVector.setValue(i, (uint64_t)i);
     }
     // Test that initially the vector does not contain any NULLs.
     EXPECT_TRUE(valueVector.hasNoNullsGuarantee());

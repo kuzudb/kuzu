@@ -22,18 +22,13 @@ public:
         group3Vector = make_shared<ValueVector>(INT64, memoryManager.get());
         aggr1Vector = make_shared<ValueVector>(INT64, memoryManager.get());
         aggr2Vector = make_shared<ValueVector>(INT64, memoryManager.get());
-        auto group1Values = (int64_t*)group1Vector->values;
-        auto group2Values = (int64_t*)group2Vector->values;
-        auto group3Values = (int64_t*)group3Vector->values;
-        auto aggr1Values = (int64_t*)aggr1Vector->values;
-        auto aggr2Values = (int64_t*)aggr2Vector->values;
         for (auto i = 0u; i < 100; i++) {
-            group1Values[i] = i % 4;
-            group2Values[i] = i;
-            aggr1Values[i] = i * 2;
-            aggr2Values[i] = i * 2;
+            group1Vector->setValue(i, (int64_t)(i % 4));
+            group2Vector->setValue(i, (int64_t)i);
+            aggr1Vector->setValue(i, (int64_t)(i * 2));
+            aggr2Vector->setValue(i, (int64_t)(i * 2));
         }
-        group3Values[0] = 20;
+        group3Vector->setValue(0, (int64_t)20);
         dataChunk = make_shared<DataChunk>(4);
         dataChunk->state->selVector->selectedSize = 100;
         dataChunk->state->currIdx = 0;
@@ -55,11 +50,11 @@ public:
         auto sumAggregate = AggregateFunctionUtil::getSumFunction(DataType(INT64), false);
         auto countState = countAggregate->createInitialNullAggregateState();
         auto sumState = sumAggregate->createInitialNullAggregateState();
-        aggregates.push_back(move(countAggregate));
-        aggregates.push_back(move(sumAggregate));
+        aggregates.push_back(std::move(countAggregate));
+        aggregates.push_back(std::move(sumAggregate));
         auto groupByVectorsDataType = vector<DataType>{DataType(INT64)};
-        auto ht = make_unique<AggregateHashTable>(
-            *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
+        auto ht = make_unique<AggregateHashTable>(*memoryManager, std::move(groupByVectorsDataType),
+            aggregates, 0 /* numEntriesToAllocate */);
         vector<ValueVector*> groupVectors, aggregateVectors;
         groupVectors.push_back(group1Vector.get());
         aggregateVectors.push_back(nullptr);
@@ -97,12 +92,12 @@ public:
         auto avgAggregate = AggregateFunctionUtil::getAvgFunction(DataType(INT64), false);
         auto count1State = countAggregate->createInitialNullAggregateState();
         auto count2State = avgAggregate->createInitialNullAggregateState();
-        aggregates.push_back(move(countAggregate));
-        aggregates.push_back(move(avgAggregate));
+        aggregates.push_back(std::move(countAggregate));
+        aggregates.push_back(std::move(avgAggregate));
 
         auto groupByVectorsDataType = vector<DataType>{DataType(INT64), DataType(INT64)};
-        auto ht = make_unique<AggregateHashTable>(
-            *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
+        auto ht = make_unique<AggregateHashTable>(*memoryManager, std::move(groupByVectorsDataType),
+            aggregates, 0 /* numEntriesToAllocate */);
         vector<ValueVector*> flatGroupByVector, unflatGroupByVector, aggregateVectors;
 
         aggregateVectors.push_back(aggr1Vector.get());

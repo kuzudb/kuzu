@@ -62,7 +62,7 @@ private:
     virtual inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
         memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
-            vectorToWriteFrom->values + posInVectorToWriteFrom * elementSize, elementSize);
+            vectorToWriteFrom->getData() + posInVectorToWriteFrom * elementSize, elementSize);
     }
     // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
     // length part of the value that will be written to.
@@ -196,9 +196,7 @@ private:
         uint32_t posInVectorToWriteFrom) override {
         nodeIDCompressionScheme.writeNodeID(
             walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
-            (nodeID_t*)(vectorToWriteFrom->values +
-                        posInVectorToWriteFrom *
-                            Types::getDataTypeSize(vectorToWriteFrom->dataType)));
+            vectorToWriteFrom->getValue<nodeID_t>(posInVectorToWriteFrom));
     }
 
 private:

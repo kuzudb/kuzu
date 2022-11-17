@@ -16,7 +16,7 @@ void DiskOverflowFile::readStringsToVector(TransactionType trxType, ValueVector&
             continue;
         }
         readStringToVector(
-            trxType, ((ku_string_t*)valueVector.values)[pos], valueVector.getOverflowBuffer());
+            trxType, ((ku_string_t*)valueVector.getData())[pos], valueVector.getOverflowBuffer());
     }
 }
 
@@ -45,7 +45,7 @@ void DiskOverflowFile::scanSequentialStringOverflow(TransactionType trxType, Val
         if (vector.isNull(pos)) {
             continue;
         }
-        auto& kuString = ((ku_string_t*)vector.values)[pos];
+        auto& kuString = ((ku_string_t*)vector.getData())[pos];
         if (ku_string_t::isShortString(kuString.len)) {
             continue;
         }
@@ -82,8 +82,8 @@ void DiskOverflowFile::readListsToVector(TransactionType trxType, ValueVector& v
     for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
         auto pos = valueVector.state->selVector->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
-            readListToVector(trxType, ((ku_list_t*)valueVector.values)[pos], valueVector.dataType,
-                valueVector.getOverflowBuffer());
+            readListToVector(trxType, ((ku_list_t*)valueVector.getData())[pos],
+                valueVector.dataType, valueVector.getOverflowBuffer());
         }
     }
 }

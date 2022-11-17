@@ -23,11 +23,9 @@ using namespace std;
  * */
 static void setValuesInVectors(const shared_ptr<ValueVector>& lVector,
     const shared_ptr<ValueVector>& rVector, uint32_t numTuples) {
-    auto lVectorData = (bool*)lVector->values;
-    auto rVectorData = (bool*)rVector->values;
     for (auto i = 0u; i < numTuples; i++) {
-        lVectorData[i] = i % 2 == 0;
-        rVectorData[i] = (i >> 1) % 2 == 0;
+        lVector->setValue(i, (bool)(i % 2 == 0));
+        rVector->setValue(i, (bool)((i >> 1) % 2 == 0));
     }
 }
 
@@ -93,12 +91,11 @@ public:
 
 static void checkResultVectorNoNulls(const shared_ptr<ValueVector>& result,
     const function<bool(uint32_t)>& idxOfTrueValueFunc, uint32_t numTuples) {
-    auto resultData = (bool*)result->values;
     for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValueFunc(i)) {
-            ASSERT_TRUE(resultData[i]);
+            ASSERT_TRUE(result->getValue<bool>(i));
         } else {
-            ASSERT_FALSE(resultData[i]);
+            ASSERT_FALSE(result->getValue<bool>(i));
         }
         ASSERT_FALSE(result->isNull(i));
     }
@@ -135,13 +132,12 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatNoNulls) {
 static void checkResultVectorWithNulls(const shared_ptr<ValueVector>& result,
     const unordered_set<uint32_t>& idxOfTrueValuePer16Elements,
     const unordered_set<uint32_t>& idxOfFalseValuePer16Elements, uint32_t numTuples) {
-    auto resultData = (bool*)result->values;
     for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValuePer16Elements.contains(i % 16)) {
-            ASSERT_TRUE(resultData[i]);
+            ASSERT_TRUE(result->getValue<bool>(i));
             ASSERT_FALSE(result->isNull(i));
         } else if (idxOfFalseValuePer16Elements.contains(i % 16)) {
-            ASSERT_FALSE(resultData[i]);
+            ASSERT_FALSE(result->getValue<bool>(i));
             ASSERT_FALSE(result->isNull(i));
         } else {
             ASSERT_TRUE(result->isNull(i));

@@ -52,14 +52,14 @@ public:
     inline void scanSingleStringOverflow(
         TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == STRING && !vector.isNull(vectorPos));
-        auto& kuString = ((ku_string_t*)vector.values)[vectorPos];
+        auto& kuString = ((ku_string_t*)vector.getData())[vectorPos];
         readStringToVector(trxType, kuString, vector.getOverflowBuffer());
     }
     void scanSequentialStringOverflow(TransactionType trxType, ValueVector& vector);
     inline void scanSingleListOverflow(
         TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
-        auto& kuList = ((ku_list_t*)vector.values)[vectorPos];
+        auto& kuList = ((ku_list_t*)vector.getData())[vectorPos];
         readListToVector(trxType, kuList, vector.dataType, vector.getOverflowBuffer());
     }
 

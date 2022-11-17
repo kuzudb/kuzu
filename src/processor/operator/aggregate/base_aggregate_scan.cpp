@@ -20,8 +20,8 @@ void BaseAggregateScan::writeAggregateResultToVector(
     if (aggregateState->isNull) {
         vector.setNull(pos, true);
     } else {
-        memcpy(vector.values + pos * Types::getDataTypeSize(vector.dataType),
-            aggregateState->getResult(), Types::getDataTypeSize(vector.dataType));
+        memcpy(vector.getData() + pos * vector.getNumBytesPerValue(), aggregateState->getResult(),
+            vector.getNumBytesPerValue());
     }
 }
 

@@ -35,11 +35,12 @@ void VectorListOperations::ListCreation(
     auto elements = make_unique<uint8_t[]>(parameters.size() * numBytesOfListElement);
     if (result.state->isFlat()) {
         auto pos = result.state->getPositionOfCurrIdx();
-        auto& kuList = ((ku_list_t*)result.values)[pos];
+        auto& kuList = ((ku_list_t*)result.getData())[pos];
         for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
             assert(parameters[paramIdx]->state->isFlat());
             memcpy(elements.get() + paramIdx * numBytesOfListElement,
-                parameters[paramIdx]->values + pos * numBytesOfListElement, numBytesOfListElement);
+                parameters[paramIdx]->getData() + pos * numBytesOfListElement,
+                numBytesOfListElement);
         }
         ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
@@ -48,13 +49,13 @@ void VectorListOperations::ListCreation(
         for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
              ++selectedPos) {
             auto pos = result.state->selVector->selectedPositions[selectedPos];
-            auto& kuList = ((ku_list_t*)result.values)[pos];
+            auto& kuList = ((ku_list_t*)result.getData())[pos];
             for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
                 auto parameterPos = parameters[paramIdx]->state->isFlat() ?
                                         parameters[paramIdx]->state->getPositionOfCurrIdx() :
                                         pos;
                 memcpy(elements.get() + paramIdx * numBytesOfListElement,
-                    parameters[paramIdx]->values + parameterPos * numBytesOfListElement,
+                    parameters[paramIdx]->getData() + parameterPos * numBytesOfListElement,
                     numBytesOfListElement);
             }
             ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());

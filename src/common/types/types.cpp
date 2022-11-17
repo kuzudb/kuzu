@@ -140,7 +140,7 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
     return result;
 }
 
-const uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
+uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case NODE_ID:
         return sizeof(nodeID_t);

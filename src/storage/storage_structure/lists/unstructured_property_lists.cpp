@@ -122,7 +122,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(Transaction* transacti
             propertyKeysFound.insert(propertyKeyDataType.keyIdx);
             auto vector = propertyKeyToResultVectorMap.at(propertyKeyDataType.keyIdx);
             vector->setNull(pos, false);
-            auto value = &((Value*)vector->values)[pos];
+            auto value = &((Value*)vector->getData())[pos];
             itr.copyValueOfCurrentProp(reinterpret_cast<uint8_t*>(&value->val));
             value->dataType.typeID = propertyKeyDataType.dataTypeID;
             if (propertyKeyDataType.dataTypeID == STRING) {
@@ -151,7 +151,7 @@ void UnstructuredPropertyLists::writeValue(node_offset_t nodeOffset, uint32_t pr
     if (vectorToWriteFrom->isNull(vectorPos)) {
         removeProperty(nodeOffset, propertyKey);
     } else {
-        auto value = ((Value*)vectorToWriteFrom->values)[vectorPos];
+        auto value = vectorToWriteFrom->getValue<Value>(vectorPos);
         setProperty(nodeOffset, propertyKey, &value);
     }
 }
@@ -254,15 +254,16 @@ void UnstructuredPropertyLists::setOrRemoveProperty(
         fillInMemListsFromPersistentStore(cursorAndMapper, numElementsInList, inMemList);
         if (isSetting) {
             unstructuredListUpdateStore.setPropertyList(
-                nodeOffset, make_unique<UnstrPropListWrapper>(
-                                move(inMemList.listData), numElementsInList, updatedListCapacity));
+                nodeOffset, make_unique<UnstrPropListWrapper>(std::move(inMemList.listData),
+                                numElementsInList, updatedListCapacity));
         } else if (!unstructuredListUpdateStore.hasUpdatedList(nodeOffset)) {
             unique_ptr<UnstrPropListWrapper> unstrListWrapper = make_unique<UnstrPropListWrapper>(
-                move(inMemList.listData), numElementsInList, updatedListCapacity);
+                std::move(inMemList.listData), numElementsInList, updatedListCapacity);
             bool found = UnstrPropListUtils::findKeyPropertyAndPerformOp(
                 unstrListWrapper.get(), propertyKey, [](UnstrPropListIterator& itr) -> void {});
             if (found) {
-                unstructuredListUpdateStore.setPropertyList(nodeOffset, move(unstrListWrapper));
+                unstructuredListUpdateStore.setPropertyList(
+                    nodeOffset, std::move(unstrListWrapper));
                 unstructuredListUpdateStore.removeProperty(nodeOffset, propertyKey);
             }
         }

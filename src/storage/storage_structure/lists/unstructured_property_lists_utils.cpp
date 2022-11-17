@@ -8,11 +8,11 @@ void UnstrPropListWrapper::increaseCapacityIfNeeded(uint64_t requiredCapacity) {
         return;
     }
     uint64_t newCapacity =
-        max(requiredCapacity, (uint64_t)(capacity * StorageConfig::ARRAY_RESIZING_FACTOR));
-    unique_ptr<uint8_t[]> newData = make_unique<uint8_t[]>(newCapacity);
+        std::max(requiredCapacity, (uint64_t)(capacity * StorageConfig::ARRAY_RESIZING_FACTOR));
+    std::unique_ptr<uint8_t[]> newData = std::make_unique<uint8_t[]>(newCapacity);
     memcpy(newData.get(), data.get(), capacity);
     data.reset();
-    data = move(newData);
+    data = std::move(newData);
     capacity = newCapacity;
 }
 
