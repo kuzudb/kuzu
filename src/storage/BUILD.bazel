@@ -33,6 +33,7 @@ cc_library(
         "//src/common:utils",
         "//src/common/types",
         "//src/storage/wal:wal_record",
+        "@arrow",
     ],
 )
 

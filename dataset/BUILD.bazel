@@ -19,6 +19,7 @@ filegroup(
         "unstructured-property-lists-updates-tests/**",
         "rel-insertion-tests/**",
         "demo-db/**",
+        "copy-csv-arrow-node-test/**",
     ]),
     visibility = ["//visibility:public"],
 )
