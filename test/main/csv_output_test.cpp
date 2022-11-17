@@ -43,3 +43,32 @@ TEST_F(CSVOutputTest, ListCSVTest) {
     string fileString = ss.str();
     ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
 }
+
+TEST_F(CSVOutputTest, AlternateDelimCSVTest) {
+    string listOutput = R"(ABFsUni	"-2"-CsWork	"-100"-DEsWork	7-)";
+    auto query = "MATCH (o:organisation) RETURN o.name, o.score";
+    auto result = conn->query(query);
+    result->writeToCSV("output_CSV_LIST.csv", '\t', '"', '-');
+    ifstream f("output_CSV_LIST.csv");
+    ostringstream ss;
+    ss << f.rdbuf();
+    string fileString = ss.str();
+    ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
+}
+
+TEST_F(CSVOutputTest, AlternateEscapeCSVTest) {
+    string newline = "\n";
+    string listOutput =
+        R"(`[10,5]`,Alice)" + newline + R"(`[12,8]`,Bob)" + newline + R"(`[4,5]`,Carol)" + newline +
+        R"(`[1,9]`,Dan)" + newline + R"([2],Elizabeth)" + newline + R"(`[3,4,5,6,7]`,Farooq)" +
+        newline + R"([1],Greg)" + newline +
+        R"(`[10,11,12,3,4,5,6,7]`,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff)" + newline;
+    auto query = "MATCH (p:person) RETURN p.workedHours, p.fName";
+    auto result = conn->query(query);
+    result->writeToCSV("output_CSV_LIST.csv", ',', '`');
+    ifstream f("output_CSV_LIST.csv");
+    ostringstream ss;
+    ss << f.rdbuf();
+    string fileString = ss.str();
+    ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
+}
