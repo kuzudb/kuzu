@@ -8,7 +8,8 @@ using namespace kuzu::common;
 using namespace std;
 
 TEST(ValueVectorTests, TestDefaultHasNull) {
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
     ValueVector valueVector(DataTypeID::INT64, memoryManager.get());
     shared_ptr<DataChunkState> dataChunkState =

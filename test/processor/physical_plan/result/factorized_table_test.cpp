@@ -27,7 +27,8 @@ public:
     }
 
     void SetUp() override {
-        bufferManager = make_unique<BufferManager>();
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         resultSet = initResultSet();
         auto vectorA1 = resultSet->dataChunks[0]->valueVectors[0];

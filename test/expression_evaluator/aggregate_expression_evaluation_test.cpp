@@ -17,7 +17,8 @@ class AggrExpressionEvaluatorTest : public Test {
 
 public:
     void SetUp() override {
-        bufferManager = make_unique<BufferManager>();
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
         doubleValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());

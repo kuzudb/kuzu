@@ -8,7 +8,8 @@ using ::testing::Test;
 class JoinOrderPickTest : public Test {
 public:
     void SetUp() override {
-        auto systemConfig = make_unique<SystemConfig>();
+        auto systemConfig =
+            make_unique<SystemConfig>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         auto databaseConfig = make_unique<DatabaseConfig>(TEMP_DIR);
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<JOConnection>(database.get());

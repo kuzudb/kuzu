@@ -11,7 +11,8 @@ using namespace std;
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selVector->selectedSize = 1000;
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto nodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
@@ -45,7 +46,8 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selVector->selectedSize = 1000;
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto nodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
