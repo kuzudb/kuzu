@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemArrowNodeCSVCopier::InMemArrowNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
@@ -42,7 +42,7 @@ uint64_t InMemArrowNodeCSVCopier::copy() {
         populateColumnsAndCountUnstrPropertyListSizes<int64_t>();
     } break;
     case STRING: {
-        populateColumnsAndCountUnstrPropertyListSizes<gf_string_t>();
+        populateColumnsAndCountUnstrPropertyListSizes<ku_string_t>();
     } break;
     default: {
         throw CopyCSVException("Unsupported data type " +
@@ -146,7 +146,7 @@ void InMemArrowNodeCSVCopier::addIDsToIndex(InMemColumn* column, HashIndexBuilde
                                        " violates the uniqueness constraint for the ID property.");
             }
         } else {
-            auto element = (gf_string_t*)column->getElement(offset);
+            auto element = (ku_string_t*)column->getElement(offset);
             auto key = column->getInMemOverflowFile()->readString(element);
             if (!hashIndex->append(key.c_str(), offset)) {
                 throw CopyCSVException("ID value  " + key +
@@ -432,4 +432,4 @@ void InMemArrowNodeCSVCopier::saveToFile() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu
