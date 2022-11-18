@@ -89,7 +89,7 @@ http_archive(
 )
 
 new_local_repository(
-    name = "arrow_thread",
-    path = "/opt/homebrew/Cellar/apache-arrow/9.0.0_4/lib",
+    name = "arrow",
+    path = "/opt/homebrew/Cellar/apache-arrow/10.0.0/",
     build_file = "external/arrow.BUILD.bazel",
 )

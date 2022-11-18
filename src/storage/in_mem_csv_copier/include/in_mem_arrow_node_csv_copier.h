@@ -7,13 +7,13 @@
 
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
-#include <arrow/ipc/api.h>
+#include <arrow/api.h>
 #include <arrow/pretty_print.h>
 #include <arrow/result.h>
 #include <arrow/status.h>
 #include <arrow/table.h>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 class InMemArrowNodeCSVCopier : public InMemStructuresCSVCopier {
@@ -81,4 +81,4 @@ private:
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu
