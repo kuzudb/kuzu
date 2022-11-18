@@ -29,10 +29,6 @@ public:
         return patternElementChains[idx].get();
     }
 
-    bool operator==(const PatternElement& other) const;
-
-    bool operator!=(const PatternElement& other) const { return !operator==(other); }
-
 private:
     unique_ptr<NodePattern> nodePattern;
     vector<unique_ptr<PatternElementChain>> patternElementChains;

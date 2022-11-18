@@ -39,31 +39,5 @@ unique_ptr<PhysicalOperator> SetNodeStructuredProperty::clone() {
         std::move(clonedExpressionEvaluators), columns, children[0]->clone(), id, paramsString);
 }
 
-bool SetNodeUnstructuredProperty::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
-        return false;
-    }
-    for (auto i = 0u; i < nodeIDVectors.size(); ++i) {
-        expressionEvaluators[i]->evaluate();
-        auto [propertyKey, list] = propertyKeyListPairs[i];
-        list->writeValues(
-            nodeIDVectors[i].get(), propertyKey, expressionEvaluators[i]->resultVector.get());
-    }
-    metrics->executionTime.stop();
-    return true;
-}
-
-unique_ptr<PhysicalOperator> SetNodeUnstructuredProperty::clone() {
-    vector<unique_ptr<BaseExpressionEvaluator>> clonedExpressionEvaluators;
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        clonedExpressionEvaluators.push_back(expressionEvaluator->clone());
-    }
-    return make_unique<SetNodeUnstructuredProperty>(nodeIDPositions,
-        std::move(clonedExpressionEvaluators), propertyKeyListPairs, children[0]->clone(), id,
-        paramsString);
-}
-
 } // namespace processor
 } // namespace kuzu

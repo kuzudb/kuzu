@@ -53,10 +53,6 @@ public:
 
     inline ParsedExpression* getLimitExpression() const { return limitExpression.get(); }
 
-    bool operator==(const ProjectionBody& other) const;
-
-    bool operator!=(const ProjectionBody& other) const { return !operator==(other); }
-
 private:
     bool isDistinct;
     bool containsStar;

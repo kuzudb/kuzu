@@ -2,9 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "return_with_clause",
-    srcs = glob([
-        "*.cpp",
-    ]),
     hdrs = glob([
         "include/*.h",
     ]),

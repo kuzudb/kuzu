@@ -31,25 +31,6 @@ public:
         return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
-    virtual bool equals(const NodePattern& other) const {
-        if (!(variableName == other.variableName && tableName == other.tableName &&
-                propertyKeyValPairs.size() == other.propertyKeyValPairs.size())) {
-            return false;
-        }
-        for (auto i = 0u; i < propertyKeyValPairs.size(); ++i) {
-            auto& [name, expression] = propertyKeyValPairs[i];
-            auto& [otherName, otherExpression] = other.propertyKeyValPairs[i];
-            if (!(name == otherName && *expression == *otherExpression)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool operator==(const NodePattern& other) const { return equals(other); }
-
-    bool operator!=(const NodePattern& other) const { return !equals(other); }
-
 private:
     string variableName;
     string tableName;

@@ -19,8 +19,6 @@ public:
 
     inline const string getAlias() const { return alias; }
 
-    bool equals(const ReadingClause& other) const override;
-
 private:
     unique_ptr<ParsedExpression> expression;
     string alias;

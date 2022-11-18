@@ -39,8 +39,6 @@ public:
 
     bool isFirstReadingClauseOptionalMatch() const;
 
-    bool operator==(const SingleQuery& other) const;
-
 private:
     vector<unique_ptr<QueryPart>> queryParts;
     vector<unique_ptr<ReadingClause>> readingClauses;

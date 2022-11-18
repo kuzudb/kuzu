@@ -1,8 +1,5 @@
 cc_library(
     name = "graph_pattern",
-    srcs = glob([
-        "*.cpp",
-    ]),
     hdrs = glob([
         "include/*.h",
     ]),

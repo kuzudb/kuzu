@@ -29,8 +29,6 @@ public:
 
     inline bool getIsOptional() const { return isOptional; }
 
-    bool equals(const ReadingClause& other) const override;
-
 private:
     vector<unique_ptr<PatternElement>> patternElements;
     unique_ptr<ParsedExpression> whereClause;

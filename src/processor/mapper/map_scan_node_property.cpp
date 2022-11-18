@@ -2,7 +2,6 @@
 
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/processor/operator/scan_column/include/scan_structured_property.h"
-#include "src/processor/operator/scan_column/include/scan_unstructured_property.h"
 
 namespace kuzu {
 namespace processor {
@@ -19,12 +18,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
         mapperContext.addComputedExpressions(propertyName);
     }
     auto& nodeStore = storageManager.getNodesStore();
-    if (scanProperty.getIsUnstructured()) {
-        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getTableID());
-        return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
-            move(outputPropertyVectorsPos), scanProperty.getPropertyIDs(), lists,
-            move(prevOperator), getOperatorID(), paramsString);
-    }
+    assert(!scanProperty.getIsUnstructured());
     vector<Column*> propertyColumns;
     for (auto& propertyID : scanProperty.getPropertyIDs()) {
         propertyColumns.push_back(

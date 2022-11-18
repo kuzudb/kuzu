@@ -20,12 +20,6 @@ public:
 
     inline NodePattern* getNodePattern() const { return nodePattern.get(); }
 
-    bool operator==(const PatternElementChain& other) const {
-        return *relPattern == *other.relPattern;
-    }
-
-    bool operator!=(const PatternElementChain& other) const { return !operator==(other); }
-
 private:
     unique_ptr<RelPattern> relPattern;
     unique_ptr<NodePattern> nodePattern;

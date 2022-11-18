@@ -29,12 +29,6 @@ public:
     // A function might have more than 2 parameters.
     void addChild(unique_ptr<ParsedExpression> child) { children.push_back(move(child)); }
 
-    bool equals(const ParsedExpression& other) const override {
-        auto& functionExpression = (ParsedFunctionExpression&)other;
-        return ParsedExpression::equals(other) && isDistinct == functionExpression.isDistinct &&
-               functionName == functionExpression.functionName;
-    }
-
 private:
     bool isDistinct;
     string functionName;
