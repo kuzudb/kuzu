@@ -48,7 +48,7 @@ public:
         dataChunk->insert(0, nodeIDVector);
         auto idVector = make_shared<ValueVector>(INT64, getMemoryManager(*database));
         dataChunk->insert(1, idVector);
-        ((nodeID_t*)nodeIDVector->values)[0].offset = nodeOffset;
+        ((nodeID_t*)nodeIDVector->getData())[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);
         idColumn->writeValues(nodeIDVector, idVector);
         return nodeOffset;

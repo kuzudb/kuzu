@@ -30,12 +30,10 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeOnValue(ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result,
         uint64_t aPos, uint64_t bPos, uint64_t cPos, uint64_t resPos) {
-        auto aValues = (A_TYPE*)a.values;
-        auto bValues = (B_TYPE*)b.values;
-        auto cValues = (C_TYPE*)c.values;
-        auto resValues = (RESULT_TYPE*)result.values;
+        auto resValues = (RESULT_TYPE*)result.getData();
         OP_WRAPPER::template operation<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-            aValues[aPos], bValues[bPos], cValues[cPos], resValues[resPos], (void*)&result);
+            ((A_TYPE*)a.getData())[aPos], ((B_TYPE*)b.getData())[bPos],
+            ((C_TYPE*)c.getData())[cPos], resValues[resPos], (void*)&result);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,

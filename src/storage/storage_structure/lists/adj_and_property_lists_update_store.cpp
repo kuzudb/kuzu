@@ -26,7 +26,8 @@ AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
     nodeDataChunk->insert(0 /* pos */, srcNodeVector);
     dstNodeVector = make_shared<ValueVector>(NODE_ID, &memoryManager);
     nodeDataChunk->insert(1 /* pos */, dstNodeVector);
-    factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(factorizedTableSchema));
+    factorizedTable =
+        make_unique<FactorizedTable>(&memoryManager, std::move(factorizedTableSchema));
     initListUpdatesPerTablePerDirection();
 }
 
@@ -45,7 +46,7 @@ bool AdjAndPropertyListsUpdateStore::isListEmptyInPersistentStore(
 
 bool AdjAndPropertyListsUpdateStore::hasUpdates() const {
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto listUpdatesPerTable : listUpdatesPerTablePerDirection[relDirection]) {
+        for (const auto& listUpdatesPerTable : listUpdatesPerTablePerDirection[relDirection]) {
             if (!listUpdatesPerTable.second.empty()) {
                 return true;
             }
@@ -67,13 +68,9 @@ void AdjAndPropertyListsUpdateStore::readInsertionsToList(ListFileID& listFileID
 void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
     shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     auto srcNodeID =
-        ((nodeID_t*)srcNodeIDVector
-                ->values)[srcNodeIDVector->state->selVector
-                              ->selectedPositions[srcNodeIDVector->state->getPositionOfCurrIdx()]];
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
     auto dstNodeID =
-        ((nodeID_t*)dstNodeIDVector
-                ->values)[dstNodeIDVector->state->selVector
-                              ->selectedPositions[dstNodeIDVector->state->getPositionOfCurrIdx()]];
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx());
     bool hasInsertedToFT = false;
     auto vectorsToAppendToFT = vector<shared_ptr<ValueVector>>{srcNodeIDVector, dstNodeIDVector};
     vectorsToAppendToFT.insert(

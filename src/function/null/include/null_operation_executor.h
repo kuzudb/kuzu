@@ -11,21 +11,22 @@ struct NullOperationExecutor {
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(result.dataType.typeID == BOOL);
         result.state = operand.state;
-        auto operandValues = (uint8_t*)operand.values;
-        auto resultValues = (uint8_t*)result.values;
+        auto resultValues = (uint8_t*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            FUNC::operation(operandValues[pos], (bool)operand.isNull(pos), resultValues[pos]);
+            FUNC::operation(
+                operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos), resultValues[pos]);
         } else {
             if (operand.state->selVector->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                    FUNC::operation(operandValues[i], (bool)operand.isNull(i), resultValues[i]);
+                    FUNC::operation(
+                        operand.getValue<uint8_t>(i), (bool)operand.isNull(i), resultValues[i]);
                 }
             } else {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                     auto pos = operand.state->selVector->selectedPositions[i];
-                    FUNC::operation(
-                        operandValues[pos], (bool)operand.isNull(pos), resultValues[pos]);
+                    FUNC::operation(operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos),
+                        resultValues[pos]);
                 }
             }
         }
@@ -36,7 +37,7 @@ struct NullOperationExecutor {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             uint8_t resultValue = 0;
-            FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
+            FUNC::operation(operand.getValue<uint8_t>(pos), operand.isNull(pos), resultValue);
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
@@ -54,8 +55,8 @@ struct NullOperationExecutor {
     static void selectOnValue(ValueVector& operand, uint64_t operandPos,
         uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
-        auto operandValues = operand.values;
-        FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
+        FUNC::operation(
+            operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos), resultValue);
         selectedPositionsBuffer[numSelectedValues] = operandPos;
         numSelectedValues += resultValue == true;
     }

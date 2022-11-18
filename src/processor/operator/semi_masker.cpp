@@ -17,13 +17,13 @@ bool SemiMasker::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     }
-    auto values = (nodeID_t*)keyValueVector->values;
     auto startIdx = keyValueVector->state->isFlat() ? keyValueVector->state->currIdx : 0;
     auto numValues =
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize;
     for (auto i = 0u; i < numValues; i++) {
         auto pos = keyValueVector->state->selVector->selectedPositions[i + startIdx];
-        scanNodeIDSharedState->getSemiMask()->setMask(values[pos].offset, maskerIdx);
+        scanNodeIDSharedState->getSemiMask()->setMask(
+            keyValueVector->getValue<nodeID_t>(pos).offset, maskerIdx);
     }
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(

@@ -30,11 +30,10 @@ bool CreateNode::getNextTuples() {
         auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
         auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
         auto vector = outValueVectors[i];
-        auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
-        nodeIDValue.tableID = nodeTable->getTableID();
-        nodeIDValue.offset = nodeOffset;
+        nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
+        vector->setValue(vector->state->getPositionOfCurrIdx(), nodeID);
         for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
-            relTable->initEmptyRelsForNewNode(nodeIDValue);
+            relTable->initEmptyRelsForNewNode(nodeID);
         }
     }
     metrics->executionTime.stop();
@@ -76,7 +75,7 @@ bool CreateRel::getNextTuples() {
                 auto relIDVector = evaluator->resultVector;
                 assert(relIDVector->dataType.typeID == INT64 &&
                        relIDVector->state->getPositionOfCurrIdx() == 0);
-                ((int64_t*)relIDVector->values)[0] = relsStatistics.getNextRelID(transaction);
+                relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
                 relIDVector->setNull(0, false);
                 // TODO(Ziyi): the following two functions should be wrapped into 1 (issue #891)
                 relsStatistics.incrementNumRelsPerDirectionBoundTableByOne(

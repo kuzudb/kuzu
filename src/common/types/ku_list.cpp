@@ -10,7 +10,7 @@ void ku_list_t::set(const uint8_t* values, const DataType& dataType) const {
         size * Types::getDataTypeSize(*dataType.childType));
 }
 
-void ku_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) {
+void ku_list_t::set(const std::vector<uint8_t*>& parameters, DataTypeID childTypeId) {
     this->size = parameters.size();
     auto numBytesOfListElement = Types::getDataTypeSize(childTypeId);
     for (auto i = 0u; i < parameters.size(); i++) {

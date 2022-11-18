@@ -25,16 +25,16 @@ public:
 
         // Set vectors
         relIDPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
-        relIDValues = (int64_t*)relIDPropertyVector->values;
+        relIDValues = (int64_t*)relIDPropertyVector->getData();
         lengthPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
-        lengthValues = (int64_t*)lengthPropertyVector->values;
+        lengthValues = (int64_t*)lengthPropertyVector->getData();
         placePropertyVector = make_shared<ValueVector>(STRING, memoryManager.get());
-        placeValues = (ku_string_t*)placePropertyVector->values;
+        placeValues = (ku_string_t*)placePropertyVector->getData();
         srcNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         dstNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
         tagPropertyVector = make_shared<ValueVector>(
             DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
-        tagValues = (ku_list_t*)tagPropertyVector->values;
+        tagValues = (ku_list_t*)tagPropertyVector->getData();
         dataChunk->insert(0, relIDPropertyVector);
         dataChunk->insert(1, lengthPropertyVector);
         dataChunk->insert(2, placePropertyVector);
@@ -84,12 +84,12 @@ public:
     }
 
     inline void insertOneRelToRelTable(table_id_t relTableID,
-        shared_ptr<ValueVector>& srcNodeVector, shared_ptr<ValueVector>& dstNodeVector,
+        shared_ptr<ValueVector>& srcNodeVector_, shared_ptr<ValueVector>& dstNodeVector_,
         vector<shared_ptr<ValueVector>>& propertyVectors) {
         getStorageManager(*database)
             ->getRelsStore()
             .getRelTable(relTableID)
-            ->insertRels(srcNodeVector, dstNodeVector, propertyVectors);
+            ->insertRels(srcNodeVector_, dstNodeVector_, propertyVectors);
     }
 
     inline void insertOneKnowsRel() {
@@ -135,8 +135,9 @@ public:
                 lengthPropertyVector->setNull(0, i % 2);
                 placePropertyVector->setNull(0, true /* isNull */);
             }
-            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1 /* offset */, srcTableID);
-            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, dstTableID);
+            nodeID_t srcNodeID(1 /* offset */, srcTableID), dstNodeID(i + 1, dstTableID);
+            srcNodeVector->setValue(0, srcNodeID);
+            dstNodeVector->setValue(0, dstNodeID);
             insertOneKnowsRel();
         }
     }
@@ -191,7 +192,8 @@ public:
         tagList.overflowPtr =
             reinterpret_cast<uint64_t>(tagPropertyVector->getOverflowBuffer().allocateSpace(100));
         tagList.size = 1;
-        ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(srcNodeOffset, 0);
+        nodeID_t srcNodeID(srcNodeOffset, 0);
+        srcNodeVector->setValue(0, srcNodeID);
         placeValues[0] = placeStr;
         tagValues[0] = tagList;
         // If the srcNodeOffset is an odd number, we insert 100 rels to it (person 700-799
@@ -200,7 +202,8 @@ public:
         if (srcNodeOffset % 2) {
             for (auto i = 0u; i < 100; i++) {
                 auto dstNodeOffset = 700 + srcNodeOffset + i;
-                ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(dstNodeOffset, 1);
+                nodeID_t dstNodeID(dstNodeOffset, 1);
+                dstNodeVector->setValue(0, dstNodeID);
                 lengthValues[0] = dstNodeOffset * 3;
                 placeStr.set(to_string(dstNodeOffset - 5));
                 tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
@@ -209,7 +212,8 @@ public:
         } else {
             for (auto i = 0u; i < 1000; i++) {
                 auto dstNodeOffset = 500 + srcNodeOffset + i;
-                ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(dstNodeOffset, 1);
+                nodeID_t dstNodeID(dstNodeOffset, 1);
+                dstNodeVector->setValue(0, dstNodeID);
                 lengthValues[0] = dstNodeOffset * 2;
                 placeStr.set(to_string(dstNodeOffset - 25));
                 tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
@@ -313,8 +317,9 @@ public:
             relIDValues[0] = 10 + i;
             placeStr.set(to_string(i));
             placeValues[0] = placeStr;
-            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(1, 1);
-            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, 1);
+            nodeID_t srcNodeID(1, 1), dstNodeID(i + 1, 1);
+            srcNodeVector->setValue(0, srcNodeID);
+            dstNodeVector->setValue(0, dstNodeID);
             insertOnePlaysRel();
         }
         conn->beginWriteTransaction();
@@ -388,8 +393,9 @@ public:
             placeValues[0] = placeStr;
             lengthPropertyVector->setNull(0, testNull && i % 2);
             placePropertyVector->setNull(0, testNull && i % 2);
-            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(i * 10, 0);
-            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i * 10 + 50, 1);
+            nodeID_t srcNodeID(i * 10, 0), dstNodeID(i * 10 + 50, i);
+            srcNodeVector->setValue(0, srcNodeID);
+            dstNodeVector->setValue(0, dstNodeID);
             insertOneHasOwnerRel();
         }
         conn->beginWriteTransaction();
@@ -437,8 +443,8 @@ public:
         for (auto i = 0u; i < 3; i++) {
             relIDValues[0] = 10 + i;
             lengthValues[0] = (i + 1) * 10;
-            ((nodeID_t*)srcNodeVector->values)[0] = nodeID_t(10 * (i + 1), 1);
-            ((nodeID_t*)dstNodeVector->values)[0] = nodeID_t(i + 1, 1);
+            ((nodeID_t*)srcNodeVector->getData())[0] = nodeID_t(10 * (i + 1), 1);
+            ((nodeID_t*)dstNodeVector->getData())[0] = nodeID_t(i + 1, 1);
             insertOneTeachesRel();
         }
         conn->beginWriteTransaction();
@@ -493,8 +499,8 @@ public:
     void insertNodesToPersonAndQueryRels(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
         insertNodesToPersonTable();
-        auto& srcNode = ((nodeID_t*)(srcNodeVector->values))[0];
-        auto& dstNode = ((nodeID_t*)(dstNodeVector->values))[0];
+        auto& srcNode = ((nodeID_t*)(srcNodeVector->getData()))[0];
+        auto& dstNode = ((nodeID_t*)(dstNodeVector->getData()))[0];
         auto placeStr = ku_string_t();
         auto tagList = ku_list_t();
         tagList.overflowPtr =

@@ -65,7 +65,7 @@ bool ScanNodeID::getNextTuples() {
             metrics->executionTime.stop();
             return false;
         }
-        auto nodeIDValues = (nodeID_t*)(outValueVector->values);
+        auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
             nodeIDValues[i].offset = startOffset + i;

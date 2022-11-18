@@ -21,7 +21,7 @@ shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
         // We can't add the dfsLevelInfo->children to the boundNodeValueVector's dataChunk in the
         // constructor, because the boundNodeValueVector hasn't been initialized in the constructor.
         dfsLevelInfo->children->state = boundNodeValueVector->state;
-        dfsLevelInfos[i] = move(dfsLevelInfo);
+        dfsLevelInfos[i] = std::move(dfsLevelInfo);
     }
     return resultSet;
 }
@@ -39,9 +39,9 @@ bool VarLengthColumnExtend::getNextTuples() {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
                 auto elementSize = Types::getDataTypeSize(dfsLevelInfo->children->dataType);
-                memcpy(nbrNodeValueVector->values +
+                memcpy(nbrNodeValueVector->getData() +
                            elementSize * nbrNodeValueVector->state->getPositionOfCurrIdx(),
-                    dfsLevelInfo->children->values +
+                    dfsLevelInfo->children->getData() +
                         elementSize * dfsLevelInfo->children->state->getPositionOfCurrIdx(),
                     elementSize);
                 dfsLevelInfo->hasBeenOutput = true;
@@ -71,7 +71,7 @@ bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
     dfsLevelInfo->reset();
     ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children);
     if (!dfsLevelInfo->children->isNull(parentValueVector->state->getPositionOfCurrIdx())) {
-        dfsStack.emplace(move(dfsLevelInfo));
+        dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
     }
     return false;

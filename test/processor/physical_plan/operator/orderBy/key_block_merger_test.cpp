@@ -51,14 +51,11 @@ public:
         KU_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
-        auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
-            } else if constexpr (is_same<T, string>::value) {
-                valueVector->addString(i, sortingData[i]);
             } else {
-                values[i] = sortingData[i];
+                valueVector->setValue<T>(i, sortingData[i]);
             }
         }
         dataChunk->insert(0, valueVector);
@@ -75,7 +72,7 @@ public:
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
-                payloadValueVector->addString(i, to_string(i));
+                payloadValueVector->setValue(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
@@ -85,7 +82,8 @@ public:
                 false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
         }
 
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+        auto factorizedTable =
+            make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
         factorizedTable->append(allVectors);
 
         vector<bool> isAscOrder = {isAsc};
@@ -93,7 +91,7 @@ public:
             factorizedTableIdx, numTuplesPerBlockInFT);
         orderByKeyEncoder.encodeKeys();
 
-        factorizedTables.emplace_back(move(factorizedTable));
+        factorizedTables.emplace_back(std::move(factorizedTable));
         return orderByKeyEncoder;
     }
 
@@ -155,14 +153,15 @@ public:
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
             factorizedTableIdx, numTuplesPerBlockInFT);
 
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+        auto factorizedTable =
+            make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
         for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
 
-        factorizedTables.emplace_back(move(factorizedTable));
+        factorizedTables.emplace_back(std::move(factorizedTable));
         return orderByKeyEncoder;
     }
 
@@ -183,9 +182,9 @@ public:
         dataChunk->insert(2, timestampValueVector);
 
         for (auto i = 0u; i < int64Values.size(); i++) {
-            ((int64_t*)int64ValueVector->values)[i] = int64Values[i];
-            ((double*)doubleValueVector->values)[i] = doubleValues[i];
-            ((timestamp_t*)timestampValueVector->values)[i] = timestampValues[i];
+            int64ValueVector->setValue(i, int64Values[i]);
+            doubleValueVector->setValue(i, doubleValues[i]);
+            timestampValueVector->setValue(i, timestampValues[i]);
         }
     }
 
@@ -227,14 +226,14 @@ public:
             dataChunk1->insert(3, stringValueVector1);
             dataChunk2->insert(3, stringValueVector2);
 
-            stringValueVector1->addString(0, "same prefix 123");
-            stringValueVector1->addString(1, "same prefix 128");
-            stringValueVector1->addString(2, "same prefix 123");
+            stringValueVector1->setValue<string>(0, "same prefix 123");
+            stringValueVector1->setValue<string>(1, "same prefix 128");
+            stringValueVector1->setValue<string>(2, "same prefix 123");
 
-            stringValueVector2->addString(0, "same prefix 127");
-            stringValueVector2->addString(1, "same prefix 123");
-            stringValueVector2->addString(2, "same prefix 121");
-            stringValueVector2->addString(3, "same prefix 126");
+            stringValueVector2->setValue<string>(0, "same prefix 127");
+            stringValueVector2->setValue<string>(1, "same prefix 123");
+            stringValueVector2->setValue<string>(2, "same prefix 121");
+            stringValueVector2->setValue<string>(3, "same prefix 126");
         }
 
         vector<shared_ptr<FactorizedTable>> factorizedTables;
@@ -289,7 +288,7 @@ public:
             auto strValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             dataChunk->insert(i, strValueVector);
             for (auto j = 0u; j < strValues[i].size(); j++) {
-                strValueVector->addString(j, strValues[i][j]);
+                strValueVector->setValue(j, strValues[i][j]);
             }
         }
 
@@ -310,7 +309,8 @@ public:
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+        auto factorizedTable =
+            make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
@@ -322,7 +322,7 @@ public:
             dataChunk->state->currIdx++;
         }
 
-        factorizedTables.emplace_back(move(factorizedTable));
+        factorizedTables.emplace_back(std::move(factorizedTable));
         return orderByKeyEncoder;
     }
 };

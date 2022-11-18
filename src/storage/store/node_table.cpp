@@ -41,8 +41,8 @@ node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector
             primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset)) {
         auto pkValPos = primaryKeyVector->state->getPositionOfCurrIdx();
         string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
-                           to_string(((int64_t*)(primaryKeyVector->values))[pkValPos]) :
-                           (((ku_string_t*)primaryKeyVector->values))[pkValPos].getAsString();
+                           to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
+                           primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
     }
     for (auto& column : propertyColumns) {

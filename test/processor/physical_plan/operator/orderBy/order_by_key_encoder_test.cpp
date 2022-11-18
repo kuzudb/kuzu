@@ -52,9 +52,8 @@ public:
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             shared_ptr<ValueVector> valueVector =
                 make_shared<ValueVector>(INT64, memoryManager.get());
-            auto intValuePtr = (int64_t*)valueVector->values;
             for (auto j = 0u; j < numOfElementsPerCol; j++) {
-                intValuePtr[j] = 5;
+                valueVector->setValue(j, (int64_t)5);
             }
             dataChunk->insert(i, valueVector);
             valueVector->state->currIdx = flatCol ? 0 : -1;
@@ -129,13 +128,12 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
     shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
-    auto int64Values = (int64_t*)int64ValueVector->values;
-    int64Values[0] = 73; // positive number
+    int64ValueVector->setValue(0, (int64_t)73); // positive number
     int64ValueVector->setNull(1, true);
-    int64Values[2] = -132;  // negative 1 byte number
-    int64Values[3] = -5242; // negative 2 bytes number
-    int64Values[4] = INT64_MAX;
-    int64Values[5] = INT64_MIN;
+    int64ValueVector->setValue(2, (int64_t)-132);  // negative 1 byte number
+    int64ValueVector->setValue(3, (int64_t)-5242); // negative 2 bytes number
+    int64ValueVector->setValue(4, (int64_t)INT64_MAX);
+    int64ValueVector->setValue(5, (int64_t)INT64_MIN);
     dataChunk->insert(0, int64ValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(int64ValueVector);
@@ -196,10 +194,9 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     // valueVector.
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
-    auto int64Values = (int64_t*)int64ValueVector->values;
-    int64Values[0] = 73;
-    int64Values[1] = -52;
-    int64Values[2] = -132;
+    int64ValueVector->setValue(0, (int64_t)73);
+    int64ValueVector->setValue(1, (int64_t)-52);
+    int64ValueVector->setValue(2, (int64_t)-132);
     dataChunk->insert(0, int64ValueVector);
     // Only the first and the third value is selected, so the encoder should
     // not encode the second value.
@@ -238,9 +235,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> boolValueVector = make_shared<ValueVector>(BOOL, memoryManager.get());
-    auto boolValues = (bool*)boolValueVector->values;
-    boolValues[0] = true;
-    boolValues[1] = false;
+    boolValueVector->setValue(0, true);
+    boolValueVector->setValue(1, false);
     boolValueVector->setNull(2, true);
     dataChunk->insert(0, boolValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
@@ -269,10 +265,11 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> dateValueVector = make_shared<ValueVector>(DATE, memoryManager.get());
-    auto dateValues = (date_t*)dateValueVector->values;
-    dateValues[0] = Date::FromCString("2035-07-04", strlen("2035-07-04")); // date after 1970-01-01
+    dateValueVector->setValue(
+        0, Date::FromCString("2035-07-04", strlen("2035-07-04"))); // date after 1970-01-01
     dateValueVector->setNull(1, true);
-    dateValues[2] = Date::FromCString("1949-10-01", strlen("1949-10-01")); // date before 1970-01-01
+    dateValueVector->setValue(
+        2, Date::FromCString("1949-10-01", strlen("1949-10-01"))); // date before 1970-01-01
     dataChunk->insert(0, dateValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(dateValueVector);
@@ -307,14 +304,13 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     dataChunk->state->selVector->selectedSize = 3;
     shared_ptr<ValueVector> timestampValueVector =
         make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
-    auto timestampValues = (timestamp_t*)timestampValueVector->values;
     // timestamp before 1970-01-01
-    timestampValues[0] =
-        Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123"));
+    timestampValueVector->setValue(
+        0, Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
     timestampValueVector->setNull(1, true);
     // timestamp after 1970-01-01
-    timestampValues[2] =
-        Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33"));
+    timestampValueVector->setValue(
+        2, Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")));
     dataChunk->insert(0, timestampValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(timestampValueVector);
@@ -359,9 +355,9 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     dataChunk->state->selVector->selectedSize = 2;
     shared_ptr<ValueVector> intervalValueVector =
         make_shared<ValueVector>(INTERVAL, memoryManager.get());
-    auto intervalValues = (interval_t*)intervalValueVector->values;
-    intervalValues[0] = Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
-        strlen("18 hours 55 days 13 years 8 milliseconds 3 months"));
+    intervalValueVector->setValue(
+        0, Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
+               strlen("18 hours 55 days 13 years 8 milliseconds 3 months")));
     intervalValueVector->setNull(1, true);
     dataChunk->insert(0, intervalValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
@@ -406,10 +402,12 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     dataChunk->state->selVector->selectedSize = 4;
     shared_ptr<ValueVector> stringValueVector =
         make_shared<ValueVector>(STRING, memoryManager.get());
-    stringValueVector->addString(0, "short str"); // short string
+    stringValueVector->setValue<string>(0, "short str"); // short string
     stringValueVector->setNull(1, true);
-    stringValueVector->addString(2, "commonprefix string1"); // long string(encoding: commonprefix)
-    stringValueVector->addString(3, "commonprefix string2"); // long string(encoding: commonprefix)
+    stringValueVector->setValue<string>(
+        2, "commonprefix string1"); // long string(encoding: commonprefix)
+    stringValueVector->setValue<string>(
+        3, "commonprefix string2"); // long string(encoding: commonprefix)
     dataChunk->insert(0, stringValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(stringValueVector);
@@ -479,13 +477,12 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     dataChunk->state->selVector->selectedSize = 6;
     shared_ptr<ValueVector> doubleValueVector =
         make_shared<ValueVector>(DOUBLE, memoryManager.get());
-    auto doubleValues = (double*)doubleValueVector->values;
-    doubleValues[0] = 3.452; // small positive number
+    doubleValueVector->setValue(0, (double_t)3.452); // small positive number
     doubleValueVector->setNull(1, true);
-    doubleValues[2] = -0.00031213;     // very small negative number
-    doubleValues[3] = -5.42113;        // small negative number
-    doubleValues[4] = 92931312341415;  // large positive number
-    doubleValues[5] = -31234142783434; // large negative number
+    doubleValueVector->setValue(2, (double_t)-0.00031213);     // very small negative number
+    doubleValueVector->setValue(3, (double_t)-5.42113);        // small negative number
+    doubleValueVector->setValue(4, (double_t)92931312341415);  // large positive number
+    doubleValueVector->setValue(5, (double_t)-31234142783434); // large negative number
     dataChunk->insert(0, doubleValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(doubleValueVector);
@@ -566,13 +563,12 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     dataChunk->state->selVector->selectedSize = 5;
     shared_ptr<ValueVector> unstrValueVector =
         make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
-    auto unstrValues = (Value*)unstrValueVector->values;
-    unstrValues[0] = Value(38.22);
+    unstrValueVector->setValue(0, Value(38.22));
     unstrValueVector->setNull(1, true);
-    unstrValues[2] =
-        Value(Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
-    unstrValues[3] = Value(int64_t(-97874221));
-    unstrValues[4] = Value(string("test str"));
+    unstrValueVector->setValue(2, Value(Timestamp::FromCString("1962-04-07 11:12:35.123",
+                                      strlen("1962-04-07 11:12:35.123"))));
+    unstrValueVector->setValue(3, Value(int64_t(-97874221)));
+    unstrValueVector->setValue(4, Value(string("test str")));
     dataChunk->insert(0, unstrValueVector);
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(unstrValueVector);
@@ -654,11 +650,6 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     mockDataChunk->insert(3, timestampFlatValueVector);
     mockDataChunk->insert(4, dateFlatValueVector);
 
-    auto intValues = (int64_t*)intFlatValueVector->values;
-    auto doubleValues = (double*)doubleFlatValueVector->values;
-    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values;
-    auto dateValues = (date_t*)dateFlatValueVector->values;
-
     intFlatValueVector->state->currIdx = 0;
     doubleFlatValueVector->state->currIdx = 0;
     stringFlatValueVector->state->currIdx = 0;
@@ -676,22 +667,22 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
         valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
-    intValues[0] = 73;
-    intValues[1] = -132;
-    intValues[2] = -412414;
-    doubleValues[0] = 53.421;
-    doubleValues[1] = -415.23;
+    intFlatValueVector->setValue(0, (int64_t)73);
+    intFlatValueVector->setValue(1, (int64_t)-132);
+    intFlatValueVector->setValue(2, (int64_t)-412414);
+    doubleFlatValueVector->setValue(0, (double_t)53.421);
+    doubleFlatValueVector->setValue(1, (double_t)-415.23);
     doubleFlatValueVector->setNull(2, true);
     stringFlatValueVector->setNull(0, true);
-    stringFlatValueVector->addString(1, "this is a test string!!");
-    stringFlatValueVector->addString(2, "short str");
-    timestampValues[0] =
-        Timestamp::FromCString("2008-08-08 20:20:20", strlen("2008-08-08 20:20:20"));
-    timestampValues[1] =
-        Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123"));
+    stringFlatValueVector->setValue<string>(1, "this is a test string!!");
+    stringFlatValueVector->setValue<string>(2, "short str");
+    timestampFlatValueVector->setValue(
+        0, Timestamp::FromCString("2008-08-08 20:20:20", strlen("2008-08-08 20:20:20")));
+    timestampFlatValueVector->setValue(
+        1, Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
     timestampFlatValueVector->setNull(2, true);
-    dateValues[0] = Date::FromCString("1978-09-12", strlen("1978-09-12"));
-    dateValues[1] = Date::FromCString("2035-07-04", strlen("2035-07-04"));
+    dateFlatValueVector->setValue(0, Date::FromCString("1978-09-12", strlen("1978-09-12")));
+    dateFlatValueVector->setValue(1, Date::FromCString("2035-07-04", strlen("2035-07-04")));
     dateFlatValueVector->setNull(2, true);
     for (auto i = 0u; i < 3; i++) {
         orderByKeyEncoder.encodeKeys();

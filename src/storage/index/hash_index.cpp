@@ -464,11 +464,11 @@ bool PrimaryKeyIndex::lookup(
     Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == INT64) {
-        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        auto key = keyVector->getValue<int64_t>(vectorPos);
         return hashIndexForInt64->lookupInternal(
             trx, reinterpret_cast<const uint8_t*>(&key), result);
     } else {
-        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
         return hashIndexForString->lookupInternal(
             trx, reinterpret_cast<const uint8_t*>(key.c_str()), result);
     }
@@ -477,10 +477,10 @@ bool PrimaryKeyIndex::lookup(
 void PrimaryKeyIndex::deleteKey(ValueVector* keyVector, uint64_t vectorPos) {
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == INT64) {
-        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        auto key = keyVector->getValue<int64_t>(vectorPos);
         hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
     } else {
-        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
         hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
     }
 }
@@ -488,10 +488,10 @@ void PrimaryKeyIndex::deleteKey(ValueVector* keyVector, uint64_t vectorPos) {
 bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, node_offset_t value) {
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == INT64) {
-        auto key = ((int64_t*)keyVector->values)[vectorPos];
+        auto key = keyVector->getValue<int64_t>(vectorPos);
         return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
     } else {
-        auto key = ((ku_string_t*)keyVector->values)[vectorPos].getAsString();
+        auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
         return hashIndexForString->insertInternal(
             reinterpret_cast<const uint8_t*>(key.c_str()), value);
     }

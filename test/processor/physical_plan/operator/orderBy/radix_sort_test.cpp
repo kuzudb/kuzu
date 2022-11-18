@@ -65,14 +65,11 @@ public:
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selVector->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(dataTypeID, memoryManager.get());
-        auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
-            } else if constexpr (is_same<T, string>::value) {
-                valueVector->addString(i, sortingData[i]);
             } else {
-                values[i] = sortingData[i];
+                valueVector->setValue<T>(i, sortingData[i]);
             }
         }
         dataChunk->insert(0, valueVector);
@@ -91,7 +88,7 @@ public:
             // Create a new payloadValueVector for the payload column.
             auto payloadValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
-                payloadValueVector->addString(i, to_string(i));
+                payloadValueVector->setValue(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);
             // To test whether the orderByCol -> ftIdx works properly, we put the
@@ -112,7 +109,7 @@ public:
                     is_same<T, string>::value /* isStrCol */));
         }
 
-        FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
+        FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
         factorizedTable.append(allVectors);
 
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
@@ -145,12 +142,12 @@ public:
                 isAscOrder[i], true /* isStrCol */));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
-                stringValueVector->addString(j, stringValues[i][j]);
+                stringValueVector->setValue(j, stringValues[i][j]);
             }
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
+        FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
 
         auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
             factorizedTableIdx, numTuplesPerBlockInFT);
@@ -382,11 +379,6 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     mockDataChunk->insert(3, timestampFlatValueVector);
     mockDataChunk->insert(4, dateFlatValueVector);
 
-    auto intValues = (int64_t*)intFlatValueVector->values;
-    auto doubleValues = (double*)doubleFlatValueVector->values;
-    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values;
-    auto dateValues = (date_t*)dateFlatValueVector->values;
-
     intFlatValueVector->state->currIdx = 0;
     doubleFlatValueVector->state->currIdx = 0;
     stringFlatValueVector->state->currIdx = 0;
@@ -395,35 +387,35 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
 
     vector<shared_ptr<ValueVector>> orderByVectors{intFlatValueVector, doubleFlatValueVector,
         stringFlatValueVector, timestampFlatValueVector, dateFlatValueVector};
-    intValues[0] = 41;
-    intValues[1] = -132;
-    intValues[2] = 41;
+    intFlatValueVector->setValue(0, (int64_t)41);
+    intFlatValueVector->setValue(1, (int64_t)-132);
+    intFlatValueVector->setValue(2, (int64_t)41);
     intFlatValueVector->setNull(3, true);
-    intValues[4] = 0;
-    doubleValues[0] = 453.421;
-    doubleValues[1] = -415.23;
-    doubleValues[2] = -0.00421;
-    doubleValues[3] = 0;
-    doubleValues[4] = 0.0121;
-    stringFlatValueVector->addString(0, "common prefix2");
-    stringFlatValueVector->addString(1, "common prefix1");
-    stringFlatValueVector->addString(2, "common prefix");
+    intFlatValueVector->setValue(4, (int64_t)0);
+    doubleFlatValueVector->setValue(0, (double_t)453.421);
+    doubleFlatValueVector->setValue(1, (double_t)-415.23);
+    doubleFlatValueVector->setValue(2, (double_t)-0.00421);
+    doubleFlatValueVector->setValue(3, (double_t)0);
+    doubleFlatValueVector->setValue(4, (double_t)0.0121);
+    stringFlatValueVector->setValue<string>(0, "common prefix2");
+    stringFlatValueVector->setValue<string>(1, "common prefix1");
+    stringFlatValueVector->setValue<string>(2, "common prefix");
     stringFlatValueVector->setNull(3, true);
-    stringFlatValueVector->addString(4, "short str");
-    timestampValues[0] =
-        Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00"));
-    timestampValues[1] =
-        Timestamp::FromCString("1962-04-07 14:11:23", strlen("1962-04-07 14:11:23"));
-    timestampValues[2] =
-        Timestamp::FromCString("1970-01-01 01:00:00", strlen("1970-01-01 01:00:00"));
-    timestampValues[3] =
-        Timestamp::FromCString("1953-01-12 21:12:00", strlen("2053-01-12 21:12:00"));
+    stringFlatValueVector->setValue<string>(4, "short str");
+    timestampFlatValueVector->setValue(
+        0, Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")));
+    timestampFlatValueVector->setValue(
+        1, Timestamp::FromCString("1962-04-07 14:11:23", strlen("1962-04-07 14:11:23")));
+    timestampFlatValueVector->setValue(
+        2, Timestamp::FromCString("1970-01-01 01:00:00", strlen("1970-01-01 01:00:00")));
+    timestampFlatValueVector->setValue(
+        3, Timestamp::FromCString("1953-01-12 21:12:00", strlen("2053-01-12 21:12:00")));
     timestampFlatValueVector->setNull(4, true);
-    dateValues[0] = Date::FromCString("1978-09-12", strlen("1978-09-12"));
-    dateValues[1] = Date::FromCString("2035-07-04", strlen("2035-07-04"));
+    dateFlatValueVector->setValue(0, Date::FromCString("1978-09-12", strlen("1978-09-12")));
+    dateFlatValueVector->setValue(1, Date::FromCString("2035-07-04", strlen("2035-07-04")));
     dateFlatValueVector->setNull(2, true);
-    dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
-    dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
+    dateFlatValueVector->setValue(3, Date::FromCString("1964-01-21", strlen("1964-01-21")));
+    dateFlatValueVector->setValue(4, Date::FromCString("2000-11-13", strlen("2000-11-13")));
 
     unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(make_unique<ColumnSchema>(

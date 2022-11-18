@@ -21,7 +21,7 @@ public:
     inline table_id_t getCommonTableID() const { return commonTableID; }
 
     void readNodeID(uint8_t* data, nodeID_t* nodeID) const;
-    void writeNodeID(uint8_t* data, nodeID_t* nodeID) const;
+    void writeNodeID(uint8_t* data, const nodeID_t& nodeID) const;
 
 private:
     table_id_t commonTableID;

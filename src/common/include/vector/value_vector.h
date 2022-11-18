@@ -23,14 +23,10 @@ public:
 
     ~ValueVector() = default;
 
-    inline void setState(shared_ptr<DataChunkState> state_) { state = move(state_); }
-    void addString(uint64_t pos, string value) const;
-    void addString(uint64_t pos, char* value, uint64_t len) const;
+    inline void setState(shared_ptr<DataChunkState> state_) { state = std::move(state_); }
 
     inline void setAllNull() { nullMask->setAllNull(); }
-
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
-
     inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
     // Note that if this function returns true, there are no null. However, if it returns false, it
     // doesn't mean there are nulls, i.e., there may or may not be nulls.
@@ -40,31 +36,35 @@ public:
         assert(!state->isFlat());
         return nullMask->hasNoNullsGuarantee();
     }
-
-    inline void setRangeNonNull(uint64_t startPos, uint64_t len) {
+    inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
         for (auto i = 0u; i < len; ++i) {
             setNull(startPos + i, false);
         }
     }
-
     inline uint64_t* getNullMaskData() { return nullMask->getData(); }
-
-    inline void setNull(uint64_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
-
+    inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
-    inline node_offset_t readNodeOffset(uint64_t pos) const {
+    template<typename T>
+    inline T getValue(uint32_t pos) const {
+        return ((T*)valueBuffer.get())[pos];
+    }
+    template<typename T>
+    void setValue(uint32_t pos, T val);
+
+    inline uint8_t* getData() const { return valueBuffer.get(); }
+
+    inline node_offset_t readNodeOffset(uint32_t pos) const {
         assert(dataType.typeID == NODE_ID);
-        return ((nodeID_t*)values)[pos].offset;
+        return getValue<nodeID_t>(pos).offset;
     }
 
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
 
     inline InMemOverflowBuffer& getOverflowBuffer() const { return *inMemOverflowBuffer; }
-
     inline void resetOverflowBuffer() const {
         if (inMemOverflowBuffer) {
             inMemOverflowBuffer->resetBuffer();
@@ -77,9 +77,10 @@ private:
                dataType.typeID == UNSTRUCTURED;
     }
 
+    void addString(uint32_t pos, char* value, uint64_t len) const;
+
 public:
     DataType dataType;
-    uint8_t* values;
     shared_ptr<DataChunkState> state;
 
 private:

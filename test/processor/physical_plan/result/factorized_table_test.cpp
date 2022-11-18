@@ -36,27 +36,23 @@ public:
         auto vectorB1 = resultSet->dataChunks[1]->valueVectors[0];
         auto vectorB2 = resultSet->dataChunks[1]->valueVectors[1];
 
-        auto vectorA1Data = (nodeID_t*)vectorA1->values;
-        auto vectorA2Data = (int64_t*)vectorA2->values;
-        auto vectorB1Data = (nodeID_t*)vectorB1->values;
-        auto vectorB2Data = (double*)vectorB2->values;
         for (auto i = 0u; i < 100; i++) {
             if (i % 15) {
-                vectorA1Data[i].tableID = 18;
-                vectorA1Data[i].offset = (uint64_t)i;
+                nodeID_t nodeID{i, 18};
+                vectorA1->setValue(i, nodeID);
             } else {
                 vectorA1->setNull(i, true);
             }
 
             if (i % 10) {
-                vectorA2Data[i] = i << 1;
-                vectorB1Data[i].tableID = 28;
-                vectorB1Data[i].offset = (uint64_t)(i);
+                vectorA2->setValue(i, (int64_t)(i << 1));
+                nodeID_t nodeID{i, 28};
+                vectorB1->setValue(i, nodeID);
             } else {
                 vectorA2->setNull(i, true);
                 vectorB1->setNull(i, true);
             }
-            vectorB2Data[i] = (double)((double)i / 2.0);
+            vectorB2->setValue(i, (double_t)((double_t)i) / 2.0);
         }
         resultSet->dataChunks[0]->state->selVector->selectedSize = 100;
         resultSet->dataChunks[1]->state->selVector->selectedSize = 100;
@@ -69,7 +65,8 @@ public:
             false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             true /* isUnflat */, 1 /* dataChunkPos */, sizeof(overflow_value_t)));
-        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+        auto factorizedTable =
+            make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
         vector<shared_ptr<ValueVector>> vectorsToAppend = {
             resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[1]->valueVectors[0]};
         if (isAppendFlatVectorToUnflatCol) {
@@ -97,7 +94,8 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         make_unique<ColumnSchema>(false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)));
     tableSchema->appendColumn(make_unique<ColumnSchema>(
         true /* isUnflat */, 0 /* dataChunkPos */, sizeof(overflow_value_t)));
-    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+    auto factorizedTable =
+        make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
     resultSet->dataChunks[1]->state->currIdx = 0;
     vector<shared_ptr<ValueVector>> vectorsToAppend = {
         resultSet->dataChunks[1]->valueVectors[0], resultSet->dataChunks[0]->valueVectors[1]};
@@ -123,7 +121,6 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     vector<shared_ptr<ValueVector>> vectorsToRead = {readResultSet->dataChunks[1]->valueVectors[0],
         readResultSet->dataChunks[0]->valueVectors[1]};
     auto vectorB1 = vectorsToRead[0];
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
     auto vectorA2 = vectorsToRead[1];
 
     for (auto i = 0u; i < 100; i++) {
@@ -134,15 +131,15 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 1);
         if (i % 10) {
             ASSERT_EQ(vectorB1->isNull(i), false);
-            ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].tableID, 28);
-            ASSERT_EQ(vectorB1Data[vectorB1->state->currIdx].offset, (uint64_t)i);
+            ASSERT_EQ(vectorB1->getValue<nodeID_t>(vectorB1->state->currIdx).tableID, 28);
+            ASSERT_EQ(vectorB1->getValue<nodeID_t>(vectorB1->state->currIdx).offset, (uint64_t)i);
         } else {
             ASSERT_EQ(vectorB1->isNull(i), true);
         }
         for (auto j = 0u; j < 100; j++) {
             if (j % 10) {
                 ASSERT_EQ(vectorA2->isNull(j), false);
-                ASSERT_EQ(((int64_t*)vectorA2->values)[j], j << 1);
+                ASSERT_EQ(vectorA2->getValue<int64_t>(j), j << 1);
             } else {
                 ASSERT_EQ(vectorA2->isNull(j), true);
             }
@@ -162,9 +159,7 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
     vector<shared_ptr<ValueVector>> vectorsToScan = {readResultSet->dataChunks[0]->valueVectors[0],
         readResultSet->dataChunks[1]->valueVectors[0]};
     auto vectorA1 = vectorsToScan[0];
-    auto vectorA1Data = (nodeID_t*)vectorA1->values;
     auto vectorB1 = vectorsToScan[1];
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
 
     for (auto i = 0u; i < 100; i++) {
         // Since B1 is an unflat column in factorizedTable , we can only read one tuple from
@@ -174,8 +169,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selVector->selectedSize, 100);
         if (i % 15) {
             ASSERT_EQ(vectorA1->isNull(0), false);
-            ASSERT_EQ(vectorA1Data[0].tableID, 18);
-            ASSERT_EQ(vectorA1Data[0].offset, (uint64_t)i);
+            ASSERT_EQ(vectorA1->getValue<nodeID_t>(0).tableID, 18);
+            ASSERT_EQ(vectorA1->getValue<nodeID_t>(0).offset, (uint64_t)i);
         } else {
             ASSERT_EQ(vectorA1->isNull(0), true);
         }
@@ -184,8 +179,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
         for (auto j = 0u; j < 100; j++) {
             if (j % 10) {
                 ASSERT_EQ(vectorB1->isNull(j), false);
-                ASSERT_EQ(vectorB1Data[j].tableID, 28);
-                ASSERT_EQ(vectorB1Data[j].offset, (uint64_t)j);
+                ASSERT_EQ(vectorB1->getValue<nodeID_t>(j).tableID, 28);
+                ASSERT_EQ(vectorB1->getValue<nodeID_t>(j).offset, (uint64_t)j);
             } else {
                 ASSERT_EQ(vectorB1->isNull(j), true);
             }
@@ -212,14 +207,15 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     resultSet->insert(0, dataChunk);
     dataChunk->insert(0, strValueVector);
     for (auto i = 0u; i < numRowsToAppend; i++) {
-        strValueVector->addString(i, to_string(i) + "with long string overflow");
+        strValueVector->setValue(i, to_string(i) + "with long string overflow");
     }
     unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(
         make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(ku_string_t)));
     auto factorizedTable = make_unique<FactorizedTable>(
         memoryManager.get(), make_unique<FactorizedTableSchema>(*tableSchema));
-    auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), move(tableSchema));
+    auto factorizedTable1 =
+        make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
 
     // Append same testing data to factorizedTable and factorizedTable1.
     for (auto i = 0u; i < numRowsToAppend; i++) {

@@ -48,14 +48,14 @@ struct MinMaxFunction {
 
     template<class OP>
     static void updateSingleValue(MinMaxState* state, ValueVector* input, uint32_t pos) {
-        auto inputValues = (T*)input->values;
+        T val = input->getValue<T>(pos);
         if (state->isNull) {
-            state->val = inputValues[pos];
+            state->val = val;
             state->isNull = false;
         } else {
             uint8_t compare_result;
-            OP::template operation<T, T>(inputValues[pos], state->val, compare_result);
-            state->val = compare_result ? inputValues[pos] : state->val;
+            OP::template operation<T, T>(val, state->val, compare_result);
+            state->val = compare_result ? val : state->val;
         }
     }
 

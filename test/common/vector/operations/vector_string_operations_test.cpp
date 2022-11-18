@@ -19,34 +19,33 @@ public:
 TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (ku_string_t*)result->values;
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->addString(i, to_string(i));
-        rVector->addString(i, to_string(110 - i));
+        lVector->setValue(i, to_string(i));
+        rVector->setValue(i, to_string(110 - i));
     }
 
     BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, ku_string_t, operation::Concat,
         BinaryStringAndListOperationWrapper>(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i].getAsString(), to_string(i) + to_string(110 - i));
+        ASSERT_EQ(
+            result->getValue<ku_string_t>(i).getAsString(), to_string(i) + to_string(110 - i));
     }
 }
 
 TEST_F(StringArithmeticOperandsInSameDataChunkTest, BigStringTest) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (ku_string_t*)result->values;
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->addString(i, to_string(i) + "abcdefabcdefqwert");
-        rVector->addString(i, to_string(110 - i) + "abcdefabcdefqwert");
+        lVector->setValue(i, to_string(i) + "abcdefabcdefqwert");
+        rVector->setValue(i, to_string(110 - i) + "abcdefabcdefqwert");
     }
 
     BinaryOperationExecutor::executeSwitch<ku_string_t, ku_string_t, ku_string_t, operation::Concat,
         BinaryStringAndListOperationWrapper>(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i].getAsString(),
+        ASSERT_EQ(result->getValue<ku_string_t>(i).getAsString(),
             to_string(i) + "abcdefabcdefqwert" + to_string(110 - i) + "abcdefabcdefqwert");
     }
 }

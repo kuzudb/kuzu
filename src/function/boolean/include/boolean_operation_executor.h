@@ -16,23 +16,19 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static inline void executeOnValueNoNull(ValueVector& left, ValueVector& right,
         ValueVector& result, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        auto lValues = (uint8_t*)left.values;
-        auto rValues = (uint8_t*)right.values;
-        auto resValues = (uint8_t*)result.values;
-        FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos], false /* isLeftNull */,
-            false /* isRightNull */);
+        auto resValues = (uint8_t*)result.getData();
+        FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos),
+            resValues[resPos], false /* isLeftNull */, false /* isRightNull */);
         result.setNull(resPos, false /* isNull */);
     }
 
     template<typename FUNC>
     static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
         uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        auto lValues = (uint8_t*)left.values;
-        auto rValues = (uint8_t*)right.values;
-        auto resValues = (uint8_t*)result.values;
-        FUNC::operation(
-            lValues[lPos], rValues[rPos], resValues[resPos], left.isNull(lPos), right.isNull(rPos));
-        result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
+        auto resValues = (uint8_t*)result.getData();
+        FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos),
+            resValues[resPos], left.isNull(lPos), right.isNull(rPos));
+        result.setNull(resPos, result.getValue<uint8_t>(resPos) == operation::NULL_BOOL);
     }
 
     template<typename FUNC>
@@ -149,11 +145,9 @@ struct BinaryBooleanOperationExecutor {
     template<class FUNC>
     static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
         uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
-        auto lValues = (uint8_t*)left.values;
-        auto rValues = (uint8_t*)right.values;
         uint8_t resultValue = 0;
-        FUNC::operation(
-            lValues[lPos], rValues[rPos], resultValue, left.isNull(lPos), right.isNull(rPos));
+        FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos), resultValue,
+            left.isNull(lPos), right.isNull(rPos));
         selectedPositionsBuffer[numSelectedValues] = resPos;
         numSelectedValues += (resultValue == true);
     }
@@ -162,11 +156,9 @@ struct BinaryBooleanOperationExecutor {
     static bool selectBothFlat(ValueVector& left, ValueVector& right) {
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
-        auto lValues = (bool*)left.values;
-        auto rValues = (bool*)right.values;
         uint8_t resultValue = 0;
-        FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
-            (bool)right.isNull(rPos));
+        FUNC::operation(left.getValue<bool>(lPos), right.getValue<bool>(rPos), resultValue,
+            (bool)left.isNull(lPos), (bool)right.isNull(rPos));
         return resultValue == true;
     }
 
@@ -255,11 +247,10 @@ struct UnaryBooleanOperationExecutor {
     template<typename FUNC>
     static inline void executeOnValue(
         ValueVector& operand, uint64_t operandPos, ValueVector& result) {
-        auto operandValues = (uint8_t*)operand.values;
-        auto resultValues = (uint8_t*)result.values;
-        FUNC::operation(
-            operandValues[operandPos], operand.isNull(operandPos), resultValues[operandPos]);
-        result.setNull(operandPos, result.values[operandPos] == operation::NULL_BOOL);
+        auto resultValues = (uint8_t*)result.getData();
+        FUNC::operation(operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos),
+            resultValues[operandPos]);
+        result.setNull(operandPos, result.getValue<uint8_t>(operandPos) == operation::NULL_BOOL);
     }
 
     template<typename FUNC>
@@ -292,8 +283,8 @@ struct UnaryBooleanOperationExecutor {
     static inline void selectOnValue(ValueVector& operand, uint64_t operandPos,
         uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
-        auto operandValues = (uint8_t*)operand.values;
-        FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
+        FUNC::operation(
+            operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos), resultValue);
         selectedPositionsBuffer[numSelectedValues] = operandPos;
         numSelectedValues += resultValue == true;
     }
@@ -303,7 +294,7 @@ struct UnaryBooleanOperationExecutor {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             uint8_t resultValue = 0;
-            FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
+            FUNC::operation(operand.getValue<uint8_t>(pos), operand.isNull(pos), resultValue);
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;

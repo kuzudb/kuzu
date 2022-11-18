@@ -49,13 +49,13 @@ struct AvgFunction {
 
     static void updateSingleValue(
         AvgState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
-        auto inputValues = (T*)input->values;
+        T val = input->getValue<T>(pos);
         for (auto i = 0u; i < multiplicity; ++i) {
             if (state->isNull) {
-                state->sum = inputValues[pos];
+                state->sum = val;
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, inputValues[pos], state->sum);
+                Add::operation(state->sum, val, state->sum);
             }
         }
         state->count += multiplicity;

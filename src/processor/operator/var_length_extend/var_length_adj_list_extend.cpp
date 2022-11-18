@@ -42,7 +42,7 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 !dfsLevelInfo->hasBeenOutput) {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
-                memcpy(nbrNodeValueVector->values, dfsLevelInfo->children->values,
+                memcpy(nbrNodeValueVector->getData(), dfsLevelInfo->children->getData(),
                     dfsLevelInfo->children->state->selVector->selectedSize *
                         Types::getDataTypeSize(dfsLevelInfo->children->dataType));
                 nbrNodeValueVector->state->selVector->selectedSize =
@@ -86,7 +86,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
         ->initListReadingState(parent, *dfsLevelInfo->listHandle, transaction->getType());
     ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listHandle);
     if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
-        dfsStack.emplace(move(dfsLevelInfo));
+        dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
     }
     return false;

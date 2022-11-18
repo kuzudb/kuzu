@@ -74,15 +74,9 @@ void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
     assert(srcNodeIDVector->state->isFlat());
     assert(dstNodeIDVector->state->isFlat());
     auto srcTableID =
-        ((nodeID_t*)srcNodeIDVector
-                ->values)[srcNodeIDVector->state->selVector
-                              ->selectedPositions[srcNodeIDVector->state->getPositionOfCurrIdx()]]
-            .tableID;
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx()).tableID;
     auto dstTableID =
-        ((nodeID_t*)dstNodeIDVector
-                ->values)[dstNodeIDVector->state->selVector
-                              ->selectedPositions[dstNodeIDVector->state->getPositionOfCurrIdx()]]
-            .tableID;
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx()).tableID;
     for (auto direction : REL_DIRECTIONS) {
         auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
         auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);

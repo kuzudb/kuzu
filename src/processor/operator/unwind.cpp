@@ -45,7 +45,7 @@ bool Unwind::getNextTuples() {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        inputList = ((ku_list_t*)(expressionEvaluator->resultVector->values))[pos];
+        inputList = expressionEvaluator->resultVector->getValue<ku_list_t>(pos);
         startIndex = 0;
         auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size);
         copyTuplesToOutVector(0, totalElementsCopy);

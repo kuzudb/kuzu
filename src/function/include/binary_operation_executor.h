@@ -45,8 +45,8 @@ struct BinaryOperationExecutor {
     static inline void executeOnValue(ValueVector& left, ValueVector& right,
         ValueVector& resultValueVector, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            ((LEFT_TYPE*)left.values)[lPos], ((RIGHT_TYPE*)right.values)[rPos],
-            ((RESULT_TYPE*)resultValueVector.values)[resPos], (void*)&left, (void*)&right,
+            ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos],
+            ((RESULT_TYPE*)resultValueVector.getData())[resPos], (void*)&left, (void*)&right,
             (void*)&resultValueVector);
     }
 
@@ -231,10 +231,9 @@ struct BinaryOperationExecutor {
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
     static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
         uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
-        auto lValues = (LEFT_TYPE*)left.values;
-        auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
-        FUNC::operation(lValues[lPos], rValues[rPos], resultValue);
+        FUNC::operation(
+            ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos], resultValue);
         selectedPositionsBuffer[numSelectedValues] = resPos;
         numSelectedValues += (resultValue == true);
     }
@@ -243,11 +242,10 @@ struct BinaryOperationExecutor {
     static uint64_t selectBothFlat(ValueVector& left, ValueVector& right) {
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
-        auto lValues = (LEFT_TYPE*)left.values;
-        auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
         if (!left.isNull(lPos) && !right.isNull(rPos)) {
-            FUNC::operation(lValues[lPos], rValues[rPos], resultValue);
+            FUNC::operation(((LEFT_TYPE*)left.getData())[lPos],
+                ((RIGHT_TYPE*)right.getData())[rPos], resultValue);
         }
         return resultValue == true;
     }

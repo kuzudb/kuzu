@@ -14,7 +14,7 @@ JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumn
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     // Prev pointer is always the last column in the table.
     colOffsetOfPrevPtrInTuple = tableSchema->getColOffset(tableSchema->getNumColumns() - 1);
-    factorizedTable = make_unique<FactorizedTable>(&memoryManager, move(tableSchema));
+    factorizedTable = make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
 }
 
 bool JoinHashTable::discardNullFromKeys(
@@ -94,12 +94,11 @@ void JoinHashTable::probe(
         function::VectorHashOperations::combineHash(
             hashVector.get(), tmpHashVector.get(), hashVector.get());
     }
-    auto hashes = (hash_t*)hashVector->values;
     auto startIdx = hashVector->state->isFlat() ? hashVector->state->currIdx : 0;
     auto numValues = hashVector->state->isFlat() ? 1 : hashVector->state->selVector->selectedSize;
     for (auto i = 0u; i < numValues; i++) {
         auto pos = hashVector->state->selVector->selectedPositions[i + startIdx];
-        probedTuples[i] = getTupleForHash(hashes[pos]);
+        probedTuples[i] = getTupleForHash(hashVector->getValue<hash_t>(pos));
     }
 }
 

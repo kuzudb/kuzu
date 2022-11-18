@@ -24,7 +24,7 @@ FactorizedTableSchema::FactorizedTableSchema(const FactorizedTableSchema& other)
 
 void FactorizedTableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
     numBytesForDataPerTuple += column->getNumBytes();
-    columns.push_back(move(column));
+    columns.push_back(std::move(column));
     colOffsets.push_back(
         colOffsets.empty() ? 0 : colOffsets.back() + getColumn(columns.size() - 2)->getNumBytes());
     numBytesForNullMapPerTuple = getNumBytesForNullBuffer(getNumColumns());
@@ -59,13 +59,13 @@ void DataBlock::copyTuples(DataBlock* blockToCopyFrom, uint32_t tupleIdxToCopyFr
 
 void DataBlockCollection::merge(DataBlockCollection& other) {
     if (blocks.empty()) {
-        append(move(other.blocks));
+        append(std::move(other.blocks));
         return;
     }
     // Pop up the old last block first, and then push back blocks from other into the vector.
-    auto oldLastBlock = move(blocks.back());
+    auto oldLastBlock = std::move(blocks.back());
     blocks.pop_back();
-    append(move(other.blocks));
+    append(std::move(other.blocks));
     // Insert back tuples in the old last block to the new last block.
     auto newLastBlock = blocks.back().get();
     auto numTuplesToAppendIntoNewLastBlock =
@@ -80,13 +80,13 @@ void DataBlockCollection::merge(DataBlockCollection& other) {
         oldLastBlock->resetNumTuplesAndFreeSize();
         DataBlock::copyTuples(oldLastBlock.get(), tupleIdxInOldLastBlock, oldLastBlock.get(), 0,
             numTuplesLeftForNewBlock, numBytesPerTuple);
-        blocks.push_back(move(oldLastBlock));
+        blocks.push_back(std::move(oldLastBlock));
     }
 }
 
 FactorizedTable::FactorizedTable(
     MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema)
-    : memoryManager{memoryManager}, tableSchema{move(tableSchema)}, numTuples{0} {
+    : memoryManager{memoryManager}, tableSchema{std::move(tableSchema)}, numTuples{0} {
     assert(this->tableSchema->getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
     if (!this->tableSchema->isEmpty()) {
         inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(memoryManager);
@@ -193,7 +193,7 @@ void FactorizedTable::merge(FactorizedTable& other) {
         return;
     }
     mergeMayContainNulls(other);
-    unflatTupleBlockCollection->append(move(other.unflatTupleBlockCollection));
+    unflatTupleBlockCollection->append(std::move(other.unflatTupleBlockCollection));
     flatTupleBlockCollection->merge(*other.flatTupleBlockCollection);
     inMemOverflowBuffer->merge(*other.inMemOverflowBuffer);
     numTuples += other.numTuples;

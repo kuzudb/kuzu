@@ -17,22 +17,20 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 
     auto nodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
     dataChunk->insert(0, nodeVector);
-    auto nodeData = (nodeID_t*)nodeVector->values;
 
     auto result = make_shared<ValueVector>(INT64, memoryManager.get());
     dataChunk->insert(1, result);
-    auto resultData = (uint64_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < 1000; i++) {
-        nodeData[i].tableID = 100;
-        nodeData[i].offset = i * 10 + 1;
+        nodeID_t nodeID{(node_offset_t)(i * 10 + 1), 100};
+        nodeVector->setValue(i, nodeID);
     }
 
     UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     for (int32_t i = 0; i < 1000; i++) {
         auto expected = operation::murmurhash64(i * 10 + 1) ^ operation::murmurhash64(100);
-        ASSERT_EQ(resultData[i], expected);
+        ASSERT_EQ(result->getValue<uint64_t>(i), expected);
     }
 
     // Set dataChunk to flat
@@ -40,7 +38,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     auto expected = operation::murmurhash64(8 * 10 + 1) ^ operation::murmurhash64(100);
     auto pos = result->state->getPositionOfCurrIdx();
-    ASSERT_EQ(resultData[pos], expected);
+    ASSERT_EQ(result->getValue<uint64_t>(pos), expected);
 }
 
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
@@ -52,19 +50,18 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
 
     auto nodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
     for (auto i = 0u; i < 1000; i++) {
-        ((nodeID_t*)nodeVector->values)[i].tableID = 100;
-        ((nodeID_t*)nodeVector->values)[i].offset = 10 + i;
+        nodeID_t nodeID{(node_offset_t)(10 + i), 100};
+        nodeVector->setValue(i, nodeID);
     }
     dataChunk->insert(0, nodeVector);
 
     auto result = make_shared<ValueVector>(INT64, memoryManager.get());
     dataChunk->insert(1, result);
-    auto resultData = (uint64_t*)result->values;
 
     UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     for (int32_t i = 0; i < 1000; i++) {
         auto expected = operation::murmurhash64(10 + i) ^ operation::murmurhash64(100);
-        ASSERT_EQ(resultData[i], expected);
+        ASSERT_EQ(result->getValue<uint64_t>(i), expected);
     }
 
     // Set dataChunk to flat
@@ -72,5 +69,5 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     auto expected = operation::murmurhash64(10 + 8) ^ operation::murmurhash64(100);
     auto pos = result->state->getPositionOfCurrIdx();
-    ASSERT_EQ(resultData[pos], expected);
+    ASSERT_EQ(result->getValue<uint64_t>(pos), expected);
 }

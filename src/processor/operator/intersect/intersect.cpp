@@ -23,7 +23,7 @@ shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
             vectorsToReadInto.push_back(vector);
         }
         payloadColumnIdxesToScanFrom.push_back(columnIdxesToScanFrom);
-        payloadVectorsToScanInto.push_back(move(vectorsToReadInto));
+        payloadVectorsToScanInto.push_back(std::move(vectorsToReadInto));
     }
     for (auto& sharedHT : sharedHTs) {
         isIntersectListAFlatValue.push_back(
@@ -77,8 +77,8 @@ vector<nodeID_t> Intersect::getProbeKeys() {
     vector<nodeID_t> keys(probeKeyVectors.size());
     for (auto i = 0u; i < keys.size(); i++) {
         assert(probeKeyVectors[i]->state->isFlat());
-        keys[i] = ((nodeID_t*)probeKeyVectors[i]
-                       ->values)[probeKeyVectors[i]->state->getPositionOfCurrIdx()];
+        keys[i] = probeKeyVectors[i]->getValue<nodeID_t>(
+            probeKeyVectors[i]->state->getPositionOfCurrIdx());
     }
     return keys;
 }
@@ -131,7 +131,7 @@ void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect)
         return;
     }
     assert(listsToIntersect[0].numElements <= DEFAULT_VECTOR_CAPACITY);
-    memcpy(outKeyVector->values, listsToIntersect[0].value,
+    memcpy(outKeyVector->getData(), listsToIntersect[0].value,
         listsToIntersect[0].numElements * sizeof(nodeID_t));
     SelectionVector lSelVector(listsToIntersect[0].numElements);
     lSelVector.selectedSize = listsToIntersect[0].numElements;
@@ -141,7 +141,7 @@ void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect)
     for (auto i = 0u; i < listsToIntersect.size() - 1; i++) {
         intersectSelVectors[i + 1]->resetSelectorToUnselectedWithSize(
             listsToIntersect[i + 1].numElements);
-        twoWayIntersect((nodeID_t*)outKeyVector->values, lSelVector,
+        twoWayIntersect((nodeID_t*)outKeyVector->getData(), lSelVector,
             (nodeID_t*)listsToIntersect[i + 1].value, *intersectSelVectors[i + 1]);
         // Here we need to slice all selVectors that have been previously intersected, as all these
         // lists need to be selected synchronously to read payloads correctly.

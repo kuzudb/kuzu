@@ -63,7 +63,8 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         sharedState->getHashTable()->probe(keyVectors, probeState->probedTuples.get());
     }
     auto numMatchedTuples = 0;
-    if (keyVectors[0]->state->isFlat()) {
+    auto keyState = keyVectors[0]->state.get();
+    if (keyState->isFlat()) {
         // probe side is flat.
         while (probeState->probedTuples[0]) {
             if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY) {
@@ -73,9 +74,8 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->matchedTuples[numMatchedTuples] = currentTuple;
             bool isKeysEqual = true;
             for (auto i = 0u; i < keyVectors.size(); i++) {
-                auto keyValues = (nodeID_t*)keyVectors[i]->values;
-                if (((nodeID_t*)currentTuple)[i] !=
-                    keyValues[keyVectors[i]->state->getPositionOfCurrIdx()]) {
+                auto pos = keyVectors[i]->state->getPositionOfCurrIdx();
+                if (((nodeID_t*)currentTuple)[i] != keyVectors[i]->getValue<nodeID_t>(pos)) {
                     isKeysEqual = false;
                     break;
                 }
@@ -85,15 +85,15 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         }
     } else {
         assert(keyVectors.size() == 1);
-        auto keyValues = (nodeID_t*)keyVectors[0]->values;
-        for (auto i = 0u; i < keyVectors[0]->state->selVector->selectedSize; i++) {
-            auto pos = keyVectors[0]->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < keyState->selVector->selectedSize; i++) {
+            auto pos = keyState->selVector->selectedPositions[i];
             while (probeState->probedTuples[i]) {
                 assert(numMatchedTuples <= DEFAULT_VECTOR_CAPACITY);
                 auto currentTuple = probeState->probedTuples[i];
                 probeState->matchedTuples[numMatchedTuples] = currentTuple;
                 probeState->matchedSelVector->selectedPositions[numMatchedTuples] = pos;
-                numMatchedTuples += *(nodeID_t*)currentTuple == keyValues[pos];
+                numMatchedTuples +=
+                    *(nodeID_t*)currentTuple == keyVectors[0]->getValue<nodeID_t>(pos);
                 probeState->probedTuples[i] =
                     *sharedState->getHashTable()->getPrevTuple(currentTuple);
             }
@@ -148,7 +148,7 @@ uint64_t HashJoinProbe::getNextLeftJoinResult() {
 }
 
 uint64_t HashJoinProbe::getNextMarkJoinResult() {
-    auto markValues = (bool*)markVector->values;
+    auto markValues = (bool*)markVector->getData();
     if (markVector->state->isFlat()) {
         markValues[markVector->state->getPositionOfCurrIdx()] =
             probeState->matchedSelVector->selectedSize != 0;

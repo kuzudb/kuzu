@@ -55,17 +55,19 @@ public:
 
     void validateStringResultValueVector(
         shared_ptr<ValueVector>& valueVector, const vector<string>& expectedValues) {
-        auto actualValues = (ku_string_t*)valueVector->values;
         if (valueVector->state->isFlat()) {
             assert(expectedValues.size() == 1);
-            ASSERT_EQ(actualValues[valueVector->state->getPositionOfCurrIdx()].getAsString(),
+            ASSERT_EQ(valueVector->getValue<ku_string_t>(valueVector->state->getPositionOfCurrIdx())
+                          .getAsString(),
                 expectedValues[0]);
         } else {
             for (auto i = 0u; i < expectedValues.size(); i++) {
                 if (expectedValues[i] == "") {
                     ASSERT_EQ(valueVector->isNull(i), true);
                 } else {
-                    ASSERT_EQ(actualValues[valueVector->state->selVector->selectedPositions[i]]
+                    ASSERT_EQ(valueVector
+                                  ->getValue<ku_string_t>(
+                                      valueVector->state->selVector->selectedPositions[i])
                                   .getAsString(),
                         expectedValues[i]);
                 }
@@ -75,13 +77,14 @@ public:
 
     void validateBoolResultValueVector(
         shared_ptr<ValueVector>& valueVector, const vector<bool>& expectedValues) {
-        auto actualValues = (bool*)valueVector->values;
         if (valueVector->state->isFlat()) {
             assert(expectedValues.size() == 1);
-            ASSERT_EQ(actualValues[valueVector->state->getPositionOfCurrIdx()], expectedValues[0]);
+            ASSERT_EQ(valueVector->getValue<bool>(valueVector->state->getPositionOfCurrIdx()),
+                expectedValues[0]);
         } else {
             for (auto i = 0u; i < expectedValues.size(); i++) {
-                ASSERT_EQ(actualValues[valueVector->state->selVector->selectedPositions[i]],
+                ASSERT_EQ(valueVector->getValue<bool>(
+                              valueVector->state->selVector->selectedPositions[i]),
                     expectedValues[i]);
             }
         }
@@ -132,19 +135,18 @@ public:
 private:
     shared_ptr<ValueVector> getStringValueVector() {
         auto valueVector = make_shared<ValueVector>(STRING, memoryManager.get());
-        valueVector->addString(0, "This is a long string1");
-        valueVector->addString(1, "This is another long string");
-        valueVector->addString(2, "Substring test");
+        valueVector->setValue<string>(0, "This is a long string1");
+        valueVector->setValue<string>(1, "This is another long string");
+        valueVector->setValue<string>(2, "Substring test");
         return valueVector;
     }
     shared_ptr<ValueVector> getInt64ValueVector(bool isStartPosVector) {
         auto valueVector = make_shared<ValueVector>(INT64, memoryManager.get());
-        auto values = (int64_t*)valueVector->values;
         vector<int64_t> data =
             isStartPosVector ? vector<int64_t>{2, 1, 3} : vector<int64_t>{7, 10, 12};
-        values[0] = data[0];
-        values[1] = data[1];
-        values[2] = data[2];
+        valueVector->setValue(0, data[0]);
+        valueVector->setValue(1, data[1]);
+        valueVector->setValue(2, data[2]);
         return valueVector;
     }
 

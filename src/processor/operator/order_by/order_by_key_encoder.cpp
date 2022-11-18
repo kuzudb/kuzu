@@ -103,8 +103,8 @@ void OrderByKeyEncoder::encodeFlatVector(
         }
     } else {
         *tuplePtr = 0;
-        encodeFunctions[keyColIdx](
-            vector->values + vector->state->getPositionOfCurrIdx() * vector->getNumBytesPerValue(),
+        encodeFunctions[keyColIdx](vector->getData() + vector->state->getPositionOfCurrIdx() *
+                                                           vector->getNumBytesPerValue(),
             tuplePtr + 1, swapBytes);
     }
 }
@@ -112,7 +112,7 @@ void OrderByKeyEncoder::encodeFlatVector(
 void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->selVector->isUnfiltered()) {
-        auto value = vector->values + encodedTuples * vector->getNumBytesPerValue();
+        auto value = vector->getData() + encodedTuples * vector->getNumBytesPerValue();
         if (vector->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
@@ -139,7 +139,7 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
                 encodeFunctions[keyColIdx](
-                    vector->values +
+                    vector->getData() +
                         vector->state->selVector->selectedPositions[i + encodedTuples] *
                             vector->getNumBytesPerValue(),
                     tuplePtr + 1, swapBytes);
@@ -154,8 +154,9 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
                     }
                 } else {
                     *tuplePtr = 0;
-                    encodeFunctions[keyColIdx](vector->values + pos * vector->getNumBytesPerValue(),
-                        tuplePtr + 1, swapBytes);
+                    encodeFunctions[keyColIdx](
+                        vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1,
+                        swapBytes);
                 }
                 tuplePtr += numBytesPerTuple;
             }

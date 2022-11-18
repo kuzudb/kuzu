@@ -43,7 +43,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
     DataType dataType, const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes,
     bool isInMemory, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, isInMemory, wal),
-      dataType{move(dataType)}, elementSize{elementSize} {
+      dataType{std::move(dataType)}, elementSize{elementSize} {
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
 }
 
@@ -140,7 +140,6 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
     const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
     NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists) {
-    auto nodeValues = (nodeID_t*)vector->values;
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, physicalPageIdx, *wal, transaction->getType());
@@ -156,7 +155,7 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
         nodeID_t nodeID{0, 0};
         nodeIDCompressionScheme.readNodeID(currentFrameHead, &nodeID);
         currentFrameHead += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
-        nodeValues[vectorStartPos + i] = nodeID;
+        vector->setValue(vectorStartPos + i, nodeID);
     }
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
@@ -177,7 +176,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     auto vectorBytesOffset = vectorStartPos * elementSize;
     auto frameBytesOffset = pagePosOfFirstElement * elementSize;
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset,
+    memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
         numValuesToRead * elementSize);
     readNullBitsFromAPage(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);

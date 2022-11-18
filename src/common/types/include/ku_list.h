@@ -16,7 +16,7 @@ public:
 private:
     friend class InMemOverflowBufferUtils;
 
-    void set(const vector<uint8_t*>& parameters, DataTypeID childTypeId);
+    void set(const std::vector<uint8_t*>& parameters, DataTypeID childTypeId);
 
 public:
     uint64_t size;

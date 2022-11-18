@@ -12,7 +12,7 @@ static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
         selVector->resetSelectorToValuePosBuffer();
     }
     sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
-        return ((nodeID_t*)nodeIDVector->values)[left] < ((nodeID_t*)nodeIDVector->values)[right];
+        return nodeIDVector->getValue<nodeID_t>(left) < nodeIDVector->getValue<nodeID_t>(right);
     });
 }
 
