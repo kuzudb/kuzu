@@ -1,6 +1,7 @@
 #include "include/py_query_result.h"
 
 #include <fstream>
+#include <string>
 
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
@@ -11,7 +12,9 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
-        .def("writeToCSV", &PyQueryResult::writeToCSV)
+        .def("writeToCSV", &PyQueryResult::writeToCSV, py::arg("filename"),
+            py::arg("delimiter") = ",", py::arg("escapeCharacter") = "\"",
+            py::arg("newline") = "\n")
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
         .def("getColumnNames", &PyQueryResult::getColumnNames)
@@ -35,8 +38,15 @@ py::list PyQueryResult::getNext() {
     return move(result);
 }
 
-void PyQueryResult::writeToCSV(py::str filename) {
-    queryResult->writeToCSV(filename);
+void PyQueryResult::writeToCSV(
+    py::str filename, py::str delimiter, py::str escapeCharacter, py::str newline) {
+    std::string delimiterStr = delimiter;
+    std::string escapeCharacterStr = escapeCharacter;
+    std::string newlineStr = newline;
+    assert(delimiterStr.size() == 1);
+    assert(escapeCharacterStr.size() == 1);
+    assert(newlineStr.size() == 1);
+    queryResult->writeToCSV(filename, delimiterStr[0], escapeCharacterStr[0], newlineStr[0]);
 }
 
 void PyQueryResult::close() {

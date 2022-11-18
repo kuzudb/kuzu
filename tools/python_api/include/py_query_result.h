@@ -19,7 +19,7 @@ public:
 
     py::list getNext();
 
-    void writeToCSV(py::str filename);
+    void writeToCSV(py::str filename, py::str delimiter, py::str escapeCharacter, py::str newline);
 
     void close();
 

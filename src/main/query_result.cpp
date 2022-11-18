@@ -31,10 +31,12 @@ shared_ptr<FlatTuple> QueryResult::getNext() {
     return iterator->getNextFlatTuple();
 }
 
-void QueryResult::writeToCSV(string fileName) {
+void QueryResult::writeToCSV(string fileName, char delimiter, char escapeCharacter, char newline) {
     ofstream file;
     file.open(fileName);
     shared_ptr<FlatTuple> nextTuple;
+    assert(delimiter != '\0');
+    assert(newline != '\0');
     while (hasNext()) {
         nextTuple = getNext();
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
@@ -45,33 +47,43 @@ void QueryResult::writeToCSV(string fileName) {
                 isStringList = true;
             }
             bool surroundQuotes = false;
-            string thisValueStr;
+            string csvStr;
             for (long unsigned int j = 0; j < resultVal.length(); j++) {
                 if (!surroundQuotes) {
-                    if (resultVal[j] == '"' || resultVal[j] == '\n' || resultVal[j] == ',') {
+                    if (resultVal[j] == escapeCharacter || resultVal[j] == newline ||
+                        resultVal[j] == delimiter) {
                         surroundQuotes = true;
                     }
                 }
-                if (resultVal[j] == '"') {
-                    thisValueStr += "\"\"";
+                if (resultVal[j] == escapeCharacter) {
+                    csvStr += escapeCharacter;
+                    csvStr += escapeCharacter;
                 } else if (resultVal[j] == ',' && isStringList) {
-                    thisValueStr += "\"\",\"\"";
+                    csvStr += escapeCharacter;
+                    csvStr += escapeCharacter;
+                    csvStr += ',';
+                    csvStr += escapeCharacter;
+                    csvStr += escapeCharacter;
                 } else if (resultVal[j] == '[' && isStringList) {
-                    thisValueStr += "[\"\"";
+                    csvStr += "[";
+                    csvStr += escapeCharacter;
+                    csvStr += escapeCharacter;
                 } else if (resultVal[j] == ']' && isStringList) {
-                    thisValueStr += "\"\"]";
+                    csvStr += escapeCharacter;
+                    csvStr += escapeCharacter;
+                    csvStr += "]";
                 } else {
-                    thisValueStr += resultVal[j];
+                    csvStr += resultVal[j];
                 }
             }
             if (surroundQuotes) {
-                thisValueStr = '"' + thisValueStr + '"';
+                csvStr = escapeCharacter + csvStr + escapeCharacter;
             }
-            file << thisValueStr;
+            file << csvStr;
             if (idx < nextTuple->len() - 1) {
-                file << ",";
+                file << delimiter;
             } else {
-                file << endl;
+                file << newline;
             }
         }
     }

@@ -53,7 +53,8 @@ public:
     // TODO: this is not efficient and should be replaced by iterator
     std::shared_ptr<processor::FlatTuple> getNext();
 
-    void writeToCSV(string fileName);
+    void writeToCSV(
+        string fileName, char delimiter = ',', char escapeCharacter = '"', char newline = '\n');
 
     inline uint64_t getNumColumns() const { return header->columnDataTypes.size(); }
 
