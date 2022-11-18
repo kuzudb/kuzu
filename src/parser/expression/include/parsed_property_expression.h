@@ -14,11 +14,6 @@ public:
 
     inline string getPropertyName() const { return propertyName; }
 
-    bool equals(const ParsedExpression& other) const override {
-        return ParsedExpression::equals(other) &&
-               propertyName == ((ParsedPropertyExpression&)other).propertyName;
-    }
-
 private:
     string propertyName;
 };

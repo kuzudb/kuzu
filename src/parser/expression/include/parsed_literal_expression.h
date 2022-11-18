@@ -15,12 +15,6 @@ public:
 
     inline Literal* getLiteral() const { return literal.get(); }
 
-    bool equals(const ParsedExpression& other) const override {
-        return ParsedExpression::equals(other) &&
-               TypeUtils::toString(*literal) ==
-                   TypeUtils::toString(*((ParsedLiteralExpression&)other).literal);
-    }
-
 private:
     unique_ptr<Literal> literal;
 };

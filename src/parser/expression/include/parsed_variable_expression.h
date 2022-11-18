@@ -13,11 +13,6 @@ public:
 
     inline string getVariableName() const { return variableName; }
 
-    bool equals(const ParsedExpression& other) const override {
-        return ParsedExpression::equals(other) &&
-               variableName == ((ParsedVariableExpression&)other).variableName;
-    }
-
 private:
     string variableName;
 };

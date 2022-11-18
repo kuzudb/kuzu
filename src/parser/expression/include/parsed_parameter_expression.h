@@ -13,11 +13,6 @@ public:
 
     inline string getParameterName() const { return parameterName; }
 
-    bool equals(const ParsedExpression& other) const override {
-        return ParsedExpression::equals(other) &&
-               parameterName == ((ParsedParameterExpression&)other).parameterName;
-    }
-
 private:
     string parameterName;
 };

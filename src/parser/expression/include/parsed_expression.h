@@ -36,12 +36,6 @@ public:
 
     inline ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
 
-    virtual bool equals(const ParsedExpression& other) const;
-
-    bool operator==(const ParsedExpression& other) const { return equals(other); }
-
-    bool operator!=(const ParsedExpression& other) const { return !equals(other); }
-
 protected:
     ParsedExpression(ExpressionType type, string rawName) : type{type}, rawName{move(rawName)} {}
 

@@ -21,8 +21,6 @@ public:
 
     inline ParsedExpression* getWhereExpression() const { return whereExpression.get(); }
 
-    bool operator==(const WithClause& other) const;
-
 private:
     unique_ptr<ParsedExpression> whereExpression;
 };

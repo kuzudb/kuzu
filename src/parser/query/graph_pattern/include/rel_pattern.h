@@ -28,12 +28,6 @@ public:
 
     inline ArrowDirection getDirection() const { return arrowDirection; }
 
-    bool equals(const kuzu::parser::NodePattern& other) const override {
-        auto& otherRel = (RelPattern&)other;
-        return NodePattern::equals(other) && lowerBound == otherRel.lowerBound &&
-               upperBound == otherRel.upperBound && arrowDirection == otherRel.arrowDirection;
-    }
-
 private:
     string lowerBound;
     string upperBound;

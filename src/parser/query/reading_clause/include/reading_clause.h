@@ -14,12 +14,6 @@ public:
 
     inline ClauseType getClauseType() const { return clauseType; }
 
-    virtual bool equals(const ReadingClause& other) const { return clauseType == other.clauseType; }
-
-    bool operator==(const ReadingClause& other) const { return equals(other); }
-
-    bool operator!=(const ReadingClause& other) const { return equals(other); }
-
 private:
     ClauseType clauseType;
 };

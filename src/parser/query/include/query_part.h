@@ -30,10 +30,6 @@ public:
 
     inline WithClause* getWithClause() const { return withClause.get(); }
 
-    bool operator==(const QueryPart& other) const;
-
-    bool operator!=(const QueryPart& other) const { return !operator==(other); }
-
 private:
     vector<unique_ptr<ReadingClause>> readingClauses;
     vector<unique_ptr<UpdatingClause>> updatingClauses;

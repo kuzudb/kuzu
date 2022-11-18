@@ -55,27 +55,5 @@ private:
     vector<Column*> columns;
 };
 
-class SetNodeUnstructuredProperty : public BaseSetNodeProperty {
-public:
-    SetNodeUnstructuredProperty(vector<DataPos> nodeIDPositions,
-        vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
-        vector<pair<uint32_t, UnstructuredPropertyLists*>> propertyKeyListPairs,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseSetNodeProperty{std::move(nodeIDPositions), std::move(expressionEvaluators),
-              std::move(child), id, paramsString},
-          propertyKeyListPairs{std::move(propertyKeyListPairs)} {}
-
-    PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SET_UNSTRUCTURED_NODE_PROPERTY;
-    }
-
-    bool getNextTuples() override;
-
-    unique_ptr<PhysicalOperator> clone() override;
-
-private:
-    vector<pair<uint32_t, UnstructuredPropertyLists*>> propertyKeyListPairs;
-};
-
 } // namespace processor
 } // namespace kuzu
