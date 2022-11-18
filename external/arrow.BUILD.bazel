@@ -1,37 +1,7 @@
-load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
-package(default_visibility = ["//visibility:public"])
-
-filegroup(
-    name = "all_srcs",
-    srcs = glob(["**"]),
-)
-
-cmake(
-    name = "arrow",
-    build_args = [
-        "-j `nproc`",
-        "-std:c11",
-        "-std=c11",
-    ],
-    cache_entries = {
-        "CMAKE_C_FLAGS": "-std=c11",
-        "CMAKE_BUILD_TYPE": "Release",
-        "ARROW_BUILD_SHARED": "OFF",
-        "ARROW_BUILD_STATIC": "ON",
-        "ARROW_BUILD_TESTS": "OFF",
-        "ARROW_JEMALLOC": "OFF",
-        "CMAKE_CXX_STANDARD": "11",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_CXX_EXTENSIONS": "OFF",
-        "CMAKE_C_STANDARD": "11",
-    },
-    copts = [
-        "-std:c11",
-    ],
-    lib_source = ":all_srcs",
-    out_static_libs = ["libarrow.a"],
-    working_directory = "cpp",
-    deps = [
-    ],
+cc_library(
+   name = "lib",
+   srcs = ["libarrow.dylib"],
+   visibility = ["//visibility:public"],
 )

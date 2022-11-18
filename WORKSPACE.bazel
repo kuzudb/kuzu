@@ -88,26 +88,8 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.8.0.tar.gz",
 )
 
-http_archive(
-    name = "rules_foreign_cc",
-    sha256 = "bcd0c5f46a49b85b384906daae41d277b3dc0ff27c7c752cc51e43048a58ec83",
-    strip_prefix = "rules_foreign_cc-0.7.1",
-    urls = [
-        "https://github.com/bazelbuild/rules_foreign_cc/archive/0.7.1.tar.gz",
-    ],
+new_local_repository(
+    name = "arrow_thread",
+    path = "/opt/homebrew/Cellar/apache-arrow/9.0.0_4/lib",
+    build_file = "external/arrow.BUILD.bazel",
 )
-
-load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
-
-rules_foreign_cc_dependencies()
-
-ARROW_VERSION = "18e7cbf75f9b2cb58571a33f0dbd8b4ed954f23b"
-http_archive(
-    name = "arrow",
-    build_file = "arrow.BUILD.bazel",
-    strip_prefix = "arrow-" + ARROW_VERSION,
-    urls = [
-        "https://github.com/apache/arrow/archive/{}.zip".format(ARROW_VERSION),
-    ],
-)
-
