@@ -103,7 +103,7 @@ private:
     map<table_id_t, unique_ptr<PrimaryKeyIndex>> pkIndexes;
     vector<map<table_id_t, unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
     vector<map<table_id_t, atomic<uint64_t>>> directionNumRelsPerTable{2};
-    vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};
+    vector<map<table_id_t, NodeIDCompressionScheme>> directionNodeIDCompressionScheme{2};
     vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
     vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};
     vector<table_adj_in_mem_lists_map_t> directionTableAdjLists{2};

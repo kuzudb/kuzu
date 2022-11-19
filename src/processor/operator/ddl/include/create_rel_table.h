@@ -11,8 +11,8 @@ class CreateRelTable : public CreateTable {
 public:
     CreateRelTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        SrcDstTableIDs srcDstTableIDs, uint32_t id, const string& paramsString,
-        RelsStatistics* relsStatistics)
+        vector<pair<table_id_t, table_id_t>> srcDstTableIDs, uint32_t id,
+        const string& paramsString, RelsStatistics* relsStatistics)
         : CreateTable{catalog, move(tableName), move(propertyNameDataTypes), id, paramsString},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)},
           relsStatistics{relsStatistics} {}
@@ -28,7 +28,7 @@ public:
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstTableIDs srcDstTableIDs;
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
     RelsStatistics* relsStatistics;
 };
 

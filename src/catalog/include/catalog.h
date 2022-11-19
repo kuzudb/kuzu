@@ -45,7 +45,8 @@ public:
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
+        vector<PropertyNameDataType> structuredPropertyDefinitions,
+        vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     virtual inline string getNodeTableName(table_id_t tableID) const {
         return nodeTableSchemas.at(tableID)->tableName;
@@ -57,11 +58,9 @@ public:
     inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
         return nodeTableSchemas.at(tableID).get();
     }
-    inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
+    virtual inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
         return relTableSchemas.at(tableID).get();
     }
-
-    inline uint64_t getNumNodeTables() const { return nodeTableSchemas.size(); }
 
     virtual inline bool containNodeTable(const string& tableName) const {
         return end(nodeTableNameToIDMap) != nodeTableNameToIDMap.find(tableName);
@@ -96,9 +95,6 @@ public:
     const Property& getNodePrimaryKeyProperty(table_id_t tableID) const;
 
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
-    inline const vector<Property>& getStructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->structuredProperties;
-    }
     inline const vector<Property>& getUnstructuredNodeProperties(table_id_t tableID) const {
         return nodeTableSchemas.at(tableID)->unstructuredProperties;
     }
@@ -115,6 +111,12 @@ public:
     inline unordered_map<table_id_t, unique_ptr<RelTableSchema>>& getRelTableSchemas() {
         return relTableSchemas;
     }
+    inline const unordered_set<table_id_t> getNodeTableIDsForRelTableDirection(
+        table_id_t relTableID, RelDirection direction) const {
+        auto relTableSchema = getRelTableSchema(relTableID);
+        return direction == FWD ? relTableSchema->getUniqueSrcTableIDs() :
+                                  relTableSchema->getUniqueDstTableIDs();
+    }
 
     void removeTableSchema(TableSchema* tableSchema);
 
@@ -122,8 +124,6 @@ public:
      * Graph topology functions.
      */
 
-    const unordered_set<table_id_t>& getNodeTableIDsForRelTableDirection(
-        table_id_t tableID, RelDirection direction) const;
     virtual const unordered_set<table_id_t>& getRelTableIDsForNodeTableDirection(
         table_id_t tableID, RelDirection direction) const;
 
@@ -188,7 +188,8 @@ public:
         vector<PropertyNameDataType> structuredPropertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs);
+        vector<PropertyNameDataType> structuredPropertyDefinitions,
+        vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     inline void setUnstructuredPropertiesOfNodeTableSchema(
         vector<string>& unstructuredProperties, table_id_t tableID) {

@@ -54,12 +54,10 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     }
     // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    validateNodeAndRelTableIsConnected(
-        catalog, tableID, leftNode->getTableID(), isLeftNodeSrc ? FWD : BWD);
-    validateNodeAndRelTableIsConnected(
-        catalog, tableID, rightNode->getTableID(), isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
+    validateNodeAndRelTableIsConnected(
+        catalog, tableID, srcNode->getTableID(), dstNode->getTableID());
     if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }

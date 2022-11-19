@@ -61,17 +61,17 @@ void InMemRelCSVCopier::initializeColumnsAndLists() {
     directionNumRelsPerTable.resize(2);
     directionTableListSizes.resize(2);
     for (auto relDirection : REL_DIRECTIONS) {
-        directionNodeIDCompressionScheme[relDirection] = NodeIDCompressionScheme(
-            catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                relTableSchema->tableID, !relDirection));
-        for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
+        for (auto& boundTableID : catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+                 relTableSchema->tableID, relDirection)) {
             // Note we cannot do:
             // directionNumRelsPerTable[relDirection][tableIDSchema.first] = atomic<uint64_t>(0);
             // because atomic values are not movable.
-            directionNumRelsPerTable[relDirection].emplace(tableIDSchema.first, 0);
-            directionTableListSizes[relDirection][tableIDSchema.first] =
-                make_unique<atomic_uint64_vec_t>(
-                    maxNodeOffsetsPerTable.at(tableIDSchema.first) + 1 /* num nodes */);
+            directionNumRelsPerTable[relDirection].emplace(boundTableID, 0);
+            directionTableListSizes[relDirection][boundTableID] = make_unique<atomic_uint64_vec_t>(
+                maxNodeOffsetsPerTable.at(boundTableID) + 1 /* num nodes */);
+            directionNodeIDCompressionScheme[relDirection][boundTableID] = NodeIDCompressionScheme(
+                relTableSchema->getUniqueNbrTableIDsForBoundTableIDDirection(
+                    relDirection, boundTableID));
         }
         if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relTableSchema->tableID, relDirection)) {
@@ -88,50 +88,50 @@ void InMemRelCSVCopier::initializeColumnsAndLists() {
 }
 
 void InMemRelCSVCopier::initializeColumns(RelDirection relDirection) {
-    auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+    auto boundTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
         relTableSchema->tableID, relDirection);
-    for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) + 1;
-        directionTableAdjColumns[relDirection].emplace(nodeTableID,
+    for (auto boundTableID : boundTableIDs) {
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
+        directionTableAdjColumns[relDirection].emplace(boundTableID,
             make_unique<InMemAdjColumn>(
                 StorageUtils::getAdjColumnFName(outputDirectory, relTableSchema->tableID,
-                    nodeTableID, relDirection, DBFileType::WAL_VERSION),
-                directionNodeIDCompressionScheme[relDirection], numNodes));
+                    boundTableID, relDirection, DBFileType::WAL_VERSION),
+                directionNodeIDCompressionScheme[relDirection][boundTableID], numNodes));
         vector<unique_ptr<InMemColumn>> propertyColumns(relTableSchema->getNumProperties());
         for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
             auto propertyID = relTableSchema->properties[i].propertyID;
             auto propertyDataType = relTableSchema->properties[i].dataType;
             auto fName =
                 StorageUtils::getRelPropertyColumnFName(outputDirectory, relTableSchema->tableID,
-                    nodeTableID, relDirection, propertyID, DBFileType::WAL_VERSION);
+                    boundTableID, relDirection, propertyID, DBFileType::WAL_VERSION);
             propertyColumns[i] =
                 InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes);
         }
-        directionTablePropertyColumns[relDirection].emplace(nodeTableID, move(propertyColumns));
+        directionTablePropertyColumns[relDirection].emplace(boundTableID, move(propertyColumns));
     }
 }
 
 void InMemRelCSVCopier::initializeLists(RelDirection relDirection) {
-    auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
+    auto boundTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
         relTableSchema->tableID, relDirection);
-    for (auto nodeTableID : nodeTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(nodeTableID) + 1;
-        directionTableAdjLists[relDirection].emplace(nodeTableID,
+    for (auto boundTableID : boundTableIDs) {
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
+        directionTableAdjLists[relDirection].emplace(boundTableID,
             make_unique<InMemAdjLists>(
                 StorageUtils::getAdjListsFName(outputDirectory, relTableSchema->tableID,
-                    nodeTableID, relDirection, DBFileType::WAL_VERSION),
-                directionNodeIDCompressionScheme[relDirection], numNodes));
+                    boundTableID, relDirection, DBFileType::WAL_VERSION),
+                directionNodeIDCompressionScheme[relDirection][boundTableID], numNodes));
         vector<unique_ptr<InMemLists>> propertyLists(relTableSchema->getNumProperties());
         for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
             auto propertyName = relTableSchema->properties[i].name;
             auto propertyDataType = relTableSchema->properties[i].dataType;
             auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
-                relTableSchema->tableID, nodeTableID, relDirection,
+                relTableSchema->tableID, boundTableID, relDirection,
                 relTableSchema->properties[i].propertyID, DBFileType::WAL_VERSION);
             propertyLists[i] =
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
         }
-        directionTablePropertyLists[relDirection].emplace(nodeTableID, move(propertyLists));
+        directionTablePropertyLists[relDirection].emplace(boundTableID, move(propertyLists));
     }
 }
 
@@ -449,12 +449,12 @@ void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
 void InMemRelCSVCopier::initAdjListsHeaders() {
     logger->debug("Initializing AdjListHeaders for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto numBytesPerNode =
-            directionNodeIDCompressionScheme[relDirection].getNumBytesForNodeIDAfterCompression();
-        for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
+        for (auto& [boundTableID, adjList] : directionTableAdjLists[relDirection]) {
+            auto numBytesPerNode = directionNodeIDCompressionScheme[relDirection][boundTableID]
+                                       .getNumBytesForNodeIDAfterCompression();
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                calculateListHeadersTask, maxNodeOffsetsPerTable.at(tableID) + 1, numBytesPerNode,
-                directionTableListSizes[relDirection][tableID].get(),
+                calculateListHeadersTask, maxNodeOffsetsPerTable.at(boundTableID) + 1,
+                numBytesPerNode, directionTableListSizes[relDirection][boundTableID].get(),
                 adjList->getListHeadersBuilder(), logger));
         }
     }
@@ -466,12 +466,12 @@ void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
-            auto listSizes = directionTableListSizes[relDirection][tableID].get();
+        for (auto& [boundTableID, adjList] : directionTableAdjLists[relDirection]) {
+            auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
+            auto listSizes = directionTableListSizes[relDirection][boundTableID].get();
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                 calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
-                directionNodeIDCompressionScheme[relDirection]
+                directionNodeIDCompressionScheme[relDirection][boundTableID]
                     .getNumBytesForNodeIDAfterCompression(),
                 listSizes, adjList->getListHeadersBuilder(), adjList.get(), false /*hasNULLBytes*/,
                 logger));
@@ -480,7 +480,8 @@ void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
                     Types::getDataTypeSize(property.dataType), listSizes,
                     adjList->getListHeadersBuilder(),
-                    directionTablePropertyLists[relDirection][tableID][property.propertyID].get(),
+                    directionTablePropertyLists[relDirection][boundTableID][property.propertyID]
+                        .get(),
                     true /*hasNULLBytes*/, logger));
             }
         }
@@ -694,8 +695,6 @@ void InMemRelCSVCopier::sortAndCopyOverflowValues() {
 void InMemRelCSVCopier::saveToFile() {
     logger->debug("Writing columns and Lists to disk for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-            relTableSchema->tableID, relDirection);
         // Write columns
         for (auto& [_, adjColumn] : directionTableAdjColumns[relDirection]) {
             adjColumn->saveToFile();

@@ -9,18 +9,18 @@ class BoundCreateRelClause : public BoundCreateTable {
 public:
     explicit BoundCreateRelClause(string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        SrcDstTableIDs srcDstTableIDs)
+        vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
         : BoundCreateTable{StatementType::CREATE_REL_CLAUSE, move(tableName),
               move(propertyNameDataTypes)},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
 
     RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
+    vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstTableIDs srcDstTableIDs;
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
 };
 
 } // namespace binder

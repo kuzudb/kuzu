@@ -119,33 +119,32 @@ void RelTable::initAdjColumnOrLists(
     adjColumns = vector<table_adj_columns_map_t>{2};
     adjLists = vector<table_adj_lists_map_t>{2};
     for (auto relDirection : REL_DIRECTIONS) {
-        const auto& nodeTableIDs =
-            catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                tableID, relDirection);
-        const auto& nbrNodeTableIDs =
-            catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                tableID, !relDirection);
-        for (auto nodeTableID : nodeTableIDs) {
-            NodeIDCompressionScheme nodeIDCompressionScheme(nbrNodeTableIDs);
+        for (auto& srcDstTableID :
+            catalog.getReadOnlyVersion()->getRelTableSchema(tableID)->getSrcDstTableIDs()) {
+            auto boundTableID = relDirection == FWD ? srcDstTableID.first : srcDstTableID.second;
+            NodeIDCompressionScheme nodeIDCompressionScheme(
+                catalog.getReadOnlyVersion()
+                    ->getRelTableSchema(tableID)
+                    ->getUniqueNbrTableIDsForBoundTableIDDirection(relDirection, boundTableID));
             logger->debug("DIRECTION {} nodeTableForAdjColumnAndProperties {} relTable {} "
                           "nodeIDCompressionScheme: commonTableID: {}",
-                relDirection, nodeTableID, tableID, nodeIDCompressionScheme.getCommonTableID());
+                relDirection, boundTableID, tableID, nodeIDCompressionScheme.getCommonTableID());
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     tableID, relDirection)) {
                 // Add adj column.
                 auto adjColumn = make_unique<AdjColumn>(
                     StorageUtils::getAdjColumnStructureIDAndFName(
-                        wal->getDirectory(), tableID, nodeTableID, relDirection),
+                        wal->getDirectory(), tableID, boundTableID, relDirection),
                     bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
-                adjColumns[relDirection].emplace(nodeTableID, move(adjColumn));
+                adjColumns[relDirection].emplace(boundTableID, move(adjColumn));
             } else {
                 // Add adj list.
                 auto adjList = make_unique<AdjLists>(
                     StorageUtils::getAdjListsStructureIDAndFName(
-                        wal->getDirectory(), tableID, nodeTableID, relDirection),
+                        wal->getDirectory(), tableID, boundTableID, relDirection),
                     bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal,
                     adjAndPropertyListsUpdateStore.get());
-                adjLists[relDirection].emplace(nodeTableID, move(adjList));
+                adjLists[relDirection].emplace(boundTableID, move(adjList));
             }
         }
     }
@@ -173,20 +172,20 @@ void RelTable::initPropertyListsAndColumns(
 void RelTable::initPropertyColumnsForRelTable(
     const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager, WAL* wal) {
     logger->debug("Initializing PropertyColumns: relTable {}", tableID);
-    for (auto& nodeTableID :
+    for (auto& boundTableID :
         catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
         auto& properties = catalog.getReadOnlyVersion()->getRelProperties(tableID);
         propertyColumns[relDirection].emplace(
-            nodeTableID, vector<unique_ptr<Column>>(properties.size()));
+            boundTableID, vector<unique_ptr<Column>>(properties.size()));
         for (auto& property : properties) {
             logger->debug(
                 "DIR {} nodeIDForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
-                relDirection, nodeTableID, property.propertyID, property.dataType.typeID,
+                relDirection, boundTableID, property.propertyID, property.dataType.typeID,
                 property.name);
-            propertyColumns[relDirection].at(nodeTableID)[property.propertyID] =
+            propertyColumns[relDirection].at(boundTableID)[property.propertyID] =
                 ColumnFactory::getColumn(
                     StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
-                        tableID, nodeTableID, relDirection, property.propertyID),
+                        tableID, boundTableID, relDirection, property.propertyID),
                     property.dataType, bufferManager, isInMemoryMode, wal);
         }
     }
@@ -196,21 +195,21 @@ void RelTable::initPropertyColumnsForRelTable(
 void RelTable::initPropertyListsForRelTable(
     const Catalog& catalog, RelDirection relDirection, BufferManager& bufferManager, WAL* wal) {
     logger->debug("Initializing PropertyLists for rel {}", tableID);
-    for (auto& nodeTableID :
+    for (auto& boundTableID :
         catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(tableID, relDirection)) {
         auto& properties = catalog.getReadOnlyVersion()->getRelProperties(tableID);
-        auto adjListsHeaders = adjLists[relDirection].at(nodeTableID)->getHeaders();
-        propertyLists[relDirection].emplace(nodeTableID,
+        auto adjListsHeaders = adjLists[relDirection].at(boundTableID)->getHeaders();
+        propertyLists[relDirection].emplace(boundTableID,
             vector<unique_ptr<ListsWithAdjAndPropertyListsUpdateStore>>(properties.size()));
         for (auto& property : properties) {
             auto propertyID = property.propertyID;
             logger->debug("relDirection {} nodeTableForAdjColumnAndProperties {} propertyIdx {} "
                           "type {} name `{}`",
-                relDirection, nodeTableID, propertyID, property.dataType.typeID, property.name);
-            propertyLists[relDirection].at(nodeTableID)[property.propertyID] =
+                relDirection, boundTableID, propertyID, property.dataType.typeID, property.name);
+            propertyLists[relDirection].at(boundTableID)[property.propertyID] =
                 ListsFactory::getListsWithAdjAndPropertyListsUpdateStore(
                     StorageUtils::getRelPropertyListsStructureIDAndFName(
-                        wal->getDirectory(), tableID, nodeTableID, relDirection, property),
+                        wal->getDirectory(), tableID, boundTableID, relDirection, property),
                     property.dataType, adjListsHeaders, bufferManager, isInMemoryMode, wal,
                     adjAndPropertyListsUpdateStore.get());
         }

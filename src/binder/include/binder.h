@@ -120,7 +120,7 @@ private:
 
     // E.g. MATCH (:person)-[:studyAt]->(:person) ...
     static void validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_id_t relTableID,
-        table_id_t nodeTableID, RelDirection direction);
+        table_id_t srcTableID, table_id_t dstTableID);
 
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);

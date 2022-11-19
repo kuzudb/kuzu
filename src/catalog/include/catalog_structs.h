@@ -11,14 +11,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-struct SrcDstTableIDs {
-    SrcDstTableIDs(unordered_set<table_id_t> srcTableIDs, unordered_set<table_id_t> dstTableIDs)
-        : srcTableIDs{move(srcTableIDs)}, dstTableIDs{move(dstTableIDs)} {}
-    SrcDstTableIDs() = default;
-    unordered_set<table_id_t> srcTableIDs;
-    unordered_set<table_id_t> dstTableIDs;
-};
-
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
 string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
@@ -118,12 +110,10 @@ struct RelTableSchema : TableSchema {
     RelTableSchema()
         : TableSchema{"", UINT64_MAX, false /* isNodeTable */}, relMultiplicity{MANY_MANY} {}
     RelTableSchema(string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
-        vector<Property> properties, SrcDstTableIDs srcDstTableIDs)
+        vector<Property> properties, vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
         : TableSchema{move(tableName), tableID, false /* isNodeTable */},
           relMultiplicity{relMultiplicity}, properties{move(properties)}, srcDstTableIDs{move(
                                                                               srcDstTableIDs)} {}
-
-    unordered_set<table_id_t> getAllNodeTableIDs() const;
 
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
@@ -139,7 +129,7 @@ struct RelTableSchema : TableSchema {
                relMultiplicity == (direction == FWD ? MANY_ONE : ONE_MANY);
     }
 
-    inline SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
+    inline vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
@@ -153,14 +143,26 @@ struct RelTableSchema : TableSchema {
                (relMultiplicity == MANY_ONE && relDirection == BWD);
     }
 
-    bool edgeContainsNodeTable(table_id_t tableID) const {
-        return srcDstTableIDs.srcTableIDs.contains(tableID) ||
-               srcDstTableIDs.dstTableIDs.contains(tableID);
+    inline bool edgeContainsNodeTable(table_id_t tableID) const {
+        return any_of(srcDstTableIDs.begin(), srcDstTableIDs.end(),
+            [tableID](pair<table_id_t, table_id_t> srcDstTableID) {
+                return srcDstTableID.first == tableID || srcDstTableID.second == tableID;
+            });
     }
+
+    unordered_set<table_id_t> getAllNodeTableIDs() const;
+
+    unordered_set<table_id_t> getUniqueSrcTableIDs() const;
+
+    unordered_set<table_id_t> getUniqueDstTableIDs() const;
+
+    unordered_set<table_id_t> getUniqueNbrTableIDsForBoundTableIDDirection(
+        RelDirection direction, table_id_t boundTableID) const;
 
     RelMultiplicity relMultiplicity;
     vector<Property> properties;
-    SrcDstTableIDs srcDstTableIDs;
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
 };
+
 } // namespace catalog
 } // namespace kuzu

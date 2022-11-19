@@ -10,7 +10,7 @@ class LogicalCreateRelTable : public LogicalDDL {
 
 public:
     LogicalCreateRelTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
-        RelMultiplicity relMultiplicity, SrcDstTableIDs srcDstTableIDs)
+        RelMultiplicity relMultiplicity, vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
         : LogicalDDL{move(tableName), move(propertyNameDataTypes)},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
 
@@ -20,7 +20,7 @@ public:
 
     inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    inline SrcDstTableIDs getSrcDstTableIDs() const { return srcDstTableIDs; }
+    inline vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
 
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateRelTable>(
@@ -29,7 +29,7 @@ public:
 
 private:
     RelMultiplicity relMultiplicity;
-    SrcDstTableIDs srcDstTableIDs;
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
 };
 
 } // namespace planner

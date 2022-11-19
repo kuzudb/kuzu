@@ -3,12 +3,11 @@
 namespace kuzu {
 namespace storage {
 
-RelStatistics::RelStatistics(SrcDstTableIDs srcDstTableIDs) : TableStatistics{0} {
+RelStatistics::RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
+    : TableStatistics{0} {
     numRelsPerDirectionBoundTable.resize(2);
-    for (auto srcTableID : srcDstTableIDs.srcTableIDs) {
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
         numRelsPerDirectionBoundTable[RelDirection::FWD].emplace(srcTableID, 0);
-    }
-    for (auto dstTableID : srcDstTableIDs.dstTableIDs) {
         numRelsPerDirectionBoundTable[RelDirection::BWD].emplace(dstTableID, 0);
     }
 }

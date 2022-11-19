@@ -194,7 +194,8 @@ private:
     vector<pair<string, string>> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
 
-    RelConnection transformRelConnection(CypherParser::KU_RelConnectionsContext& ctx);
+    vector<pair<string, string>> transformRelConnections(
+        CypherParser::KU_RelConnectionsContext& ctx);
 
     vector<string> transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx);
 

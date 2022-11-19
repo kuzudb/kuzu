@@ -735,7 +735,7 @@ unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
                                    vector<pair<string, string>>();
     auto relMultiplicity =
         ctx.oC_SymbolicName() ? transformSymbolicName(*ctx.oC_SymbolicName()) : "MANY_MANY";
-    auto relConnections = transformRelConnection(*ctx.kU_RelConnections());
+    auto relConnections = transformRelConnections(*ctx.kU_RelConnections());
     return make_unique<CreateRelClause>(
         move(schemaName), move(propertyDefinitions), relMultiplicity, move(relConnections));
 }
@@ -775,19 +775,21 @@ string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintCon
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 
-RelConnection Transformer::transformRelConnection(CypherParser::KU_RelConnectionsContext& ctx) {
-    vector<string> srcTableNames, dstTableNames;
+vector<pair<string, string>> Transformer::transformRelConnections(
+    CypherParser::KU_RelConnectionsContext& ctx) {
+    vector<pair<string, string>> relConnections;
     if (!ctx.kU_RelConnection().empty()) {
         for (auto& relConnection : ctx.kU_RelConnection()) {
             auto newSrcTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[0]);
             auto newDstTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[1]);
-            srcTableNames.insert(
-                srcTableNames.end(), newSrcTableNames.begin(), newSrcTableNames.end());
-            dstTableNames.insert(
-                dstTableNames.end(), newDstTableNames.begin(), newDstTableNames.end());
+            for (auto& newSrcTableName : newSrcTableNames) {
+                for (auto& newDstTableName : newDstTableNames) {
+                    relConnections.emplace_back(newSrcTableName, newDstTableName);
+                }
+            }
         }
     }
-    return RelConnection(move(srcTableNames), move(dstTableNames));
+    return relConnections;
 }
 
 vector<string> Transformer::transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx) {
