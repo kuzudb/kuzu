@@ -9,4 +9,6 @@ class CopyCSVArrowNodeTest : public InMemoryDBTest {
     string getInputCSVDir() override { return "dataset/copy-csv-arrow-node-test/"; }
 };
 
-TEST_F(CopyCSVArrowNodeTest, ArrowTest) {}
+TEST_F(CopyCSVArrowNodeTest, ArrowTest) {
+    EXPECT_EQ(1, 1);
+}

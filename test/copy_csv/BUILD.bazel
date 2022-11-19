@@ -19,3 +19,23 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "copy_csv_arrow_node_test",
+    srcs = glob([
+        "copy_csv_arrow_node.cpp",
+    ]),
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//src/common:type_utils",
+        "//src/common/types",
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
