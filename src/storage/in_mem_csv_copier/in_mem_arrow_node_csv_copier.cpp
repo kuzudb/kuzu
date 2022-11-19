@@ -31,14 +31,9 @@ namespace storage {
             raise(-1);
         }
         calculateArrowNumBlocks(arrowFilePath, nodeTableSchema->tableName);
-        std::cout << "here !!!" << std::endl;
 
         auto unstructuredPropertyNames =
                 countLinesPerBlockAndParseUnstrPropertyNames(nodeTableSchema->getNumStructuredProperties());
-
-        for (auto lines: numLinesPerBlock) {
-            std::cout << lines << "************" << std::endl;
-        }
 
         catalog.setUnstructuredPropertiesOfNodeTableSchema(
                 unstructuredPropertyNames, nodeTableSchema->tableID);
@@ -161,16 +156,11 @@ namespace storage {
         pkIndex->bulkReserve(numNodes);
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-            std::cout << "OFFSET: " << offsetStart << std::endl;
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     populateColumnsAndCountUnstrPropertyListSizesTask<T>,
                     nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(), this));
             offsetStart += numLinesPerBlock[blockIdx];
         }
-        for (auto offset_i: numLinesPerBlock) {
-            std::cout << "  " << offset_i << "  ";
-        }
-        std::cout << std::endl;
         taskScheduler.waitAllTasksToCompleteOrError();
         logger->info("Flush the pk index to disk.");
         pkIndex->flush();
@@ -219,17 +209,14 @@ namespace storage {
                                                                                     uint64_t startOffset,
                                                                                     HashIndexBuilder<T> *pkIndex,
                                                                                     InMemArrowNodeCSVCopier *copier) {
-        std::cout << "Started block " << blockId << std::endl;
         copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
         std::shared_ptr<arrow::RecordBatch> rbatch;
         ARROW_ASSIGN_OR_RAISE(rbatch, copier->ipc_reader->ReadRecordBatch(blockId));
         auto arrow_columns = rbatch->columns();
-        std::cout << "current block id: " << blockId << "    current column length:  " << arrow_columns[0]->length() << std::endl;
-//        std::cout << "type: " << arrow_columns[0]->type_id() << std::endl;
         // TODO: Consider skip header
 //        skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
-        for (auto bufferOffset = 0u; bufferOffset < 50; ++ bufferOffset) {
+        for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++ bufferOffset) {
             putPropsOfLineIntoColumns(copier->structuredColumns,
                                       copier->nodeTableSchema->structuredProperties,
                                       overflowCursors,
@@ -237,12 +224,10 @@ namespace storage {
                                       startOffset + bufferOffset,
                                       bufferOffset);
         }
-        std::cout << "Finished 1 !!!" << std::endl;
         populatePKIndex(copier->structuredColumns[IDColumnIdx].get(), pkIndex, startOffset,
                         copier->numLinesPerBlock[blockId]);
-        std::cout << "Finished 2 !!!" << std::endl;
-        std::cout << "Finished block id:  " << blockId << std::endl;
         copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
+        return arrow::Status::OK();
     }
 
     void InMemArrowNodeCSVCopier::calcLengthOfUnstrPropertyLists(
@@ -317,7 +302,6 @@ namespace storage {
             const vector<Property> &structuredProperties, vector<PageByteCursor> &overflowCursors,
             std::vector<shared_ptr<arrow::Array>> &arrow_columns,
             uint64_t nodeOffset, uint64_t bufferOffset) {
-//        std::cout << "offset: " << nodeOffset << std::endl;
         for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
             auto column = structuredColumns[columnIdx].get();
 
@@ -330,7 +314,6 @@ namespace storage {
                     if (!arrow_columns[columnIdx]->IsNull(bufferOffset)) {
                         auto tokenIntArray = std::static_pointer_cast<arrow::Int64Array>(currentTokenArray);
                         int64_t int64Val = tokenIntArray->Value(0);
-//                        std::cout << "int64Val:  " << int64Val << std::endl;
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&int64Val));
                     }
                 }
