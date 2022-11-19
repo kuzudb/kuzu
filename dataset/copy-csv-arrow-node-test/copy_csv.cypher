@@ -1,1 +1,1 @@
-COPY arrow FROM "dataset/copy-csv-arrow-node-test/random_1000_rows.csv"
+COPY arrow FROM "dataset/copy-csv-arrow-node-test/random_100k_rows.csv"
