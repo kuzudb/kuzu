@@ -3,12 +3,13 @@
 #include <cassert>
 #include <cstring>
 
-#include "base_str_operation.h"
+#include "base_lower_upper_operation.h"
 
 #include "src/common/types/include/ku_string.h"
 
 using namespace std;
 using namespace kuzu::common;
+using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace function {
@@ -18,15 +19,7 @@ struct Lower {
 public:
     static inline void operation(
         ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector) {
-        BaseStrOperation::operation(input, result, resultValueVector, lowerStr);
-    }
-
-private:
-    static uint32_t lowerStr(char* str, uint32_t len) {
-        for (auto i = 0u; i < len; i++) {
-            str[i] = tolower(str[i]);
-        }
-        return len;
+        BaseLowerUpperOperation::operation(input, result, resultValueVector, false /* isUpper */);
     }
 };
 

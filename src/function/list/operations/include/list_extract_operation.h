@@ -5,6 +5,7 @@
 
 #include "src/common/types/include/ku_list.h"
 #include "src/common/types/include/ku_string.h"
+#include "src/function/string/operations/include/array_extract_operation.h"
 
 using namespace std;
 using namespace kuzu::common;
@@ -39,8 +40,7 @@ public:
         if (str.len < idx) {
             result.set("", 0);
         } else {
-            auto pos = idx > 0 ? min(idx, (int64_t)str.len) : max(str.len + idx, (int64_t)0) + 1;
-            result.set((char*)(str.getData() + pos - 1), 1 /* length */);
+            ArrayExtract::operation(str, idx, result);
         }
     }
 

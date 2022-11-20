@@ -193,6 +193,13 @@ abfsuni
 cswork
 deswork
 
+-NAME LowerUTF8String
+-QUERY MATCH (m:movies) RETURN lower(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LowerUnstructuredStr
 #-QUERY MATCH (o:organisation) RETURN lower(o.unstrStr)
@@ -207,6 +214,13 @@ deswork
 ABFSUNI
 CSWORK
 DESWORK
+
+-NAME UpperUTF8String
+-QUERY MATCH (m:movies) RETURN upper(m.name)
+---- 3
+SÓLÓ CÓN TU PÁREJÂ
+THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
+ROMA
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME UpperUnstructuredStr
@@ -268,6 +282,13 @@ inUsFBA
 kroWsC
 kroWsED
 
+-NAME ReverseUTF8String
+-QUERY MATCH (m:movies) RETURN reverse(m.name)
+---- 3
+âjeráp ut nóc ólóS
+eivom 🚗🍞🌦️🌍🧘🏻‍♂️😃😂 ehT
+amoR
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME ReverseUnstructuredStr
 #-QUERY MATCH (o:organisation) RETURN reverse(o.unstrStr)
@@ -318,6 +339,20 @@ Faroo
 <Greg
 Huber
 
+-NAME LpadUTF8String
+-QUERY MATCH (m:movies) RETURN lpad(m.name, 25, "âó")
+---- 3
+âóâóâóâSóló cón tu párejâ
+âóâThe 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+âóâóâóâóâóâóâóâóâóâóâRoma
+
+-NAME LpadNegativeCount
+-QUERY MATCH (m:movies) RETURN lpad(m.name, -1, ".")
+---- 3
+
+
+
+
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LpadStructuredStrAndStructuredInt
 #-QUERY MATCH (p:person) RETURN lpad(p.fName, p.ID, "<")
@@ -366,6 +401,20 @@ Elizabeth>>>>>>
 Farooq>>>>>>>>>
 Greg>>>>>>>>>>>
 Hubert Blaine W
+
+-NAME RpadUTF8String
+-QUERY MATCH (m:movies) RETURN rpad(m.name, 45, "âó😂😃🍞🚗")
+---- 3
+Sóló cón tu párejââó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movieâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
+Romaâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
+
+-NAME RpadNegativeCount
+-QUERY MATCH (m:movies) RETURN rpad(m.name, -1, "âó😂😃🍞🚗")
+---- 3
+
+
+
 
 -NAME RpadStructuredStrAndStructuredInt
 -QUERY MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
@@ -435,6 +484,13 @@ Farooq
 Greg
 Hubert Blai
 
+-NAME LeftPositiveIdxUTF8String
+-QUERY MATCH (m:movies) RETURN left(m.name, 6)
+---- 3
+Sóló c
+The 😂😃
+Roma
+
 -NAME LeftPositiveIdxStructuredStrAndStructuredInt
 -QUERY MATCH (o:organisation) RETURN left(o.name, o.ID)
 ---- 3
@@ -453,6 +509,13 @@ Eliza
 Fa
 
 Hubert Blaine Wolfeschlegelsteinhausenbergerd
+
+-NAME LeftNegativeIdxUTF8String
+-QUERY MATCH (m:movies) RETURN left(m.name, -7)
+---- 3
+Sóló cón tu
+The 😂😃🧘🏻‍♂️🌍🌦️🍞
+
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME LeftUnstructuredStrAndLiteralInt
@@ -479,6 +542,13 @@ Farooq
 Greg
 ergerdorff
 
+-NAME RightPositiveIdxUTF8String
+-QUERY MATCH (m:movies) RETURN right(m.name, 5)
+---- 3
+árejâ
+movie
+Roma
+
 -NAME RightPositiveIdxStructuredStrAndStructuredInt
 -QUERY MATCH (o:organisation) RETURN right(o.name, o.ID)
 ---- 3
@@ -497,6 +567,13 @@ abeth
 oq
 
 rt Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME RightNegativeIdxUTF8String
+-QUERY MATCH (m:movies) RETURN right(m.name, -3)
+---- 3
+ó cón tu párejâ
+ 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+a
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME RightUnstructuredStrAndLiteralInt
@@ -525,6 +602,27 @@ s
 k
 D
 
+-NAME ArrayExtractUTF8PositiveIdx
+-QUERY MATCH (m:movies) RETURN array_extract(m.name, 6)
+---- 3
+c
+😃
+a
+
+-NAME ArrayExtractUTF8NegativeIdx
+-QUERY MATCH (m:movies) RETURN array_extract(m.name, -5)
+---- 3
+á
+m
+R
+
+-NAME ArrayExtractUTF8ZeroIdx
+-QUERY MATCH (m:movies) RETURN array_extract(m.name, 0)
+---- 3
+
+
+
+
 -NAME ListExtractStructuredString
 -QUERY MATCH (o:organisation) RETURN o.name[2]
 ---- 3
@@ -550,6 +648,27 @@ B
 n
 r
 r
+
+-NAME ListExtractUTF8PositiveIdx
+-QUERY MATCH (m:movies) RETURN m.name[2]
+---- 3
+ó
+h
+o
+
+-NAME ListExtractUTF8NegativeIdx
+-QUERY MATCH (m:movies) RETURN m.name[-5]
+---- 3
+á
+m
+R
+
+-NAME ListExtractUTF8ZeroIdx
+-QUERY MATCH (m:movies) RETURN m.name[0]
+---- 3
+
+
+
 
 # TODO(Semih): Uncomment when enabling ad-hoc properties
 #-NAME ListExtractUnstructuredString
