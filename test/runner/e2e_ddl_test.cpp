@@ -116,14 +116,14 @@ public:
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                2);
+                3);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
             ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                3);
+                4);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
@@ -131,7 +131,7 @@ public:
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                3);
+                4);
         }
     }
 
@@ -338,6 +338,9 @@ TEST_F(TinySnbDDLTest, MultipleDropTables) {
     result = conn->query("DROP TABLE organisation");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
+    result = conn->query("DROP TABLE movies");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("movies"));
     result = conn->query(
         "create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score "
         "INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID));");

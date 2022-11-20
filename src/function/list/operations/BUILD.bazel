@@ -11,5 +11,6 @@ cc_library(
     ],
     deps = [
         "//src/common/types",
+        "//src/function/string/operations:string_operations"
     ],
 )

@@ -12,6 +12,7 @@ cc_library(
     ],
     deps = [
         "//src/main:kuzu",
+        "//third_party/utf8proc:utf8proc",
         "@Taywee_args",
     ],
 )
