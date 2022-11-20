@@ -27,7 +27,7 @@ struct ArrayExtract {
         auto startPos = idxPos - 1;
         auto endPos = startPos + 1;
         bool isAscii = true;
-        for (auto i = 0u; i < min((uint64_t)idxPos + 1, stringVal.size()); i++) {
+        for (auto i = 0u; i < min((size_t)idxPos + 1, stringVal.size()); i++) {
             if (stringVal[i] & 0x80) {
                 isAscii = false;
                 break;

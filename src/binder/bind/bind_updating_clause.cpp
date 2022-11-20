@@ -31,25 +31,23 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
     auto prevVariablesInScope = variablesInScope;
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(createClause.getPatternElements());
-    vector<unique_ptr<BoundCreateNode>> boundCreateNodes;
-    vector<unique_ptr<BoundCreateRel>> boundCreateRels;
+    auto boundCreateClause = make_unique<BoundCreateClause>();
     for (auto i = 0u; i < queryGraphCollection->getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
             if (!prevVariablesInScope.contains(node->getRawName())) {
-                boundCreateNodes.push_back(bindCreateNode(node, *propertyCollection));
+                boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
             }
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
             if (!prevVariablesInScope.contains(rel->getRawName())) {
-                boundCreateRels.push_back(bindCreateRel(rel, *propertyCollection));
+                boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
             }
         }
     }
-    auto boundCreateClause =
-        make_unique<BoundCreateClause>(std::move(boundCreateNodes), std::move(boundCreateRels));
+
     return boundCreateClause;
 }
 
@@ -117,14 +115,25 @@ unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& u
     auto boundDeleteClause = make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto boundExpression = expressionBinder.bindExpression(*deleteClause.getExpression(i));
-        if (boundExpression->dataType.typeID != NODE) {
+        if (boundExpression->dataType.typeID == NODE) {
+            boundDeleteClause->addDeleteNode(
+                bindDeleteNode(static_pointer_cast<NodeExpression>(boundExpression)));
+        } else if (boundExpression->dataType.typeID == REL) {
+            boundDeleteClause->addDeleteRel(static_pointer_cast<RelExpression>(boundExpression));
+        } else {
             throw BinderException("Delete " +
                                   expressionTypeToString(boundExpression->expressionType) +
                                   " is not supported.");
         }
-        boundDeleteClause->addExpression(move(boundExpression));
     }
     return boundDeleteClause;
+}
+
+unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(shared_ptr<NodeExpression> node) {
+    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
+    auto primaryKey = nodeTableSchema->getPrimaryKey();
+    auto primaryKeyExpression = expressionBinder.bindNodePropertyExpression(node, primaryKey);
+    return make_unique<BoundDeleteNode>(node, primaryKeyExpression);
 }
 
 } // namespace binder

@@ -20,11 +20,9 @@ class QueryPlanner {
 
 public:
     explicit QueryPlanner(const Catalog& catalog,
-        const NodesStatisticsAndDeletedIDs& nodesStatisticsAndDeletedIDs,
-        const RelsStatistics& relsStatistics)
-        : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatisticsAndDeletedIDs,
-                                relsStatistics, this},
-          projectionPlanner{this}, updatePlanner{catalog, this} {}
+        const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics)
+        : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatistics, relsStatistics, this},
+          projectionPlanner{this}, updatePlanner{} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 

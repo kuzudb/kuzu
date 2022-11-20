@@ -7,27 +7,40 @@
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteNodeToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& logicalDelete = (LogicalDelete&)*logicalOperator;
+    auto logicalDeleteNode = (LogicalDeleteNode*)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto& nodesStore = storageManager.getNodesStore();
-    vector<DataPos> nodeIDVectorPositions;
-    vector<DataPos> primaryKeyVectorPositions;
-    vector<NodeTable*> nodeTables;
-    for (auto i = 0u; i < logicalDelete.getNumExpressions(); ++i) {
-        auto& nodeExpression = (NodeExpression&)*logicalDelete.getNodeExpression(i);
-        auto nodeIDExpression = nodeExpression.getNodeIDPropertyExpression();
-        nodeIDVectorPositions.push_back(
-            mapperContext.getDataPos(nodeIDExpression->getUniqueName()));
-        nodeTables.push_back(nodesStore.getNodeTable(nodeExpression.getTableID()));
-        auto primaryKeyExpression = logicalDelete.getPrimaryKeyExpression(i);
-        primaryKeyVectorPositions.push_back(
-            mapperContext.getDataPos(primaryKeyExpression->getUniqueName()));
+    vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
+    for (auto& [node, primaryKey] : logicalDeleteNode->getNodeAndPrimaryKeys()) {
+        auto nodeTable = nodesStore.getNodeTable(node->getTableID());
+        auto nodeIDPos = mapperContext.getDataPos(node->getIDProperty());
+        auto primaryKeyPos = mapperContext.getDataPos(primaryKey->getUniqueName());
+        deleteNodeInfos.push_back(make_unique<DeleteNodeInfo>(nodeTable, nodeIDPos, primaryKeyPos));
     }
-    return make_unique<DeleteNodeStructuredProperty>(move(nodeIDVectorPositions),
-        move(primaryKeyVectorPositions), move(nodeTables), move(prevOperator), getOperatorID(),
-        logicalDelete.getExpressionsForPrinting());
+    return make_unique<DeleteNode>(std::move(deleteNodeInfos), std::move(prevOperator),
+        getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteRelToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto logicalDeleteRel = (LogicalDeleteRel*)logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto& relStore = storageManager.getRelsStore();
+    vector<unique_ptr<DeleteRelInfo>> createRelInfos;
+    for (auto i = 0u; i < logicalDeleteRel->getNumRels(); ++i) {
+        auto rel = logicalDeleteRel->getRel(i);
+        auto table = relStore.getRelTable(rel->getTableID());
+        auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getIDProperty());
+        auto srcNodeTableID = rel->getSrcNode()->getTableID();
+        auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getIDProperty());
+        auto dstNodeTableID = rel->getDstNode()->getTableID();
+        createRelInfos.push_back(make_unique<DeleteRelInfo>(
+            table, srcNodePos, srcNodeTableID, dstNodePos, dstNodeTableID));
+    }
+    return make_unique<DeleteRel>(relStore.getRelsStatistics(), std::move(createRelInfos),
+        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 } // namespace processor
