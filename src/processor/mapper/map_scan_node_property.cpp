@@ -18,7 +18,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
         mapperContext.addComputedExpressions(propertyName);
     }
     auto& nodeStore = storageManager.getNodesStore();
-    assert(!scanProperty.getIsUnstructured());
     vector<Column*> propertyColumns;
     for (auto& propertyID : scanProperty.getPropertyIDs()) {
         propertyColumns.push_back(

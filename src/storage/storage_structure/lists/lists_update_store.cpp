@@ -1,12 +1,11 @@
-#include "src/storage/storage_structure/include/lists/adj_and_property_lists_update_store.h"
+#include "src/storage/storage_structure/include/lists/lists_update_store.h"
 
 #include "src/storage/storage_structure/include/lists/lists.h"
 
 namespace kuzu {
 namespace storage {
 
-AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
-    MemoryManager& memoryManager, RelTableSchema& relTableSchema)
+ListsUpdateStore::ListsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
     : relTableSchema{relTableSchema} {
     auto factorizedTableSchema = make_unique<FactorizedTableSchema>();
     // The first two columns of factorizedTable are for srcNodeID and dstNodeID.
@@ -31,7 +30,7 @@ AdjAndPropertyListsUpdateStore::AdjAndPropertyListsUpdateStore(
     initListUpdatesPerTablePerDirection();
 }
 
-bool AdjAndPropertyListsUpdateStore::isListEmptyInPersistentStore(
+bool ListsUpdateStore::isListEmptyInPersistentStore(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
@@ -44,7 +43,7 @@ bool AdjAndPropertyListsUpdateStore::isListEmptyInPersistentStore(
     return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).emptyListInPersistentStore;
 }
 
-bool AdjAndPropertyListsUpdateStore::hasUpdates() const {
+bool ListsUpdateStore::hasUpdates() const {
     for (auto relDirection : REL_DIRECTIONS) {
         for (const auto& listUpdatesPerTable : listUpdatesPerTablePerDirection[relDirection]) {
             if (!listUpdatesPerTable.second.empty()) {
@@ -56,16 +55,15 @@ bool AdjAndPropertyListsUpdateStore::hasUpdates() const {
 }
 
 // Note: This function also resets the overflowptr of each string in inMemList if necessary.
-void AdjAndPropertyListsUpdateStore::readInsertionsToList(ListFileID& listFileID,
-    vector<uint64_t> tupleIdxes, InMemList& inMemList, uint64_t numElementsInPersistentStore,
-    DiskOverflowFile* diskOverflowFile, DataType dataType,
-    NodeIDCompressionScheme* nodeIDCompressionScheme) {
+void ListsUpdateStore::readInsertionsToList(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
+    InMemList& inMemList, uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
+    DataType dataType, NodeIDCompressionScheme* nodeIDCompressionScheme) {
     factorizedTable->copyToInMemList(getColIdxInFT(listFileID), tupleIdxes, inMemList.getListData(),
         inMemList.nullMask.get(), numElementsInPersistentStore, diskOverflowFile, dataType,
         nodeIDCompressionScheme);
 }
 
-void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
+void ListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
     shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     auto srcNodeID =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
@@ -90,7 +88,7 @@ void AdjAndPropertyListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector
     }
 }
 
-uint64_t AdjAndPropertyListsUpdateStore::getNumInsertedRelsForNodeOffset(
+uint64_t ListsUpdateStore::getNumInsertedRelsForNodeOffset(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
@@ -103,8 +101,8 @@ uint64_t AdjAndPropertyListsUpdateStore::getNumInsertedRelsForNodeOffset(
     return listUpdatesPerTable.at(chunkIdx).at(nodeOffset).insertedRelsTupleIdxInFT.size();
 }
 
-void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
-    ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector) const {
+void ListsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSyncState,
+    shared_ptr<ValueVector> valueVector) const {
     auto numTuplesToRead = listSyncState.getNumValuesToRead();
     auto nodeOffset = listSyncState.getBoundNodeOffset();
     if (numTuplesToRead == 0) {
@@ -123,7 +121,7 @@ void AdjAndPropertyListsUpdateStore::readValues(ListFileID& listFileID,
     valueVector->state->originalSize = numTuplesToRead;
 }
 
-uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
+uint32_t ListsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
     if (listFileID.listType == ADJ_LISTS) {
         return listFileID.adjListsID.relNodeTableAndDir.dir == FWD ? 1 : 0;
     } else {
@@ -131,7 +129,7 @@ uint32_t AdjAndPropertyListsUpdateStore::getColIdxInFT(ListFileID& listFileID) c
     }
 }
 
-void AdjAndPropertyListsUpdateStore::initListUpdatesPerTablePerDirection() {
+void ListsUpdateStore::initListUpdatesPerTablePerDirection() {
     listUpdatesPerTablePerDirection.clear();
     for (auto direction : REL_DIRECTIONS) {
         listUpdatesPerTablePerDirection.push_back(map<table_id_t, ListUpdatesPerChunk>{});

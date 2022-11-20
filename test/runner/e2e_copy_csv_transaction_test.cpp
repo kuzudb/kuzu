@@ -41,9 +41,9 @@ public:
         auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
         // Before checkPointing, we should have two versions of node column and list files. The
         // updates to maxNodeOffset should be invisible to read-only transactions.
-        validateNodeColumnAndListFilesExistence(
+        validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::WAL_VERSION, true /* existence */);
-        validateNodeColumnAndListFilesExistence(
+        validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         ASSERT_EQ(make_unique<Connection>(database.get())
                       ->query("MATCH (p:person) return *")
@@ -61,9 +61,9 @@ public:
         // After checkPointing, we should only have one version of node column and list
         // files(original version). The updates to maxNodeOffset should be visible to read-only
         // transaction;
-        validateNodeColumnAndListFilesExistence(
+        validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::WAL_VERSION, false /* existence */);
-        validateNodeColumnAndListFilesExistence(
+        validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
         ASSERT_EQ(getStorageManager(*database)

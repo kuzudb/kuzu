@@ -5,15 +5,11 @@
 ---- 1
 36|Alice|5
 
-# TODO(Semih): Add the following when enabling ad-hoc properties
-# in query: AVG(a.unstrNumericProp); in result: |55.666667
 -NAME SimpleAvgTest
 -QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
 37.250000|4.862500
 
-# TODO(Semih): Add the following when enabling ad-hoc properties
-# in query: COUNT(a.unstrNumericProp) * 2.0; in result: |6.000000
 -NAME SimpleCountTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age) + 1
 ---- 1
@@ -24,8 +20,6 @@
 ---- 1
 14
 
-# TODO(Semih): Add the following when enabling ad-hoc properties
-# in query: SUM(a.unstrNumericProp); in result: |167.000000
 -NAME SimpleSumTest
 -QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight)
 ---- 1
@@ -41,8 +35,6 @@
 ---- 1
 False
 
-# TODO(Semih): Add the following when enabling ad-hoc properties
-# in query: , AVG(a.unstrNumericProp); in result: |55.666667
 -NAME SimpleAvgTest
 -QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
@@ -58,8 +50,6 @@ False
 ---- 1
 20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
 
-# TODO(Semih): Add the following when enabling ad-hoc properties
-# in query: MAX(b.unstrNumericProp); in result: |52
 -NAME TwoHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
 -ENUMERATE

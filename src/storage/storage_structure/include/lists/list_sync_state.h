@@ -12,7 +12,7 @@ namespace storage {
 
 enum class ListSourceStore : uint8_t {
     PersistentStore = 0,
-    AdjAndPropertyListsUpdateStore = 1,
+    ListsUpdateStore = 1,
 };
 
 // ListSyncState holds the data that is required to synchronize reading from multiple Lists that

@@ -107,31 +107,6 @@ public:
         : InMemListsWithOverflow{move(fName), move(dataType), numNodes} {};
 };
 
-class InMemUnstructuredLists : public InMemListsWithOverflow {
-
-public:
-    InMemUnstructuredLists(string fName, uint64_t numNodes)
-        : InMemListsWithOverflow{move(fName), DataType(UNSTRUCTURED), numNodes} {
-        listSizes = make_unique<atomic_uint64_vec_t>(numNodes);
-        listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
-    };
-
-    inline ListHeadersBuilder* getListHeadersBuilder() { return listHeadersBuilder.get(); }
-    inline atomic_uint64_vec_t* getListSizes() { return listSizes.get(); }
-
-    void setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey, DataTypeID dataTypeID,
-        const uint8_t* val, PageByteCursor* overflowCursor);
-
-    void saveToFile() override;
-
-private:
-    void setComponentOfUnstrProperty(PageByteCursor& localCursor, uint8_t len, const uint8_t* val);
-
-private:
-    unique_ptr<atomic_uint64_vec_t> listSizes;
-    unique_ptr<ListHeadersBuilder> listHeadersBuilder;
-};
-
 class InMemListsFactory {
 
 public:

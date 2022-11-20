@@ -7,7 +7,6 @@
 #include "src/common/include/assert.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/types/include/value.h"
 #include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 #include "src/processor/operator/order_by/include/radix_sort.h"
 
@@ -82,7 +81,7 @@ public:
         unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+        vector<StrKeyColInfo> strKeyColsInfo;
 
         if (hasPayLoadCol) {
             // Create a new payloadValueVector for the payload column.
@@ -96,15 +95,15 @@ public:
             allVectors.insert(allVectors.begin(), payloadValueVector);
             tableSchema->appendColumn(make_unique<ColumnSchema>(
                 false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
-            stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(tableSchema->getColOffset(1) /* colOffsetInFT */,
+            strKeyColsInfo.emplace_back(
+                StrKeyColInfo(tableSchema->getColOffset(1) /* colOffsetInFT */,
                     0 /* colOffsetInEncodedKeyBlock */, isAsc,
                     is_same<T, string>::value /* isStrCol */));
-        } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
-            // If this is a string or unstructured column and has no payload column, then the
+        } else if constexpr (is_same<T, string>::value) {
+            // If this is a string column and has no payload column, then the
             // factorizedTable offset is just 0.
-            stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(tableSchema->getColOffset(0) /* colOffsetInFT */,
+            strKeyColsInfo.emplace_back(
+                StrKeyColInfo(tableSchema->getColOffset(0) /* colOffsetInFT */,
                     0 /* colOffsetInEncodedKeyBlock */, isAsc,
                     is_same<T, string>::value /* isStrCol */));
         }
@@ -116,8 +115,8 @@ public:
             factorizedTableIdx, numTuplesPerBlockInFT);
         orderByKeyEncoder.encodeKeys();
 
-        RadixSort radixSort = RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder,
-            stringAndUnstructuredKeyColInfo);
+        RadixSort radixSort =
+            RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder, strKeyColsInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getData(),
@@ -130,14 +129,13 @@ public:
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
         unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+        vector<StrKeyColInfo> strKeyColsInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             tableSchema->appendColumn(make_unique<ColumnSchema>(
                 false /* isUnflat */, 0 /* dataChunkPos */, sizeof(ku_string_t)));
-            stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
-                tableSchema->getColOffset(stringAndUnstructuredKeyColInfo.size()),
-                stringAndUnstructuredKeyColInfo.size() *
+            strKeyColsInfo.push_back(StrKeyColInfo(tableSchema->getColOffset(strKeyColsInfo.size()),
+                strKeyColsInfo.size() *
                     OrderByKeyEncoder::getEncodingSize(stringValueVector->dataType),
                 isAscOrder[i], true /* isStrCol */));
             mockDataChunk->insert(i, stringValueVector);
@@ -157,8 +155,8 @@ public:
             mockDataChunk->state->currIdx++;
         }
 
-        auto radixSort = RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder,
-            stringAndUnstructuredKeyColInfo);
+        auto radixSort =
+            RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder, strKeyColsInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getData(),
@@ -267,54 +265,6 @@ TEST_F(RadixSortTest, singleOrderByColDoubleTest) {
     vector<uint64_t> expectedFTBlockOffsetOrder = {5, 2, 0, 4, 1, 3};
     singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, DOUBLE,
         false /* isAsc */, false /* hasPayLoadCol */);
-}
-
-TEST_F(RadixSortTest, singleOrderByColUnstrSameDataTypeTest) {
-    // SortingData contains unstructured value with the same datatype.
-    vector<Value> sortingData = {Value(4.7), Value(-0.5), Value(10.52), Value(double(0)) /* NULL */,
-        Value(double(0)) /* NULL */};
-    vector<bool> nullMasks = {false, false, false, true, true};
-    vector<uint64_t> expectedFTBlockOffsetOrder = {1, 0, 2, 4, 3};
-    singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, UNSTRUCTURED,
-        true /* isAsc */, false /* hasPayLoadCol */);
-}
-
-TEST_F(RadixSortTest, singleOrderByColUnstrNumericalValTest) {
-    // SortingData contains a mixture of INT64 and double.
-    vector<Value> sortingData = {
-        Value(4.7), Value(-0.5), Value(int64_t(8)), Value(int64_t(0)) /* NULL */, Value(-0.045)};
-    vector<bool> nullMasks = {false, false, false, true, false};
-    vector<uint64_t> expectedFTBlockOffsetOrder = {1, 4, 0, 2, 3};
-    singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, UNSTRUCTURED,
-        true /* isAsc */, false /* hasPayLoadCol */);
-}
-
-TEST_F(RadixSortTest, singleOrderByColUnstrTimeValTest) {
-    // SortingData contains a mixture of timestamp and date.
-    vector<Value> sortingData = {
-        Value(Timestamp::FromCString("2003-10-12 08:21:10", strlen("2003-10-12 08:21:10"))),
-        Value(Date::FromCString("2003-10-12", strlen("2003-10-12"))), Value(int64_t(0)) /* NULL */,
-        Value(Date::FromCString("2003-10-13", strlen("2003-10-13"))),
-        Value(Timestamp::FromCString("2003-10-13 01:02:03", strlen("2003-10-13 01:02:03")))};
-    vector<bool> nullMasks = {false, false, true, false, false};
-    vector<uint64_t> expectedFTBlockOffsetOrder = {1, 0, 3, 4, 2};
-    singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, UNSTRUCTURED,
-        true /* isAsc */, false /* hasPayLoadCol */);
-}
-
-TEST_F(RadixSortTest, singleOrderByColUnstrErrorTest) {
-    // SortingData contains double and timestamp, the comparison function should throw an exception.
-    vector<Value> sortingData = {
-        Value(Timestamp::FromCString("2003-10-12 08:21:10", strlen("2003-10-12 08:21:10"))),
-        Value(4.2)};
-    vector<bool> nullMasks = {false, false};
-    vector<uint64_t> expectedFTBlockOffsetOrder = {1, 0};
-    try {
-        singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, UNSTRUCTURED,
-            true /* isAsc */, false /* hasPayLoadCol */);
-        FAIL();
-    } catch (exception& e) {
-    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST_F(RadixSortTest, singleOrderByColStringTest) {
@@ -430,11 +380,10 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
         false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DATE)));
 
     FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
-    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
-        StringAndUnstructuredKeyColInfo(16 /* colOffsetInFT */,
-            OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
-                OrderByKeyEncoder::getEncodingSize(DataType(DOUBLE)),
-            true /* isAscOrder */, true /* isStrCol */)};
+    vector<StrKeyColInfo> strKeyColsInfo = {StrKeyColInfo(16 /* colOffsetInFT */,
+        OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
+            OrderByKeyEncoder::getEncodingSize(DataType(DOUBLE)),
+        true /* isAscOrder */, true /* isStrCol */)};
 
     auto orderByKeyEncoder = OrderByKeyEncoder(
         orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx, numTuplesPerBlockInFT);
@@ -444,8 +393,8 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
         mockDataChunk->state->currIdx++;
     }
 
-    RadixSort radixSort = RadixSort(
-        memoryManager.get(), factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+    RadixSort radixSort =
+        RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder, strKeyColsInfo);
     sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
     vector<uint64_t> expectedFTBlockOffsetOrder = {1, 4, 0, 2, 3};

@@ -34,8 +34,7 @@ private:
         const vector<DataTypeID>& targetTypeIDs, bool isOverload);
     uint32_t matchVarLengthParameters(
         const vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload);
-    uint32_t castRules(DataTypeID inputTypeID, DataTypeID targetTypeID,
-        bool allowCastToUnstructured, bool allowCastToStructured);
+    uint32_t castRules(DataTypeID inputTypeID, DataTypeID targetTypeID);
 
     void validateNonEmptyCandidateFunctions(vector<VectorOperationDefinition*>& candidateFunctions,
         const string& name, const vector<DataType>& inputTypes);

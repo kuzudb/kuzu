@@ -6,7 +6,6 @@ namespace storage {
 InMemColumn::InMemColumn(
     std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
-    assert(this->dataType.typeID != UNSTRUCTURED);
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
     auto numPages = ceil((double)numElements / (double)numElementsInAPage);
     inMemFile =

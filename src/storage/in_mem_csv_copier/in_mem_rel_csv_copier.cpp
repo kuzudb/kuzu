@@ -35,8 +35,8 @@ uint64_t InMemRelCSVCopier::copy() {
     populateAdjColumnsAndCountRelsInAdjLists();
     if (!directionTableAdjLists[FWD].empty() || !directionTableAdjLists[BWD].empty()) {
         initAdjListsHeaders();
-        initAdjAndPropertyListsMetadata();
-        populateAdjAndPropertyLists();
+        initListsMetadata();
+        populateLists();
     }
     sortAndCopyOverflowValues();
     saveToFile();
@@ -462,7 +462,7 @@ void InMemRelCSVCopier::initAdjListsHeaders() {
     logger->debug("Done initializing AdjListHeaders for rel {}.", relTableSchema->tableName);
 }
 
-void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
+void InMemRelCSVCopier::initListsMetadata() {
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
@@ -491,13 +491,13 @@ void InMemRelCSVCopier::initAdjAndPropertyListsMetadata() {
         relTableSchema->tableName);
 }
 
-void InMemRelCSVCopier::populateAdjAndPropertyLists() {
+void InMemRelCSVCopier::populateLists() {
     logger->debug(
         "Populating adjLists and rel property lists for rel {}.", relTableSchema->tableName);
     auto blockStartOffset = 0ull;
     for (auto blockId = 0u; blockId < numBlocks; blockId++) {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            populateAdjAndPropertyListsTask, blockId, startRelID + blockStartOffset, this));
+            populateListsTask, blockId, startRelID + blockStartOffset, this));
         blockStartOffset += numLinesPerBlock[blockId];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -505,7 +505,7 @@ void InMemRelCSVCopier::populateAdjAndPropertyLists() {
         "Done populating adjLists and rel property lists for rel {}.", relTableSchema->tableName);
 }
 
-void InMemRelCSVCopier::populateAdjAndPropertyListsTask(
+void InMemRelCSVCopier::populateListsTask(
     uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
     CSVReader reader(

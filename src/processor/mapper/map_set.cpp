@@ -21,7 +21,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
         expressionEvaluators.push_back(expressionMapper.mapExpression(target, mapperContext));
     }
     vector<DataPos> nodeIDVectorPositions;
-    assert(!logicalSetNodeProperty.getIsUnstructured());
     vector<Column*> propertyColumns;
     for (auto& [expr, _] : setItems) {
         auto property = static_pointer_cast<PropertyExpression>(expr);

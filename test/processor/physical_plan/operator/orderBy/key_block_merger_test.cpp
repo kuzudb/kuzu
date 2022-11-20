@@ -109,19 +109,18 @@ public:
         auto orderByKeyEncoder2 = prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks,
             dataTypeID, isAsc, 1 /* ftIdx */, hasPayLoadCol, factorizedTables, dataChunk1);
 
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+        vector<StrKeyColInfo> strKeyColsInfo;
         if (hasPayLoadCol) {
-            stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(8 /* colOffsetInFT */,
-                    0 /* colOffsetInEncodedKeyBlock */, isAsc, true /* isStrCol */));
-        } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                0 /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
-                is_same<T, string>::value /* isStrCol */));
+            strKeyColsInfo.emplace_back(StrKeyColInfo(8 /* colOffsetInFT */,
+                0 /* colOffsetInEncodedKeyBlock */, isAsc, true /* isStrCol */));
+        } else if constexpr (is_same<T, string>::value) {
+            strKeyColsInfo.emplace_back(
+                StrKeyColInfo(0 /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                    is_same<T, string>::value /* isStrCol */));
         }
 
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
+            factorizedTables, strKeyColsInfo, orderByKeyEncoder1.getNumBytesPerTuple());
 
         auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
         auto resultKeyBlock = make_shared<MergedKeyBlocks>(numBytesPerEntry,
@@ -249,20 +248,20 @@ public:
         vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
         vector<uint64_t> expectedFactorizedTableIdxOrder = {4, 5, 5, 4, 5, 4, 4};
 
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+        vector<StrKeyColInfo> strKeyColsInfo;
         if (hasStrCol) {
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
-                Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
-                    Types::getDataTypeSize(TIMESTAMP) + 3,
-                true /* isAscOrder */, true /* isStrCol */));
+            strKeyColsInfo.emplace_back(
+                StrKeyColInfo(tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
+                    Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
+                        Types::getDataTypeSize(TIMESTAMP) + 3,
+                    true /* isAscOrder */, true /* isStrCol */));
             expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
 
         auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
+            factorizedTables, strKeyColsInfo, orderByKeyEncoder1.getNumBytesPerTuple());
         auto resultKeyBlock =
             make_shared<MergedKeyBlocks>(numBytesPerEntry, 7ul, memoryManager.get());
         auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(
@@ -390,20 +389,6 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumTuplesTest) {
         false /* hasPayLoadCol */);
 }
 
-TEST_F(KeyBlockMergerTest, singleOrderByColUnstrTest) {
-    vector<Value> leftSortingData = {
-        Value(int64_t(52)), Value(59.4251), Value(int64_t(69)), Value(int64_t(0)) /* NULL */};
-    vector<Value> rightSortingData = {Value(52.0004), Value(int64_t(59)), Value(68.98),
-        Value(int64_t(70)), Value(int64_t(0)) /* NULL */};
-    vector<bool> leftNullMasks = {false, false, false, true};
-    vector<bool> rightNullMasks = {false, false, false, false, true};
-    vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3, 3, 4};
-    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 0, 1, 0, 1, 0, 1};
-    singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, UNSTRUCTURED, true /* isAsc */,
-        false /* hasPayLoadCol */);
-}
-
 TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
     vector<string> leftSortingData = {
         "" /* NULL */, "tiny str", "long string", "common prefix string3", "common prefix string1"};
@@ -480,21 +465,18 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
     auto orderByKeyEncoder3 =
         prepareMultipleStrKeyColsEncoder(dataChunk3, strValues3, 2 /* ftIdx */, factorizedTables);
 
-    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
-        StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema()->getColOffset(0 /* colIdx */),
+    vector<StrKeyColInfo> strKeyColsInfo = {
+        StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(0 /* colIdx */),
             0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */, true /* isStrCol */),
-        StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema()->getColOffset(1 /* colIdx */),
+        StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(1 /* colIdx */),
             orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */,
             true /* isStrCol */),
-        StringAndUnstructuredKeyColInfo(
-            factorizedTables[0]->getTableSchema()->getColOffset(3 /* colIdx */),
+        StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(3 /* colIdx */),
             orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */,
             true /* isStrCol */)};
 
-    KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-        stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
+    KeyBlockMerger keyBlockMerger =
+        KeyBlockMerger(factorizedTables, strKeyColsInfo, orderByKeyEncoder1.getNumBytesPerTuple());
 
     auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
     auto resultKeyBlock = make_shared<MergedKeyBlocks>(numBytesPerEntry, 7ul, memoryManager.get());

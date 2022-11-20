@@ -34,10 +34,10 @@ private:
     void initializeColumns(RelDirection relDirection);
     void initializeLists(RelDirection relDirection);
     void initAdjListsHeaders();
-    void initAdjAndPropertyListsMetadata();
+    void initListsMetadata();
 
     void populateAdjColumnsAndCountRelsInAdjLists();
-    void populateAdjAndPropertyLists();
+    void populateLists();
     // We store rel properties with overflows, e.g., strings or lists, in
     // InMemColumn/ListsWithOverflowFile (e.g., InMemStringLists). When loading these properties
     // from csv, we first save the overflow pointers of the ku_list_t or ku_string_t in temporary
@@ -84,7 +84,7 @@ private:
     // Concurrent tasks.
     static void populateAdjColumnsAndCountRelsInAdjListsTask(
         uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier);
-    static void populateAdjAndPropertyListsTask(
+    static void populateListsTask(
         uint64_t blockId, uint64_t blockStartRelID, InMemRelCSVCopier* copier);
     static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
         node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,

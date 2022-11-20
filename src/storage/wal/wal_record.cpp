@@ -21,15 +21,6 @@ StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
-    table_id_t tableID, ListFileType listFileType) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.storageStructureType = LISTS;
-    retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(tableID));
-    return retVal;
-}
-
 StorageStructureID StorageStructureID::newAdjListsID(
     table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType) {
     StorageStructureID retVal;

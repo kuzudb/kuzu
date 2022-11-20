@@ -38,9 +38,8 @@ TEST_F(ApiTest, Exception) {
     auto function_error =
         "Binder exception: Cannot match a built-in function for given function +(INT64,STRING). "
         "Supported inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) "
-        "-> DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "-> DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
         "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     result = conn->query(function_error_query);
     ASSERT_FALSE(result->isSuccess());
@@ -48,19 +47,4 @@ TEST_F(ApiTest, Exception) {
     preparedStatement = conn->prepare(function_error_query);
     ASSERT_FALSE(preparedStatement->isSuccess());
     ASSERT_STREQ(preparedStatement->getErrorMessage().c_str(), function_error);
-
-    // TODO(Semih): Uncomment when enabling ad-hoc properties
-    //    auto runtime_error_query = "MATCH (a:person) RETURN a.unstrDateProp + 'hh'";
-    //    auto runtime_error = "Runtime exception: Cannot add `DATE` and `STRING`";
-    //    result = conn->query(runtime_error_query);
-    //    ASSERT_FALSE(result->isSuccess());
-    //    ASSERT_STREQ(result->getErrorMessage().c_str(), runtime_error);
-    //
-    //    // test fetching result when query fails
-    //    try {
-    //        result->hasNext();
-    //        FAIL();
-    //    } catch (Exception& exception) {
-    //        ASSERT_STREQ("Runtime exception: Cannot add `DATE` and `STRING`", exception.what());
-    //    } catch (std::exception& exception) { FAIL(); }
 }

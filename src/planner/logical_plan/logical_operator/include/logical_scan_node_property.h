@@ -9,10 +9,9 @@ class LogicalScanNodeProperty : public LogicalOperator {
 
 public:
     LogicalScanNodeProperty(string nodeID, table_id_t tableID, vector<string> propertyNames,
-        vector<uint32_t> propertyIDs, bool isUnstructured, shared_ptr<LogicalOperator> child)
+        vector<uint32_t> propertyIDs, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, nodeID{move(nodeID)}, tableID{tableID},
-          propertyNames{move(propertyNames)}, propertyIDs{move(propertyIDs)}, isUnstructured{
-                                                                                  isUnstructured} {}
+          propertyNames{move(propertyNames)}, propertyIDs{move(propertyIDs)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_PROPERTY;
@@ -34,11 +33,9 @@ public:
 
     inline vector<uint32_t> getPropertyIDs() const { return propertyIDs; }
 
-    inline bool getIsUnstructured() const { return isUnstructured; }
-
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanNodeProperty>(
-            nodeID, tableID, propertyNames, propertyIDs, isUnstructured, children[0]->copy());
+            nodeID, tableID, propertyNames, propertyIDs, children[0]->copy());
     }
 
 private:
@@ -46,7 +43,6 @@ private:
     table_id_t tableID;
     vector<string> propertyNames;
     vector<uint32_t> propertyIDs;
-    bool isUnstructured;
 };
 
 } // namespace planner

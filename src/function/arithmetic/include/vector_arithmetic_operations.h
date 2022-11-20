@@ -55,13 +55,6 @@ private:
                 assert(false);
             }
         }
-        case UNSTRUCTURED: {
-            if constexpr (DOUBLE_RESULT) {
-                return BinaryExecFunction<Value, Value, double_t, FUNC>;
-            } else {
-                return BinaryExecFunction<Value, Value, Value, FUNC>;
-            }
-        }
         default:
             assert(false);
         }
@@ -82,15 +75,6 @@ private:
                 return UnaryExecFunction<double_t, int64_t, FUNC>;
             } else {
                 return UnaryExecFunction<double_t, double_t, FUNC>;
-            }
-        }
-        case UNSTRUCTURED: {
-            if constexpr (INT_RESULT) {
-                return UnaryExecFunction<Value, int64_t, FUNC>;
-            } else if constexpr (DOUBLE_RESULT) {
-                return UnaryExecFunction<Value, double_t, FUNC>;
-            } else {
-                return UnaryExecFunction<Value, Value, FUNC>;
             }
         }
         default:

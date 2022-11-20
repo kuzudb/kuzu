@@ -4,7 +4,6 @@
 
 #include "src/common/include/type_utils.h"
 #include "src/common/include/vector/value_vector.h"
-#include "src/common/types/include/value.h"
 
 namespace kuzu {
 namespace function {

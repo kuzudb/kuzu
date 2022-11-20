@@ -73,8 +73,7 @@ public:
 
 private:
     inline bool needOverflowBuffer() const {
-        return dataType.typeID == STRING || dataType.typeID == LIST ||
-               dataType.typeID == UNSTRUCTURED;
+        return dataType.typeID == STRING || dataType.typeID == LIST;
     }
 
     void addString(uint32_t pos, char* value, uint64_t len) const;

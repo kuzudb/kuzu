@@ -48,7 +48,6 @@ enum DataTypeID : uint8_t {
     INTERVAL = 27,
 
     STRING = 50,
-    UNSTRUCTURED = 51,
     LIST = 52,
 };
 
@@ -70,12 +69,9 @@ public:
     static inline std::vector<DataTypeID> getNumericalTypeIDs() {
         return std::vector<DataTypeID>{INT64, DOUBLE};
     }
-    static inline std::vector<DataTypeID> getNumericalAndUnstructuredTypeIDs() {
-        return std::vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
-    }
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {
         return std::vector<DataTypeID>{
-            NODE_ID, BOOL, INT64, DOUBLE, STRING, UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL, LIST};
+            NODE_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
     }
 
     DataType& operator=(const DataType& other);

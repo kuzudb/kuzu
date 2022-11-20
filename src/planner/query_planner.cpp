@@ -379,20 +379,9 @@ void QueryPlanner::appendFilter(const shared_ptr<Expression>& expression, Logica
 void QueryPlanner::appendScanNodePropIfNecessarySwitch(
     expression_vector& properties, NodeExpression& node, LogicalPlan& plan) {
     expression_vector structuredProperties;
-    expression_vector unstructuredProperties;
     for (auto& property : properties) {
-        if (property->dataType.typeID == UNSTRUCTURED) {
-            unstructuredProperties.push_back(property);
-        } else {
-            structuredProperties.push_back(property);
-        }
+        structuredProperties.push_back(property);
     }
-    appendScanNodePropIfNecessary(structuredProperties, node, plan, true /* isStructured */);
-    appendScanNodePropIfNecessary(unstructuredProperties, node, plan, false /* isUnstructured */);
-}
-
-void QueryPlanner::appendScanNodePropIfNecessary(
-    expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured) {
     auto schema = plan.getSchema();
     vector<string> propertyNames;
     vector<uint32_t> propertyIDs;
@@ -410,9 +399,8 @@ void QueryPlanner::appendScanNodePropIfNecessary(
     if (propertyNames.empty()) { // all properties have been scanned before
         return;
     }
-    auto scanNodeProperty =
-        make_shared<LogicalScanNodeProperty>(node.getIDProperty(), node.getTableID(),
-            move(propertyNames), move(propertyIDs), !isStructured, plan.getLastOperator());
+    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(node.getIDProperty(),
+        node.getTableID(), move(propertyNames), move(propertyIDs), plan.getLastOperator());
     plan.setLastOperator(move(scanNodeProperty));
 }
 

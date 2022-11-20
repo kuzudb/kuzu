@@ -12,8 +12,7 @@ namespace storage {
 using table_adj_columns_map_t = unordered_map<table_id_t, unique_ptr<AdjColumn>>;
 using table_adj_lists_map_t = unordered_map<table_id_t, unique_ptr<AdjLists>>;
 using table_property_columns_map_t = unordered_map<table_id_t, vector<unique_ptr<Column>>>;
-using table_property_lists_map_t =
-    unordered_map<table_id_t, vector<unique_ptr<ListsWithAdjAndPropertyListsUpdateStore>>>;
+using table_property_lists_map_t = unordered_map<table_id_t, vector<unique_ptr<Lists>>>;
 
 class RelTable {
 
@@ -28,7 +27,7 @@ public:
         RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
         return propertyColumns[relDirection].at(tableID)[propertyIdx].get();
     }
-    inline ListsWithAdjAndPropertyListsUpdateStore* getPropertyLists(
+    inline Lists* getPropertyLists(
         RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
         return propertyLists[relDirection].at(tableID)[propertyIdx].get();
     }
@@ -38,9 +37,7 @@ public:
     inline AdjLists* getAdjLists(RelDirection relDirection, table_id_t tableID) {
         return adjLists[relDirection].at(tableID).get();
     }
-    inline AdjAndPropertyListsUpdateStore* getAdjAndPropertyListsUpdateStore() {
-        return adjAndPropertyListsUpdateStore.get();
-    }
+    inline ListsUpdateStore* getListsUpdateStore() { return listsUpdateStore.get(); }
     inline table_id_t getRelTableID() const { return tableID; }
 
     vector<AdjLists*> getAdjListsForNodeTable(table_id_t tableID);
@@ -57,7 +54,7 @@ public:
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
-    inline void clearAdjAndPropertyListsUpdateStore() { adjAndPropertyListsUpdateStore->clear(); }
+    inline void clearListsUpdateStore() { listsUpdateStore->clear(); }
     void initAdjColumnOrLists(
         const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
     void initPropertyListsAndColumns(
@@ -78,7 +75,7 @@ private:
     vector<table_property_lists_map_t> propertyLists;
     vector<table_adj_lists_map_t> adjLists;
     bool isInMemoryMode;
-    unique_ptr<AdjAndPropertyListsUpdateStore> adjAndPropertyListsUpdateStore;
+    unique_ptr<ListsUpdateStore> listsUpdateStore;
     WAL* wal;
 };
 

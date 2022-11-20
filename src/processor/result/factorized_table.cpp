@@ -643,7 +643,6 @@ FlatTupleIterator::FlatTupleIterator(
         updateInvalidEntriesInFlatTuplePositionsInDataChunk();
     }
     // Note: there is difference between column data types and value types in iteratorFlatTuple.
-    // Column data type could be UNSTRUCTURED but value type must be a structured type.
     iteratorFlatTuple = make_shared<FlatTuple>(columnDataTypes);
     assert(columnDataTypes.size() == factorizedTable.tableSchema->getNumColumns());
 }

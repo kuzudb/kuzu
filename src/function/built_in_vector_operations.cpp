@@ -109,12 +109,9 @@ uint32_t BuiltInVectorOperations::matchParameters(
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
-    auto containUnstructuredTypes = any_of(inputTypes.begin(), inputTypes.end(),
-        [](const DataType& type) { return type.typeID == UNSTRUCTURED; });
     auto cost = 0u;
     for (auto i = 0u; i < inputTypes.size(); ++i) {
-        auto castCost = castRules(
-            inputTypes[i].typeID, targetTypeIDs[i], containUnstructuredTypes, !isOverload);
+        auto castCost = castRules(inputTypes[i].typeID, targetTypeIDs[i]);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
@@ -125,12 +122,9 @@ uint32_t BuiltInVectorOperations::matchParameters(
 
 uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     const vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
-    auto containUnstructuredTypes = any_of(inputTypes.begin(), inputTypes.end(),
-        [](const DataType& type) { return type.typeID == UNSTRUCTURED; });
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
-        auto castCost =
-            castRules(inputType.typeID, targetTypeID, containUnstructuredTypes, !isOverload);
+        auto castCost = castRules(inputType.typeID, targetTypeID);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
@@ -139,8 +133,7 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     return cost;
 }
 
-uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID,
-    bool allowCastToUnstructured, bool allowCastToStructured) {
+uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID) {
     if (inputTypeID == ANY) {
         // ANY type can be any type
         return 0;
@@ -148,22 +141,6 @@ uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID t
     if (targetTypeID == ANY) {
         // Any inputTypeID can match to type ANY
         return 0;
-    }
-    if (inputTypeID != UNSTRUCTURED && targetTypeID == UNSTRUCTURED) {
-        if (allowCastToUnstructured) {
-            // A structured input type can be implicitly cast to UNSTRUCTURED
-            return 1;
-        } else {
-            return UINT32_MAX;
-        }
-    }
-    if (inputTypeID == UNSTRUCTURED && targetTypeID != UNSTRUCTURED) {
-        if (allowCastToStructured) {
-            // UNSTRUCTURED input type can be implicitly cast to a structured type
-            return 1;
-        } else {
-            return UINT32_MAX;
-        }
     }
     if (inputTypeID != targetTypeID) {
         // Unable to cast

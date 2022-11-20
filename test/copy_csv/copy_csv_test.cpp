@@ -1,7 +1,6 @@
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/csv_reader/csv_reader.h"
-#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 using namespace std;
 using namespace kuzu::common;
@@ -40,55 +39,6 @@ public:
 class CopyCSVReadLists5BytesPerEdgeTest : public InMemoryDBTest {
 public:
     string getInputCSVDir() override { return "dataset/read-list-tests/5-bytes-per-edge/"; }
-};
-
-class CopyCSVEmptyListsTest : public InMemoryDBTest {
-public:
-    string getInputCSVDir() override { return "dataset/copy-csv-empty-lists-test/"; }
-    // The test is here because accessing protected/private members of Lists and ListsMetadata
-    // requires the code to be inside CopyCSVEmptyListsTest class, which is a friend class to
-    // Lists and ListsMetadata.
-    void testCopyCSVEmptyListsTest() {
-        auto catalog = getCatalog(*database);
-        table_id_t pTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        auto unstrPropLists =
-            getStorageManager(*database)->getNodesStore().getNodeUnstrPropertyLists(pTableID);
-        // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk
-        // idx 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
-        // point to UINT32_MAX (representing null), while chunk 2 should point to 0.
-        uint64_t numChunks = 4;
-        EXPECT_EQ(
-            numChunks, unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.numElements);
-        for (int chunkIdx = 0; chunkIdx < numChunks; chunkIdx++) {
-            EXPECT_EQ(chunkIdx == 2 ? 0 : UINT32_MAX,
-                (*unstrPropLists->metadata.chunkToPageListHeadIdxMap)[chunkIdx]);
-        }
-        // Check chunk idx 2's pageLists.
-        EXPECT_EQ(storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE,
-            unstrPropLists->metadata.pageLists->header.numElements);
-        for (int chunkPageListIdx = 0;
-             chunkPageListIdx < storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE;
-             ++chunkPageListIdx) {
-            if (chunkPageListIdx == 0) {
-                EXPECT_NE(PAGE_IDX_MAX, (*unstrPropLists->metadata.pageLists)[chunkPageListIdx]);
-            } else {
-                EXPECT_EQ(PAGE_IDX_MAX, (*unstrPropLists->metadata.pageLists)[chunkPageListIdx]);
-            }
-        }
-        // There are no large lists so largeListIdxToPageListHeadIdxMap should have 0 elements.
-        EXPECT_EQ(0, unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.numElements);
-        uint64_t maxPersonOffset = getStorageManager(*database)
-                                       ->getNodesStore()
-                                       .getNodesStatisticsAndDeletedIDs()
-                                       .getNodeStatisticsAndDeletedIDs(pTableID)
-                                       ->getMaxNodeOffset();
-        EXPECT_EQ(1999, maxPersonOffset);
-        for (node_offset_t nodeOffset = 0; nodeOffset < maxPersonOffset; ++nodeOffset) {
-            auto unstructuredProperties =
-                unstrPropLists->readUnstructuredPropertiesOfNode(nodeOffset);
-            EXPECT_EQ((1030 == nodeOffset) ? 1 : 0, unstructuredProperties->size());
-        }
-    }
 };
 
 class CopyCSVLongStringTest : public InMemoryDBTest {
@@ -161,45 +111,6 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
         count++;
     }
 }
-
-// TODO(Semih): Uncomment when enabling ad-hoc properties
-// TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
-//    auto graph = database->getStorageManager();
-//    auto& catalog = *database->getCatalog();
-//    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-//    auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
-//        graph->getNodesStore().getNodeUnstrPropertyLists(tableID));
-//    auto& propertyNameToIdMap =
-//        catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(tableID);
-//    for (int i = 0; i < 1000; ++i) {
-//        auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
-//        if (i == 300 || i == 400 || i == 500) {
-//            EXPECT_EQ(i * 4, propertiesMap->size());
-//            for (int j = 0; j < i; ++j) {
-//                EXPECT_EQ("strPropVal" + to_string(j),
-//                    propertiesMap->at(propertyNameToIdMap.at("strPropKey" +
-//                    to_string(j))).strVal);
-//                EXPECT_EQ(
-//                    j, propertiesMap->at(propertyNameToIdMap.at("int64PropKey" + to_string(j)))
-//                           .val.int64Val);
-//                EXPECT_EQ(j * 1.0,
-//                    propertiesMap->at(propertyNameToIdMap.at("doublePropKey" + to_string(j)))
-//                        .val.doubleVal);
-//                EXPECT_FALSE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey" +
-//                to_string(j)))
-//                                 .val.booleanVal);
-//            }
-//        } else {
-//            EXPECT_EQ(4, propertiesMap->size());
-//            EXPECT_EQ(
-//                "strPropVal1", propertiesMap->at(propertyNameToIdMap.at("strPropKey1")).strVal);
-//            EXPECT_EQ(1, propertiesMap->at(propertyNameToIdMap.at("int64PropKey1")).val.int64Val);
-//            EXPECT_EQ(
-//                1.0, propertiesMap->at(propertyNameToIdMap.at("doublePropKey1")).val.doubleVal);
-//            EXPECT_TRUE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey1")).val.booleanVal);
-//        }
-//    }
-//}
 
 void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     // p0 has 5001 fwd edges to p0...p5000
@@ -326,11 +237,6 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);
 }
-
-// TODO(Semih): Uncomment when enabling ad-hoc properties
-// TEST_F(CopyCSVEmptyListsTest, CopyCSVEmptyLists) {
-//    testCopyCSVEmptyListsTest();
-//}
 
 TEST_F(CopyCSVLongStringTest, LongStringError) {
     auto storageManager = getStorageManager(*database);

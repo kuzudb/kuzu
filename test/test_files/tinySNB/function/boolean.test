@@ -44,22 +44,6 @@ Greg
 ---- 1
 7
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredBoolEqualTest
-#-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 = a.isStudent RETURN count(*)
-#---- 1
-#2
-
-#-NAME UnstructuredBoolNotEqualTest
-#-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 <> a.isStudent RETURN count(*)
-#---- 1
-#2
-
-#-NAME UnstructuredBoolComparisonTest
-#-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 > a.isWorker RETURN count(*)
-#---- 1
-#0
-
 -NAME BoolExecTest4
 -QUERY MATCH (a:person) WHERE a.fName = 'Alice' RETURN a.isStudent and a.isWorker
 ---- 1

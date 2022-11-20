@@ -23,25 +23,21 @@ public:
         int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
         doubleValueVector = make_shared<ValueVector>(DOUBLE, memoryManager.get());
         stringValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
-        unStrValueVector = make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
-        dataChunk = make_shared<DataChunk>(4);
+        dataChunk = make_shared<DataChunk>(3);
         for (auto i = 0u; i < 100; i++) {
             int64ValueVector->setValue(i, (int64_t)i);
             doubleValueVector->setValue(i, (double_t)(i * 1.5));
-            unStrValueVector->setValue(i, Value((int64_t)i));
             stringValueVector->setValue(i, to_string(i));
             if (i % 2 == 0) {
                 int64ValueVector->setNull(i, true /* isNull */);
                 doubleValueVector->setNull(i, true /* isNull */);
                 stringValueVector->setNull(i, true /* isNull */);
-                unStrValueVector->setNull(i, true /* isNull */);
             }
         }
         dataChunk->state->selVector->selectedSize = 100;
         dataChunk->insert(0, int64ValueVector);
         dataChunk->insert(1, doubleValueVector);
         dataChunk->insert(2, stringValueVector);
-        dataChunk->insert(3, unStrValueVector);
         resultSet = make_shared<ResultSet>(1);
         resultSet->insert(0, dataChunk);
     }
@@ -52,7 +48,6 @@ public:
     shared_ptr<ValueVector> int64ValueVector;
     shared_ptr<ValueVector> doubleValueVector;
     shared_ptr<ValueVector> stringValueVector;
-    shared_ptr<ValueVector> unStrValueVector;
     shared_ptr<DataChunk> dataChunk;
     shared_ptr<ResultSet> resultSet;
 };
@@ -132,28 +127,6 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
         }
     }
     ASSERT_EQ(sumState->sum, sumValue);
-}
-
-TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
-    auto sumFunction = AggregateFunctionUtil::getSumFunction(DataType(UNSTRUCTURED), false);
-    auto sumState = ku_static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
-        sumFunction->createInitialNullAggregateState());
-    sumFunction->updateAllState(
-        (uint8_t*)sumState.get(), unStrValueVector.get(), 1 /* multiplicity */);
-    auto otherSumState =
-        ku_static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
-            sumFunction->createInitialNullAggregateState());
-    otherSumState->sum = Value((int64_t)10);
-    otherSumState->isNull = false;
-    sumFunction->combineState((uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
-    sumFunction->finalizeState((uint8_t*)sumState.get());
-    auto sumValue = otherSumState->sum.val.int64Val;
-    for (auto i = 0u; i < 100; i++) {
-        if (i % 2 != 0) {
-            sumValue += i;
-        }
-    }
-    ASSERT_EQ(sumState->sum.val.int64Val, sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
@@ -253,23 +226,6 @@ TEST_F(AggrExpressionEvaluatorTest, STRINGMaxTest) {
     maxFunction->combineState((uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
     maxFunction->finalizeState((uint8_t*)maxState.get());
     ASSERT_EQ(maxState->val.getAsString(), "99");
-}
-
-TEST_F(AggrExpressionEvaluatorTest, UNSTRMaxTest) {
-    auto maxFunction = AggregateFunctionUtil::getMaxFunction(DataType(UNSTRUCTURED), false);
-    auto maxState =
-        ku_static_unique_pointer_cast<AggregateState, MinMaxFunction<Value>::MinMaxState>(
-            maxFunction->createInitialNullAggregateState());
-    maxFunction->updateAllState(
-        (uint8_t*)maxState.get(), unStrValueVector.get(), 1 /* multiplicity */);
-    auto otherMaxState =
-        ku_static_unique_pointer_cast<AggregateState, MinMaxFunction<Value>::MinMaxState>(
-            maxFunction->createInitialNullAggregateState());
-    otherMaxState->val = Value((int64_t)101);
-    otherMaxState->isNull = false;
-    maxFunction->combineState((uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    maxFunction->finalizeState((uint8_t*)maxState.get());
-    ASSERT_EQ(maxState->val.val.int64Val, 101);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MinTest) {

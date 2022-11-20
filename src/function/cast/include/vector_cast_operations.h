@@ -11,11 +11,7 @@ namespace function {
 /**
  *  In the system we define explicit cast and implicit cast.
  *  Explicit casts are performed from user function calls, e.g. date(), string().
- *  Implicit casts are added internally. The rules are as follows:
- *  *  Implicit cast from unstructured to structured if function is not overload, e.g. AND,
- *     CONTAINS.
- *  *  Implicit cast from structured to unstructured if function is overload and at least one
- *     parameter is unstructured.
+ *  Implicit casts are added internally.
  */
 class VectorCastOperations : public VectorOperations {
 
@@ -27,8 +23,6 @@ public:
     static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
 
     static scalar_exec_func bindImplicitCastToTimestamp(const expression_vector& children);
-
-    static scalar_exec_func bindImplicitCastToUnstructured(const expression_vector& children);
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryCastExecFunction(

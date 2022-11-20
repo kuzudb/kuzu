@@ -3,7 +3,6 @@
 #include "src/expression_evaluator/include/base_evaluator.h"
 #include "src/processor/operator/include/physical_operator.h"
 #include "src/storage/storage_structure/include/column.h"
-#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 
 using namespace kuzu::evaluator;
 

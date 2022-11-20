@@ -16,9 +16,6 @@ vector<unique_ptr<VectorOperationDefinition>> DatePartVectorOperation::getDefini
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         vector<DataTypeID>{STRING, INTERVAL}, INT64,
         BinaryExecFunction<ku_string_t, interval_t, int64_t, operation::DatePart>));
-    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, INT64,
-        BinaryExecFunction<Value, Value, int64_t, operation::DatePart>));
     return result;
 }
 
@@ -30,9 +27,6 @@ vector<unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefin
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
         vector<DataTypeID>{STRING, TIMESTAMP}, TIMESTAMP,
         BinaryExecFunction<ku_string_t, timestamp_t, timestamp_t, operation::DateTrunc>));
-    result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
-        BinaryExecFunction<Value, Value, Value, operation::DateTrunc>));
     return result;
 }
 
@@ -44,9 +38,6 @@ vector<unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::getDefinit
     result.push_back(
         make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
             STRING, UnaryExecFunction<timestamp_t, ku_string_t, operation::DayName>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
-            STRING, UnaryExecFunction<Value, ku_string_t, operation::DayName>));
     return result;
 }
 
@@ -58,9 +49,6 @@ vector<unique_ptr<VectorOperationDefinition>> GreatestVectorOperation::getDefini
     result.push_back(make_unique<VectorOperationDefinition>(GREATEST_FUNC_NAME,
         vector<DataTypeID>{TIMESTAMP, TIMESTAMP}, TIMESTAMP,
         BinaryExecFunction<timestamp_t, timestamp_t, timestamp_t, operation::Greatest>));
-    result.push_back(make_unique<VectorOperationDefinition>(GREATEST_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
-        BinaryExecFunction<Value, Value, Value, operation::Greatest>));
     return result;
 }
 
@@ -71,9 +59,6 @@ vector<unique_ptr<VectorOperationDefinition>> LastDayVectorOperation::getDefinit
     result.push_back(
         make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
             DATE, UnaryExecFunction<timestamp_t, date_t, operation::LastDay>));
-    result.push_back(
-        make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME, vector<DataTypeID>{UNSTRUCTURED},
-            DATE, UnaryExecFunction<Value, date_t, operation::LastDay>));
     return result;
 }
 
@@ -85,9 +70,6 @@ vector<unique_ptr<VectorOperationDefinition>> LeastVectorOperation::getDefinitio
     result.push_back(make_unique<VectorOperationDefinition>(LEAST_FUNC_NAME,
         vector<DataTypeID>{TIMESTAMP, TIMESTAMP}, TIMESTAMP,
         BinaryExecFunction<timestamp_t, timestamp_t, timestamp_t, operation::Least>));
-    result.push_back(make_unique<VectorOperationDefinition>(LEAST_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, UNSTRUCTURED}, UNSTRUCTURED,
-        BinaryExecFunction<Value, Value, Value, operation::Least>));
     return result;
 }
 
@@ -107,9 +89,6 @@ vector<unique_ptr<VectorOperationDefinition>> MonthNameVectorOperation::getDefin
     result.push_back(
         make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME, vector<DataTypeID>{TIMESTAMP},
             STRING, UnaryExecFunction<timestamp_t, ku_string_t, operation::MonthName>));
-    result.push_back(make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED}, STRING,
-        UnaryExecFunction<Value, ku_string_t, operation::MonthName>));
     return result;
 }
 

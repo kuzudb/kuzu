@@ -5,7 +5,6 @@
 
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
-#include "src/common/types/include/value.h"
 
 using namespace kuzu::common;
 
@@ -108,99 +107,6 @@ inline void Hash::operation(const unordered_set<string>& key, hash_t& result) {
         result ^= std::hash<string>()(s);
     }
 }
-
-/**********************************************
- **                                          **
- **   Specialized Value implementations      **
- **                                          **
- **********************************************/
-
-template<>
-inline void Hash::operation(const Value& key, hash_t& result) {
-    switch (key.dataType.typeID) {
-    case NODE_ID: {
-        Hash::operation<nodeID_t>(key.val.nodeID, result);
-    } break;
-    case BOOL: {
-        Hash::operation<bool>(key.val.booleanVal, result);
-    } break;
-    case INT64: {
-        Hash::operation<int64_t>(key.val.int64Val, result);
-    } break;
-    case DOUBLE: {
-        Hash::operation<double_t>(key.val.doubleVal, result);
-    } break;
-    case STRING: {
-        Hash::operation<ku_string_t>(key.val.strVal, result);
-    } break;
-    case DATE: {
-        Hash::operation<date_t>(key.val.dateVal, result);
-    } break;
-    case TIMESTAMP: {
-        Hash::operation<timestamp_t>(key.val.timestampVal, result);
-    } break;
-    case INTERVAL: {
-        Hash::operation<interval_t>(key.val.intervalVal, result);
-    } break;
-    default: {
-        throw RuntimeException(
-            "Cannot hash data type " + Types::dataTypeToString(key.dataType.typeID));
-    }
-    }
-}
-
-struct HashOnValue {
-    static void operation(Value& key, bool isNull, hash_t& result) {
-        if (isNull) {
-            result = NULL_HASH;
-            return;
-        }
-        Hash::operation(key, result);
-    }
-};
-
-/**********************************************
- **                                          **
- **   Specialized Bytes implementations      **
- **                                          **
- **********************************************/
-
-struct HashOnBytes {
-    static inline void operation(DataTypeID dataTypeID, uint8_t* key, bool isNull, hash_t& result) {
-        switch (dataTypeID) {
-        case NODE_ID: {
-            Hash::operation<nodeID_t>(*(nodeID_t*)key, isNull, result);
-        } break;
-        case BOOL: {
-            Hash::operation<bool>(*(bool*)key, isNull, result);
-        } break;
-        case INT64: {
-            Hash::operation<int64_t>(*(int64_t*)key, isNull, result);
-        } break;
-        case DOUBLE: {
-            Hash::operation<double_t>(*(double_t*)key, isNull, result);
-        } break;
-        case STRING: {
-            Hash::operation<ku_string_t>(*(ku_string_t*)key, isNull, result);
-        } break;
-        case DATE: {
-            Hash::operation<date_t>(*(date_t*)key, isNull, result);
-        } break;
-        case TIMESTAMP: {
-            Hash::operation<timestamp_t>(*(timestamp_t*)key, isNull, result);
-        } break;
-        case INTERVAL: {
-            Hash::operation<interval_t>(*(interval_t*)key, isNull, result);
-        } break;
-        case UNSTRUCTURED: {
-            HashOnValue::operation(*(Value*)key, isNull, result);
-        } break;
-        default: {
-            throw RuntimeException("Cannot hash data type " + Types::dataTypeToString(dataTypeID));
-        }
-        }
-    }
-};
 
 } // namespace operation
 } // namespace function

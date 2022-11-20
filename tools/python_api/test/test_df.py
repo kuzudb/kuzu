@@ -55,14 +55,6 @@ def test_to_df(establish_connection):
                                                         [[7, 4], [8, 8], [9]], [[6], [7], [8]], [[8]], [[10]],
                                                         [[7], [10], [6, 7]]]
         assert str(pd['p.courseScoresPerTerm'].dtype) == "object"
-        # TODO(Xiyang): uncomment tests when adhoc properties are enabled
-        # unstrProp = pd['p.unstrNumericProp'].tolist()
-        # assert (isna(unstrProp[0]) and isna(unstrProp[3]) and isna(unstrProp[5]) and isna(unstrProp[6]) and isna(
-        #     unstrProp[7]))
-        # assert unstrProp[1] == '47'
-        # assert unstrProp[2] == '52'
-        # assert unstrProp[4] == '68.000000'
-        # assert str(pd['p.unstrNumericProp'].dtype) == "object"
 
     _test_to_df(conn)
 

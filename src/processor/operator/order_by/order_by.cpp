@@ -6,7 +6,7 @@ namespace processor {
 shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
 
-    // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
+    // FactorizedTable, numBytesPerTuple, strKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
     unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     vector<DataType> dataTypes;
@@ -37,7 +37,7 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     sharedState->setDataTypes(dataTypes);
-    // Loop through all key columns and calculate the offsets for string and unstructured columns.
+    // Loop through all key columns and calculate the offsets for string columns.
     auto encodedKeyBlockColOffset = 0ul;
     for (auto i = 0u; i < orderByDataInfo.keyDataPoses.size(); i++) {
         auto keyDataPos = orderByDataInfo.keyDataPoses[i];
@@ -46,16 +46,16 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
         auto vectorPos = keyDataPos.valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         keyVectors.emplace_back(vector);
-        if (STRING == vector->dataType.typeID || UNSTRUCTURED == vector->dataType.typeID) {
-            // If this is a string or unstructured column, we need to find the
-            // factorizedTable offset for this column.
+        if (STRING == vector->dataType.typeID) {
+            // If this is a string column, we need to find the factorizedTable offset for this
+            // column.
             auto factorizedTableColIdx = 0ul;
             for (auto j = 0u; j < orderByDataInfo.allDataPoses.size(); j++) {
                 if (orderByDataInfo.allDataPoses[j] == keyDataPos) {
                     factorizedTableColIdx = j;
                 }
             }
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+            strKeyColInfo.emplace_back(StrKeyColInfo(
                 localFactorizedTable->getTableSchema()->getColOffset(factorizedTableColIdx),
                 encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i],
                 STRING == vector->dataType.typeID));
@@ -66,10 +66,10 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
         context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock());
-    radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
-        *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+    radixSorter = make_unique<RadixSort>(
+        context->memoryManager, *localFactorizedTable, *orderByKeyEncoder, strKeyColInfo);
 
-    sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
+    sharedState->setStrKeyColInfo(strKeyColInfo);
     sharedState->setNumBytesPerTuple(orderByKeyEncoder->getNumBytesPerTuple());
     return resultSet;
 }

@@ -20,9 +20,6 @@ public:
     inline Column* getNodePropertyColumn(table_id_t tableID, uint64_t propertyIdx) const {
         return nodeTables.at(tableID)->getPropertyColumn(propertyIdx);
     }
-    inline UnstructuredPropertyLists* getNodeUnstrPropertyLists(table_id_t tableID) const {
-        return nodeTables.at(tableID)->getUnstrPropertyLists();
-    }
     inline PrimaryKeyIndex* getPKIndex(table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
     }

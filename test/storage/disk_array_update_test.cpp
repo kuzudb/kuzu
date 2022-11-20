@@ -5,6 +5,9 @@
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
+// TODO(Guodong): the current disk array update test relies on unstructured property which
+// has been removed in the recent PRs.
+
 // Tests the core update functionality of DiskArray and InMemDiskArray. Specifically tests that
 // updates to DiskArrays happen transactionally. The tests use ListHeaders, which consists of a
 // single DiskArray as a wrapper. This is required and we cannot (easily) write tests that directly

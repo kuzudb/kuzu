@@ -43,18 +43,6 @@ public:
             ArrayExtract::operation(str, idx, result);
         }
     }
-
-    static inline void operation(Value& item, int64_t& pos, Value& result) {
-        if (item.dataType.typeID == STRING) {
-            result.dataType.typeID = STRING;
-            operation(item.val.strVal, pos, result.val.strVal);
-        } else if (item.dataType.typeID == LIST) {
-            throw RuntimeException("list_extract not implemented for unstructured lists");
-        } else {
-            throw RuntimeException(
-                "incorrect type given to [] operator. Type must be either LIST or STRING");
-        }
-    }
 };
 
 template<>

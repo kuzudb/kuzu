@@ -20,8 +20,6 @@ vector<unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions
                 rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Add>(
-        ADD_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
     // date + int → date
     result.push_back(
         make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{DATE, INT64}, DATE,
@@ -61,8 +59,6 @@ vector<unique_ptr<VectorOperationDefinition>> SubtractVectorOperation::getDefini
                 leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Subtract>(
-        SUBTRACT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
     // date - date → integer
     result.push_back(
         make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME, vector<DataTypeID>{DATE, DATE},
@@ -98,8 +94,6 @@ vector<unique_ptr<VectorOperationDefinition>> MultiplyVectorOperation::getDefini
                 leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Multiply>(
-        MULTIPLY_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
@@ -111,8 +105,6 @@ vector<unique_ptr<VectorOperationDefinition>> DivideVectorOperation::getDefiniti
                 DIVIDE_FUNC_NAME, leftType, rightType, resolveResultType(leftType, rightType)));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Divide>(
-        DIVIDE_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
     // interval / int → interval
     result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
         vector<DataTypeID>{INTERVAL, INT64}, INTERVAL,
@@ -128,8 +120,6 @@ vector<unique_ptr<VectorOperationDefinition>> ModuloVectorOperation::getDefiniti
                 rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Modulo>(
-        MODULO_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
@@ -141,14 +131,12 @@ vector<unique_ptr<VectorOperationDefinition>> PowerVectorOperation::getDefinitio
                 POWER_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Power, true /* DOUBLE_RESULT */>(
-        POWER_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, DOUBLE));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> NegateVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, typeID, typeID));
     }
     return result;
@@ -156,7 +144,7 @@ vector<unique_ptr<VectorOperationDefinition>> NegateVectorOperation::getDefiniti
 
 vector<unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, typeID, typeID));
     }
     return result;
@@ -164,7 +152,7 @@ vector<unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> FloorVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, typeID, typeID));
     }
     return result;
@@ -172,7 +160,7 @@ vector<unique_ptr<VectorOperationDefinition>> FloorVectorOperation::getDefinitio
 
 vector<unique_ptr<VectorOperationDefinition>> CeilVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, typeID, typeID));
     }
     return result;
@@ -180,7 +168,7 @@ vector<unique_ptr<VectorOperationDefinition>> CeilVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> SinVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, typeID, DOUBLE));
     }
@@ -189,7 +177,7 @@ vector<unique_ptr<VectorOperationDefinition>> SinVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> CosVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, typeID, DOUBLE));
     }
@@ -198,7 +186,7 @@ vector<unique_ptr<VectorOperationDefinition>> CosVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> TanVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, typeID, DOUBLE));
     }
@@ -207,7 +195,7 @@ vector<unique_ptr<VectorOperationDefinition>> TanVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> CotVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, typeID, DOUBLE));
     }
@@ -216,7 +204,7 @@ vector<unique_ptr<VectorOperationDefinition>> CotVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> AsinVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Asin, false, true>(ASIN_FUNC_NAME, typeID, DOUBLE));
     }
@@ -225,7 +213,7 @@ vector<unique_ptr<VectorOperationDefinition>> AsinVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> AcosVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Acos, false, true>(ACOS_FUNC_NAME, typeID, DOUBLE));
     }
@@ -234,7 +222,7 @@ vector<unique_ptr<VectorOperationDefinition>> AcosVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> AtanVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Atan, false, true>(ATAN_FUNC_NAME, typeID, DOUBLE));
     }
@@ -251,7 +239,7 @@ vector<unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefin
 
 vector<unique_ptr<VectorOperationDefinition>> SqrtVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sqrt, false, true>(SQRT_FUNC_NAME, typeID, DOUBLE));
     }
@@ -260,7 +248,7 @@ vector<unique_ptr<VectorOperationDefinition>> SqrtVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> CbrtVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cbrt, false, true>(CBRT_FUNC_NAME, typeID, DOUBLE));
     }
@@ -272,14 +260,12 @@ vector<unique_ptr<VectorOperationDefinition>> GammaVectorOperation::getDefinitio
     for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Gamma>(GAMMA_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Gamma>(GAMMA_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> LgammaVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Lgamma, false, true>(LGAMMA_FUNC_NAME, typeID, DOUBLE));
     }
@@ -288,7 +274,7 @@ vector<unique_ptr<VectorOperationDefinition>> LgammaVectorOperation::getDefiniti
 
 vector<unique_ptr<VectorOperationDefinition>> LnVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, typeID, DOUBLE));
     }
@@ -297,7 +283,7 @@ vector<unique_ptr<VectorOperationDefinition>> LnVectorOperation::getDefinitions(
 
 vector<unique_ptr<VectorOperationDefinition>> LogVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, typeID, DOUBLE));
     }
@@ -306,7 +292,7 @@ vector<unique_ptr<VectorOperationDefinition>> LogVectorOperation::getDefinitions
 
 vector<unique_ptr<VectorOperationDefinition>> Log2VectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Log2, false, true>(LOG2_FUNC_NAME, typeID, DOUBLE));
     }
@@ -315,7 +301,7 @@ vector<unique_ptr<VectorOperationDefinition>> Log2VectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> DegreesVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Degrees, false, true>(DEGREES_FUNC_NAME, typeID, DOUBLE));
     }
@@ -324,7 +310,7 @@ vector<unique_ptr<VectorOperationDefinition>> DegreesVectorOperation::getDefinit
 
 vector<unique_ptr<VectorOperationDefinition>> RadiansVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Radians, false, true>(RADIANS_FUNC_NAME, typeID, DOUBLE));
     }
@@ -333,7 +319,7 @@ vector<unique_ptr<VectorOperationDefinition>> RadiansVectorOperation::getDefinit
 
 vector<unique_ptr<VectorOperationDefinition>> EvenVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Even, true, false>(EVEN_FUNC_NAME, typeID, INT64));
     }
@@ -342,7 +328,7 @@ vector<unique_ptr<VectorOperationDefinition>> EvenVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> SignVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sign, true, false>(SIGN_FUNC_NAME, typeID, INT64));
     }
@@ -357,8 +343,6 @@ vector<unique_ptr<VectorOperationDefinition>> Atan2VectorOperation::getDefinitio
                 >(ATAN2_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
         }
     }
-    result.push_back(getBinaryDefinition<operation::Atan2, true /* DOUBLE_RESULT */>(
-        ATAN2_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, DOUBLE));
     return result;
 }
 
@@ -368,8 +352,6 @@ vector<unique_ptr<VectorOperationDefinition>> RoundVectorOperation::getDefinitio
         result.push_back(getBinaryDefinition<operation::Round, true /* DOUBLE_RESULT */>(
             ROUND_FUNC_NAME, leftTypeID, INT64, DOUBLE));
     }
-    result.push_back(getBinaryDefinition<operation::Round, true /* DOUBLE_RESULT */>(
-        ROUND_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, DOUBLE));
     return result;
 }
 

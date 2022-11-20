@@ -634,14 +634,6 @@ ABFs
 CsWo
 DEsW
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME ListSliceUnstructuredString
-#-QUERY MATCH (o:organisation) RETURN o.unstrStr[5:8]
-#---- 3
-#RfEC
-#cELL
-# org
-
 -NAME ListSliceStructuredStringRight
 -QUERY MATCH (a:person) RETURN a.fName[4:]
 ---- 8
@@ -682,23 +674,3 @@ DEsWork
 -QUERY RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
 ---- 1
 True
-
-# TODO(Xiyang): this is most likely a list executor bug
-#-NAME ListCreate2
-#-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN [a.age, b.age]
-#-ENUMERATE
-#---- 14
-#[20,25]
-#[20,30]
-#[20,35]
-#[20,40]
-#[20,45]
-#[30,20]
-#[30,35]
-#[30,45]
-#[35,20]
-#[35,30]
-#[35,45]
-#[45,20]
-#[45,30]
-#[45,35]

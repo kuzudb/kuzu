@@ -131,7 +131,6 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
@@ -143,7 +142,6 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -248,7 +246,7 @@ bool CatalogContent::containNodeProperty(table_id_t tableID, const string& prope
             return true;
         }
     }
-    return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap.contains(propertyName);
+    return false;
 }
 
 bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
@@ -267,8 +265,7 @@ const Property& CatalogContent::getNodeProperty(
             return property;
         }
     }
-    auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(tableID).at(propertyName);
-    return getUnstructuredNodeProperties(tableID)[unstrPropertyIdx];
+    assert(false);
 }
 
 const Property& CatalogContent::getRelProperty(
@@ -339,16 +336,9 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
         offset = SerDeser::deserializeValue<RelTableSchema>(
             *relTableSchemas[tableID], fileInfo.get(), offset);
     }
-    // construct the tableNameToIdMap and table's unstrPropertiesNameToIdMap
+    // Construct the tableNameToIdMap.
     for (auto& nodeTableSchema : nodeTableSchemas) {
         nodeTableNameToIDMap[nodeTableSchema.second->tableName] = nodeTableSchema.second->tableID;
-        for (auto i = 0u; i < nodeTableSchema.second->unstructuredProperties.size(); i++) {
-            auto& property = nodeTableSchema.second->unstructuredProperties[i];
-            if (property.dataType.typeID == UNSTRUCTURED) {
-                nodeTableSchema.second->unstrPropertiesNameToIdMap[property.name] =
-                    property.propertyID;
-            }
-        }
     }
     for (auto& relTableSchema : relTableSchemas) {
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;

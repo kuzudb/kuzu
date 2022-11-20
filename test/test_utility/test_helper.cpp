@@ -148,7 +148,7 @@ void BaseGraphTest::validateListFilesExistence(
     }
 }
 
-void BaseGraphTest::validateNodeColumnAndListFilesExistence(
+void BaseGraphTest::validateNodeColumnFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
     for (auto& property : nodeTableSchema->structuredProperties) {
         validateColumnFilesExistence(
@@ -156,10 +156,6 @@ void BaseGraphTest::validateNodeColumnAndListFilesExistence(
                 nodeTableSchema->tableID, property.propertyID, dbFileType),
             existence, containsOverflowFile(property.dataType.typeID));
     }
-    validateListFilesExistence(
-        StorageUtils::getNodeUnstrPropertyListsFName(
-            databaseConfig->databasePath, nodeTableSchema->tableID, dbFileType),
-        existence, true /* hasOverflow */, true /* hasHeader */);
     validateColumnFilesExistence(StorageUtils::getNodeIndexFName(databaseConfig->databasePath,
                                      nodeTableSchema->tableID, dbFileType),
         existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));

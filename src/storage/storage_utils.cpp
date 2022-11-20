@@ -67,10 +67,6 @@ string StorageUtils::getListFName(const string& directory, StorageStructureID st
     string baseFName;
     ListFileID listFileID = storageStructureID.listFileID;
     switch (listFileID.listType) {
-    case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-        baseFName = getNodeUnstrPropertyListsFName(
-            directory, listFileID.unstructuredNodePropertyListsID.tableID, DBFileType::ORIGINAL);
-    } break;
     case ADJ_LISTS: {
         auto& relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
         baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,

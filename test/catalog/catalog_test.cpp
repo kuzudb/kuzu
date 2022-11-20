@@ -33,11 +33,9 @@ public:
         personProperties.emplace_back("usedNames", DataType(LIST, make_unique<DataType>(STRING)));
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
-        vector<string> unstrPropertyNames{"unstrIntProp"};
         PERSON_TABLE_ID = catalog->getReadOnlyVersion()->addNodeTableSchema(
             "person", 0 /* primaryKeyIdx */, move(personProperties));
         auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(PERSON_TABLE_ID);
-        nodeTableSchema->addUnstructuredProperties(unstrPropertyNames);
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_TABLE", STRING);
@@ -122,13 +120,6 @@ TEST_F(CatalogTest, AddTablesTest) {
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.childType->childType->typeID,
         INT64);
-    ASSERT_EQ(catalog->getReadOnlyVersion()
-                  ->getUnstrPropertiesNameToIdMap(PERSON_TABLE_ID)
-                  .at("unstrIntProp"),
-        0);
-    ASSERT_EQ(
-        catalog->getReadOnlyVersion()->getAllNodeProperties(PERSON_TABLE_ID)[13].dataType.typeID,
-        UNSTRUCTURED);
     ASSERT_EQ(catalog->getReadOnlyVersion()->getRelProperty(KNOWS_TABLE_ID, "date").dataType.typeID,
         DATE);
     ASSERT_EQ(
@@ -154,8 +145,4 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-    ASSERT_EQ(catalog->getReadOnlyVersion()
-                  ->getUnstrPropertiesNameToIdMap(PERSON_TABLE_ID)
-                  .at("unstrIntProp"),
-        0);
 }

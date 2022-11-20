@@ -84,15 +84,5 @@ struct AvgFunction {
     }
 };
 
-template<>
-inline void AvgFunction<Value>::finalize(uint8_t* state_) {
-    auto state = reinterpret_cast<AvgState*>(state_);
-    assert(!state->isNull);
-    auto unstrCount = Value((double_t)state->count);
-    auto result = Value();
-    Divide::operation(state->sum, unstrCount, result);
-    state->avg = result.val.doubleVal;
-}
-
 } // namespace function
 } // namespace kuzu

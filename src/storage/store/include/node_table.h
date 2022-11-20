@@ -3,7 +3,6 @@
 #include "src/catalog/include/catalog.h"
 #include "src/storage/index/include/hash_index.h"
 #include "src/storage/storage_structure/include/lists/lists.h"
-#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
 #include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
 #include "src/storage/wal/include/wal.h"
 
@@ -26,9 +25,6 @@ public:
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
         return propertyColumns[propertyIdx].get();
     }
-    inline UnstructuredPropertyLists* getUnstrPropertyLists() const {
-        return unstrPropertyLists.get();
-    }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
 
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
@@ -42,14 +38,8 @@ public:
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
-    inline void checkpointInMemoryIfNecessary() {
-        unstrPropertyLists->checkpointInMemoryIfNecessary();
-        pkIndex->checkpointInMemoryIfNecessary();
-    }
-    inline void rollbackInMemoryIfNecessary() {
-        unstrPropertyLists->rollbackInMemoryIfNecessary();
-        pkIndex->rollbackInMemoryIfNecessary();
-    }
+    inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
+    inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
 
 private:
     void deleteNode(node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
@@ -60,8 +50,6 @@ public:
 private:
     // This is for structured properties.
     vector<unique_ptr<Column>> propertyColumns;
-    // All unstructured properties of a node are stored inside one UnstructuredPropertyLists.
-    unique_ptr<UnstructuredPropertyLists> unstrPropertyLists;
     // The index for ID property.
     // TODO(Guodong): rename this to primary key index
     unique_ptr<PrimaryKeyIndex> pkIndex;

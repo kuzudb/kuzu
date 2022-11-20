@@ -82,12 +82,6 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
         // be slided if necessary. The necessity condition is if the old header is not equal to
         // the new header that would be formed by the current CSR offset.
         if (!ListHeaders::isALargeList(oldHeader)) {
-            // Note that we do not need to differentiate whether this function is running for
-            // AdjLists-UnstructuredPropertyLists (which need to compute newHeaders and actually
-            // update them) vs RelPropertyLists (which do not update headers and can always read new
-            // headers from the updated version of the header). This is because AdjList and
-            // RelPropertyLists are parallel and if a list remained small then, we would iteratively
-            // always compute the same new csrOffsets for each small list header.
             auto [listLen, csrOffset] = ListHeaders::getSmallListLenAndCSROffset(oldHeader);
             list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, listLen);
             if (newHeader != oldHeader) {
@@ -165,9 +159,9 @@ void ListsUpdateIterator::updateLargeList(list_header_t oldHeader, InMemList& in
                            TransactionType::WRITE) >>
                        1;
         // 2) We only need to update list header when this is an
-        // adjOrUnstructuredPropertyListsUpdateIterator because relPropertyList share the same
+        // adjListsUpdateIterator because relPropertyList share the same
         // header with adjList. The below updateLargeListHeaderIfNecessary(...) function will only
-        // update the header if the executing class is adjOrUnstructuredPropertyListsUpdateIterator.
+        // update the header if the executing class is adjListsUpdateIterator.
         updateLargeListHeaderIfNecessary(largeListIdx);
         // 3) Then we set a NULL pageListHeadIdx and also NULL for numElements of the new large
         // list. The call to insertNewPageGroupAndSetHeadIdxMap will update the pageListHeadIdx. And
@@ -191,15 +185,15 @@ void ListsUpdateIterator::updateLargeList(list_header_t oldHeader, InMemList& in
 void ListsUpdateIterator::updateSmallListAndCurCSROffset(
     list_header_t oldHeader, InMemList& inMemList) {
     // Note that we do not need to differentiate whether this function is running for
-    // AdjLists-UnstructuredPropertyLists (which need to compute newHeaders and actually
-    // update them) vs RelPropertyLists (which do not update headers and can always read new
-    // headers from the updated version of the header). This is because AdjList and
-    // RelPropertyLists are parallel and if a list remained small then, we would iteratively
-    // always compute the same new csrOffsets for each small list header.
+    // AdjLists (which need to compute newHeaders and actually update them) vs RelPropertyLists
+    // (which do not update headers and can always read new headers from the updated version of the
+    // header). This is because AdjList and RelPropertyLists are parallel and if a list remained
+    // small then, we would iteratively always compute the same new csrOffsets for each small list
+    // header.
     list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, inMemList.numElements);
-    // 1: Only the adjOrUnstructuredPropertyListsUpdateIterator need to update
-    // the header, so the below updateSmallListHeaderIfNecessary(...) will only update the
-    // header if the executing class is adjOrUnstructuredPropertyListsUpdateIterator.
+    // 1: Only the adjListsUpdateIterator need to update the header, so the below
+    // updateSmallListHeaderIfNecessary(...) will only update the header if the executing class is
+    // adjListsUpdateIterator.
     updateSmallListHeaderIfNecessary(oldHeader, newHeader);
 
     // 2: Find the pageListHeadIdx for the chunk. If this chunk is "new", i.e., a new list was

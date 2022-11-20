@@ -19,20 +19,16 @@ uint64_t InMemNodeCSVCopier::copy() {
     logger->info(
         "Copying node {} with table {}.", nodeTableSchema->tableName, nodeTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, nodeTableSchema->tableName);
-    auto unstructuredPropertyNames =
-        countLinesPerBlockAndParseUnstrPropertyNames(nodeTableSchema->getNumStructuredProperties());
-    catalog.setUnstructuredPropertiesOfNodeTableSchema(
-        unstructuredPropertyNames, nodeTableSchema->tableID);
+    countLinesPerBlock(nodeTableSchema->getNumStructuredProperties());
     numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndList();
-    // Populate structured columns with the ID hash index and count the size of unstructured
-    // lists.
+    // Populate structured columns with the ID hash index.
     switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
     case INT64: {
-        populateColumnsAndCountUnstrPropertyListSizes<int64_t>();
+        populateColumns<int64_t>();
     } break;
     case STRING: {
-        populateColumnsAndCountUnstrPropertyListSizes<ku_string_t>();
+        populateColumns<ku_string_t>();
     } break;
     default: {
         throw CopyCSVException("Unsupported data type " +
@@ -40,8 +36,6 @@ uint64_t InMemNodeCSVCopier::copy() {
                                " for the ID index.");
     }
     }
-    calcUnstrListsHeadersAndMetadata();
-    populateUnstrPropertyLists();
     saveToFile();
     nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
     logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
@@ -50,7 +44,7 @@ uint64_t InMemNodeCSVCopier::copy() {
 }
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {
-    logger->info("Initializing in memory structured columns and unstructured list.");
+    logger->info("Initializing in memory structured columns.");
     structuredColumns.resize(nodeTableSchema->getNumStructuredProperties());
     for (auto& property : nodeTableSchema->structuredProperties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
@@ -58,46 +52,23 @@ void InMemNodeCSVCopier::initializeColumnsAndList() {
         structuredColumns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }
-    unstrPropertyLists = make_unique<InMemUnstructuredLists>(
-        StorageUtils::getNodeUnstrPropertyListsFName(
-            outputDirectory, nodeTableSchema->tableID, DBFileType::WAL_VERSION),
-        numNodes);
-    logger->info("Done initializing in memory structured columns and unstructured list.");
+    logger->info("Done initializing in memory structured columns.");
 }
 
-static vector<string> mergeUnstrPropertyNamesFromBlocks(
-    vector<unordered_set<string>>& unstructuredPropertyNamesPerBlock) {
-    unordered_set<string> unstructuredPropertyNames;
-    for (auto& unstructuredPropertiesInBlock : unstructuredPropertyNamesPerBlock) {
-        for (auto& propertyName : unstructuredPropertiesInBlock) {
-            unstructuredPropertyNames.insert(propertyName);
-        }
-    }
-    // Ensure the same order in different platforms.
-    vector<string> result{unstructuredPropertyNames.begin(), unstructuredPropertyNames.end()};
-    sort(result.begin(), result.end());
-    return result;
-}
-
-vector<string> InMemNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
-    uint64_t numStructuredProperties) {
-    logger->info("Counting number of lines and read unstructured property names in each block.");
-    vector<unordered_set<string>> unstructuredPropertyNamesPerBlock{numBlocks};
+void InMemNodeCSVCopier::countLinesPerBlock(uint64_t numStructuredProperties) {
+    logger->info("Counting number of lines in each block.");
     numLinesPerBlock.resize(numBlocks);
     for (uint64_t blockId = 0; blockId < numBlocks; blockId++) {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            countNumLinesAndUnstrPropertiesPerBlockTask, csvDescription.filePath, blockId, this,
-            numStructuredProperties, &unstructuredPropertyNamesPerBlock[blockId]));
+            countNumLinesPerBlockTask, csvDescription.filePath, blockId, this));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    logger->info(
-        "Done counting number of lines and read unstructured property names  in each block.");
-    return mergeUnstrPropertyNamesFromBlocks(unstructuredPropertyNamesPerBlock);
+    logger->info("Done counting number of lines in each block.");
 }
 
 template<typename T>
-void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
-    logger->info("Populating structured properties and Counting unstructured properties.");
+void InMemNodeCSVCopier::populateColumns() {
+    logger->info("Populating structured properties.");
     auto pkIndex =
         make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
                                              nodeTableSchema->tableID, DBFileType::WAL_VERSION),
@@ -105,16 +76,14 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
     pkIndex->bulkReserve(numNodes);
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            populateColumnsAndCountUnstrPropertyListSizesTask<T>,
+        taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(populateColumnsTask<T>,
             nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(), this));
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->info("Flush the pk index to disk.");
     pkIndex->flush();
-    logger->info("Done populating structured properties, constructing the pk index and counting "
-                 "unstructured properties.");
+    logger->info("Done populating structured properties, constructing the pk index.");
 }
 
 template<typename T>
@@ -151,9 +120,8 @@ void InMemNodeCSVCopier::skipFirstRowIfNecessary(
 }
 
 template<typename T>
-void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-    uint64_t blockId, uint64_t startOffset, HashIndexBuilder<T>* pkIndex,
-    InMemNodeCSVCopier* copier) {
+void InMemNodeCSVCopier::populateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
+    uint64_t offsetStart, HashIndexBuilder<T>* pkIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
     vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
     CSVReader reader(
@@ -163,97 +131,11 @@ void InMemNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint6
     while (reader.hasNextLine()) {
         putPropsOfLineIntoColumns(copier->structuredColumns,
             copier->nodeTableSchema->structuredProperties, overflowCursors, reader,
-            startOffset + bufferOffset);
-        // TODO(Semih): Uncomment when enabling ad-hoc properties.
-        //        calcLengthOfUnstrPropertyLists(
-        //            reader, startOffset + bufferOffset, copier->unstrPropertyLists.get());
+            offsetStart + bufferOffset);
         bufferOffset++;
     }
-    populatePKIndex(copier->structuredColumns[IDColumnIdx].get(), pkIndex, startOffset,
+    populatePKIndex(copier->structuredColumns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
         copier->numLinesPerBlock[blockId]);
-    copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
-}
-
-void InMemNodeCSVCopier::calcLengthOfUnstrPropertyLists(
-    CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists) {
-    while (reader.hasNextToken()) {
-        auto unstrPropertyString = reader.getString();
-        auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
-        if (!unstrPropertyStringBreaker1) {
-            throw CopyCSVException("Unstructured property token in CSV is not in correct "
-                                   "structure. It does not have ':' to separate"
-                                   " the property key. token: " +
-                                   string(unstrPropertyString));
-        }
-        *unstrPropertyStringBreaker1 = 0;
-        auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
-        if (!unstrPropertyStringBreaker2) {
-            throw CopyCSVException("Unstructured property token in CSV is not in correct "
-                                   "structure. It does not have ':' to separate"
-                                   " the data type.");
-        }
-        *unstrPropertyStringBreaker2 = 0;
-        auto dataType = Types::dataTypeFromString(string(unstrPropertyStringBreaker1 + 1));
-        auto dataTypeSize = Types::getDataTypeSize(dataType);
-        InMemListsUtils::incrementListSize(*unstrPropertyLists->getListSizes(), nodeOffset,
-            StorageConfig::UNSTR_PROP_HEADER_LEN + dataTypeSize);
-    }
-}
-
-void InMemNodeCSVCopier::calcUnstrListsHeadersAndMetadata() {
-    // TODO(Semih): This can never be nullptr so we can remove this check.
-    if (unstrPropertyLists == nullptr) {
-        return;
-    }
-    logger->debug("Initializing UnstructuredPropertyListHeaderBuilders.");
-    taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(calculateListHeadersTask,
-        numNodes, 1, unstrPropertyLists->getListSizes(),
-        unstrPropertyLists->getListHeadersBuilder(), logger));
-    logger->debug("Done initializing UnstructuredPropertyListHeaders.");
-    taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Initializing UnstructuredPropertyListsMetadata.");
-    taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-        calculateListsMetadataAndAllocateInMemListPagesTask, numNodes, 1,
-        unstrPropertyLists->getListSizes(), unstrPropertyLists->getListHeadersBuilder(),
-        unstrPropertyLists.get(), false /*hasNULLBytes*/, logger));
-    logger->debug("Done initializing UnstructuredPropertyListsMetadata.");
-    taskScheduler.waitAllTasksToCompleteOrError();
-}
-
-void InMemNodeCSVCopier::populateUnstrPropertyLists() {
-    logger->debug("Populating Unstructured Property Lists.");
-    node_offset_t nodeOffsetStart = 0;
-    for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-            populateUnstrPropertyListsTask, blockIdx, nodeOffsetStart, this));
-        nodeOffsetStart += numLinesPerBlock[blockIdx];
-    }
-    taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Done populating Unstructured Property Lists.");
-}
-
-void InMemNodeCSVCopier::populateUnstrPropertyListsTask(
-    uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeCSVCopier* copier) {
-    copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
-    CSVReader reader(
-        copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
-    skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
-    auto bufferOffset = 0u;
-    PageByteCursor inMemOverflowFileCursor;
-    auto unstrPropertiesNameToIdMap = copier->catalog.getWriteVersion()
-                                          ->getNodeTableSchema(copier->nodeTableSchema->tableID)
-                                          ->unstrPropertiesNameToIdMap;
-    while (reader.hasNextLine()) {
-        for (auto i = 0u; i < copier->nodeTableSchema->getNumStructuredProperties(); ++i) {
-            reader.hasNextTokenOrError();
-        }
-        // TODO(Semih): Uncomment when enabling ad-hoc properties
-        //        putUnstrPropsOfALineToLists(reader, nodeOffsetStart + bufferOffset,
-        //        inMemOverflowFileCursor,
-        //            unstrPropertiesNameToIdMap,
-        //            reinterpret_cast<InMemUnstructuredLists*>(copier->unstrPropertyLists.get()));
-        bufferOffset++;
-    }
     copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
 }
 
@@ -325,76 +207,6 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
     }
 }
 
-void InMemNodeCSVCopier::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-    PageByteCursor& inMemOverflowFileCursor,
-    unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
-    InMemUnstructuredLists* unstrPropertyLists) {
-    while (reader.hasNextToken()) {
-        auto unstrPropertyString = reader.getString();
-        // Note: We do not check if the unstrPropertyString is in correct format below because
-        // this was already done when inside populateColumnsAndCountUnstrPropertyListSizesTask,
-        // when calling calcLengthOfUnstrPropertyLists. E.g., below we don't check if
-        // unstrPropertyStringBreaker1 is null or not as we do in calcLengthOfUnstrPropertyLists.
-        auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
-        *unstrPropertyStringBreaker1 = 0;
-        auto propertyKeyId = (uint32_t)unstrPropertiesNameToIdMap.at(string(unstrPropertyString));
-        auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
-        *unstrPropertyStringBreaker2 = 0;
-        auto dataType = Types::dataTypeFromString(string(unstrPropertyStringBreaker1 + 1));
-        auto dataTypeSize = Types::getDataTypeSize(dataType);
-        auto reversePos = InMemListsUtils::decrementListSize(*unstrPropertyLists->getListSizes(),
-            nodeOffset, StorageConfig::UNSTR_PROP_HEADER_LEN + dataTypeSize);
-        PageElementCursor pageElementCursor = InMemListsUtils::calcPageElementCursor(
-            unstrPropertyLists->getListHeadersBuilder()->getHeader(nodeOffset), reversePos, 1,
-            nodeOffset, *unstrPropertyLists->getListsMetadataBuilder(), false /*hasNULLBytes*/);
-        PageByteCursor pageCursor{pageElementCursor.pageIdx, pageElementCursor.elemPosInPage};
-        char* valuePtr = unstrPropertyStringBreaker2 + 1;
-        switch (dataType.typeID) {
-        case INT64: {
-            auto intVal = TypeUtils::convertToInt64(valuePtr);
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                (uint8_t*)(&intVal), &inMemOverflowFileCursor);
-        } break;
-        case DOUBLE: {
-            auto doubleVal = TypeUtils::convertToDouble(valuePtr);
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&doubleVal), &inMemOverflowFileCursor);
-        } break;
-        case BOOL: {
-            auto boolVal = TypeUtils::convertToBoolean(valuePtr);
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&boolVal), &inMemOverflowFileCursor);
-        } break;
-        case DATE: {
-            char* beginningOfDateStr = valuePtr;
-            date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&dateVal), &inMemOverflowFileCursor);
-        } break;
-        case TIMESTAMP: {
-            char* beginningOfTimestampStr = valuePtr;
-            timestamp_t timestampVal =
-                Timestamp::FromCString(beginningOfTimestampStr, strlen(beginningOfTimestampStr));
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&timestampVal), &inMemOverflowFileCursor);
-        } break;
-        case INTERVAL: {
-            char* beginningOfIntervalStr = valuePtr;
-            interval_t intervalVal =
-                Interval::FromCString(beginningOfIntervalStr, strlen(beginningOfIntervalStr));
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(&intervalVal), &inMemOverflowFileCursor);
-        } break;
-        case STRING: {
-            unstrPropertyLists->setUnstructuredElement(pageCursor, propertyKeyId, dataType.typeID,
-                reinterpret_cast<uint8_t*>(valuePtr), &inMemOverflowFileCursor);
-        } break;
-        default:
-            throw CopyCSVException("unsupported dataType while parsing unstructured property");
-        }
-    }
-}
-
 void InMemNodeCSVCopier::saveToFile() {
     logger->debug("Writing node structured columns to disk.");
     assert(!structuredColumns.empty());
@@ -402,8 +214,6 @@ void InMemNodeCSVCopier::saveToFile() {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
             [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
     }
-    taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-        [&](InMemLists* x) { x->saveToFile(); }, unstrPropertyLists.get()));
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing node structured columns to disk.");
 }

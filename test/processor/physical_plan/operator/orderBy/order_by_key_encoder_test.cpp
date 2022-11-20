@@ -4,7 +4,6 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/types/include/value.h"
 #include "src/processor/operator/order_by/include/order_by_key_encoder.h"
 
 using ::testing::Test;
@@ -554,41 +553,6 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x35);
     ASSERT_EQ(*(keyBlockPtr++), 0xFF);
     checkTupleIdxAndFactorizedTableIdx(5, keyBlockPtr);
-}
-
-TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
-    // For unstr datatype, orderByEncoder should ignore the actual datatype and simply encode them
-    // as 0.
-    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
-    dataChunk->state->selVector->selectedSize = 5;
-    shared_ptr<ValueVector> unstrValueVector =
-        make_shared<ValueVector>(UNSTRUCTURED, memoryManager.get());
-    unstrValueVector->setValue(0, Value(38.22));
-    unstrValueVector->setNull(1, true);
-    unstrValueVector->setValue(2, Value(Timestamp::FromCString("1962-04-07 11:12:35.123",
-                                      strlen("1962-04-07 11:12:35.123"))));
-    unstrValueVector->setValue(3, Value(int64_t(-97874221)));
-    unstrValueVector->setValue(4, Value(string("test str")));
-    dataChunk->insert(0, unstrValueVector);
-    vector<shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(unstrValueVector);
-    auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
-    orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
-
-    // For unstr values, we only need to check the nullByte and whether the encoded value is 0.
-    for (auto i = 0u; i < unstrValueVector->state->selVector->selectedSize; i++) {
-        if (i == 1) {
-            // Note: the 2nd value is a null.
-            checkNullVal(keyBlockPtr, UNSTRUCTURED, isAscOrder[0]);
-        } else {
-            checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
-            ASSERT_EQ(*(keyBlockPtr++), 0x00);
-        }
-        checkTupleIdxAndFactorizedTableIdx(i, keyBlockPtr);
-    }
 }
 
 TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {

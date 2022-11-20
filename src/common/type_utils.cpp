@@ -5,7 +5,6 @@
 
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
-#include "src/common/types/include/value.h"
 
 namespace kuzu {
 namespace common {
@@ -126,31 +125,6 @@ string TypeUtils::toString(const Literal& literal) {
         result += "]";
         return result;
     }
-    default:
-        assert(false);
-    }
-}
-
-string TypeUtils::toString(const Value& val) {
-    switch (val.dataType.typeID) {
-    case BOOL:
-        return TypeUtils::toString(val.val.booleanVal);
-    case INT64:
-        return TypeUtils::toString(val.val.int64Val);
-    case DOUBLE:
-        return TypeUtils::toString(val.val.doubleVal);
-    case STRING:
-        return TypeUtils::toString(val.val.strVal);
-    case NODE_ID:
-        return TypeUtils::toString(val.val.nodeID);
-    case DATE:
-        return TypeUtils::toString(val.val.dateVal);
-    case TIMESTAMP:
-        return TypeUtils::toString(val.val.timestampVal);
-    case INTERVAL:
-        return TypeUtils::toString(val.val.intervalVal);
-    case LIST:
-        return TypeUtils::toString(val.val.listVal, val.dataType);
     default:
         assert(false);
     }

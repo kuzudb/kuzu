@@ -163,51 +163,43 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) co
 
 // This function returns true if the value in the leftTuplePtr is larger than the value in the
 // rightTuplePtr.
-bool KeyBlockMerger::compareTuplePtrWithStringAndUnstructuredCol(
+bool KeyBlockMerger::compareTuplePtrWithStringCol(
     uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const {
-    // We can't simply use memcmp to compare tuples if there are string or unstructured columns.
+    // We can't simply use memcmp to compare tuples if there are string columns.
     // We should only compare the binary strings starting from the last compared string column
     // till the next string column.
     uint64_t lastComparedBytes = 0;
-    for (auto& stringAndUnstructuredKeyInfo : stringAndUnstructuredKeyColInfo) {
+    for (auto& strKeyColInfo : strKeyColsInfo) {
         auto result = memcmp(leftTuplePtr + lastComparedBytes, rightTuplePtr + lastComparedBytes,
-            stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock - lastComparedBytes +
-                stringAndUnstructuredKeyInfo.getEncodingSize());
-        // If both sides are nulls, we can just continue to check the next string or
-        // unstructured column.
-        auto leftStringAndUnstructuredColPtr =
-            leftTuplePtr + stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock;
-        auto rightStringAndUnstructuredColPtr =
-            rightTuplePtr + stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock;
-        if (OrderByKeyEncoder::isNullVal(
-                leftStringAndUnstructuredColPtr, stringAndUnstructuredKeyInfo.isAscOrder) &&
-            OrderByKeyEncoder::isNullVal(
-                rightStringAndUnstructuredColPtr, stringAndUnstructuredKeyInfo.isAscOrder)) {
-            lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
-                                stringAndUnstructuredKeyInfo.getEncodingSize();
+            strKeyColInfo.colOffsetInEncodedKeyBlock - lastComparedBytes +
+                strKeyColInfo.getEncodingSize());
+        // If both sides are nulls, we can just continue to check the next string column.
+        auto leftStrColPtr = leftTuplePtr + strKeyColInfo.colOffsetInEncodedKeyBlock;
+        auto rightStrColPtr = rightTuplePtr + strKeyColInfo.colOffsetInEncodedKeyBlock;
+        if (OrderByKeyEncoder::isNullVal(leftStrColPtr, strKeyColInfo.isAscOrder) &&
+            OrderByKeyEncoder::isNullVal(rightStrColPtr, strKeyColInfo.isAscOrder)) {
+            lastComparedBytes =
+                strKeyColInfo.colOffsetInEncodedKeyBlock + strKeyColInfo.getEncodingSize();
             continue;
         }
 
-        // If there is a tie, we need to compare the overflow ptr of strings or the actual
-        // unstructured values.
+        // If there is a tie, we need to compare the overflow ptr of strings values.
         if (result == 0) {
-            if (stringAndUnstructuredKeyInfo.isStrCol) {
-                // We do an optimization here to minimize the number of times that we fetch
-                // strings from factorizedTable. If both left and right strings are short string,
-                // they must equal to each other (since there are no other characters to compare for
-                // them). If one string is long string and the other string is short string, the
-                // long string must be greater than the short string.
-                bool isLeftStrLong = OrderByKeyEncoder::isLongStr(
-                    leftStringAndUnstructuredColPtr, stringAndUnstructuredKeyInfo.isAscOrder);
-                bool isRightStrLong = OrderByKeyEncoder::isLongStr(
-                    rightStringAndUnstructuredColPtr, stringAndUnstructuredKeyInfo.isAscOrder);
-                if (!isLeftStrLong && !isRightStrLong) {
-                    continue;
-                } else if (isLeftStrLong && !isRightStrLong) {
-                    return stringAndUnstructuredKeyInfo.isAscOrder;
-                } else if (!isLeftStrLong && isRightStrLong) {
-                    return !stringAndUnstructuredKeyInfo.isAscOrder;
-                }
+            // We do an optimization here to minimize the number of times that we fetch
+            // strings from factorizedTable. If both left and right strings are short string,
+            // they must equal to each other (since there are no other characters to compare for
+            // them). If one string is long string and the other string is short string, the
+            // long string must be greater than the short string.
+            bool isLeftStrLong =
+                OrderByKeyEncoder::isLongStr(leftStrColPtr, strKeyColInfo.isAscOrder);
+            bool isRightStrLong =
+                OrderByKeyEncoder::isLongStr(rightStrColPtr, strKeyColInfo.isAscOrder);
+            if (!isLeftStrLong && !isRightStrLong) {
+                continue;
+            } else if (isLeftStrLong && !isRightStrLong) {
+                return strKeyColInfo.isAscOrder;
+            } else if (!isLeftStrLong && isRightStrLong) {
+                return !strKeyColInfo.isAscOrder;
             }
 
             auto leftTupleInfo = leftTuplePtr + numBytesToCompare;
@@ -222,40 +214,23 @@ bool KeyBlockMerger::compareTuplePtrWithStringAndUnstructuredCol(
             auto& rightFactorizedTable =
                 factorizedTables[OrderByKeyEncoder::getEncodedFTIdx(rightTupleInfo)];
             uint8_t result;
-            if (stringAndUnstructuredKeyInfo.isStrCol) {
-                auto leftStr = leftFactorizedTable->getData<ku_string_t>(
-                    leftBlockIdx, leftBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                auto rightStr = rightFactorizedTable->getData<ku_string_t>(
-                    rightBlockIdx, rightBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                result = (leftStr == rightStr);
-                if (result) {
-                    // If the tie can't be solved, we need to check the next string or unstructured
-                    // column.
-                    lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
-                                        stringAndUnstructuredKeyInfo.getEncodingSize();
-                    continue;
-                }
-                result = leftStr > rightStr;
-            } else {
-                auto leftUnstr = leftFactorizedTable->getData<Value>(
-                    leftBlockIdx, leftBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                auto rightUnstr = rightFactorizedTable->getData<Value>(
-                    rightBlockIdx, rightBlockOffset, stringAndUnstructuredKeyInfo.colOffsetInFT);
-                Equals::operation<Value, Value>(leftUnstr, rightUnstr, result);
-                if (result) {
-                    // If the tie can't be solved, we need to check the next string or unstructured
-                    // column.
-                    lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
-                                        stringAndUnstructuredKeyInfo.getEncodingSize();
-                    continue;
-                }
-                GreaterThan::operation<Value, Value>(leftUnstr, rightUnstr, result);
+            auto leftStr = leftFactorizedTable->getData<ku_string_t>(
+                leftBlockIdx, leftBlockOffset, strKeyColInfo.colOffsetInFT);
+            auto rightStr = rightFactorizedTable->getData<ku_string_t>(
+                rightBlockIdx, rightBlockOffset, strKeyColInfo.colOffsetInFT);
+            result = (leftStr == rightStr);
+            if (result) {
+                // If the tie can't be solved, we need to check the next string column.
+                lastComparedBytes =
+                    strKeyColInfo.colOffsetInEncodedKeyBlock + strKeyColInfo.getEncodingSize();
+                continue;
             }
-            return stringAndUnstructuredKeyInfo.isAscOrder == result;
+            result = leftStr > rightStr;
+            return strKeyColInfo.isAscOrder == result;
         }
         return result > 0;
     }
-    // The string or unstructured tie can't be solved, just add the tuple in the leftMemBlock to
+    // The string tie can't be solved, just add the tuple in the leftMemBlock to
     // resultMemBlock.
     return false;
 }
@@ -320,8 +295,7 @@ void KeyBlockMergeTaskDispatcher::doneMorsel(unique_ptr<KeyBlockMergeMorsel> mor
 
 void KeyBlockMergeTaskDispatcher::initIfNecessary(MemoryManager* memoryManager,
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
-    vector<shared_ptr<FactorizedTable>>& factorizedTables,
-    vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
+    vector<shared_ptr<FactorizedTable>>& factorizedTables, vector<StrKeyColInfo>& strKeyColsInfo,
     uint64_t numBytesPerTuple) {
     lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
     if (isInitialized) {
@@ -330,8 +304,8 @@ void KeyBlockMergeTaskDispatcher::initIfNecessary(MemoryManager* memoryManager,
     isInitialized = true;
     this->memoryManager = memoryManager;
     this->sortedKeyBlocks = sortedKeyBlocks;
-    this->keyBlockMerger = make_unique<KeyBlockMerger>(
-        factorizedTables, stringAndUnstructuredKeyColInfo, numBytesPerTuple);
+    this->keyBlockMerger =
+        make_unique<KeyBlockMerger>(factorizedTables, strKeyColsInfo, numBytesPerTuple);
 }
 
 } // namespace processor

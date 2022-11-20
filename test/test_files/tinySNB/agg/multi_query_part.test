@@ -1,9 +1,3 @@
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME SimpleCountMultiQueryTest
-#-QUERY MATCH (a:person) WITH COUNT(a.age) + COUNT(a.unstrNumericProp) AS newCount RETURN newCount > 12
-#---- 1
-#False
-
 -NAME SimpleAvgWithFilterMultiQueryTest
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
 ---- 1

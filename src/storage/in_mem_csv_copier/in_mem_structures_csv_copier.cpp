@@ -39,37 +39,18 @@ uint64_t InMemStructuresCSVCopier::calculateNumRows(bool hasHeader) {
     return numRows;
 }
 
-static void collectUnstrPropertyNamesInLine(
-    CSVReader& reader, uint64_t numTokensToSkip, unordered_set<string>* unstrPropertyNames) {
-    for (auto i = 0u; i < numTokensToSkip; ++i) {
-        reader.hasNextTokenOrError();
-    }
-    while (reader.hasNextToken()) {
-        auto unstrPropertyStr = reader.getString();
-        auto unstrPropertyName =
-            StringUtils::split(unstrPropertyStr, CopyCSVConfig::UNSTR_PROPERTY_SEPARATOR)[0];
-        unstrPropertyNames->insert(unstrPropertyName);
-    }
-}
-
-void InMemStructuresCSVCopier::countNumLinesAndUnstrPropertiesPerBlockTask(const string& fName,
-    uint64_t blockId, InMemStructuresCSVCopier* copier, uint64_t numTokensToSkip,
-    unordered_set<string>* unstrPropertyNames) {
+void InMemStructuresCSVCopier::countNumLinesPerBlockTask(
+    const string& fName, uint64_t blockId, InMemStructuresCSVCopier* copier) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
     CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
     copier->numLinesPerBlock[blockId] = 0ull;
     while (reader.hasNextLine()) {
         copier->numLinesPerBlock[blockId]++;
-        // TODO(Semih): Uncomment when enabling ad-hoc properties.
-        //        if (unstrPropertyNames != nullptr) {
-        //            collectUnstrPropertyNamesInLine(reader, numTokensToSkip, unstrPropertyNames);
-        //        }
     }
     copier->logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);
 }
 
-// Lists headers are created for only AdjLists and UnstrPropertyLists, both of which store data
-// in the page without NULL bits.
+// Lists headers are created for only AdjLists, which store data in the page without NULL bits.
 void InMemStructuresCSVCopier::calculateListHeadersTask(node_offset_t numNodes,
     uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     const shared_ptr<spdlog::logger>& logger) {

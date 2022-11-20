@@ -24,19 +24,16 @@ public:
 
 // RadixSort sorts a block of binary strings using the radixSort and quickSort (only for comparing
 // string overflow pointers). The algorithm loops through each column of the orderByVectors. If it
-// sees a column with string, which is variable length, or unstructured type, which may be variable
-// length, it will call radixSort to sort the columns seen so far. If there are tie tuples, it will
-// compare the overflow ptr of strings or the actual values of unstructured data. For subsequent
+// sees a column with string, which is variable length, it will call radixSort to sort the columns
+// seen so far. If there are tie tuples, it will compare the overflow ptr of strings. For subsequent
 // columns, the algorithm only calls radixSort on tie tuples.
 class RadixSort {
 public:
     RadixSort(MemoryManager* memoryManager, FactorizedTable& factorizedTable,
-        OrderByKeyEncoder& orderByKeyEncoder,
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo)
+        OrderByKeyEncoder& orderByKeyEncoder, vector<StrKeyColInfo> strKeyColsInfo)
         : tmpSortingResultBlock{make_unique<DataBlock>(memoryManager)},
           tmpTuplePtrSortingBlock{make_unique<DataBlock>(memoryManager)},
-          factorizedTable{factorizedTable},
-          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
+          factorizedTable{factorizedTable}, strKeyColsInfo{strKeyColsInfo},
           numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
                                                                          numBytesPerTuple - 8} {}
 
@@ -55,11 +52,11 @@ private:
 
     // Some ties can't be solved in quicksort, just add them to ties.
     template<typename TYPE>
-    void findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
-        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo);
+    void findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
+        StrKeyColInfo& keyColInfo);
 
-    void solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
-        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo);
+    void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
+        StrKeyColInfo& keyColInfo);
 
 private:
     unique_ptr<DataBlock> tmpSortingResultBlock;
@@ -72,11 +69,11 @@ private:
     // MaxNumOfTuplePointers=(LARGE_PAGE_SIZE / numBytesPerTuple) <= LARGE_PAGE_SIZE. As a result,
     // we only need one dataBlock to store the tuplePointers while solving the string ties.
     unique_ptr<DataBlock> tmpTuplePtrSortingBlock;
-    // factorizedTable stores all columns in the tuples that will be sorted, including the order by
-    // key columns. RadixSort uses factorizedTable to access the full contents of the string and
-    // unstructured columns when resolving ties.
+    // FactorizedTable stores all columns in the tuples that will be sorted, including the order by
+    // key columns. RadixSort uses factorizedTable to access the full contents of the string columns
+    // when resolving ties.
     FactorizedTable& factorizedTable;
-    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+    vector<StrKeyColInfo> strKeyColsInfo;
     uint32_t numBytesPerTuple;
     uint32_t numBytesToRadixSort;
 };

@@ -19,9 +19,8 @@ public:
     bool getNextTuples() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjListExtend>(inDataPos, outDataPos,
-            (AdjLists*)listsWithAdjAndPropertyListsUpdateStore, children[0]->clone(), id,
-            paramsString);
+        return make_unique<AdjListExtend>(
+            inDataPos, outDataPos, (AdjLists*)lists, children[0]->clone(), id, paramsString);
     }
 };
 

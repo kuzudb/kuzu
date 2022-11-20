@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 #include "include/types_include.h"
-#include "include/value.h"
 
 #include "src/common/include/exception.h"
 
@@ -111,8 +110,6 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "INTERVAL";
     case STRING:
         return "STRING";
-    case UNSTRUCTURED:
-        return "UNSTRUCTURED";
     case LIST:
         return "LIST";
     default:
@@ -158,8 +155,6 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(interval_t);
     case STRING:
         return sizeof(ku_string_t);
-    case UNSTRUCTURED:
-        return sizeof(Value);
     case LIST:
         return sizeof(ku_list_t);
     default:
