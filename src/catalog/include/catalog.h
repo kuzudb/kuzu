@@ -92,8 +92,6 @@ public:
     virtual const Property& getNodeProperty(table_id_t tableID, const string& propertyName) const;
     virtual const Property& getRelProperty(table_id_t tableID, const string& propertyName) const;
 
-    const Property& getNodePrimaryKeyProperty(table_id_t tableID) const;
-
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {
         return relTableSchemas.at(tableID)->properties;
@@ -116,7 +114,7 @@ public:
     /**
      * Graph topology functions.
      */
-
+    // TODO(Xiyang): remove
     virtual const unordered_set<table_id_t>& getRelTableIDsForNodeTableDirection(
         table_id_t tableID, RelDirection direction) const;
 

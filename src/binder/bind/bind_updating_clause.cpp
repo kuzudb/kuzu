@@ -53,6 +53,10 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
 
 unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
+    if (node->getNumTableIDs() > 1) {
+        throw BinderException(
+            "Create multi-labeled node " + node->getRawName() + "is not supported.");
+    }
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     shared_ptr<Expression> primaryKeyExpression;
@@ -130,6 +134,10 @@ unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& u
 }
 
 unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(shared_ptr<NodeExpression> node) {
+    if (node->getNumTableIDs() > 1) {
+        throw BinderException(
+            "Delete multi-labeled node " + node->getRawName() + "is not supported.");
+    }
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     auto primaryKeyExpression = expressionBinder.bindNodePropertyExpression(node, primaryKey);

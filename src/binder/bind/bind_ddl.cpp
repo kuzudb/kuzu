@@ -34,7 +34,7 @@ unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statemen
     auto relConnections = createRelClause.getRelConnections();
     vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
     for (auto& [srcTableName, dstTableName] : relConnections) {
-        srcDstTableIDs.emplace_back(bindNodeTable(srcTableName), bindNodeTable(dstTableName));
+        srcDstTableIDs.emplace_back(bindNodeTableID(srcTableName), bindNodeTableID(dstTableName));
     }
     return make_unique<BoundCreateRelClause>(
         tableName, move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);

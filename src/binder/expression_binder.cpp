@@ -143,6 +143,9 @@ shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
     auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
+    if (nodeExpression->getNumTableIDs() > 1) {
+        throw BinderException("Cannot bind property for multi-labeled node " + node->getRawName());
+    }
     if (catalogContent->containNodeProperty(nodeExpression->getTableID(), propertyName)) {
         auto& property =
             catalogContent->getNodeProperty(nodeExpression->getTableID(), propertyName);

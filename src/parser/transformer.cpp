@@ -246,10 +246,16 @@ unique_ptr<PatternElement> Transformer::transformPatternElement(
 unique_ptr<NodePattern> Transformer::transformNodePattern(
     CypherParser::OC_NodePatternContext& ctx) {
     auto variable = ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string();
-    auto nodeLabel = ctx.oC_NodeLabel() ? transformNodeLabel(*ctx.oC_NodeLabel()) : string();
+    vector<string> nodeLabels;
+    if (ctx.oC_NodeLabels()) {
+        for (auto& nodeLabel : ctx.oC_NodeLabels()->oC_NodeLabel()) {
+            nodeLabels.push_back(transformNodeLabel(*nodeLabel));
+        }
+    }
     auto properties = ctx.kU_Properties() ? transformProperties(*ctx.kU_Properties()) :
                                             vector<pair<string, unique_ptr<ParsedExpression>>>{};
-    return make_unique<NodePattern>(move(variable), move(nodeLabel), move(properties));
+    return make_unique<NodePattern>(
+        std::move(variable), std::move(nodeLabels), std::move(properties));
 }
 
 unique_ptr<PatternElementChain> Transformer::transformPatternElementChain(
@@ -498,7 +504,6 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-
     if (ctx.children[1]->getText() == ":" || ctx.children[2]->getText() == ":") {
         auto listSlice =
             make_unique<ParsedFunctionExpression>(LIST_SLICE_FUNC_NAME, move(rawExpression));

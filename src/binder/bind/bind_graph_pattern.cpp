@@ -37,6 +37,31 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
     return queryGraph;
 }
 
+// TODO(Xiyang): remove this validation when we support full multi-labeled query
+static void validateNodeRelConnectivity(table_id_t srcTableID, table_id_t dstTableID,
+    table_id_t relTableID, const CatalogContent& catalogContent) {
+    for (auto& [srcTableID_, dstTableID_] :
+        catalogContent.getRelTableSchema(relTableID)->srcDstTableIDs) {
+        if (srcTableID_ == srcTableID && dstTableID_ == dstTableID) {
+            return;
+        }
+    }
+    throw BinderException("Node table " + catalogContent.getNodeTableName(srcTableID) +
+                          " doesn't connect to " + catalogContent.getNodeTableName(dstTableID) +
+                          " through rel table " + catalogContent.getRelTableName(relTableID) + ".");
+}
+
+// E.g. MATCH (:person)-[:studyAt]->(:person) ...
+static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpression& rel,
+    const NodeExpression& srcNode, const NodeExpression& dstNode) {
+    for (auto srcTableID : srcNode.getTableIDs()) {
+        for (auto dstTableID : dstNode.getTableIDs()) {
+            validateNodeRelConnectivity(
+                srcTableID, dstTableID, rel.getTableID(), *catalog_.getReadOnlyVersion());
+        }
+    }
+}
+
 void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
     const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
@@ -56,8 +81,6 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
-    validateNodeAndRelTableIsConnected(
-        catalog, tableID, srcNode->getTableID(), dstNode->getTableID());
     if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
@@ -79,6 +102,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
+    validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
     for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
         auto [propertyName, rhs] = relPattern.getProperty(i);
         auto boundLhs = expressionBinder.bindRelPropertyExpression(queryRel, propertyName);
@@ -97,12 +121,8 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto otherTableID = bindNodeTable(nodePattern.getTableName());
-        KU_ASSERT(queryNode->getTableID() != ANY_TABLE_ID);
-        if (otherTableID != ANY_TABLE_ID && queryNode->getTableID() != otherTableID) {
-            throw BinderException(
-                "Multi-table is not supported. Node " + parsedName + " is given multiple tables.");
-        }
+        auto otherTableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+        queryNode->addTableIDs(otherTableIDs);
     } else {
         queryNode = createQueryNode(nodePattern);
     }
@@ -119,18 +139,26 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
-    auto tableID = bindNodeTable(nodePattern.getTableName());
-    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableID);
+    auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
-    if (ANY_TABLE_ID == tableID) {
-        throw BinderException(
-            "Any-table is not supported. " + parsedName + " does not have a table.");
-    }
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryNode});
     }
     return queryNode;
+}
+
+unordered_set<table_id_t> Binder::bindNodeTableIDs(const vector<string>& nodeTableNames) {
+    unordered_set<table_id_t> result;
+    for (auto& nodeTableName : nodeTableNames) {
+        auto nodeTableID = bindNodeTableID(nodeTableName);
+        if (nodeTableID == ANY_TABLE_ID) {
+            throw BinderException("Any-table is not supported");
+        }
+        result.insert(nodeTableID);
+    }
+    return result;
 }
 
 } // namespace binder
