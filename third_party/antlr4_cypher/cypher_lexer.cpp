@@ -1,5 +1,5 @@
 
-// Generated from src/antlr4/Cypher.g4 by ANTLR 4.9
+// Generated from /Users/xiyangfeng/kuzu/kuzu/src/antlr4/Cypher.g4 by ANTLR 4.9
 
 
 #include "include/cypher_lexer.h"

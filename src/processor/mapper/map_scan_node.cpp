@@ -12,13 +12,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
     auto logicalScan = (LogicalScanNode*)logicalOperator;
     auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
-    auto nodeTable = nodesStore.getNodeTable(node->getTableID());
+
     auto dataPos = mapperContext.getDataPos(node->getIDProperty());
     mapperContext.addComputedExpressions(node->getIDProperty());
-    auto sharedState = make_shared<ScanNodeIDSharedState>(
-        &nodesStore.getNodesStatisticsAndDeletedIDs(), node->getTableID());
+    auto sharedState = make_shared<ScanNodeIDSharedState>();
+    for (auto& tableID : node->getTableIDs()) {
+        auto nodeTable = nodesStore.getNodeTable(tableID);
+        sharedState->addTableState(nodeTable);
+    }
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        node->getUniqueName(), nodeTable, dataPos, sharedState, getOperatorID(),
+        node->getUniqueName(), dataPos, sharedState, getOperatorID(),
         logicalScan->getExpressionsForPrinting());
 }
 

@@ -19,6 +19,15 @@ public:
     NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
         BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema);
 
+    inline node_offset_t getMaxNodeOffset(Transaction* trx) {
+        return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
+    }
+
+    inline void setSelVectorForDeletedOffsets(Transaction* trx, shared_ptr<ValueVector>& vector) {
+        assert(vector->isSequential());
+        nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
+    }
+
     void loadColumnsAndListsFromDisk(
         NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal);
 

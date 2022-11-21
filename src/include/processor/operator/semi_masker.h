@@ -12,18 +12,18 @@ public:
     SemiMasker(const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
         : PhysicalOperator{std::move(child), id, paramsString},
-          keyDataPos{keyDataPos}, maskerIdx{0}, scanNodeIDSharedState{nullptr} {}
+          keyDataPos{keyDataPos}, maskerIdx{0}, scanTableNodeIDSharedState{nullptr} {}
 
     SemiMasker(const SemiMasker& other)
         : PhysicalOperator{other.children[0]->clone(), other.id, other.paramsString},
           keyDataPos{other.keyDataPos}, maskerIdx{other.maskerIdx},
-          scanNodeIDSharedState{other.scanNodeIDSharedState} {}
+          scanTableNodeIDSharedState{other.scanTableNodeIDSharedState} {}
 
-    inline void setSharedState(ScanNodeIDSharedState* sharedState) {
-        scanNodeIDSharedState = sharedState;
-        maskerIdx = scanNodeIDSharedState->getNumMaskers();
+    inline void setSharedState(ScanTableNodeIDSharedState* sharedState) {
+        scanTableNodeIDSharedState = sharedState;
+        maskerIdx = scanTableNodeIDSharedState->getNumMaskers();
         assert(maskerIdx < UINT8_MAX);
-        scanNodeIDSharedState->incrementNumMaskers();
+        scanTableNodeIDSharedState->incrementNumMaskers();
     }
 
     inline PhysicalOperatorType getOperatorType() override { return SEMI_MASKER; }
@@ -42,7 +42,7 @@ private:
     // value in the mask by 1. More details are described in ScanNodeIDSemiMask.
     uint8_t maskerIdx;
     shared_ptr<ValueVector> keyValueVector;
-    ScanNodeIDSharedState* scanNodeIDSharedState;
+    ScanTableNodeIDSharedState* scanTableNodeIDSharedState;
 };
 } // namespace processor
 } // namespace kuzu

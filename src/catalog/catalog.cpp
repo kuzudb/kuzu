@@ -277,11 +277,6 @@ const Property& CatalogContent::getRelProperty(
     assert(false);
 }
 
-const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
-    auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryKeyPropertyIdx;
-    return nodeTableSchemas.at(tableID)->structuredProperties[primaryKeyId];
-}
-
 vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
     return nodeTableSchemas.at(tableID)->getAllNodeProperties();
 }
