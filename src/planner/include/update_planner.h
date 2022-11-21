@@ -40,7 +40,7 @@ private:
     void appendSet(vector<expression_pair> setItems, LogicalPlan& plan);
     void appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
 
-    vector<expression_pair> splitSetItems(vector<expression_pair> setItems, bool isStructured);
+    vector<expression_pair> splitSetItems(vector<expression_pair> setItems);
 
 private:
     const Catalog& catalog;

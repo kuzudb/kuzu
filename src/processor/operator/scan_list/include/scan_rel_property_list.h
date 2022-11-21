@@ -8,11 +8,9 @@ namespace processor {
 class ScanRelPropertyList : public ScanList {
 
 public:
-    ScanRelPropertyList(const DataPos& inDataPos, const DataPos& outDataPos,
-        ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore,
+    ScanRelPropertyList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : ScanList{inDataPos, outDataPos, listsWithAdjAndPropertyListsUpdateStore, move(child), id,
-              paramsString} {}
+        : ScanList{inDataPos, outDataPos, lists, move(child), id, paramsString} {}
 
     inline PhysicalOperatorType getOperatorType() override { return SCAN_REL_PROPERTY; }
 
@@ -21,8 +19,8 @@ public:
     bool getNextTuples() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanRelPropertyList>(inDataPos, outDataPos,
-            listsWithAdjAndPropertyListsUpdateStore, children[0]->clone(), id, paramsString);
+        return make_unique<ScanRelPropertyList>(
+            inDataPos, outDataPos, lists, children[0]->clone(), id, paramsString);
     }
 };
 

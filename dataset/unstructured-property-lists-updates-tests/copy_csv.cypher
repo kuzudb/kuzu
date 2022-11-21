@@ -1,1 +1,0 @@
-COPY person FROM "dataset/unstructured-property-lists-updates-tests/vPerson.csv"

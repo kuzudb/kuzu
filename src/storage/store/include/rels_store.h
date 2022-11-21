@@ -24,9 +24,9 @@ public:
         const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyColumn(relDirection, nodeTableID, propertyIdx);
     }
-    inline ListsWithAdjAndPropertyListsUpdateStore* getRelPropertyLists(
-        const RelDirection& relDirection, const table_id_t& nodeTableID,
-        const table_id_t& relTableID, const uint64_t& propertyIdx) const {
+    inline Lists* getRelPropertyLists(const RelDirection& relDirection,
+        const table_id_t& nodeTableID, const table_id_t& relTableID,
+        const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
     }
     inline AdjColumn* getAdjColumn(const RelDirection& relDirection, const table_id_t& nodeTableID,

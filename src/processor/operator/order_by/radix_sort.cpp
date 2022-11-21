@@ -16,10 +16,9 @@ void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
     // We need to sort the whole keyBlock for the first radix sort, so just mark all tuples as a
     // tie.
     ties.push(TieRange{0, numTuplesInKeyBlock - 1});
-    for (auto i = 0u; i < stringAndUnstructuredKeyColInfo.size(); i++) {
-        const auto numBytesToSort = stringAndUnstructuredKeyColInfo[i].colOffsetInEncodedKeyBlock -
-                                    numBytesSorted +
-                                    stringAndUnstructuredKeyColInfo[i].getEncodingSize();
+    for (auto i = 0u; i < strKeyColsInfo.size(); i++) {
+        const auto numBytesToSort = strKeyColsInfo[i].colOffsetInEncodedKeyBlock - numBytesSorted +
+                                    strKeyColsInfo[i].getEncodingSize();
         const auto numOfTies = ties.size();
         for (auto j = 0u; j < numOfTies; j++) {
             auto keyBlockTie = ties.front();
@@ -32,9 +31,9 @@ void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
                              numBytesSorted,
                     keyBlockTie.getNumTuples(), numBytesToSort, keyBlockTie.startingTupleIdx);
             for (auto& newTieInKeyBlock : newTiesInKeyBlock) {
-                solveStringAndUnstructuredTies(newTieInKeyBlock,
+                solveStringTies(newTieInKeyBlock,
                     keyBlock.getData() + newTieInKeyBlock.startingTupleIdx * numBytesPerTuple, ties,
-                    stringAndUnstructuredKeyColInfo[i]);
+                    strKeyColsInfo[i]);
             }
         }
         if (ties.empty()) {
@@ -140,18 +139,16 @@ void RadixSort::reOrderKeyBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr) {
 }
 
 template<typename TYPE>
-void RadixSort::findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
-    queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo) {
+void RadixSort::findStringTies(
+    TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
     auto iTuplePtr = keyBlockPtr;
     for (auto i = keyBlockTie.startingTupleIdx; i < keyBlockTie.endingTupleIdx; i++) {
         bool isIValNull = OrderByKeyEncoder::isNullVal(
             iTuplePtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
         // This variable will only be used when the current column is a string column. Otherwise,
         // we just set this variable to false.
-        bool isIStringLong =
-            keyColInfo.isStrCol &&
-            OrderByKeyEncoder::isLongStr(
-                iTuplePtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
+        bool isIStringLong = OrderByKeyEncoder::isLongStr(
+            iTuplePtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
         TYPE iValue =
             isIValNull ?
                 TYPE() :
@@ -211,8 +208,8 @@ void RadixSort::findStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* ke
     }
 }
 
-void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
-    queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& keyColInfo) {
+void RadixSort::solveStringTies(
+    TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
     fillTmpTuplePtrSortingBlock(keyBlockTie, keyBlockPtr);
     auto tmpTuplePtrSortingBlockPtr = (uint8_t**)tmpTuplePtrSortingBlock->getData();
     sort(tmpTuplePtrSortingBlockPtr, tmpTuplePtrSortingBlockPtr + keyBlockTie.getNumTuples(),
@@ -226,28 +223,25 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
                 return !keyColInfo.isAscOrder;
             }
 
-            if (keyColInfo.isStrCol) {
-                // We only need to fetch the actual strings from the
-                // factorizedTable when both left and right strings are long string.
-                auto isLeftLongStr = OrderByKeyEncoder::isLongStr(
-                    leftPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
-                auto isRightLongStr = OrderByKeyEncoder::isLongStr(
-                    rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
-                if (!isLeftLongStr && !isRightLongStr) {
-                    // If left and right are both short string and have the same prefix, we can't
-                    // conclude that the left string is smaller than the right string.
-                    return false;
-                } else if (isLeftLongStr && !isRightLongStr) {
-                    // If left string is a long string and right string is a short string, we can
-                    // conclude that the left string must be greater than the right string.
-                    return !keyColInfo.isAscOrder;
-                } else if (isRightLongStr && !isLeftLongStr) {
-                    // If right string is a long string and left string is a short string, we can
-                    // conclude that the right string must be greater than the left string.
-                    return keyColInfo.isAscOrder;
-                }
+            // We only need to fetch the actual strings from the
+            // factorizedTable when both left and right strings are long string.
+            auto isLeftLongStr = OrderByKeyEncoder::isLongStr(
+                leftPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
+            auto isRightLongStr = OrderByKeyEncoder::isLongStr(
+                rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
+            if (!isLeftLongStr && !isRightLongStr) {
+                // If left and right are both short string and have the same prefix, we can't
+                // conclude that the left string is smaller than the right string.
+                return false;
+            } else if (isLeftLongStr && !isRightLongStr) {
+                // If left string is a long string and right string is a short string, we can
+                // conclude that the left string must be greater than the right string.
+                return !keyColInfo.isAscOrder;
+            } else if (isRightLongStr && !isLeftLongStr) {
+                // If right string is a long string and left string is a short string, we can
+                // conclude that the right string must be greater than the left string.
+                return keyColInfo.isAscOrder;
             }
-
             auto leftTupleInfoPtr = leftPtr + numBytesToRadixSort;
             auto rightTupleInfoPtr = rightPtr + numBytesToRadixSort;
             const auto leftBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(leftTupleInfoPtr);
@@ -256,35 +250,13 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
             const auto rightBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(rightTupleInfoPtr);
             const auto rightBlockOffset =
                 OrderByKeyEncoder::getEncodedFTBlockOffset(rightTupleInfoPtr);
-
-            if (keyColInfo.isStrCol) {
-                auto result = (keyColInfo.isAscOrder ==
-                               (factorizedTable.getData<ku_string_t>(
-                                    leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT) <
-                                   factorizedTable.getData<ku_string_t>(
-                                       rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT)));
-                return result;
-            } else {
-                // The comparison function does the type checking for the unstructured values. If
-                // there is a type mismatch, the comparison function will throw an exception. Note:
-                // we may loose precision if we compare DOUBLE and INT64 For example: DOUBLE: a =
-                // 2^57, INT64: b = 2^57 + 3. Although a < b, the LessThan function may still output
-                // false.
-                uint8_t result;
-                LessThan::operation<Value, Value>(factorizedTable.getData<Value>(leftBlockIdx,
-                                                      leftBlockOffset, keyColInfo.colOffsetInFT),
-                    factorizedTable.getData<Value>(
-                        rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT),
-                    result);
-                return keyColInfo.isAscOrder == result;
-            }
+            return keyColInfo.isAscOrder == (factorizedTable.getData<ku_string_t>(leftBlockIdx,
+                                                 leftBlockOffset, keyColInfo.colOffsetInFT) <
+                                                factorizedTable.getData<ku_string_t>(rightBlockIdx,
+                                                    rightBlockOffset, keyColInfo.colOffsetInFT));
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);
-    if (keyColInfo.isStrCol) {
-        findStringAndUnstructuredTies<ku_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
-    } else {
-        findStringAndUnstructuredTies<Value>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
-    }
+    findStringTies<ku_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
 }
 
 } // namespace processor

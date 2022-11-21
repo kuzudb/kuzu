@@ -30,11 +30,6 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
             ->saveToFile();
     }
-    auto unstrPropertyLists =
-        make_unique<InMemUnstructuredLists>(StorageUtils::getNodeUnstrPropertyListsFName(directory,
-                                                nodeTableSchema->tableID, DBFileType::ORIGINAL),
-            0 /* numNodes */);
-    initLargeListPageListsAndSaveToFile(unstrPropertyLists.get());
     if (nodeTableSchema->getPrimaryKey().dataType.typeID == INT64) {
         auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
             StorageUtils::getNodeIndexFName(
@@ -158,8 +153,6 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
         columnFileOperation(StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
     }
-    listFileOperation(StorageUtils::getNodeUnstrPropertyListsFName(
-        directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }

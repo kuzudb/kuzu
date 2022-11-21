@@ -11,23 +11,21 @@ namespace processor {
 
 struct KeyBlockMergeMorsel;
 
-// This struct stores the string and unstructured key column information. We can utilize the
+// This struct stores the string key column information. We can utilize the
 // pre-computed indexes and offsets to expedite the tuple comparison in merge sort.
-struct StringAndUnstructuredKeyColInfo {
-    StringAndUnstructuredKeyColInfo(
+struct StrKeyColInfo {
+    StrKeyColInfo(
         uint32_t colOffsetInFT, uint32_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
         : colOffsetInFT{colOffsetInFT}, colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock},
-          isAscOrder{isAscOrder}, isStrCol{isStrCol} {}
+          isAscOrder{isAscOrder} {}
 
     inline uint32_t getEncodingSize() const {
-        return isStrCol ? OrderByKeyEncoder::getEncodingSize(DataType(STRING)) :
-                          OrderByKeyEncoder::getEncodingSize(DataType(UNSTRUCTURED));
+        return OrderByKeyEncoder::getEncodingSize(DataType(STRING));
     }
 
     uint32_t colOffsetInFT;
     uint32_t colOffsetInEncodedKeyBlock;
     bool isAscOrder;
-    bool isStrCol;
 };
 
 class MergedKeyBlocks {
@@ -98,23 +96,19 @@ struct BlockPtrInfo {
 class KeyBlockMerger {
 public:
     explicit KeyBlockMerger(vector<shared_ptr<FactorizedTable>>& factorizedTables,
-        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
-        uint32_t numBytesPerTuple)
-        : factorizedTables{factorizedTables},
-          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
+        vector<StrKeyColInfo>& strKeyColsInfo, uint32_t numBytesPerTuple)
+        : factorizedTables{factorizedTables}, strKeyColsInfo{strKeyColsInfo},
           numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple - 8},
-          hasStringAndUnstructuredCol{!stringAndUnstructuredKeyColInfo.empty()} {}
+          hasStringCol{!strKeyColsInfo.empty()} {}
 
     void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) const;
 
     inline bool compareTuplePtr(uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const {
-        return hasStringAndUnstructuredCol ?
-                   compareTuplePtrWithStringAndUnstructuredCol(leftTuplePtr, rightTuplePtr) :
-                   memcmp(leftTuplePtr, rightTuplePtr, numBytesToCompare) > 0;
+        return hasStringCol ? compareTuplePtrWithStringCol(leftTuplePtr, rightTuplePtr) :
+                              memcmp(leftTuplePtr, rightTuplePtr, numBytesToCompare) > 0;
     }
 
-    bool compareTuplePtrWithStringAndUnstructuredCol(
-        uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const;
+    bool compareTuplePtrWithStringCol(uint8_t* leftTuplePtr, uint8_t* rightTuplePtr) const;
 
 private:
     void copyRemainingBlockDataToResult(BlockPtrInfo& blockToCopy, BlockPtrInfo& resultBlock) const;
@@ -125,12 +119,11 @@ private:
     // when resolving ties.
     vector<shared_ptr<FactorizedTable>>& factorizedTables;
     // We also store the colIdxInFactorizedTable, colOffsetInEncodedKeyBlock, isAscOrder, isStrCol
-    // for each string and unstructured column. So, we don't need to compute them again during merge
-    // sort.
-    vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
+    // for each string column. So, we don't need to compute them again during merge sort.
+    vector<StrKeyColInfo>& strKeyColsInfo;
     uint32_t numBytesPerTuple;
     uint32_t numBytesToCompare;
-    bool hasStringAndUnstructuredCol;
+    bool hasStringCol;
 };
 
 class KeyBlockMergeTask {
@@ -204,8 +197,7 @@ public:
     void initIfNecessary(MemoryManager* memoryManager,
         shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
         vector<shared_ptr<FactorizedTable>>& factorizedTables,
-        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
-        uint64_t numBytesPerTuple);
+        vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
 
 private:
     mutex mtx;

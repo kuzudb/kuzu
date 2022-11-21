@@ -9,12 +9,10 @@ namespace processor {
 class ScanList : public PhysicalOperator {
 
 public:
-    ScanList(const DataPos& inDataPos, const DataPos& outDataPos,
-        ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore,
+    ScanList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, listsWithAdjAndPropertyListsUpdateStore{
-                                      listsWithAdjAndPropertyListsUpdateStore} {}
+          outDataPos{outDataPos}, lists{lists} {}
 
     ~ScanList() override{};
 
@@ -37,7 +35,7 @@ protected:
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 
-    ListsWithAdjAndPropertyListsUpdateStore* listsWithAdjAndPropertyListsUpdateStore;
+    Lists* lists;
     shared_ptr<ListHandle> listHandle;
 };
 

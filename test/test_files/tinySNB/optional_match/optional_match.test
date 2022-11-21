@@ -67,14 +67,6 @@ Elizabeth|Farooq
 Elizabeth|Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME OptionalReadUnstrPropertyTest
-#-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Elizabeth' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN c.unstrNumericProp
-#-ENUMERATE
-#---- 2
-#
-#-12.500000
-
 -NAME OptionalReturnTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Alice' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN c.orgCode
 -ENUMERATE

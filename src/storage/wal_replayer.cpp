@@ -167,12 +167,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         } break;
         case LISTS: {
             switch (storageStructureID.listFileID.listType) {
-            case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-                UnstructuredPropertyLists* unstructuredPropertyLists =
-                    storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                        storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
-                diskOverflowFile = &unstructuredPropertyLists->diskOverflowFile;
-            } break;
             case REL_PROPERTY_LISTS: {
                 auto& relNodeTableAndDir =
                     storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
@@ -386,31 +380,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     }
     case LISTS: {
         switch (storageStructureID.listFileID.listType) {
-        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            UnstructuredPropertyLists* unstructuredPropertyLists =
-                storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
-            switch (storageStructureID.listFileID.listFileType) {
-            case BASE_LISTS: {
-                return storageStructureID.isOverflow ?
-                           unstructuredPropertyLists->diskOverflowFile.getFileHandle() :
-                           unstructuredPropertyLists->getFileHandle();
-            }
-            default:
-                // Note: We do not clear the WAL version of updated pages (nor do we need to
-                // update the Buffer Manager versions of these pages) for METADATA and
-                // HEADERS. The reason is METADATA and HEADERs are stored in
-                // InMemoryDiskArrays, which bypass the BufferManager and during
-                // checkpointing Lists, those InMemDiskArray rely on the WAL version of
-                // these pages existing to update their own in-memory versions manually. If
-                // we clear the WAL versions in WALReplayer
-                // InMeMDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock will omit
-                // refreshing their in memory copies of these updated pages. If we make the
-                // InMemDiskArrays also store their pages through the BufferManager, we
-                // should return the VersionedFileHandle's for METADATA and HEADERs as well.
-                return nullptr;
-            }
-        }
         case ADJ_LISTS: {
             auto& relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
             auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
@@ -420,7 +389,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                 return adjLists->getFileHandle();
             }
             default:
-                // See comments for unstructured_node_property_lists.
                 return nullptr;
             }
         }
@@ -438,7 +406,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                                                        relPropLists->getFileHandle();
             }
             default:
-                // See comments for unstructured_node_property_lists.
                 return nullptr;
             }
         }

@@ -15,7 +15,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-// This class contains factorizedTables, nextFactorizedTableIdx, stringAndUnstructuredKeyColInfo,
+// This class contains factorizedTables, nextFactorizedTableIdx, strKeyColsInfo,
 // sortedKeyBlocks and the size of each tuple in keyBlocks. The class is shared between the orderBy,
 // orderByMerge, orderByScan operators. All functions are guaranteed to be thread-safe,
 // so caller doesn't need to acquire a lock before calling these functions.
@@ -64,10 +64,9 @@ public:
         }
     }
 
-    void setStringAndUnstructuredKeyColInfo(
-        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo_) {
+    void setStrKeyColInfo(vector<StrKeyColInfo> strKeyColsInfo) {
         unique_lock lck{orderBySharedStateMutex};
-        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo_);
+        this->strKeyColsInfo = move(strKeyColsInfo);
     }
 
 private:
@@ -79,7 +78,7 @@ public:
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
 
     uint32_t numBytesPerTuple;
-    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+    vector<StrKeyColInfo> strKeyColsInfo;
     vector<DataType> dataTypes;
 };
 
@@ -137,7 +136,7 @@ private:
     unique_ptr<RadixSort> radixSorter;
     vector<shared_ptr<ValueVector>> keyVectors;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
-    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+    vector<StrKeyColInfo> strKeyColInfo;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
     shared_ptr<FactorizedTable> localFactorizedTable;
 };

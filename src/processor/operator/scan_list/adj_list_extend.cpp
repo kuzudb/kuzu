@@ -15,7 +15,7 @@ shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
 bool AdjListExtend::getNextTuples() {
     metrics->executionTime.start();
     if (listHandle->listSyncState.hasMoreToRead()) {
-        listsWithAdjAndPropertyListsUpdateStore->readValues(outValueVector, *listHandle);
+        lists->readValues(outValueVector, *listHandle);
         metrics->executionTime.stop();
         metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
         return true;
@@ -30,11 +30,11 @@ bool AdjListExtend::getNextTuples() {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        ((AdjLists*)listsWithAdjAndPropertyListsUpdateStore)
+        ((AdjLists*)lists)
             ->initListReadingState(
                 inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx()),
                 *listHandle, transaction->getType());
-        listsWithAdjAndPropertyListsUpdateStore->readValues(outValueVector, *listHandle);
+        lists->readValues(outValueVector, *listHandle);
     } while (outDataChunk->state->selVector->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);

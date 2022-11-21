@@ -43,19 +43,6 @@ struct ListSlice {
             memcpy(result.prefix, result.getData(), ku_string_t::PREFIX_LENGTH);
         }
     }
-
-    static inline void operation(
-        Value& item, int64_t& begin, int64_t& end, Value& result, ValueVector& resultValueVector) {
-        if (item.dataType.typeID == STRING) {
-            result.dataType.typeID = STRING;
-            operation(item.val.strVal, begin, end, result.val.strVal, resultValueVector);
-        } else if (item.dataType.typeID == LIST) {
-            throw RuntimeException("list_slice not implemented for unstructured lists");
-        } else {
-            throw RuntimeException(
-                "incorrect type given to [] operator. Type must be either LIST or STRING");
-        }
-    }
 };
 
 } // namespace operation

@@ -1,7 +1,6 @@
 #include "src/common/include/vector/value_vector.h"
 
 #include "src/common/include/in_mem_overflow_buffer_utils.h"
-#include "src/common/types/include/value.h"
 
 namespace kuzu {
 namespace common {
@@ -72,7 +71,6 @@ template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template void ValueVector::setValue<ku_string_t>(uint32_t pos, ku_string_t val);
 template void ValueVector::setValue<ku_list_t>(uint32_t pos, ku_list_t val);
-template void ValueVector::setValue<Value>(uint32_t pos, Value val);
 
 } // namespace common
 } // namespace kuzu

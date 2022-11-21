@@ -22,18 +22,9 @@ public:
 
 private:
     void initializeColumnsAndList();
-    vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
+    void countLinesPerBlock(uint64_t numStructuredProperties);
     template<typename T>
-    void populateColumnsAndCountUnstrPropertyListSizes();
-    void calcUnstrListsHeadersAndMetadata();
-    void populateUnstrPropertyLists();
-
-    static void calcLengthOfUnstrPropertyLists(
-        CSVReader& reader, node_offset_t nodeOffset, InMemUnstructuredLists* unstrPropertyLists);
-    static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-        PageByteCursor& inMemOverflowFileCursor,
-        unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
-        InMemUnstructuredLists* unstrPropertyLists);
+    void populateColumns();
 
     static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
         const vector<Property>& properties, vector<PageByteCursor>& overflowCursors,
@@ -51,17 +42,13 @@ private:
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
     // Instead, it is the index in the structured columns that we expect it to appear.
     template<typename T>
-    static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
-        uint64_t blockId, uint64_t offsetStart, HashIndexBuilder<T>* pkIndex,
-        InMemNodeCSVCopier* copier);
-    static void populateUnstrPropertyListsTask(
-        uint64_t blockId, node_offset_t nodeOffsetStart, InMemNodeCSVCopier* copier);
+    static void populateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
+        uint64_t offsetStart, HashIndexBuilder<T>* pkIndex, InMemNodeCSVCopier* copier);
 
 private:
     NodeTableSchema* nodeTableSchema;
     uint64_t numNodes;
     vector<unique_ptr<InMemColumn>> structuredColumns;
-    unique_ptr<InMemUnstructuredLists> unstrPropertyLists;
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
 };
 

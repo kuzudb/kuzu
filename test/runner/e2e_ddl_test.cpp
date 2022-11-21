@@ -218,21 +218,18 @@ public:
             make_unique<NodeTableSchema>(*catalog->getReadOnlyVersion()->getNodeTableSchema(
                 catalog->getReadOnlyVersion()->getNodeTableIDFromName("university")));
         executeQueryWithoutCommit("DROP TABLE university");
-        validateNodeColumnAndListFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+        validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
             initWithoutLoadingGraph();
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         } else {
             conn->commit();
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         }
     }

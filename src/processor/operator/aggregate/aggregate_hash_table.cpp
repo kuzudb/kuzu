@@ -689,9 +689,6 @@ compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID ty
     case INTERVAL: {
         return compareEntryWithKeys<interval_t>;
     }
-    case UNSTRUCTURED: {
-        return compareEntryWithKeys<Value>;
-    }
     default: {
         throw RuntimeException("Cannot compare data type " + Types::dataTypeToString(typeId));
     }

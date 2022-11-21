@@ -11,12 +11,12 @@ shared_ptr<ResultSet> OrderByMerge::init(ExecutionContext* context) {
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     keyBlockMerger =
         make_unique<KeyBlockMerger>(sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
-            sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
+            sharedFactorizedTablesAndSortedKeyBlocks->strKeyColsInfo,
             sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
     keyBlockMergeTaskDispatcher->initIfNecessary(context->memoryManager,
         sharedFactorizedTablesAndSortedKeyBlocks->sortedKeyBlocks,
         sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
-        sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
+        sharedFactorizedTablesAndSortedKeyBlocks->strKeyColsInfo,
         sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
     return resultSet;
 }

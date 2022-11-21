@@ -139,9 +139,6 @@ void ListExtractVectorOperation::listExtractBindFunc(const vector<DataType>& arg
 vector<unique_ptr<VectorOperationDefinition>> ListExtractVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, INT64}, UNSTRUCTURED,
-        BinaryExecFunction<Value, int64_t, Value, operation::ListExtract>, false /* isVarlength*/));
-    result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
         vector<DataTypeID>{LIST, INT64}, ANY, nullptr, nullptr, listExtractBindFunc,
         false /* isVarlength*/));
     result.push_back(make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
@@ -302,10 +299,6 @@ vector<unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefin
     result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, INT64}, STRING,
         TernaryListExecFunction<ku_string_t, int64_t, int64_t, ku_string_t, operation::ListSlice>,
-        false /* isVarlength */));
-    result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED, INT64, INT64}, UNSTRUCTURED,
-        TernaryListExecFunction<Value, int64_t, int64_t, Value, operation::ListSlice>,
         false /* isVarlength */));
     return result;
 }

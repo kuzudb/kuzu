@@ -1,6 +1,6 @@
 #pragma once
 
-#include "unstructured_property_lists.h"
+#include "lists.h"
 
 namespace kuzu {
 namespace storage {
@@ -93,10 +93,9 @@ protected:
     bool finishCalled;
 };
 
-class AdjOrUnstructuredPropertyListsUpdateIterator : public ListsUpdateIterator {
+class AdjListsUpdateIterator : public ListsUpdateIterator {
 public:
-    explicit AdjOrUnstructuredPropertyListsUpdateIterator(Lists* lists)
-        : ListsUpdateIterator{lists} {}
+    explicit AdjListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
     inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {
@@ -121,8 +120,7 @@ public:
     explicit RelPropertyListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
-    // Only adjListUpdateIterator and unstructuredListUpdateIterator need to update small or large
-    // list header.
+    // Only adjListUpdateIterator need to update small or large list header.
     inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {}
     inline void updateSmallListHeaderIfNecessary(
         list_header_t oldHeader, list_header_t newHeader) override {}
@@ -137,9 +135,8 @@ class ListsUpdateIteratorFactory {
 public:
     static unique_ptr<ListsUpdateIterator> getListsUpdateIterator(Lists* lists) {
         switch (lists->storageStructureIDAndFName.storageStructureID.listFileID.listType) {
-        case ListType::UNSTRUCTURED_NODE_PROPERTY_LISTS:
         case ListType::ADJ_LISTS:
-            return make_unique<AdjOrUnstructuredPropertyListsUpdateIterator>(lists);
+            return make_unique<AdjListsUpdateIterator>(lists);
         case ListType::REL_PROPERTY_LISTS:
             return make_unique<RelPropertyListsUpdateIterator>(lists);
         default:

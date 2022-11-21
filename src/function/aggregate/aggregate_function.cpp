@@ -33,10 +33,6 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
         return make_unique<AggregateFunction>(AvgFunction<double_t>::initialize,
             AvgFunction<double_t>::updateAll, AvgFunction<double_t>::updatePos,
             AvgFunction<double_t>::combine, AvgFunction<double_t>::finalize, inputType, isDistinct);
-    case UNSTRUCTURED:
-        return make_unique<AggregateFunction>(AvgFunction<Value>::initialize,
-            AvgFunction<Value>::updateAll, AvgFunction<Value>::updatePos,
-            AvgFunction<Value>::combine, AvgFunction<Value>::finalize, inputType, isDistinct);
     default:
         assert(false);
     }
@@ -53,10 +49,6 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
         return make_unique<AggregateFunction>(SumFunction<double_t>::initialize,
             SumFunction<double_t>::updateAll, SumFunction<double_t>::updatePos,
             SumFunction<double_t>::combine, SumFunction<double_t>::finalize, inputType, isDistinct);
-    case UNSTRUCTURED:
-        return make_unique<AggregateFunction>(SumFunction<Value>::initialize,
-            SumFunction<Value>::updateAll, SumFunction<Value>::updatePos,
-            SumFunction<Value>::combine, SumFunction<Value>::finalize, inputType, isDistinct);
     default:
         assert(false);
     }
@@ -106,11 +98,6 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
         return make_unique<AggregateFunction>(MinMaxFunction<nodeID_t>::initialize,
             MinMaxFunction<nodeID_t>::updateAll<FUNC>, MinMaxFunction<nodeID_t>::updatePos<FUNC>,
             MinMaxFunction<nodeID_t>::combine<FUNC>, MinMaxFunction<nodeID_t>::finalize, inputType,
-            isDistinct);
-    case UNSTRUCTURED:
-        return make_unique<AggregateFunction>(MinMaxFunction<Value>::initialize,
-            MinMaxFunction<Value>::updateAll<FUNC>, MinMaxFunction<Value>::updatePos<FUNC>,
-            MinMaxFunction<Value>::combine<FUNC>, MinMaxFunction<Value>::finalize, inputType,
             isDistinct);
     default:
         assert(false);

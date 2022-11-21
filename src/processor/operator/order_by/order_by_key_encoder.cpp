@@ -64,9 +64,6 @@ void OrderByKeyEncoder::encodeKeys() {
 uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
     // Add one more byte for null flag.
     switch (dataType.typeID) {
-    case UNSTRUCTURED:
-        // 1 byte for null flag + 1 byte for unstr data
-        return 2;
     case STRING:
         // 1 byte for null flag + 1 byte to indicate long/short string + 12 bytes for string prefix
         return 2 + ku_string_t::SHORT_STR_LENGTH;
@@ -223,9 +220,6 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     case INTERVAL: {
         return encodeTemplate<interval_t>;
     }
-    case UNSTRUCTURED: {
-        return encodeTemplate<Value>;
-    }
     default: {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
     }
@@ -301,13 +295,6 @@ void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool sw
     } else {
         resultPtr[12] = UINT8_MAX;
     }
-}
-
-template<>
-void OrderByKeyEncoder::encodeData(Value data, uint8_t* resultPtr, bool swapBytes) {
-    // Encode all unstr data as 0, meaning that there is a tie for the entire column
-    uint8_t encodeVal = 0;
-    memcpy(resultPtr, &encodeVal, sizeof(encodeVal));
 }
 
 } // namespace processor

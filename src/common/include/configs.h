@@ -63,11 +63,6 @@ struct StorageConfig {
     static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
     constexpr static double ARRAY_RESIZING_FACTOR = 1.2;
-
-    constexpr static uint8_t UNSTR_PROP_KEY_IDX_LEN = 4;
-    constexpr static uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
-    constexpr static uint8_t UNSTR_PROP_HEADER_LEN =
-        UNSTR_PROP_KEY_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
 };
 
 struct ListsMetadataConfig {
@@ -91,8 +86,6 @@ struct HashIndexConfig {
 struct CopyCSVConfig {
     // Size (in bytes) of the chunks to be read in InMemNode/RelCSVCopier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
-
-    static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {

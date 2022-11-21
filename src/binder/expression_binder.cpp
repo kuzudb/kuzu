@@ -404,9 +404,6 @@ shared_ptr<Expression> ExpressionBinder::implicitCast(
     case TIMESTAMP: {
         return implicitCastToTimestamp(expression);
     }
-    case UNSTRUCTURED: {
-        return implicitCastToUnstructured(expression);
-    }
     default:
         throw BinderException("Expression " + expression->getRawName() + " has data type " +
                               Types::dataTypeToString(expression->dataType) + " but expect " +
@@ -452,16 +449,6 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToTimestamp(
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(TIMESTAMP), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToUnstructured(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(UNSTRUCTURED), move(children),
         move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 

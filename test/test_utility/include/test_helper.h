@@ -142,7 +142,7 @@ protected:
     void validateListFilesExistence(
         string fileName, bool existence, bool hasOverflow, bool hasHeader);
 
-    void validateNodeColumnAndListFilesExistence(
+    void validateNodeColumnFilesExistence(
         NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence);
 
     void validateRelColumnAndListFilesExistence(
@@ -150,7 +150,7 @@ protected:
 
 private:
     static inline bool containsOverflowFile(DataTypeID typeID) {
-        return typeID == STRING || typeID == LIST || typeID == UNSTRUCTURED;
+        return typeID == STRING || typeID == LIST;
     }
 
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema, table_id_t tableID,

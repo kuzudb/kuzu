@@ -16,7 +16,6 @@ filegroup(
         "read-list-tests/**",
         "tinysnb/**",
         "tinysnb-variant/**",
-        "unstructured-property-lists-updates-tests/**",
         "rel-insertion-tests/**",
         "demo-db/**",
     ]),

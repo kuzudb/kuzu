@@ -37,25 +37,6 @@ string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
     }
 }
 
-void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
-    // TODO(Semih): Uncomment when enabling ad-hoc properties
-    assert(unstructuredProperties.empty());
-    for (auto& unstrPropertyName : unstructuredPropertyNames) {
-        auto unstrPropertyId = unstructuredProperties.size();
-        unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
-        Property property = Property::constructUnstructuredNodeProperty(
-            unstrPropertyName, unstrPropertyId, tableID);
-        unstructuredProperties.emplace_back(property);
-    }
-}
-
-vector<Property> NodeTableSchema::getAllNodeProperties() const {
-    auto allProperties = structuredProperties;
-    allProperties.insert(
-        allProperties.end(), unstructuredProperties.begin(), unstructuredProperties.end());
-    return allProperties;
-}
-
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
     unordered_set<table_id_t> allNodeTableIDs;
     for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {

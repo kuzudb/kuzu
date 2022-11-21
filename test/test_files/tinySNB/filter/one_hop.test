@@ -32,13 +32,6 @@
 ---- 1
 6
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME PersonUnstrFilteredTest9
-#-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.unstrNumericProp > b.unstrNumericProp RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#1
-
 -NAME OneHopCrossProduct
 -QUERY MATCH (a:person {age:30}), (c:person)-[:knows]->(d:person{fName:'Greg'}) RETURN a.ID, c.ID
 -ENUMERATE

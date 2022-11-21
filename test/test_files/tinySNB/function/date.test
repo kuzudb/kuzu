@@ -3,42 +3,6 @@
 ---- 1
 2
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredStructuredDateComparison
-#-QUERY MATCH (a:person) WHERE a.birthdate = a.unstrDateProp1 RETURN COUNT(*)
-#---- 1
-#1
-
-#-NAME DateTimestampEqual
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp2 = timestamp('1920-01-01') RETURN COUNT(*)
-#---- 1
-#1
-
-#-NAME DateTimestampGreaterThan
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp2 >= timestamp('1920-01-01') RETURN COUNT(*)
-#---- 1
-#3
-
-#-NAME TwoUnstructuredDateNotEqual
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 <> a.unstrDateProp2 RETURN COUNT(*)
-#---- 1
-#2
-
-#-NAME TwoUnstructuredDateEqual
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 = a.unstrDateProp2 RETURN COUNT(*)
-#---- 1
-#1
-
-#-NAME TwoUnstructuredDateComparison
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 >= a.unstrDateProp2 RETURN COUNT(*)
-#---- 1
-#1
-
-#-NAME UnstructuredDateLiteralComparison
-#-QUERY MATCH (a:person) WHERE a.unstrDateProp1 <= date('1990-02-02') RETURN COUNT(*)
-#---- 1
-#3
-
 -NAME StructuredDateArithmeticAddInt
 -QUERY MATCH (a:person) RETURN a.birthdate + 32
 ---- 8
@@ -63,31 +27,6 @@
 1980-11-27
 1990-12-29
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateArithmeticAddInt
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp1 + 41
-#---- 8
-#
-#
-#
-#
-#
-#1900-02-11
-#1950-02-11
-#1950-02-11
-
-#-NAME IntArithmeticAddUnstructuredDate
-#-QUERY MATCH (a:person) RETURN 52 + a.unstrDateProp1
-#---- 8
-#
-#
-#
-#
-#
-#1900-02-22
-#1950-02-22
-#1950-02-22
-
 -NAME StructuredDateArithmeticAddInterval1
 -QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('2 years 3 months 4 days')
 ---- 6
@@ -108,19 +47,6 @@
 1980-10-28
 1990-11-29
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateArithmeticAddInterval
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp2 + interval('20 years 3 days 32 minutes 10512 ms')
-#---- 8
-#
-#
-#
-#
-#
-#1940-01-04
-#1970-01-04
-#1990-01-04
-
 -NAME structuredDateArithmeticSubtractInt
 -QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - 25
 ---- 6
@@ -131,19 +57,6 @@
 1980-10-01
 1990-11-02
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateArithmeticSubtractInt
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - 25
-#---- 8
-
-
-
-
-
-1899-12-07
-1949-12-07
-1949-12-07
-
 -NAME StructuredDateArithmeticSubtractInterval
 -QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - interval('4 years 11 months 31 days 100 seconds')
 ---- 6
@@ -153,19 +66,6 @@
 1975-10-26
 1975-10-26
 1985-11-26
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateArithmeticSubtractInterval
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - interval('15 month 32 days 30 minutes 40 minute')
-#---- 8
-#
-#
-#
-#
-#
-#1898-08-30
-#1948-08-30
-#1948-08-30
 
 -NAME StructuredDateArithmeticSubtractDate
 -QUERY MATCH (a:person) RETURN a.birthdate - date('1920-03-21')
@@ -179,19 +79,6 @@
 25818
 7398
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateArithmeticSubtractDate
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - date('1921-05-04')
-#---- 8
-#
-#
-#
-#
-#
-#-7793
-#10469
-#10469
-
 -NAME StructuredDateMixedArithmeticOperations
 -QUERY MATCH (a:person) RETURN a.birthdate + 10 - interval('4 years 2 months 3 days') - 20 - date('1912-04-12');
 ---- 8
@@ -203,19 +90,6 @@
 23499
 23499
 27183
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateMixedArithmeticOperations
-#-QUERY MATCH (a:person) RETURN a.unstrDateProp1 + 100 - interval('11 months 12 days') - 10 - date('1945-04-12');
-#---- 8
-#
-#
-#
-#
-#
-#-16794
-#1468
-#1468
 
 -NAME StructuredDateConcatenateString
 -QUERY MATCH (a:person) RETURN concat(concat('Birthdate: ', string(a.birthdate)), ' test')
@@ -229,26 +103,6 @@ Birthdate: 1980-10-26 test
 Birthdate: 1980-10-26 test
 Birthdate: 1990-11-27 test
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateConcatenateString
-#-QUERY MATCH (a:person) RETURN concat(concat('unstrDate: ', a.unstrDateProp1), ' test')
-#---- 8
-#
-#
-#
-#
-#
-#unstrDate: 1900-01-01 test
-#unstrDate: 1950-01-01 test
-#unstrDate: 1950-01-01 test
-
-#-NAME CastToDate
-#-QUERY MATCH (a:organisation) RETURN date(a.unstrStringProp)
-#---- 3
-#
-#
-#1900-01-01
-
 -NAME StructuredDateDayNameFuncTest
 -QUERY MATCH (p:person) RETURN dayname(p.birthdate)
 ---- 8
@@ -260,19 +114,6 @@ Sunday
 Sunday
 Sunday
 Tuesday
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateDayNameFuncTest
-#-QUERY MATCH (p:person) RETURN dayname(p.unstrDateProp)
-#---- 8
-#Tuesday
-#Tuesday
-#Saturday
-#
-#
-#
-#
-#
 
 -NAME StructuredDateMonthNameFuncTest
 -QUERY MATCH (p:person) RETURN monthname(p.birthdate)
@@ -286,19 +127,6 @@ October
 October
 November
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateMonthNameFuncTest
-#-QUERY MATCH (p:person) RETURN monthname(p.unstrDateProp)
-#---- 8
-#July
-#February
-#February
-#
-#
-#
-#
-#
-
 -NAME StructuredDateLastDayFuncTest
 -QUERY MATCH (p:person) RETURN last_day(p.birthdate)
 ---- 8
@@ -310,19 +138,6 @@ November
 1980-10-31
 1980-10-31
 1990-11-30
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateLastDayFuncTest
-#-QUERY MATCH (p:person) RETURN last_day(p.unstrDateProp)
-#---- 8
-#1952-07-31
-#2019-02-28
-#2020-02-29
-#
-#
-#
-#
-#
 
 -NAME StructuredDateExtractYearFuncTest
 -QUERY MATCH (p:person) RETURN date_part("year", p.birthdate)
@@ -336,19 +151,6 @@ November
 1980
 1990
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractYearFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("Y", p.unstrDateProp)
-#---- 8
-#1952
-#2019
-#2020
-#
-#
-#
-#
-#
-
 -NAME StructuredDateExtractMonthFuncTest
 -QUERY MATCH (p:person) RETURN date_part("month", p.birthdate)
 ---- 8
@@ -360,18 +162,6 @@ November
 10
 10
 11
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractMonthFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("mon", p.unstrDateProp)
-#---- 8
-#7
-#2
-#2
-#
-#
-#
-#
 
 -NAME StructuredDateExtractDayFuncTest
 -QUERY MATCH (p:person) RETURN date_part("Day", p.birthdate)
@@ -385,19 +175,6 @@ November
 26
 27
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractDayFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("daYs", p.unstrDateProp)
-#---- 8
-#15
-#12
-#29
-#
-#
-#
-#
-#
-
 -NAME StructuredDateExtractDecadeFuncTest
 -QUERY MATCH (p:person) RETURN date_part("decadE", p.birthdate)
 ---- 8
@@ -409,19 +186,6 @@ November
 198
 198
 199
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractDecadeFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("decAdes", p.unstrDateProp)
-#---- 8
-#195
-#201
-#202
-#
-#
-#
-#
-#
 
 -NAME StructuredDateExtractCenturyFuncTest
 -QUERY MATCH (p:person) RETURN date_part("cenTury", p.birthdate)
@@ -435,19 +199,6 @@ November
 20
 20
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractCenturyFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("Centuries", p.unstrDateProp)
-#---- 8
-#20
-#21
-#21
-#
-#
-#
-#
-#
-
 -NAME StructuredDateExtractMillenniumFuncTest
 -QUERY MATCH (p:person) RETURN date_part("millenniuM", p.birthdate)
 ---- 8
@@ -459,19 +210,6 @@ November
 2
 2
 2
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractMillenniumFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("millennia", p.unstrDateProp)
-#---- 8
-#2
-#3
-#3
-#
-#
-#
-#
-#
 
 -NAME StructuredDateExtractQuarterFuncTest
 -QUERY MATCH (p:person) RETURN date_part("quarTer", p.birthdate)
@@ -485,19 +223,6 @@ November
 4
 4
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractQuarterFuncTest
-#-QUERY MATCH (p:person) RETURN date_part("Quarters", p.unstrDateProp)
-#---- 8
-#3
-#1
-#1
-#
-#
-#
-#
-#
-
 -NAME StructuredDateExtractMicroSecondsFuncTest
 -QUERY MATCH (p:person) RETURN date_part("microseconds", p.birthdate)
 ---- 8
@@ -509,19 +234,6 @@ November
 0
 0
 0
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateExtractMicroSecondsFuncTest
-#-QUERY MATCH (p:person) RETURN datepart("microsEcond", p.unstrDateProp)
-#---- 8
-#0
-#0
-#0
-#
-#
-#
-#
-#
 
 -NAME StructuredDateTruncYearFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("year", p.birthdate)
@@ -535,19 +247,6 @@ November
 1980-01-01
 1990-01-01
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncYearFuncTest
-#-QUERY MATCH (p:person) RETURN datetrunc("YEAR", p.unstrDateProp)
-#---- 8
-#1952-01-01
-#2019-01-01
-#2020-01-01
-#
-#
-#
-#
-#
-
 -NAME StructuredDateTruncMonthFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("month", p.birthdate)
 ---- 8
@@ -559,18 +258,6 @@ November
 1980-10-01
 1980-10-01
 1990-11-01
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncMonthFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("month", p.unstrDateProp)
-#---- 8
-#1952-07-01
-#2019-02-01
-#2020-02-01
-#
-#
-#
-#
 
 -NAME StructuredDateTruncDayFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("Day", p.birthdate)
@@ -584,18 +271,6 @@ November
 1980-10-26
 1990-11-27
 
-#-NAME UnstructuredDateTruncDayFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("daY", p.unstrDateProp)
-#---- 8
-#1952-07-15
-#2019-02-12
-#2020-02-29
-#
-#
-#
-#
-#
-
 -NAME StructuredDateTruncDecadeFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("decadE", p.birthdate)
 ---- 8
@@ -607,19 +282,6 @@ November
 1980-01-01
 1980-01-01
 1990-01-01
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncDecadeFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("decAde", p.unstrDateProp)
-#---- 8
-#1950-01-01
-#2010-01-01
-#2020-01-01
-#
-#
-#
-#
-#
 
 -NAME StructuredDateTruncCenturyFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("cenTury", p.birthdate)
@@ -633,19 +295,6 @@ November
 1900-01-01
 1900-01-01
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncCenturyFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("Century", p.unstrDateProp)
-#---- 8
-#1900-01-01
-#2000-01-01
-#2000-01-01
-#
-#
-#
-#
-#
-
 -NAME StructuredDateTruncMillenniumFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("millenniuM", p.birthdate)
 ---- 8
@@ -657,19 +306,6 @@ November
 1000-01-01
 1000-01-01
 1000-01-01
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncMillenniumFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("millennIum", p.unstrDateProp)
-#---- 8
-#1000-01-01
-#2000-01-01
-#2000-01-01
-#
-#
-#
-#
-#
 
 -NAME StructuredDateTruncQuarterFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("quarTer", p.birthdate)
@@ -683,19 +319,6 @@ November
 1980-10-01
 1990-10-01
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncQuarterFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("Quarter", p.unstrDateProp)
-#---- 8
-#1952-07-01
-#2019-01-01
-#2020-01-01
-#
-#
-#
-#
-#
-
 -NAME StructuredDateTruncSecondFuncTest
 -QUERY MATCH (p:person) RETURN date_trunc("second", p.birthdate)
 ---- 8
@@ -707,19 +330,6 @@ November
 1980-10-26
 1980-10-26
 1990-11-27
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateTruncSecondFuncTest
-#-QUERY MATCH (p:person) RETURN date_trunc("sEconds", p.unstrDateProp)
-#---- 8
-#1952-07-15
-#2019-02-12
-#2020-02-29
-#
-#
-#
-#
-#
 
 -NAME StructuredDateGreatestFuncTest
 -QUERY MATCH (p:person) RETURN greatest(p.birthdate, date("1980-10-02"))
@@ -733,19 +343,6 @@ November
 1980-10-26
 1990-11-27
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateGreatestFuncTest
-#-QUERY MATCH (p:person) RETURN greatest(p.unstrDateProp, date("1975-12-22"))
-#---- 8
-#1975-12-22
-#2019-02-12
-#2020-02-29
-#
-#
-#
-#
-#
-
 -NAME StructuredDateLeastFuncTest
 -QUERY MATCH (p:person) RETURN least(p.birthdate, date("1980-10-02"))
 ---- 8
@@ -758,37 +355,12 @@ November
 1980-10-02
 1980-10-02
 
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredDateLeastFuncTest
-#-QUERY MATCH (p:person) RETURN least(p.unstrDateProp, date("1975-12-22"))
-#---- 8
-#1952-07-15
-#1975-12-22
-#1975-12-22
-#
-#
-#
-#
-#
-
 -NAME StructuredIntMakeDateTest
 -QUERY MATCH (o:organisation) RETURN make_date(o.orgCode * 3, o.ID, 20)
 ---- 3
 0975-01-20
 2802-04-20
 2472-06-20
-
-# TODO(Semih): Uncomment when enabling ad-hoc properties
-#-NAME UnstructuredIntMakeDateTest
-#-QUERY MATCH (p:person) RETURN make_date(1997, 12, p.unstrInt64Prop2 % 30)
-#---- 8
-#
-#
-#
-#1997-12-20
-#
-#1997-12-13
-#
 
 -NAME StructuredDateComparisonAcrossNodesNonEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate <> b.birthdate RETURN COUNT(*)

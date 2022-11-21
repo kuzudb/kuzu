@@ -34,7 +34,7 @@ public:
 
     node_offset_t addNode() {
         // TODO(Guodong/Semih/Xiyang): Currently it is not clear when and from where the hash index,
-        // structured columns, unstructured property Lists, adjacency Lists, and adj columns of a
+        // structured columns, adjacency Lists, and adj columns of a
         // newly added node should be informed that a new node is being inserted, so these data
         // structures either write values or NULLs or empty Lists etc. Within the scope of these
         // tests we only have an ID column and we are manually from outside

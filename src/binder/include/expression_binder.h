@@ -79,8 +79,6 @@ private:
         const shared_ptr<Expression>& expression, DataType targetType);
     static shared_ptr<Expression> implicitCastToBool(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToInt64(const shared_ptr<Expression>& expression);
-    static shared_ptr<Expression> implicitCastToUnstructured(
-        const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToTimestamp(const shared_ptr<Expression>& expression);
 

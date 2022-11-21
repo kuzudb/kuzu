@@ -24,9 +24,6 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
     case STRING: {
         stringVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case UNSTRUCTURED: {
-        setFromUnstructuredValue(*(Value*)value);
-    } break;
     case DATE: {
         val.dateVal = *((date_t*)value);
     } break;
@@ -86,41 +83,6 @@ vector<ResultValue> ResultValue::convertKUListToVector(ku_list_t& list) const {
         listResultValue.emplace_back(move(childResultValue));
     }
     return listResultValue;
-}
-
-void ResultValue::setFromUnstructuredValue(Value& value) {
-    dataType = value.dataType;
-    switch (value.dataType.typeID) {
-    case INT64: {
-        set((uint8_t*)&value.val.int64Val, value.dataType);
-    } break;
-    case BOOL: {
-        set((uint8_t*)&value.val.booleanVal, value.dataType);
-    } break;
-    case DOUBLE: {
-        set((uint8_t*)&value.val.doubleVal, value.dataType);
-    } break;
-    case STRING: {
-        set((uint8_t*)&value.val.strVal, value.dataType);
-    } break;
-    case NODE_ID: {
-        set((uint8_t*)&value.val.nodeID, value.dataType);
-    } break;
-    case DATE: {
-        set((uint8_t*)&value.val.dateVal, value.dataType);
-    } break;
-    case TIMESTAMP: {
-        set((uint8_t*)&value.val.timestampVal, value.dataType);
-    } break;
-    case INTERVAL: {
-        set((uint8_t*)&value.val.intervalVal, value.dataType);
-    } break;
-    case LIST: {
-        set((uint8_t*)&value.val.listVal, value.dataType);
-    } break;
-    default:
-        assert(false);
-    }
 }
 
 ResultValue* FlatTuple::getResultValue(uint32_t valIdx) {

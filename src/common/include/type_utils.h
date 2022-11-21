@@ -2,7 +2,6 @@
 
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/types_include.h"
-#include "src/common/types/include/value.h"
 
 namespace kuzu {
 namespace common {
@@ -28,7 +27,6 @@ public:
     static inline string toString(const string& val) { return val; }
     static string toString(const ku_list_t& val, const DataType& dataType);
     static string toString(const Literal& literal);
-    static string toString(const Value& val);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {

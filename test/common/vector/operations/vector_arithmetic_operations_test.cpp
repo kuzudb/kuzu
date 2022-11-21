@@ -3,7 +3,6 @@
 
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/type_utils.h"
-#include "src/common/types/include/value.h"
 #include "src/function/arithmetic/operations/include/arithmetic_operations.h"
 #include "src/function/include/binary_operation_executor.h"
 #include "src/function/include/unary_operation_executor.h"
@@ -44,16 +43,6 @@ public:
             vector2->setValue(i, (int64_t)(110 - i));
         }
     }
-};
-
-class UnstructuredArithmeticOperandsInSameDataChunkTest : public OperandsInSameDataChunk,
-                                                          public Test {
-
-public:
-    DataTypeID getDataTypeOfOperands() override { return UNSTRUCTURED; }
-    DataTypeID getDataTypeOfResultVector() override { return UNSTRUCTURED; }
-
-    void SetUp() override { initDataChunk(); }
 };
 
 TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatNoNulls) {
@@ -214,90 +203,4 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
         }
     }
     ASSERT_FALSE(result->hasNoNullsGuarantee());
-}
-
-TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test) {
-    auto lVector = vector1;
-    auto rVector = vector2;
-
-    // Fill values before the comparison.
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->setValue(i, Value((int64_t)i));
-        rVector->setValue(i, Value((int64_t)110 - i));
-    }
-
-    UnaryOperationExecutor::execute<Value, Value, operation::Negate>(*lVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, -i);
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Add,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, 110);
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Subtract,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, 2 * i - 110);
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Multiply,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, i * (110 - i));
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Divide,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, i / (110 - i));
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Modulo,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.int64Val, i % (110 - i));
-    }
-}
-
-TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt32AndDoubleTest) {
-    auto lVector = vector1;
-    auto rVector = vector2;
-
-    // Fill values before the comparison.
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->setValue(i, Value((double)i));
-        rVector->setValue(i, Value((int64_t)(110 - i)));
-    }
-
-    UnaryOperationExecutor::execute<Value, Value, operation::Negate>(*lVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.doubleVal, (double)-i);
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Add,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.doubleVal, (double)110);
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Subtract,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.doubleVal, (double)(2 * i - 110));
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Multiply,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.doubleVal, (double)(i * (110 - i)));
-    }
-
-    BinaryOperationExecutor::executeSwitch<Value, Value, Value, operation::Divide,
-        BinaryOperationWrapper>(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(result->getValue<Value>(i).val.doubleVal, (double)i / (110 - i));
-    }
 }

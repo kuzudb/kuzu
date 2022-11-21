@@ -95,15 +95,8 @@ public:
     const Property& getNodePrimaryKeyProperty(table_id_t tableID) const;
 
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
-    inline const vector<Property>& getUnstructuredNodeProperties(table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->unstructuredProperties;
-    }
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {
         return relTableSchemas.at(tableID)->properties;
-    }
-    inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
-        table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap;
     }
     inline unordered_map<table_id_t, unique_ptr<NodeTableSchema>>& getNodeTableSchemas() {
         return nodeTableSchemas;
@@ -190,15 +183,6 @@ public:
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
         vector<PropertyNameDataType> structuredPropertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
-
-    inline void setUnstructuredPropertiesOfNodeTableSchema(
-        vector<string>& unstructuredProperties, table_id_t tableID) {
-        // TODO(Semih): Uncomment when enabling ad-hoc properties
-        assert(unstructuredProperties.empty());
-        initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->getNodeTableSchema(tableID)->addUnstructuredProperties(
-            unstructuredProperties);
-    }
 
     inline void removeTableSchema(TableSchema* tableSchema) {
         initCatalogContentForWriteTrxIfNecessary();

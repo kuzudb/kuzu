@@ -5,7 +5,6 @@
 #include "src/common/include/exception.h"
 #include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
-#include "src/common/types/include/value.h"
 
 using namespace kuzu::common;
 
@@ -79,8 +78,6 @@ private:
 
     vector<ResultValue> convertKUListToVector(ku_list_t& list) const;
 
-    void setFromUnstructuredValue(Value& value);
-
 private:
     union Val {
         constexpr Val() : booleanVal{false} {}
@@ -93,7 +90,6 @@ private:
     } val;
     string stringVal;
     vector<ResultValue> listVal;
-    // Note: dataType cannot be UNSTRUCTURED. Any Value has a fixed known data type.
     DataType dataType;
     bool isNull;
 };

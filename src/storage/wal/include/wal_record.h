@@ -8,9 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 enum ListType : uint8_t {
-    UNSTRUCTURED_NODE_PROPERTY_LISTS = 0,
-    ADJ_LISTS = 1,
-    REL_PROPERTY_LISTS = 2,
+    ADJ_LISTS = 0,
+    REL_PROPERTY_LISTS = 1,
 };
 
 enum ListFileType : uint8_t {
@@ -38,17 +37,6 @@ struct RelNodeTableAndDir {
     inline bool operator==(const RelNodeTableAndDir& rhs) const {
         return relTableID == rhs.relTableID && srcNodeTableID == rhs.srcNodeTableID &&
                dir == rhs.dir;
-    }
-};
-
-struct UnstructuredNodePropertyListsID {
-    table_id_t tableID;
-    UnstructuredNodePropertyListsID() = default;
-
-    explicit UnstructuredNodePropertyListsID(table_id_t tableID) : tableID{tableID} {}
-
-    inline bool operator==(const UnstructuredNodePropertyListsID& rhs) const {
-        return tableID == rhs.tableID;
     }
 };
 
@@ -83,17 +71,11 @@ struct ListFileID {
     ListType listType;
     ListFileType listFileType;
     union {
-        UnstructuredNodePropertyListsID unstructuredNodePropertyListsID;
         AdjListsID adjListsID;
         RelPropertyListID relPropertyListID;
     };
 
     ListFileID() = default;
-
-    ListFileID(
-        ListFileType listFileType, UnstructuredNodePropertyListsID unstructuredNodePropertyListsID)
-        : listType{UNSTRUCTURED_NODE_PROPERTY_LISTS}, listFileType{listFileType},
-          unstructuredNodePropertyListsID{unstructuredNodePropertyListsID} {}
 
     ListFileID(ListFileType listFileType, AdjListsID adjListsID)
         : listType{ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
@@ -107,9 +89,6 @@ struct ListFileID {
             return false;
         }
         switch (listType) {
-        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            return unstructuredNodePropertyListsID == rhs.unstructuredNodePropertyListsID;
-        }
         case ADJ_LISTS: {
             return adjListsID == rhs.adjListsID;
         }
@@ -260,9 +239,6 @@ struct StorageStructureID {
         table_id_t nodeTableID, table_id_t relTableID, RelDirection dir);
 
     static StorageStructureID newNodeIndexID(table_id_t tableID);
-
-    static StorageStructureID newUnstructuredNodePropertyListsID(
-        table_id_t tableID, ListFileType listFileType);
 
     static StorageStructureID newAdjListsID(
         table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType);

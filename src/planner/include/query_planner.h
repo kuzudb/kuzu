@@ -78,7 +78,6 @@ private:
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    // switch structured and unstructured node property scan
     inline void appendScanNodePropIfNecessarySwitch(
         shared_ptr<Expression> property, NodeExpression& node, LogicalPlan& plan) {
         expression_vector properties{move(property)};
@@ -86,8 +85,6 @@ private:
     }
     void appendScanNodePropIfNecessarySwitch(
         expression_vector& properties, NodeExpression& node, LogicalPlan& plan);
-    void appendScanNodePropIfNecessary(
-        expression_vector& properties, NodeExpression& node, LogicalPlan& plan, bool isStructured);
 
     inline void appendScanRelPropsIfNecessary(expression_vector& properties, RelExpression& rel,
         RelDirection direction, LogicalPlan& plan) {

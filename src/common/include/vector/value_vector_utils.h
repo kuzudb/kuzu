@@ -12,8 +12,7 @@ public:
         ValueVector& resultVector, uint64_t pos, const Literal& literal);
 
     // These two functions assume that the given uint8_t* srcData/dstData are pointing to a data
-    // with the same data type as this ValueVector. If this ValueVector is unstructured, then
-    // srcData/dstData are pointing to a Value.
+    // with the same data type as this ValueVector.
     static void copyNonNullDataWithSameTypeIntoPos(
         ValueVector& resultVector, uint64_t pos, const uint8_t* srcData);
     static void copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector, uint64_t pos,

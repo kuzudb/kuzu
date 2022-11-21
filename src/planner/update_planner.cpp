@@ -115,15 +115,10 @@ void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& pla
     for (auto& setItem : setItems) {
         planSetItem(setItem, plan);
     }
-    auto structuredSetItems = splitSetItems(setItems, true /* isStructured */);
+    auto structuredSetItems = splitSetItems(setItems);
     if (!structuredSetItems.empty()) {
         plan.setLastOperator(make_shared<LogicalSetNodeProperty>(
-            std::move(structuredSetItems), false /* isUnstructured */, plan.getLastOperator()));
-    }
-    auto unstructuredSetItems = splitSetItems(setItems, false /* isStructured */);
-    if (!unstructuredSetItems.empty()) {
-        plan.setLastOperator(make_shared<LogicalSetNodeProperty>(
-            std::move(unstructuredSetItems), true /* isUnstructured*/, plan.getLastOperator()));
+            std::move(structuredSetItems), plan.getLastOperator()));
     }
 }
 
@@ -147,15 +142,10 @@ void UpdatePlanner::appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& p
     plan.setLastOperator(deleteOperator);
 }
 
-vector<expression_pair> UpdatePlanner::splitSetItems(
-    vector<expression_pair> setItems, bool isStructured) {
+vector<expression_pair> UpdatePlanner::splitSetItems(vector<expression_pair> setItems) {
     vector<expression_pair> result;
     for (auto& [lhs, rhs] : setItems) {
-        auto property = static_pointer_cast<PropertyExpression>(lhs);
-        auto isPropertyStructured = property->dataType.typeID != UNSTRUCTURED;
-        if (isPropertyStructured == isStructured) {
-            result.emplace_back(lhs, rhs);
-        }
+        result.emplace_back(lhs, rhs);
     }
     return result;
 }

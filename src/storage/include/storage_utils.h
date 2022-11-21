@@ -95,16 +95,6 @@ public:
 
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
-    static inline StorageStructureIDAndFName getUnstructuredNodePropertyListsStructureIDAndFName(
-        const string& directory, table_id_t tableID) {
-        auto fName = getNodeUnstrPropertyListsFName(directory, tableID, DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(StorageStructureID::newUnstructuredNodePropertyListsID(
-                                              tableID, ListFileType::BASE_LISTS),
-            fName);
-    }
-
-    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
-    // modify it to obtain versions for METADATA and HEADERS structures/files.
     static inline StorageStructureIDAndFName getAdjListsStructureIDAndFName(const string& directory,
         table_id_t relTableID, table_id_t srcNodeTableID, RelDirection dir) {
         auto fName =
@@ -125,13 +115,6 @@ public:
             StorageStructureID::newRelPropertyListsID(
                 relTableID, srcNodeTableID, dir, property.propertyID, ListFileType::BASE_LISTS),
             fName);
-    }
-
-    static inline string getNodeUnstrPropertyListsFName(
-        const string& directory, const table_id_t& tableID, DBFileType dbFileType) {
-        auto fName = StringUtils::string_format("n-%d", tableID);
-        return appendWALFileSuffixIfNecessary(
-            FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX), dbFileType);
     }
 
     static inline string getAdjColumnFName(const string& directory, const table_id_t& relTableID,

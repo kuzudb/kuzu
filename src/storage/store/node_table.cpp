@@ -15,17 +15,11 @@ void NodeTable::loadColumnsAndListsFromDisk(
     propertyColumns.resize(nodeTableSchema->getAllNodeProperties().size());
     for (auto i = 0u; i < nodeTableSchema->getAllNodeProperties().size(); i++) {
         auto property = nodeTableSchema->getAllNodeProperties()[i];
-        if (property.dataType.typeID != UNSTRUCTURED) {
-            propertyColumns[i] = ColumnFactory::getColumn(
-                StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
-                    wal->getDirectory(), property),
-                property.dataType, bufferManager, isInMemory, wal);
-        }
+        propertyColumns[i] = ColumnFactory::getColumn(
+            StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
+                wal->getDirectory(), property),
+            property.dataType, bufferManager, isInMemory, wal);
     }
-    unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
-        StorageUtils::getUnstructuredNodePropertyListsStructureIDAndFName(
-            wal->getDirectory(), tableID),
-        bufferManager, isInMemory, wal);
     pkIndex = make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
         nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
@@ -48,7 +42,6 @@ node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector
     for (auto& column : propertyColumns) {
         column->setNodeOffsetToNull(nodeOffset);
     }
-    unstrPropertyLists->initEmptyPropertyLists(nodeOffset);
     return nodeOffset;
 }
 
@@ -73,7 +66,6 @@ void NodeTable::deleteNode(
 }
 
 void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    unstrPropertyLists->prepareCommitOrRollbackIfNecessary(isCommit);
     pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
 }
 

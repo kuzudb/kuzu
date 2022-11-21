@@ -51,12 +51,6 @@ void NPArrayWrapper::appendElement(ResultValue* value) {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
-        case UNSTRUCTURED: {
-            auto str = value->toString();
-            ((PyObject**)dataBuffer)[numElements] =
-                PyUnicode_FromStringAndSize(str.c_str(), str.size());
-            break;
-        }
         default: {
             assert(false);
         }
@@ -80,7 +74,6 @@ py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
         dtype = "bool";
         break;
     }
-    case UNSTRUCTURED:
     case LIST:
     case STRING: {
         dtype = "object";

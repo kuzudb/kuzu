@@ -10,8 +10,7 @@ string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* exec
         make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(), *taskScheduler,
             *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
     errorIfTableIsNonEmpty(&nodesStore->getNodesStatisticsAndDeletedIDs());
-    // Note: This copy function will update the unstructured properties of the nodeTable and the
-    // maxNodeOffset in nodesStatisticsAndDeletedIDs.
+    // Note: This copy function will update the maxNodeOffset in nodesStatisticsAndDeletedIDs.
     auto numNodesCopied = nodeCSVCopier->copy();
     wal->logCopyNodeCSVRecord(tableSchema.tableID);
     return StringUtils::string_format("%d number of nodes has been copied to nodeTable: %s.",
