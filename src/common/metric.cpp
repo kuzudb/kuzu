@@ -1,4 +1,4 @@
-#include "src/common/include/metric.h"
+#include "common/metric.h"
 
 namespace kuzu {
 namespace common {

@@ -1,4 +1,4 @@
-#include "include/reference_evaluator.h"
+#include "expression_evaluator/reference_evaluator.h"
 
 namespace kuzu {
 namespace evaluator {

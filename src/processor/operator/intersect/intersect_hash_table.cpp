@@ -1,4 +1,4 @@
-#include "include/intersect_hash_table.h"
+#include "processor/operator/intersect/intersect_hash_table.h"
 
 namespace kuzu {
 namespace processor {

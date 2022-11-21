@@ -1,4 +1,4 @@
-#include "src/storage/store/include/rel_table.h"
+#include "storage/store/rel_table.h"
 
 #include "spdlog/spdlog.h"
 

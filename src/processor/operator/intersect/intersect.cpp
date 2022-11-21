@@ -1,4 +1,4 @@
-#include "include/intersect.h"
+#include "processor/operator/intersect/intersect.h"
 
 #include <algorithm>
 

@@ -1,8 +1,8 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/processor/operator/intersect/include/intersect.h"
-#include "src/processor/operator/intersect/include/intersect_build.h"
+#include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "processor/operator/intersect/intersect.h"
+#include "processor/operator/intersect/intersect_build.h"
 
 using namespace kuzu::planner;
 

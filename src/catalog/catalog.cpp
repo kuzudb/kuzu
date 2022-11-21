@@ -1,8 +1,6 @@
-#include "include/catalog.h"
-
+#include "catalog/catalog.h"
+#include "storage/storage_utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/storage/include/storage_utils.h"
 
 using namespace std;
 using namespace kuzu::catalog;

@@ -1,11 +1,9 @@
-#include "include/date_t.h"
-
-#include "include/cast_helpers.h"
-#include "include/timestamp_t.h"
-
-#include "src/common/include/assert.h"
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/types/date_t.h"
+#include "common/types/cast_helpers.h"
+#include "common/types/timestamp_t.h"
+#include "common/assert.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

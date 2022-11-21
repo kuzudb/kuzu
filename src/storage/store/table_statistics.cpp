@@ -1,19 +1,17 @@
-#include "include/table_statistics.h"
+#include "storage/store/table_statistics.h"
 
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
 
 TablesStatistics::TablesStatistics() {
-    logger = LoggerUtils::getOrCreateLogger("storage");
     tablesStatisticsContentForReadOnlyTrx = make_unique<TablesStatisticsContent>();
 }
 
 void TablesStatistics::readFromFile(const string& directory) {
     auto filePath = getTableStatisticsFilePath(directory, DBFileType::ORIGINAL);
     auto fileInfo = FileUtils::openFile(filePath, O_RDONLY);
-    logger->info("Reading {} from {}.", getTableTypeForPrinting(), filePath);
     uint64_t offset = 0;
     uint64_t numTables;
     offset = SerDeser::deserializeValue(
@@ -33,7 +31,6 @@ void TablesStatistics::readFromFile(const string& directory) {
 void TablesStatistics::saveToFile(
     const string& directory, DBFileType dbFileType, TransactionType transactionType) {
     auto filePath = getTableStatisticsFilePath(directory, dbFileType);
-    logger->info("Writing {} to {}.", getTableTypeForPrinting(), filePath);
     auto fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     auto& tablesStatisticsContent = (transactionType == TransactionType::READ_ONLY ||
@@ -50,7 +47,6 @@ void TablesStatistics::saveToFile(
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
     FileUtils::closeFile(fileInfo->fd);
-    logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);
 }
 
 void TablesStatistics::initTableStatisticPerTableForWriteTrxIfNecessary() {

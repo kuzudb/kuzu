@@ -1,14 +1,12 @@
-#include "src/parser/include/transformer.h"
-
-#include "expression/include/parsed_function_expression.h"
-#include "expression/include/parsed_literal_expression.h"
-#include "expression/include/parsed_parameter_expression.h"
-#include "expression/include/parsed_property_expression.h"
-#include "expression/include/parsed_subquery_expression.h"
-#include "expression/include/parsed_variable_expression.h"
-
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "parser/transformer.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
+#include "parser/expression/parsed_parameter_expression.h"
+#include "parser/expression/parsed_property_expression.h"
+#include "parser/expression/parsed_subquery_expression.h"
+#include "parser/expression/parsed_variable_expression.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
 using namespace std;
 

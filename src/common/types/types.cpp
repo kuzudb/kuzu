@@ -1,10 +1,8 @@
-#include "include/types.h"
-
+#include "common/types/types.h"
+#include "common/types/types_include.h"
+#include "common/types/value.h"
+#include "common/exception.h"
 #include <stdexcept>
-
-#include "include/types_include.h"
-
-#include "src/common/include/exception.h"
 
 namespace kuzu {
 namespace common {

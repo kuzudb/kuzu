@@ -1,18 +1,16 @@
-#include "include/join_order_enumerator.h"
-
-#include "include/asp_optimizer.h"
-#include "include/projection_planner.h"
-#include "include/query_planner.h"
-
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_cross_product.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_ftable_scan.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
-#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
+#include "planner/join_order_enumerator.h"
+#include "planner/asp_optimizer.h"
+#include "planner/projection_planner.h"
+#include "planner/query_planner.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/logical_plan/logical_operator/logical_accumulate.h"
+#include "planner/logical_plan/logical_operator/logical_cross_product.h"
+#include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
+#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node.h"
+#include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {

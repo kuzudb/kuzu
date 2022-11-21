@@ -1,4 +1,4 @@
-#include "include/limit.h"
+#include "processor/operator/limit.h"
 
 namespace kuzu {
 namespace processor {

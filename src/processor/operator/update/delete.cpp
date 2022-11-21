@@ -1,4 +1,4 @@
-#include "include/delete.h"
+#include "processor/operator/update/delete.h"
 
 namespace kuzu {
 namespace processor {

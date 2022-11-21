@@ -1,4 +1,4 @@
-#include "include/cross_product.h"
+#include "processor/operator/cross_product.h"
 
 namespace kuzu {
 namespace processor {

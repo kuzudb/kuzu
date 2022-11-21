@@ -1,4 +1,4 @@
-#include "include/create_node_table.h"
+#include "processor/operator/ddl/create_node_table.h"
 
 namespace kuzu {
 namespace processor {

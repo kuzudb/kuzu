@@ -1,10 +1,9 @@
-#include "include/update_planner.h"
-
-#include "include/query_planner.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_create.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_set.h"
+#include "planner/update_planner.h"
+#include "planner/query_planner.h"
+#include "planner/logical_plan/logical_operator/logical_create.h"
+#include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "planner/logical_plan/logical_operator/logical_set.h"
+#include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {

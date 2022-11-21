@@ -1,6 +1,5 @@
-#include "src/common/include/logging_level_utils.h"
-
-#include "src/common/include/utils.h"
+#include "common/logging_level_utils.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

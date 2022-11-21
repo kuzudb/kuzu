@@ -1,11 +1,11 @@
-#include "include/processor.h"
+#include "processor/processor.h"
 
-#include "src/processor/include/processor_task.h"
-#include "src/processor/operator/aggregate/include/base_aggregate.h"
-#include "src/processor/operator/copy_csv/include/copy_csv.h"
-#include "src/processor/operator/ddl/include/ddl.h"
-#include "src/processor/operator/include/result_collector.h"
-#include "src/processor/operator/include/sink.h"
+#include "processor/processor_task.h"
+#include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/operator/copy_csv/copy_csv.h"
+#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/result_collector.h"
+#include "processor/operator/sink.h"
 
 using namespace kuzu::common;
 

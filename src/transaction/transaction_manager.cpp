@@ -1,6 +1,6 @@
-#include "include/transaction_manager.h"
+#include "transaction/transaction_manager.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 using namespace kuzu::common;
 

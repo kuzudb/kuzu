@@ -1,8 +1,8 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/binder/expression/include/node_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_delete.h"
-#include "src/processor/operator/update/include/delete.h"
+#include "binder/expression/node_expression.h"
+#include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "processor/operator/update/delete.h"
 
 namespace kuzu {
 namespace processor {

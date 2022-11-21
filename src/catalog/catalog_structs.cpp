@@ -1,6 +1,5 @@
-#include "include/catalog_structs.h"
-
-#include "src/common/include/exception.h"
+#include "catalog/catalog_structs.h"
+#include "common/exception.h"
 
 namespace kuzu {
 namespace catalog {

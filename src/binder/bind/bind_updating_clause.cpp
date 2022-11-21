@@ -1,11 +1,11 @@
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/include/binder.h"
-#include "src/binder/query/updating_clause/include/bound_create_clause.h"
-#include "src/binder/query/updating_clause/include/bound_delete_clause.h"
-#include "src/binder/query/updating_clause/include/bound_set_clause.h"
-#include "src/parser/query/updating_clause/include/create_clause.h"
-#include "src/parser/query/updating_clause/include/delete_clause.h"
-#include "src/parser/query/updating_clause/include/set_clause.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/binder.h"
+#include "binder/query/updating_clause/bound_create_clause.h"
+#include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_set_clause.h"
+#include "parser/query/updating_clause/create_clause.h"
+#include "parser/query/updating_clause/delete_clause.h"
+#include "parser/query/updating_clause/set_clause.h"
 
 namespace kuzu {
 namespace binder {

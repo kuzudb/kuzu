@@ -1,4 +1,4 @@
-#include "src/storage/buffer_manager/include/versioned_file_handle.h"
+#include "storage/buffer_manager/versioned_file_handle.h"
 
 namespace kuzu {
 namespace storage {

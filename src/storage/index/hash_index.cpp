@@ -1,8 +1,8 @@
-#include "include/hash_index.h"
+#include "storage/index/hash_index.h"
 
-#include "include/hash_index_utils.h"
+#include "storage/index/hash_index_utils.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 using namespace kuzu::common;
 

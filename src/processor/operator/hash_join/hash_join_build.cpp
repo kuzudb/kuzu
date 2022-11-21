@@ -1,6 +1,6 @@
-#include "include/hash_join_build.h"
+#include "processor/operator/hash_join/hash_join_build.h"
 
-#include "src/common/include/utils.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace processor {

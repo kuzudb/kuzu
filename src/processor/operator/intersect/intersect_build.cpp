@@ -1,4 +1,4 @@
-#include "include/intersect_build.h"
+#include "processor/operator/intersect/intersect_build.h"
 
 namespace kuzu {
 namespace processor {

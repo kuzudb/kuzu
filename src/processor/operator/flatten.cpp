@@ -1,4 +1,4 @@
-#include "include/flatten.h"
+#include "processor/operator/flatten.h"
 
 namespace kuzu {
 namespace processor {

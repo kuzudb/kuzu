@@ -1,4 +1,4 @@
-#include "include/parsed_expression.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace parser {

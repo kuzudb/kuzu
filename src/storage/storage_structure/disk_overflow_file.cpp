@@ -1,7 +1,7 @@
-#include "src/storage/storage_structure/include/disk_overflow_file.h"
+#include "storage/storage_structure/disk_overflow_file.h"
 
-#include "src/common/include/in_mem_overflow_buffer_utils.h"
-#include "src/common/include/type_utils.h"
+#include "common/in_mem_overflow_buffer_utils.h"
+#include "common/type_utils.h"
 
 using lock_t = unique_lock<mutex>;
 

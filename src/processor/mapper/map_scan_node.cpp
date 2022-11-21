@@ -1,9 +1,9 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
-#include "src/processor/operator/include/index_scan.h"
-#include "src/processor/operator/include/scan_node_id.h"
+#include "binder/expression/literal_expression.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node.h"
+#include "processor/operator/index_scan.h"
+#include "processor/operator/scan_node_id.h"
 
 namespace kuzu {
 namespace processor {

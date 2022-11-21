@@ -1,6 +1,6 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/processor/operator/include/multiplicity_reducer.h"
+#include "processor/operator/multiplicity_reducer.h"
 
 namespace kuzu {
 namespace processor {

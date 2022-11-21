@@ -1,4 +1,4 @@
-#include "include/result_set_descriptor.h"
+#include "processor/result/result_set_descriptor.h"
 
 namespace kuzu {
 namespace processor {

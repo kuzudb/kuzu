@@ -1,4 +1,4 @@
-#include "src/storage/wal/include/wal_record.h"
+#include "storage/wal/wal_record.h"
 
 namespace kuzu {
 namespace storage {

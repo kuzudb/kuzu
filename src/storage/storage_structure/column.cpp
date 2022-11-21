@@ -1,7 +1,7 @@
-#include "src/storage/storage_structure/include/column.h"
+#include "storage/storage_structure/column.h"
 
-#include "src/common/include/in_mem_overflow_buffer_utils.h"
-#include "src/storage/storage_structure/include/storage_structure_utils.h"
+#include "common/in_mem_overflow_buffer_utils.h"
+#include "storage/storage_structure/storage_structure_utils.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,10 +1,7 @@
-#include "include/plan_mapper.h"
-
+#include "processor/mapper/plan_mapper.h"
+#include "processor/mapper/expression_mapper.h"
+#include "processor/operator/result_collector.h"
 #include <set>
-
-#include "include/expression_mapper.h"
-
-#include "src/processor/operator/include/result_collector.h"
 
 using namespace kuzu::planner;
 

@@ -1,6 +1,6 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
+#include "planner/logical_plan/logical_operator/logical_distinct.h"
 
 namespace kuzu {
 namespace processor {

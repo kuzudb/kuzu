@@ -1,9 +1,9 @@
-#include "src/storage/buffer_manager/include/file_handle.h"
+#include "storage/buffer_manager/file_handle.h"
 
 #include "spdlog/spdlog.h"
 
-#include "src/common/include/file_utils.h"
-#include "src/common/include/utils.h"
+#include "common/file_utils.h"
+#include "common/utils.h"
 
 using namespace kuzu::common;
 

@@ -1,0 +1,14 @@
+add_subdirectory(mapper)
+add_subdirectory(operator)
+add_subdirectory(result)
+
+add_library(kuzu_processor
+        OBJECT
+        physical_plan.cpp
+        processor.cpp
+        processor_task.cpp)
+
+#target_include_directories(processor PUBLIC ../include)
+set(ALL_OBJECT_FILES
+        ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor>
+        PARENT_SCOPE)

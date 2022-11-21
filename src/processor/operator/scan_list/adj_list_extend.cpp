@@ -1,4 +1,4 @@
-#include "include/adj_list_extend.h"
+#include "processor/operator/scan_list/adj_list_extend.h"
 
 namespace kuzu {
 namespace processor {

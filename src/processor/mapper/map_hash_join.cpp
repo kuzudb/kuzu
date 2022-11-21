@@ -1,13 +1,13 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
-#include "src/processor/operator/hash_join/include/hash_join_build.h"
-#include "src/processor/operator/hash_join/include/hash_join_probe.h"
-#include "src/processor/operator/include/scan_node_id.h"
-#include "src/processor/operator/include/semi_masker.h"
-#include "src/processor/operator/table_scan/include/factorized_table_scan.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_operator/logical_semi_masker.h"
+#include "processor/operator/hash_join/hash_join_build.h"
+#include "processor/operator/hash_join/hash_join_probe.h"
+#include "processor/operator/scan_node_id.h"
+#include "processor/operator/semi_masker.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {

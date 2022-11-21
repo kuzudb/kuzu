@@ -1,9 +1,9 @@
-#include "src/processor/operator/aggregate/include/aggregate_hash_table.h"
+#include "processor/operator/aggregate/aggregate_hash_table.h"
 
-#include "src/common/include/utils.h"
-#include "src/common/include/vector/value_vector_utils.h"
-#include "src/function/aggregate/include/base_count.h"
-#include "src/function/hash/include/vector_hash_operations.h"
+#include "common/utils.h"
+#include "common/vector/value_vector_utils.h"
+#include "function/aggregate/base_count.h"
+#include "function/hash/vector_hash_operations.h"
 
 using namespace kuzu::function::operation;
 

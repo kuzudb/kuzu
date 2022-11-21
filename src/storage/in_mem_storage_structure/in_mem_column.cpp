@@ -1,4 +1,4 @@
-#include "include/in_mem_column.h"
+#include "storage/in_mem_storage_structure/in_mem_column.h"
 
 namespace kuzu {
 namespace storage {

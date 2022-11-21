@@ -1,4 +1,4 @@
-#include "src/storage/store/include/rels_statistics.h"
+#include "storage/store/rels_statistics.h"
 
 namespace kuzu {
 namespace storage {

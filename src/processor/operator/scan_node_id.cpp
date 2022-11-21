@@ -1,4 +1,4 @@
-#include "include/scan_node_id.h"
+#include "processor/operator/scan_node_id.h"
 
 namespace kuzu {
 namespace processor {

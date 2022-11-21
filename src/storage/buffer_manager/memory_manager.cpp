@@ -1,4 +1,4 @@
-#include "src/storage/buffer_manager/include/memory_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 #include <cstring>
 

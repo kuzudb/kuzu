@@ -1,4 +1,4 @@
-#include "include/semi_masker.h"
+#include "processor/operator/semi_masker.h"
 
 namespace kuzu {
 namespace processor {

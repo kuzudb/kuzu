@@ -1,0 +1,2 @@
+add_subdirectory(antlr4_runtime)
+add_subdirectory(utf8proc)

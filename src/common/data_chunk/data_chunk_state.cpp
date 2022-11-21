@@ -1,4 +1,4 @@
-#include "src/common/include/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/data_chunk_state.h"
 
 namespace kuzu {
 namespace common {
