@@ -1,6 +1,6 @@
 #include <string>
 
-#include "include/main_test_helper.h"
+#include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -14,8 +14,8 @@ TEST_F(CSVOutputTest, BasicCSVTest) {
     auto query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender,"
                  "a.eyeSight, a.birthdate, a.registerTime, o.name";
     auto result = conn->query(query);
-    result->writeToCSV("output_CSV_BASIC.csv");
-    ifstream f("output_CSV_BASIC.csv");
+    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
+    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
     ostringstream ss;
     ss << f.rdbuf();
     string fileString = ss.str();
@@ -36,8 +36,8 @@ TEST_F(CSVOutputTest, ListCSVTest) {
         newline;
     auto query = "MATCH (a:person) RETURN a.usedNames, a.workedHours, [a.fName, a.fName]";
     auto result = conn->query(query);
-    result->writeToCSV("output_CSV_LIST.csv");
-    ifstream f("output_CSV_LIST.csv");
+    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
     ostringstream ss;
     ss << f.rdbuf();
     string fileString = ss.str();
@@ -48,8 +48,8 @@ TEST_F(CSVOutputTest, AlternateDelimCSVTest) {
     string listOutput = R"(ABFsUni	"-2"-CsWork	"-100"-DEsWork	7-)";
     auto query = "MATCH (o:organisation) RETURN o.name, o.score";
     auto result = conn->query(query);
-    result->writeToCSV("output_CSV_LIST.csv", '\t', '"', '-');
-    ifstream f("output_CSV_LIST.csv");
+    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", '\t', '"', '-');
+    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
     ostringstream ss;
     ss << f.rdbuf();
     string fileString = ss.str();
@@ -65,8 +65,8 @@ TEST_F(CSVOutputTest, AlternateEscapeCSVTest) {
         R"(`[10,11,12,3,4,5,6,7]`,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff)" + newline;
     auto query = "MATCH (p:person) RETURN p.workedHours, p.fName";
     auto result = conn->query(query);
-    result->writeToCSV("output_CSV_LIST.csv", ',', '`');
-    ifstream f("output_CSV_LIST.csv");
+    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", ',', '`');
+    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
     ostringstream ss;
     ss << f.rdbuf();
     string fileString = ss.str();

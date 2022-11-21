@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/common/include/vector/value_vector_utils.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
-#include "src/processor/operator/table_scan/include/factorized_table_scan.h"
+#include "common/vector/value_vector_utils.h"
+#include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {

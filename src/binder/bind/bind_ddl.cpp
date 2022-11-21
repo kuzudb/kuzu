@@ -1,9 +1,9 @@
-#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
-#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
-#include "src/binder/bound_ddl/include/bound_drop_table.h"
-#include "src/binder/include/binder.h"
-#include "src/parser/ddl/include/create_node_clause.h"
-#include "src/parser/ddl/include/drop_table.h"
+#include "binder/bind/bound_create_node_clause.h"
+#include "binder/bind/bound_create_rel_clause.h"
+#include "binder/bind/bound_drop_table.h"
+#include "binder/binder.h"
+#include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/drop_table.h"
 
 namespace kuzu {
 namespace binder {

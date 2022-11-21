@@ -1,4 +1,4 @@
-#include "include/result_collector.h"
+#include "processor/operator/result_collector.h"
 
 namespace kuzu {
 namespace processor {

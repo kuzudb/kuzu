@@ -1,8 +1,7 @@
-#include "include/catalog.h"
+#include "catalog/catalog.h"
 
 #include "spdlog/spdlog.h"
-
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
 using namespace std;
 using namespace kuzu::catalog;
@@ -312,7 +311,6 @@ void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) 
             *relTableSchema.second, fileInfo.get(), offset);
     }
     SerDeser::serializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
-    FileUtils::closeFile(fileInfo->fd);
 }
 
 void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType) {
@@ -344,7 +342,6 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
     SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
-    FileUtils::closeFile(fileInfo->fd);
 }
 
 void CatalogContent::removeTableSchema(TableSchema* tableSchema) {

@@ -1,11 +1,11 @@
-#include "include/flat_tuple.h"
+#include "processor/result/flat_tuple.h"
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "src/common/include/type_utils.h"
-#include "src/common/include/utils.h"
+#include "common/type_utils.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace processor {

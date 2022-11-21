@@ -1,4 +1,4 @@
-#include "include/existential_subquery_expression.h"
+#include "binder/expression/existential_subquery_expression.h"
 
 namespace kuzu {
 namespace binder {

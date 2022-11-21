@@ -1,10 +1,10 @@
-#include "include/expression_mapper.h"
+#include "processor/mapper/expression_mapper.h"
 
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/expression/include/parameter_expression.h"
-#include "src/expression_evaluator/include/function_evaluator.h"
-#include "src/expression_evaluator/include/literal_evaluator.h"
-#include "src/expression_evaluator/include/reference_evaluator.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
+#include "expression_evaluator/function_evaluator.h"
+#include "expression_evaluator/literal_evaluator.h"
+#include "expression_evaluator/reference_evaluator.h"
 
 namespace kuzu {
 namespace processor {

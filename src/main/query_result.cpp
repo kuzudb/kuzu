@@ -1,4 +1,4 @@
-#include "include/query_result.h"
+#include "../include/main/query_result.h"
 
 #include <fstream>
 

@@ -1,4 +1,4 @@
-#include "include/normalized_single_query.h"
+#include "binder/query/normalized_single_query.h"
 
 namespace kuzu {
 namespace binder {

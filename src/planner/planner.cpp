@@ -1,13 +1,13 @@
-#include "src/planner/include/planner.h"
+#include "planner/planner.h"
 
-#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
-#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
-#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
-#include "src/binder/bound_ddl/include/bound_drop_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
+#include "binder/bind/bound_copy_csv.h"
+#include "binder/bind/bound_create_node_clause.h"
+#include "binder/bind/bound_create_rel_clause.h"
+#include "binder/bind/bound_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_copy_csv.h"
+#include "planner/logical_plan/logical_operator/logical_create_node_table.h"
+#include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
+#include "planner/logical_plan/logical_operator/logical_drop_table.h"
 
 namespace kuzu {
 namespace planner {

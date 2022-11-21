@@ -1,6 +1,6 @@
-#include "src/planner/include/subplans_table.h"
+#include "planner/subplans_table.h"
 
-#include "src/common/include/assert.h"
+#include "common/assert.h"
 
 namespace kuzu {
 namespace planner {

@@ -1,10 +1,10 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
 class TinySnbUpdateTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     string getStringExceedsOverflow() {
         string veryLongList = "[";

@@ -1,8 +1,7 @@
-#include "src/common/include/task_system/task_scheduler.h"
+#include "common/task_system/task_scheduler.h"
 
+#include "common/configs.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
 
 using namespace kuzu::common;
 

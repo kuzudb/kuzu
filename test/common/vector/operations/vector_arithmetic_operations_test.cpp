@@ -1,11 +1,10 @@
+#include "common/data_chunk/data_chunk.h"
+#include "common/type_utils.h"
+#include "function/arithmetic/arithmetic_operations.h"
+#include "function/binary_operation_executor.h"
+#include "function/unary_operation_executor.h"
 #include "gtest/gtest.h"
-#include "test/common/include/vector/operations/vector_operations_test_helper.h"
-
-#include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/type_utils.h"
-#include "src/function/arithmetic/operations/include/arithmetic_operations.h"
-#include "src/function/include/binary_operation_executor.h"
-#include "src/function/include/unary_operation_executor.h"
+#include "vector/operations/vector_operations_test_helper.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

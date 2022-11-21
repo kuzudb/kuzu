@@ -1,4 +1,4 @@
-#include "include/hash_index_builder.h"
+#include "storage/index/hash_index_builder.h"
 
 namespace kuzu {
 namespace storage {

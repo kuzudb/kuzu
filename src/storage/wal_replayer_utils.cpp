@@ -1,6 +1,6 @@
-#include "src/storage/include/wal_replayer_utils.h"
+#include "storage/wal_replayer_utils.h"
 
-#include "src/storage/index/include/hash_index_builder.h"
+#include "storage/index/hash_index_builder.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,4 +1,4 @@
-#include "include/scan_column.h"
+#include "processor/operator/scan_column/scan_column.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,11 +1,10 @@
-#include "include/connection.h"
+#include "main/connection.h"
 
-#include "include/database.h"
-#include "include/plan_printer.h"
-
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/processor/mapper/include/plan_mapper.h"
+#include "main/database.h"
+#include "main/plan_printer.h"
+#include "parser/parser.h"
+#include "planner/planner.h"
+#include "processor/mapper/plan_mapper.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;

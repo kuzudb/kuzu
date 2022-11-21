@@ -1,0 +1,7 @@
+add_kuzu_test(copy_csv_dates_test copy_csv_dates_test.cpp)
+add_kuzu_test(copy_csv_dos_style_newline_test copy_csv_dos_style_newline_test.cpp)
+add_kuzu_test(copy_csv_fault_test copy_csv_fault_test.cpp)
+add_kuzu_test(copy_csv_interval_test copy_csv_interval_test.cpp)
+add_kuzu_test(copy_csv_lists_test copy_csv_lists_test.cpp)
+add_kuzu_test(copy_csv_test copy_csv_test.cpp)
+add_kuzu_test(copy_csv_timestamp_test copy_csv_timestamp_test.cpp)

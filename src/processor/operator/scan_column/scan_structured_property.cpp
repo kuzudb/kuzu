@@ -1,4 +1,4 @@
-#include "include/scan_structured_property.h"
+#include "processor/operator/scan_column/scan_structured_property.h"
 
 using namespace kuzu::common;
 

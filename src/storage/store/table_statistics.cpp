@@ -1,6 +1,6 @@
-#include "include/table_statistics.h"
+#include "storage/store/table_statistics.h"
 
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -27,7 +27,6 @@ void TablesStatistics::readFromFile(const string& directory) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID] =
             deserializeTableStatistics(numTuples, offset, fileInfo.get(), tableID);
     }
-    FileUtils::closeFile(fileInfo->fd);
 }
 
 void TablesStatistics::saveToFile(
@@ -49,7 +48,6 @@ void TablesStatistics::saveToFile(
         offset = SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
-    FileUtils::closeFile(fileInfo->fd);
     logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);
 }
 

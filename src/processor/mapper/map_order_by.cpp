@@ -1,9 +1,8 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
-#include "src/processor/operator/order_by/include/order_by.h"
-#include "src/processor/operator/order_by/include/order_by_merge.h"
-#include "src/processor/operator/order_by/include/order_by_scan.h"
+#include "planner/logical_plan/logical_operator/logical_order_by.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/order_by/order_by.h"
+#include "processor/operator/order_by/order_by_merge.h"
+#include "processor/operator/order_by/order_by_scan.h"
 
 namespace kuzu {
 namespace processor {

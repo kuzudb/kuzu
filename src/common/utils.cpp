@@ -1,4 +1,4 @@
-#include "src/common/include/utils.h"
+#include "common/utils.h"
 
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"

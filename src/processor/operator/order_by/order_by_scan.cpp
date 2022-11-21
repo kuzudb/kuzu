@@ -1,4 +1,4 @@
-#include "include/order_by_scan.h"
+#include "processor/operator/order_by/order_by_scan.h"
 
 namespace kuzu {
 namespace processor {

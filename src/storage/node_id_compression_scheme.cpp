@@ -1,4 +1,4 @@
-#include "src/storage/include/node_id_compression_scheme.h"
+#include "storage/node_id_compression_scheme.h"
 
 namespace kuzu {
 namespace common {

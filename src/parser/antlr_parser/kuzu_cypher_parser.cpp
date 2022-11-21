@@ -1,4 +1,4 @@
-#include "src/parser/antlr_parser/include/kuzu_cypher_parser.h"
+#include "parser/antlr_parser/kuzu_cypher_parser.h"
 
 #include <string>
 

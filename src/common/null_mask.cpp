@@ -1,4 +1,4 @@
-#include "src/common/include/null_mask.h"
+#include "common/null_mask.h"
 
 namespace kuzu {
 

@@ -1,12 +1,11 @@
+#include "common/utils.h"
+#include "function/aggregate/aggregate_function.h"
+#include "function/aggregate/avg.h"
+#include "function/aggregate/count.h"
+#include "function/aggregate/min_max.h"
+#include "function/aggregate/sum.h"
 #include "gtest/gtest.h"
-
-#include "src/common/include/utils.h"
-#include "src/function/aggregate/include/aggregate_function.h"
-#include "src/function/aggregate/include/avg.h"
-#include "src/function/aggregate/include/count.h"
-#include "src/function/aggregate/include/min_max.h"
-#include "src/function/aggregate/include/sum.h"
-#include "src/processor/result/include/result_set.h"
+#include "processor/result/result_set.h"
 
 using ::testing::Test;
 

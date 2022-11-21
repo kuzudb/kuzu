@@ -1,4 +1,4 @@
-#include "include/simple_aggregate_scan.h"
+#include "processor/operator/aggregate/simple_aggregate_scan.h"
 
 namespace kuzu {
 namespace processor {

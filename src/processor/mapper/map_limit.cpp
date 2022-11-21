@@ -1,7 +1,6 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
-#include "src/processor/operator/include/limit.h"
+#include "planner/logical_plan/logical_operator/logical_limit.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/limit.h"
 
 namespace kuzu {
 namespace processor {

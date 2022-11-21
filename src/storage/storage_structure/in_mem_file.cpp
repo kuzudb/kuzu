@@ -1,8 +1,8 @@
-#include "src/storage/storage_structure/include/in_mem_file.h"
+#include "storage/storage_structure/in_mem_file.h"
 
 #include <mutex>
 
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -41,7 +41,6 @@ void InMemFile::flush() {
         FileUtils::writeToFile(
             fileInfo.get(), pages[pageIdx]->data, DEFAULT_PAGE_SIZE, pageIdx * DEFAULT_PAGE_SIZE);
     }
-    FileUtils::closeFile(fileInfo->fd);
 }
 
 ku_string_t InMemOverflowFile::appendString(const char* rawString) {

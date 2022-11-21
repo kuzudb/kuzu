@@ -1,4 +1,4 @@
-#include "src/storage/store/include/nodes_store.h"
+#include "storage/store/nodes_store.h"
 
 namespace kuzu {
 namespace storage {

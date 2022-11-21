@@ -1,6 +1,5 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/common/include/in_mem_overflow_buffer_utils.h"
+#include "common/in_mem_overflow_buffer_utils.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::storage;
 using namespace kuzu::testing;

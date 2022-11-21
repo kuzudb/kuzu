@@ -1,11 +1,10 @@
-#include "include/plan_mapper.h"
-
-#include "src/binder/expression/include/function_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
-#include "src/processor/operator/aggregate/include/hash_aggregate.h"
-#include "src/processor/operator/aggregate/include/hash_aggregate_scan.h"
-#include "src/processor/operator/aggregate/include/simple_aggregate.h"
-#include "src/processor/operator/aggregate/include/simple_aggregate_scan.h"
+#include "binder/expression/function_expression.h"
+#include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/aggregate/hash_aggregate.h"
+#include "processor/operator/aggregate/hash_aggregate_scan.h"
+#include "processor/operator/aggregate/simple_aggregate.h"
+#include "processor/operator/aggregate/simple_aggregate_scan.h"
 
 namespace kuzu {
 namespace processor {

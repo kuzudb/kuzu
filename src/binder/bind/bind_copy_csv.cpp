@@ -1,7 +1,7 @@
-#include "src/binder/bound_copy_csv/include/bound_copy_csv.h"
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/include/binder.h"
-#include "src/parser/copy_csv/include/copy_csv.h"
+#include "binder/bind/bound_copy_csv.h"
+#include "binder/binder.h"
+#include "binder/expression/literal_expression.h"
+#include "parser/copy_csv/copy_csv.h"
 
 namespace kuzu {
 namespace binder {

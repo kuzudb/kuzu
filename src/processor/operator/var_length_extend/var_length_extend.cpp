@@ -1,4 +1,4 @@
-#include "include/var_length_extend.h"
+#include "processor/operator/var_length_extend/var_length_extend.h"
 
 namespace kuzu {
 namespace processor {

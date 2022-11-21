@@ -1,4 +1,4 @@
-#include "include/base_aggregate.h"
+#include "processor/operator/aggregate/base_aggregate.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,11 +1,10 @@
-#include "src/common/include/csv_reader/csv_reader.h"
+#include "common/csv_reader/csv_reader.h"
 
+#include "common/configs.h"
+#include "common/type_utils.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-#include "third_party/utf8proc/include/utf8proc_wrapper.h"
-
-#include "src/common/include/configs.h"
-#include "src/common/include/type_utils.h"
-#include "src/common/include/utils.h"
+#include "utf8proc_wrapper.h"
 
 using namespace kuzu::utf8proc;
 

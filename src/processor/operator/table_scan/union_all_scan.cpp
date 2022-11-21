@@ -1,4 +1,4 @@
-#include "include/union_all_scan.h"
+#include "processor/operator/table_scan/union_all_scan.h"
 
 namespace kuzu {
 namespace processor {

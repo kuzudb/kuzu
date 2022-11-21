@@ -1,10 +1,9 @@
-#include "src/storage/storage_structure/include/lists/lists_metadata.h"
+#include "storage/storage_structure/lists/lists_metadata.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/utils.h"
-#include "src/storage/include/storage_utils.h"
-#include "src/storage/storage_structure/include/storage_structure_utils.h"
+#include "storage/storage_structure/storage_structure_utils.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {

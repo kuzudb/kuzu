@@ -1,4 +1,4 @@
-#include "include/factorized_table_scan.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {

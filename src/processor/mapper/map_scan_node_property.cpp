@@ -1,7 +1,6 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
-#include "src/processor/operator/scan_column/include/scan_structured_property.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/scan_column/scan_structured_property.h"
 
 namespace kuzu {
 namespace processor {

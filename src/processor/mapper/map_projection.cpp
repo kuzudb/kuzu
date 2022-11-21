@@ -1,7 +1,6 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
-#include "src/processor/operator/include/projection.h"
+#include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/projection.h"
 
 namespace kuzu {
 namespace processor {

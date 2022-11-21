@@ -1,8 +1,7 @@
 
-#include "include/gtest/gtest.h"
-
-#include "src/common/include/vector/value_vector.h"
-#include "src/storage/buffer_manager/include/memory_manager.h"
+#include "common/vector/value_vector.h"
+#include "gtest/gtest.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace std;

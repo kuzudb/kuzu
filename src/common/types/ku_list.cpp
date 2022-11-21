@@ -1,4 +1,4 @@
-#include "include/ku_list.h"
+#include "common/types/ku_list.h"
 
 #include <cassert>
 

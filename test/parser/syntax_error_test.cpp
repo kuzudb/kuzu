@@ -1,7 +1,6 @@
+#include "common/exception.h"
 #include "gtest/gtest.h"
-
-#include "src/common/include/exception.h"
-#include "src/parser/include/parser.h"
+#include "parser/parser.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;

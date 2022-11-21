@@ -1,8 +1,7 @@
 #pragma once
 
+#include "main/kuzu.h"
 #include "pybind_include.h"
-
-#include "src/main/include/kuzu.h"
 
 using namespace kuzu::main;
 

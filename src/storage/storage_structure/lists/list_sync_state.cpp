@@ -1,4 +1,4 @@
-#include "src/storage/storage_structure/include/lists/list_sync_state.h"
+#include "storage/storage_structure/lists/list_sync_state.h"
 
 namespace kuzu {
 namespace storage {

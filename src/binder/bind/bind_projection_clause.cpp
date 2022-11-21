@@ -1,5 +1,5 @@
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/include/binder.h"
+#include "binder/binder.h"
+#include "binder/expression/literal_expression.h"
 
 namespace kuzu {
 namespace binder {

@@ -1,6 +1,6 @@
-#include "include/normalized_query_part.h"
+#include "binder/query/normalized_query_part.h"
 
-#include "reading_clause/include/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_match_clause.h"
 
 namespace kuzu {
 namespace binder {

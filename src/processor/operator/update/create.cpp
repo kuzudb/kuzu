@@ -1,4 +1,4 @@
-#include "include/create.h"
+#include "processor/operator/update/create.h"
 
 namespace kuzu {
 namespace processor {

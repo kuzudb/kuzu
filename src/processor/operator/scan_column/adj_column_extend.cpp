@@ -1,4 +1,4 @@
-#include "include/adj_column_extend.h"
+#include "processor/operator/scan_column/adj_column_extend.h"
 
 namespace kuzu {
 namespace processor {

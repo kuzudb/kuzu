@@ -1,8 +1,7 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/planner/logical_plan/include/logical_plan_util.h"
+#include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/planner.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -70,7 +69,9 @@ public:
         return result;
     }
 
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
+    }
 
     void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
         auto catalog = getCatalog(*database);

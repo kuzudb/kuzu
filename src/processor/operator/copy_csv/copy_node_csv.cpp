@@ -1,6 +1,6 @@
-#include "include/copy_node_csv.h"
+#include "processor/operator/copy_csv/copy_node_csv.h"
 
-#include "src/storage/in_mem_csv_copier/include/in_mem_node_csv_copier.h"
+#include "storage/in_mem_csv_copier/in_mem_node_csv_copier.h"
 
 namespace kuzu {
 namespace processor {

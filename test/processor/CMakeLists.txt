@@ -1,0 +1,3 @@
+add_subdirectory(factorized_table)
+add_subdirectory(hash_table)
+add_subdirectory(order_by)

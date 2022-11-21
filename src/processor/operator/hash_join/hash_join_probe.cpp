@@ -1,7 +1,7 @@
-#include "include/hash_join_probe.h"
+#include "processor/operator/hash_join/hash_join_probe.h"
 
-#include "src/function/hash/include/vector_hash_operations.h"
-#include "src/function/hash/operations/include/hash_operations.h"
+#include "function/hash/hash_operations.h"
+#include "function/hash/vector_hash_operations.h"
 
 using namespace kuzu::function::operation;
 

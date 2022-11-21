@@ -1,0 +1,1 @@
+add_kuzu_test(aggregate_hash_table_test aggregate_hash_table_test.cpp)
