@@ -1,49 +1,38 @@
 #pragma once
 
-#include "base_logical_operator.h"
-
-#include "src/binder/expression/include/expression.h"
-
-using namespace kuzu::binder;
+#include "logical_create_delete.h"
 
 namespace kuzu {
 namespace planner {
 
-class LogicalDelete : public LogicalOperator {
+class LogicalDeleteNode : public LogicalCreateOrDeleteNode {
 public:
-    LogicalDelete(expression_vector nodeExpressions, expression_vector primaryKeyExpressions,
+    LogicalDeleteNode(
+        vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeys,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, nodeExpressions{move(nodeExpressions)},
-          primaryKeyExpressions{move(primaryKeyExpressions)} {}
+        : LogicalCreateOrDeleteNode{std::move(nodeAndPrimaryKeys), std::move(child)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_DELETE;
+    inline LogicalOperatorType getLogicalOperatorType() const override {
+        return LogicalOperatorType::LOGICAL_DELETE_NODE;
     }
 
-    string getExpressionsForPrinting() const override {
-        string result;
-        for (auto& nodeExpression : nodeExpressions) {
-            result += nodeExpression->getRawName() + ",";
-        }
-        return result;
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalDeleteNode>(nodeAndPrimaryKeys, children[0]->copy());
+    }
+};
+
+class LogicalDeleteRel : public LogicalCreateOrDeleteRel {
+public:
+    LogicalDeleteRel(vector<shared_ptr<RelExpression>> rels, shared_ptr<LogicalOperator> child)
+        : LogicalCreateOrDeleteRel{std::move(rels), std::move(child)} {}
+
+    inline LogicalOperatorType getLogicalOperatorType() const override {
+        return LogicalOperatorType::LOGICAL_DELETE_REL;
     }
 
-    inline uint32_t getNumExpressions() const { return nodeExpressions.size(); }
-    inline shared_ptr<Expression> getNodeExpression(uint32_t idx) const {
-        return nodeExpressions[idx];
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalDeleteRel>(rels, children[0]->copy());
     }
-    inline shared_ptr<Expression> getPrimaryKeyExpression(uint32_t idx) const {
-        return primaryKeyExpressions[idx];
-    }
-
-    unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDelete>(
-            nodeExpressions, primaryKeyExpressions, children[0]->copy());
-    }
-
-private:
-    expression_vector nodeExpressions;
-    expression_vector primaryKeyExpressions;
 };
 
 } // namespace planner

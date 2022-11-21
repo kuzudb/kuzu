@@ -54,19 +54,24 @@ private:
 
 class BoundCreateClause : public BoundUpdatingClause {
 public:
-    BoundCreateClause(vector<unique_ptr<BoundCreateNode>> createNodes,
-        vector<unique_ptr<BoundCreateRel>> createRels)
-        : BoundUpdatingClause{ClauseType::CREATE}, createNodes{std::move(createNodes)},
-          createRels{std::move(createRels)} {};
+    BoundCreateClause() : BoundUpdatingClause{ClauseType::CREATE} {};
     ~BoundCreateClause() override = default;
 
+    inline void addCreateNode(unique_ptr<BoundCreateNode> createNode) {
+        createNodes.push_back(std::move(createNode));
+    }
     inline bool hasCreateNode() const { return !createNodes.empty(); }
     inline uint32_t getNumCreateNodes() const { return createNodes.size(); }
     inline BoundCreateNode* getCreateNode(uint32_t idx) const { return createNodes[idx].get(); }
+    inline const vector<unique_ptr<BoundCreateNode>>& getCreateNodes() const { return createNodes; }
 
+    inline void addCreateRel(unique_ptr<BoundCreateRel> createRel) {
+        createRels.push_back(std::move(createRel));
+    }
     inline bool hasCreateRel() const { return !createRels.empty(); }
     inline uint32_t getNumCreateRels() const { return createRels.size(); }
     inline BoundCreateRel* getCreateRel(uint32_t idx) const { return createRels[idx].get(); }
+    inline const vector<unique_ptr<BoundCreateRel>>& getCreateRels() const { return createRels; }
 
     vector<expression_pair> getAllSetItems() const;
     expression_vector getPropertiesToRead() const override;

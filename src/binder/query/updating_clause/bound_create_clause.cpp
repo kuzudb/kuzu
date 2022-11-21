@@ -29,16 +29,14 @@ expression_vector BoundCreateClause::getPropertiesToRead() const {
 }
 
 unique_ptr<BoundUpdatingClause> BoundCreateClause::copy() {
-    vector<unique_ptr<BoundCreateNode>> copiedCreateNodes;
-    vector<unique_ptr<BoundCreateRel>> copiedCreateRels;
+    auto result = make_unique<BoundCreateClause>();
     for (auto& createNode : createNodes) {
-        copiedCreateNodes.push_back(createNode->copy());
+        result->addCreateNode(createNode->copy());
     }
     for (auto& createRel : createRels) {
-        copiedCreateRels.push_back(createRel->copy());
+        result->addCreateRel(createRel->copy());
     }
-    return make_unique<BoundCreateClause>(
-        std::move(copiedCreateNodes), std::move(copiedCreateRels));
+    return result;
 }
 
 } // namespace binder

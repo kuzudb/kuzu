@@ -4,20 +4,14 @@
 #include "src/binder/query/updating_clause/include/bound_delete_clause.h"
 #include "src/binder/query/updating_clause/include/bound_set_clause.h"
 #include "src/binder/query/updating_clause/include/bound_updating_clause.h"
-#include "src/catalog/include/catalog.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
 
 namespace kuzu {
 namespace planner {
 
-using namespace kuzu::catalog;
-
-class QueryPlanner;
-
 class UpdatePlanner {
 public:
-    UpdatePlanner(const catalog::Catalog& catalog, QueryPlanner* queryPlanner)
-        : catalog{catalog}, queryPlanner{queryPlanner} {};
+    UpdatePlanner() = default;
 
     inline void planUpdatingClause(
         BoundUpdatingClause& updatingClause, vector<unique_ptr<LogicalPlan>>& plans) {
@@ -31,20 +25,19 @@ private:
     void planSetItem(expression_pair setItem, LogicalPlan& plan);
 
     void planCreate(BoundCreateClause& createClause, LogicalPlan& plan);
-    void appendCreateNode(BoundCreateClause& createClause, LogicalPlan& plan);
-    void appendCreateRel(BoundCreateClause& createClause, LogicalPlan& plan);
+    void appendCreateNode(
+        const vector<unique_ptr<BoundCreateNode>>& createNodes, LogicalPlan& plan);
+    void appendCreateRel(const vector<unique_ptr<BoundCreateRel>>& createRels, LogicalPlan& plan);
 
     inline void appendSet(BoundSetClause& setClause, LogicalPlan& plan) {
         appendSet(setClause.getSetItems(), plan);
     }
     void appendSet(vector<expression_pair> setItems, LogicalPlan& plan);
-    void appendDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
 
-    vector<expression_pair> splitSetItems(vector<expression_pair> setItems);
-
-private:
-    const Catalog& catalog;
-    QueryPlanner* queryPlanner;
+    void planDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan);
+    void appendDeleteNode(
+        const vector<unique_ptr<BoundDeleteNode>>& deleteNodes, LogicalPlan& plan);
+    void appendDeleteRel(const vector<shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan);
 };
 
 } // namespace planner

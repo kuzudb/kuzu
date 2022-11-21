@@ -16,6 +16,7 @@ namespace binder {
 
 class BoundCreateNode;
 class BoundCreateRel;
+class BoundDeleteNode;
 
 class Binder {
     friend class ExpressionBinder;
@@ -76,6 +77,7 @@ private:
         shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
     unique_ptr<BoundCreateRel> bindCreateRel(
         shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
+    unique_ptr<BoundDeleteNode> bindDeleteNode(shared_ptr<NodeExpression> node);
 
     /*** bind projection clause ***/
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);

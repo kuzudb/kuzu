@@ -82,7 +82,9 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalDeleteToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalDeleteNodeToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalDeleteRelToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalCreateNodeTableToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);

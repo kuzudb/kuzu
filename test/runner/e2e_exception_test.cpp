@@ -191,3 +191,11 @@ TEST_F(TinySnbExceptionTest, EmptyQuery) {
     auto result = conn->query("");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Connection Exception: Query is empty.");
 }
+
+TEST_F(TinySnbExceptionTest, ReadAfterUpdate2) {
+    auto result = conn->query(
+        "MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) "
+        "RETURN a.age");
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Binder exception: Read after update is not supported.");
+}
