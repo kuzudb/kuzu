@@ -14,16 +14,7 @@ namespace function {
  *  Implicit casts are added internally.
  */
 class VectorCastOperations : public VectorOperations {
-
 public:
-    static scalar_exec_func bindImplicitCastToBool(const expression_vector& children);
-
-    static scalar_exec_func bindImplicitCastToInt64(const expression_vector& children);
-
-    static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
-
-    static scalar_exec_func bindImplicitCastToTimestamp(const expression_vector& children);
-
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryCastExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {

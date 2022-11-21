@@ -8,7 +8,6 @@
 #include "src/binder/include/binder.h"
 #include "src/common/include/type_utils.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
-#include "src/function/cast/include/vector_cast_operations.h"
 #include "src/function/null/include/vector_null_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
 #include "src/parser/expression/include/parsed_literal_expression.h"
@@ -391,65 +390,10 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targe
 
 shared_ptr<Expression> ExpressionBinder::implicitCast(
     const shared_ptr<Expression>& expression, DataType targetType) {
-    switch (targetType.typeID) {
-    case BOOL: {
-        return implicitCastToBool(expression);
-    }
-    case INT64: {
-        return implicitCastToInt64(expression);
-    }
-    case STRING: {
-        return implicitCastToString(expression);
-    }
-    case TIMESTAMP: {
-        return implicitCastToTimestamp(expression);
-    }
-    default:
-        throw BinderException("Expression " + expression->getRawName() + " has data type " +
-                              Types::dataTypeToString(expression->dataType) + " but expect " +
-                              Types::dataTypeToString(targetType) +
-                              ". Implicit cast is not supported.");
-    }
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToBool(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToBool(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_BOOL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(BOOL), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToInt64(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToInt64(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_INT_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(INT64), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToString(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToString(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_STRING_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(STRING), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToTimestamp(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToTimestamp(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(TIMESTAMP), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
+    throw BinderException("Expression " + expression->getRawName() + " has data type " +
+                          Types::dataTypeToString(expression->dataType) + " but expect " +
+                          Types::dataTypeToString(targetType) +
+                          ". Implicit cast is not supported.");
 }
 
 void ExpressionBinder::validateExpectedDataType(

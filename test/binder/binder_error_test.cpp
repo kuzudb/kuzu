@@ -235,22 +235,22 @@ TEST_F(BinderErrorTest, VarLenExtendZeroLowerBound) {
 }
 
 TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
-    string expectedException =
-        "Expression 'hh' has data type STRING but expect INT64. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 'hh' has data type STRING but expect "
+                               "INT64. Implicit cast is not supported.";
     auto input = "MATCH (a:person) SET a.age = 'hh'";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateNodeDataTypeMisMatch) {
-    string expectedException =
-        "Expression 'hh' has data type STRING but expect INT64. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 'hh' has data type STRING but expect "
+                               "INT64. Implicit cast is not supported.";
     auto input = "CREATE (a:person {age:'hh'})";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateRelDataTypeMisMatch) {
-    string expectedException =
-        "Expression 12 has data type INT64 but expect STRING. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 12 has data type INT64 but expect "
+                               "STRING. Implicit cast is not supported.";
     auto input = "CREATE (a:person)-[:knows {description:12}]->(b:person)";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

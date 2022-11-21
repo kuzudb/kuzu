@@ -376,32 +376,24 @@ void QueryPlanner::appendFilter(const shared_ptr<Expression>& expression, Logica
     plan.setLastOperator(std::move(filter));
 }
 
-void QueryPlanner::appendScanNodePropIfNecessarySwitch(
-    expression_vector& properties, NodeExpression& node, LogicalPlan& plan) {
-    expression_vector structuredProperties;
-    for (auto& property : properties) {
-        structuredProperties.push_back(property);
-    }
+void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
+    shared_ptr<NodeExpression> node, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    vector<string> propertyNames;
-    vector<uint32_t> propertyIDs;
-    auto groupPos = schema->getGroupPos(node.getIDProperty());
-    for (auto& expression : properties) {
-        if (schema->isExpressionInScope(*expression)) {
+    expression_vector propertyExpressionToScan;
+    auto groupPos = schema->getGroupPos(node->getIDProperty());
+    for (auto& propertyExpression : propertyExpressions) {
+        if (schema->isExpressionInScope(*propertyExpression)) {
             continue;
         }
-        assert(expression->expressionType == PROPERTY);
-        auto property = static_pointer_cast<PropertyExpression>(expression);
-        propertyNames.push_back(property->getUniqueName());
-        propertyIDs.push_back(property->getPropertyID());
-        schema->insertToGroupAndScope(property, groupPos);
+        propertyExpressionToScan.push_back(propertyExpression);
+        schema->insertToGroupAndScope(propertyExpression, groupPos);
     }
-    if (propertyNames.empty()) { // all properties have been scanned before
+    if (propertyExpressionToScan.empty()) { // all properties have been scanned before
         return;
     }
-    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(node.getIDProperty(),
-        node.getTableID(), move(propertyNames), move(propertyIDs), plan.getLastOperator());
-    plan.setLastOperator(move(scanNodeProperty));
+    auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
+        std::move(node), std::move(propertyExpressionToScan), plan.getLastOperator());
+    plan.setLastOperator(std::move(scanNodeProperty));
 }
 
 void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,

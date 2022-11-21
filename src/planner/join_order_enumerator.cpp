@@ -199,8 +199,8 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
         } else {
             appendScanNode(node, *plan);
         }
-        planFiltersForNode(predicatesToApply, *node, *plan);
-        planPropertyScansForNode(*node, *plan);
+        planFiltersForNode(predicatesToApply, node, *plan);
+        planPropertyScansForNode(node, *plan);
     } else {
         appendScanNode(node, *plan);
     }
@@ -208,17 +208,18 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
 }
 
 void JoinOrderEnumerator::planFiltersForNode(
-    expression_vector& predicates, NodeExpression& node, LogicalPlan& plan) {
+    expression_vector& predicates, shared_ptr<NodeExpression> node, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
-        auto propertiesToScan = getPropertiesForVariable(*predicate, node);
-        queryPlanner->appendScanNodePropIfNecessarySwitch(propertiesToScan, node, plan);
+        auto propertiesToScan = getPropertiesForVariable(*predicate, *node);
+        queryPlanner->appendScanNodePropIfNecessary(propertiesToScan, node, plan);
         queryPlanner->appendFilter(predicate, plan);
     }
 }
 
-void JoinOrderEnumerator::planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan) {
-    auto properties = queryPlanner->getPropertiesForNode(node);
-    queryPlanner->appendScanNodePropIfNecessarySwitch(properties, node, plan);
+void JoinOrderEnumerator::planPropertyScansForNode(
+    shared_ptr<NodeExpression> node, LogicalPlan& plan) {
+    auto properties = queryPlanner->getPropertiesForNode(*node);
+    queryPlanner->appendScanNodePropIfNecessary(properties, node, plan);
 }
 
 void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
