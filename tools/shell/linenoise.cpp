@@ -779,7 +779,7 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
                 if (write(l->ofd, &d, 1) == -1)
                     return -1;
             }
-            if (!pastedInput(l->ifd)) {
+            if (!pastedInput(l->ifd) && !inputLeft) {
                 refreshLine(l);
             }
         } else {
