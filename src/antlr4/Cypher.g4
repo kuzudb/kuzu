@@ -334,8 +334,13 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : ( SP ? '[' oC_Expression ']' )
-        | ( SP ? '[' oC_Expression? ':' oC_Expression? ']' );
+    : ( kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression ) oC_ListOperatorExpression ? ;
+
+kU_ListExtractOperatorExpression
+    : SP ? '[' oC_Expression ']' ;
+
+kU_ListSliceOperatorExpression
+    : SP ? '[' oC_Expression? ':' oC_Expression? ']' ;
 
 oC_StringOperatorExpression
     :  ( ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
