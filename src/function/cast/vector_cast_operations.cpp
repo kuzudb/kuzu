@@ -7,51 +7,6 @@
 namespace kuzu {
 namespace function {
 
-scalar_exec_func VectorCastOperations::bindImplicitCastToBool(const expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID != BOOL);
-    auto child = children[0];
-    switch (children[0]->dataType.typeID) {
-    default:
-        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
-                                      Types::dataTypeToString(child->dataType) +
-                                      " but expect BOOL. Implicit cast is not supported.");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastToInt64(const expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID != INT64);
-    auto child = children[0];
-    switch (children[0]->dataType.typeID) {
-    default:
-        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
-                                      Types::dataTypeToString(child->dataType) +
-                                      " but expect INT64. Implicit cast is not supported.");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastToString(const expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID != STRING);
-    auto child = children[0];
-    switch (child->dataType.typeID) {
-    default:
-        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
-                                      Types::dataTypeToString(child->dataType) +
-                                      " but expect STRING. Implicit cast is not supported.");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastToTimestamp(
-    const expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID != TIMESTAMP);
-    auto child = children[0];
-    switch (child->dataType.typeID) {
-    default:
-        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
-                                      Types::dataTypeToString(child->dataType) +
-                                      " but expect TIMESTAMP. Implicit cast is not supported.");
-    }
-}
-
 vector<unique_ptr<VectorOperationDefinition>> CastToDateVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(

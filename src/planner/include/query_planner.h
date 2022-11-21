@@ -76,13 +76,8 @@ private:
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    inline void appendScanNodePropIfNecessarySwitch(
-        shared_ptr<Expression> property, NodeExpression& node, LogicalPlan& plan) {
-        expression_vector properties{move(property)};
-        appendScanNodePropIfNecessarySwitch(properties, node, plan);
-    }
-    void appendScanNodePropIfNecessarySwitch(
-        expression_vector& properties, NodeExpression& node, LogicalPlan& plan);
+    void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
+        shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
     inline void appendScanRelPropsIfNecessary(expression_vector& properties, RelExpression& rel,
         RelDirection direction, LogicalPlan& plan) {

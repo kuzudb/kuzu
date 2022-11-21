@@ -8,7 +8,6 @@ namespace kuzu {
 namespace processor {
 
 class BaseScanColumn : public PhysicalOperator {
-
 public:
     BaseScanColumn(const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
@@ -27,7 +26,6 @@ protected:
 };
 
 class ScanSingleColumn : public BaseScanColumn {
-
 protected:
     ScanSingleColumn(const DataPos& inputNodeIDVectorPos, const DataPos& outputVectorPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
@@ -36,12 +34,10 @@ protected:
 
 protected:
     DataPos outputVectorPos;
-
     shared_ptr<ValueVector> outputVector;
 };
 
 class ScanMultipleColumns : public BaseScanColumn {
-
 protected:
     ScanMultipleColumns(const DataPos& inputNodeIDVectorPos, vector<DataPos> outputVectorsPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)

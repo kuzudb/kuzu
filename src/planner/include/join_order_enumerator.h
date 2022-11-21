@@ -66,9 +66,10 @@ private:
 
     void planNodeScan(uint32_t nodePos);
     // Filter push down for node table.
-    void planFiltersForNode(expression_vector& predicates, NodeExpression& node, LogicalPlan& plan);
+    void planFiltersForNode(
+        expression_vector& predicates, shared_ptr<NodeExpression> node, LogicalPlan& plan);
     // Property push down for node table.
-    void planPropertyScansForNode(NodeExpression& node, LogicalPlan& plan);
+    void planPropertyScansForNode(shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
     void planRelScan(uint32_t relPos);
     inline void planRelExtendFiltersAndProperties(shared_ptr<RelExpression>& rel,

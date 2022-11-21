@@ -77,10 +77,6 @@ private:
     static void resolveAnyDataType(Expression& expression, DataType targetType);
     static shared_ptr<Expression> implicitCast(
         const shared_ptr<Expression>& expression, DataType targetType);
-    static shared_ptr<Expression> implicitCastToBool(const shared_ptr<Expression>& expression);
-    static shared_ptr<Expression> implicitCastToInt64(const shared_ptr<Expression>& expression);
-    static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
-    static shared_ptr<Expression> implicitCastToTimestamp(const shared_ptr<Expression>& expression);
 
     /****** validation *****/
     static void validateExpectedDataType(const Expression& expression, DataTypeID target) {
