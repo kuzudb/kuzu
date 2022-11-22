@@ -3,4 +3,15 @@ add_library(
         OBJECT
         test_helper.cpp)
 
-target_link_libraries(test_utility PUBLIC GTest::GTest)
+target_include_directories(
+        test_utility
+        PUBLIC
+        ../include/
+        ../../src/include
+)
+
+target_link_libraries(test_utility
+        PUBLIC
+        GTest::GTest
+        kuzu
+)

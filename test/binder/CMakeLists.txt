@@ -5,13 +5,10 @@ add_executable(binder_test
 target_include_directories(
         binder_test
         PUBLIC
-        ../mock
-        ../../src/include
-)
+        ../include)
 
 target_link_libraries(binder_test
         PUBLIC
-        test_utility
-        GTest::GTest)
+        test_utility)
 
 add_test(kuzu_binder_test binder_test)

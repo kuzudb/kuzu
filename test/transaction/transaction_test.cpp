@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/configs.h"
+#include "common/configs.h"
 
 using namespace kuzu::testing;
 

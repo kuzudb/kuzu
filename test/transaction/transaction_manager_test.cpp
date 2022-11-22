@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/exception.h"
-#include "src/transaction/include/transaction_manager.h"
+#include "common/exception.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::testing;

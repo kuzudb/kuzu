@@ -1,6 +1,6 @@
-#include "include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
-#include "src/catalog/include/catalog.h"
+#include "catalog/catalog.h"
 
 using namespace std;
 using namespace kuzu::catalog;

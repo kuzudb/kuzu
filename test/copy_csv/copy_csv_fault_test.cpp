@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 using namespace kuzu::testing;
 using namespace std;

@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::testing;
 

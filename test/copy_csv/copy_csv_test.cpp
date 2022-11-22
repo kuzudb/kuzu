@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/csv_reader/csv_reader.h"
+#include "common/csv_reader/csv_reader.h"
 
 using namespace std;
 using namespace kuzu::common;
