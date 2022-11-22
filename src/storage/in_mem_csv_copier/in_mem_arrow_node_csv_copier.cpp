@@ -15,40 +15,30 @@ namespace storage {
             : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
               numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
         nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
-        auto csvPath = csvDescription.filePath;
-        arrowFilePath = csvPath.substr(0, csvPath.length() - 3) + "arrow";
     }
 
     uint64_t InMemArrowNodeCSVCopier::copy() {
-        logger->info("reached InMemArrowNodeCSVCopier!!!!");
-        logger->info("file path: {}", csvDescription.filePath);
-        logger->info(
-                "Copying node {} with table {}.", nodeTableSchema->tableName, nodeTableSchema->tableID);
-
-        auto status = initializeArrow(arrowFilePath);
+        arrow::Status status;
+        status = initializeArrowCSV(csvDescription.filePath);
         if (!status.ok()) {
-            logger->debug(status.ToString());
-            raise(-1);
+            throw CopyCSVException(status.ToString());
         }
-        calculateArrowNumBlocks(arrowFilePath, nodeTableSchema->tableName);
 
-        auto unstructuredPropertyNames =
-                countLinesPerBlockAndParseUnstrPropertyNames(nodeTableSchema->getNumStructuredProperties());
-
+        std::vector<string> unstructuredPropertyNames;
         catalog.setUnstructuredPropertiesOfNodeTableSchema(
                 unstructuredPropertyNames, nodeTableSchema->tableID);
-        numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
-        std::cout << "total number of nodes: " << numNodes << std::endl;
+
         initializeColumnsAndList();
+
         // Populate structured columns with the ID hash index and count the size of unstructured
         // lists.
         switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
             case INT64: {
-                populateColumnsAndCountUnstrPropertyListSizes<int64_t>();
+                status = arrowPopulateColumnsAndCountUnstrPropertyListSizes<int64_t>();
             }
                 break;
             case STRING: {
-                populateColumnsAndCountUnstrPropertyListSizes<ku_string_t>();
+                status = arrowPopulateColumnsAndCountUnstrPropertyListSizes<ku_string_t>();
             }
                 break;
             default: {
@@ -57,8 +47,14 @@ namespace storage {
                                        " for the ID index.");
             }
         }
+
+        if (!status.ok()) {
+            throw CopyCSVException(status.ToString());
+        }
+
         calcUnstrListsHeadersAndMetadata();
         populateUnstrPropertyLists();
+
         saveToFile();
         nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
         logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
@@ -66,34 +62,33 @@ namespace storage {
         return numNodes;
     }
 
-    arrow::Status InMemArrowNodeCSVCopier::initializeArrow(const string &arrowFilePath) {
+    arrow::Status InMemArrowNodeCSVCopier::initializeArrowCSV(const std::string &filePath) {
+        shared_ptr<arrow::io::InputStream> arrow_input_stream;
+        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+        ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
         ARROW_ASSIGN_OR_RAISE(
-                infile,
-                arrow::io::ReadableFile::Open(
-                        arrowFilePath,
-                        arrow::default_memory_pool()));
+                csv_streaming_reader,
+                arrow::csv::StreamingReader::Make(
+                        arrow::io::default_io_context(),
+                        arrow_input_stream,
+                        arrow::csv::ReadOptions::Defaults(),
+                        arrow::csv::ParseOptions::Defaults(),
+                        arrow::csv::ConvertOptions::Defaults()
+                        ));
 
-        ARROW_ASSIGN_OR_RAISE(
-                ipc_reader,
-                arrow::ipc::RecordBatchFileReader::Open(infile));
-        return arrow::Status::OK();
-    }
 
-    void InMemArrowNodeCSVCopier::calculateArrowNumBlocks(const string &arrowFilePath, string tableName) {
-        logger->info("Chunking arrow into blocks for table {}.", tableName);
-        numBlocks = ipc_reader->num_record_batches();
-        logger->info("There are {} arrow blocks.", numBlocks);
-    }
+        numBlocks = 0;
+        numNodes = 0;
+        std::shared_ptr<arrow::RecordBatch> currBatch;
 
-    arrow::Status InMemArrowNodeCSVCopier::arrowCountNumLinesAndUnstrPropertiesPerBlockTask(
-            const string& fName, uint64_t blockId,
-            InMemArrowNodeCSVCopier* copier, uint64_t numTokensToSkip,
-            unordered_set<string>* unstrPropertyNames) {
-        copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
-        std::shared_ptr<arrow::RecordBatch> rbatch;
-        ARROW_ASSIGN_OR_RAISE(rbatch, copier->ipc_reader->ReadRecordBatch(blockId));
-        copier->numLinesPerBlock[blockId] = rbatch->num_rows();
-        copier->logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);
+        auto endIt = csv_streaming_reader->end();
+        for (auto it = csv_streaming_reader->begin(); it != endIt; ++ it) {
+            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
+            ++ numBlocks;
+            auto currNumRows = currBatch->num_rows();
+            numLinesPerBlock.push_back(currNumRows);
+            numNodes += currNumRows;
+        }
 
         return arrow::Status::OK();
     }
@@ -129,24 +124,8 @@ namespace storage {
         return result;
     }
 
-    vector<string> InMemArrowNodeCSVCopier::countLinesPerBlockAndParseUnstrPropertyNames(
-            uint64_t numStructuredProperties) {
-        logger->info("Counting number of lines and read unstructured property names in each block.");
-        vector<unordered_set<string>> unstructuredPropertyNamesPerBlock{numBlocks};
-        numLinesPerBlock.resize(numBlocks);
-        for (uint64_t blockId = 0; blockId < numBlocks; blockId++) {
-            taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                    arrowCountNumLinesAndUnstrPropertiesPerBlockTask, csvDescription.filePath, blockId, this,
-                    numStructuredProperties, &unstructuredPropertyNamesPerBlock[blockId]));
-        }
-        taskScheduler.waitAllTasksToCompleteOrError();
-        logger->info(
-                "Done counting number of lines and read unstructured property names  in each block.");
-        return mergeUnstrPropertyNamesFromBlocks(unstructuredPropertyNamesPerBlock);
-    }
-
     template<typename T>
-    void InMemArrowNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizes() {
+    arrow::Status InMemArrowNodeCSVCopier::arrowPopulateColumnsAndCountUnstrPropertyListSizes() {
         logger->info("Populating structured properties and Counting unstructured properties.");
         auto pkIndex =
                 make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
@@ -155,17 +134,41 @@ namespace storage {
                                                  nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numNodes);
         node_offset_t offsetStart = 0;
-        for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
+
+        shared_ptr<arrow::io::InputStream> arrow_input_stream;
+        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+        ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(csvDescription.filePath));
+        ARROW_ASSIGN_OR_RAISE(
+                csv_streaming_reader,
+                arrow::csv::StreamingReader::Make(
+                        arrow::io::default_io_context(),
+                        arrow_input_stream,
+                        arrow::csv::ReadOptions::Defaults(),
+                        arrow::csv::ParseOptions::Defaults(),
+                        arrow::csv::ConvertOptions::Defaults()
+                ));
+
+        std::shared_ptr<arrow::RecordBatch> currBatch;
+
+        int blockIdx = 0;
+        auto endIt = csv_streaming_reader->end();
+        for (auto it = csv_streaming_reader->begin(); it != endIt; ++ it) {
+            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                    populateColumnsAndCountUnstrPropertyListSizesTask<T>,
-                    nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(), this));
-            offsetStart += numLinesPerBlock[blockIdx];
+                    arrowPopulateColumnsAndCountUnstrPropertyListSizesTask<T>,
+                    nodeTableSchema->primaryKeyPropertyIdx,
+                    blockIdx, offsetStart, pkIndex.get(), this, currBatch));
+            offsetStart += currBatch->num_rows();
+            ++ blockIdx;
         }
+
         taskScheduler.waitAllTasksToCompleteOrError();
         logger->info("Flush the pk index to disk.");
         pkIndex->flush();
         logger->info("Done populating structured properties, constructing the pk index and counting "
                      "unstructured properties.");
+
+        return arrow::Status::OK();
     }
 
     template<typename T>
@@ -196,24 +199,16 @@ namespace storage {
         addIDsToIndex(column, pkIndex, startOffset, numValues);
     }
 
-    void InMemArrowNodeCSVCopier::skipFirstRowIfNecessary(
-            uint64_t blockId, const CSVDescription &csvDescription, CSVReader &reader) {
-        if (0 == blockId && csvDescription.csvReaderConfig.hasHeader && reader.hasNextLine()) {
-            reader.skipLine();
-        }
-    }
-
     template<typename T>
-    arrow::Status InMemArrowNodeCSVCopier::populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
-                                                                                    uint64_t blockId,
-                                                                                    uint64_t startOffset,
-                                                                                    HashIndexBuilder<T> *pkIndex,
-                                                                                    InMemArrowNodeCSVCopier *copier) {
+    arrow::Status InMemArrowNodeCSVCopier::arrowPopulateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
+                                                                                             uint64_t blockId,
+                                                                                             uint64_t startOffset,
+                                                                                             HashIndexBuilder<T> *pkIndex,
+                                                                                             InMemArrowNodeCSVCopier *copier,
+                                                                                             std::shared_ptr<arrow::RecordBatch> currBatch) {
         copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
-        std::shared_ptr<arrow::RecordBatch> rbatch;
-        ARROW_ASSIGN_OR_RAISE(rbatch, copier->ipc_reader->ReadRecordBatch(blockId));
-        auto arrow_columns = rbatch->columns();
+        auto arrow_columns = currBatch->columns();
         // TODO: Consider skip header
 //        skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
         for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++ bufferOffset) {

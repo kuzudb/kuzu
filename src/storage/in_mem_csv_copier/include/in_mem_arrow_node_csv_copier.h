@@ -33,14 +33,14 @@ namespace storage {
         void saveToFile() override;
 
     private:
-        arrow::Status initializeArrow(const string &arrowFilePath);
+        arrow::Status initializeArrowCSV(const string &filePath);
 
         void initializeColumnsAndList();
 
         vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
 
         template<typename T>
-        void populateColumnsAndCountUnstrPropertyListSizes();
+        arrow::Status arrowPopulateColumnsAndCountUnstrPropertyListSizes();
 
         void calcUnstrListsHeadersAndMetadata();
 
@@ -73,27 +73,19 @@ namespace storage {
         static void populatePKIndex(InMemColumn *column, HashIndexBuilder<T> *pkIndex,
                                     node_offset_t startOffset, uint64_t numValues);
 
-        static void skipFirstRowIfNecessary(
-                uint64_t blockId, const CSVDescription &csvDescription, CSVReader &reader);
-
         // Concurrent tasks.
         // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
         // Instead, it is the index in the structured columns that we expect it to appear.
+
         template<typename T>
-        static arrow::Status populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
-                                                                      uint64_t blockId, uint64_t offsetStart,
-                                                                      HashIndexBuilder<T> *pkIndex,
-                                                                      InMemArrowNodeCSVCopier *copier);
+        static arrow::Status arrowPopulateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
+                                                                               uint64_t blockId, uint64_t offsetStart,
+                                                                               HashIndexBuilder<T> *pkIndex,
+                                                                               InMemArrowNodeCSVCopier *copier,
+                                                                               std::shared_ptr<arrow::RecordBatch> currBatch);
 
         static void populateUnstrPropertyListsTask(
                 uint64_t blockId, node_offset_t nodeOffsetStart, InMemArrowNodeCSVCopier *copier);
-
-        void calculateArrowNumBlocks(const string &arrowFilePath, string tableName);
-
-    protected:
-        string arrowFilePath;
-        std::shared_ptr<arrow::io::ReadableFile> infile;
-        shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
 
     private:
         NodeTableSchema *nodeTableSchema;

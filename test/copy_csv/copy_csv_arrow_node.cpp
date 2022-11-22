@@ -10,5 +10,13 @@ class CopyCSVArrowNodeTest : public InMemoryDBTest {
 };
 
 TEST_F(CopyCSVArrowNodeTest, ArrowTest) {
-    EXPECT_EQ(1, 1);
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "feature6");
+    auto col =
+            storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+
+    // Test for random_100k_rows.csv
+   EXPECT_EQ(11, col->readValue(54015).val.int64Val);
 }
