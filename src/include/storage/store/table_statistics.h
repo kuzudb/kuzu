@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 
 #include "catalog/catalog_structs.h"
 #include "common/ser_deser.h"
