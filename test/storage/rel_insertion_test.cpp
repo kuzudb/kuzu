@@ -1,8 +1,8 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/planner/logical_plan/include/logical_plan_util.h"
+#include "parser/parser.h"
+#include "planner/planner.h"
+#include "planner/logical_plan/logical_plan_util.h"
 
 using namespace kuzu::testing;
 

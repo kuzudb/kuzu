@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
 
 using namespace std;
 using namespace kuzu::common;

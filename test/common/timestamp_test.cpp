@@ -2,8 +2,8 @@
 
 #include "include/gtest/gtest.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/types/include/types_include.h"
+#include "common/exception.h"
+#include "common/types/types_include.h"
 
 using namespace kuzu::common;
 using namespace std;

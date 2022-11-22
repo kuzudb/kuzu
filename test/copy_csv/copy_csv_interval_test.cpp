@@ -1,6 +1,6 @@
 #include <string>
 
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
 using namespace kuzu::common;

@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-#include "src/storage/include/wal_replayer.h"
+#include "storage/wal_replayer.h"
 
 using namespace kuzu::storage;
 using namespace kuzu::testing;

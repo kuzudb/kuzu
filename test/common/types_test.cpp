@@ -1,9 +1,9 @@
 #include <string>
 
-#include "include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/type_utils.h"
+#include "common/exception.h"
+#include "common/type_utils.h"
 
 using namespace kuzu::common;
 using namespace std;

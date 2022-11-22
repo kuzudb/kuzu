@@ -1,7 +1,7 @@
 #include <filesystem>
 
 #include "gtest/gtest.h"
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;

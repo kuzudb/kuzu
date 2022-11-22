@@ -1,8 +1,7 @@
+#include "binder/binder.h"
 #include "gtest/gtest.h"
-#include "test/mock/mock_catalog.h"
-
-#include "src/binder/include/binder.h"
-#include "src/parser/include/parser.h"
+#include "mock_catalog/mock_catalog.h"
+#include "parser/parser.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
