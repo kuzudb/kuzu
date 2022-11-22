@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tools/shell/include/linenoise.h"
+#include "linenoise.h"
 
-#include "src/main/include/kuzu.h"
+#include "main/kuzu.h"
 
 namespace kuzu {
 namespace main {
