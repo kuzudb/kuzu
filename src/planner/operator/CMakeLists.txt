@@ -12,7 +12,6 @@ add_library(kuzu_planner_operator
         schema.cpp
         sink_util.cpp)
 
-#target_include_directories(planner_operator PUBLIC ../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_planner_operator>
         PARENT_SCOPE)

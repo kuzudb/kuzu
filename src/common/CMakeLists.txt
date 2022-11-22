@@ -18,8 +18,6 @@ add_library(kuzu_common
         type_utils.cpp
         utils.cpp)
 
-#target_include_directories(common PUBLIC ../include)
-#target_link_libraries(common PUBLIC spdlog::spdlog)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>
         PARENT_SCOPE)

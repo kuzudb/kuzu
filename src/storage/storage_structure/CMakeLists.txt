@@ -10,7 +10,6 @@ add_library(kuzu_storage_structure
         storage_structure.cpp
         storage_structure_utils.cpp)
 
-#target_include_directories(storage_structure PUBLIC ../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_structure>
         PARENT_SCOPE)

@@ -12,5 +12,3 @@ add_library(
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_binder_bind>
         PARENT_SCOPE)
-
-#target_include_directories(bind PUBLIC ../../include)

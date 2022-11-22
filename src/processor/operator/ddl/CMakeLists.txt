@@ -3,7 +3,6 @@ add_library(kuzu_processor_operator_ddl
         create_node_table.cpp
         create_rel_table.cpp)
 
-#target_include_directories(operator_ddl PUBLIC ../../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_ddl>
         PARENT_SCOPE)

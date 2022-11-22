@@ -4,7 +4,6 @@ add_library(kuzu_processor_operator_ver_length_extend
         var_length_column_extend.cpp
         var_length_extend.cpp)
 
-#target_include_directories(operator_ver_length_extend PUBLIC ../../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_ver_length_extend>
         PARENT_SCOPE)

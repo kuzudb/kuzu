@@ -11,7 +11,6 @@ add_library(kuzu_planner
         subplans_table.cpp
         update_planner.cpp)
 
-#target_include_directories(planner PUBLIC ../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_planner>
         PARENT_SCOPE)

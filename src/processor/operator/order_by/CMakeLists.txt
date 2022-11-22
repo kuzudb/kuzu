@@ -7,7 +7,6 @@ add_library(kuzu_processor_operator_order_by
         order_by_scan.cpp
         radix_sort.cpp)
 
-#target_include_directories(operator_order_by PUBLIC ../../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_order_by>
         PARENT_SCOPE)

@@ -28,7 +28,6 @@ add_library(kuzu_processor_operator
         skip.cpp
         unwind.cpp)
 
-#target_include_directories(operator PUBLIC ../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>
         PARENT_SCOPE)

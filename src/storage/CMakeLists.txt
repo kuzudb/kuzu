@@ -14,8 +14,6 @@ add_library(kuzu_storage
         wal_replayer.cpp
         wal_replayer_utils.cpp)
 
-#target_include_directories(storage PUBLIC ../include)
-#target_link_libraries(storage PRIVATE spdlog)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage>
         PARENT_SCOPE)

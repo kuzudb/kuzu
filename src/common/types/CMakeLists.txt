@@ -10,7 +10,6 @@ add_library(kuzu_common_types
         types.cpp
         value.cpp)
 
-#target_include_directories(common_types PUBLIC ../../include)
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common_types>
         PARENT_SCOPE)
