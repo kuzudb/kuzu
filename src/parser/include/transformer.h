@@ -128,6 +128,14 @@ private:
         CypherParser::OC_ListOperatorExpressionContext& ctx,
         unique_ptr<ParsedExpression> propertyExpression);
 
+    unique_ptr<ParsedExpression> transformListSliceOperatorExpression(
+        CypherParser::KU_ListSliceOperatorExpressionContext& ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
+
+    unique_ptr<ParsedExpression> transformListExtractOperatorExpression(
+        CypherParser::KU_ListExtractOperatorExpressionContext& ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
+
     unique_ptr<ParsedExpression> transformNullOperatorExpression(
         CypherParser::OC_NullOperatorExpressionContext& ctx,
         unique_ptr<ParsedExpression> propertyExpression);

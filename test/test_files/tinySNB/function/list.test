@@ -150,6 +150,31 @@ Fesdwe
 Grad
 Ad
 
+-NAME ListExtractDoubleExtract
+-QUERY MATCH (a:person) RETURN a.courseScoresPerTerm[1][1]
+---- 8
+10
+8
+8
+7
+6
+8
+10
+7
+
+-NAME ListExtractSliceListOfStrings
+-QUERY MATCH (a:person) RETURN a.usedNames[1][3:7]
+---- 8
+da
+bby
+rmen
+lfesc
+n
+sdwe
+ad
+
+
+
 -NAME ListLenStructuredListOfInts
 -QUERY MATCH (a:person) RETURN len(a.workedHours)
 ---- 8
@@ -664,6 +689,18 @@ Huber
 ABFsUni
 CsWork
 DEsWork
+
+-NAME ListSliceStructuredStringDoubleSlice
+-QUERY MATCH (a:person) RETURN a.fName[3:][2:4]
+---- 8
+ce
+
+ol
+
+zab
+ooq
+g
+ert
 
 -NAME ListCreateFromLiteral1
 -QUERY RETURN [[100,200],[200,300],[300,400]]
