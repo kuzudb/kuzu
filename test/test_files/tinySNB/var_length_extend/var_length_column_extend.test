@@ -9,13 +9,13 @@
 
 -NAME meetsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
--PARALLELISM 3
+-PARALLELISM 2
 ---- 1
 13
 
 -NAME meetsThreeHopMinLenEqualsMaxLen
 -QUERY MATCH (a:person)-[:meets*3..3]->(b:person) RETURN COUNT(*)
--PARALLELISM 4
+-PARALLELISM 2
 ---- 1
 4
 
@@ -26,13 +26,13 @@
 # 3), which generates another 4 paths (2 paths of length 2 and 2 paths of length 3). In total, there are 15 paths.
 -NAME varLenAdjListJoinWithVarLenColumnJoinTwoToFourHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:meets*2..3]->(c:person) RETURN COUNT(*)
--PARALLELISM 4
+-PARALLELISM 8
 ---- 1
 13
 
 -NAME meetsLongPathTest
 -QUERY MATCH (a:person)-[:meets*8..11]->(b:person) RETURN COUNT(*)
--PARALLELISM 4
+-PARALLELISM 8
 ---- 1
 16
 

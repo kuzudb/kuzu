@@ -20,13 +20,13 @@
 
 -NAME KnowsKnows2To4HopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows*2..4]->(c:person) RETURN COUNT(*)
--PARALLELISM 4
+-PARALLELISM 2
 ---- 1
 1404
 
 -NAME KnowsLongPathTest
 -QUERY MATCH (a:person)-[:knows*8..11]->(b:person) RETURN COUNT(*)
--PARALLELISM 4
+-PARALLELISM 8
 ---- 1
 1049760
 

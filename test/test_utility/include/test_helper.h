@@ -20,7 +20,7 @@ enum class TransactionTestType : uint8_t {
 struct TestQueryConfig {
     string name;
     string query;
-    uint64_t numThreads = 1;
+    uint64_t numThreads = 4;
     string encodedJoin;
     uint64_t expectedNumTuples = 0;
     vector<string> expectedTuples;

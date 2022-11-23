@@ -33,12 +33,6 @@ public:
     }
     unique_ptr<FTableScanMorsel> getMorsel(uint64_t maxMorselSize);
 
-    // A factorized table might be scanned multiple times.
-    inline void setToInitialState() {
-        lock_guard<mutex> lck{mtx};
-        nextTupleIdxToScan = 0u;
-    }
-
 private:
     mutex mtx;
     shared_ptr<FactorizedTable> table;
