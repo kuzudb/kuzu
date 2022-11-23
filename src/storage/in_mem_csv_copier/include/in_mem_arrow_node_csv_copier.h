@@ -14,7 +14,6 @@
 #include <arrow/table.h>
 #include <arrow/ipc/reader.h>
 #include <arrow/scalar.h>
-#include <arrow/compute/api.h>
 
 namespace kuzu {
 namespace storage {
@@ -37,27 +36,8 @@ namespace storage {
 
         void initializeColumnsAndList();
 
-        vector<string> countLinesPerBlockAndParseUnstrPropertyNames(uint64_t numStructuredProperties);
-
         template<typename T>
-        arrow::Status arrowPopulateColumnsAndCountUnstrPropertyListSizes();
-
-        void calcUnstrListsHeadersAndMetadata();
-
-        void populateUnstrPropertyLists();
-
-        static arrow::Status arrowCountNumLinesAndUnstrPropertiesPerBlockTask(
-                const string& fName, uint64_t blockId,
-                InMemArrowNodeCSVCopier* copier, uint64_t numTokensToSkip,
-                unordered_set<string>* unstrPropertyNames);
-
-        static void calcLengthOfUnstrPropertyLists(
-                CSVReader &reader, node_offset_t nodeOffset, InMemUnstructuredLists *unstrPropertyLists);
-
-        static void putUnstrPropsOfALineToLists(CSVReader &reader, node_offset_t nodeOffset,
-                                                PageByteCursor &inMemOverflowFileCursor,
-                                                unordered_map<string, uint64_t> &unstrPropertiesNameToIdMap,
-                                                InMemUnstructuredLists *unstrPropertyLists);
+        arrow::Status arrowPopulateColumns();
 
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
                                               const vector<Property> &properties,
@@ -78,20 +58,16 @@ namespace storage {
         // Instead, it is the index in the structured columns that we expect it to appear.
 
         template<typename T>
-        static arrow::Status arrowPopulateColumnsAndCountUnstrPropertyListSizesTask(uint64_t primaryKeyPropertyIdx,
-                                                                               uint64_t blockId, uint64_t offsetStart,
-                                                                               HashIndexBuilder<T> *pkIndex,
-                                                                               InMemArrowNodeCSVCopier *copier,
-                                                                               std::shared_ptr<arrow::RecordBatch> currBatch);
-
-        static void populateUnstrPropertyListsTask(
-                uint64_t blockId, node_offset_t nodeOffsetStart, InMemArrowNodeCSVCopier *copier);
+        static arrow::Status arrowPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
+                                                       uint64_t blockId, uint64_t offsetStart,
+                                                       HashIndexBuilder<T> *pkIndex,
+                                                       InMemArrowNodeCSVCopier *copier,
+                                                       std::shared_ptr<arrow::RecordBatch> currBatch);
 
     private:
         NodeTableSchema *nodeTableSchema;
         uint64_t numNodes;
         vector<unique_ptr<InMemColumn>> structuredColumns;
-        unique_ptr<InMemUnstructuredLists> unstrPropertyLists;
         NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs;
     };
 
