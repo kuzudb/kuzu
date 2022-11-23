@@ -9,6 +9,6 @@ target_include_directories(
 
 target_link_libraries(binder_test
         PUBLIC
-        test_utility)
+        test_helper)
 
 add_test(kuzu_binder_test binder_test)

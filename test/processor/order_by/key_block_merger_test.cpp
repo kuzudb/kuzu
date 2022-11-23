@@ -61,9 +61,9 @@ public:
         dataChunk->insert(0, valueVector);
 
         vector<shared_ptr<ValueVector>> orderByVectors{
-            valueVector}; // only contains orderBy columns
+            valueVector}; // only contains order_by columns
         vector<shared_ptr<ValueVector>> allVectors{
-            valueVector}; // all columns including orderBy and payload columns
+            valueVector}; // all columns including order_by and payload columns
 
         unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(make_unique<ColumnSchema>(

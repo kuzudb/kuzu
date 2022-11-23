@@ -85,7 +85,7 @@ public:
 
 class CreateDeleteInt64NodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/int64-pk/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/"); }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToInsert = vector<string>{"10003", "10005"};
@@ -180,7 +180,7 @@ public:
 
 class CreateDeleteStringNodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/string-pk/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/string-pk/"); }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToInsert = vector<string>{"'abcdefg'", "'huy23b287sfw33232'"};
@@ -438,7 +438,7 @@ TEST_F(CreateDeleteStringNodeTrxTest, MixedInsertDeleteRollbackRecovery) {
 // TODO(Guodong/Xiyang): refactor these tests to follow the above convetion.
 class CreateRelTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/"); }
 
     void insertKnowsRels(const string& srcLabel, const string& dstLabel, uint64_t numRelsToInsert,
         bool testNullAndLongString = false) {

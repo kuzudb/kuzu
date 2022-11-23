@@ -9,6 +9,6 @@ add_executable(copy_csv_test
 
 target_link_libraries(copy_csv_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_copy_csv_test copy_csv_test)

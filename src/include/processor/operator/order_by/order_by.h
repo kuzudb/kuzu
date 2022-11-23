@@ -16,7 +16,7 @@ namespace kuzu {
 namespace processor {
 
 // This class contains factorizedTables, nextFactorizedTableIdx, strKeyColsInfo,
-// sortedKeyBlocks and the size of each tuple in keyBlocks. The class is shared between the orderBy,
+// sortedKeyBlocks and the size of each tuple in keyBlocks. The class is shared between the order_by,
 // orderByMerge, orderByScan operators. All functions are guaranteed to be thread-safe,
 // so caller doesn't need to acquire a lock before calling these functions.
 class SharedFactorizedTablesAndSortedKeyBlocks {

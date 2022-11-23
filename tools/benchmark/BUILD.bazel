@@ -13,7 +13,7 @@ cc_library(
     ],
     deps = [
         "//src/main:kuzu",
-        "//test/test_utility:test_helper",
+        "//test/test_helper:test_helper",
         "//tools/join_order_pick:jo_connection",
     ],
 )

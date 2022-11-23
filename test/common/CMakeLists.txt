@@ -7,7 +7,7 @@ add_executable(types_test
 
 target_link_libraries(types_test
         PUBLIC
-        test_utility)
+        test_helper)
 
 add_test(kuzu_types_test types_test)
 add_subdirectory(vector)

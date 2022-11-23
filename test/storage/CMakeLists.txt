@@ -8,6 +8,6 @@ add_executable(storage_test
 
 target_link_libraries(storage_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_storage_test storage_test)

@@ -7,13 +7,13 @@ class WALTests : public Test {
 
 protected:
     void SetUp() override {
-        FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
+        FileUtils::createDir(TestHelper::getTmpTestDir());
         bufferManager =
             make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
+        wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
     void addStructuredNodePropertyMainFilePageRecord(
         vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
@@ -155,7 +155,7 @@ TEST_F(WALTests, TestOpeningExistingWAL) {
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();
-    wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
+    wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
 
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,

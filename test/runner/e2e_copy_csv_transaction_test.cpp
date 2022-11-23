@@ -183,11 +183,11 @@ public:
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY KEY (ID))";
-    string copyPersonTableCMD = "COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)";
+    string copyPersonTableCMD = "COPY person FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)");
     string createKnowsTableCMD =
         "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
         "validInterval INTERVAL, comments STRING[], MANY_MANY)";
-    string copyKnowsTableCMD = "COPY knows FROM \"dataset/tinysnb/eKnows.csv\"";
+    string copyKnowsTableCMD = "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
     unique_ptr<Profiler> profiler;
     unique_ptr<ExecutionContext> executionContext;
 };

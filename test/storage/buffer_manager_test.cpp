@@ -7,13 +7,13 @@ using namespace kuzu::testing;
 class BufferManagerTests : public Test {
 
 protected:
-    void SetUp() override { FileUtils::createDir(TestHelper::TEMP_TEST_DIR); }
+    void SetUp() override { FileUtils::createDir(TestHelper::getTmpTestDir()); }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
-    FileHandle fileHandle(string(TestHelper::TEMP_TEST_DIR) + "bm_test.bin",
+    FileHandle fileHandle(string(TestHelper::getTmpTestDir()) + "bm_test.bin",
         FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     uint64_t numPagesToAdd = 1000;
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {

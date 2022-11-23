@@ -3,6 +3,6 @@ add_executable(catalog_test
 
 target_link_libraries(catalog_test
         PUBLIC
-        test_utility)
+        test_helper)
 
 add_test(kuzu_catalog_test catalog_test)

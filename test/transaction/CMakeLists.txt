@@ -4,6 +4,6 @@ add_executable(transaction_test
 
 target_link_libraries(transaction_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_transaction_test transaction_test)

@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class TinySnbTimestampTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets

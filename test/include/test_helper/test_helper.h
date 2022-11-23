@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gtest/gtest.h"
-
+#include <string.h>
 #include "common/file_utils.h"
 #include "main/kuzu.h"
 
@@ -11,6 +11,7 @@ using ::testing::Test;
 
 namespace kuzu {
 namespace testing {
+
 
 enum class TransactionTestType : uint8_t {
     NORMAL_EXECUTION = 0,
@@ -30,9 +31,6 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    static constexpr char
-    static constexpr char TEMP_TEST_DIR[] = "test/unittest_temp/";
-
     static vector<unique_ptr<TestQueryConfig>> parseTestFile(
         const string& path, bool checkOutputOrder = false);
 
@@ -46,6 +44,14 @@ public:
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_CSV_FILE_NAME[] = "copy_csv.cypher";
 
+    static string getTmpTestDir() {
+        return appendKuzuRootPath("test/unittest_temp/");
+    }
+
+    static string appendKuzuRootPath(const string& path){
+        return KUZU_ROOT_DIRECTORY + string("/") +  path;
+    }
+
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
     static bool testQuery(TestQueryConfig* config, Connection& conn);
@@ -56,12 +62,12 @@ public:
     void SetUp() override {
         systemConfig =
             make_unique<SystemConfig>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
+        databaseConfig = make_unique<DatabaseConfig>(TestHelper::getTmpTestDir());
     }
 
     virtual string getInputCSVDir() = 0;
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
     inline void createDBAndConn() {
         database = make_unique<Database>(*databaseConfig, *systemConfig);

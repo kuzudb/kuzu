@@ -11,6 +11,6 @@ add_executable(runner_test
 
 target_link_libraries(runner_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_runner_test runner_test)

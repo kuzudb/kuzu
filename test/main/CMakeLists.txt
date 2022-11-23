@@ -8,6 +8,6 @@ add_executable(main_test
 
 target_link_libraries(main_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_main_test main_test)

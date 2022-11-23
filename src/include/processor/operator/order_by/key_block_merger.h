@@ -114,7 +114,7 @@ private:
     void copyRemainingBlockDataToResult(BlockPtrInfo& blockToCopy, BlockPtrInfo& resultBlock) const;
 
 private:
-    // FactorizedTables[i] stores all orderBy columns encoded and sorted by the ith thread.
+    // FactorizedTables[i] stores all order_by columns encoded and sorted by the ith thread.
     // MergeSort uses factorizedTable to access the full contents of the string key columns
     // when resolving ties.
     vector<shared_ptr<FactorizedTable>>& factorizedTables;

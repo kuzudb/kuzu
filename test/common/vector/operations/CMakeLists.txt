@@ -7,6 +7,6 @@ add_executable(vector_operations
 
 target_link_libraries(vector_operations
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_vector_operations vector_operations)

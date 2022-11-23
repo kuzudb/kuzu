@@ -221,6 +221,12 @@ void TestHelper::executeCypherScript(const string& cypherScript, Connection& con
     }
     string line;
     while (getline(file, line)) {
+        // If this is a COPY_CSV statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
+        // file path.
+        auto pos = line.find('"');
+        if (pos != string::npos) {
+            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + string("/"));
+        }
         cout << "Starting to execute query: " << line << endl;
         auto result = conn.query(line);
         cout << "Executed query: " << line << endl;
@@ -233,8 +239,10 @@ void TestHelper::executeCypherScript(const string& cypherScript, Connection& con
 }
 
 void BaseGraphTest::initGraph() {
-    TestHelper::executeCypherScript(getInputCSVDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(getInputCSVDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
+    TestHelper::executeCypherScript(
+        getInputCSVDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeCypherScript(
+        getInputCSVDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
 }
 
 void BaseGraphTest::commitOrRollbackConnection(

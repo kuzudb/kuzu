@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 
 class TinySnbExceptionTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(TinySnbExceptionTest, ReadVarlengthRelPropertyTest1) {

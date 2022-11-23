@@ -70,7 +70,7 @@ public:
         return result;
     }
 
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/"); }
 
     void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
         auto catalog = getCatalog(*database);

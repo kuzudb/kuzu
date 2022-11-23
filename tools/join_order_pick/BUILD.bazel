@@ -28,7 +28,7 @@ cc_test(
     ],
     deps = [
         "jo_connection",
-        "//test/test_utility:test_helper",
+        "//test/test_helper:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

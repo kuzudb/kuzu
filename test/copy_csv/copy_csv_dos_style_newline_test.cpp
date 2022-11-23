@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class TinySnbCopyCSVDOSStyleNewlineTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-dos-style-newline/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/copy-csv-dos-style-newline/"); }
 };
 
 TEST_F(TinySnbCopyCSVDOSStyleNewlineTest, copyCSVDOSStyleNewline) {

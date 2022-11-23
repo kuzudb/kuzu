@@ -13,14 +13,14 @@ class TransactionManagerTest : public Test {
 
 protected:
     void SetUp() override {
-        FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
+        FileUtils::createDir(TestHelper::getTmpTestDir());
         bufferManager =
             make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
+        wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
         transactionManager = make_unique<TransactionManager>(*wal);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {

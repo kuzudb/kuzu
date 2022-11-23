@@ -4,6 +4,6 @@ add_executable(expression_evaluator_test
 
 target_link_libraries(expression_evaluator_test
         PRIVATE
-        test_utility)
+        test_helper)
 
 add_test(kuzu_expression_evaluator_test expression_evaluator_test)

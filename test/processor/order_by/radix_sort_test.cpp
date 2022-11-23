@@ -73,9 +73,9 @@ public:
         }
         dataChunk->insert(0, valueVector);
         vector<shared_ptr<ValueVector>> orderByVectors{
-            valueVector}; // only contains orderBy columns
+            valueVector}; // only contains order_by columns
         vector<shared_ptr<ValueVector>> allVectors{
-            valueVector}; // all columns including orderBy and payload columns
+            valueVector}; // all columns including order_by and payload columns
         vector<bool> isAscOrder{isAsc};
 
         unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
@@ -303,7 +303,7 @@ TEST_F(RadixSortTest, singleOrderByColAllTiesStringTest) {
 }
 
 TEST_F(RadixSortTest, singleOrderByColWithPayloadTest) {
-    // The first column is a payload column and the second column is an orderBy column. The radix
+    // The first column is a payload column and the second column is an order_by column. The radix
     // sort needs to use the factorizedTableColIdx to correctly read the strings.
     vector<string> sortingData = {"string column with payload col test5",
         "string column with payload col test3", "string 1",

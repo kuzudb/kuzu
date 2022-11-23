@@ -15,7 +15,7 @@ public:
         initDBAndConnection();
     }
 
-    string getInputCSVDir() override { return "dataset/node-insertion-deletion-tests/int64-pk/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/"); }
 
     void initDBAndConnection() {
         createDBAndConn();
