@@ -87,3 +87,9 @@ http_archive(
     strip_prefix = "rules_python-0.8.0",
     url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.8.0.tar.gz",
 )
+
+new_local_repository(
+    name = "arrow",
+    path = "/opt/homebrew/Cellar/apache-arrow/10.0.0/",
+    build_file = "external/arrow.BUILD.bazel",
+)

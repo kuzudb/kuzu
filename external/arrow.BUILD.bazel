@@ -1,0 +1,7 @@
+cc_library(
+  name = "arrow",
+  srcs = glob(["**/*.dylib", "**/*.so"]),
+  hdrs = glob(["**/*.h"]),
+  includes = ["./include"],
+  visibility = ["//visibility:public"],
+)

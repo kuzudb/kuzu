@@ -18,6 +18,7 @@ filegroup(
         "tinysnb-variant/**",
         "rel-insertion-tests/**",
         "demo-db/**",
+        "copy-csv-arrow-node-test/**",
     ]),
     visibility = ["//visibility:public"],
 )
