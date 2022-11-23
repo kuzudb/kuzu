@@ -2,7 +2,7 @@
 
 #include "pybind_include.h"
 
-#include "src/main/include/kuzu.h"
+#include "main/kuzu.h"
 
 using namespace kuzu::main;
 

@@ -1,4 +1,3 @@
-cmake_minimum_required(3.2)
 project(kuzu_shell)
 
 set(CMAKE_CXX_STANDARD 20)
