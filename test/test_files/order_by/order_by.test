@@ -40,7 +40,7 @@
 
 -NAME OrderByInt64Test
 -QUERY MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
--PARALLELISM 4
+-PARALLELISM 2
 -ENUMERATE
 ---- 3000
 0

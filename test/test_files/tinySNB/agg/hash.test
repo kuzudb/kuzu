@@ -41,7 +41,7 @@ Alice|1
 
 -NAME OneHopHashAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*), SUM(b.age)
---PARALLELISM 4
+--PARALLELISM 3
 -ENUMERATE
 ---- 2
 1|8|245
@@ -49,7 +49,7 @@ Alice|1
 
 -NAME TwoHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
---PARALLELISM 4
+--PARALLELISM 5
 -ENUMERATE
 ---- 2
 1|18|4
@@ -57,7 +57,7 @@ Alice|1
 
 -NAME OneHopAggFlatUnflatVecTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
--PARALLELISM 4
+-PARALLELISM 6
 -ENUMERATE
 ---- 9
 0|1|45

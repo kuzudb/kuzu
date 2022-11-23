@@ -92,7 +92,7 @@ Alice
 
 -NAME OrderByStrMultipleColTest
 -QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
--PARALLELISM 4
+-PARALLELISM 2
 ---- 8
 20|4.800000
 20|4.700000
@@ -106,7 +106,7 @@ Alice
 -NAME OrderByProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
 -ENUMERATE
--PARALLELISM 4
+-PARALLELISM 7
 ---- 14
 Greg
 Farooq
