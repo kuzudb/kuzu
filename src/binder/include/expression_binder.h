@@ -37,7 +37,7 @@ private:
     shared_ptr<Expression> bindNodePropertyExpression(
         shared_ptr<Expression> node, const string& propertyName);
     shared_ptr<Expression> bindNodePropertyExpression(
-        shared_ptr<Expression> node, const Property& property);
+        shared_ptr<Expression> node, const vector<Property>& properties);
     shared_ptr<Expression> bindRelPropertyExpression(
         shared_ptr<Expression> rel, const string& propertyName);
     shared_ptr<Expression> bindRelPropertyExpression(

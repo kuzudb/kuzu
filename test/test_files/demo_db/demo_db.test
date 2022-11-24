@@ -27,10 +27,10 @@ Adam
 -NAME Match1
 -QUERY MATCH (a:User) RETURN a;
 ---- 4
-Adam|30
-Karissa|40
-Zhang|50
-Noura|25
+30|Adam
+40|Karissa
+50|Zhang
+25|Noura
 
 -NAME OptionalMatch1
 -QUERY MATCH (u:User) OPTIONAL MATCH (u)-[:Follows]->(u1:User) RETURN u.name, u1.name;

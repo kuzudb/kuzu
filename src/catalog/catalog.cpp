@@ -282,14 +282,6 @@ vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const 
     return nodeTableSchemas.at(tableID)->getAllNodeProperties();
 }
 
-const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
-    table_id_t tableID, RelDirection direction) const {
-    if (FWD == direction) {
-        return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
-    }
-    return nodeTableSchemas.at(tableID)->bwdRelTableIDSet;
-}
-
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);

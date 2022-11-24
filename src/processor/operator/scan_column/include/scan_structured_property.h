@@ -6,29 +6,44 @@
 namespace kuzu {
 namespace processor {
 
-class ScanStructuredProperty : public ScanMultipleColumns {
-
+class ScanSingleTablePropertyColumn : public ScanMultipleColumns {
 public:
-    ScanStructuredProperty(const DataPos& inputNodeIDVectorPos,
-        vector<DataPos> outputPropertyVectorsPos, vector<Column*> propertyColumns,
+    ScanSingleTablePropertyColumn(const DataPos& inVectorPos, vector<DataPos> outVectorsPos,
+        vector<DataType> outDataTypes, vector<Column*> columns,
         unique_ptr<PhysicalOperator> prevOperator, uint32_t id, const string& paramsString)
-        : ScanMultipleColumns{inputNodeIDVectorPos, move(outputPropertyVectorsPos),
-              move(prevOperator), id, paramsString},
-          propertyColumns{move(propertyColumns)} {}
-
-    PhysicalOperatorType getOperatorType() override { return SCAN_STRUCTURED_PROPERTY; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+        : ScanMultipleColumns{inVectorPos, std::move(outVectorsPos), std::move(outDataTypes),
+              std::move(prevOperator), id, paramsString},
+          columns{std::move(columns)} {}
 
     bool getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, outputVectorsPos,
-            propertyColumns, children[0]->clone(), id, paramsString);
+    inline unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<ScanSingleTablePropertyColumn>(inputNodeIDVectorPos, outVectorsPos,
+            outDataTypes, columns, children[0]->clone(), id, paramsString);
     }
 
 private:
-    vector<Column*> propertyColumns;
+    vector<Column*> columns;
+};
+
+class ScanMultiTablePropertyColumn : public ScanMultipleColumns {
+public:
+    ScanMultiTablePropertyColumn(const DataPos& inVectorPos, vector<DataPos> outVectorsPos,
+        vector<DataType> outDataTypes, vector<unordered_map<table_id_t, Column*>> tableIDToColumns,
+        unique_ptr<PhysicalOperator> prevOperator, uint32_t id, const string& paramsString)
+        : ScanMultipleColumns{inVectorPos, std::move(outVectorsPos), std::move(outDataTypes),
+              std::move(prevOperator), id, paramsString},
+          tableIDToColumns{std::move(tableIDToColumns)} {}
+
+    bool getNextTuples() override;
+
+    inline unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<ScanMultiTablePropertyColumn>(inputNodeIDVectorPos, outVectorsPos,
+            outDataTypes, tableIDToColumns, children[0]->clone(), id, paramsString);
+    }
+
+private:
+    vector<unordered_map<table_id_t, Column*>> tableIDToColumns;
 };
 
 } // namespace processor

@@ -63,7 +63,7 @@ unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     vector<expression_pair> setItems;
     for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
-        if (propertyExpression->getPropertyID() == primaryKey.propertyID) {
+        if (propertyExpression->getPropertyID(node->getTableID()) == primaryKey.propertyID) {
             primaryKeyExpression = val;
         }
         setItems.emplace_back(key, val);
@@ -86,8 +86,7 @@ unique_ptr<BoundCreateRel> Binder::bindCreateRel(
         if (collection.hasPropertyKeyValPair(*rel, property.name)) {
             setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
         } else {
-            auto propertyExpression = make_shared<PropertyExpression>(
-                property.dataType, property.name, property.propertyID, rel);
+            auto propertyExpression = expressionBinder.bindRelPropertyExpression(rel, property);
             shared_ptr<Expression> nullExpression =
                 LiteralExpression::createNullLiteralExpression(getUniqueExpressionName("NULL"));
             nullExpression = ExpressionBinder::implicitCastIfNecessary(
@@ -140,7 +139,8 @@ unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(shared_ptr<NodeExpression> no
     }
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
     auto primaryKey = nodeTableSchema->getPrimaryKey();
-    auto primaryKeyExpression = expressionBinder.bindNodePropertyExpression(node, primaryKey);
+    auto primaryKeyExpression =
+        expressionBinder.bindNodePropertyExpression(node, vector<Property>{primaryKey});
     return make_unique<BoundDeleteNode>(node, primaryKeyExpression);
 }
 

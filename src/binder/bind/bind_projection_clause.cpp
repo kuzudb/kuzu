@@ -74,14 +74,20 @@ expression_vector Binder::rewriteProjectionExpressions(const expression_vector& 
 
 expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& node = (NodeExpression&)*expression;
-    if (node.getNumTableIDs() > 1) {
-        throw BinderException(
-            "Cannot rewrite multi-labeled node " + node.getRawName() + " as all properties.");
+    unordered_map<string, vector<Property>> nameToPropertiesMap;
+    for (auto tableID : node.getTableIDs()) {
+        for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(tableID)) {
+            if (!nameToPropertiesMap.contains(property.name)) {
+                nameToPropertiesMap.insert({property.name, vector<Property>{}});
+            }
+            nameToPropertiesMap.at(property.name).push_back(property);
+        }
     }
     expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getTableID())) {
-        auto propertyExpression = expressionBinder.bindNodePropertyExpression(expression, property);
-        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
+    for (auto& [name, properties] : nameToPropertiesMap) {
+        auto propertyExpression =
+            expressionBinder.bindNodePropertyExpression(expression, properties);
+        propertyExpression->setRawName(expression->getRawName() + "." + name);
         result.emplace_back(propertyExpression);
     }
     return result;

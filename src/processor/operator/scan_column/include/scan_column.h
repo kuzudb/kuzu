@@ -39,14 +39,22 @@ protected:
 
 class ScanMultipleColumns : public BaseScanColumn {
 protected:
-    ScanMultipleColumns(const DataPos& inputNodeIDVectorPos, vector<DataPos> outputVectorsPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), id, paramsString},
-          outputVectorsPos{move(outputVectorsPos)} {}
+    ScanMultipleColumns(const DataPos& inVectorPos, vector<DataPos> outVectorsPos,
+        vector<DataType> outDataTypes, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : BaseScanColumn{inVectorPos, std::move(child), id, paramsString},
+          outVectorsPos{std::move(outVectorsPos)}, outDataTypes{std::move(outDataTypes)} {}
+
+    inline PhysicalOperatorType getOperatorType() override {
+        return PhysicalOperatorType::SCAN_COLUMN_PROPERTY;
+    }
+
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
 protected:
-    vector<DataPos> outputVectorsPos;
-    vector<shared_ptr<ValueVector>> outputVectors;
+    vector<DataPos> outVectorsPos;
+    vector<DataType> outDataTypes;
+    vector<shared_ptr<ValueVector>> outVectors;
 };
 
 } // namespace processor

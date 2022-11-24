@@ -142,23 +142,24 @@ void JoinOrderEnumerator::planTableScan() {
     }
 }
 
-static bool isPrimaryPropertyAndLiteralPair(
-    const Expression& left, const Expression& right, uint32_t primaryKeyID) {
+static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expression& right,
+    const NodeExpression& node, uint32_t primaryKeyID) {
     if (left.expressionType != PROPERTY || right.expressionType != LITERAL) {
         return false;
     }
     auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.getPropertyID() == primaryKeyID;
+    return propertyExpression.getPropertyID(node.getTableID()) == primaryKeyID;
 }
 
-static bool isIndexScanExpression(Expression& expression, uint32_t primaryKeyID) {
+static bool isIndexScanExpression(
+    Expression& expression, const NodeExpression& node, uint32_t primaryKeyID) {
     if (expression.expressionType != EQUALS) { // check equality comparison
         return false;
     }
     auto left = expression.getChild(0);
     auto right = expression.getChild(1);
-    if (isPrimaryPropertyAndLiteralPair(*left, *right, primaryKeyID) ||
-        isPrimaryPropertyAndLiteralPair(*right, *left, primaryKeyID)) {
+    if (isPrimaryPropertyAndLiteralPair(*left, *right, node, primaryKeyID) ||
+        isPrimaryPropertyAndLiteralPair(*right, *left, node, primaryKeyID)) {
         return true;
     }
     return false;
@@ -179,7 +180,7 @@ static pair<shared_ptr<Expression>, expression_vector> splitIndexAndPredicates(
     shared_ptr<Expression> indexExpression;
     expression_vector predicatesToApply;
     for (auto& predicate : predicates) {
-        if (isIndexScanExpression(*predicate, primaryKeyID)) {
+        if (isIndexScanExpression(*predicate, node, primaryKeyID)) {
             indexExpression = extractIndexExpression(*predicate);
         } else {
             predicatesToApply.push_back(predicate);

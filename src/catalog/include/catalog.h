@@ -111,13 +111,6 @@ public:
 
     void removeTableSchema(TableSchema* tableSchema);
 
-    /**
-     * Graph topology functions.
-     */
-    // TODO(Xiyang): remove
-    virtual const unordered_set<table_id_t>& getRelTableIDsForNodeTableDirection(
-        table_id_t tableID, RelDirection direction) const;
-
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
 

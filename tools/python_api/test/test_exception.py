@@ -7,7 +7,7 @@ def test_exception(establish_connection):
     with pytest.raises(RuntimeError, match="Parameter asd not found."):
         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", [("asd", 1)])
 
-    with pytest.raises(RuntimeError, match="Binder exception: Node a does not have property dummy."):
+    with pytest.raises(RuntimeError, match="Binder exception: Cannot find property dummy under node a"):
         conn.execute("MATCH (a:person) RETURN a.dummy;")
 
     # TODO(Xiyang): uncomment test when adhoc properties are enabled
