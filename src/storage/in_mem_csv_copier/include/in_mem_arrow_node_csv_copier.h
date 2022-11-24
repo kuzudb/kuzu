@@ -31,13 +31,28 @@ namespace storage {
 
         void saveToFile() override;
 
+        static const std::string CSV_SUFFIX;
+        static const std::string ARROW_SUFFIX;
+
     private:
+        uint64_t copyFromCSVFile();
+
+        uint64_t copyFromArrowFile();
+
+        static uint64_t getFileType(std::string const &fileName);
+
         arrow::Status initializeArrowCSV(const string &filePath);
+
+        arrow::Status initializeArrowArrow(std::shared_ptr<arrow::io::ReadableFile> &infile,
+                                           shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
 
         void initializeColumnsAndList();
 
         template<typename T>
-        arrow::Status arrowPopulateColumns();
+        arrow::Status csvPopulateColumns();
+
+        template<typename T>
+        arrow::Status arrowPopulateColumns(shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader);
 
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
                                               const vector<Property> &properties,
@@ -58,11 +73,11 @@ namespace storage {
         // Instead, it is the index in the structured columns that we expect it to appear.
 
         template<typename T>
-        static arrow::Status arrowPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
-                                                       uint64_t blockId, uint64_t offsetStart,
-                                                       HashIndexBuilder<T> *pkIndex,
-                                                       InMemArrowNodeCSVCopier *copier,
-                                                       std::shared_ptr<arrow::RecordBatch> currBatch);
+        static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
+                                                      uint64_t blockId, uint64_t offsetStart,
+                                                      HashIndexBuilder<T> *pkIndex,
+                                                      InMemArrowNodeCSVCopier *copier,
+                                                      vector<shared_ptr<arrow::Array>> &batchColumns);
 
     private:
         NodeTableSchema *nodeTableSchema;
@@ -70,6 +85,9 @@ namespace storage {
         vector<unique_ptr<InMemColumn>> structuredColumns;
         NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs;
     };
+
+    const std::string InMemArrowNodeCSVCopier::CSV_SUFFIX = ".csv";
+    const std::string InMemArrowNodeCSVCopier::ARROW_SUFFIX = ".arrow";
 
 } // namespace storage
 } // namespace kuzu
