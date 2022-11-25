@@ -409,9 +409,10 @@ void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expressi
         catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getTableID(), direction);
     assert(expression->expressionType == PROPERTY);
     auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto scanProperty =
-        make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getTableID(), direction,
-            property->getUniqueName(), property->getPropertyID(), isColumn, plan.getLastOperator());
+    auto relTableID = rel.getTableID();
+    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, relTableID,
+        direction, property->getUniqueName(), property->getPropertyID(relTableID), isColumn,
+        plan.getLastOperator());
     auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
     schema->insertToGroupAndScope(property, groupPos);
     plan.setLastOperator(move(scanProperty));

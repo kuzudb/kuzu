@@ -1,6 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_scan_rel_property.h"
 #include "processor/mapper/plan_mapper.h"
-#include "processor/operator/scan_column/scan_structured_property.h"
+#include "processor/operator/scan_column/scan_column_property.h"
 #include "processor/operator/scan_list/scan_rel_property_list.h"
 
 namespace kuzu {
@@ -21,9 +21,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     if (scanRelProperty->getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(scanRelProperty->getDirection(),
             scanRelProperty->getRelTableID(), boundNode->getTableID(), propertyID);
-        return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
-            vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
-            getOperatorID(), paramsString);
+        return make_unique<ScanSingleTableProperties>(inputNodeIDVectorPos,
+            vector<DataPos>{outputPropertyVectorPos}, vector<DataType>{column->dataType},
+            vector<Column*>{column}, move(prevOperator), getOperatorID(), paramsString);
     }
     auto lists = relStore.getRelPropertyLists(scanRelProperty->getDirection(),
         boundNode->getTableID(), scanRelProperty->getRelTableID(), propertyID);

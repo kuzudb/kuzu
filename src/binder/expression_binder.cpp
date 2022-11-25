@@ -143,23 +143,36 @@ shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
     auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
-    if (nodeExpression->getNumTableIDs() > 1) {
-        throw BinderException("Cannot bind property for multi-labeled node " + node->getRawName());
+    vector<Property> properties;
+    for (auto tableID : nodeExpression->getTableIDs()) {
+        if (!catalogContent->containNodeProperty(tableID, propertyName)) {
+            continue;
+        }
+        properties.push_back(catalogContent->getNodeProperty(tableID, propertyName));
     }
-    if (catalogContent->containNodeProperty(nodeExpression->getTableID(), propertyName)) {
-        auto& property =
-            catalogContent->getNodeProperty(nodeExpression->getTableID(), propertyName);
-        return bindNodePropertyExpression(node, property);
-    } else {
-        throw BinderException("Node " + nodeExpression->getRawName() + " does not have property " +
-                              propertyName + ".");
+    if (properties.empty()) {
+        throw BinderException(
+            "Cannot find property " + propertyName + " under node " + node->getRawName());
     }
+    return bindNodePropertyExpression(node, std::move(properties));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
-    shared_ptr<Expression> node, const Property& property) {
-    return make_shared<PropertyExpression>(
-        property.dataType, property.name, property.propertyID, move(node));
+    shared_ptr<Expression> node, const vector<Property>& properties) {
+    assert(!properties.empty());
+    auto anchorProperty = properties[0];
+    for (auto& property : properties) {
+        if (property.dataType != anchorProperty.dataType) {
+            throw BinderException("Cannot resolve data type for property " + anchorProperty.name +
+                                  " under node " + node->getRawName());
+        }
+    }
+    unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    for (auto& property : properties) {
+        propertyIDPerTable.insert({property.tableID, property.propertyID});
+    }
+    return make_shared<PropertyExpression>(anchorProperty.dataType, anchorProperty.name,
+        std::move(propertyIDPerTable), std::move(node));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
@@ -186,8 +199,9 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
         throw BinderException(
             "Cannot read property of variable length rel " + rel->getRawName() + ".");
     }
-    return make_shared<PropertyExpression>(
-        property.dataType, property.name, property.propertyID, std::move(rel));
+    return make_shared<PropertyExpression>(property.dataType, property.name,
+        unordered_map<table_id_t, property_id_t>{{property.tableID, property.propertyID}},
+        std::move(rel));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(

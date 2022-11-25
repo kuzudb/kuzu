@@ -98,13 +98,13 @@ TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist) {
-    string expectedException = "Binder exception: Node a does not have property foo.";
+    string expectedException = "Binder exception: Cannot find property foo under node a";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist2) {
-    string expectedException = "Binder exception: Node a does not have property foo.";
+    string expectedException = "Binder exception: Cannot find property foo under node a";
     auto input = "Create (a:person {foo:'x'});";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

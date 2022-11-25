@@ -23,8 +23,12 @@ public:
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
     inline shared_ptr<Expression> getNodeIDPropertyExpression() {
+        unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+        for (auto tableID : tableIDs) {
+            propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+        }
         return make_unique<PropertyExpression>(DataType(NODE_ID), INTERNAL_ID_SUFFIX,
-            UINT32_MAX /* property key for internal id*/, shared_from_this());
+            std::move(propertyIDPerTable), shared_from_this());
     }
 
 private:

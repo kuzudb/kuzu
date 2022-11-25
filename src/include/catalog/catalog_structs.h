@@ -50,7 +50,7 @@ public:
         return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
     }
 
-    uint32_t propertyID;
+    property_id_t propertyID;
     table_id_t tableID;
 };
 
