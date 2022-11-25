@@ -15,6 +15,10 @@
 #include <arrow/ipc/reader.h>
 #include <arrow/scalar.h>
 
+#include <parquet/arrow/reader.h>
+#include <parquet/arrow/writer.h>
+#include <parquet/exception.h>
+
 namespace kuzu {
 namespace storage {
 
@@ -33,18 +37,24 @@ namespace storage {
 
         static const std::string CSV_SUFFIX;
         static const std::string ARROW_SUFFIX;
+        static const std::string PARQUET_SUFFIX;
 
     private:
         uint64_t copyFromCSVFile();
 
         uint64_t copyFromArrowFile();
 
+        uint64_t copyFromParquetFile();
+
         static uint64_t getFileType(std::string const &fileName);
 
         arrow::Status initializeArrowCSV(const string &filePath);
 
         arrow::Status initializeArrowArrow(std::shared_ptr<arrow::io::ReadableFile> &infile,
-                                           shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
+                                           std::shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
+
+        void initializeArrowParquet(std::shared_ptr<arrow::io::ReadableFile> &infile,
+                                    std::unique_ptr<parquet::arrow::FileReader> &reader);
 
         void initializeColumnsAndList();
 
@@ -52,12 +62,16 @@ namespace storage {
         arrow::Status csvPopulateColumns();
 
         template<typename T>
-        arrow::Status arrowPopulateColumns(shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader);
+        arrow::Status arrowPopulateColumns(const shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
 
+        template<typename T>
+        void parquetPopulateColumns(const std::unique_ptr<parquet::arrow::FileReader> &reader);
+
+        template<typename T>
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
                                               const vector<Property> &properties,
                                               vector<PageByteCursor> &overflowCursors,
-                                              std::vector<shared_ptr<arrow::Array>> &arrow_columns,
+                                              const std::vector<shared_ptr<T>> &arrow_columns,
                                               uint64_t nodeOffset, uint64_t bufferOffset);
 
         template<typename T>
@@ -72,12 +86,12 @@ namespace storage {
         // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
         // Instead, it is the index in the structured columns that we expect it to appear.
 
-        template<typename T>
+        template<typename T1, typename T2>
         static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
                                                       uint64_t blockId, uint64_t offsetStart,
-                                                      HashIndexBuilder<T> *pkIndex,
+                                                      HashIndexBuilder<T1> *pkIndex,
                                                       InMemArrowNodeCSVCopier *copier,
-                                                      vector<shared_ptr<arrow::Array>> &batchColumns);
+                                                      const vector<shared_ptr<T2>> &batchColumns);
 
     private:
         NodeTableSchema *nodeTableSchema;
@@ -88,6 +102,7 @@ namespace storage {
 
     const std::string InMemArrowNodeCSVCopier::CSV_SUFFIX = ".csv";
     const std::string InMemArrowNodeCSVCopier::ARROW_SUFFIX = ".arrow";
+    const std::string InMemArrowNodeCSVCopier::PARQUET_SUFFIX = ".parquet";
 
 } // namespace storage
 } // namespace kuzu
