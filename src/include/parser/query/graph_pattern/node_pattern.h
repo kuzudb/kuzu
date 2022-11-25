@@ -11,29 +11,29 @@ namespace kuzu {
 namespace parser {
 
 /**
- * NodePattern represents "(nodeName:NodeTable {p1:v1, p2:v2, ...})"
+ * NodePattern represents "(nodeName:NodeTable+ {p1:v1, p2:v2, ...})"
  */
 class NodePattern {
 public:
-    NodePattern(string name, string tableName,
+    NodePattern(string name, vector<string> tableNames,
         vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
-        : variableName{std::move(name)}, tableName{std::move(tableName)},
+        : variableName{std::move(name)}, tableNames{std::move(tableNames)},
           propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
     virtual ~NodePattern() = default;
 
     inline string getVariableName() const { return variableName; }
 
-    inline string getTableName() const { return tableName; }
+    inline vector<string> getTableNames() const { return tableNames; }
 
     inline uint32_t getNumPropertyKeyValPairs() const { return propertyKeyValPairs.size(); }
     inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
         return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
-private:
+protected:
     string variableName;
-    string tableName;
+    vector<string> tableNames;
     vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs;
 };
 

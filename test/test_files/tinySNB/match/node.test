@@ -8,8 +8,13 @@
 ---- 1
 3
 
+-NAME node3
+-QUERY MATCH (a:organisation:person) RETURN COUNT(*)
+---- 1
+11
+
 -NAME nodeCrossProductTest
--QUERY MATCH (a:person), (b:person), (c:person) RETURN COUNT(*)
+-QUERY MATCH (a:person), (b:person), (c:person:movies) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
-512
+704

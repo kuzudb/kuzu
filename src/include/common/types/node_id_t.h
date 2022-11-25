@@ -5,6 +5,7 @@ namespace common {
 
 typedef uint64_t table_id_t;
 typedef uint64_t node_offset_t;
+constexpr node_offset_t INVALID_NODE_OFFSET = UINT64_MAX;
 
 // System representation for nodeID.
 struct nodeID_t {

@@ -34,7 +34,7 @@ private:
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
     table_id_t bindRelTable(const string& tableName) const;
-    table_id_t bindNodeTable(const string& tableName) const;
+    table_id_t bindNodeTableID(const string& tableName) const;
 
     shared_ptr<Expression> createVariable(const string& name, const DataType& dataType);
 
@@ -112,16 +112,13 @@ private:
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
+    unordered_set<table_id_t> bindNodeTableIDs(const vector<string>& nodeTableNames);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
     // there is nothing to left join on.
     static void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
-
-    // E.g. MATCH (:person)-[:studyAt]->(:person) ...
-    static void validateNodeAndRelTableIsConnected(const Catalog& catalog_, table_id_t relTableID,
-        table_id_t srcTableID, table_id_t dstTableID);
 
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);

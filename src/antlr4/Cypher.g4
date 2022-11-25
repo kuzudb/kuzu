@@ -246,8 +246,8 @@ oC_PatternElement
         ;
 
 oC_NodePattern
-    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? ')'
-        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
+    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabels SP? )? ( kU_Properties SP? )? ')'
+        | SP? ( oC_Variable SP? )? ( oC_NodeLabels SP? )? ( kU_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
         ;
 
 oC_PatternElementChain
@@ -266,6 +266,9 @@ oC_RelationshipDetail
 // We then substitute with oC_MapLiteral definition. We create oC_MapLiteral only when we decide to add MAP type.
 kU_Properties
     : '{' SP? ( oC_PropertyKeyName SP? ':' SP? oC_Expression SP? ( ',' SP? oC_PropertyKeyName SP? ':' SP? oC_Expression SP? )* )? '}';
+
+oC_NodeLabels
+     :  oC_NodeLabel ( SP? oC_NodeLabel )* ;
 
 oC_NodeLabel
     : ':' SP? oC_LabelName ;

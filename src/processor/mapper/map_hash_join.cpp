@@ -55,13 +55,14 @@ static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
         }
     }
     assert(scanNodeIDCandidates.size() == 1);
-    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
     // set semi masker
     auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
     assert(tableScan->getChild(0)->getChild(0)->getOperatorType() ==
            PhysicalOperatorType::SEMI_MASKER);
     auto semiMasker = (SemiMasker*)tableScan->getChild(0)->getChild(0);
-    semiMasker->setSharedState(sharedState);
+    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
+    assert(sharedState->getNumTableStates() == 1);
+    semiMasker->setSharedState(sharedState->getTableState(0));
     constructAccPipeline(tableScan, hashJoinProbe);
 }
 

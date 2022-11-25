@@ -6,12 +6,19 @@ namespace kuzu {
 namespace binder {
 
 class NodeExpression : public Expression {
-
 public:
-    NodeExpression(const string& uniqueName, table_id_t tableID)
-        : Expression{VARIABLE, NODE, uniqueName}, tableID{tableID} {}
+    NodeExpression(const string& uniqueName, unordered_set<table_id_t> tableIDs)
+        : Expression{VARIABLE, NODE, uniqueName}, tableIDs{std::move(tableIDs)} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline void addTableIDs(const unordered_set<table_id_t>& tableIDsToAdd) {
+        tableIDs.insert(tableIDsToAdd.begin(), tableIDsToAdd.end());
+    }
+    inline uint32_t getNumTableIDs() const { return tableIDs.size(); }
+    inline unordered_set<table_id_t> getTableIDs() const { return tableIDs; }
+    inline table_id_t getTableID() const {
+        assert(tableIDs.size() == 1);
+        return *tableIDs.begin();
+    }
 
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
@@ -21,7 +28,7 @@ public:
     }
 
 private:
-    table_id_t tableID;
+    unordered_set<table_id_t> tableIDs;
 };
 
 } // namespace binder
