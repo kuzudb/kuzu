@@ -1,4 +1,4 @@
-#include "include/processor_task.h"
+#include "processor/processor_task.h"
 
 namespace kuzu {
 namespace processor {

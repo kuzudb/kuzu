@@ -1,10 +1,11 @@
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
 
 #include <cerrno>
 #include <climits>
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/types/value.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

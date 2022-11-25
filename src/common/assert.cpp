@@ -1,7 +1,7 @@
-#include "src/common/include/assert.h"
+#include "common/assert.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

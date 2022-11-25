@@ -1,4 +1,4 @@
-#include "include/multiplicity_reducer.h"
+#include "processor/operator/multiplicity_reducer.h"
 
 namespace kuzu {
 namespace processor {

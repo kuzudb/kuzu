@@ -1,14 +1,14 @@
-#include "src/planner/include/projection_planner.h"
+#include "planner/projection_planner.h"
 
-#include "src/binder/expression/include/function_expression.h"
-#include "src/planner/include/query_planner.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_multiplcity_reducer.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
-#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
+#include "binder/expression/function_expression.h"
+#include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_operator/logical_limit.h"
+#include "planner/logical_plan/logical_operator/logical_multiplcity_reducer.h"
+#include "planner/logical_plan/logical_operator/logical_order_by.h"
+#include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "planner/logical_plan/logical_operator/sink_util.h"
+#include "planner/query_planner.h"
 
 namespace kuzu {
 namespace planner {

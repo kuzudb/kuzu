@@ -1,0 +1,1 @@
+add_kuzu_test(factorized_table_test factorized_table_test.cpp)

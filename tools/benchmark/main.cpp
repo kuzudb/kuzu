@@ -1,6 +1,5 @@
-#include "tools/benchmark/include/benchmark_runner.h"
-
-#include "src/common/include/utils.h"
+#include "benchmark_runner.h"
+#include "common/utils.h"
 
 using namespace kuzu::benchmark;
 

@@ -1,6 +1,6 @@
-#include "include/literal_evaluator.h"
+#include "expression_evaluator/literal_evaluator.h"
 
-#include "src/common/include/vector/value_vector_utils.h"
+#include "common/vector/value_vector_utils.h"
 
 namespace kuzu {
 namespace evaluator {

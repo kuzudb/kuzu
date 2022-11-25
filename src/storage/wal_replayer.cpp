@@ -1,8 +1,9 @@
-#include "include/wal_replayer.h"
+#include "storage/wal_replayer.h"
 
-#include "src/storage/include/storage_manager.h"
-#include "src/storage/include/storage_utils.h"
-#include "src/storage/include/wal_replayer_utils.h"
+#include "spdlog/spdlog.h"
+#include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
+#include "storage/wal_replayer_utils.h"
 
 namespace kuzu {
 namespace storage {

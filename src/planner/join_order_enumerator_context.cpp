@@ -1,4 +1,4 @@
-#include "src/planner/include/join_order_enumerator_context.h"
+#include "planner/join_order_enumerator_context.h"
 
 namespace kuzu {
 namespace planner {

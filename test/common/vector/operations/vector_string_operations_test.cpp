@@ -1,8 +1,7 @@
+#include "function/binary_operation_executor.h"
+#include "function/string/operations/concat_operation.h"
 #include "gtest/gtest.h"
-#include "test/common/include/vector/operations/vector_operations_test_helper.h"
-
-#include "src/function/include/binary_operation_executor.h"
-#include "src/function/string/operations/include/concat_operation.h"
+#include "vector/operations/vector_operations_test_helper.h"
 
 using namespace kuzu::function;
 using namespace kuzu::testing;

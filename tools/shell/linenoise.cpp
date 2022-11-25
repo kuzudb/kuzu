@@ -103,7 +103,7 @@
  *
  */
 
-#include "tools/shell/include/linenoise.h"
+#include "linenoise.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -119,8 +119,8 @@
 #include <cstddef>
 #include <string>
 
-#include "third_party/utf8proc/include/utf8proc.h"
-#include "third_party/utf8proc/include/utf8proc_wrapper.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
 #include <sys/ioctl.h>
 
 using namespace kuzu::utf8proc;

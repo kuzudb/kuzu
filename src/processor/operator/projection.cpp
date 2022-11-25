@@ -1,4 +1,4 @@
-#include "include/projection.h"
+#include "processor/operator/projection.h"
 
 namespace kuzu {
 namespace processor {

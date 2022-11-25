@@ -1,4 +1,4 @@
-#include "src/processor/operator/table_scan/include/base_table_scan.h"
+#include "processor/operator/table_scan/base_table_scan.h"
 
 namespace kuzu {
 namespace processor {

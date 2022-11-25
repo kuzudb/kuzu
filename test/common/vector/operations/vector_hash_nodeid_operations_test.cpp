@@ -1,8 +1,7 @@
+#include "common/data_chunk/data_chunk.h"
+#include "function/hash/hash_operations.h"
+#include "function/unary_operation_executor.h"
 #include "gtest/gtest.h"
-
-#include "src/common/include/data_chunk/data_chunk.h"
-#include "src/function/hash/operations/include/hash_operations.h"
-#include "src/function/include/unary_operation_executor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

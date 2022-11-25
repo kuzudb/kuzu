@@ -1,11 +1,11 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;
 
 class TinySnbExceptionTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(TinySnbExceptionTest, ReadVarlengthRelPropertyTest1) {

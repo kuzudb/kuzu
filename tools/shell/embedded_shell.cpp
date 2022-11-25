@@ -1,11 +1,11 @@
-#include "tools/shell/include/embedded_shell.h"
+#include "embedded_shell.h"
 
 #include <algorithm>
 #include <cctype>
 #include <regex>
 
-#include "src/common/include/logging_level_utils.h"
-#include "src/common/include/type_utils.h"
+#include "common/logging_level_utils.h"
+#include "common/type_utils.h"
 
 namespace kuzu {
 namespace main {

@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "args.hxx"
-#include "tools/shell/include/embedded_shell.h"
+#include "embedded_shell.h"
 
 using namespace std;
 using namespace kuzu::main;

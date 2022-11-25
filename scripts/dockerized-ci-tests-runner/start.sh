@@ -9,11 +9,11 @@ REG_TOKEN=$(curl \
     -H "Authorization: Bearer ${GITHUB_ACCESS_TOKEN}" \
     https://api.github.com/repos/kuzudb/kuzu/actions/runners/registration-token | jq .token --raw-output)
 
-LABELS="self-hosted-testing"
+LABELS="kuzu-self-hosted-testing"
 if [ -z "${MACHINE_NAME}" ]; then
     echo "MACHINE_NAME is not set. The label is ignored."
 else
-    LABELS="self-hosted-testing,$MACHINE_NAME"
+    LABELS="kuzu-self-hosted-testing,$MACHINE_NAME"
 fi
 
 # Register runner

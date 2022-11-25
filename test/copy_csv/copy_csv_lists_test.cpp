@@ -1,6 +1,5 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
 using namespace kuzu::common;
@@ -24,7 +23,7 @@ public:
         }
         return true;
     }
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets

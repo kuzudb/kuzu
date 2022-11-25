@@ -1,8 +1,7 @@
-#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
+#include "storage/store/nodes_statistics_and_deleted_ids.h"
 
+#include "common/configs.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
 
 using namespace std;
 

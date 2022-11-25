@@ -1,6 +1,6 @@
-#include "include/var_length_column_extend.h"
+#include "processor/operator/var_length_extend/var_length_column_extend.h"
 
-#include "src/common/types/include/types.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,10 +1,8 @@
-
+#include "common/configs.h"
+#include "common/exception.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
 

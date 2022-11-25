@@ -1,15 +1,15 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;
 
 class DemoDBTest : public DBTest {
 public:
-    string getInputCSVDir() override { return "dataset/demo-db/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/demo-db/"); }
 };
 
 TEST_F(DemoDBTest, DemoDBTest) {
-    runTest("test/test_files/demo_db/demo_db.test");
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db.test"));
 }
 
 TEST_F(DemoDBTest, CreateRelTest) {
@@ -49,8 +49,8 @@ TEST_F(DemoDBTest, DeleteWithExceptionTest) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(),
         "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
-        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: "
-        "test/unittest_temp/r-3-0-0.lists.");
+        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
+            TestHelper::appendKuzuRootPath("test/unittest_temp/r-3-0-0.lists."));
 }
 
 TEST_F(DemoDBTest, SetNodeTest) {

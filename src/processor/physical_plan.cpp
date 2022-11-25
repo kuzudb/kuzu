@@ -1,4 +1,4 @@
-#include "include/physical_plan.h"
+#include "processor/physical_plan.h"
 
 namespace kuzu {
 namespace processor {

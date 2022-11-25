@@ -1,4 +1,4 @@
-#include "include/scan_rel_property_list.h"
+#include "processor/operator/scan_list/scan_rel_property_list.h"
 
 namespace kuzu {
 namespace processor {

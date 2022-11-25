@@ -1,7 +1,6 @@
+#include "function/comparison/vector_comparison_operations.h"
 #include "gtest/gtest.h"
-#include "test/common/include/vector/operations/vector_operations_test_helper.h"
-
-#include "src/function/comparison/include/vector_comparison_operations.h"
+#include "vector/operations/vector_operations_test_helper.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;

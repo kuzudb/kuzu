@@ -1,6 +1,6 @@
-#include "include/join_hash_table.h"
+#include "processor/operator/hash_join/join_hash_table.h"
 
-#include "src/function/hash/include/vector_hash_operations.h"
+#include "function/hash/vector_hash_operations.h"
 
 namespace kuzu {
 namespace processor {

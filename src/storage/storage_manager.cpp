@@ -1,11 +1,10 @@
-#include "src/storage/include/storage_manager.h"
+#include "storage/storage_manager.h"
 
 #include <fstream>
 
 #include "spdlog/spdlog.h"
-
-#include "src/storage/buffer_manager/include/buffer_manager.h"
-#include "src/storage/include/wal_replayer.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/wal_replayer.h"
 
 namespace kuzu {
 namespace storage {

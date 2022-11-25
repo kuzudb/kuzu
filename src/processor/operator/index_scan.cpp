@@ -1,6 +1,6 @@
-#include "include/index_scan.h"
+#include "processor/operator/index_scan.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 namespace kuzu {
 namespace processor {

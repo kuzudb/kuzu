@@ -1,6 +1,6 @@
-#include "include/order_by_merge.h"
+#include "processor/operator/order_by/order_by_merge.h"
 
-#include "src/common/include/configs.h"
+#include "common/configs.h"
 
 namespace kuzu {
 namespace processor {

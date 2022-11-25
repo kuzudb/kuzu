@@ -1,7 +1,7 @@
-#include "include/in_mem_rel_csv_copier.h"
+#include "storage/in_mem_csv_copier/in_mem_rel_csv_copier.h"
 
-#include "include/copy_csv_task.h"
 #include "spdlog/spdlog.h"
+#include "storage/in_mem_csv_copier/copy_csv_task.h"
 
 namespace kuzu {
 namespace storage {

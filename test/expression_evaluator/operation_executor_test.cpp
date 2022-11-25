@@ -1,12 +1,11 @@
+#include "function/binary_operation_executor.h"
+#include "function/null/null_operation_executor.h"
+#include "function/null/null_operations.h"
+#include "function/string/operations/left_operation.h"
+#include "function/string/operations/substr_operation.h"
+#include "function/ternary_operation_executor.h"
 #include "gtest/gtest.h"
-
-#include "src/function/include/binary_operation_executor.h"
-#include "src/function/include/ternary_operation_executor.h"
-#include "src/function/null/include/null_operation_executor.h"
-#include "src/function/null/operations/include/null_operations.h"
-#include "src/function/string/operations/include/left_operation.h"
-#include "src/function/string/operations/include/substr_operation.h"
-#include "src/processor/result/include/result_set.h"
+#include "processor/result/result_set.h"
 
 using ::testing::Test;
 

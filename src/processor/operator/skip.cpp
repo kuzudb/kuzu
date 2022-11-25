@@ -1,4 +1,4 @@
-#include "include/skip.h"
+#include "processor/operator/skip.h"
 
 namespace kuzu {
 namespace processor {

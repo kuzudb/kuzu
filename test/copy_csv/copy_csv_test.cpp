@@ -1,6 +1,5 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/common/include/csv_reader/csv_reader.h"
+#include "common/csv_reader/csv_reader.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
 using namespace kuzu::common;
@@ -13,36 +12,50 @@ namespace testing {
 
 class CopyNodeCSVPropertyTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/copy-csv-node-property-test/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-node-property-test/");
+    }
 };
 
 class CopyCSVSpecialCharTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/copy-csv-special-char-test/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-special-char-test/");
+    }
 };
 
 class CopyCSVReadLists2BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/2-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists3BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/3-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/3-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists4BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/4-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists5BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/5-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/5-bytes-per-edge/");
+    }
 };
 
 class CopyCSVLongStringTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-fault-tests/long-string/");
+    }
 };
 
 struct KnowsTablePTablePKnowsLists {
@@ -90,7 +103,8 @@ TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
-    string fName = "dataset/copy-csv-node-property-test/vPerson.csv";
+    string fName =
+        TestHelper::appendKuzuRootPath("dataset/copy-csv-node-property-test/vPerson.csv");
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
     int lineIdx = 0;

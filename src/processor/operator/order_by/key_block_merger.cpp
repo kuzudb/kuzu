@@ -1,6 +1,6 @@
-#include "include/key_block_merger.h"
+#include "processor/operator/order_by/key_block_merger.h"
 
-#include "src/function/comparison/operations/include/comparison_operations.h"
+#include "function/comparison/comparison_operations.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::function::operation;

@@ -1,6 +1,6 @@
-#include "src/storage/storage_structure/include/lists/lists_update_store.h"
+#include "storage/storage_structure/lists/lists_update_store.h"
 
-#include "src/storage/storage_structure/include/lists/lists.h"
+#include "storage/storage_structure/lists/lists.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,4 +1,4 @@
-#include "include/set.h"
+#include "processor/operator/update/set.h"
 
 namespace kuzu {
 namespace processor {

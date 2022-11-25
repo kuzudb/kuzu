@@ -1,4 +1,4 @@
-#include "src/storage/storage_structure/include/in_mem_page.h"
+#include "storage/storage_structure/in_mem_page.h"
 
 #include <cmath>
 #include <cstring>

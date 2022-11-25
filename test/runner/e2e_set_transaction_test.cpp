@@ -1,4 +1,4 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -33,7 +33,7 @@ protected:
 
 class SetNodeStructuredPropTransactionTest : public BaseSetNodePropTransactionTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void insertLongStrings1000TimesAndVerify(Connection* connection) {
         int numWriteQueries = 1000;

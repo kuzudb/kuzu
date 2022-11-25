@@ -5,6 +5,7 @@ bazel-*
 .bazelrc
 
 test_temp/
+build/
 
 ### Python
 # Byte-compiled / optimized / DLL files

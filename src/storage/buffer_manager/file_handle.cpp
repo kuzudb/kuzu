@@ -1,9 +1,8 @@
-#include "src/storage/buffer_manager/include/file_handle.h"
+#include "storage/buffer_manager/file_handle.h"
 
+#include "common/file_utils.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/file_utils.h"
-#include "src/common/include/utils.h"
 
 using namespace kuzu::common;
 
@@ -17,12 +16,6 @@ FileHandle::FileHandle(const string& path, uint8_t flags)
         constructExistingFileHandle(path);
     } else {
         constructNewFileHandle(path);
-    }
-}
-
-FileHandle::~FileHandle() {
-    if (!isNewTmpFile()) {
-        FileUtils::closeFile(fileInfo->fd);
     }
 }
 

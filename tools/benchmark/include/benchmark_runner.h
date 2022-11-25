@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tools/benchmark/include/benchmark.h"
+#include "benchmark.h"
 
 namespace kuzu {
 namespace benchmark {

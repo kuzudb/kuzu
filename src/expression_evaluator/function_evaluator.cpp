@@ -1,6 +1,6 @@
-#include "include/function_evaluator.h"
+#include "expression_evaluator/function_evaluator.h"
 
-#include "src/binder/expression/include/function_expression.h"
+#include "binder/expression/function_expression.h"
 
 namespace kuzu {
 namespace evaluator {

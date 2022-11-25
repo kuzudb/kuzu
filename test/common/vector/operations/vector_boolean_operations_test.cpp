@@ -1,10 +1,9 @@
 #include <unordered_set>
 
+#include "function/boolean/boolean_operation_executor.h"
+#include "function/unary_operation_executor.h"
 #include "gtest/gtest.h"
-#include "test/common/include/vector/operations/vector_operations_test_helper.h"
-
-#include "src/function/boolean/include/boolean_operation_executor.h"
-#include "src/function/include/unary_operation_executor.h"
+#include "vector/operations/vector_operations_test_helper.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

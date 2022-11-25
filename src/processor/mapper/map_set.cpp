@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/binder/expression/include/node_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_set.h"
-#include "src/processor/operator/update/include/set.h"
+#include "binder/expression/node_expression.h"
+#include "planner/logical_plan/logical_operator/logical_set.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/update/set.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

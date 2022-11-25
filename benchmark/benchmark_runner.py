@@ -22,8 +22,7 @@ serialized_graphs_path = {
 benchmark_server_dir = '/home/x74feng/CI/server'
 benchmark_log_dir = benchmark_server_dir + '/data/logs'
 benchmark_files = os.getenv("GITHUB_WORKSPACE") + '/benchmark/queries'
-kuzu_benchmark_tool = os.getenv(
-    "GITHUB_WORKSPACE") + '/bazel-out/k8-fastbuild/bin/tools/benchmark/benchmark_tool'
+kuzu_benchmark_tool = os.getenv("GITHUB_WORKSPACE") + '/build/release/tools/benchmark/kuzu_benchmark'
 
 # benchmark configuration
 num_warmup = 1
@@ -43,11 +42,11 @@ class QueryBenchmark:
                     continue
                 key = line.split(':')[0]
                 value = line.split(':')[1][1:-1]
-                if (key == 'Status'):
+                if key == 'Status':
                     self.status.append(value)
-                elif (key == 'Compiling time'):
+                elif key == 'Compiling time':
                     self.compiling_time.append(float(value))
-                elif (key == 'Execution time'):
+                elif key == 'Execution time':
                     self.execution_time.append(float(value))
 
     def insert_db(self, run_num):

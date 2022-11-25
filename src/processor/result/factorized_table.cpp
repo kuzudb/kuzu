@@ -1,7 +1,7 @@
-#include "include/factorized_table.h"
+#include "processor/result/factorized_table.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/vector/value_vector_utils.h"
+#include "common/exception.h"
+#include "common/vector/value_vector_utils.h"
 
 using namespace kuzu::common;
 using namespace std;

@@ -1,6 +1,6 @@
-#include "src/common/include/expression_type.h"
+#include "common/expression_type.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 namespace kuzu {
 namespace common {
