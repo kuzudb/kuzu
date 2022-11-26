@@ -138,6 +138,31 @@ False
 [[10]]
 [[7],[10],[6,7]]
 
+-NAME MultiLabelReturn
+-QUERY MATCH (a:person:organisation) RETURN a.ID, a.fName, a.orgCode
+---- 11
+0|Alice|
+1||325
+2|Bob|
+3|Carol|
+4||934
+5|Dan|
+6||824
+7|Elizabeth|
+8|Farooq|
+9|Greg|
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-NAME MultiLabelReturnStar
+-QUERY MATCH (a:movies:organisation) RETURN *
+---- 6
+1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000
+4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000
+6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000
+|Roma||||||
+|Sóló cón tu párejâ||||||
+|The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie||||||
+
 -NAME KnowsOneHopTest1
 -QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
 ---- 3

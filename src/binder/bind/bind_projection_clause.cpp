@@ -74,14 +74,27 @@ expression_vector Binder::rewriteProjectionExpressions(const expression_vector& 
 
 expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression) {
     auto& node = (NodeExpression&)*expression;
-    if (node.getNumTableIDs() > 1) {
-        throw BinderException(
-            "Cannot rewrite multi-labeled node " + node.getRawName() + " as all properties.");
+    auto numColumns = 0u;
+    // Make sure columns are in the same order as specified in catalog.
+    unordered_map<uint32_t, string> colIdxToName;
+    unordered_map<string, vector<Property>> nameToProperties;
+    for (auto tableID : node.getTableIDs()) {
+        for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(tableID)) {
+            if (!nameToProperties.contains(property.name)) {
+                nameToProperties.insert({property.name, vector<Property>{}});
+                colIdxToName.insert({numColumns, property.name});
+                numColumns++;
+            }
+            nameToProperties.at(property.name).push_back(property);
+        }
     }
     expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getTableID())) {
-        auto propertyExpression = expressionBinder.bindNodePropertyExpression(expression, property);
-        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
+    for (auto i = 0u; i < numColumns; ++i) {
+        auto name = colIdxToName.at(i);
+        auto properties = nameToProperties.at(name);
+        auto propertyExpression =
+            expressionBinder.bindNodePropertyExpression(expression, properties);
+        propertyExpression->setRawName(expression->getRawName() + "." + name);
         result.emplace_back(propertyExpression);
     }
     return result;
