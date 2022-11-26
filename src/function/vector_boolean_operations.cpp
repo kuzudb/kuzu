@@ -9,20 +9,20 @@ scalar_exec_func VectorBooleanOperations::bindExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
     if (isExpressionBinary(expressionType)) {
         return bindBinaryExecFunction(expressionType, children);
-    } else if (isExpressionUnary(expressionType)) {
+    } else {
+        assert(isExpressionUnary(expressionType));
         return bindUnaryExecFunction(expressionType, children);
     }
-    assert(false);
 }
 
 scalar_select_func VectorBooleanOperations::bindSelectFunction(
     ExpressionType expressionType, const expression_vector& children) {
     if (isExpressionBinary(expressionType)) {
         return bindBinarySelectFunction(expressionType, children);
-    } else if (isExpressionUnary(expressionType)) {
+    } else {
+        assert(isExpressionUnary(expressionType));
         return bindUnarySelectFunction(expressionType, children);
     }
-    assert(false);
 }
 
 scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
@@ -42,7 +42,8 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
         return BinaryBooleanExecFunction<operation::Xor>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               " for VectorBooleanOperations::bindBinaryExecFunction.");
     }
 }
 
@@ -63,7 +64,8 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
         return BinaryBooleanSelectFunction<operation::Xor>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               " for VectorBooleanOperations::bindBinarySelectFunction.");
     }
 }
 
@@ -75,7 +77,8 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
         return UnaryBooleanExecFunction<operation::Not>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               " for VectorBooleanOperations::bindUnaryExecFunction.");
     }
 }
 
@@ -87,7 +90,8 @@ scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
         return UnaryBooleanSelectFunction<operation::Not>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               " for VectorBooleanOperations::bindUnaryExecFunction.");
     }
 }
 

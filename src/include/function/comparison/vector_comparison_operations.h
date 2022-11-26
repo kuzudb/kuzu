@@ -48,7 +48,9 @@ private:
                 return BinaryExecFunction<int64_t, double_t, uint8_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException("Invalid input data types(" +
+                                       Types::dataTypeToString(leftTypeID) + "," +
+                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
         case DOUBLE: {
@@ -60,7 +62,9 @@ private:
                 return BinaryExecFunction<double_t, double_t, uint8_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException("Invalid input data types(" +
+                                       Types::dataTypeToString(leftTypeID) + "," +
+                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
         case BOOL: {
@@ -84,7 +88,9 @@ private:
                 return BinaryExecFunction<date_t, timestamp_t, uint8_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException("Invalid input data types(" +
+                                       Types::dataTypeToString(leftTypeID) + "," +
+                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
         case TIMESTAMP: {
@@ -96,7 +102,9 @@ private:
                 return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException("Invalid input data types(" +
+                                       Types::dataTypeToString(leftTypeID) + "," +
+                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
         case INTERVAL: {
@@ -104,7 +112,9 @@ private:
             return BinaryExecFunction<interval_t, interval_t, uint8_t, FUNC>;
         }
         default:
-            assert(false);
+            throw RuntimeException("Invalid input data types(" +
+                                   Types::dataTypeToString(leftTypeID) + "," +
+                                   Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
         }
     }
 
@@ -120,7 +130,9 @@ private:
                 return BinarySelectFunction<int64_t, double_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
         case DOUBLE: {
@@ -132,7 +144,9 @@ private:
                 return BinarySelectFunction<double_t, double_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
         case BOOL: {
@@ -156,7 +170,9 @@ private:
                 return BinarySelectFunction<date_t, timestamp_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
         case TIMESTAMP: {
@@ -168,7 +184,9 @@ private:
                 return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
         case INTERVAL: {
@@ -176,7 +194,9 @@ private:
             return BinarySelectFunction<interval_t, interval_t, FUNC>;
         }
         default:
-            assert(false);
+            throw RuntimeException("Invalid input data types(" +
+                                   Types::dataTypeToString(leftTypeID) + "," +
+                                   Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
         }
     }
 };

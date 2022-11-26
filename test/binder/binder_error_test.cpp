@@ -334,7 +334,7 @@ TEST_F(BinderErrorTest, CreateRelTableInvalidNodeTableName) {
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidRelMultiplicity) {
-    string expectedException = "Catalog exception: Invalid relMultiplicity string \"MANY_LOT\"";
+    string expectedException = "Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.";
     auto input = "CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

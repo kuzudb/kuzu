@@ -11,14 +11,15 @@ public:
     template<typename FUNC, bool INT_RESULT = false, bool DOUBLE_RESULT = false>
     static unique_ptr<VectorOperationDefinition> getUnaryDefinition(
         string name, DataTypeID operandTypeID, DataTypeID resultTypeID) {
-        return make_unique<VectorOperationDefinition>(move(name), vector<DataTypeID>{operandTypeID},
-            resultTypeID, getUnaryExecFunc<FUNC, INT_RESULT, DOUBLE_RESULT>(operandTypeID));
+        return make_unique<VectorOperationDefinition>(std::move(name),
+            vector<DataTypeID>{operandTypeID}, resultTypeID,
+            getUnaryExecFunc<FUNC, INT_RESULT, DOUBLE_RESULT>(operandTypeID));
     }
 
     template<typename FUNC, bool DOUBLE_RESULT = false>
     static inline unique_ptr<VectorOperationDefinition> getBinaryDefinition(
         string name, DataTypeID leftTypeID, DataTypeID rightTypeID, DataTypeID resultTypeID) {
-        return make_unique<VectorOperationDefinition>(move(name),
+        return make_unique<VectorOperationDefinition>(std::move(name),
             vector<DataTypeID>{leftTypeID, rightTypeID}, resultTypeID,
             getBinaryExecFunc<FUNC, DOUBLE_RESULT>(leftTypeID, rightTypeID));
     }
@@ -40,7 +41,9 @@ private:
                 return BinaryExecFunction<int64_t, double_t, double_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getBinaryExecFunc.");
             }
         }
         case DOUBLE: {
@@ -52,11 +55,15 @@ private:
                 return BinaryExecFunction<double_t, double_t, double_t, FUNC>;
             }
             default:
-                assert(false);
+                throw RuntimeException(
+                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                    Types::dataTypeToString(rightTypeID) + ") for getBinaryExecFunc.");
             }
         }
         default:
-            assert(false);
+            throw RuntimeException(
+                "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
+                Types::dataTypeToString(rightTypeID) + ") for getBinaryExecFunc.");
         }
     }
 
@@ -78,7 +85,9 @@ private:
             }
         }
         default:
-            assert(false);
+            throw RuntimeException("Invalid input data types(" +
+                                   Types::dataTypeToString(operandTypeID) +
+                                   ") for getUnaryExecFunc.");
         }
     }
 };

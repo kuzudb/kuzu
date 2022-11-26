@@ -47,8 +47,6 @@ public:
         (const, override));
     MOCK_METHOD(const Property&, getRelProperty, (table_id_t tableID, const string& propertyName),
         (const, override));
-    MOCK_METHOD(const unordered_set<table_id_t>&, getRelTableIDsForNodeTableDirection,
-        (table_id_t nodeTableID, RelDirection direction), (const, override));
     MOCK_METHOD(bool, isSingleMultiplicityInDirection,
         (table_id_t relTableID, RelDirection direction), (const, override));
     MOCK_METHOD(bool, containNodeTable, (const string& tableName), (const, override));
@@ -79,7 +77,6 @@ public:
         setActionForContainRelProperty();
         secActionForGetNodeProperty();
         secActionForGetRelProperty();
-        setActionForGetRelTablesForNodeTableDirection();
         setActionForIsSingleMultiplicityInDirection();
         setActionForContainNodeTable();
         setActionForContainRelTable();
@@ -133,19 +130,6 @@ private:
             .WillByDefault(ReturnRef(descriptionProperty));
         ON_CALL(*this, getRelProperty(KNOWS_TABLE_ID, KNOWSDATE_PROPERTY_KEY_STR))
             .WillByDefault(ReturnRef(knowsDateProperty));
-    }
-
-    void setActionForGetRelTablesForNodeTableDirection() {
-        ON_CALL(*this, getRelTableIDsForNodeTableDirection(_, _))
-            .WillByDefault(Throw(invalid_argument("Should never happen.")));
-        ON_CALL(*this, getRelTableIDsForNodeTableDirection(PERSON_TABLE_ID, FWD))
-            .WillByDefault(ReturnRef(srcNodeIDToRelIDs[PERSON_TABLE_ID]));
-        ON_CALL(*this, getRelTableIDsForNodeTableDirection(PERSON_TABLE_ID, BWD))
-            .WillByDefault(ReturnRef(dstNodeIDToRelIDs[PERSON_TABLE_ID]));
-        ON_CALL(*this, getRelTableIDsForNodeTableDirection(ORGANISATION_TABLE_ID, FWD))
-            .WillByDefault(ReturnRef(srcNodeIDToRelIDs[ORGANISATION_TABLE_ID]));
-        ON_CALL(*this, getRelTableIDsForNodeTableDirection(ORGANISATION_TABLE_ID, BWD))
-            .WillByDefault(ReturnRef(dstNodeIDToRelIDs[ORGANISATION_TABLE_ID]));
     }
 
     void setActionForIsSingleMultiplicityInDirection() {

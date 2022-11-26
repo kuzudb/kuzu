@@ -9,12 +9,12 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
     switch (readingClause.getClauseType()) {
     case ClauseType::MATCH: {
         return bindMatchClause((MatchClause&)readingClause);
-    } break;
+    }
     case ClauseType::UNWIND: {
         return bindUnwindClause((UnwindClause&)readingClause);
-    } break;
+    }
     default:
-        assert(false);
+        throw NotImplementedException("bindReadingClause().");
     }
 }
 

@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include "common/configs.h"
+#include "common/exception.h"
 #include "common/types/types_include.h"
 
 using namespace kuzu::common;
@@ -111,7 +112,7 @@ struct RelTableSchema : TableSchema {
                 return property;
             }
         }
-        assert(false);
+        throw InternalException("Cannot find internal rel ID definition.");
     }
 
     inline bool isSingleMultiplicityInDirection(RelDirection direction) const {

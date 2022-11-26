@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/metric.h"
-#include "json.hpp"
 #include "storage/buffer_manager/file_handle.h"
 
 using namespace kuzu::common;

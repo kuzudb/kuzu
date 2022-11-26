@@ -11,18 +11,18 @@ namespace kuzu {
 namespace processor {
 
 class CopyCSV : public PhysicalOperator {
-
 public:
     CopyCSV(Catalog* catalog, CSVDescription csvDescription, TableSchema tableSchema, WAL* wal,
         uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, catalog{catalog},
           csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)}, wal{wal} {}
+    virtual ~CopyCSV() = default;
 
     virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 
-    bool getNextTuples() override { assert(false); }
-
-    virtual ~CopyCSV() = default;
+    bool getNextTuples() override {
+        throw InternalException("getNextTuple() should not be called on CopyCSV operator.");
+    }
 
 protected:
     void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {

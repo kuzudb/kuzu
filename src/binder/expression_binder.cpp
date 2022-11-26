@@ -42,8 +42,9 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindVariableExpression(parsedExpression);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
         expression = bindExistentialSubqueryExpression(parsedExpression);
-    } else if (!expression) {
-        assert(false);
+    } else {
+        throw NotImplementedException(
+            "bindExpression(" + expressionTypeToString(expressionType) + ").");
     }
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
@@ -133,10 +134,10 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(child, propertyName);
-    } else if (REL == child->dataType.typeID) {
+    } else {
+        assert(REL == child->dataType.typeID);
         return bindRelPropertyExpression(child, propertyName);
     }
-    assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
@@ -290,10 +291,10 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
-    } else if (functionName == ID_FUNC_NAME) {
+    } else {
+        assert(functionName == ID_FUNC_NAME);
         return bindInternalIDExpression(parsedExpression);
     }
-    assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
@@ -307,13 +308,13 @@ shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     shared_ptr<Expression> nodeOrRel) {
     if (nodeOrRel->dataType.typeID == NODE) {
         return ((NodeExpression*)nodeOrRel.get())->getNodeIDPropertyExpression();
-    } else if (nodeOrRel->dataType.typeID == REL) {
+    } else {
+        assert(nodeOrRel->dataType.typeID == REL);
         auto rel = (RelExpression*)nodeOrRel.get();
         auto relTableSchema =
             binder->catalog.getReadOnlyVersion()->getRelTableSchema(rel->getTableID());
         return bindRelPropertyExpression(nodeOrRel, relTableSchema->getRelIDDefinition());
     }
-    assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(

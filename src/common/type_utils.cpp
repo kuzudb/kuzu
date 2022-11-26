@@ -76,7 +76,8 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
     case LIST:
         return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(dataType) +
+                               " for TypeUtils::elementToString.");
     }
 }
 
@@ -127,7 +128,8 @@ string TypeUtils::toString(const Literal& literal) {
         return result;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(literal.dataType) +
+                               " for TypeUtils::toString.");
     }
 }
 

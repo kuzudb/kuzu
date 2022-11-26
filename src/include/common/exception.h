@@ -15,6 +15,8 @@ public:
 public:
     const char* what() const noexcept override { return exception_message_.c_str(); }
 
+    // TODO(Guodong): this is being used in both loader and node table. A better way to do this
+    // could be throw this error msg during insert.
     static string getExistedPKExceptionMsg(const string& pkString) {
         auto result = "A node is created with an existed primary key " + pkString +
                       ", which violates the uniqueness constraint of the primary key property.";
