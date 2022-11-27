@@ -74,11 +74,9 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void OrderBy::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
+void OrderBy::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples.
-    while (children[0]->getNextTuples()) {
+    while (children[0]->getNextTuple()) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
             orderByKeyEncoder->encodeKeys();
             // The orderByKeyEncoder requires that the orderByKey columns are flat in the
@@ -91,7 +89,6 @@ void OrderBy::execute(ExecutionContext* context) {
             localFactorizedTable->append(vectorsToAppend);
         }
     }
-
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
         if (keyBlock->numTuples > 0) {
             radixSorter->sortSingleKeyBlock(*keyBlock);
@@ -99,7 +96,6 @@ void OrderBy::execute(ExecutionContext* context) {
                 make_shared<MergedKeyBlocks>(orderByKeyEncoder->getNumBytesPerTuple(), keyBlock));
         }
     }
-    metrics->executionTime.stop();
 }
 
 } // namespace processor

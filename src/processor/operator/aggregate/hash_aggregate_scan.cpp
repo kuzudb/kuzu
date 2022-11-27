@@ -17,11 +17,9 @@ shared_ptr<ResultSet> HashAggregateScan::init(ExecutionContext* context) {
     return result;
 }
 
-bool HashAggregateScan::getNextTuples() {
-    metrics->executionTime.start();
+bool HashAggregateScan::getNextTuplesInternal() {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
-        metrics->executionTime.stop();
         return false;
     }
     auto numRowsToScan = endOffset - startOffset;
@@ -37,7 +35,6 @@ bool HashAggregateScan::getNextTuples() {
             offset += aggState->getStateSize();
         }
     }
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(numRowsToScan);
     return true;
 }

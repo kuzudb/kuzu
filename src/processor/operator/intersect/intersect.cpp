@@ -162,11 +162,9 @@ void Intersect::populatePayloads(
     }
 }
 
-bool Intersect::getNextTuples() {
-    metrics->executionTime.start();
+bool Intersect::getNextTuplesInternal() {
     do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         auto tuples = probeHTs(getProbeKeys());
@@ -177,7 +175,6 @@ bool Intersect::getNextTuples() {
             populatePayloads(tuples, listIdxes);
         }
     } while (outKeyVector->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     return true;
 }
 

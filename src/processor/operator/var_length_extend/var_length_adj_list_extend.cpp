@@ -33,8 +33,7 @@ shared_ptr<ResultSet> VarLengthAdjListExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool VarLengthAdjListExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool VarLengthAdjListExtend::getNextTuplesInternal() {
     while (true) {
         while (!dfsStack.empty()) {
             auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsStack.top());
@@ -48,7 +47,6 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 nbrNodeValueVector->state->selVector->selectedSize =
                     dfsLevelInfo->children->state->selVector->selectedSize;
                 dfsLevelInfo->hasBeenOutput = true;
-                metrics->executionTime.stop();
                 return true;
             } else if (dfsLevelInfo->childrenIdx <
                            dfsLevelInfo->children->state->selVector->selectedSize &&
@@ -68,8 +66,7 @@ bool VarLengthAdjListExtend::getNextTuples() {
         }
         uint64_t curIdx;
         do {
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
+            if (!children[0]->getNextTuple()) {
                 return false;
             }
             curIdx = boundNodeValueVector->state->getPositionOfCurrIdx();

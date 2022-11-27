@@ -29,7 +29,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    bool getNextTuples() override = 0;
+    bool getNextTuplesInternal() override = 0;
 
     unique_ptr<PhysicalOperator> clone() override = 0;
 

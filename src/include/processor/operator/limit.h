@@ -17,7 +17,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return LIMIT; }
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Limit>(limitNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,

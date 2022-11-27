@@ -96,17 +96,16 @@ public:
     inline uint64_t getNumChildren() const { return children.size(); }
     unique_ptr<PhysicalOperator> moveUnaryChild();
 
-    // This function grab leaf operator by traversing prevOperator pointer. For binary operators,
-    // f.g. hash join probe, left nested loop join, caller should determine which branch's leaf to
-    // get.
-    PhysicalOperator* getLeafOperator();
-
     virtual PhysicalOperatorType getOperatorType() = 0;
 
     virtual shared_ptr<ResultSet> init(ExecutionContext* context);
 
-    // Return false if no more tuples to pull, otherwise return true
-    virtual bool getNextTuples() = 0;
+    inline bool getNextTuple() {
+        metrics->executionTime.start();
+        auto result = getNextTuplesInternal();
+        metrics->executionTime.stop();
+        return result;
+    }
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 
@@ -123,6 +122,9 @@ public:
     inline string getParamsString() const { return paramsString; }
 
 protected:
+    // Return false if no more tuples to pull, otherwise return true
+    virtual bool getNextTuplesInternal() = 0;
+
     inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
 

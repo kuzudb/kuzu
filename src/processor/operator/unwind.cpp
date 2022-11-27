@@ -24,19 +24,16 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
     }
 }
 
-bool Unwind::getNextTuples() {
-    metrics->executionTime.start();
+bool Unwind::getNextTuplesInternal() {
     if (hasMoreToRead()) {
         auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
         copyTuplesToOutVector(startIndex, (totalElementsCopy + startIndex));
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(totalElementsCopy);
-        metrics->executionTime.stop();
         return true;
     }
     do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         expressionEvaluator->evaluate();
@@ -52,7 +49,6 @@ bool Unwind::getNextTuples() {
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);
     } while (outValueVector->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     return true;
 }
 

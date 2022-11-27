@@ -15,11 +15,9 @@ shared_ptr<ResultSet> Projection::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool Projection::getNextTuples() {
-    metrics->executionTime.start();
+bool Projection::getNextTuplesInternal() {
     restoreMultiplicity();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     saveMultiplicity();
@@ -31,7 +29,6 @@ bool Projection::getNextTuples() {
             resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
     metrics->numOutputTuple.increase(1);
-    metrics->executionTime.stop();
     return true;
 }
 

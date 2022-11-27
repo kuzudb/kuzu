@@ -26,8 +26,7 @@ shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool VarLengthColumnExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool VarLengthColumnExtend::getNextTuplesInternal() {
     // This general loop structure and how we fetch more data from the child operator after the
     // while(true) loop block is almost the same as that in VarLengthAdjListExtend but there are
     // several differences (e.g., we have one less else if branch here), so we are not refactoring.
@@ -45,7 +44,6 @@ bool VarLengthColumnExtend::getNextTuples() {
                         elementSize * dfsLevelInfo->children->state->getPositionOfCurrIdx(),
                     elementSize);
                 dfsLevelInfo->hasBeenOutput = true;
-                metrics->executionTime.stop();
                 return true;
             } else if (!dfsLevelInfo->hasBeenExtended && dfsLevelInfo->level != upperBound) {
                 addDFSLevelToStackIfParentExtends(dfsLevelInfo->children, dfsLevelInfo->level + 1);
@@ -55,8 +53,7 @@ bool VarLengthColumnExtend::getNextTuples() {
             }
         }
         do {
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
+            if (!children[0]->getNextTuple()) {
                 return false;
             }
         } while (

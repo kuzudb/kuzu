@@ -16,17 +16,14 @@ shared_ptr<ResultSet> BaseSetNodeProperty::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool SetNodeStructuredProperty::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool SetNodeStructuredProperty::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < nodeIDVectors.size(); ++i) {
         expressionEvaluators[i]->evaluate();
         columns[i]->writeValues(nodeIDVectors[i], expressionEvaluators[i]->resultVector);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

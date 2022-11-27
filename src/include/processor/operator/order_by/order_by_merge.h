@@ -35,7 +35,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderByMerge>(sharedFactorizedTablesAndSortedKeyBlocks,

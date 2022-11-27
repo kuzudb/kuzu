@@ -55,10 +55,8 @@ shared_ptr<ResultSet> SimpleAggregate::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void SimpleAggregate::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
-    while (children[0]->getNextTuples()) {
+void SimpleAggregate::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
             auto aggVector = aggregateVectors[i];
@@ -90,7 +88,6 @@ void SimpleAggregate::execute(ExecutionContext* context) {
         }
     }
     sharedState->combineAggregateStates(localAggregateStates);
-    metrics->executionTime.stop();
 }
 
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {

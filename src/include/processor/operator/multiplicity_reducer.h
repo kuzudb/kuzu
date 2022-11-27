@@ -13,7 +13,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return MULTIPLICITY_REDUCER; }
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<MultiplicityReducer>(children[0]->clone(), id, paramsString);

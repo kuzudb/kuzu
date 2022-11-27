@@ -25,7 +25,7 @@ public:
               move(aggregateDataTypes), id, paramsString},
           sharedState{move(sharedState)} {}
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     // SimpleAggregateScan is the source operator of a pipeline, so it should not clone its child.
     unique_ptr<PhysicalOperator> clone() override {

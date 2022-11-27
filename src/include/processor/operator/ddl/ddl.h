@@ -19,8 +19,8 @@ public:
 
     virtual string execute() = 0;
 
-    bool getNextTuples() override {
-        throw InternalException("getNextTuple() should not be called on DDL operator.");
+    bool getNextTuplesInternal() override {
+        throw InternalException("getNextTupleInternal() should not be called on DDL operator.");
     }
 
 protected:

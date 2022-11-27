@@ -65,18 +65,15 @@ void HashJoinBuild::finalize(ExecutionContext* context) {
     sharedState->getHashTable()->buildHashSlots();
 }
 
-void HashJoinBuild::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
+void HashJoinBuild::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples
-    while (children[0]->getNextTuples()) {
+    while (children[0]->getNextTuple()) {
         for (auto i = 0u; i < resultSet->multiplicity; ++i) {
             appendVectors();
         }
     }
     // Merge with global hash table once local tuples are all appended.
     sharedState->mergeLocalHashTable(*hashTable);
-    metrics->executionTime.stop();
 }
 
 } // namespace processor

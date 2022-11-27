@@ -114,7 +114,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     void finalize(ExecutionContext* context) override {
         // TODO(Ziyi): we always call lookup function on the first factorizedTable in sharedState

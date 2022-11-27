@@ -27,7 +27,6 @@ private:
 };
 
 class SimpleAggregate : public BaseAggregate {
-
 public:
     SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
         vector<DataPos> aggregateVectorsPos,
@@ -36,7 +35,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     inline void finalize(ExecutionContext* context) override {
         sharedState->finalizeAggregateStates();

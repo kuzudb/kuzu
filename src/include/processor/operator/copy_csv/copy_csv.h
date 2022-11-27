@@ -20,8 +20,8 @@ public:
 
     virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 
-    bool getNextTuples() override {
-        throw InternalException("getNextTuple() should not be called on CopyCSV operator.");
+    bool getNextTuplesInternal() override {
+        throw InternalException("getNextTupleInternal() should not be called on CopyCSV operator.");
     }
 
 protected:

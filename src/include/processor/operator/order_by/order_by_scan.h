@@ -42,7 +42,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderByScan>(

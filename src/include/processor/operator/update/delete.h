@@ -32,7 +32,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
         vector<unique_ptr<DeleteNodeInfo>> clonedDeleteNodeInfos;
@@ -81,7 +81,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         vector<unique_ptr<DeleteRelInfo>> clonedDeleteRelInfos;

@@ -69,15 +69,12 @@ shared_ptr<ResultSet> HashAggregate::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void HashAggregate::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
-    while (children[0]->getNextTuples()) {
+void HashAggregate::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple()) {
         localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
             groupByNonHashKeyVectors, aggregateVectors, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(move(localAggregateHashTable));
-    metrics->executionTime.stop();
 }
 
 void HashAggregate::finalize(ExecutionContext* context) {

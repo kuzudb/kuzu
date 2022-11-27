@@ -56,7 +56,7 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
     }
     if (!hasMoreLeft()) {
         restoreSelVectors(keySelVectors);
-        if (!children[0]->getNextTuples()) {
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         saveSelVectors(keySelVectors);
@@ -184,18 +184,15 @@ uint64_t HashJoinProbe::getNextJoinResult() {
 // 2) populate values from matched tuples into resultKeyDataChunk , buildSideFlatResultDataChunk
 // (all flat data chunks from the build side are merged into one) and buildSideVectorPtrs (each
 // VectorPtr corresponds to one unFlat build side data chunk that is appended to the resultSet).
-bool HashJoinProbe::getNextTuples() {
-    metrics->executionTime.start();
+bool HashJoinProbe::getNextTuplesInternal() {
     uint64_t numPopulatedTuples;
     do {
         if (!getNextBatchOfMatchedTuples()) {
-            metrics->executionTime.stop();
             return false;
         }
         numPopulatedTuples = getNextJoinResult();
     } while (numPopulatedTuples == 0);
     metrics->numOutputTuple.increase(numPopulatedTuples);
-    metrics->executionTime.stop();
     return true;
 }
 

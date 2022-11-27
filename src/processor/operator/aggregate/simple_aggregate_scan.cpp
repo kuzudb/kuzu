@@ -3,11 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-bool SimpleAggregateScan::getNextTuples() {
-    metrics->executionTime.start();
+bool SimpleAggregateScan::getNextTuplesInternal() {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
-        metrics->executionTime.stop();
         return false;
     }
     // Output of simple aggregate is guaranteed to be a single value for each aggregate.
@@ -20,7 +18,6 @@ bool SimpleAggregateScan::getNextTuples() {
     assert(!aggregatesPos.empty());
     auto outDataChunk = resultSet->dataChunks[aggregatesPos[0].dataChunkPos];
     outDataChunk->state->initOriginalAndSelectedSize(1);
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
     return true;
 }

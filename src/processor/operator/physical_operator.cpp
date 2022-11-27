@@ -33,14 +33,6 @@ unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
     return result;
 }
 
-PhysicalOperator* PhysicalOperator::getLeafOperator() {
-    PhysicalOperator* op = this;
-    while (op->getNumChildren()) {
-        op = op->getChild(0);
-    }
-    return op;
-}
-
 shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
     transaction = context->transaction;
     registerProfilingMetrics(context->profiler);

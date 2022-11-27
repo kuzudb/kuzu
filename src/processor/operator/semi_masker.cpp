@@ -11,10 +11,8 @@ shared_ptr<ResultSet> SemiMasker::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool SemiMasker::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool SemiMasker::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     auto startIdx = keyValueVector->state->isFlat() ? keyValueVector->state->currIdx : 0;
@@ -25,7 +23,6 @@ bool SemiMasker::getNextTuples() {
         scanTableNodeIDSharedState->getSemiMask()->setMask(
             keyValueVector->getValue<nodeID_t>(pos).offset, maskerIdx);
     }
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize);
     return true;
