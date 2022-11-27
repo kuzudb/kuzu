@@ -90,33 +90,5 @@ void BufferManager::removePageFromFrameIfNecessary(FileHandle& fileHandle, page_
         bufferPoolDefaultPages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx);
 }
 
-unique_ptr<nlohmann::json> BufferManager::debugInfo() {
-    return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
-        {
-            {"BufferPoolDefaultPages-numFrames", bufferPoolDefaultPages->numFrames},
-            {"BufferPoolDefaultPages-numCacheHits", bufferPoolDefaultPages->bmMetrics.numCacheHit},
-            {"BufferPoolDefaultPages-numCacheMisses",
-                bufferPoolDefaultPages->bmMetrics.numCacheMiss},
-            {"BufferPoolDefaultPages-numPins", bufferPoolDefaultPages->bmMetrics.numPins},
-            {"BufferPoolDefaultPages-numEvicts", bufferPoolDefaultPages->bmMetrics.numEvicts},
-            {"BufferPoolDefaultPages-numEvictFails",
-                bufferPoolDefaultPages->bmMetrics.numEvictFails},
-            {"BufferPoolDefaultPages-numRecentlyAccessedWalkover",
-                bufferPoolDefaultPages->bmMetrics.numRecentlyAccessedWalkover},
-            {"BufferPoolDefaultPages-numDirtyPageWriteIO",
-                bufferPoolDefaultPages->bmMetrics.numDirtyPageWriteIO},
-            {"BufferPoolLargePages-numFrames", bufferPoolLargePages->numFrames},
-            {"BufferPoolLargePages-numPins", bufferPoolLargePages->bmMetrics.numPins},
-            {"BufferPoolLargePages-numEvicts", bufferPoolLargePages->bmMetrics.numEvicts},
-            {"BufferPoolLargePages-numEvictFails", bufferPoolLargePages->bmMetrics.numEvictFails},
-            {"BufferPoolLargePages-numCacheHits", bufferPoolLargePages->bmMetrics.numCacheHit},
-            {"BufferPoolLargePages-numCacheMisses", bufferPoolLargePages->bmMetrics.numCacheMiss},
-            {"BufferPoolLargePages-numRecentlyAccessedWalkover",
-                bufferPoolLargePages->bmMetrics.numRecentlyAccessedWalkover},
-            {"BufferPoolLargePages-numDirtyPageWriteIO",
-                bufferPoolLargePages->bmMetrics.numDirtyPageWriteIO},
-        }}});
-}
-
 } // namespace storage
 } // namespace kuzu

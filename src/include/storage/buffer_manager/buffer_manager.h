@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/metric.h"
-#include "json.hpp"
 #include "storage/buffer_manager/buffer_pool.h"
 #include "storage/buffer_manager/file_handle.h"
 
@@ -89,8 +88,6 @@ public:
                    bufferPoolLargePages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx) :
                    bufferPoolDefaultPages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
     }
-
-    unique_ptr<nlohmann::json> debugInfo();
 
     void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 

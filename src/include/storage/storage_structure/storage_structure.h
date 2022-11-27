@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "common/configs.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"

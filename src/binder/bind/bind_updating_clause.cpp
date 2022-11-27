@@ -22,7 +22,7 @@ unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(const UpdatingClause&
         return bindDeleteClause(updatingClause);
     }
     default:
-        assert(false);
+        throw NotImplementedException("bindUpdatingClause().");
     }
 }
 

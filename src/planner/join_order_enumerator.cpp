@@ -438,7 +438,7 @@ static uint32_t extractJoinRelPos(const SubqueryGraph& subgraph, const QueryGrap
             return relPos;
         }
     }
-    assert(false);
+    throw InternalException("Cannot extract relPos.");
 }
 
 void JoinOrderEnumerator::planInnerINLJoin(const SubqueryGraph& subgraph,

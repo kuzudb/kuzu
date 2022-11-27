@@ -170,7 +170,7 @@ public:
 
 // This class starts database without initializing graph.
 class EmptyDBTest : public BaseGraphTest {
-    string getInputCSVDir() override { assert(false); }
+    string getInputCSVDir() override { throw NotImplementedException("getInputCSVDir()"); }
 };
 
 // This class starts database in on-disk mode.

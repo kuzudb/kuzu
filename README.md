@@ -23,7 +23,7 @@ Please refer to [our website](https://kuzudb.com/) for installation and usage in
 ## Development
 For development, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`. 
 
-### Bazel build
+### Build
 
 - To do a full clean build
     - `make clean`

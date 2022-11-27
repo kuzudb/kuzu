@@ -28,7 +28,8 @@ scalar_exec_func VectorNullOperations::bindUnaryExecFunction(
         return UnaryNullExecFunction<operation::IsNotNull>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               "for VectorNullOperations::bindUnaryExecFunction.");
     }
 }
 
@@ -43,7 +44,8 @@ scalar_select_func VectorNullOperations::bindUnarySelectFunction(
         return UnaryNullSelectFunction<operation::IsNotNull>;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
+                               "for VectorNullOperations::bindUnarySelectFunction.");
     }
 }
 

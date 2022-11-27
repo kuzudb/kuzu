@@ -125,9 +125,6 @@ void RelTable::initAdjColumnOrLists(
                 catalog.getReadOnlyVersion()
                     ->getRelTableSchema(tableID)
                     ->getUniqueNbrTableIDsForBoundTableIDDirection(relDirection, boundTableID));
-            logger->debug("DIRECTION {} nodeTableForAdjColumnAndProperties {} relTable {} "
-                          "nodeIDCompressionScheme: commonTableID: {}",
-                relDirection, boundTableID, tableID, nodeIDCompressionScheme.getCommonTableID());
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     tableID, relDirection)) {
                 // Add adj column.
@@ -177,10 +174,6 @@ void RelTable::initPropertyColumnsForRelTable(
         propertyColumns[relDirection].emplace(
             boundTableID, vector<unique_ptr<Column>>(properties.size()));
         for (auto& property : properties) {
-            logger->debug(
-                "DIR {} nodeIDForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
-                relDirection, boundTableID, property.propertyID, property.dataType.typeID,
-                property.name);
             propertyColumns[relDirection].at(boundTableID)[property.propertyID] =
                 ColumnFactory::getColumn(
                     StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
@@ -202,9 +195,6 @@ void RelTable::initPropertyListsForRelTable(
             boundTableID, vector<unique_ptr<Lists>>(properties.size()));
         for (auto& property : properties) {
             auto propertyID = property.propertyID;
-            logger->debug("relDirection {} nodeTableForAdjColumnAndProperties {} propertyIdx {} "
-                          "type {} name `{}`",
-                relDirection, boundTableID, propertyID, property.dataType.typeID, property.name);
             propertyLists[relDirection].at(boundTableID)[property.propertyID] =
                 ListsFactory::getLists(
                     StorageUtils::getRelPropertyListsStructureIDAndFName(

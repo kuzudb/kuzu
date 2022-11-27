@@ -1,5 +1,6 @@
 #pragma once
 
+#include "json.hpp"
 #include "processor/data_pos.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
@@ -118,11 +119,11 @@ public:
     }
 
     vector<string> getAttributes(Profiler& profiler) const;
-    inline string getTimeMetricKey() const { return "time-" + to_string(id); }
 
     inline string getParamsString() const { return paramsString; }
 
 protected:
+    inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
 
     void registerProfilingMetrics(Profiler* profiler);

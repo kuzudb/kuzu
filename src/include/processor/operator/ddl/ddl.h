@@ -15,12 +15,13 @@ class DDL : public PhysicalOperator {
 public:
     DDL(Catalog* catalog, uint32_t id, const string& paramsString)
         : PhysicalOperator{id, paramsString}, catalog{catalog} {}
+    virtual ~DDL() = default;
 
     virtual string execute() = 0;
 
-    bool getNextTuples() override { assert(false); }
-
-    virtual ~DDL() = default;
+    bool getNextTuples() override {
+        throw InternalException("getNextTuple() should not be called on DDL operator.");
+    }
 
 protected:
     Catalog* catalog;

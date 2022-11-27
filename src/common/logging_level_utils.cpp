@@ -42,7 +42,7 @@ string LoggingLevelUtils::convertLevelEnumToStr(spdlog::level::level_enum levelE
         return "off";
     }
     default:
-        assert(false);
+        throw ConversionException("Unsupported logging level conversion to string.");
     }
 }
 

@@ -23,14 +23,13 @@ struct ShellCommand {
     const string QUIT = ":quit";
     const string THREAD = ":thread";
     const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
-    const string BUFFER_MANAGER_DEBUG_INFO = ":bm_debug_info";
     const string LIST_NODES = ":list_nodes";
     const string LIST_RELS = ":list_rels";
     const string SHOW_NODE = ":show_node";
     const string SHOW_REL = ":show_rel";
     const string LOGGING_LEVEL = ":logging_level";
-    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        BUFFER_MANAGER_DEBUG_INFO, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
+    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE, LIST_NODES,
+        LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -198,9 +197,6 @@ void EmbeddedShell::run() {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
             setBufferManagerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
-        } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
-            printf("Buffer Manager Debug Info: \n %s \n",
-                database->bufferManager->debugInfo()->dump(4).c_str());
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {

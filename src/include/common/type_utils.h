@@ -121,7 +121,9 @@ inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const Dat
             }
         } break;
         default: {
-            assert(false);
+            throw RuntimeException("Unsupported data type " +
+                                   Types::dataTypeToString(leftDataType) +
+                                   " for TypeUtils::isValueEqual.");
         }
         }
     }

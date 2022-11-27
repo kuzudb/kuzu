@@ -37,7 +37,8 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
         listVal = convertKUListToVector(*(ku_list_t*)value);
     } break;
     default:
-        assert(false);
+        throw RuntimeException("Data type " + Types::dataTypeToString(valueType.typeID) +
+                               " is not supported for ResultValue::set.");
     }
 }
 
@@ -69,7 +70,8 @@ string ResultValue::toString() const {
         return result;
     }
     default:
-        assert(false);
+        throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
+                               " is not supported for ResultValue::toString.");
     }
 }
 
@@ -80,7 +82,7 @@ vector<ResultValue> ResultValue::convertKUListToVector(ku_list_t& list) const {
         ResultValue childResultValue{*dataType.childType};
         childResultValue.set(reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement),
             *dataType.childType);
-        listResultValue.emplace_back(move(childResultValue));
+        listResultValue.emplace_back(std::move(childResultValue));
     }
     return listResultValue;
 }

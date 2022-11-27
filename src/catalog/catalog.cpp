@@ -264,7 +264,7 @@ const Property& CatalogContent::getNodeProperty(
             return property;
         }
     }
-    assert(false);
+    throw CatalogException("Cannot find node property " + propertyName + ".");
 }
 
 const Property& CatalogContent::getRelProperty(
@@ -274,19 +274,11 @@ const Property& CatalogContent::getRelProperty(
             return property;
         }
     }
-    assert(false);
+    throw CatalogException("Cannot find rel property " + propertyName + ".");
 }
 
 vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
     return nodeTableSchemas.at(tableID)->getAllNodeProperties();
-}
-
-const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
-    table_id_t tableID, RelDirection direction) const {
-    if (FWD == direction) {
-        return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
-    }
-    return nodeTableSchemas.at(tableID)->bwdRelTableIDSet;
 }
 
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {

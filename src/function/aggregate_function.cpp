@@ -34,7 +34,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
             AvgFunction<double_t>::updateAll, AvgFunction<double_t>::updatePos,
             AvgFunction<double_t>::combine, AvgFunction<double_t>::finalize, inputType, isDistinct);
     default:
-        assert(false);
+        throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
+                               " for AggregateFunctionUtil::getAvgFunction.");
     }
 }
 
@@ -50,7 +51,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
             SumFunction<double_t>::updateAll, SumFunction<double_t>::updatePos,
             SumFunction<double_t>::combine, SumFunction<double_t>::finalize, inputType, isDistinct);
     default:
-        assert(false);
+        throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
+                               " for AggregateFunctionUtil::getSumFunction.");
     }
 }
 
@@ -100,7 +102,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
             MinMaxFunction<nodeID_t>::combine<FUNC>, MinMaxFunction<nodeID_t>::finalize, inputType,
             isDistinct);
     default:
-        assert(false);
+        throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
+                               " for AggregateFunctionUtil::getMinMaxFunction.");
     }
 }
 

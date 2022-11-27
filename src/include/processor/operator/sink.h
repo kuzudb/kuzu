@@ -15,7 +15,9 @@ public:
 
     virtual void execute(ExecutionContext* context) = 0;
 
-    bool getNextTuples() final { assert(false); }
+    bool getNextTuples() final {
+        throw InternalException("getNextTuple() should not be called on sink operator.");
+    }
 
     virtual void finalize(ExecutionContext* context){};
 

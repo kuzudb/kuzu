@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "catalog/catalog_structs.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/node_id_t.h"
