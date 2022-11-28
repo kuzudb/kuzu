@@ -14,16 +14,13 @@ void BaseTableScan::initFurther(ExecutionContext* context) {
     setMaxMorselSize();
 }
 
-bool BaseTableScan::getNextTuples() {
-    metrics->executionTime.start();
+bool BaseTableScan::getNextTuplesInternal() {
     auto morsel = getMorsel();
     if (morsel->numTuples == 0) {
-        metrics->executionTime.stop();
         return false;
     }
     morsel->table->scan(vectorsToScan, morsel->startTupleIdx, morsel->numTuples, colIndicesToScan);
     metrics->numOutputTuple.increase(morsel->numTuples);
-    metrics->executionTime.stop();
     return true;
 }
 

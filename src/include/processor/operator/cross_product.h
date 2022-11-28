@@ -31,7 +31,7 @@ public:
 
     shared_ptr<ResultSet> init(kuzu::processor::ExecutionContext* context) override;
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CrossProduct>(sharedState, outVecPosAndTypePairs, colIndicesToScan,

@@ -10,13 +10,11 @@ shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool AdjColumnExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool AdjColumnExtend::getNextTuplesInternal() {
     bool hasAtLeastOneNonNullValue;
     do {
         restoreSelVector(inputNodeIDDataChunk->state->selVector.get());
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         saveSelVector(inputNodeIDDataChunk->state->selVector.get());
@@ -24,7 +22,6 @@ bool AdjColumnExtend::getNextTuples() {
         nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
         hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
     } while (!hasAtLeastOneNonNullValue);
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selVector->selectedSize);
     return true;
 }

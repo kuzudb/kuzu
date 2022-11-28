@@ -39,10 +39,8 @@ shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void ResultCollector::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
-    while (children[0]->getNextTuples()) {
+void ResultCollector::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple()) {
         if (!vectorsToCollect.empty()) {
             for (auto i = 0u; i < resultSet->multiplicity; i++) {
                 localTable->append(vectorsToCollect);
@@ -52,7 +50,6 @@ void ResultCollector::execute(ExecutionContext* context) {
     if (!vectorsToCollect.empty()) {
         sharedState->mergeLocalTable(*localTable);
     }
-    metrics->executionTime.stop();
 }
 
 } // namespace processor

@@ -17,10 +17,8 @@ shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool CreateNode::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
@@ -36,7 +34,6 @@ bool CreateNode::getNextTuples() {
             relTable->initEmptyRelsForNewNode(nodeID);
         }
     }
-    metrics->executionTime.stop();
     return true;
 }
 
@@ -59,10 +56,8 @@ shared_ptr<ResultSet> CreateRel::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool CreateRel::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createRelInfos.size(); ++i) {
@@ -90,7 +85,6 @@ bool CreateRel::getNextTuples() {
         createRelInfo->table->insertRels(createRelVectors->srcNodeIDVector,
             createRelVectors->dstNodeIDVector, createRelVectors->propertyVectors);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

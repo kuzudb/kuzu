@@ -18,17 +18,14 @@ shared_ptr<ResultSet> DeleteNode::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool DeleteNode::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool DeleteNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < deleteNodeInfos.size(); ++i) {
         auto nodeTable = deleteNodeInfos[i]->table;
         nodeTable->deleteNodes(nodeIDVectors[i], primaryKeyVectors[i]);
     }
-    metrics->executionTime.stop();
     return true;
 }
 
@@ -46,10 +43,8 @@ shared_ptr<ResultSet> DeleteRel::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool DeleteRel::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool DeleteRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
@@ -60,7 +55,6 @@ bool DeleteRel::getNextTuples() {
         // works. You can discuss this with Semih and if you decide to change, change createRel too.
         createRelInfo->table->deleteRel(srcNodeIDVector, dstNodeIDVector);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

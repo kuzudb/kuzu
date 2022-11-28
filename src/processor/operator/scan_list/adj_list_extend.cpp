@@ -12,17 +12,14 @@ shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool AdjListExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool AdjListExtend::getNextTuplesInternal() {
     if (listHandle->listSyncState.hasMoreToRead()) {
         lists->readValues(outValueVector, *listHandle);
-        metrics->executionTime.stop();
         metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
         return true;
     }
     do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
@@ -36,7 +33,6 @@ bool AdjListExtend::getNextTuples() {
                 *listHandle, transaction->getType());
         lists->readValues(outValueVector, *listHandle);
     } while (outDataChunk->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
     return true;
 }

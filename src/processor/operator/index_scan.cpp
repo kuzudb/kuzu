@@ -17,10 +17,8 @@ shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool IndexScan::getNextTuples() {
-    metrics->executionTime.start();
+bool IndexScan::getNextTuplesInternal() {
     if (hasExecuted) {
-        metrics->executionTime.stop();
         return false;
     }
     indexKeyEvaluator->evaluate();
@@ -29,7 +27,6 @@ bool IndexScan::getNextTuples() {
     node_offset_t nodeOffset;
     bool isSuccessfulLookup = pkIndex->lookup(
         transaction, indexKeyVector, indexKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
-    metrics->executionTime.stop();
     if (isSuccessfulLookup) {
         hasExecuted = true;
         nodeID_t nodeID{nodeOffset, tableID};

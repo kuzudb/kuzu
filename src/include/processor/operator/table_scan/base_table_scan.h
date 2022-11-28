@@ -44,7 +44,7 @@ protected:
 
     void initFurther(ExecutionContext* context);
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     inline double getExecutionTime(Profiler& profiler) const override {
         return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());

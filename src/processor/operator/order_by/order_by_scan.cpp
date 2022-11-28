@@ -18,13 +18,11 @@ shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool OrderByScan::getNextTuples() {
-    metrics->executionTime.start();
+bool OrderByScan::getNextTuplesInternal() {
     // If there is no more tuples to read, just return false.
     if (mergedKeyBlockScanState == nullptr ||
         mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock >=
             mergedKeyBlockScanState->mergedKeyBlock->getNumTuples()) {
-        metrics->executionTime.stop();
         return false;
     } else {
         // If there is an unflat col in factorizedTable, we can only read one
@@ -81,7 +79,6 @@ bool OrderByScan::getNextTuples() {
             metrics->numOutputTuple.increase(numTuplesToRead);
             mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock += numTuplesToRead;
         }
-        metrics->executionTime.stop();
         return true;
     }
 }

@@ -22,7 +22,7 @@ public:
 
     inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 

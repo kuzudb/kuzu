@@ -20,7 +20,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return SKIP; }
 
-    bool getNextTuples() override;
+    bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Skip>(skipNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,

@@ -71,7 +71,7 @@ public:
 
     shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;
 
     inline unique_ptr<PhysicalOperator> clone() override {

@@ -70,12 +70,10 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool ScanNodeID::getNextTuples() {
-    metrics->executionTime.start();
+bool ScanNodeID::getNextTuplesInternal() {
     do {
         auto [state, startOffset, endOffset] = sharedState->getNextRangeToRead();
         if (state == nullptr) {
-            metrics->executionTime.stop();
             return false;
         }
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
@@ -87,7 +85,6 @@ bool ScanNodeID::getNextTuples() {
         outValueVector->state->initOriginalAndSelectedSize(size);
         setSelVector(state, startOffset, endOffset);
     } while (outValueVector->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
 }

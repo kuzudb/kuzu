@@ -21,9 +21,7 @@ shared_ptr<ResultSet> OrderByMerge::init(ExecutionContext* context) {
     return resultSet;
 }
 
-void OrderByMerge::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
+void OrderByMerge::executeInternal(ExecutionContext* context) {
     while (!keyBlockMergeTaskDispatcher->isDoneMerge()) {
         auto keyBlockMergeMorsel = keyBlockMergeTaskDispatcher->getMorsel();
         if (keyBlockMergeMorsel == nullptr) {
@@ -33,7 +31,6 @@ void OrderByMerge::execute(ExecutionContext* context) {
         keyBlockMerger->mergeKeyBlocks(*keyBlockMergeMorsel);
         keyBlockMergeTaskDispatcher->doneMorsel(move(keyBlockMergeMorsel));
     }
-    metrics->executionTime.stop();
 }
 
 } // namespace processor

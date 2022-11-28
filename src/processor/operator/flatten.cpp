@@ -9,18 +9,15 @@ shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
     return resultSet;
 }
 
-bool Flatten::getNextTuples() {
-    metrics->executionTime.start();
+bool Flatten::getNextTuplesInternal() {
     // currentIdx == -1 is the check for initial case
     if (dataChunkToFlatten->state->currIdx == -1 || dataChunkToFlatten->state->isCurrIdxLast()) {
         dataChunkToFlatten->state->currIdx = -1;
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
     }
     dataChunkToFlatten->state->currIdx++;
-    metrics->executionTime.stop();
     metrics->numOutputTuple.incrementByOne();
     return true;
 }
