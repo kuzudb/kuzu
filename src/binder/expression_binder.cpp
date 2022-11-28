@@ -307,14 +307,28 @@ shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
 shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     shared_ptr<Expression> nodeOrRel) {
     if (nodeOrRel->dataType.typeID == NODE) {
-        return ((NodeExpression*)nodeOrRel.get())->getNodeIDPropertyExpression();
+        return bindInternalNodeIDExpression(nodeOrRel);
     } else {
         assert(nodeOrRel->dataType.typeID == REL);
-        auto rel = (RelExpression*)nodeOrRel.get();
-        auto relTableSchema =
-            binder->catalog.getReadOnlyVersion()->getRelTableSchema(rel->getTableID());
-        return bindRelPropertyExpression(nodeOrRel, relTableSchema->getRelIDDefinition());
+        return bindInternalRelIDExpression(nodeOrRel);
     }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalNodeIDExpression(shared_ptr<Expression> node) {
+    auto nodeExpression = (NodeExpression*)node.get();
+    unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    for (auto tableID : nodeExpression->getTableIDs()) {
+        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+    }
+    return make_unique<PropertyExpression>(
+        DataType(NODE_ID), INTERNAL_ID_SUFFIX, std::move(propertyIDPerTable), node);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalRelIDExpression(shared_ptr<Expression> rel) {
+    auto relExpression = (RelExpression*)rel.get();
+    auto relTableSchema =
+        binder->catalog.getReadOnlyVersion()->getRelTableSchema(relExpression->getTableID());
+    return bindRelPropertyExpression(rel, relTableSchema->getRelIDDefinition());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(

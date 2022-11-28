@@ -35,10 +35,15 @@ shared_ptr<ResultSet> DeleteRel::init(ExecutionContext* context) {
         auto srcNodePos = deleteRelInfo->srcNodePos;
         auto srcNodeIDVector =
             resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
+        srcNodeVectors.push_back(srcNodeIDVector.get());
         auto dstNodePos = deleteRelInfo->dstNodePos;
         auto dstNodeIDVector =
             resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
-        srcDstNodeIDVectorPairs.emplace_back(srcNodeIDVector.get(), dstNodeIDVector.get());
+        dstNodeVectors.push_back(dstNodeIDVector.get());
+        auto relIDPos = deleteRelInfo->relIDPos;
+        auto relIDVector =
+            resultSet->dataChunks[relIDPos.dataChunkPos]->valueVectors[relIDPos.valueVectorPos];
+        relIDVectors.push_back(relIDVector.get());
     }
     return resultSet;
 }
@@ -49,11 +54,13 @@ bool DeleteRel::getNextTuplesInternal() {
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
         auto createRelInfo = deleteRelInfos[i].get();
-        auto [srcNodeIDVector, dstNodeIDVector] = srcDstNodeIDVectorPairs[i];
+        auto srcNodeVector = srcNodeVectors[i];
+        auto dstNodeVector = dstNodeVectors[i];
+        auto relIDVector = relIDVectors[i];
         // TODO(Ziyi): you need to update rel statistics here. Though I don't think this is best
         // design, statistics update should be hidden inside deleteRel(). See how node create/delete
         // works. You can discuss this with Semih and if you decide to change, change createRel too.
-        createRelInfo->table->deleteRel(srcNodeIDVector, dstNodeIDVector);
+        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector);
     }
     return true;
 }

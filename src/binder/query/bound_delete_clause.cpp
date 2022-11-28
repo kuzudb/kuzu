@@ -8,6 +8,11 @@ expression_vector BoundDeleteClause::getPropertiesToRead() const {
     for (auto& deleteNode : deleteNodes) {
         result.push_back(deleteNode->getPrimaryKeyExpression());
     }
+    for (auto& deleteRel : deleteRels) {
+        if (deleteRel->hasInternalIDProperty()) {
+            result.push_back(deleteRel->getInternalIDProperty());
+        }
+    }
     return result;
 }
 

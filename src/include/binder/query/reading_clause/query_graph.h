@@ -87,6 +87,7 @@ public:
     inline bool containsQueryNode(const string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
+    inline vector<shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
     inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
@@ -112,6 +113,7 @@ public:
     inline bool containsQueryRel(const string& queryRelName) const {
         return queryRelNameToPosMap.contains(queryRelName);
     }
+    inline vector<shared_ptr<RelExpression>> getQueryRels() const { return queryRels; }
     inline shared_ptr<RelExpression> getQueryRel(const string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
@@ -128,8 +130,6 @@ public:
     bool isConnected(const QueryGraph& other);
 
     void merge(const QueryGraph& other);
-
-    vector<shared_ptr<Expression>> getNodeIDExpressions() const;
 
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
 
@@ -150,7 +150,8 @@ public:
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
-    expression_vector getNodeIDExpressions() const;
+    vector<shared_ptr<NodeExpression>> getQueryNodes() const;
+    vector<shared_ptr<RelExpression>> getQueryRels() const;
 
     unique_ptr<QueryGraphCollection> copy() const;
 

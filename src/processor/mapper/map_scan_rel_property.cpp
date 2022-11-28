@@ -11,7 +11,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto scanRelProperty = (LogicalScanRelProperty*)logicalOperator;
     auto boundNode = scanRelProperty->getBoundNodeExpression();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inputNodeIDVectorPos = mapperContext.getDataPos(boundNode->getIDProperty());
+    auto inputNodeIDVectorPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
     auto propertyName = scanRelProperty->getPropertyName();
     auto propertyID = scanRelProperty->getPropertyID();
     auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);

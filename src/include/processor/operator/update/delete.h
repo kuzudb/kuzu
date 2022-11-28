@@ -56,15 +56,16 @@ struct DeleteRelInfo {
     table_id_t srcNodeTableID;
     DataPos dstNodePos;
     table_id_t dstNodeTableID;
+    DataPos relIDPos;
 
     DeleteRelInfo(RelTable* table, const DataPos& srcNodePos, table_id_t srcNodeTableID,
-        const DataPos& dstNodePos, table_id_t dstNodeTableID)
+        const DataPos& dstNodePos, table_id_t dstNodeTableID, const DataPos& relIDPos)
         : table{table}, srcNodePos{srcNodePos}, srcNodeTableID{srcNodeTableID},
-          dstNodePos{dstNodePos}, dstNodeTableID{dstNodeTableID} {}
+          dstNodePos{dstNodePos}, dstNodeTableID{dstNodeTableID}, relIDPos{relIDPos} {}
 
     inline unique_ptr<DeleteRelInfo> clone() {
         return make_unique<DeleteRelInfo>(
-            table, srcNodePos, srcNodeTableID, dstNodePos, dstNodeTableID);
+            table, srcNodePos, srcNodeTableID, dstNodePos, dstNodeTableID, relIDPos);
     }
 };
 
@@ -95,7 +96,9 @@ public:
 private:
     RelsStatistics& relsStatistics;
     vector<unique_ptr<DeleteRelInfo>> deleteRelInfos;
-    vector<pair<ValueVector*, ValueVector*>> srcDstNodeIDVectorPairs;
+    vector<ValueVector*> srcNodeVectors;
+    vector<ValueVector*> dstNodeVectors;
+    vector<ValueVector*> relIDVectors;
 };
 
 } // namespace processor

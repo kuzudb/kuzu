@@ -111,6 +111,8 @@ private:
             .WillByDefault(Return(true));
         ON_CALL(*this, containRelProperty(KNOWS_TABLE_ID, KNOWSDATE_PROPERTY_KEY_STR))
             .WillByDefault(Return(true));
+        ON_CALL(*this, containRelProperty(KNOWS_TABLE_ID, KNOWSDATE_PROPERTY_KEY_STR))
+            .WillByDefault(Return(true));
         ON_CALL(*this, containRelProperty(1, _)).WillByDefault(Return(false));
     }
 
@@ -219,12 +221,16 @@ private:
     }
 
     void setRelTableSchemas() {
-        knowsTableSchema =
-            make_unique<RelTableSchema>("knows", KNOWS_TABLE_ID, MANY_MANY, vector<Property>{},
-                vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, PERSON_TABLE_ID}});
-        workAtTableSchema =
-            make_unique<RelTableSchema>("workAt", WORKAT_TABLE_ID, MANY_ONE, vector<Property>{},
-                vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, ORGANISATION_TABLE_ID}});
+        auto knowsID = Property::constructRelProperty(
+            PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64), 0, KNOWS_TABLE_ID);
+        knowsTableSchema = make_unique<RelTableSchema>("knows", KNOWS_TABLE_ID, MANY_MANY,
+            vector<Property>{knowsID},
+            vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, PERSON_TABLE_ID}});
+        auto workAtID = Property::constructRelProperty(
+            PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64), 0, WORKAT_TABLE_ID);
+        workAtTableSchema = make_unique<RelTableSchema>("workAt", WORKAT_TABLE_ID, MANY_ONE,
+            vector<Property>{workAtID},
+            vector<pair<table_id_t, table_id_t>>{{PERSON_TABLE_ID, ORGANISATION_TABLE_ID}});
     }
 
     vector<unordered_set<table_id_t>> srcNodeIDToRelIDs, dstNodeIDToRelIDs;

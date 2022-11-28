@@ -54,6 +54,8 @@ private:
 
     shared_ptr<Expression> bindInternalIDExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindInternalIDExpression(shared_ptr<Expression> nodeOrRel);
+    shared_ptr<Expression> bindInternalNodeIDExpression(shared_ptr<Expression> node);
+    shared_ptr<Expression> bindInternalRelIDExpression(shared_ptr<Expression> rel);
 
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 
