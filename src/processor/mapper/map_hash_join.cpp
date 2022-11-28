@@ -93,7 +93,7 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
     Schema* buildSideSchema, const vector<shared_ptr<NodeExpression>>& keys,
     const expression_vector& payloads) {
     auto buildSideMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
-    vector<DataPos> buildKeysDataPos, buildPayloadsDataPos;
+    vector<pair<DataPos, DataType>> buildKeysPosAndType, buildPayloadsPosAndTypes;
     vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
     vector<bool> isBuildDataChunkContainKeys(
         buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
@@ -102,7 +102,7 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
         auto nodeID = key->getInternalIDPropertyName();
         auto buildSideKeyPos = buildSideMapperContext.getDataPos(nodeID);
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(nodeID));
+        buildKeysPosAndType.emplace_back(buildSideKeyPos, NODE_ID);
         joinNodeIDs.emplace(nodeID);
     }
     for (auto& payload : payloads) {
@@ -112,13 +112,13 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
         }
         mapperContext.addComputedExpressions(payloadUniqueName);
         auto payloadPos = buildSideMapperContext.getDataPos(payloadUniqueName);
-        buildPayloadsDataPos.push_back(payloadPos);
+        buildPayloadsPosAndTypes.emplace_back(payloadPos, payload->dataType);
         auto payloadGroup = buildSideSchema->getGroup(payloadPos.dataChunkPos);
         isBuildPayloadsFlat.push_back(payloadGroup->getIsFlat());
         isBuildPayloadsInKeyChunk.push_back(isBuildDataChunkContainKeys[payloadPos.dataChunkPos]);
     }
-    return BuildDataInfo(
-        buildKeysDataPos, buildPayloadsDataPos, isBuildPayloadsFlat, isBuildPayloadsInKeyChunk);
+    return BuildDataInfo(buildKeysPosAndType, buildPayloadsPosAndTypes, isBuildPayloadsFlat,
+        isBuildPayloadsInKeyChunk);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
@@ -134,24 +134,24 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildSideSchema = hashJoin->getBuildSideSchema();
     auto buildDataInfo = generateBuildDataInfo(mapperContext, buildSideSchema,
         hashJoin->getJoinNodes(), hashJoin->getExpressionsToMaterialize());
-    vector<DataPos> probeKeysDataPos, probePayloadsDataPos;
-    vector<DataType> payloadsDataTypes;
+    vector<DataPos> probeKeysDataPos;
     for (auto& joinNode : hashJoin->getJoinNodes()) {
         auto joinNodeID = joinNode->getInternalIDPropertyName();
         probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
     }
-    for (auto& dataPos : buildDataInfo.payloadsDataPos) {
+    vector<pair<DataPos, DataType>> probePayloadsOutPosAndType;
+    for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
         auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                               ->getExpressions()[dataPos.valueVectorPos];
-        payloadsDataTypes.push_back(expression->getDataType());
-        probePayloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+        probePayloadsOutPosAndType.emplace_back(
+            mapperContext.getDataPos(expression->getUniqueName()), expression->getDataType());
     }
-    auto sharedState = make_shared<HashJoinSharedState>(payloadsDataTypes);
+    auto sharedState = make_shared<HashJoinSharedState>();
     // create hashJoin build
     auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
         std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsDataPos);
+    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPosAndType);
     if (hashJoin->getJoinType() == JoinType::MARK) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());

@@ -5,7 +5,6 @@ namespace processor {
 
 shared_ptr<ResultSet> SemiMasker::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    scanTableNodeIDSharedState->initSemiMask(context->transaction);
     keyValueVector = resultSet->getValueVector(keyDataPos);
     assert(keyValueVector->dataType.typeID == NODE_ID);
     return resultSet;
@@ -26,6 +25,10 @@ bool SemiMasker::getNextTuplesInternal() {
     metrics->numOutputTuple.increase(
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize);
     return true;
+}
+
+void SemiMasker::initGlobalStateInternal(ExecutionContext* context) {
+    scanTableNodeIDSharedState->initSemiMask(context->transaction);
 }
 
 } // namespace processor

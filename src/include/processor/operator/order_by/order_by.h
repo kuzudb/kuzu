@@ -25,16 +25,14 @@ public:
         : nextFactorizedTableIdx{0}, sortedKeyBlocks{
                                          make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
 
-    inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
-
     uint8_t getNextFactorizedTableIdx() {
-        unique_lock lck{orderBySharedStateMutex};
+        unique_lock lck{mtx};
         return nextFactorizedTableIdx++;
     }
 
     void appendFactorizedTable(
         uint8_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
-        unique_lock lck{orderBySharedStateMutex};
+        unique_lock lck{mtx};
         // If the factorizedTables is full, resize the factorizedTables and
         // insert the factorizedTable to the set.
         if (factorizedTableIdx >= factorizedTables.size()) {
@@ -44,18 +42,13 @@ public:
     }
 
     void appendSortedKeyBlock(shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
-        unique_lock lck{orderBySharedStateMutex};
+        unique_lock lck{mtx};
         sortedKeyBlocks->emplace(mergedDataBlocks);
     }
 
-    void setNumBytesPerTuple(uint32_t numBytesPerTuple_) {
-        unique_lock lck{orderBySharedStateMutex};
-        this->numBytesPerTuple = numBytesPerTuple_;
-    }
-
-    void setDataTypes(vector<DataType> dataTypes_) {
-        unique_lock lck{orderBySharedStateMutex};
-        this->dataTypes = move(dataTypes_);
+    void setNumBytesPerTuple(uint32_t _numBytesPerTuple) {
+        assert(numBytesPerTuple == UINT32_MAX);
+        numBytesPerTuple = _numBytesPerTuple;
     }
 
     void combineFTHasNoNullGuarantee() {
@@ -64,41 +57,44 @@ public:
         }
     }
 
-    void setStrKeyColInfo(vector<StrKeyColInfo> strKeyColsInfo) {
-        unique_lock lck{orderBySharedStateMutex};
-        this->strKeyColsInfo = move(strKeyColsInfo);
+    void setStrKeyColInfo(vector<StrKeyColInfo> _strKeyColsInfo) {
+        assert(strKeyColsInfo.empty());
+        strKeyColsInfo = std::move(_strKeyColsInfo);
     }
 
 private:
-    mutex orderBySharedStateMutex;
+    mutex mtx;
 
 public:
     vector<shared_ptr<FactorizedTable>> factorizedTables;
     uint8_t nextFactorizedTableIdx;
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
 
-    uint32_t numBytesPerTuple;
+    uint32_t numBytesPerTuple = UINT32_MAX; // encoding size
     vector<StrKeyColInfo> strKeyColsInfo;
-    vector<DataType> dataTypes;
 };
 
 struct OrderByDataInfo {
-
 public:
-    OrderByDataInfo(vector<DataPos> keyDataPoses, vector<DataPos> allDataPoses,
-        vector<bool> isVectorFlat, vector<bool> isAscOrder)
-        : keyDataPoses{move(keyDataPoses)}, allDataPoses{move(allDataPoses)},
-          isVectorFlat{move(isVectorFlat)}, isAscOrder{move(isAscOrder)} {}
+    OrderByDataInfo(vector<pair<DataPos, DataType>> keysPosAndType,
+        vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadFlat,
+        vector<bool> isAscOrder, bool mayContainUnflatKey)
+        : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
+                                                         payloadsPosAndType)},
+          isPayloadFlat{std::move(isPayloadFlat)}, isAscOrder{std::move(isAscOrder)},
+          mayContainUnflatKey{mayContainUnflatKey} {}
 
     OrderByDataInfo(const OrderByDataInfo& other)
-        : OrderByDataInfo{
-              other.keyDataPoses, other.allDataPoses, other.isVectorFlat, other.isAscOrder} {}
+        : OrderByDataInfo{other.keysPosAndType, other.payloadsPosAndType, other.isPayloadFlat,
+              other.isAscOrder, other.mayContainUnflatKey} {}
 
 public:
-    vector<DataPos> keyDataPoses;
-    vector<DataPos> allDataPoses;
-    vector<bool> isVectorFlat;
+    vector<pair<DataPos, DataType>> keysPosAndType;
+    vector<pair<DataPos, DataType>> payloadsPosAndType;
+    vector<bool> isPayloadFlat;
     vector<bool> isAscOrder;
+    // TODO(Ziyi): We should figure out unflat keys in a more general way.
+    bool mayContainUnflatKey;
 };
 
 class OrderBy : public Sink {
@@ -106,9 +102,8 @@ public:
     OrderBy(const OrderByDataInfo& orderByDataInfo,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, orderByDataInfo{orderByDataInfo}, sharedState{move(
-                                                                                     sharedState)} {
-    }
+        : Sink{std::move(child), id, paramsString}, orderByDataInfo{orderByDataInfo},
+          sharedState{std::move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY; }
 
@@ -130,13 +125,17 @@ public:
     }
 
 private:
+    unique_ptr<FactorizedTableSchema> populateTableSchema();
+
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
     uint8_t factorizedTableIdx;
     OrderByDataInfo orderByDataInfo;
     unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
     unique_ptr<RadixSort> radixSorter;
     vector<shared_ptr<ValueVector>> keyVectors;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
-    vector<StrKeyColInfo> strKeyColInfo;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
     shared_ptr<FactorizedTable> localFactorizedTable;
 };

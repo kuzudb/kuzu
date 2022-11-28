@@ -5,11 +5,9 @@ namespace processor {
 
 void FTableSharedState::initTableIfNecessary(
     MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) {
-    lock_guard<mutex> lck{mtx};
-    if (table == nullptr) {
-        nextTupleIdxToScan = 0u;
-        table = make_unique<FactorizedTable>(memoryManager, move(tableSchema));
-    }
+    assert(table == nullptr);
+    nextTupleIdxToScan = 0u;
+    table = make_unique<FactorizedTable>(memoryManager, std::move(tableSchema));
 }
 
 unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize) {
@@ -22,20 +20,12 @@ unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize
 
 shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
-    for (auto& vectorToCollectInfo : vectorsToCollectInfo) {
-        auto dataPos = vectorToCollectInfo.first;
+    for (auto [dataPos, _] : payloadsPosAndType) {
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
         vectorsToCollect.push_back(vector);
-        tableSchema->appendColumn(
-            make_unique<ColumnSchema>(!vectorToCollectInfo.second, dataPos.dataChunkPos,
-                vectorToCollectInfo.second ? vector->getNumBytesPerValue() :
-                                             (uint32_t)sizeof(overflow_value_t)));
     }
-    localTable = make_unique<FactorizedTable>(
-        context->memoryManager, make_unique<FactorizedTableSchema>(*tableSchema));
-    sharedState->initTableIfNecessary(context->memoryManager, move(tableSchema));
+    localTable = make_unique<FactorizedTable>(context->memoryManager, populateTableSchema());
     return resultSet;
 }
 
@@ -50,6 +40,21 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     if (!vectorsToCollect.empty()) {
         sharedState->mergeLocalTable(*localTable);
     }
+}
+
+void ResultCollector::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->initTableIfNecessary(context->memoryManager, populateTableSchema());
+}
+
+unique_ptr<FactorizedTableSchema> ResultCollector::populateTableSchema() {
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
+    for (auto i = 0u; i < payloadsPosAndType.size(); ++i) {
+        auto [dataPos, dataType] = payloadsPosAndType[i];
+        tableSchema->appendColumn(make_unique<ColumnSchema>(!isPayloadFlat[i], dataPos.dataChunkPos,
+            isPayloadFlat[i] ? Types::getDataTypeSize(dataType) :
+                               (uint32_t)sizeof(overflow_value_t)));
+    }
+    return tableSchema;
 }
 
 } // namespace processor

@@ -18,18 +18,17 @@ public:
     // This constructor will only be called by the mapper when constructing the orderByMerge
     // operator, because the mapper doesn't know the existence of keyBlockMergeTaskDispatcher
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
+        shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, SourceOperator{nullptr},
-          sharedFactorizedTablesAndSortedKeyBlocks{move(sharedState)},
-          keyBlockMergeTaskDispatcher{make_shared<KeyBlockMergeTaskDispatcher>()} {}
+        : Sink{std::move(child), id, paramsString}, SourceOperator{nullptr},
+          sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
     // This constructor is used for cloning only.
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        shared_ptr<KeyBlockMergeTaskDispatcher> keyBlockMergeTaskDispatcher,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, SourceOperator{nullptr},
-          sharedFactorizedTablesAndSortedKeyBlocks{move(sharedState)},
-          keyBlockMergeTaskDispatcher{move(keyBlockMergeTaskDispatcher)} {}
+        shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher, uint32_t id,
+        const string& paramsString)
+        : Sink{id, paramsString}, SourceOperator{nullptr}, sharedState{std::move(sharedState)},
+          sharedDispatcher{std::move(sharedDispatcher)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_MERGE; }
 
@@ -38,8 +37,7 @@ public:
     void executeInternal(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderByMerge>(sharedFactorizedTablesAndSortedKeyBlocks,
-            keyBlockMergeTaskDispatcher, children[0]->clone(), id, paramsString);
+        return make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, paramsString);
     }
 
     inline double getExecutionTime(Profiler& profiler) const override {
@@ -47,9 +45,12 @@ public:
     }
 
 private:
-    shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedFactorizedTablesAndSortedKeyBlocks;
-    unique_ptr<KeyBlockMerger> keyBlockMerger;
-    shared_ptr<KeyBlockMergeTaskDispatcher> keyBlockMergeTaskDispatcher;
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
+    shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
+    unique_ptr<KeyBlockMerger> localMerger;
+    shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher;
 };
 
 } // namespace processor

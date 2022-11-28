@@ -14,8 +14,7 @@ struct KeyBlockMergeMorsel;
 // This struct stores the string key column information. We can utilize the
 // pre-computed indexes and offsets to expedite the tuple comparison in merge sort.
 struct StrKeyColInfo {
-    StrKeyColInfo(
-        uint32_t colOffsetInFT, uint32_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
+    StrKeyColInfo(uint32_t colOffsetInFT, uint32_t colOffsetInEncodedKeyBlock, bool isAscOrder)
         : colOffsetInFT{colOffsetInFT}, colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock},
           isAscOrder{isAscOrder} {}
 
@@ -192,9 +191,8 @@ public:
     void doneMorsel(unique_ptr<KeyBlockMergeMorsel> morsel);
 
     // This function is used to initialize the columns of keyBlockMergeTaskDispatcher based on
-    // sharedFactorizedTablesAndSortedKeyBlocks. If the class is already initialized, then it
-    // just returns.
-    void initIfNecessary(MemoryManager* memoryManager,
+    // sharedFactorizedTablesAndSortedKeyBlocks.
+    void init(MemoryManager* memoryManager,
         shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
         vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
@@ -202,7 +200,6 @@ public:
 private:
     mutex mtx;
 
-    bool isInitialized = false;
     MemoryManager* memoryManager;
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
     vector<shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;

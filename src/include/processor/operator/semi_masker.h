@@ -35,6 +35,9 @@ public:
     inline unique_ptr<PhysicalOperator> clone() override { return make_unique<SemiMasker>(*this); }
 
 private:
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
     DataPos keyDataPos;
     // Multiple maskers can point to the same scanNodeID, thus we associate each masker with an idx
     // to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to

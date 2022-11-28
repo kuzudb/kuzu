@@ -28,6 +28,9 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
         return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
+        // Init global state before decompose into pipelines. Otherwise, each pipeline will try to
+        // init global state. Result in global state being initialized multiple times.
+        lastOperator->initGlobalState(context);
         auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
         // The root pipeline(task) consists of operators and its prevOperator only, because we
         // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its

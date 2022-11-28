@@ -9,7 +9,6 @@ void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
 }
 
 pair<node_offset_t, node_offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
-    unique_lock lck{mtx};
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
@@ -26,17 +25,6 @@ pair<node_offset_t, node_offset_t> ScanTableNodeIDSharedState::getNextRangeToRea
     auto range = min(DEFAULT_VECTOR_CAPACITY, maxNodeOffset + 1 - currentNodeOffset);
     currentNodeOffset += range;
     return make_pair(startOffset, startOffset + range);
-}
-
-void ScanNodeIDSharedState::initialize(Transaction* transaction) {
-    unique_lock lck{mtx};
-    if (initialized) {
-        return;
-    }
-    for (auto& tableState : tableStates) {
-        tableState->initialize(transaction);
-    }
-    initialized = true;
 }
 
 tuple<ScanTableNodeIDSharedState*, node_offset_t, node_offset_t>
@@ -66,7 +54,6 @@ shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
     outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outValueVector->setSequential();
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    sharedState->initialize(transaction);
     return resultSet;
 }
 
@@ -87,6 +74,10 @@ bool ScanNodeID::getNextTuplesInternal() {
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
+}
+
+void ScanNodeID::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->initialize(context->transaction);
 }
 
 void ScanNodeID::setSelVector(

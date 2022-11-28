@@ -98,7 +98,11 @@ public:
 
     virtual PhysicalOperatorType getOperatorType() = 0;
 
+    // Local state is initialized for each thread.
     virtual shared_ptr<ResultSet> init(ExecutionContext* context);
+
+    // Global state is initialized once.
+    void initGlobalState(ExecutionContext* context);
 
     inline bool getNextTuple() {
         metrics->executionTime.start();
@@ -122,6 +126,7 @@ public:
     inline string getParamsString() const { return paramsString; }
 
 protected:
+    virtual void initGlobalStateInternal(ExecutionContext* context) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal() = 0;
 

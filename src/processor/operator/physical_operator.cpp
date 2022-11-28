@@ -42,6 +42,13 @@ shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
     return resultSet;
 }
 
+void PhysicalOperator::initGlobalState(ExecutionContext* context) {
+    for (auto& child : children) {
+        child->initGlobalState(context);
+    }
+    initGlobalStateInternal(context);
+}
+
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
     auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());

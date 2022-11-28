@@ -97,8 +97,8 @@ public:
         uint64_t numOfElements = 2000;
         auto valueVectors = getInt64TestValueVector(numOfElements, 1, isFlat);
         auto isAscOrder = vector<bool>(1, false);
-        auto orderByKeyEncoder = OrderByKeyEncoder(
-            valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(),
+            ftIdx, numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
         if (isFlat) {
             for (auto i = 0u; i < numOfElements; i++) {
                 orderByKeyEncoder.encodeKeys();
@@ -136,8 +136,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(int64ValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -205,8 +205,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(int64ValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -240,8 +240,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(boolValueVector);
     auto isAscOrder = vector<bool>(1, false);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -272,8 +272,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(dateValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -313,8 +313,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(timestampValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -361,8 +361,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(intervalValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -410,8 +410,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(stringValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -485,8 +485,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     vector<shared_ptr<ValueVector>> valueVectors;
     valueVectors.emplace_back(doubleValueVector);
     auto isAscOrder = vector<bool>(1, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
@@ -562,8 +562,8 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
     auto valueVectors = getInt64TestValueVector(1, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
     try {
-        auto orderByKeyEncoder = OrderByKeyEncoder(
-            valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(),
+            ftIdx, numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
         FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(),
@@ -579,8 +579,8 @@ TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
     uint32_t numOfElementsPerCol = 10;
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, false);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;
@@ -626,8 +626,8 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     valueVectors.emplace_back(timestampFlatValueVector);
     valueVectors.emplace_back(dateFlatValueVector);
 
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     intFlatValueVector->setValue(0, (int64_t)73);
@@ -790,8 +790,8 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColMultiBlockTest) {
     const auto numOfElementsPerCol = 2000;
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        valueVectors, isAscOrder, memoryManager.get(), ftIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
+        numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;

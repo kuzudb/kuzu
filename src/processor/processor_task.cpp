@@ -7,14 +7,14 @@ void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
     lock_t lck{mtx};
-    unique_ptr<PhysicalOperator> lastOp = sinkOp->clone();
+    auto clonedPipeline = sink->clone();
     lck.unlock();
-    auto& sink = (Sink&)*lastOp;
-    sink.execute(executionContext);
+    auto clonedSink = (Sink*)clonedPipeline.get();
+    clonedSink->execute(executionContext);
 }
 
 void ProcessorTask::finalizeIfNecessary() {
-    sinkOp->finalize(executionContext);
+    sink->finalize(executionContext);
 }
 
 } // namespace processor

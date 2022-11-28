@@ -26,18 +26,17 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
         auto dataChunk = resultSet->dataChunks[pos];
         dataChunk->state = DataChunkState::getSingleValueDataChunkState();
     }
-    for (auto i = 0u; i < probeDataInfo.payloadsOutputDataPos.size(); ++i) {
-        auto probePayloadVector =
-            make_shared<ValueVector>(sharedState->getPayloadDataTypes()[i], context->memoryManager);
-        auto [dataChunkPos, valueVectorPos] = probeDataInfo.payloadsOutputDataPos[i];
+    for (auto& [dataPos, dataType] : probeDataInfo.payloadsOutPosAndType) {
+        auto probePayloadVector = make_shared<ValueVector>(dataType, context->memoryManager);
+        auto [dataChunkPos, valueVectorPos] = dataPos;
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probePayloadVector);
         vectorsToReadInto.push_back(probePayloadVector);
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.
-    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.payloadsOutputDataPos.size() + 1 ==
+    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 1 ==
            sharedState->getHashTable()->getTableSchema()->getNumColumns());
-    columnIdxsToReadFrom.resize(probeDataInfo.payloadsOutputDataPos.size());
+    columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
     return resultSet;
