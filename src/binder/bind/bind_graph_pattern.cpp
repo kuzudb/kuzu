@@ -97,6 +97,9 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     }
     auto queryRel = make_shared<RelExpression>(
         getUniqueExpressionName(parsedName), tableID, srcNode, dstNode, lowerBound, upperBound);
+    if (!queryRel->isVariableLength()) {
+        queryRel->setInternalIDProperty(expressionBinder.bindInternalIDExpression(queryRel));
+    }
     queryRel->setAlias(parsedName);
     queryRel->setRawName(parsedName);
     if (!parsedName.empty()) {
@@ -141,6 +144,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     auto parsedName = nodePattern.getVariableName();
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
+    queryNode->setInternalIDProperty(expressionBinder.bindInternalIDExpression(queryNode));
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
     if (!parsedName.empty()) {

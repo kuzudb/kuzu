@@ -20,19 +20,20 @@ public:
         return *tableIDs.begin();
     }
 
-    inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
-
-    inline shared_ptr<Expression> getNodeIDPropertyExpression() {
-        unordered_map<table_id_t, property_id_t> propertyIDPerTable;
-        for (auto tableID : tableIDs) {
-            propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
-        }
-        return make_unique<PropertyExpression>(DataType(NODE_ID), INTERNAL_ID_SUFFIX,
-            std::move(propertyIDPerTable), shared_from_this());
+    inline void setInternalIDProperty(shared_ptr<Expression> expression) {
+        internalIDExpression = std::move(expression);
+    }
+    inline shared_ptr<Expression> getInternalIDProperty() const {
+        assert(internalIDExpression != nullptr);
+        return internalIDExpression;
+    }
+    inline string getInternalIDPropertyName() const {
+        return internalIDExpression->getUniqueName();
     }
 
 private:
     unordered_set<table_id_t> tableIDs;
+    shared_ptr<Expression> internalIDExpression;
 };
 
 } // namespace binder

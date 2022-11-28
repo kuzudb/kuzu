@@ -19,7 +19,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     // Map build side children.
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto buildInfo = logicalIntersect->getBuildInfo(i - 1);
-        auto buildKey = buildInfo->key->getIDProperty();
+        auto buildKey = buildInfo->key->getInternalIDPropertyName();
         auto buildSideSchema = buildInfo->schema.get();
         auto buildSideMapperContext =
             MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
@@ -33,7 +33,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
             auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                                   ->getExpressions()[dataPos.valueVectorPos];
             if (expression->getUniqueName() ==
-                logicalIntersect->getIntersectNode()->getIDProperty()) {
+                logicalIntersect->getIntersectNode()->getInternalIDPropertyName()) {
                 continue;
             }
             payloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
@@ -49,7 +49,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     }
     // Map intersect.
     auto outputDataPos =
-        mapperContext.getDataPos(logicalIntersect->getIntersectNode()->getIDProperty());
+        mapperContext.getDataPos(logicalIntersect->getIntersectNode()->getInternalIDPropertyName());
     return make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates, move(children),
         getOperatorID(), logicalIntersect->getExpressionsForPrinting());
 }

@@ -24,7 +24,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
     for (auto& [expr, _] : setItems) {
         auto property = static_pointer_cast<PropertyExpression>(expr);
         auto node = static_pointer_cast<NodeExpression>(property->getChild(0));
-        nodeIDVectorPositions.push_back(mapperContext.getDataPos(node->getIDProperty()));
+        nodeIDVectorPositions.push_back(
+            mapperContext.getDataPos(node->getInternalIDPropertyName()));
         propertyColumns.push_back(nodeStore.getNodePropertyColumn(
             node->getTableID(), property->getPropertyID(node->getTableID())));
     }

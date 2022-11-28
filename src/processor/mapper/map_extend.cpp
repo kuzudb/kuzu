@@ -14,9 +14,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto boundNode = extend->getBoundNodeExpression();
     auto nbrNode = extend->getNbrNodeExpression();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inDataPos = mapperContext.getDataPos(boundNode->getIDProperty());
-    auto outDataPos = mapperContext.getDataPos(nbrNode->getIDProperty());
-    mapperContext.addComputedExpressions(nbrNode->getIDProperty());
+    auto inDataPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
+    auto outDataPos = mapperContext.getDataPos(nbrNode->getInternalIDPropertyName());
+    mapperContext.addComputedExpressions(nbrNode->getInternalIDPropertyName());
     auto& relsStore = storageManager.getRelsStore();
     auto lowerBound = extend->getLowerBound();
     auto upperBound = extend->getUpperBound();

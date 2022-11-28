@@ -10,7 +10,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto node = scanProperty.getNode();
-    auto inputNodeIDVectorPos = mapperContext.getDataPos(node->getIDProperty());
+    auto inputNodeIDVectorPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
     auto& nodeStore = storageManager.getNodesStore();
     vector<DataPos> outVectorsPos;
     vector<DataType> outDataTypes;

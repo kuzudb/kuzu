@@ -99,7 +99,7 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
         buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
     unordered_set<string> joinNodeIDs;
     for (auto& key : keys) {
-        auto nodeID = key->getIDProperty();
+        auto nodeID = key->getInternalIDPropertyName();
         auto buildSideKeyPos = buildSideMapperContext.getDataPos(nodeID);
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
         buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(nodeID));
@@ -137,7 +137,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     vector<DataPos> probeKeysDataPos, probePayloadsDataPos;
     vector<DataType> payloadsDataTypes;
     for (auto& joinNode : hashJoin->getJoinNodes()) {
-        auto joinNodeID = joinNode->getIDProperty();
+        auto joinNodeID = joinNode->getInternalIDPropertyName();
         probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
     }
     for (auto& dataPos : buildDataInfo.payloadsDataPos) {
@@ -177,7 +177,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
     auto node = logicalSemiMasker->getNode();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto keyDataPos = mapperContext.getDataPos(node->getIDProperty());
+    auto keyDataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
     return make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
         logicalSemiMasker->getExpressionsForPrinting());
 }

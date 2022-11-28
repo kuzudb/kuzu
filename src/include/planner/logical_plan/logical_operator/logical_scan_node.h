@@ -19,7 +19,7 @@ public:
 
     inline virtual void computeSchema(Schema& schema) {
         auto groupPos = schema.createGroup();
-        schema.insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
+        schema.insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
     }
 
     inline shared_ptr<NodeExpression> getNode() const { return node; }
@@ -43,7 +43,7 @@ public:
 
     inline void computeSchema(Schema& schema) override {
         LogicalScanNode::computeSchema(schema);
-        auto groupPos = schema.getGroupPos(node->getIDProperty());
+        auto groupPos = schema.getGroupPos(node->getInternalIDPropertyName());
         schema.getGroup(groupPos)->setIsFlat(true);
     }
 

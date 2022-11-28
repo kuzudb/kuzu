@@ -47,7 +47,7 @@ void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
     // Check LHS
     assert(lhs->getChild(0)->dataType.typeID == NODE);
     auto nodeExpression = static_pointer_cast<NodeExpression>(lhs->getChild(0));
-    auto lhsGroupPos = schema->getGroupPos(nodeExpression->getIDProperty());
+    auto lhsGroupPos = schema->getGroupPos(nodeExpression->getInternalIDPropertyName());
     auto isLhsFlat = schema->getGroup(lhsGroupPos)->getIsFlat();
     // Check RHS
     auto rhsDependentGroupsPos = schema->getDependentGroupsPos(rhs);
@@ -83,7 +83,7 @@ void UpdatePlanner::appendCreateNode(
     for (auto& createNode : createNodes) {
         auto node = createNode->getNode();
         auto groupPos = schema->createGroup();
-        schema->insertToGroupAndScope(node->getNodeIDPropertyExpression(), groupPos);
+        schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
         schema->flattenGroup(groupPos); // create output is always flat
         nodeAndPrimaryKeyPairs.emplace_back(node, createNode->getPrimaryKeyExpression());
         for (auto& setItem : createNode->getSetItems()) {
@@ -144,9 +144,9 @@ void UpdatePlanner::appendDeleteRel(
     const vector<shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan) {
     // Delete one rel at a time so we flatten for each rel.
     for (auto& rel : deleteRels) {
-        auto srcNodeID = rel->getSrcNode()->getNodeIDPropertyExpression();
+        auto srcNodeID = rel->getSrcNode()->getInternalIDProperty();
         QueryPlanner::appendFlattenIfNecessary(srcNodeID, plan);
-        auto dstNodeID = rel->getDstNode()->getNodeIDPropertyExpression();
+        auto dstNodeID = rel->getDstNode()->getInternalIDProperty();
         QueryPlanner::appendFlattenIfNecessary(dstNodeID, plan);
     }
     auto deleteRel = make_shared<LogicalDeleteRel>(deleteRels, plan.getLastOperator());

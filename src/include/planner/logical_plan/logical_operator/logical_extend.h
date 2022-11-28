@@ -26,7 +26,7 @@ public:
     }
 
     inline void computeSchema(Schema& schema) {
-        auto boundGroupPos = schema.getGroupPos(boundNode->getIDProperty());
+        auto boundGroupPos = schema.getGroupPos(boundNode->getInternalIDPropertyName());
         uint32_t nbrGroupPos = 0u;
         if (isColumn) {
             nbrGroupPos = boundGroupPos;
@@ -34,7 +34,7 @@ public:
             assert(schema.getGroup(boundGroupPos)->getIsFlat());
             nbrGroupPos = schema.createGroup();
         }
-        schema.insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), nbrGroupPos);
+        schema.insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
     }
 
     inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNode; }

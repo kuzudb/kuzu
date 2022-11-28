@@ -41,6 +41,11 @@ public:
 
     inline expression_vector getSubPropertyExpressions() const override {
         expression_vector expressions;
+        for (auto& rel : queryGraphCollection->getQueryRels()) {
+            if (rel->hasInternalIDProperty()) {
+                expressions.push_back(rel->getInternalIDProperty());
+            }
+        }
         if (this->hasWhereExpression()) {
             for (auto& property : this->getWhereExpression()->getSubPropertyExpressions()) {
                 expressions.push_back(property);

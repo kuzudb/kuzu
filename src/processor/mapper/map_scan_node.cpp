@@ -13,8 +13,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
     auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
 
-    auto dataPos = mapperContext.getDataPos(node->getIDProperty());
-    mapperContext.addComputedExpressions(node->getIDProperty());
+    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
+    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
     auto sharedState = make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : node->getTableIDs()) {
         auto nodeTable = nodesStore.getNodeTable(tableID);
@@ -30,10 +30,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
     auto node = logicalIndexScan->getNode();
     auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getTableID());
-    auto dataPos = mapperContext.getDataPos(node->getIDProperty());
+    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
     auto evaluator =
         expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
-    mapperContext.addComputedExpressions(node->getIDProperty());
+    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
     return make_unique<IndexScan>(mapperContext.getResultSetDescriptor()->copy(),
         nodeTable->getTableID(), nodeTable->getPKIndex(), std::move(evaluator), dataPos,
         getOperatorID(), logicalIndexScan->getExpressionsForPrinting());

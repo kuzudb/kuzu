@@ -187,14 +187,6 @@ bool QueryGraph::isConnected(const QueryGraph& other) {
     return false;
 }
 
-vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
-    vector<shared_ptr<Expression>> result;
-    for (auto& queryNode : queryNodes) {
-        result.push_back(queryNode->getNodeIDPropertyExpression());
-    }
-    return result;
-}
-
 void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
     unique_ptr<QueryGraph> queryGraphToAdd) {
     bool isMerged = false;
@@ -209,11 +201,21 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
     }
 }
 
-expression_vector QueryGraphCollection::getNodeIDExpressions() const {
-    expression_vector result;
+vector<shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes() const {
+    vector<shared_ptr<NodeExpression>> result;
     for (auto& queryGraph : queryGraphs) {
-        for (auto& nodeID : queryGraph->getNodeIDExpressions()) {
-            result.push_back(nodeID);
+        for (auto& node : queryGraph->getQueryNodes()) {
+            result.push_back(node);
+        }
+    }
+    return result;
+}
+
+vector<shared_ptr<RelExpression>> QueryGraphCollection::getQueryRels() const {
+    vector<shared_ptr<RelExpression>> result;
+    for (auto& queryGraph : queryGraphs) {
+        for (auto& rel : queryGraph->getQueryRels()) {
+            result.push_back(rel);
         }
     }
     return result;
