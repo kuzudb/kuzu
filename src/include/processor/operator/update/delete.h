@@ -96,9 +96,9 @@ public:
 private:
     RelsStatistics& relsStatistics;
     vector<unique_ptr<DeleteRelInfo>> deleteRelInfos;
-    vector<ValueVector*> srcNodeVectors;
-    vector<ValueVector*> dstNodeVectors;
-    vector<ValueVector*> relIDVectors;
+    vector<shared_ptr<ValueVector>> srcNodeVectors;
+    vector<shared_ptr<ValueVector>> dstNodeVectors;
+    vector<shared_ptr<ValueVector>> relIDVectors;
 };
 
 } // namespace processor

@@ -69,8 +69,9 @@ void RelTable::rollbackInMemoryIfNecessary() {
 
 // This function assumes that the order of vectors in relPropertyVectorsPerRelTable as:
 // [relProp1, relProp2, ..., relPropN] and all vectors are flat.
-void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
-    shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector,
+    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     assert(srcNodeIDVector->state->isFlat());
     assert(dstNodeIDVector->state->isFlat());
     auto srcTableID =
@@ -101,6 +102,13 @@ void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
         }
     }
     listsUpdateStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
+}
+
+void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
+    assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
+           relIDVector->state->isFlat());
+    listsUpdateStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {

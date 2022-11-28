@@ -57,17 +57,10 @@ private:
         vector<DataType>& nodeIDTypes,
         const map<table_id_t, unique_ptr<PrimaryKeyIndex>>& pkIndexes, Transaction* transaction,
         const Catalog& catalog, vector<bool> requireToReadTableLabels);
-    static void putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
-        vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
-        const vector<Property>& properties,
-        unordered_map<uint32_t, unique_ptr<InMemOverflowFile>>& inMemOverflowFilePerPropertyID,
+    static void putPropsOfLineIntoColumns(InMemRelCSVCopier* copier,
         vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs);
-    static void putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
-        vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
-        vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists,
-        const vector<Property>& properties,
-        unordered_map<uint32_t, unique_ptr<InMemOverflowFile>>& inMemOverflowFilesPerProperty,
+    static void putPropsOfLineIntoLists(InMemRelCSVCopier* copier,
         vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
         const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos);
     static void copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,

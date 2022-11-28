@@ -71,18 +71,15 @@ bool CreateRel::getNextTuplesInternal() {
                        relIDVector->state->getPositionOfCurrIdx() == 0);
                 relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
                 relIDVector->setNull(0, false);
-                // TODO(Ziyi): the following two functions should be wrapped into 1 (issue #891)
-                relsStatistics.incrementNumRelsPerDirectionBoundTableByOne(
-                    createRelInfo->table->getRelTableID(), createRelInfo->srcNodeTableID,
-                    createRelInfo->dstNodeTableID);
-                relsStatistics.incrementNumRelsByOneForTable(createRelInfo->table->getRelTableID());
-
             } else {
                 createRelInfo->evaluators[j]->evaluate();
             }
         }
-        createRelInfo->table->insertRels(createRelVectors->srcNodeIDVector,
+        createRelInfo->table->insertRel(createRelVectors->srcNodeIDVector,
             createRelVectors->dstNodeIDVector, createRelVectors->propertyVectors);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            1 /* increment numRelsPerDirectionBoundTable by 1 */);
     }
     return true;
 }

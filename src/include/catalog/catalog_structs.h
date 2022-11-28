@@ -127,8 +127,8 @@ struct RelTableSchema : TableSchema {
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
-    inline uint32_t getNumPropertiesToReadFromCSV() const {
-        // -1 here is to remove the INTERNAL_ID_SUFFIX = "_id" property.
+    inline uint32_t getNumUserDefinedProperties() {
+        // Note: the first column stores the relID property.
         return properties.size() - 1;
     }
     inline bool isStoredAsLists(RelDirection relDirection) const {
@@ -153,6 +153,7 @@ struct RelTableSchema : TableSchema {
     unordered_set<table_id_t> getUniqueNbrTableIDsForBoundTableIDDirection(
         RelDirection direction, table_id_t boundTableID) const;
 
+    static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_IDX = 0;
     RelMultiplicity relMultiplicity;
     vector<Property> properties;
     vector<pair<table_id_t, table_id_t>> srcDstTableIDs;

@@ -72,6 +72,7 @@ public:
     inline bool isEmpty() { return blocks.empty(); }
     inline vector<unique_ptr<DataBlock>>& getBlocks() { return blocks; }
     inline DataBlock* getBlock(uint32_t blockIdx) { return blocks[blockIdx].get(); }
+    inline uint64_t getNumBlocks() const { return blocks.size(); }
 
     void merge(DataBlockCollection& other);
 
@@ -241,6 +242,7 @@ public:
         NullMask* nullMask, uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
         DataType type, NodeIDCompressionScheme* nodeIDCompressionScheme) const;
     void clear();
+    int64_t findValueInFlatColumn(uint64_t colIdx, int64_t value) const;
 
 private:
     static bool isNull(const uint8_t* nullMapBuffer, uint32_t idx);
@@ -292,6 +294,7 @@ private:
     static void copyOverflowIfNecessary(
         uint8_t* dst, uint8_t* src, DataType type, DiskOverflowFile* diskOverflowFile);
 
+private:
     MemoryManager* memoryManager;
     unique_ptr<FactorizedTableSchema> tableSchema;
     uint64_t numTuples;

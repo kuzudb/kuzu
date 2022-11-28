@@ -63,12 +63,8 @@ public:
     void assertNumRelsIsSound(
         unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels);
 
-    void incrementNumRelsByOneForTable(table_id_t relTableID);
-
-    // Note: This function will not update the numTuples, nextRelID fields. They should be updated
-    // separately.
-    void incrementNumRelsPerDirectionBoundTableByOne(
-        table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID);
+    void updateNumRelsByValue(
+        table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID, int64_t value);
 
     // Note: This function will not set the numTuples field. That should be called separately.
     void setNumRelsPerDirectionBoundTableID(

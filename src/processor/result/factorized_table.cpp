@@ -292,6 +292,33 @@ void FactorizedTable::copyToInMemList(uint32_t colIdx, vector<uint64_t>& tupleId
     }
 }
 
+// This function can generalized to search a value with any dataType.
+int64_t FactorizedTable::findValueInFlatColumn(uint64_t colIdx, int64_t value) const {
+    assert(tableSchema->getColumn(colIdx)->isFlat());
+    if (numTuples == 0) {
+        return -1;
+    }
+    auto tupleIdx = 0u;
+    auto numBlocks = flatTupleBlockCollection->getNumBlocks();
+    auto numBytesForCol = tableSchema->getColumn(colIdx)->getNumBytes();
+    for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
+        // If this is not the last block, the numTuplesInCurBlock must be equal to the
+        // numTuplesPerBlock. If this is the last block, the numTuplesInCurBLock equals to the
+        // numTuples % numTuplesPerBlock.
+        auto numTuplesInCurBlock =
+            blockIdx == (numBlocks - 1) ? numTuples % numTuplesPerBlock : numTuplesPerBlock;
+        auto tuplePtr = getTuple(tupleIdx);
+        for (auto i = 0u; i < numTuplesInCurBlock; i++) {
+            if (memcmp(tuplePtr + tableSchema->getColOffset(colIdx), &value, numBytesForCol) == 0) {
+                return tupleIdx;
+            }
+            tuplePtr += tableSchema->getNumBytesPerTuple();
+            tupleIdx++;
+        }
+    }
+    return -1;
+}
+
 void FactorizedTable::clear() {
     numTuples = 0;
     flatTupleBlockCollection =

@@ -20,6 +20,7 @@ struct ListUpdates {
     ListUpdates() : emptyListInPersistentStore{false} {}
     bool emptyListInPersistentStore;
     vector<uint64_t> insertedRelsTupleIdxInFT;
+    unordered_set<int64_t> deletedRelIDs;
 };
 
 using ListUpdatesPerNode = map<node_offset_t, ListUpdates>;
@@ -27,11 +28,6 @@ using ListUpdatesPerChunk = map<uint64_t, ListUpdatesPerNode>;
 
 struct InMemList;
 
-/* ListsUpdateStore stores all inserted edges in a factorizedTable in the format:
- * [srcNodeID, dstNodeID, relProp1, relProp2, ..., relPropN]. In order to efficiently find the
- * insertedEdges for a nodeTable, we introduce a mapping which stores the tupleIdxes of
- * insertedEdges for each nodeTable per direction.
- */
 class ListsUpdateStore {
 
 public:
@@ -53,6 +49,9 @@ public:
 
     bool isListEmptyInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
 
+    bool isRelDeletedInPersistentStore(
+        ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const;
+
     bool hasUpdates() const;
 
     void readInsertionsToList(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
@@ -62,9 +61,12 @@ public:
 
     // If this is a one-to-one relTable, all properties are stored in columns.
     // In this case, the listsUpdateStore should not store the insert rels in FT.
-    void insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
-        shared_ptr<ValueVector>& dstNodeIDVector,
-        vector<shared_ptr<ValueVector>>& relPropertyVectors);
+    void insertRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector,
+        const vector<shared_ptr<ValueVector>>& relPropertyVectors);
+
+    void deleteRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector);
 
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, node_offset_t nodeOffset) const;
@@ -83,20 +85,39 @@ public:
         }
     }
 
+    bool hasAnyDeletedRelsInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
+
 private:
     static inline RelNodeTableAndDir getRelNodeTableAndDirFromListFileID(ListFileID& listFileID) {
         return listFileID.listType == ListType::ADJ_LISTS ?
                    listFileID.adjListsID.relNodeTableAndDir :
                    listFileID.relPropertyListID.relNodeTableAndDir;
     }
+    inline int64_t getTupleIdxIfInsertedRel(int64_t relID) {
+        return factorizedTable->findValueInFlatColumn(INTERNAL_REL_ID_IDX_IN_FT, relID);
+    }
+
     uint32_t getColIdxInFT(ListFileID& listFileID) const;
+
     void initListUpdatesPerTablePerDirection();
 
 private:
+    /* ListsUpdateStore stores all inserted edges in a factorizedTable in the format:
+     * [srcNodeID, dstNodeID, relID, relProp1, relProp2, ..., relPropN]. In order to efficiently
+     * find the insertedEdges for a nodeTable, we introduce a mapping which stores the tupleIdxes of
+     * insertedEdges for each nodeTable per direction.
+     */
+    static constexpr uint64_t SRC_TABLE_ID_IDX_IN_FT = 0;
+    static constexpr uint64_t DST_TABLE_ID_IDX_IN_FT = 1;
+    static constexpr uint64_t INTERNAL_REL_ID_IDX_IN_FT = 2;
     unique_ptr<FactorizedTable> factorizedTable;
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
+    // Note: An empty listUpdates can exist for a nodeOffset, because we don't fix the listUpdates,
+    // listUpdatesPerNode and ListUpdatesPerChunk indices after we insert or delete a rel. For
+    // example: a user inserts 1 rel to nodeOffset1, and then deletes that rel. We will end up
+    // getting an empty listUpdates for nodeOffset1.
     vector<map<table_id_t, ListUpdatesPerChunk>> listUpdatesPerTablePerDirection;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;

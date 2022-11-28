@@ -35,15 +35,15 @@ shared_ptr<ResultSet> DeleteRel::init(ExecutionContext* context) {
         auto srcNodePos = deleteRelInfo->srcNodePos;
         auto srcNodeIDVector =
             resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
-        srcNodeVectors.push_back(srcNodeIDVector.get());
+        srcNodeVectors.push_back(srcNodeIDVector);
         auto dstNodePos = deleteRelInfo->dstNodePos;
         auto dstNodeIDVector =
             resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
-        dstNodeVectors.push_back(dstNodeIDVector.get());
+        dstNodeVectors.push_back(dstNodeIDVector);
         auto relIDPos = deleteRelInfo->relIDPos;
         auto relIDVector =
             resultSet->dataChunks[relIDPos.dataChunkPos]->valueVectors[relIDPos.valueVectorPos];
-        relIDVectors.push_back(relIDVector.get());
+        relIDVectors.push_back(relIDVector);
     }
     return resultSet;
 }
@@ -57,10 +57,10 @@ bool DeleteRel::getNextTuplesInternal() {
         auto srcNodeVector = srcNodeVectors[i];
         auto dstNodeVector = dstNodeVectors[i];
         auto relIDVector = relIDVectors[i];
-        // TODO(Ziyi): you need to update rel statistics here. Though I don't think this is best
-        // design, statistics update should be hidden inside deleteRel(). See how node create/delete
-        // works. You can discuss this with Semih and if you decide to change, change createRel too.
-        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector);
+        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
     }
     return true;
 }

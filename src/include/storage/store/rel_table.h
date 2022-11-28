@@ -53,16 +53,11 @@ public:
     void checkpointInMemoryIfNecessary();
     void rollbackInMemoryIfNecessary();
 
-    void insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
-        shared_ptr<ValueVector>& dstNodeIDVector,
-        vector<shared_ptr<ValueVector>>& relPropertyVectors);
-    // TODO(Ziyi): Let's also use raw pointer for insert interface and I think this should be a
-    // general principal when writing storage APIs. There is no good reason to give unique/shared
-    // ptr from processor to storage.
-    inline void deleteRel(ValueVector* srcNodeVector, ValueVector* dstNodeVector) {
-        assert(srcNodeVector->state->isFlat());
-        assert(dstNodeVector->state->isFlat());
-    }
+    void insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector,
+        const vector<shared_ptr<ValueVector>>& relPropertyVectors);
+    void deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector);
     void initEmptyRelsForNewNode(nodeID_t& nodeID);
 
 private:

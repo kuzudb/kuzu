@@ -43,6 +43,19 @@ bool ListsUpdateStore::isListEmptyInPersistentStore(
     return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).emptyListInPersistentStore;
 }
 
+bool ListsUpdateStore::isRelDeletedInPersistentStore(
+    ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const {
+    auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
+    auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
+        relNodeTableAndDir.srcNodeTableID);
+    auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
+    if (!listUpdatesPerChunk.contains(chunkIdx) ||
+        !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
+        return false;
+    }
+    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).deletedRelIDs.contains(relID);
+}
+
 bool ListsUpdateStore::hasUpdates() const {
     for (auto relDirection : REL_DIRECTIONS) {
         for (const auto& listUpdatesPerTable : listUpdatesPerTablePerDirection[relDirection]) {
@@ -63,8 +76,9 @@ void ListsUpdateStore::readInsertionsToList(ListFileID& listFileID, vector<uint6
         nodeIDCompressionScheme);
 }
 
-void ListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVector,
-    shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void ListsUpdateStore::insertRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector,
+    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     auto srcNodeID =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
     auto dstNodeID =
@@ -84,6 +98,46 @@ void ListsUpdateStore::insertRelIfNecessary(shared_ptr<ValueVector>& srcNodeIDVe
             listUpdatesPerTablePerDirection[direction]
                 .at(boundNodeID.tableID)[chunkIdx][boundNodeID.offset]
                 .insertedRelsTupleIdxInFT.push_back(factorizedTable->getNumTuples() - 1);
+        }
+    }
+}
+
+void ListsUpdateStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
+    auto srcNodeID =
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
+    auto dstNodeID =
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx());
+    auto relID = relIDVector->getValue<int64_t>(relIDVector->state->getPositionOfCurrIdx());
+    auto tupleIdx = getTupleIdxIfInsertedRel(relID);
+    if (tupleIdx != -1) {
+        // If the rel that we are going to delete is a newly inserted rel, we need to delete
+        // its tupleIdx from the insertedRelsTupleIdxInFT of listUpdateStore in FWD and BWD
+        // direction. Note: we don't reuse the space for inserted rel tuple in factorizedTable.
+        for (auto direction : REL_DIRECTIONS) {
+            auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
+            if (listUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+                auto& insertedRelsTupleIdxInFT =
+                    listUpdatesPerTablePerDirection[direction]
+                        .at(boundNodeID.tableID)[StorageUtils::getListChunkIdx(boundNodeID.offset)]
+                                                [boundNodeID.offset]
+                        .insertedRelsTupleIdxInFT;
+                assert(find(insertedRelsTupleIdxInFT.begin(), insertedRelsTupleIdxInFT.end(),
+                           tupleIdx) != insertedRelsTupleIdxInFT.end());
+                insertedRelsTupleIdxInFT.erase(remove(insertedRelsTupleIdxInFT.begin(),
+                                                   insertedRelsTupleIdxInFT.end(), tupleIdx),
+                    insertedRelsTupleIdxInFT.end());
+            }
+        }
+    } else {
+        for (auto direction : REL_DIRECTIONS) {
+            auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
+            auto chunkIdx = StorageUtils::getListChunkIdx(boundNodeID.offset);
+            if (listUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+                listUpdatesPerTablePerDirection[direction]
+                    .at(boundNodeID.tableID)[chunkIdx][boundNodeID.offset]
+                    .deletedRelIDs.insert(relID);
+            }
         }
     }
 }
@@ -121,9 +175,23 @@ void ListsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSyn
     valueVector->state->originalSize = numTuplesToRead;
 }
 
+bool ListsUpdateStore::hasAnyDeletedRelsInPersistentStore(
+    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
+    auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
+        relNodeTableAndDir.srcNodeTableID);
+    auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
+    if (!listUpdatesPerChunk.contains(chunkIdx) ||
+        !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
+        return false;
+    }
+    return !listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).deletedRelIDs.empty();
+}
+
 uint32_t ListsUpdateStore::getColIdxInFT(ListFileID& listFileID) const {
     if (listFileID.listType == ADJ_LISTS) {
-        return listFileID.adjListsID.relNodeTableAndDir.dir == FWD ? 1 : 0;
+        return listFileID.adjListsID.relNodeTableAndDir.dir == FWD ? DST_TABLE_ID_IDX_IN_FT :
+                                                                     SRC_TABLE_ID_IDX_IN_FT;
     } else {
         return propertyIDToColIdxMap.at(listFileID.relPropertyListID.propertyID);
     }

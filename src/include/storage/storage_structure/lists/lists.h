@@ -114,6 +114,8 @@ public:
     }
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
+    virtual inline void setDeletedRelsIfNecessary(Transaction* transaction,
+        ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector) {}
     // Prepares all the db file changes necessary to update the "persistent" store of lists with the
     // listsUpdateStore, which stores the updates by the write trx locally.
     virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
@@ -175,8 +177,8 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        ListsUpdateStore* listsUpdateStore)
+        const shared_ptr<ListHeaders>& headers, BufferManager& bufferManager, bool isInMemory,
+        WAL* wal, ListsUpdateStore* listsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
               bufferManager, isInMemory, wal, listsUpdateStore} {};
 
@@ -191,8 +193,8 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
+        const DataType& dataType, const shared_ptr<ListHeaders>& headers,
+        BufferManager& bufferManager, bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
               isInMemory, wal, listsUpdateStore} {};
 
@@ -242,10 +244,22 @@ private:
     void readFromSmallList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
     void readFromListsUpdateStore(
-        ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector);
+        ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector);
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
+};
+
+class RelIDList : public Lists {
+
+public:
+    RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
+        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
+        BufferManager& bufferManager, bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
+        : Lists{storageStructureIDAndFName, dataType, elementSize, headers, bufferManager,
+              isInMemory, wal, listsUpdateStore} {}
+    void setDeletedRelsIfNecessary(Transaction* transaction, ListSyncState& listSyncState,
+        const shared_ptr<ValueVector>& relIDVector) override;
 };
 
 class ListsFactory {
@@ -255,6 +269,12 @@ public:
         const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
         BufferManager& bufferManager, bool isInMemory, WAL* wal,
         ListsUpdateStore* listsUpdateStore) {
+        if (structureIDAndFName.storageStructureID.listFileID.relPropertyListID.propertyID ==
+            RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
+            return make_unique<RelIDList>(structureIDAndFName, dataType,
+                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal,
+                listsUpdateStore);
+        }
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:

@@ -210,6 +210,7 @@ void ListPropertyLists::readFromSmallList(
 
 void AdjLists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     auto& listSyncState = listHandle.listSyncState;
+    valueVector->state->selVector->resetSelectorToUnselected();
     if (listSyncState.getListSourceStore() == ListSourceStore::PersistentStore &&
         listSyncState.getStartElemOffset() + listSyncState.getNumValuesToRead() ==
             listSyncState.getNumValuesInList()) {
@@ -325,7 +326,7 @@ void AdjLists::readFromSmallList(
 }
 
 void AdjLists::readFromListsUpdateStore(
-    ListSyncState& listSyncState, shared_ptr<ValueVector> valueVector) {
+    ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector) {
     if (listSyncState.getStartElemOffset() + listSyncState.getNumValuesToRead() ==
             listSyncState.getNumValuesInList() ||
         !listSyncState.hasValidRangeToRead()) {
@@ -345,6 +346,32 @@ void AdjLists::readFromListsUpdateStore(
     // Note that: we always store nbr node in the second column of factorizedTable.
     listsUpdateStore->readValues(
         storageStructureIDAndFName.storageStructureID.listFileID, listSyncState, valueVector);
+}
+
+// Note: this function will always be called right after scanRelID, so we have the
+// guarantee that the relIDVector is always unselected.
+void RelIDList::setDeletedRelsIfNecessary(Transaction* transaction, ListSyncState& listSyncState,
+    const shared_ptr<ValueVector>& relIDVector) {
+    // We only need to unselect the positions for deleted rels when we are reading from the
+    // persistent store in a write transaction and the current nodeOffset has deleted rels in
+    // persistent store.
+    if (!transaction->isReadOnly() &&
+        listSyncState.getListSourceStore() != ListSourceStore::ListsUpdateStore &&
+        listsUpdateStore->hasAnyDeletedRelsInPersistentStore(
+            storageStructureIDAndFName.storageStructureID.listFileID,
+            listSyncState.getBoundNodeOffset())) {
+        relIDVector->state->selVector->resetSelectorToValuePosBuffer();
+        auto& selVector = relIDVector->state->selVector;
+        auto nextSelectedPos = 0u;
+        for (sel_t pos = 0; pos < relIDVector->state->originalSize; ++pos) {
+            if (!listsUpdateStore->isRelDeletedInPersistentStore(
+                    storageStructureIDAndFName.storageStructureID.listFileID,
+                    listSyncState.getBoundNodeOffset(), relIDVector->getValue<int64_t>(pos))) {
+                selVector->selectedPositions[nextSelectedPos++] = pos;
+            }
+        }
+        selVector->selectedSize = nextSelectedPos;
+    }
 }
 
 } // namespace storage

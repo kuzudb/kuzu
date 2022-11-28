@@ -5,6 +5,9 @@
 #include "common/file_utils.h"
 #include "gtest/gtest.h"
 #include "main/kuzu.h"
+#include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/planner.h"
 
 using namespace std;
 using namespace kuzu::main;
@@ -155,6 +158,17 @@ protected:
 
     void validateRelColumnAndListFilesExistence(
         RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence);
+
+    void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
+        auto catalog = getCatalog(*database);
+        auto statement = Parser::parseQuery(query);
+        auto parsedQuery = (RegularQuery*)statement.get();
+        auto boundQuery = Binder(*catalog).bind(*parsedQuery);
+        auto plan = Planner::getBestPlan(*catalog,
+            getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+            getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
+        ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
+    }
 
 private:
     static inline bool containsOverflowFile(DataTypeID typeID) {

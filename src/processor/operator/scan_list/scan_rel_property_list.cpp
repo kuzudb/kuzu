@@ -17,6 +17,7 @@ bool ScanRelPropertyList::getNextTuplesInternal() {
     }
     outValueVector->resetOverflowBuffer();
     lists->readValues(outValueVector, *listHandle);
+    lists->setDeletedRelsIfNecessary(transaction, listHandle->listSyncState, outValueVector);
     return true;
 }
 

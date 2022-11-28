@@ -194,7 +194,6 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
                                         .dataType;
     }
     vector<PageByteCursor> inMemOverflowFileCursors{copier->relTableSchema->getNumProperties()};
-    auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->pkIndexes,
@@ -223,10 +222,8 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
             }
             copier->directionNumRelsPerTable[relDirection].at(tableID)++;
         }
-        if (numPropertiesToRead != 0) {
-            putPropsOfLineIntoColumns(numPropertiesToRead, copier->directionTablePropertyColumns,
-                copier->relTableSchema->properties, copier->overflowFilePerPropertyID,
-                inMemOverflowFileCursors, reader, nodeIDs);
+        if (copier->relTableSchema->getNumUserDefinedProperties() != 0) {
+            putPropsOfLineIntoColumns(copier, inMemOverflowFileCursors, reader, nodeIDs);
         }
         putValueIntoColumns(copier->relTableSchema->getRelIDDefinition().propertyID,
             copier->directionTablePropertyColumns, nodeIDs, (uint8_t*)&relID);
@@ -235,13 +232,14 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
     copier->logger->debug("End: path=`{0}` blkIdx={1}", copier->csvDescription.filePath, blockId);
 }
 
-void InMemRelCSVCopier::putPropsOfLineIntoColumns(uint32_t numPropertiesToRead,
-    vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
-    const vector<Property>& properties,
-    unordered_map<uint32_t, unique_ptr<InMemOverflowFile>>& inMemOverflowFilePerPropertyID,
+void InMemRelCSVCopier::putPropsOfLineIntoColumns(InMemRelCSVCopier* copier,
     vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
     const vector<nodeID_t>& nodeIDs) {
-    for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
+    auto& properties = copier->relTableSchema->properties;
+    auto& directionTablePropertyColumns = copier->directionTablePropertyColumns;
+    auto& inMemOverflowFilePerPropertyID = copier->overflowFilePerPropertyID;
+    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
+         propertyIdx < properties.size(); propertyIdx++) {
         reader.hasNextTokenOrError();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
@@ -368,14 +366,15 @@ static void putValueIntoLists(uint64_t propertyIdx,
     }
 }
 
-void InMemRelCSVCopier::putPropsOfLineIntoLists(uint32_t numPropertiesToRead,
-    vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
-    vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists,
-    const vector<Property>& properties,
-    unordered_map<uint32_t, unique_ptr<InMemOverflowFile>>& inMemOverflowFilesPerProperty,
+void InMemRelCSVCopier::putPropsOfLineIntoLists(InMemRelCSVCopier* copier,
     vector<PageByteCursor>& inMemOverflowFileCursors, CSVReader& reader,
     const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos) {
-    for (auto propertyIdx = 0u; propertyIdx < numPropertiesToRead; propertyIdx++) {
+    auto& properties = copier->relTableSchema->properties;
+    auto& directionTablePropertyLists = copier->directionTablePropertyLists;
+    auto& directionTableAdjLists = copier->directionTableAdjLists;
+    auto& inMemOverflowFilesPerProperty = copier->overflowFilePerPropertyID;
+    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
+         propertyIdx < properties.size(); propertyIdx++) {
         reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
@@ -527,7 +526,6 @@ void InMemRelCSVCopier::populateListsTask(
                                         .dataType;
     }
     vector<PageByteCursor> inMemOverflowFileCursors(copier->relTableSchema->getNumProperties());
-    auto numPropertiesToRead = copier->relTableSchema->getNumPropertiesToReadFromCSV();
     int64_t relID = blockStartRelID;
     while (reader.hasNextLine()) {
         inferTableIDsAndOffsets(reader, nodeIDs, nodePKTypes, copier->pkIndexes,
@@ -545,11 +543,8 @@ void InMemRelCSVCopier::populateListsTask(
                     nodeOffset, reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
             }
         }
-        if (numPropertiesToRead != 0) {
-            putPropsOfLineIntoLists(numPropertiesToRead, copier->directionTablePropertyLists,
-                copier->directionTableAdjLists, copier->relTableSchema->properties,
-                copier->overflowFilePerPropertyID, inMemOverflowFileCursors, reader, nodeIDs,
-                reversePos);
+        if (copier->relTableSchema->getNumUserDefinedProperties() != 0) {
+            putPropsOfLineIntoLists(copier, inMemOverflowFileCursors, reader, nodeIDs, reversePos);
         }
         putValueIntoLists(copier->relTableSchema->getRelIDDefinition().propertyID,
             copier->directionTablePropertyLists, copier->directionTableAdjLists, nodeIDs,

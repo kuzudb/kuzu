@@ -73,11 +73,12 @@ void NodeStatisticsAndDeletedIDs::deleteNode(node_offset_t nodeOffset) {
     hasDeletedNodesPerMorsel[morselIdxAndOffset.first] = true;
 }
 
+// Note: this function will always be called right after scanNodeID, so we have the guarantee
+// that the nodeOffsetVector is always unselected.
 void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     const shared_ptr<ValueVector>& nodeOffsetVector) {
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
         nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
-
     if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
         auto deletedNodeOffsets = deletedNodeOffsetsPerMorsel[morselIdxAndOffset.first];
         uint64_t morselBeginOffset = morselIdxAndOffset.first * DEFAULT_VECTOR_CAPACITY;
