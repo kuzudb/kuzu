@@ -1,1 +1,1 @@
-COPY arrow FROM "dataset/copy-csv-arrow-node-test/random_100k_rows.parquet";
+COPY arrow FROM "dataset/copy-csv-arrow-node-test/types.csv";
