@@ -61,7 +61,8 @@ bool CSVReader::hasNextLine() {
         return true;
     }
     // file cursor is past the block limit, end the block, return false.
-    if (ftell(fd) >= readingBlockEndOffset) {
+    auto curPos = ftell(fd);
+    if (curPos >= readingBlockEndOffset) {
         isEndOfBlock = true;
         return false;
     }
@@ -69,8 +70,11 @@ bool CSVReader::hasNextLine() {
     // update the lineCapacity accordingly if the length of the line exceeds the lineCapacity.
     // We keep curPos in case the very final line does not have a \n character in which case
     // we will seek back to where we were and read it without using getLine (inside the if).
-    auto curPos = ftell(fd);
     lineLen = getline(&line, &lineCapacity, fd);
+    if (lineLen == (ssize_t)-1) {
+        isEndOfBlock = true;
+        return false;
+    }
     // Text files created on DOS/Windows machines have different line endings than files created on
     // Unix/Linux. DOS uses carriage return and line feed ("\r\n") as a line ending, which Unix uses
     // just line feed ("\n"). If the current line uses dos-style newline, we should replace the
@@ -105,7 +109,7 @@ bool CSVReader::hasNextLine() {
             line = (char*)malloc(sizeOfRemainder + 1);
         }
         fseek(fd, curPos, SEEK_SET);
-        fgets(line, sizeOfRemainder + 1, fd);
+        fgets(line, (int)sizeOfRemainder + 1, fd);
         line[sizeOfRemainder] = '\n';
         lineLen = sizeOfRemainder;
     }

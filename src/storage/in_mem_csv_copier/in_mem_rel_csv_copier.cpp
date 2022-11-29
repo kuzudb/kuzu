@@ -512,9 +512,9 @@ void InMemRelCSVCopier::populateListsTask(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     vector<bool> requireToReadTableLabels{true, true};
-    vector<nodeID_t> nodeIDs{2};
-    vector<DataType> nodePKTypes{2};
-    vector<uint64_t> reversePos{2};
+    vector<nodeID_t> nodeIDs(2);
+    vector<DataType> nodePKTypes(2);
+    vector<uint64_t> reversePos(2);
     for (auto relDirection : REL_DIRECTIONS) {
         auto nodeTableIDs =
             copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
