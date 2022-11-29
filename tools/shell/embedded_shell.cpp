@@ -6,6 +6,10 @@
 
 #include "common/logging_level_utils.h"
 #include "common/type_utils.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
+
+using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace main {
@@ -131,13 +135,35 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
 
 void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
     string buf(buffer);
+    auto bufLen = buf.length();
     ostringstream highlightBuffer;
     string word;
     vector<string> tokenList;
     if (cursorPos > maxLen) {
-        buf = buf.substr(cursorPos - maxLen, maxLen);
+        uint32_t counter = 0;
+        uint32_t thisChar = 0;
+        uint32_t lineLen = 0;
+        while (counter < cursorPos) {
+            counter += Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
+        }
+        lineLen = thisChar;
+        while (counter > cursorPos - maxLen + 1) {
+            counter -= Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
+        }
+        lineLen -= thisChar;
+        buf = buf.substr(thisChar, lineLen);
+        bufLen = buf.length();
     } else if (buf.length() > maxLen) {
-        buf = buf.substr(0, maxLen);
+        uint32_t counter = 0;
+        uint32_t lineLen = 0;
+        while (counter < maxLen) {
+            counter += Utf8Proc::renderWidth(buffer, lineLen);
+            lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
+        }
+        buf = buf.substr(0, lineLen);
+        bufLen = buf.length();
     }
     for (auto i = 0u; i < buf.length(); i++) {
         if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
