@@ -7,8 +7,9 @@ namespace processor {
 
 class Sink : public PhysicalOperator {
 public:
+    Sink(uint32_t id, const string& paramsString) : PhysicalOperator{id, paramsString} {}
     Sink(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString} {}
+        : PhysicalOperator{std::move(child), id, paramsString} {}
 
     PhysicalOperatorType getOperatorType() override = 0;
 

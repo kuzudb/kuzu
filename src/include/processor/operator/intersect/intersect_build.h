@@ -8,10 +8,9 @@ namespace processor {
 
 class IntersectSharedState : public HashJoinSharedState {
 public:
-    explicit IntersectSharedState(vector<DataType> payloadDataTypes)
-        : HashJoinSharedState{move(payloadDataTypes)} {}
+    IntersectSharedState() = default;
 
-    void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, uint64_t numKeyColumns,
+    void initEmptyHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
         unique_ptr<FactorizedTableSchema> tableSchema) override;
 };
 
@@ -30,7 +29,7 @@ public:
     }
 
 protected:
-    void initHashTable(
+    void initLocalHashTable(
         MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) override;
 };
 

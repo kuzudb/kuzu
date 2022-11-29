@@ -96,22 +96,21 @@ public:
                 false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
             strKeyColsInfo.emplace_back(
                 StrKeyColInfo(tableSchema->getColOffset(1) /* colOffsetInFT */,
-                    0 /* colOffsetInEncodedKeyBlock */, isAsc,
-                    is_same<T, string>::value /* isStrCol */));
+                    0 /* colOffsetInEncodedKeyBlock */, isAsc));
         } else if constexpr (is_same<T, string>::value) {
             // If this is a string column and has no payload column, then the
             // factorizedTable offset is just 0.
             strKeyColsInfo.emplace_back(
                 StrKeyColInfo(tableSchema->getColOffset(0) /* colOffsetInFT */,
-                    0 /* colOffsetInEncodedKeyBlock */, isAsc,
-                    is_same<T, string>::value /* isStrCol */));
+                    0 /* colOffsetInEncodedKeyBlock */, isAsc));
         }
 
         FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
         factorizedTable.append(allVectors);
 
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
-            factorizedTableIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+                numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
         orderByKeyEncoder.encodeKeys();
 
         RadixSort radixSort =
@@ -136,7 +135,7 @@ public:
             strKeyColsInfo.push_back(StrKeyColInfo(tableSchema->getColOffset(strKeyColsInfo.size()),
                 strKeyColsInfo.size() *
                     OrderByKeyEncoder::getEncodingSize(stringValueVector->dataType),
-                isAscOrder[i], true /* isStrCol */));
+                isAscOrder[i]));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->setValue(j, stringValues[i][j]);
@@ -146,8 +145,9 @@ public:
 
         FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
 
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
-            factorizedTableIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+                numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
         for (auto i = 0u; i < expectedBlockOffsetOrder.size(); i++) {
             factorizedTable.append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
@@ -382,10 +382,11 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     vector<StrKeyColInfo> strKeyColsInfo = {StrKeyColInfo(16 /* colOffsetInFT */,
         OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
             OrderByKeyEncoder::getEncodingSize(DataType(DOUBLE)),
-        true /* isAscOrder */, true /* isStrCol */)};
+        true /* isAscOrder */)};
 
-    auto orderByKeyEncoder = OrderByKeyEncoder(
-        orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx, numTuplesPerBlockInFT);
+    auto orderByKeyEncoder =
+        OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+            numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
     for (auto i = 0u; i < 5; i++) {
         orderByKeyEncoder.encodeKeys();
         factorizedTable.append(orderByVectors);

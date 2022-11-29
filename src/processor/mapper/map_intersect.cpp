@@ -29,7 +29,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         vector<DataPos> payloadsDataPos;
         auto buildDataInfo = generateBuildDataInfo(mapperContext, buildInfo->schema.get(),
             {buildInfo->key}, buildInfo->expressionsToMaterialize);
-        for (auto& dataPos : buildDataInfo.payloadsDataPos) {
+        for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
             auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                                   ->getExpressions()[dataPos.valueVectorPos];
             if (expression->getUniqueName() ==
@@ -39,7 +39,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
             payloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
             payloadsDataTypes.push_back(expression->getDataType());
         }
-        auto sharedState = make_shared<IntersectSharedState>(payloadsDataTypes);
+        auto sharedState = make_shared<IntersectSharedState>();
         sharedStates.push_back(sharedState);
         children.push_back(make_unique<IntersectBuild>(sharedState, buildDataInfo,
             std::move(buildSidePrevOperator), getOperatorID(), buildKey));

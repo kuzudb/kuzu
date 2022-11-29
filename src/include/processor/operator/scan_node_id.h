@@ -63,13 +63,12 @@ public:
     inline NodeTable* getTable() { return table; }
 
     inline void initialize(Transaction* transaction) {
-        unique_lock lck{mtx};
+        assert(maxNodeOffset == UINT64_MAX && maxMorselIdx == UINT64_MAX);
         maxNodeOffset = table->getMaxNodeOffset(transaction);
         maxMorselIdx = maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 
     inline void initSemiMask(Transaction* transaction) {
-        unique_lock lck{mtx};
         if (semiMask == nullptr) {
             semiMask =
                 make_unique<ScanNodeIDSemiMask>(table->getMaxNodeOffset(transaction), numMaskers);
@@ -77,22 +76,12 @@ public:
     }
     inline bool isSemiMaskEnabled() { return semiMask != nullptr && semiMask->isNodeMaskEnabled(); }
     inline ScanNodeIDSemiMask* getSemiMask() { return semiMask.get(); }
-    inline uint8_t getNumMaskers() {
-        unique_lock lck{mtx};
-        return numMaskers;
-    }
-    inline void incrementNumMaskers() {
-        unique_lock lck{mtx};
-        numMaskers++;
-    }
+    inline uint8_t getNumMaskers() { return numMaskers; }
+    inline void incrementNumMaskers() { numMaskers++; }
 
     pair<node_offset_t, node_offset_t> getNextRangeToRead();
 
 private:
-    // TODO(Xiyang/Guodong): we should get rid of this mutex when shared state is not being
-    // initialized repeatedly in each task.
-    mutex mtx;
-
     NodeTable* table;
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
@@ -103,7 +92,7 @@ private:
 
 class ScanNodeIDSharedState {
 public:
-    ScanNodeIDSharedState() : initialized{false}, currentStateIdx{0} {};
+    ScanNodeIDSharedState() : currentStateIdx{0} {};
 
     inline void addTableState(NodeTable* table) {
         tableStates.push_back(make_unique<ScanTableNodeIDSharedState>(table));
@@ -113,13 +102,16 @@ public:
         return tableStates[idx].get();
     }
 
-    void initialize(Transaction* transaction);
+    inline void initialize(Transaction* transaction) {
+        for (auto& tableState : tableStates) {
+            tableState->initialize(transaction);
+        }
+    }
 
     tuple<ScanTableNodeIDSharedState*, node_offset_t, node_offset_t> getNextRangeToRead();
 
 private:
     mutex mtx;
-    bool initialized;
 
     vector<unique_ptr<ScanTableNodeIDSharedState>> tableStates;
     uint32_t currentStateIdx;
@@ -149,6 +141,8 @@ public:
     }
 
 private:
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
     void setSelVector(
         ScanTableNodeIDSharedState* tableState, node_offset_t startOffset, node_offset_t endOffset);
 

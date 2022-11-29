@@ -133,20 +133,18 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
     const expression_vector& expressionsToCollect, const Schema& schema,
     unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContext) {
-    vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
+    vector<pair<DataPos, DataType>> payloadsPosAndType;
+    vector<bool> isPayloadFlat;
     for (auto& expression : expressionsToCollect) {
         auto expressionName = expression->getUniqueName();
         auto dataPos = mapperContext.getDataPos(expressionName);
         auto isFlat = schema.getGroup(expressionName)->getIsFlat();
-        valueVectorsToCollectInfo.emplace_back(dataPos, isFlat);
-    }
-    auto paramsString = string();
-    for (auto& expression : expressionsToCollect) {
-        paramsString += expression->getUniqueName() + ", ";
+        payloadsPosAndType.emplace_back(dataPos, expression->dataType);
+        isPayloadFlat.push_back(isFlat);
     }
     auto sharedState = make_shared<FTableSharedState>();
-    return make_unique<ResultCollector>(
-        valueVectorsToCollectInfo, sharedState, move(prevOperator), getOperatorID(), paramsString);
+    return make_unique<ResultCollector>(payloadsPosAndType, isPayloadFlat, sharedState,
+        std::move(prevOperator), getOperatorID(), ExpressionUtil::toString(expressionsToCollect));
 }
 
 } // namespace processor

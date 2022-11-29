@@ -6,15 +6,13 @@ namespace processor {
 shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
     PhysicalOperator::init(context);
     resultSet = populateResultSet();
-    for (auto i = 0u; i < outDataPoses.size(); i++) {
-        auto outDataPos = outDataPoses[i];
-        auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-        auto valueVector =
-            make_shared<ValueVector>(sharedState->getDataType(i), context->memoryManager);
-        outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
+    for (auto [dataPos, dataType] : outVectorPosAndTypes) {
+        auto outDataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
+        auto valueVector = make_shared<ValueVector>(dataType, context->memoryManager);
+        outDataChunk->insert(dataPos.valueVectorPos, valueVector);
         vectorsToRead.emplace_back(valueVector);
     }
-    initMergedKeyBlockScanStateIfNecessary();
+    initMergedKeyBlockScanState();
     return resultSet;
 }
 
@@ -83,7 +81,7 @@ bool OrderByScan::getNextTuplesInternal() {
     }
 }
 
-void OrderByScan::initMergedKeyBlockScanStateIfNecessary() {
+void OrderByScan::initMergedKeyBlockScanState() {
     if (sharedState->sortedKeyBlocks->empty()) {
         return;
     }

@@ -86,8 +86,9 @@ public:
         factorizedTable->append(allVectors);
 
         vector<bool> isAscOrder = {isAsc};
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
-            factorizedTableIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+                numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
         orderByKeyEncoder.encodeKeys();
 
         factorizedTables.emplace_back(std::move(factorizedTable));
@@ -110,12 +111,11 @@ public:
 
         vector<StrKeyColInfo> strKeyColsInfo;
         if (hasPayLoadCol) {
-            strKeyColsInfo.emplace_back(StrKeyColInfo(8 /* colOffsetInFT */,
-                0 /* colOffsetInEncodedKeyBlock */, isAsc, true /* isStrCol */));
+            strKeyColsInfo.emplace_back(
+                StrKeyColInfo(8 /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */, isAsc));
         } else if constexpr (is_same<T, string>::value) {
             strKeyColsInfo.emplace_back(
-                StrKeyColInfo(0 /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
-                    is_same<T, string>::value /* isStrCol */));
+                StrKeyColInfo(0 /* colOffsetInFT */, 0 /* colOffsetInEncodedKeyBlock */, isAsc));
         }
 
         KeyBlockMerger keyBlockMerger = KeyBlockMerger(
@@ -148,8 +148,9 @@ public:
         }
 
         vector<bool> isAscOrder(orderByVectors.size(), true);
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
-            factorizedTableIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+                numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
 
         auto factorizedTable =
             make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
@@ -253,7 +254,7 @@ public:
                 StrKeyColInfo(tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
                     Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
                         Types::getDataTypeSize(TIMESTAMP) + 3,
-                    true /* isAscOrder */, true /* isStrCol */));
+                    true /* isAscOrder */));
             expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
@@ -311,8 +312,9 @@ public:
             make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
 
         vector<bool> isAscOrder(strValues.size(), true);
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(),
-            factorizedTableIdx, numTuplesPerBlockInFT);
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
+                numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
 
         for (auto i = 0u; i < strValues[0].size(); i++) {
             factorizedTable->append(allVectors);
@@ -466,13 +468,11 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
 
     vector<StrKeyColInfo> strKeyColsInfo = {
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(0 /* colIdx */),
-            0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */, true /* isStrCol */),
+            0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */),
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(1 /* colIdx */),
-            orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */,
-            true /* isStrCol */),
+            orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */),
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(3 /* colIdx */),
-            orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */,
-            true /* isStrCol */)};
+            orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */)};
 
     KeyBlockMerger keyBlockMerger =
         KeyBlockMerger(factorizedTables, strKeyColsInfo, orderByKeyEncoder1.getNumBytesPerTuple());

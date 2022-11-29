@@ -47,7 +47,8 @@ class OrderByKeyEncoder {
 
 public:
     OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors, vector<bool>& isAscOrder,
-        MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT);
+        MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT,
+        uint32_t numBytesPerTuple);
 
     inline vector<shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
 
@@ -78,6 +79,8 @@ public:
     static inline bool isLongStr(const uint8_t* strBuffer, bool isAsc) {
         return *(strBuffer + 13) == (isAsc ? UINT8_MAX : 0);
     }
+
+    static uint32_t getNumBytesPerTuple(const vector<shared_ptr<ValueVector>>& keyVectors);
 
     static uint32_t getEncodingSize(const DataType& dataType);
 

@@ -20,41 +20,41 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    explicit HashJoinSharedState(vector<DataType> payloadDataTypes)
-        : payloadDataTypes{move(payloadDataTypes)} {}
+    HashJoinSharedState() = default;
 
     virtual ~HashJoinSharedState() = default;
 
-    virtual void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, uint64_t numKeyColumns,
+    virtual void initEmptyHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
         unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
 
     inline JoinHashTable* getHashTable() { return hashTable.get(); }
 
-    inline vector<DataType> getPayloadDataTypes() { return payloadDataTypes; }
-
 protected:
-    mutex hashJoinSharedStateMutex;
+    mutex mtx;
     unique_ptr<JoinHashTable> hashTable;
-    vector<DataType> payloadDataTypes;
 };
 
 struct BuildDataInfo {
-
 public:
-    BuildDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsDataPos,
-        vector<bool> isPayloadsFlat, vector<bool> isPayloadsInKeyChunk)
-        : keysDataPos{std::move(keysDataPos)}, payloadsDataPos{std::move(payloadsDataPos)},
-          isPayloadsFlat{move(isPayloadsFlat)}, isPayloadsInKeyChunk{move(isPayloadsInKeyChunk)} {}
+    BuildDataInfo(vector<pair<DataPos, DataType>> keysPosAndType,
+        vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadsFlat,
+        vector<bool> isPayloadsInKeyChunk)
+        : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
+                                                         payloadsPosAndType)},
+          isPayloadsFlat{std::move(isPayloadsFlat)}, isPayloadsInKeyChunk{
+                                                         std::move(isPayloadsInKeyChunk)} {}
 
     BuildDataInfo(const BuildDataInfo& other)
-        : BuildDataInfo{other.keysDataPos, other.payloadsDataPos, other.isPayloadsFlat,
+        : BuildDataInfo{other.keysPosAndType, other.payloadsPosAndType, other.isPayloadsFlat,
               other.isPayloadsInKeyChunk} {}
 
+    inline uint32_t getNumKeys() const { return keysPosAndType.size(); }
+
 public:
-    vector<DataPos> keysDataPos;
-    vector<DataPos> payloadsDataPos;
+    vector<pair<DataPos, DataType>> keysPosAndType;
+    vector<pair<DataPos, DataType>> payloadsPosAndType;
     vector<bool> isPayloadsFlat;
     vector<bool> isPayloadsInKeyChunk;
 };
@@ -63,8 +63,8 @@ class HashJoinBuild : public Sink {
 public:
     HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, sharedState{move(sharedState)}, buildDataInfo{
-                                                                                   buildDataInfo} {}
+        : Sink{std::move(child), id, paramsString}, sharedState{std::move(sharedState)},
+          buildDataInfo{buildDataInfo} {}
     ~HashJoinBuild() override = default;
 
     inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
@@ -80,7 +80,11 @@ public:
     }
 
 protected:
-    virtual void initHashTable(
+    // TODO(Guodong/Xiyang): construct schema in mapper.
+    unique_ptr<FactorizedTableSchema> populateTableSchema();
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+    virtual void initLocalHashTable(
         MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
     inline void appendVectors() { hashTable->append(vectorsToAppend); }
 

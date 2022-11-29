@@ -9,16 +9,15 @@ namespace kuzu {
 namespace processor {
 
 class ProcessorTask : public Task {
-
 public:
-    ProcessorTask(Sink* sinkOp, ExecutionContext* executionContext)
-        : Task{executionContext->numThreads}, sinkOp{sinkOp}, executionContext{executionContext} {}
+    ProcessorTask(Sink* sink, ExecutionContext* executionContext)
+        : Task{executionContext->numThreads}, sink{sink}, executionContext{executionContext} {}
 
     void run() override;
     void finalizeIfNecessary() override;
 
 private:
-    Sink* sinkOp;
+    Sink* sink;
     ExecutionContext* executionContext;
 };
 

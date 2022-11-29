@@ -27,21 +27,23 @@ struct ProbeState {
 };
 
 struct ProbeDataInfo {
-
 public:
-    ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutputDataPos)
+    ProbeDataInfo(
+        vector<DataPos> keysDataPos, vector<pair<DataPos, DataType>> payloadsOutPosAndType)
         : keysDataPos{std::move(keysDataPos)},
-          payloadsOutputDataPos{std::move(payloadsOutputDataPos)}, markDataPos{
+          payloadsOutPosAndType{std::move(payloadsOutPosAndType)}, markDataPos{
                                                                        UINT32_MAX, UINT32_MAX} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keysDataPos, other.payloadsOutputDataPos} {
+        : ProbeDataInfo{other.keysDataPos, other.payloadsOutPosAndType} {
         markDataPos = other.markDataPos;
     }
 
+    inline uint32_t getNumPayloads() const { return payloadsOutPosAndType.size(); }
+
 public:
     vector<DataPos> keysDataPos;
-    vector<DataPos> payloadsOutputDataPos;
+    vector<pair<DataPos, DataType>> payloadsOutPosAndType;
     DataPos markDataPos;
 };
 
