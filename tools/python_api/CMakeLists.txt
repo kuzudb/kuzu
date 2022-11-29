@@ -3,23 +3,6 @@ project(_kuzu)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-
-FetchContent_Declare(
-        pybind11_sources
-        GIT_REPOSITORY https://github.com/pybind/pybind11.git
-        GIT_TAG v2.2
-)
-FetchContent_GetProperties(pybind11_sources)
-
-if(NOT pybind11_sources_POPULATED)
-    FetchContent_Populate(pybind11_sources)
-    add_subdirectory(
-            ${pybind11_sources_SOURCE_DIR}
-            ${pybind11_sources_BINARY_DIR}
-    )
-endif()
-
 pybind11_add_module(_kuzu
         SHARED
         kuzu_binding.cpp

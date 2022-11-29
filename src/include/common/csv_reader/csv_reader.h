@@ -6,8 +6,6 @@
 #include "common/types/literal.h"
 #include "common/types/types_include.h"
 
-using namespace std;
-
 namespace spdlog {
 class logger;
 }
