@@ -1,1 +1,1 @@
-create node table arrow (id INT64, feature1 INT64, feature2 INT64, feature3 INT64, feature4 INT64, feature5 INT64, feature6 INT64, feature7 INT64, feature8 INT64, feature9 INT64, PRIMARY KEY (id));
+create node table arrow (id INT64, feature1 INT64, feature2 DOUBLE, feature3 BOOLEAN, feature4 DATE, feature5 TIMESTAMP, feature6 STRING, feature7 INTERVAL, feature8 INT64[][], PRIMARY KEY (id));
