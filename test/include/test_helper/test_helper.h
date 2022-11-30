@@ -60,6 +60,9 @@ public:
     void SetUp() override {
         systemConfig =
             make_unique<SystemConfig>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        if (FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
+            FileUtils::removeDir(TestHelper::getTmpTestDir());
+        }
         databaseConfig = make_unique<DatabaseConfig>(TestHelper::getTmpTestDir());
     }
 

@@ -470,7 +470,7 @@ public:
         auto createClause = "CREATE (a)-[e:knows {length:" + length + ",place:'" + place +
                             "',tag:" + tag + "}]->(b)";
         string query = matchClause + createClause;
-        assert(conn->query(query));
+        ASSERT_TRUE(conn->query(query)->isSuccess());
     }
 
     vector<string> readAllKnowsProperty(Connection* connection, const string& srcLabel,

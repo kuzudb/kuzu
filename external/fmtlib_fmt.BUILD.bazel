@@ -1,9 +1,0 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
-
-cc_library(
-    name = "fmtlib_fmt",
-    hdrs = glob(["**/*.h"]),
-    srcs = glob(["src/*.cc"]),
-    visibility = ["//visibility:public"],
-    copts = ["-Iexternal/fmtlib_fmt/include"],
-)

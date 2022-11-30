@@ -92,9 +92,9 @@ TEST_F(TinySnbReadTest, Unwind) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/unwind/unwind.test"));
 }
 
-// TEST_F(TinySnbReadTest, VarLengthExtendTests) {
-//    runTest(TestHelper::appendKuzuRootPath(
-//        "test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test"));
-//    runTest(TestHelper::appendKuzuRootPath(
-//        "test/test_files/tinySNB/var_length_extend/var_length_column_extend.test"));
-//}
+TEST_F(TinySnbReadTest, VarLengthExtendTests) {
+    runTest(TestHelper::appendKuzuRootPath(
+        "test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test"));
+    runTest(TestHelper::appendKuzuRootPath(
+        "test/test_files/tinySNB/var_length_extend/var_length_column_extend.test"));
+}
