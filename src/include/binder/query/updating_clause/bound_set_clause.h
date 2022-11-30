@@ -9,7 +9,6 @@ class BoundSetClause : public BoundUpdatingClause {
 
 public:
     BoundSetClause() : BoundUpdatingClause{ClauseType::SET} {};
-    ~BoundSetClause() override = default;
 
     inline void addSetItem(expression_pair setItem) { setItems.push_back(std::move(setItem)); }
 

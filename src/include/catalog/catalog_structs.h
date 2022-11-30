@@ -26,6 +26,7 @@ struct PropertyNameDataType {
     }
     PropertyNameDataType(string name, DataType dataType)
         : name{std::move(name)}, dataType{std::move(dataType)} {};
+    virtual ~PropertyNameDataType() = default;
 
     string name;
     DataType dataType;
@@ -59,6 +60,8 @@ struct TableSchema {
 public:
     TableSchema(string tableName, table_id_t tableID, bool isNodeTable)
         : tableName{move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable} {}
+
+    virtual ~TableSchema() = default;
 
     static inline bool isReservedPropertyName(const string& propertyName) {
         return propertyName == INTERNAL_ID_SUFFIX;

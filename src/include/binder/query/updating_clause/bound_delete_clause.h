@@ -26,7 +26,6 @@ private:
 class BoundDeleteClause : public BoundUpdatingClause {
 public:
     BoundDeleteClause() : BoundUpdatingClause{ClauseType::DELETE} {};
-    ~BoundDeleteClause() override = default;
 
     inline void addDeleteNode(unique_ptr<BoundDeleteNode> deleteNode) {
         deleteNodes.push_back(std::move(deleteNode));

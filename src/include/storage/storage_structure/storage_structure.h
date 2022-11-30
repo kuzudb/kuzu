@@ -34,6 +34,8 @@ public:
         }
     }
 
+    virtual ~StorageStructure() = default;
+
     inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
 
 protected:
@@ -63,7 +65,11 @@ protected:
 class BaseColumnOrList : public StorageStructure {
 
 public:
-    DataTypeID getDataTypeId() const { return dataType.typeID; }
+    ~BaseColumnOrList() override {
+        if (isInMemory_) {
+            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
+        }
+    }
 
     // Maps the position of element in page to its byte offset in page.
     // TODO(Everyone): we should slowly get rid of this function.
@@ -75,12 +81,6 @@ protected:
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal);
-
-    virtual ~BaseColumnOrList() {
-        if (isInMemory_) {
-            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
-        }
-    }
 
     void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         PageElementCursor& cursor,
