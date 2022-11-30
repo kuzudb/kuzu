@@ -41,8 +41,8 @@ node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     node_offset_t retVal = *nodeOffsetIter;
     iter->second.erase(nodeOffsetIter);
     if (iter->second.empty()) {
-        deletedNodeOffsetsPerMorsel.erase(iter);
         hasDeletedNodesPerMorsel[iter->first] = false;
+        deletedNodeOffsetsPerMorsel.erase(iter);
     }
     return retVal;
 }

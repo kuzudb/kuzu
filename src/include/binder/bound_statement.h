@@ -12,6 +12,8 @@ class BoundStatement {
 public:
     explicit BoundStatement(StatementType statementType) : statementType{statementType} {}
 
+    virtual ~BoundStatement() = default;
+
     inline StatementType getStatementType() const { return statementType; }
 
 private:

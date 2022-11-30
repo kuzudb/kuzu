@@ -11,6 +11,8 @@ class Statement {
 public:
     explicit Statement(StatementType statementType) : statementType{statementType} {}
 
+    virtual ~Statement() = default;
+
     inline StatementType getStatementType() const { return statementType; }
 
 private:
