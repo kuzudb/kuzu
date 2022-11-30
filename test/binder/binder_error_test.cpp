@@ -31,13 +31,6 @@ TEST_F(BinderErrorTest, NodeTableNotExist) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, NodeRelNotConnect) {
-    string expectedException =
-        "Binder exception: Node table person doesn't connect to person through rel table workAt.";
-    auto input = "MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, RepeatedRelName) {
     string expectedException =
         "Binder exception: Bind relationship e1 to relationship with same name is not supported.";
@@ -98,13 +91,13 @@ TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist) {
-    string expectedException = "Binder exception: Cannot find property foo under node a";
+    string expectedException = "Binder exception: Cannot find property foo for a.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist2) {
-    string expectedException = "Binder exception: Cannot find property foo under node a";
+    string expectedException = "Binder exception: Cannot find property foo for a.";
     auto input = "Create (a:person {foo:'x'});";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

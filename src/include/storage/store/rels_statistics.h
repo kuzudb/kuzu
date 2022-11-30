@@ -20,6 +20,9 @@ public:
 
     inline uint64_t getNumRelsForDirectionBoundTable(
         RelDirection relDirection, table_id_t boundNodeTableID) const {
+        if (!numRelsPerDirectionBoundTable[relDirection].contains(boundNodeTableID)) {
+            return 0;
+        }
         return numRelsPerDirectionBoundTable[relDirection].at(boundNodeTableID);
     }
 

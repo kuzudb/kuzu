@@ -41,7 +41,7 @@ private:
     shared_ptr<Expression> bindRelPropertyExpression(
         shared_ptr<Expression> rel, const string& propertyName);
     shared_ptr<Expression> bindRelPropertyExpression(
-        shared_ptr<Expression> rel, const Property& property);
+        shared_ptr<Expression> rel, const vector<Property>& property);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindScalarFunctionExpression(

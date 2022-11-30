@@ -1,0 +1,4 @@
+-NAME MultiLabelSubqueryTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows|:mixed]->(b:organisation) } RETURN COUNT(*)
+---- 1
+3

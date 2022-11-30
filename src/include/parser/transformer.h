@@ -86,6 +86,10 @@ private:
     vector<pair<string, unique_ptr<ParsedExpression>>> transformProperties(
         CypherParser::KU_PropertiesContext& ctx);
 
+    vector<string> transformRelTypes(CypherParser::OC_RelationshipTypesContext& ctx);
+
+    vector<string> transformNodeLabels(CypherParser::OC_NodeLabelsContext& ctx);
+
     string transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx);
 
     string transformLabelName(CypherParser::OC_LabelNameContext& ctx);

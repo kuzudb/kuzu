@@ -398,6 +398,9 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
 
 void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
     RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
+    if (rel.getNumTableIDs() > 1) {
+        return;
+    }
     auto schema = plan.getSchema();
     if (schema->isExpressionInScope(*expression)) {
         return;

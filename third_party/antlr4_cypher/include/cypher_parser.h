@@ -50,24 +50,24 @@ public:
     RuleOC_SortItem = 44, RuleOC_Where = 45, RuleOC_Pattern = 46, RuleOC_PatternPart = 47, 
     RuleOC_AnonymousPatternPart = 48, RuleOC_PatternElement = 49, RuleOC_NodePattern = 50, 
     RuleOC_PatternElementChain = 51, RuleOC_RelationshipPattern = 52, RuleOC_RelationshipDetail = 53, 
-    RuleKU_Properties = 54, RuleOC_NodeLabels = 55, RuleOC_NodeLabel = 56, 
-    RuleOC_RangeLiteral = 57, RuleOC_LabelName = 58, RuleOC_RelTypeName = 59, 
-    RuleOC_Expression = 60, RuleOC_OrExpression = 61, RuleOC_XorExpression = 62, 
-    RuleOC_AndExpression = 63, RuleOC_NotExpression = 64, RuleOC_ComparisonExpression = 65, 
-    RuleKU_ComparisonOperator = 66, RuleOC_AddOrSubtractExpression = 67, 
-    RuleKU_AddOrSubtractOperator = 68, RuleOC_MultiplyDivideModuloExpression = 69, 
-    RuleKU_MultiplyDivideModuloOperator = 70, RuleOC_PowerOfExpression = 71, 
-    RuleOC_UnaryAddOrSubtractExpression = 72, RuleOC_StringListNullOperatorExpression = 73, 
-    RuleOC_ListOperatorExpression = 74, RuleKU_ListExtractOperatorExpression = 75, 
-    RuleKU_ListSliceOperatorExpression = 76, RuleOC_StringOperatorExpression = 77, 
-    RuleOC_NullOperatorExpression = 78, RuleOC_PropertyOrLabelsExpression = 79, 
-    RuleOC_Atom = 80, RuleOC_Literal = 81, RuleOC_BooleanLiteral = 82, RuleOC_ListLiteral = 83, 
-    RuleOC_ParenthesizedExpression = 84, RuleOC_FunctionInvocation = 85, 
-    RuleOC_FunctionName = 86, RuleOC_ExistentialSubquery = 87, RuleOC_PropertyLookup = 88, 
-    RuleOC_Variable = 89, RuleOC_NumberLiteral = 90, RuleOC_Parameter = 91, 
-    RuleOC_PropertyExpression = 92, RuleOC_PropertyKeyName = 93, RuleOC_IntegerLiteral = 94, 
-    RuleOC_DoubleLiteral = 95, RuleOC_SchemaName = 96, RuleOC_SymbolicName = 97, 
-    RuleOC_LeftArrowHead = 98, RuleOC_RightArrowHead = 99, RuleOC_Dash = 100
+    RuleKU_Properties = 54, RuleOC_RelationshipTypes = 55, RuleOC_NodeLabels = 56, 
+    RuleOC_NodeLabel = 57, RuleOC_RangeLiteral = 58, RuleOC_LabelName = 59, 
+    RuleOC_RelTypeName = 60, RuleOC_Expression = 61, RuleOC_OrExpression = 62, 
+    RuleOC_XorExpression = 63, RuleOC_AndExpression = 64, RuleOC_NotExpression = 65, 
+    RuleOC_ComparisonExpression = 66, RuleKU_ComparisonOperator = 67, RuleOC_AddOrSubtractExpression = 68, 
+    RuleKU_AddOrSubtractOperator = 69, RuleOC_MultiplyDivideModuloExpression = 70, 
+    RuleKU_MultiplyDivideModuloOperator = 71, RuleOC_PowerOfExpression = 72, 
+    RuleOC_UnaryAddOrSubtractExpression = 73, RuleOC_StringListNullOperatorExpression = 74, 
+    RuleOC_ListOperatorExpression = 75, RuleKU_ListExtractOperatorExpression = 76, 
+    RuleKU_ListSliceOperatorExpression = 77, RuleOC_StringOperatorExpression = 78, 
+    RuleOC_NullOperatorExpression = 79, RuleOC_PropertyOrLabelsExpression = 80, 
+    RuleOC_Atom = 81, RuleOC_Literal = 82, RuleOC_BooleanLiteral = 83, RuleOC_ListLiteral = 84, 
+    RuleOC_ParenthesizedExpression = 85, RuleOC_FunctionInvocation = 86, 
+    RuleOC_FunctionName = 87, RuleOC_ExistentialSubquery = 88, RuleOC_PropertyLookup = 89, 
+    RuleOC_Variable = 90, RuleOC_NumberLiteral = 91, RuleOC_Parameter = 92, 
+    RuleOC_PropertyExpression = 93, RuleOC_PropertyKeyName = 94, RuleOC_IntegerLiteral = 95, 
+    RuleOC_DoubleLiteral = 96, RuleOC_SchemaName = 97, RuleOC_SymbolicName = 98, 
+    RuleOC_LeftArrowHead = 99, RuleOC_RightArrowHead = 100, RuleOC_Dash = 101
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -135,6 +135,7 @@ public:
   class OC_RelationshipPatternContext;
   class OC_RelationshipDetailContext;
   class KU_PropertiesContext;
+  class OC_RelationshipTypesContext;
   class OC_NodeLabelsContext;
   class OC_NodeLabelContext;
   class OC_RangeLiteralContext;
@@ -941,7 +942,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_VariableContext *oC_Variable();
-    OC_RelTypeNameContext *oC_RelTypeName();
+    OC_RelationshipTypesContext *oC_RelationshipTypes();
     OC_RangeLiteralContext *oC_RangeLiteral();
     KU_PropertiesContext *kU_Properties();
 
@@ -965,6 +966,20 @@ public:
   };
 
   KU_PropertiesContext* kU_Properties();
+
+  class  OC_RelationshipTypesContext : public antlr4::ParserRuleContext {
+  public:
+    OC_RelationshipTypesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<OC_RelTypeNameContext *> oC_RelTypeName();
+    OC_RelTypeNameContext* oC_RelTypeName(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  OC_RelationshipTypesContext* oC_RelationshipTypes();
 
   class  OC_NodeLabelsContext : public antlr4::ParserRuleContext {
   public:
@@ -1023,7 +1038,6 @@ public:
     OC_RelTypeNameContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_SchemaNameContext *oC_SchemaName();
-    antlr4::tree::TerminalNode *SP();
 
    
   };

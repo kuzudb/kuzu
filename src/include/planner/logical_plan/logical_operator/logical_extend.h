@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
-#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 
 namespace kuzu {
 namespace planner {
@@ -10,11 +10,11 @@ using namespace kuzu::binder;
 class LogicalExtend : public LogicalOperator {
 public:
     LogicalExtend(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
-        table_id_t relTableID, RelDirection direction, bool isColumn, uint8_t lowerBound,
-        uint8_t upperBound, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, boundNode{move(boundNode)}, nbrNode{move(nbrNode)},
-          relTableID{relTableID}, direction{direction}, isColumn{isColumn}, lowerBound{lowerBound},
-          upperBound{upperBound} {}
+        shared_ptr<RelExpression> rel, RelDirection direction, bool extendToNewGroup,
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{std::move(child)}, boundNode{std::move(boundNode)}, nbrNode{std::move(
+                                                                                  nbrNode)},
+          rel{std::move(rel)}, direction{direction}, extendToNewGroup{extendToNewGroup} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_EXTEND;
@@ -28,7 +28,7 @@ public:
     inline void computeSchema(Schema& schema) {
         auto boundGroupPos = schema.getGroupPos(boundNode->getInternalIDPropertyName());
         uint32_t nbrGroupPos = 0u;
-        if (isColumn) {
+        if (!extendToNewGroup) {
             nbrGroupPos = boundGroupPos;
         } else {
             assert(schema.getGroup(boundGroupPos)->getIsFlat());
@@ -37,27 +37,23 @@ public:
         schema.insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
     }
 
-    inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNode; }
-    inline shared_ptr<NodeExpression> getNbrNodeExpression() const { return nbrNode; }
-    inline table_id_t getRelTableID() const { return relTableID; }
+    inline shared_ptr<NodeExpression> getBoundNode() const { return boundNode; }
+    inline shared_ptr<NodeExpression> getNbrNode() const { return nbrNode; }
+    inline shared_ptr<RelExpression> getRel() const { return rel; }
     inline RelDirection getDirection() const { return direction; }
-    inline bool getIsColumn() const { return isColumn; }
-    inline uint8_t getLowerBound() const { return lowerBound; }
-    inline uint8_t getUpperBound() const { return upperBound; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExtend>(boundNode, nbrNode, relTableID, direction, isColumn,
-            lowerBound, upperBound, children[0]->copy());
+        return make_unique<LogicalExtend>(
+            boundNode, nbrNode, rel, direction, extendToNewGroup, children[0]->copy());
     }
 
 private:
     shared_ptr<NodeExpression> boundNode;
     shared_ptr<NodeExpression> nbrNode;
-    table_id_t relTableID;
+    shared_ptr<RelExpression> rel;
     RelDirection direction;
-    bool isColumn;
-    uint8_t lowerBound;
-    uint8_t upperBound;
+    // When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
+    bool extendToNewGroup;
 };
 
 } // namespace planner

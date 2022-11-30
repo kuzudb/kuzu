@@ -102,7 +102,7 @@ void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, string& e
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, string& encodeString) {
     auto logicalExtend = (LogicalExtend*)logicalOperator;
-    encodeString += "E(" + logicalExtend->getNbrNodeExpression()->getRawName() + ")";
+    encodeString += "E(" + logicalExtend->getNbrNode()->getRawName() + ")";
 }
 
 void LogicalPlanUtil::encodeScanNodeID(LogicalOperator* logicalOperator, string& encodeString) {

@@ -1,0 +1,5 @@
+-NAME MultiLabelAggTest
+-QUERY MATCH (a:person)-[e:marries|:mixed]->(b:person)-[:knows|:mixed]->(c:person) WHERE b.ID >= 7 RETURN b.ID, COUNT(*), SUM(a.ID + c.ID)
+---- 2
+7|3|29
+8|1|10

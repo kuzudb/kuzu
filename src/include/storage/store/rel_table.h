@@ -31,8 +31,14 @@ public:
         RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
         return propertyLists[relDirection].at(tableID)[propertyIdx].get();
     }
+    inline bool hasAdjColumn(RelDirection relDirection, table_id_t boundNodeTableID) {
+        return adjColumns[relDirection].contains(boundNodeTableID);
+    }
     inline AdjColumn* getAdjColumn(RelDirection relDirection, table_id_t tableID) {
         return adjColumns[relDirection].at(tableID).get();
+    }
+    inline bool hasAdjList(RelDirection relDirection, table_id_t boundNodeTableID) {
+        return adjLists[relDirection].contains(boundNodeTableID);
     }
     inline AdjLists* getAdjLists(RelDirection relDirection, table_id_t tableID) {
         return adjLists[relDirection].at(tableID).get();

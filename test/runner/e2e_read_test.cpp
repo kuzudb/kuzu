@@ -25,6 +25,7 @@ TEST_F(TinySnbReadTest, MatchExecute) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/three_hop.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/four_hop.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Filter) {
@@ -34,6 +35,7 @@ TEST_F(TinySnbReadTest, Filter) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/four_hop.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/five_hop.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Function) {
@@ -52,10 +54,12 @@ TEST_F(TinySnbReadTest, Agg) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/hash.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/distinct_agg.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Cyclic) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/cyclic/cyclic.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/cyclic/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Projection) {
@@ -67,11 +71,14 @@ TEST_F(TinySnbReadTest, Projection) {
 
 TEST_F(TinySnbReadTest, Subquery) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/subquery/exists.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/subquery/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, OptionalMatch) {
     runTest(TestHelper::appendKuzuRootPath(
         "test/test_files/tinySNB/optional_match/optional_match.test"));
+    runTest(
+        TestHelper::appendKuzuRootPath("test/test_files/tinySNB/optional_match/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, OrderBy) {

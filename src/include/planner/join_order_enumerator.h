@@ -108,6 +108,9 @@ private:
     void appendIndexScanNode(shared_ptr<NodeExpression>& node,
         shared_ptr<Expression> indexExpression, LogicalPlan& plan);
 
+    bool needFlatInput(RelExpression& rel, NodeExpression& boundNode, RelDirection direction);
+    bool needExtendToNewGroup(
+        RelExpression& rel, NodeExpression& boundNode, RelDirection direction);
     void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
 
     static void planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
@@ -124,7 +127,7 @@ private:
 
     expression_vector getPropertiesForVariable(Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
-        table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection);
+        const RelExpression& rel, const NodeExpression& boundNode, RelDirection direction);
 
     static expression_vector getNewlyMatchedExpressions(const SubqueryGraph& prevSubgraph,
         const SubqueryGraph& newSubgraph, const expression_vector& expressions) {
