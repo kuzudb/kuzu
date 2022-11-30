@@ -90,6 +90,6 @@ http_archive(
 
 new_local_repository(
     name = "arrow",
-    path = "/opt/homebrew/Cellar/apache-arrow/10.0.0/",
+    path = "/opt/homebrew/Cellar/apache-arrow/10.0.1/",
     build_file = "external/arrow.BUILD.bazel",
 )

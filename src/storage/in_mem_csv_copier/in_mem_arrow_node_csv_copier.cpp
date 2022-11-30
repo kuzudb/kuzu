@@ -268,6 +268,9 @@ namespace storage {
         // type 0: csv file
         // type 1: arrow file
         // type 2: parquet file
+        std::string CSV_SUFFIX = ".csv";
+        std::string ARROW_SUFFIX = ".arrow";
+        std::string PARQUET_SUFFIX = ".parquet";
 
         if (fileName.length() >= CSV_SUFFIX.length()) {
             if (!fileName.compare(
