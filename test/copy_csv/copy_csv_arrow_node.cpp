@@ -27,6 +27,57 @@ public:
         return true;
     }
 
+    void checkElement(DataType type, string& element, Literal cell) {
+        switch (type.typeID) {
+            case INT64: {
+                EXPECT_EQ(stoll(element), cell.val.int64Val);
+            }
+                break;
+            case DOUBLE: {
+                EXPECT_EQ(stod(element), cell.val.doubleVal);
+            }
+                break;
+            case BOOL: {
+                element[0] = toupper(element[0]);
+                EXPECT_EQ(element, TypeUtils::toString(cell));
+            }
+                break;
+            case STRING: {
+                EXPECT_EQ(element, cell.strVal);
+            }
+                break;
+            case DATE: {
+                vector<string> splitDate = CopyCSVArrowNodeTest::splitStr(element, "-");
+                auto d = Date::FromDate(stoi(splitDate[0]), stoi(splitDate[1]), stoi(splitDate[2]));
+                EXPECT_EQ(d, cell.val.dateVal);
+            }
+                break;
+            case TIMESTAMP: {
+                int pos = element.find(' ');
+                string  date = element.substr(0, pos);
+                string time = element.substr(pos + 1);
+                vector<string> splitDate = CopyCSVArrowNodeTest::splitStr(date, "-");
+                auto d = Date::FromDate(stoi(splitDate[0]), stoi(splitDate[1]), stoi(splitDate[2]));
+
+                vector<string> splitTime = CopyCSVArrowNodeTest::splitStr(time, ":");
+                auto t = Time::FromTime( stoi(splitTime[0]), stoi(splitTime[1]), stoi(splitTime[2]));
+                EXPECT_EQ(Timestamp::FromDatetime(d, t), cell.val.timestampVal);
+            }
+                break;
+            case INTERVAL: {
+                EXPECT_EQ(element, Interval::toString(cell.val.intervalVal));
+            }
+                break;
+            case LIST: {
+
+            }
+                break;
+            default:
+                break;
+        }
+    }
+
+
     static vector<string> splitStr(string& s, string delimiter) {
         size_t pos = 0;
         std::string token;
@@ -86,9 +137,8 @@ TEST_F(CopyCSVArrowNodeTest, ArrowCSVTest) {
         lines.emplace_back(line);
     }
 
-    for (int j = 0; j < 5; j++) {
+    for (int j = 0; j < lines.size(); j++) {
         vector<string> split = CopyCSVArrowNodeTest::splitStr(lines[j], ",");
-        date_t d;
 
         for (int i = 0; i <= 6; i++) {
             string name;
@@ -101,29 +151,9 @@ TEST_F(CopyCSVArrowNodeTest, ArrowCSVTest) {
                     tableID, name);
             auto col =
                     storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
-            if (i == 0) {
-                EXPECT_EQ(stoll(split[i]), col->readValue(j).val.int64Val);
-            } else if (i == 1) {
-                EXPECT_EQ(stoll(split[i]), col->readValue(j).val.int64Val);
-            } else if (i == 2) {
-                EXPECT_EQ(stod(split[i]), col->readValue(j).val.doubleVal);
-//                exit(1);
-            } else if (i == 3) {
-                split[i][0] = toupper(split[i][0]);
-                EXPECT_EQ(split[i], TypeUtils::toString(col->readValue(j)));
-            } else if (i == 4) {
-                vector<string> splitDate = CopyCSVArrowNodeTest::splitStr(split[i], "-");
-                d = Date::FromDate(stoi(splitDate[0]), stoi(splitDate[1]), stoi(splitDate[2]));
-                EXPECT_EQ(d, col->readValue(j).val.dateVal);
-            } else if (i == 5) {
-                int pos = split[i].find(' ');
-                string time = split[i].substr(pos + 1);
-                vector<string> splitTime = CopyCSVArrowNodeTest::splitStr(time, ":");
-                auto t = Time::FromTime( stoi(splitTime[0]), stoi(splitTime[1]), stoi(splitTime[2]));
-                EXPECT_EQ(Timestamp::FromDatetime(d, t), col->readValue(j).val.timestampVal);
-            } else if (i == 6) {
-                EXPECT_EQ(split[i], col->readValue(j).strVal);
-            }
+            auto type = col->readValue(j).dataType;
+
+            checkElement(type, split[i], col->readValue(j));
         }
     }
 }
@@ -207,42 +237,42 @@ TEST_F(CopyCSVArrowNodeTest, ArrowArrowTest) {
         }
     }
 }
-
-TEST_F(CopyCSVArrowNodeTest, ArrowParquetTest) {
-    auto storageManager = getStorageManager(*database);
-    auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_parquet");
-
-    for (int i = 0; i <= 8; i++) {
-        string name;
-        if (i == 0) {
-            name = "id";
-        } else {
-            name = "feature" + to_string(i);
-        }
-        auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(
-                tableID, name);
-        auto col =
-                storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
-        if (i == 0) {
-            EXPECT_EQ(0, col->readValue(0).val.int64Val);
-        } else if (i == 1) {
-            EXPECT_EQ(73, col->readValue(0).val.int64Val);
-        } else if (i == 2) {
-            EXPECT_EQ(3.2585065282054626, col->readValue(0).val.doubleVal);
-        } else if (i == 4) {
-            EXPECT_EQ(Date::FromDate(1829, 10, 28), col->readValue(0).val.dateVal);
-        } else if (i == 5) {
-            auto d = Date::FromDate(1829, 10, 28);
-            auto t = Time::FromTime( 17, 13, 37);
-            EXPECT_EQ(Timestamp::FromDatetime(d, t), col->readValue(0).val.timestampVal);
-        } else if (i == 6) {
-            EXPECT_EQ("anDFrPZkcH", col->readValue(0).strVal);
-        } else if (i == 7) {
-            string interval = "3 years 1 day";
-            EXPECT_EQ(Interval::FromCString(interval.c_str(), interval.length()), col->readValue(1).val.intervalVal);
-        } else if (i == 8) {
-            cout << TypeUtils::toString(col->readValue(0)) << endl;
-        }
-    }
-}
+//
+//TEST_F(CopyCSVArrowNodeTest, ArrowParquetTest) {
+//    auto storageManager = getStorageManager(*database);
+//    auto catalog = getCatalog(*database);
+//    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_parquet");
+//
+//    for (int i = 0; i <= 8; i++) {
+//        string name;
+//        if (i == 0) {
+//            name = "id";
+//        } else {
+//            name = "feature" + to_string(i);
+//        }
+//        auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(
+//                tableID, name);
+//        auto col =
+//                storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+//        if (i == 0) {
+//            EXPECT_EQ(0, col->readValue(0).val.int64Val);
+//        } else if (i == 1) {
+//            EXPECT_EQ(73, col->readValue(0).val.int64Val);
+//        } else if (i == 2) {
+//            EXPECT_EQ(3.2585065282054626, col->readValue(0).val.doubleVal);
+//        } else if (i == 4) {
+//            EXPECT_EQ(Date::FromDate(1829, 10, 28), col->readValue(0).val.dateVal);
+//        } else if (i == 5) {
+//            auto d = Date::FromDate(1829, 10, 28);
+//            auto t = Time::FromTime( 17, 13, 37);
+//            EXPECT_EQ(Timestamp::FromDatetime(d, t), col->readValue(0).val.timestampVal);
+//        } else if (i == 6) {
+//            EXPECT_EQ("anDFrPZkcH", col->readValue(0).strVal);
+//        } else if (i == 7) {
+//            string interval = "3 years 1 day";
+//            EXPECT_EQ(Interval::FromCString(interval.c_str(), interval.length()), col->readValue(1).val.intervalVal);
+//        } else if (i == 8) {
+//            cout << TypeUtils::toString(col->readValue(0)) << endl;
+//        }
+//    }
+//}
