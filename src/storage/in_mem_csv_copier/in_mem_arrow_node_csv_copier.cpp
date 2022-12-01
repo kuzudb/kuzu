@@ -180,6 +180,7 @@ namespace storage {
         shared_ptr<arrow::io::InputStream> arrow_input_stream;
         ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
         auto arrowRead = arrow::csv::ReadOptions::Defaults();
+        arrowRead.block_size = 80000;
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
         }
@@ -258,7 +259,6 @@ namespace storage {
 
         for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
             PARQUET_THROW_NOT_OK(reader->RowGroup(blockId)->ReadTable(&table));
-            std::cout << "block id: " << blockId << " has num rows: " << table->num_rows() << std::endl;
             numLinesPerBlock[blockId] = table->num_rows();
             numNodes += table->num_rows();
         }
