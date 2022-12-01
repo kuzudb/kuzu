@@ -139,19 +139,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         auto joinNodeID = joinNode->getInternalIDPropertyName();
         probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
     }
-    vector<pair<DataPos, DataType>> probePayloadsOutPosAndType;
+    vector<DataPos> probePayloadsOutPos;
     for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
         auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                               ->getExpressions()[dataPos.valueVectorPos];
-        probePayloadsOutPosAndType.emplace_back(
-            mapperContext.getDataPos(expression->getUniqueName()), expression->getDataType());
+        probePayloadsOutPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
     }
     auto sharedState = make_shared<HashJoinSharedState>();
     // create hashJoin build
-    auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
+    auto hashJoinBuild = make_unique<HashJoinBuild>(
+        buildSideMapperContext.getResultSetDescriptor()->copy(), sharedState, buildDataInfo,
         std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPosAndType);
+    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
     if (hashJoin->getJoinType() == JoinType::MARK) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());

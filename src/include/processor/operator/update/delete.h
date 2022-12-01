@@ -30,7 +30,7 @@ public:
         return PhysicalOperatorType::DELETE_NODE;
     }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
@@ -80,7 +80,7 @@ public:
         return PhysicalOperatorType::DELETE_REL;
     }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

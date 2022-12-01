@@ -3,37 +3,34 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
-    resultSet = ScanList::init(context);
-    outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
-    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
+void AdjListExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    ScanList::initLocalStateInternal(resultSet, context);
     resultSet->initListSyncState(outDataPos.dataChunkPos);
     listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
-    return resultSet;
 }
 
 bool AdjListExtend::getNextTuplesInternal() {
     if (listHandle->listSyncState.hasMoreToRead()) {
         lists->readValues(outValueVector, *listHandle);
-        metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
+        metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
         return true;
     }
     do {
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
+        auto currentIdx = inValueVector->state->getPositionOfCurrIdx();
         if (inValueVector->isNull(currentIdx)) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
         ((AdjLists*)lists)
             ->initListReadingState(
-                inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx()),
+                inValueVector->readNodeOffset(inValueVector->state->getPositionOfCurrIdx()),
                 *listHandle, transaction->getType());
         lists->readValues(outValueVector, *listHandle);
-    } while (outDataChunk->state->selVector->selectedSize == 0);
-    metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
+    } while (outValueVector->state->selVector->selectedSize == 0);
+    metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
 }
 

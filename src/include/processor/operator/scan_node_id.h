@@ -3,7 +3,6 @@
 #include <mutex>
 
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/source_operator.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -117,27 +116,24 @@ private:
     uint32_t currentStateIdx;
 };
 
-class ScanNodeID : public PhysicalOperator, public SourceOperator {
+class ScanNodeID : public PhysicalOperator {
 public:
-    ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, string nodeName,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{std::move(resultSetDescriptor)},
-          nodeName{std::move(nodeName)}, outDataPos{outDataPos}, sharedState{
-                                                                     std::move(sharedState)} {}
+    ScanNodeID(string nodeName, const DataPos& outDataPos,
+        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
+        : PhysicalOperator{id, paramsString}, nodeName{std::move(nodeName)}, outDataPos{outDataPos},
+          sharedState{std::move(sharedState)} {}
 
     inline string getNodeName() const { return nodeName; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     inline PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeName, outDataPos, sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(nodeName, outDataPos, sharedState, id, paramsString);
     }
 
 private:

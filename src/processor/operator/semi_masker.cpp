@@ -3,11 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> SemiMasker::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void SemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     keyValueVector = resultSet->getValueVector(keyDataPos);
     assert(keyValueVector->dataType.typeID == NODE_ID);
-    return resultSet;
 }
 
 bool SemiMasker::getNextTuplesInternal() {

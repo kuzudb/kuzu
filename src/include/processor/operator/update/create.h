@@ -36,7 +36,7 @@ public:
         return PhysicalOperatorType::CREATE_NODE;
     }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
@@ -89,7 +89,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::CREATE_REL; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

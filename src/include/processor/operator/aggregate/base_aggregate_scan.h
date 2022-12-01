@@ -2,32 +2,28 @@
 
 #include "function/aggregate/aggregate_function.h"
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/source_operator.h"
 
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
 
-class BaseAggregateScan : public PhysicalOperator, public SourceOperator {
+class BaseAggregateScan : public PhysicalOperator {
 
 public:
-    BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
+    BaseAggregateScan(vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, SourceOperator{move(
-                                                               resultSetDescriptor)},
-          aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
+        : PhysicalOperator{move(child), id, paramsString}, aggregatesPos{move(aggregatesPos)},
+          aggregateDataTypes{move(aggregateDataTypes)} {}
 
-    BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, SourceOperator{move(resultSetDescriptor)},
-          aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
+    BaseAggregateScan(vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{id, paramsString}, aggregatesPos{move(aggregatesPos)},
+          aggregateDataTypes{move(aggregateDataTypes)} {}
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATE_SCAN; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override = 0;
 

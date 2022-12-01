@@ -143,8 +143,9 @@ unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         isPayloadFlat.push_back(isFlat);
     }
     auto sharedState = make_shared<FTableSharedState>();
-    return make_unique<ResultCollector>(payloadsPosAndType, isPayloadFlat, sharedState,
-        std::move(prevOperator), getOperatorID(), ExpressionUtil::toString(expressionsToCollect));
+    return make_unique<ResultCollector>(mapperContext.getResultSetDescriptor()->copy(),
+        payloadsPosAndType, isPayloadFlat, sharedState, std::move(prevOperator), getOperatorID(),
+        ExpressionUtil::toString(expressionsToCollect));
 }
 
 } // namespace processor

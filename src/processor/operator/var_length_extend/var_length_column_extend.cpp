@@ -10,8 +10,9 @@ void ColumnExtendDFSLevelInfo::reset() {
     this->hasBeenOutput = false;
 }
 
-shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
-    VarLengthExtend::init(context);
+void VarLengthColumnExtend::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
         auto dfsLevelInfo = make_shared<ColumnExtendDFSLevelInfo>(i + 1, *context);
         // Since we use boundNodeValueVector as the input valueVector and dfsLevelInfo->children as
@@ -23,7 +24,6 @@ shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
         dfsLevelInfo->children->state = boundNodeValueVector->state;
         dfsLevelInfos[i] = std::move(dfsLevelInfo);
     }
-    return resultSet;
 }
 
 bool VarLengthColumnExtend::getNextTuplesInternal() {

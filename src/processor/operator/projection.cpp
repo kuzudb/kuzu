@@ -3,8 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Projection::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
         auto& expressionEvaluator = *expressionEvaluators[i];
         expressionEvaluator.init(*resultSet, context->memoryManager);
@@ -12,7 +11,6 @@ shared_ptr<ResultSet> Projection::init(ExecutionContext* context) {
         auto dataChunk = resultSet->dataChunks[outDataChunkPos];
         dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
     }
-    return resultSet;
 }
 
 bool Projection::getNextTuplesInternal() {

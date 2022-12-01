@@ -3,11 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
-        auto dataChunk = this->resultSet->dataChunks[dataPos.dataChunkPos];
-        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos];
+        auto vector = resultSet->getValueVector(dataPos);
         vectorsToAppend.push_back(vector);
     }
     // TODO(Ziyi): this is implemented differently from other sink operators. Normally we append
@@ -18,9 +16,8 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
         make_shared<FactorizedTable>(context->memoryManager, populateTableSchema());
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
-    for (auto [dataPos, dataType] : orderByDataInfo.keysPosAndType) {
-        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos];
+    for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
+        auto vector = resultSet->getValueVector(dataPos);
         keyVectors.emplace_back(vector);
     }
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
@@ -28,7 +25,6 @@ shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
         sharedState->numBytesPerTuple);
     radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, sharedState->strKeyColsInfo);
-    return resultSet;
 }
 
 unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {

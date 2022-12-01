@@ -20,18 +20,16 @@ bool BaseAggregate::containDistinctAggregate() const {
     return false;
 }
 
-shared_ptr<ResultSet> BaseAggregate::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& dataPos : aggregateVectorsPos) {
         if (dataPos.dataChunkPos == UINT32_MAX) {
             // COUNT(*) aggregate does not take any input vector.
             aggregateVectors.push_back(nullptr);
         } else {
-            auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-            aggregateVectors.push_back(dataChunk->valueVectors[dataPos.valueVectorPos].get());
+            auto vector = resultSet->getValueVector(dataPos);
+            aggregateVectors.push_back(vector.get());
         }
     }
-    return resultSet;
 }
 
 } // namespace processor

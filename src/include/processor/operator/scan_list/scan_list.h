@@ -18,21 +18,16 @@ public:
 
     PhysicalOperatorType getOperatorType() override = 0;
 
-    inline shared_ptr<ResultSet> init(ExecutionContext* context) override {
-        resultSet = PhysicalOperator::init(context);
-        inDataChunk = resultSet->dataChunks[inDataPos.dataChunkPos];
-        inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
-        outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-        return resultSet;
+    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
+        inValueVector = resultSet->getValueVector(inDataPos);
+        outValueVector = resultSet->getValueVector(outDataPos);
     }
 
 protected:
     DataPos inDataPos;
     DataPos outDataPos;
 
-    shared_ptr<DataChunk> inDataChunk;
     shared_ptr<ValueVector> inValueVector;
-    shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 
     Lists* lists;

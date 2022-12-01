@@ -22,8 +22,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
         auto column = relStore.getRelPropertyColumn(scanRelProperty->getDirection(),
             scanRelProperty->getRelTableID(), boundNode->getTableID(), propertyID);
         return make_unique<ScanSingleTableProperties>(inputNodeIDVectorPos,
-            vector<DataPos>{outputPropertyVectorPos}, vector<DataType>{column->dataType},
-            vector<Column*>{column}, move(prevOperator), getOperatorID(), paramsString);
+            vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
+            getOperatorID(), paramsString);
     }
     auto lists = relStore.getRelPropertyLists(scanRelProperty->getDirection(),
         boundNode->getTableID(), scanRelProperty->getRelTableID(), propertyID);

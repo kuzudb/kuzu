@@ -12,14 +12,9 @@ VarLengthExtend::VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos&
     dfsLevelInfos.resize(upperBound);
 }
 
-shared_ptr<ResultSet> VarLengthExtend::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    boundNodeValueVector = resultSet->dataChunks[boundNodeDataPos.dataChunkPos]
-                               ->valueVectors[boundNodeDataPos.valueVectorPos];
-    nbrNodeValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
-    resultSet->dataChunks[nbrNodeDataPos.dataChunkPos]->insert(
-        nbrNodeDataPos.valueVectorPos, nbrNodeValueVector);
-    return resultSet;
+void VarLengthExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    boundNodeValueVector = resultSet->getValueVector(boundNodeDataPos);
+    nbrNodeValueVector = resultSet->getValueVector(nbrNodeDataPos);
 }
 
 } // namespace processor

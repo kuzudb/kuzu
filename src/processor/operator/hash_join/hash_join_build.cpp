@@ -16,20 +16,17 @@ void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
     hashTable->merge(localHashTable);
 }
 
-shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& [pos, dataType] : buildDataInfo.keysPosAndType) {
         auto keyVector = resultSet->getValueVector(pos);
         vectorsToAppend.push_back(keyVector);
     }
     for (auto& [pos, dataType] : buildDataInfo.payloadsPosAndType) {
-        auto dataChunk = resultSet->dataChunks[pos.dataChunkPos];
-        auto vector = dataChunk->valueVectors[pos.valueVectorPos];
+        auto vector = resultSet->getValueVector(pos);
         vectorsToAppend.push_back(vector);
     }
     auto tableSchema = populateTableSchema();
     initLocalHashTable(*context->memoryManager, std::move(tableSchema));
-    return resultSet;
 }
 
 unique_ptr<FactorizedTableSchema> HashJoinBuild::populateTableSchema() {

@@ -17,6 +17,9 @@ public:
     void finalizeIfNecessary() override;
 
 private:
+    static unique_ptr<ResultSet> populateResultSet(Sink* op, MemoryManager* memoryManager);
+
+private:
     Sink* sink;
     ExecutionContext* executionContext;
 };

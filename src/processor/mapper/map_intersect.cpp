@@ -25,7 +25,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
             MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
         auto buildSidePrevOperator =
             mapLogicalOperatorToPhysical(logicalIntersect->getChild(i), buildSideMapperContext);
-        vector<DataType> payloadsDataTypes;
         vector<DataPos> payloadsDataPos;
         auto buildDataInfo = generateBuildDataInfo(mapperContext, buildInfo->schema.get(),
             {buildInfo->key}, buildInfo->expressionsToMaterialize);
@@ -37,14 +36,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
                 continue;
             }
             payloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-            payloadsDataTypes.push_back(expression->getDataType());
         }
         auto sharedState = make_shared<IntersectSharedState>();
         sharedStates.push_back(sharedState);
-        children.push_back(make_unique<IntersectBuild>(sharedState, buildDataInfo,
+        children.push_back(make_unique<IntersectBuild>(
+            buildSideMapperContext.getResultSetDescriptor()->copy(), sharedState, buildDataInfo,
             std::move(buildSidePrevOperator), getOperatorID(), buildKey));
-        IntersectDataInfo info{
-            mapperContext.getDataPos(buildKey), payloadsDataPos, payloadsDataTypes};
+        IntersectDataInfo info{mapperContext.getDataPos(buildKey), payloadsDataPos};
         intersectDataInfos.push_back(info);
     }
     // Map intersect.

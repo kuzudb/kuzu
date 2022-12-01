@@ -61,22 +61,23 @@ public:
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
+    HashJoinBuild(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{std::move(child), id, paramsString}, sharedState{std::move(sharedState)},
-          buildDataInfo{buildDataInfo} {}
+        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+          sharedState{std::move(sharedState)}, buildDataInfo{buildDataInfo} {}
     ~HashJoinBuild() override = default;
 
     inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinBuild>(
-            sharedState, buildDataInfo, children[0]->clone(), id, paramsString);
+        return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), sharedState, buildDataInfo,
+            children[0]->clone(), id, paramsString);
     }
 
 protected:

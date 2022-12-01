@@ -13,10 +13,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto inputNodeIDVectorPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
     auto& nodeStore = storageManager.getNodesStore();
     vector<DataPos> outVectorsPos;
-    vector<DataType> outDataTypes;
     for (auto& expression : scanProperty.getProperties()) {
         outVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     if (node->getNumTableIDs() > 1) {
@@ -34,8 +32,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
             tableIDToColumns.push_back(std::move(tableIDToColumn));
         }
         return make_unique<ScanMultiTableProperties>(inputNodeIDVectorPos, std::move(outVectorsPos),
-            std::move(outDataTypes), std::move(tableIDToColumns), std::move(prevOperator),
-            getOperatorID(), scanProperty.getExpressionsForPrinting());
+            std::move(tableIDToColumns), std::move(prevOperator), getOperatorID(),
+            scanProperty.getExpressionsForPrinting());
     } else {
         auto tableID = node->getTableID();
         vector<Column*> columns;
@@ -45,8 +43,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
                 nodeStore.getNodePropertyColumn(tableID, property->getPropertyID(tableID)));
         }
         return make_unique<ScanSingleTableProperties>(inputNodeIDVectorPos,
-            std::move(outVectorsPos), std::move(outDataTypes), std::move(columns),
-            std::move(prevOperator), getOperatorID(), scanProperty.getExpressionsForPrinting());
+            std::move(outVectorsPos), std::move(columns), std::move(prevOperator), getOperatorID(),
+            scanProperty.getExpressionsForPrinting());
     }
 }
 

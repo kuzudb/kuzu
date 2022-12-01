@@ -3,12 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-void BaseTableScan::initFurther(ExecutionContext* context) {
-    for (auto i = 0u; i < outVecPositions.size(); ++i) {
-        auto outVectorPosition = outVecPositions[i];
-        auto outDataChunk = resultSet->dataChunks[outVectorPosition.dataChunkPos];
-        auto valueVector = make_shared<ValueVector>(outVecDataTypes[i], context->memoryManager);
-        outDataChunk->insert(outVectorPosition.valueVectorPos, valueVector);
+void BaseTableScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& dataPos : outVecPositions) {
+        auto valueVector = resultSet->getValueVector(dataPos);
         vectorsToScan.push_back(valueVector);
     }
     setMaxMorselSize();

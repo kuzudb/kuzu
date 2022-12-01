@@ -99,15 +99,16 @@ public:
 
 class OrderBy : public Sink {
 public:
-    OrderBy(const OrderByDataInfo& orderByDataInfo,
+    OrderBy(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        const OrderByDataInfo& orderByDataInfo,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{std::move(child), id, paramsString}, orderByDataInfo{orderByDataInfo},
-          sharedState{std::move(sharedState)} {}
+        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+          orderByDataInfo{orderByDataInfo}, sharedState{std::move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
@@ -120,8 +121,8 @@ public:
     }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderBy>(
-            orderByDataInfo, sharedState, children[0]->clone(), id, paramsString);
+        return make_unique<OrderBy>(resultSetDescriptor->copy(), orderByDataInfo, sharedState,
+            children[0]->clone(), id, paramsString);
     }
 
 private:

@@ -13,7 +13,7 @@ ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
         for (auto& expression : group->getExpressions()) {
             expressionNameToDataChunkPosMap.insert(
                 {expression->getUniqueName(), dataChunkDescriptors.size()});
-            dataChunkDescriptor->addExpressionName(expression->getUniqueName());
+            dataChunkDescriptor->addExpression(expression);
         }
         dataChunkDescriptors.push_back(std::move(dataChunkDescriptor));
     }

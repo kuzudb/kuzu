@@ -3,10 +3,10 @@
 namespace kuzu {
 namespace common {
 
-void DataChunk::insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
+void DataChunk::insert(uint32_t pos, shared_ptr<ValueVector> valueVector) {
     valueVector->setState(this->state);
     assert(valueVectors.size() > pos);
-    valueVectors[pos] = valueVector;
+    valueVectors[pos] = std::move(valueVector);
 }
 
 } // namespace common

@@ -20,8 +20,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
         auto nodeTable = nodesStore.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
     }
-    return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        node->getUniqueName(), dataPos, sharedState, getOperatorID(),
+    return make_unique<ScanNodeID>(node->getUniqueName(), dataPos, sharedState, getOperatorID(),
         logicalScan->getExpressionsForPrinting());
 }
 
@@ -34,9 +33,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     auto evaluator =
         expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
     mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
-    return make_unique<IndexScan>(mapperContext.getResultSetDescriptor()->copy(),
-        nodeTable->getTableID(), nodeTable->getPKIndex(), std::move(evaluator), dataPos,
-        getOperatorID(), logicalIndexScan->getExpressionsForPrinting());
+    return make_unique<IndexScan>(nodeTable->getTableID(), nodeTable->getPKIndex(),
+        std::move(evaluator), dataPos, getOperatorID(),
+        logicalIndexScan->getExpressionsForPrinting());
 }
 
 } // namespace processor

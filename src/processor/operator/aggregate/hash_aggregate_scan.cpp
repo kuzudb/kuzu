@@ -3,18 +3,14 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> HashAggregateScan::init(ExecutionContext* context) {
-    auto result = BaseAggregateScan::init(context);
-    for (auto i = 0u; i < groupByKeyVectorsPos.size(); i++) {
-        auto valueVector =
-            make_shared<ValueVector>(groupByKeyVectorDataTypes[i], context->memoryManager);
-        auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[i].dataChunkPos];
-        outDataChunk->insert(groupByKeyVectorsPos[i].valueVectorPos, valueVector);
+void HashAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseAggregateScan::initLocalStateInternal(resultSet, context);
+    for (auto& dataPos : groupByKeyVectorsPos) {
+        auto valueVector = resultSet->getValueVector(dataPos);
         groupByKeyVectors.push_back(valueVector);
     }
     groupByKeyVectorsColIdxes.resize(groupByKeyVectors.size());
     iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 0);
-    return result;
 }
 
 bool HashAggregateScan::getNextTuplesInternal() {

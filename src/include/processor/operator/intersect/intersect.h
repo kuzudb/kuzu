@@ -9,7 +9,6 @@ namespace processor {
 struct IntersectDataInfo {
     DataPos keyDataPos;
     vector<DataPos> payloadsDataPos;
-    vector<DataType> payloadsDataType;
 };
 
 class Intersect : public PhysicalOperator {
@@ -18,26 +17,19 @@ public:
         vector<shared_ptr<IntersectSharedState>> sharedHTs,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(children), id, paramsString}, outputDataPos{outputDataPos},
-          intersectDataInfos{move(intersectDataInfos)}, sharedHTs{move(sharedHTs)} {
-        intersectSelVectors.resize(this->sharedHTs.size());
-        for (auto i = 0u; i < this->sharedHTs.size(); i++) {
-            intersectSelVectors[i] = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        }
-    }
+          intersectDataInfos{move(intersectDataInfos)}, sharedHTs{move(sharedHTs)} {}
 
     inline PhysicalOperatorType getOperatorType() override { return INTERSECT; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
         vector<unique_ptr<PhysicalOperator>> clonedChildren;
-        for (auto& child : children) {
-            clonedChildren.push_back(child->clone());
-        }
-        return make_unique<Intersect>(
-            outputDataPos, intersectDataInfos, sharedHTs, move(clonedChildren), id, paramsString);
+        clonedChildren.push_back(children[0]->clone());
+        return make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedHTs,
+            std::move(clonedChildren), id, paramsString);
     }
 
 private:

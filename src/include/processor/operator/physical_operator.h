@@ -100,11 +100,10 @@ public:
 
     virtual PhysicalOperatorType getOperatorType() = 0;
 
-    // Local state is initialized for each thread.
-    virtual shared_ptr<ResultSet> init(ExecutionContext* context);
-
     // Global state is initialized once.
     void initGlobalState(ExecutionContext* context);
+    // Local state is initialized for each thread.
+    void initLocalState(ResultSet* resultSet, ExecutionContext* context);
 
     inline bool getNextTuple() {
         metrics->executionTime.start();
@@ -129,6 +128,7 @@ public:
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* context) {}
+    virtual void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal() = 0;
 
@@ -144,8 +144,8 @@ protected:
     unique_ptr<OperatorMetrics> metrics;
 
     vector<unique_ptr<PhysicalOperator>> children;
-    shared_ptr<ResultSet> resultSet;
     Transaction* transaction;
+    ResultSet* resultSet;
 
     string paramsString;
 };
