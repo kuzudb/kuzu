@@ -535,7 +535,7 @@ namespace storage {
                 case LIST: {
                     if ((*currentToken)->is_valid) {
                         auto val = currentToken->get()->ToString();
-                        Literal listVal = getArrowList(val, column->getDataType());
+                        Literal listVal = getArrowList(val, 1, val.length() - 2, column->getDataType());
                         auto kuList =
                                 column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&kuList));
@@ -548,43 +548,64 @@ namespace storage {
         }
     }
 
+    bool to_bool(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        std::istringstream is(str);
+        bool b;
+        is >> std::boolalpha >> b;
+        return b;
+    }
 
-    Literal InMemArrowNodeCSVCopier::getArrowList(string l, const DataType &dataType) {
-        //remove "[" and "]"
-        Literal result(DataType(LIST, make_unique<DataType>(dataType)));
+    Literal InMemArrowNodeCSVCopier::getArrowList(string& l, int64_t from, int64_t to, const DataType &dataType) {
+        auto childDataType = *dataType.childType;
+        Literal result(DataType(LIST, make_unique<DataType>(childDataType)));
 //        const char delimiter = csvDescription.csvReaderConfig.tokenSeparator;
         //TODO: change delimiter
         const char delimiter = ',';
-        vector<string> split;
-        int bracket = 0, last = 0;
+        vector<pair<int64_t, int64_t>> split;
+        int bracket = 0;
+        int64_t  last = from;
         if (dataType.typeID == LIST) {
-            l = l.substr(1, l.length() - 2);
-            for (int i = 0; i < l.length(); i++) {
+            for (int64_t i = from; i <= to; i++) {
                 if (l[i] == '[') {
                     bracket += 1;
                 } else if (l[i] == ']') {
                     bracket -= 1;
                 } else if (bracket == 0 && l[i] == delimiter) {
-                    split.emplace_back(l.substr(last, i - last));
+                    split.emplace_back(make_pair(last, i - last));
                     last = i + 1;
                 }
             }
         }
-        split.emplace_back(l.substr(last, l.length() - last));
+        split.emplace_back(make_pair(last, to - last + 1));
 
-        auto childDataType = *dataType.childType;
-        for (auto &element: split) {
+//        cout << "size: " << split.size() << " " << "elements: " ;
+//        for (auto& p : split) {
+//            string element = l.substr(p.first, p.second);
+//            cout << element << ", ";
+//        }
+//        cout << endl;
+
+        for (auto pair: split) {
+            string element = l.substr(pair.first, pair.second);
+            if (element.empty()) {
+                continue;
+            }
             switch (childDataType.typeID) {
                 case INT64: {
-                    result.listVal.emplace_back((int64_t) std::stoll(element));
+                    result.listVal.emplace_back((int64_t) stoll(element));
                 }
                     break;
                 case DOUBLE: {
-                    result.listVal.emplace_back(std::stod(element));
+                    result.listVal.emplace_back( stod(element));
                 }
                     break;
                 case BOOL: {
-                    result.listVal.emplace_back((bool) stoi(element));
+                    transform(element.begin(), element.end(), element.begin(), ::tolower);
+                    std::istringstream is(element);
+                    bool b;
+                    is >> std::boolalpha >> b;
+                    result.listVal.emplace_back(b);
                 }
                     break;
                 case STRING: {
@@ -604,7 +625,8 @@ namespace storage {
                 }
                     break;
                 case LIST: {
-                    result.listVal.emplace_back(getArrowList(element, *dataType.childType));
+                    result.listVal.emplace_back(getArrowList(l, pair.first + 1,
+                                                             pair.second + pair.first - 1, *dataType.childType));
                 }
                     break;
                 default:

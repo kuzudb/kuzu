@@ -98,7 +98,7 @@ namespace storage {
 
         arrow::Status initArrowCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
                                         const std::string &filePath);
-        static Literal getArrowList(string l, const DataType& dataType);
+        static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
     };
 
 } // namespace storage
