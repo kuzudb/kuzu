@@ -100,10 +100,12 @@ namespace storage {
         switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
             case INT64: {
                 status = arrowPopulateColumns<int64_t>(ipc_reader);
-            } break;
+            }
+                break;
             case STRING: {
                 status = arrowPopulateColumns<ku_string_t>(ipc_reader);
-            } break;
+            }
+                break;
             default: {
                 throw CopyCSVException("Unsupported data type " +
                                        Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
@@ -141,10 +143,12 @@ namespace storage {
         switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
             case INT64: {
                 parquetPopulateColumns<int64_t>(reader);
-            } break;
+            }
+                break;
             case STRING: {
                 parquetPopulateColumns<ku_string_t>(reader);
-            } break;
+            }
+                break;
             default: {
                 throw CopyCSVException("Unsupported data type " +
                                        Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
@@ -169,29 +173,43 @@ namespace storage {
         return numNodes;
     }
 
-    arrow::Status InMemArrowNodeCSVCopier::initializeArrowCSV(const std::string &filePath) {
+
+    arrow::Status InMemArrowNodeCSVCopier::initArrowCSVReader(
+            shared_ptr<arrow::csv::StreamingReader> &csv_streaming_reader,
+            const std::string &filePath) {
         shared_ptr<arrow::io::InputStream> arrow_input_stream;
-        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
         ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
+        auto arrowRead = arrow::csv::ReadOptions::Defaults();
+        if (!csvDescription.csvReaderConfig.hasHeader) {
+            arrowRead.autogenerate_column_names = true;
+        }
         ARROW_ASSIGN_OR_RAISE(
                 csv_streaming_reader,
                 arrow::csv::StreamingReader::Make(
                         arrow::io::default_io_context(),
                         arrow_input_stream,
-                        arrow::csv::ReadOptions::Defaults(),
+                        arrowRead,
                         arrow::csv::ParseOptions::Defaults(),
                         arrow::csv::ConvertOptions::Defaults()
-                        ));
+                ));
+        return arrow::Status::OK();
+    }
 
+    arrow::Status InMemArrowNodeCSVCopier::initializeArrowCSV(const std::string &filePath) {
+        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+        auto status = initArrowCSVReader(csv_streaming_reader, filePath);
+        if (!status.ok()) {
+            throw CopyCSVException(status.ToString());
+        }
 
         numBlocks = 0;
         numNodes = 0;
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
         auto endIt = csv_streaming_reader->end();
-        for (auto it = csv_streaming_reader->begin(); it != endIt; ++ it) {
+        for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
             ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-            ++ numBlocks;
+            ++numBlocks;
             auto currNumRows = currBatch->num_rows();
             numLinesPerBlock.push_back(currNumRows);
             numNodes += currNumRows;
@@ -216,7 +234,7 @@ namespace storage {
         numLinesPerBlock.resize(numBlocks);
         std::shared_ptr<arrow::RecordBatch> rbatch;
         numNodes = 0;
-        for (uint64_t blockId = 0; blockId < numBlocks; ++ blockId) {
+        for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
             ARROW_ASSIGN_OR_RAISE(rbatch, ipc_reader->ReadRecordBatch(blockId));
             numLinesPerBlock[blockId] = rbatch->num_rows();
             numNodes += rbatch->num_rows();
@@ -238,7 +256,7 @@ namespace storage {
         std::cout << "num row groups: " << numBlocks << std::endl;
         std::shared_ptr<arrow::Table> table;
 
-        for (uint64_t blockId = 0; blockId < numBlocks; ++ blockId) {
+        for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
             PARQUET_THROW_NOT_OK(reader->RowGroup(blockId)->ReadTable(&table));
             std::cout << "block id: " << blockId << " has num rows: " << table->num_rows() << std::endl;
             numLinesPerBlock[blockId] = table->num_rows();
@@ -279,16 +297,16 @@ namespace storage {
         }
 
 
-
         throw CopyCSVException("Unsupported file type: " + fileName);
     }
 
     void InMemArrowNodeCSVCopier::initializeColumnsAndList() {
         logger->info("Initializing in memory structured columns.");
         structuredColumns.resize(nodeTableSchema->getNumStructuredProperties());
-        for (auto& property : nodeTableSchema->structuredProperties) {
+        for (auto &property: nodeTableSchema->structuredProperties) {
             auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
-                                                                  nodeTableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
+                                                                  nodeTableSchema->tableID, property.propertyID,
+                                                                  DBFileType::WAL_VERSION);
             structuredColumns[property.propertyID] =
                     InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
         }
@@ -306,32 +324,25 @@ namespace storage {
         pkIndex->bulkReserve(numNodes);
         node_offset_t offsetStart = 0;
 
-        shared_ptr<arrow::io::InputStream> arrow_input_stream;
         shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-        ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(csvDescription.filePath));
-        ARROW_ASSIGN_OR_RAISE(
-                csv_streaming_reader,
-                arrow::csv::StreamingReader::Make(
-                        arrow::io::default_io_context(),
-                        arrow_input_stream,
-                        arrow::csv::ReadOptions::Defaults(),
-                        arrow::csv::ParseOptions::Defaults(),
-                        arrow::csv::ConvertOptions::Defaults()
-                ));
+        auto status = initArrowCSVReader(csv_streaming_reader, csvDescription.filePath);
+        if (!status.ok()) {
+            throw CopyCSVException(status.ToString());
+        }
 
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
 
         int blockIdx = 0;
         auto endIt = csv_streaming_reader->end();
-        for (auto it = csv_streaming_reader->begin(); it != endIt; ++ it) {
+        for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
             ARROW_ASSIGN_OR_RAISE(currBatch, *it);
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     batchPopulateColumnsTask<T, arrow::Array>,
                     nodeTableSchema->primaryKeyPropertyIdx,
                     blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
             offsetStart += currBatch->num_rows();
-            ++ blockIdx;
+            ++blockIdx;
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
@@ -343,7 +354,8 @@ namespace storage {
     }
 
     template<typename T>
-    arrow::Status InMemArrowNodeCSVCopier::arrowPopulateColumns(const shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader) {
+    arrow::Status
+    InMemArrowNodeCSVCopier::arrowPopulateColumns(const shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader) {
         logger->info("Populating structured properties");
         auto pkIndex =
                 make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
@@ -355,7 +367,7 @@ namespace storage {
 
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
-        for (auto blockIdx = 0; blockIdx < numBlocks; ++ blockIdx) {
+        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     batchPopulateColumnsTask<T, arrow::Array>,
@@ -384,7 +396,7 @@ namespace storage {
         node_offset_t offsetStart = 0;
 
         std::shared_ptr<arrow::Table> currTable;
-        for (auto blockIdx = 0; blockIdx < numBlocks; ++ blockIdx) {
+        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
             PARQUET_THROW_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     batchPopulateColumnsTask<T, arrow::ChunkedArray>,
@@ -438,7 +450,7 @@ namespace storage {
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
         // TODO: Consider skip header
 //        skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
-        for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++ bufferOffset) {
+        for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++bufferOffset) {
             putPropsOfLineIntoColumns(copier->structuredColumns,
                                       copier->nodeTableSchema->structuredProperties,
                                       overflowCursors,
@@ -470,10 +482,163 @@ namespace storage {
                     }
                 }
                     break;
+                case DOUBLE: {
+                    if ((*currentToken)->is_valid) {
+                        double_t val = std::dynamic_pointer_cast<arrow::DoubleScalar>(*currentToken)->value;
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
+                    }
+                }
+                    break;
+                case BOOL: {
+                    if ((*currentToken)->is_valid) {
+                        bool val = std::dynamic_pointer_cast<arrow::BooleanScalar>(*currentToken)->value;
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
+                    }
+                }
+                    break;
+                case DATE: {
+                    if ((*currentToken)->is_valid) {
+                        string val = currentToken->get()->ToString();
+                        date_t dateVal = Date::FromCString(val.c_str(), val.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&dateVal));
+                    }
+                }
+                    break;
+                case TIMESTAMP: {
+                    if ((*currentToken)->is_valid) {
+                        string val = currentToken->get()->ToString();
+                        timestamp_t timeVal = Timestamp::FromCString(val.c_str(), val.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&timeVal));
+                    }
+                }
+                    break;
+                case INTERVAL: {
+                    if ((*currentToken)->is_valid) {
+                        string val = currentToken->get()->ToString();
+                        interval_t intervalVal = Interval::FromCString(val.c_str(), val.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&intervalVal));
+                    }
+                }
+                    break;
+                case STRING: {
+                    if ((*currentToken)->is_valid) {
+                        string val = currentToken->get()->ToString();
+                        auto stringVal = column->getInMemOverflowFile()->copyString(val.c_str(),
+                                                                                    overflowCursors[columnIdx]);
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&stringVal));
+                    }
+                }
+                    break;
+                case LIST: {
+                    if ((*currentToken)->is_valid) {
+                        auto val = currentToken->get()->ToString();
+                        Literal listVal = getArrowList(val, 1, val.length() - 2, column->getDataType());
+                        auto kuList =
+                                column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&kuList));
+                    }
+                }
+                    break;
                 default:
                     break;
             }
         }
+    }
+
+    bool to_bool(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        std::istringstream is(str);
+        bool b;
+        is >> std::boolalpha >> b;
+        return b;
+    }
+
+    Literal InMemArrowNodeCSVCopier::getArrowList(string& l, int64_t from, int64_t to, const DataType &dataType) {
+        auto childDataType = *dataType.childType;
+        Literal result(DataType(LIST, make_unique<DataType>(childDataType)));
+//        const char delimiter = csvDescription.csvReaderConfig.tokenSeparator;
+        //TODO: change delimiter
+        const char delimiter = ',';
+        vector<pair<int64_t, int64_t>> split;
+        int bracket = 0;
+        int64_t  last = from;
+        if (dataType.typeID == LIST) {
+            for (int64_t i = from; i <= to; i++) {
+                if (l[i] == '[') {
+                    bracket += 1;
+                } else if (l[i] == ']') {
+                    bracket -= 1;
+                } else if (bracket == 0 && l[i] == delimiter) {
+                    split.emplace_back(make_pair(last, i - last));
+                    last = i + 1;
+                }
+            }
+        }
+        split.emplace_back(make_pair(last, to - last + 1));
+
+//        cout << "size: " << split.size() << " " << "elements: " ;
+//        for (auto& p : split) {
+//            string element = l.substr(p.first, p.second);
+//            cout << element << ", ";
+//        }
+//        cout << endl;
+
+        for (auto pair: split) {
+            string element = l.substr(pair.first, pair.second);
+            if (element.empty()) {
+                continue;
+            }
+            switch (childDataType.typeID) {
+                case INT64: {
+                    result.listVal.emplace_back((int64_t) stoll(element));
+                }
+                    break;
+                case DOUBLE: {
+                    result.listVal.emplace_back( stod(element));
+                }
+                    break;
+                case BOOL: {
+                    transform(element.begin(), element.end(), element.begin(), ::tolower);
+                    std::istringstream is(element);
+                    bool b;
+                    is >> std::boolalpha >> b;
+                    result.listVal.emplace_back(b);
+                }
+                    break;
+                case STRING: {
+                    result.listVal.emplace_back(element);
+                }
+                    break;
+                case DATE: {
+                    result.listVal.emplace_back(Date::FromCString(element.c_str(), element.length()));
+                }
+                    break;
+                case TIMESTAMP: {
+                    result.listVal.emplace_back(Timestamp::FromCString(element.c_str(), element.length()));
+                }
+                    break;
+                case INTERVAL: {
+                    result.listVal.emplace_back(Interval::FromCString(element.c_str(), element.length()));
+                }
+                    break;
+                case LIST: {
+                    result.listVal.emplace_back(getArrowList(l, pair.first + 1,
+                                                             pair.second + pair.first - 1, *dataType.childType));
+                }
+                    break;
+                default:
+                    throw CSVReaderException("Unsupported data type " +
+                                             Types::dataTypeToString(dataType.childType->typeID) +
+                                             " inside LIST");
+            }
+        }
+        auto numBytesOfOverflow = result.listVal.size() * Types::getDataTypeSize(dataType.typeID);
+        if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+            throw CSVReaderException(StringUtils::string_format(
+                    "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
+                    numBytesOfOverflow));
+        }
+        return result;
     }
 
 
