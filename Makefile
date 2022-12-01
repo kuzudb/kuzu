@@ -42,9 +42,7 @@ debug:
 
 test:
 	cd $(ROOT_DIR)/build/release/test && \
-	ctest && \
-	cd $(ROOT_DIR)/tools/python_api/test && \
-	pytest
+	ctest
 
 clean:
 	rm -rf build

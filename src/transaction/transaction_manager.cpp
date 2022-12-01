@@ -81,8 +81,8 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave() {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
     mtxForStartingNewTransactions.lock();
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
     uint64_t numTimesWaited = 0;
     while (true) {
         if (!activeReadOnlyTransactionIDs.empty()) {
