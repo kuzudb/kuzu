@@ -35,9 +35,6 @@ namespace storage {
 
         void saveToFile() override;
 
-        static const std::string CSV_SUFFIX;
-        static const std::string ARROW_SUFFIX;
-        static const std::string PARQUET_SUFFIX;
 
     private:
         uint64_t copyFromCSVFile();
@@ -103,10 +100,6 @@ namespace storage {
                                         const std::string &filePath);
         static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
     };
-
-    const std::string InMemArrowNodeCSVCopier::CSV_SUFFIX = ".csv";
-    const std::string InMemArrowNodeCSVCopier::ARROW_SUFFIX = ".arrow";
-    const std::string InMemArrowNodeCSVCopier::PARQUET_SUFFIX = ".parquet";
 
 } // namespace storage
 } // namespace kuzu

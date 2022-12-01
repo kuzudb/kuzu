@@ -68,7 +68,7 @@ public:
     }
 };
 
-TEST_F(CopyCSVArrowNodeTest, ArrowTest) {
+TEST_F(CopyCSVArrowNodeTest, ArrowCSVTest) {
     auto storageManager = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow");
@@ -77,6 +77,7 @@ TEST_F(CopyCSVArrowNodeTest, ArrowTest) {
     ifstream MyReadFile("dataset/copy-csv-arrow-node-test/types_10k.csv");
     string  line;
     vector<string> lines;
+    //auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_csv")
 
     if (header) {
         getline (MyReadFile, line);
@@ -166,3 +167,82 @@ TEST_F(CopyCSVArrowNodeTest, ArrowTest) {
 //        }
 //    }
 //}
+
+
+TEST_F(CopyCSVArrowNodeTest, ArrowArrowTest) {
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_arrow");
+
+    for (int i = 0; i <= 8; i++) {
+        string name;
+        if (i == 0) {
+            name = "id";
+        } else {
+            name = "feature" + to_string(i);
+        }
+        auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(
+                tableID, name);
+        auto col =
+                storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+        if (i == 0) {
+            EXPECT_EQ(0, col->readValue(0).val.int64Val);
+        } else if (i == 1) {
+            EXPECT_EQ(73, col->readValue(0).val.int64Val);
+        } else if (i == 2) {
+            EXPECT_EQ(3.2585065282054626, col->readValue(0).val.doubleVal);
+        } else if (i == 4) {
+            EXPECT_EQ(Date::FromDate(1829, 10, 28), col->readValue(0).val.dateVal);
+        } else if (i == 5) {
+            auto d = Date::FromDate(1829, 10, 28);
+            auto t = Time::FromTime( 17, 13, 37);
+            EXPECT_EQ(Timestamp::FromDatetime(d, t), col->readValue(0).val.timestampVal);
+        } else if (i == 6) {
+            EXPECT_EQ("anDFrPZkcH", col->readValue(0).strVal);
+        } else if (i == 7) {
+            string interval = "3 years 1 day";
+            EXPECT_EQ(Interval::FromCString(interval.c_str(), interval.length()), col->readValue(1).val.intervalVal);
+        } else if (i == 8) {
+            cout << TypeUtils::toString(col->readValue(0)) << endl;
+        }
+    }
+}
+
+TEST_F(CopyCSVArrowNodeTest, ArrowParquetTest) {
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_parquet");
+
+    for (int i = 0; i <= 8; i++) {
+        string name;
+        if (i == 0) {
+            name = "id";
+        } else {
+            name = "feature" + to_string(i);
+        }
+        auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(
+                tableID, name);
+        auto col =
+                storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+        if (i == 0) {
+            EXPECT_EQ(0, col->readValue(0).val.int64Val);
+        } else if (i == 1) {
+            EXPECT_EQ(73, col->readValue(0).val.int64Val);
+        } else if (i == 2) {
+            EXPECT_EQ(3.2585065282054626, col->readValue(0).val.doubleVal);
+        } else if (i == 4) {
+            EXPECT_EQ(Date::FromDate(1829, 10, 28), col->readValue(0).val.dateVal);
+        } else if (i == 5) {
+            auto d = Date::FromDate(1829, 10, 28);
+            auto t = Time::FromTime( 17, 13, 37);
+            EXPECT_EQ(Timestamp::FromDatetime(d, t), col->readValue(0).val.timestampVal);
+        } else if (i == 6) {
+            EXPECT_EQ("anDFrPZkcH", col->readValue(0).strVal);
+        } else if (i == 7) {
+            string interval = "3 years 1 day";
+            EXPECT_EQ(Interval::FromCString(interval.c_str(), interval.length()), col->readValue(1).val.intervalVal);
+        } else if (i == 8) {
+            cout << TypeUtils::toString(col->readValue(0)) << endl;
+        }
+    }
+}
