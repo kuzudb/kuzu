@@ -74,7 +74,7 @@ TEST_F(CopyCSVArrowNodeTest, ArrowCSVTest) {
     auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow");
     bool header = true;
 
-    ifstream MyReadFile("dataset/copy-csv-arrow-node-test/types_10k.csv");
+    ifstream MyReadFile("dataset/copy-csv-arrow-node-test/types_50k.csv");
     string  line;
     vector<string> lines;
     //auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("arrow_csv")
