@@ -51,23 +51,20 @@ public:
 class HashJoinProbe : public PhysicalOperator, FilteringOperator {
 public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
-        vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
-        unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
-        uint32_t id, const string& paramsString)
+        const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild,
+        unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
           FilteringOperator{probeDataInfo.keysDataPos.size()},
-          sharedState{std::move(sharedState)}, joinType{joinType},
-          flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
+          sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
     // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
-        vector<uint64_t> flatDataChunkPositions, const ProbeDataInfo& probeDataInfo,
-        unique_ptr<PhysicalOperator> probeChild, uint32_t id, const string& paramsString)
+        const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
+        const string& paramsString)
         : PhysicalOperator{std::move(probeChild), id, paramsString},
           FilteringOperator{probeDataInfo.keysDataPos.size()},
-          sharedState{std::move(sharedState)}, joinType{joinType},
-          flatDataChunkPositions{std::move(flatDataChunkPositions)}, probeDataInfo{probeDataInfo} {}
+          sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
@@ -76,8 +73,8 @@ public:
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinProbe>(sharedState, joinType, flatDataChunkPositions,
-            probeDataInfo, children[0]->clone(), id, paramsString);
+        return make_unique<HashJoinProbe>(
+            sharedState, joinType, probeDataInfo, children[0]->clone(), id, paramsString);
     }
 
 private:
@@ -93,7 +90,6 @@ private:
 private:
     shared_ptr<HashJoinSharedState> sharedState;
     JoinType joinType;
-    vector<uint64_t> flatDataChunkPositions;
 
     ProbeDataInfo probeDataInfo;
     vector<shared_ptr<ValueVector>> vectorsToReadInto;

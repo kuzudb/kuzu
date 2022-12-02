@@ -14,13 +14,22 @@ class FactorizationGroup {
     friend class Schema;
 
 public:
-    FactorizationGroup() : isFlat{false}, cardinalityMultiplier{1} {}
+    FactorizationGroup() : flat{false}, singleState{false}, cardinalityMultiplier{1} {}
     FactorizationGroup(const FactorizationGroup& other)
-        : isFlat{other.isFlat}, cardinalityMultiplier{other.cardinalityMultiplier},
-          expressions{other.expressions} {}
+        : flat{other.flat}, singleState{other.singleState},
+          cardinalityMultiplier{other.cardinalityMultiplier}, expressions{other.expressions} {}
 
-    inline void setIsFlat(bool flag) { isFlat = flag; }
-    inline bool getIsFlat() const { return isFlat; }
+    inline void setFlat() {
+        assert(!flat);
+        flat = true;
+    }
+    inline bool isFlat() const { return flat; }
+    inline void setSingleState() {
+        assert(!singleState);
+        singleState = true;
+        setFlat();
+    }
+    inline bool isSingleState() const { return singleState; }
 
     inline void setMultiplier(uint64_t multiplier) { cardinalityMultiplier = multiplier; }
     inline uint64_t getMultiplier() const { return cardinalityMultiplier; }
@@ -31,7 +40,8 @@ public:
     inline expression_vector getExpressions() const { return expressions; }
 
 private:
-    bool isFlat;
+    bool flat;
+    bool singleState;
     uint64_t cardinalityMultiplier;
     expression_vector expressions;
 };
@@ -67,7 +77,8 @@ public:
         return expressionNameToGroupPos.at(expressionName);
     }
 
-    inline void flattenGroup(uint32_t pos) { groups[pos]->isFlat = true; }
+    inline void flattenGroup(uint32_t pos) { groups[pos]->setFlat(); }
+    inline void setGroupAsSingleState(uint32_t pos) { groups[pos]->setSingleState(); }
 
     bool isExpressionInScope(const Expression& expression) const;
 

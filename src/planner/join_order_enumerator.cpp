@@ -503,21 +503,19 @@ void JoinOrderEnumerator::appendFTableScan(
         }
         groupPosToExpressionsMap.at(outerPos).push_back(expression);
     }
-    vector<uint64_t> flatOutputGroupPositions;
     auto schema = plan.getSchema();
     for (auto& [outerPos, expressions] : groupPosToExpressionsMap) {
         auto innerPos = schema->createGroup();
         schema->insertToGroupAndScope(expressions, innerPos);
-        if (outerPlan->getSchema()->getGroup(outerPos)->getIsFlat()) {
-            schema->flattenGroup(innerPos);
-            flatOutputGroupPositions.push_back(innerPos);
+        if (outerPlan->getSchema()->getGroup(outerPos)->isFlat()) {
+            schema->setGroupAsSingleState(innerPos);
         }
     }
     assert(outerPlan->getLastOperator()->getLogicalOperatorType() ==
            LogicalOperatorType::LOGICAL_ACCUMULATE);
     auto logicalAcc = (LogicalAccumulate*)outerPlan->getLastOperator().get();
-    auto fTableScan = make_shared<LogicalFTableScan>(
-        expressionsToScan, logicalAcc->getExpressions(), flatOutputGroupPositions);
+    auto fTableScan =
+        make_shared<LogicalFTableScan>(expressionsToScan, logicalAcc->getExpressions());
     plan.setLastOperator(std::move(fTableScan));
 }
 
@@ -645,7 +643,7 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
 
 void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
     JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    auto& buildSideSchema = *buildPlan.getSchema();
+    auto buildSideSchema = buildPlan.getSchema();
     auto probeSideSchema = probePlan.getSchema();
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     // Flat probe side key group in either of the following two cases:
@@ -670,7 +668,7 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     unordered_set<uint32_t> joinNodesGroupPos;
     for (auto& joinNode : joinNodes) {
         joinNodesGroupPos.insert(
-            buildSideSchema.getGroupPos(joinNode->getInternalIDPropertyName()));
+            buildSideSchema->getGroupPos(joinNode->getInternalIDPropertyName()));
     }
     QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
 
@@ -679,15 +677,9 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     for (auto& joinNode : joinNodes) {
         keys.push_back(joinNode->getInternalIDPropertyName());
     }
-    SinkOperatorUtil::mergeSchema(buildSideSchema, *probeSideSchema, keys);
-    vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = numGroupsBeforeMerging; i < probeSideSchema->getNumGroups(); ++i) {
-        if (probeSideSchema->getGroup(i)->getIsFlat()) {
-            flatOutputGroupPositions.push_back(i);
-        }
-    }
+    SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema, keys);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
-        buildSideSchema.copy(), flatOutputGroupPositions, buildSideSchema.getExpressionsInScope(),
+        buildSideSchema->copy(), buildSideSchema->getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.setLastOperator(move(hashJoin));
 }
@@ -759,14 +751,8 @@ void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
     SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema);
-    vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = numGroupsBeforeMerging; i < probeSideSchema->getNumGroups(); ++i) {
-        if (probeSideSchema->getGroup(i)->getIsFlat()) {
-            flatOutputGroupPositions.push_back(i);
-        }
-    }
-    auto crossProduct = make_shared<LogicalCrossProduct>(buildSideSchema->copy(),
-        flatOutputGroupPositions, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto crossProduct = make_shared<LogicalCrossProduct>(
+        buildSideSchema->copy(), probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.setLastOperator(std::move(crossProduct));
 }
 

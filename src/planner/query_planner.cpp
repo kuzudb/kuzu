@@ -269,14 +269,8 @@ void QueryPlanner::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
     SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
-    vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        if (schema->getGroup(i)->getIsFlat()) {
-            flatOutputGroupPositions.push_back(i);
-        }
-    }
     auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
-        flatOutputGroupPositions, std::move(schemaBeforeSink), plan.getLastOperator());
+        std::move(schemaBeforeSink), plan.getLastOperator());
     plan.setLastOperator(sink);
 }
 
@@ -284,7 +278,7 @@ void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, L
     assert(plan.isEmpty());
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
-    schema->flattenGroup(groupPos); // Mark group holding constant as flat.
+    schema->setGroupAsSingleState(groupPos); // Mark group holding constant as single state.
     for (auto& expression : expressions) {
         // No need to insert repeated constant.
         if (schema->isExpressionInScope(*expression)) {
@@ -340,7 +334,7 @@ uint32_t QueryPlanner::appendFlattensButOne(
     }
     vector<uint32_t> unFlatGroupsPos;
     for (auto& groupPos : groupsPos) {
-        if (!plan.getSchema()->getGroup(groupPos)->getIsFlat()) {
+        if (!plan.getSchema()->getGroup(groupPos)->isFlat()) {
             unFlatGroupsPos.push_back(groupPos);
         }
     }
@@ -357,7 +351,7 @@ void QueryPlanner::appendFlattenIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto group = schema->getGroup(expression);
-    if (group->getIsFlat()) {
+    if (group->isFlat()) {
         return;
     }
     auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
@@ -433,7 +427,7 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
         for (auto& childPlan : childrenPlans) {
             auto childSchema = childPlan->getSchema();
             auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-            hasFlatExpression |= childSchema->getGroup(expressionName)->getIsFlat();
+            hasFlatExpression |= childSchema->getGroup(expressionName)->isFlat();
         }
         if (hasFlatExpression) {
             for (auto& childPlan : childrenPlans) {

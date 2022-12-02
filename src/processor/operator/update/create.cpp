@@ -11,7 +11,6 @@ shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
         auto valueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
         outValueVectors.push_back(valueVector.get());
         auto dataChunk = resultSet->dataChunks[pos.dataChunkPos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
         dataChunk->insert(pos.valueVectorPos, valueVector);
     }
     return resultSet;

@@ -12,7 +12,7 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     }
     resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
-    if (children.empty()) {
+    if (children.empty()) { // const function, e.g. PI()
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     }
     for (auto& child : children) {

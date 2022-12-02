@@ -22,9 +22,8 @@ public:
     inline shared_ptr<Expression> getExpression() const { return expression; }
 
     inline void computeSchema(Schema& schema) {
-        auto group = schema.getGroup(expression);
-        assert(!group->getIsFlat());
-        group->setIsFlat(true);
+        auto groupPos = schema.getGroupPos(expression->getUniqueName());
+        schema.flattenGroup(groupPos);
     }
 
     unique_ptr<LogicalOperator> copy() override {

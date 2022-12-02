@@ -9,7 +9,6 @@ shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
     PhysicalOperator::init(context);
     resultSet = populateResultSet();
     auto dataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    dataChunk->state = DataChunkState::getSingleValueDataChunkState();
     outVector = make_shared<ValueVector>(NODE_ID);
     dataChunk->insert(outDataPos.valueVectorPos, outVector);
     indexKeyEvaluator->init(*resultSet, context->memoryManager);

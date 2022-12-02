@@ -33,8 +33,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
     auto sharedState = resultCollector->getSharedState();
     return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
         std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
-        sharedState, logicalAccumulate->getFlatOutputGroupPositions(), std::move(resultCollector),
-        getOperatorID(), logicalAccumulate->getExpressionsForPrinting());
+        sharedState, std::move(resultCollector), getOperatorID(),
+        logicalAccumulate->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
@@ -55,8 +55,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
     }
     return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
         std::move(outDataPoses), std::move(outDataTypes), std::move(colIndicesToScan),
-        logicalFTableScan->getFlatOutputGroupPositions(), getOperatorID(),
-        logicalFTableScan->getExpressionsForPrinting());
+        getOperatorID(), logicalFTableScan->getExpressionsForPrinting());
 }
 
 } // namespace processor

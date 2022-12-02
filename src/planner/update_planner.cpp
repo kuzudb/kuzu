@@ -48,12 +48,12 @@ void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
     assert(lhs->getChild(0)->dataType.typeID == NODE);
     auto nodeExpression = static_pointer_cast<NodeExpression>(lhs->getChild(0));
     auto lhsGroupPos = schema->getGroupPos(nodeExpression->getInternalIDPropertyName());
-    auto isLhsFlat = schema->getGroup(lhsGroupPos)->getIsFlat();
+    auto isLhsFlat = schema->getGroup(lhsGroupPos)->isFlat();
     // Check RHS
     auto rhsDependentGroupsPos = schema->getDependentGroupsPos(rhs);
     if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
         auto rhsPos = QueryPlanner::appendFlattensButOne(rhsDependentGroupsPos, plan);
-        auto isRhsFlat = schema->getGroup(rhsPos)->getIsFlat();
+        auto isRhsFlat = schema->getGroup(rhsPos)->isFlat();
         // If both are unflat and from different groups, we flatten LHS.
         if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
             QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
@@ -84,7 +84,7 @@ void UpdatePlanner::appendCreateNode(
         auto node = createNode->getNode();
         auto groupPos = schema->createGroup();
         schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
-        schema->flattenGroup(groupPos); // create output is always flat
+        schema->setGroupAsSingleState(groupPos);
         nodeAndPrimaryKeyPairs.emplace_back(node, createNode->getPrimaryKeyExpression());
         for (auto& setItem : createNode->getSetItems()) {
             setItems.push_back(setItem);

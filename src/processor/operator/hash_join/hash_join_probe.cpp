@@ -22,10 +22,6 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
         resultSet->dataChunks[probeDataInfo.markDataPos.dataChunkPos]->insert(
             probeDataInfo.markDataPos.valueVectorPos, markVector);
     }
-    for (auto pos : flatDataChunkPositions) {
-        auto dataChunk = resultSet->dataChunks[pos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-    }
     for (auto& [dataPos, dataType] : probeDataInfo.payloadsOutPosAndType) {
         auto probePayloadVector = make_shared<ValueVector>(dataType, context->memoryManager);
         auto [dataChunkPos, valueVectorPos] = dataPos;

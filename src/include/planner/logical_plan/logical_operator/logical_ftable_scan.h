@@ -9,11 +9,9 @@ using namespace kuzu::binder;
 
 class LogicalFTableScan : public LogicalOperator {
 public:
-    LogicalFTableScan(expression_vector expressionsToScan, expression_vector expressionsAccumulated,
-        vector<uint64_t> flatOutputGroupPositions)
-        : expressionsToScan{std::move(expressionsToScan)}, expressionsAccumulated{std::move(
-                                                               expressionsAccumulated)},
-          flatOutputGroupPositions{std::move(flatOutputGroupPositions)} {}
+    LogicalFTableScan(expression_vector expressionsToScan, expression_vector expressionsAccumulated)
+        : expressionsToScan{std::move(expressionsToScan)}, expressionsAccumulated{
+                                                               std::move(expressionsAccumulated)} {}
 
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_FTABLE_SCAN;
@@ -25,11 +23,9 @@ public:
 
     inline expression_vector getExpressionsToScan() const { return expressionsToScan; }
     inline expression_vector getExpressionsAccumulated() const { return expressionsAccumulated; }
-    inline vector<uint64_t> getFlatOutputGroupPositions() const { return flatOutputGroupPositions; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFTableScan>(
-            expressionsToScan, expressionsAccumulated, flatOutputGroupPositions);
+        return make_unique<LogicalFTableScan>(expressionsToScan, expressionsAccumulated);
     }
 
 private:
@@ -37,7 +33,6 @@ private:
     // expressionsToScan can be a subset of expressionsAccumulated (i.e. partially scan a factorized
     // table).
     expression_vector expressionsAccumulated;
-    vector<uint64_t> flatOutputGroupPositions;
 };
 
 } // namespace planner

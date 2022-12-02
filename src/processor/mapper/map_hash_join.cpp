@@ -114,7 +114,7 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
         auto payloadPos = buildSideMapperContext.getDataPos(payloadUniqueName);
         buildPayloadsPosAndTypes.emplace_back(payloadPos, payload->dataType);
         auto payloadGroup = buildSideSchema->getGroup(payloadPos.dataChunkPos);
-        isBuildPayloadsFlat.push_back(payloadGroup->getIsFlat());
+        isBuildPayloadsFlat.push_back(payloadGroup->isFlat());
         isBuildPayloadsInKeyChunk.push_back(isBuildDataChunkContainKeys[payloadPos.dataChunkPos]);
     }
     return BuildDataInfo(buildKeysPosAndType, buildPayloadsPosAndTypes, isBuildPayloadsFlat,
@@ -159,8 +159,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         probeDataInfo.markDataPos = markOutputPos;
     }
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
-        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
-        std::move(hashJoinBuild), getOperatorID(), paramsString);
+        probeDataInfo, std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(),
+        paramsString);
     if (hashJoin->getIsProbeAcc()) {
         if (containASPOnPipeline(hashJoin)) {
             mapASPJoin(hashJoin->getJoinNodes()[0].get(), hashJoinProbe.get());

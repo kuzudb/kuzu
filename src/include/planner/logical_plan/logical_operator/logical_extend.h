@@ -31,7 +31,7 @@ public:
         if (!extendToNewGroup) {
             nbrGroupPos = boundGroupPos;
         } else {
-            assert(schema.getGroup(boundGroupPos)->getIsFlat());
+            assert(schema.getGroup(boundGroupPos)->isFlat());
             nbrGroupPos = schema.createGroup();
         }
         schema.insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
