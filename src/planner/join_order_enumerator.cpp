@@ -548,24 +548,44 @@ void JoinOrderEnumerator::appendIndexScanNode(
     plan.setLastOperator(std::move(scan));
 }
 
+bool JoinOrderEnumerator::needExtendToNewGroup(
+    RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
+    auto extendToNewGroup = false;
+    extendToNewGroup |= rel.getNumTableIDs() > 1;
+    if (rel.getNumTableIDs() == 1) {
+        auto relTableID = *rel.getTableIDs().begin();
+        extendToNewGroup |=
+            !catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(relTableID, direction);
+    }
+    return extendToNewGroup;
+}
+
+bool JoinOrderEnumerator::needFlatInput(
+    RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
+    auto needFlatInput = needExtendToNewGroup(rel, boundNode, direction);
+    needFlatInput |= rel.isVariableLength();
+    return needFlatInput;
+}
+
 void JoinOrderEnumerator::appendExtend(
     shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto boundNode = FWD == direction ? rel->getSrcNode() : rel->getDstNode();
+    if (boundNode->getNumTableIDs() > 1) {
+        throw NotImplementedException("Extend from multi-labeled node is not supported.");
+    }
     auto nbrNode = FWD == direction ? rel->getDstNode() : rel->getSrcNode();
-    auto isColumn =
-        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel->getTableID(), direction);
-    if (rel->isVariableLength() || !isColumn) {
+    auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
+    if (needFlatInput(*rel, *boundNode, direction)) {
         QueryPlanner::appendFlattenIfNecessary(boundNode->getInternalIDProperty(), plan);
     }
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel->getTableID(), direction,
-        isColumn, rel->getLowerBound(), rel->getUpperBound(), plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(
+        boundNode, nbrNode, rel, direction, extendToNewGroup, plan.getLastOperator());
     extend->computeSchema(*schema);
-    plan.setLastOperator(move(extend));
+    plan.setLastOperator(std::move(extend));
     // update cardinality estimation info
-    if (!isColumn) {
-        auto extensionRate =
-            getExtensionRate(boundNode->getTableID(), rel->getTableID(), direction);
+    if (extendToNewGroup) {
+        auto extensionRate = getExtensionRate(*rel, *boundNode, direction);
         schema->getGroup(nbrNode->getInternalIDPropertyName())->setMultiplier(extensionRate);
     }
     plan.increaseCost(plan.getCardinality());
@@ -763,15 +783,18 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 }
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
-    table_id_t boundTableID, table_id_t relTableID, RelDirection relDirection) {
-    auto numRels = ((RelStatistics*)relsStatistics.getReadOnlyVersion()
-                        ->tableStatisticPerTable[relTableID]
-                        .get())
-                       ->getNumRelsForDirectionBoundTable(relDirection, boundTableID);
-    return ceil(
-        (double)numRels /
-            nodesStatistics.getNodeStatisticsAndDeletedIDs(boundTableID)->getMaxNodeOffset() +
-        1);
+    const RelExpression& rel, const NodeExpression& boundNode, RelDirection direction) {
+    auto boundNodeTableID = boundNode.getTableID();
+    double numBoundNodes =
+        nodesStatistics.getNodeStatisticsAndDeletedIDs(boundNodeTableID)->getNumTuples();
+    double numRels = 0;
+    for (auto relTableID : rel.getTableIDs()) {
+        auto relStatistic = (RelStatistics*)relsStatistics.getReadOnlyVersion()
+                                ->tableStatisticPerTable[relTableID]
+                                .get();
+        numRels += relStatistic->getNumRelsForDirectionBoundTable(direction, boundNodeTableID);
+    }
+    return ceil(numRels / numBoundNodes);
 }
 
 expression_vector JoinOrderEnumerator::getNewlyMatchedExpressions(

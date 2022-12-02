@@ -172,26 +172,25 @@ public:
         auto result = conn->query("MATCH (:person)-[:belongs]->(:organisation) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"2"});
-        result = conn->query("MATCH (:person)-[:belongs]->(:country) RETURN count(*)");
+        result = conn->query("MATCH (a:person)-[e:belongs]->(b:country) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table person doesn't connect "
-                                             "to country through rel table belongs.");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
         result = conn->query("MATCH (:organisation)-[:belongs]->(:country) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"1"});
-        result = conn->query("MATCH (:organisation)-[:belongs]->(:person) RETURN count(*)");
+        result = conn->query("MATCH (a:organisation)-[e:belongs]->(b:person) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(),
-            "Binder exception: Node table organisation doesn't connect "
-            "to person through rel table belongs.");
-        result = conn->query("MATCH (:country)-[:belongs]->(:person) RETURN count(*)");
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:person) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table country doesn't connect "
-                                             "to person through rel table belongs.");
-        result = conn->query("MATCH (:country)-[:belongs]->(:organisation) RETURN count(*)");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:organisation) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table country doesn't connect "
-                                             "to organisation through rel table belongs.");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
     }
 
     void createRelMixedRelationCommitAndRecoveryTest(TransactionTestType transactionTestType) {

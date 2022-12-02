@@ -1,0 +1,5 @@
+-NAME MultiLabelTwoHopTest
+-QUERY MATCH (a:person)<-[e:knows|:mixed|:meets]-(b:person)-[:knows|:mixed|:meets]->(c:person) WHERE b.ID = 7 AND a.ID = c.ID RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6

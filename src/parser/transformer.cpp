@@ -245,12 +245,8 @@ unique_ptr<PatternElement> Transformer::transformPatternElement(
 unique_ptr<NodePattern> Transformer::transformNodePattern(
     CypherParser::OC_NodePatternContext& ctx) {
     auto variable = ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string();
-    vector<string> nodeLabels;
-    if (ctx.oC_NodeLabels()) {
-        for (auto& nodeLabel : ctx.oC_NodeLabels()->oC_NodeLabel()) {
-            nodeLabels.push_back(transformNodeLabel(*nodeLabel));
-        }
-    }
+    auto nodeLabels =
+        ctx.oC_NodeLabels() ? transformNodeLabels(*ctx.oC_NodeLabels()) : vector<string>{};
     auto properties = ctx.kU_Properties() ? transformProperties(*ctx.kU_Properties()) :
                                             vector<pair<string, unique_ptr<ParsedExpression>>>{};
     return make_unique<NodePattern>(
@@ -267,19 +263,23 @@ unique_ptr<PatternElementChain> Transformer::transformPatternElementChain(
 unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     CypherParser::OC_RelationshipPatternContext& ctx) {
     auto relDetail = ctx.oC_RelationshipDetail();
+    auto variable =
+        relDetail->oC_Variable() ? transformVariable(*relDetail->oC_Variable()) : string();
+    auto relTypes = relDetail->oC_RelationshipTypes() ?
+                        transformRelTypes(*relDetail->oC_RelationshipTypes()) :
+                        vector<string>{};
     string lowerBound = "1";
     string upperBound = "1";
     if (relDetail->oC_RangeLiteral()) {
         lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
         upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
     }
+    auto arrowHead = ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT;
+    auto properties = relDetail->kU_Properties() ?
+                          transformProperties(*relDetail->kU_Properties()) :
+                          vector<pair<string, unique_ptr<ParsedExpression>>>{};
     return make_unique<RelPattern>(
-        relDetail->oC_Variable() ? transformVariable(*relDetail->oC_Variable()) : string(),
-        relDetail->oC_RelTypeName() ? transformRelTypeName(*relDetail->oC_RelTypeName()) : string(),
-        lowerBound, upperBound,
-        ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT,
-        relDetail->kU_Properties() ? transformProperties(*relDetail->kU_Properties()) :
-                                     vector<pair<string, unique_ptr<ParsedExpression>>>{});
+        variable, relTypes, lowerBound, upperBound, arrowHead, std::move(properties));
 }
 
 vector<pair<string, unique_ptr<ParsedExpression>>> Transformer::transformProperties(
@@ -292,6 +292,22 @@ vector<pair<string, unique_ptr<ParsedExpression>>> Transformer::transformPropert
         result.emplace_back(propertyKeyName, std::move(expression));
     }
     return result;
+}
+
+vector<string> Transformer::transformRelTypes(CypherParser::OC_RelationshipTypesContext& ctx) {
+    vector<string> relTypes;
+    for (auto& relType : ctx.oC_RelTypeName()) {
+        relTypes.push_back(transformRelTypeName(*relType));
+    }
+    return relTypes;
+}
+
+vector<string> Transformer::transformNodeLabels(CypherParser::OC_NodeLabelsContext& ctx) {
+    vector<string> nodeLabels;
+    for (auto& nodeLabel : ctx.oC_NodeLabel()) {
+        nodeLabels.push_back(transformNodeLabel(*nodeLabel));
+    }
+    return nodeLabels;
 }
 
 string Transformer::transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx) {

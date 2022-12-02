@@ -28,13 +28,21 @@ public:
         const uint64_t& propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
     }
-    inline AdjColumn* getAdjColumn(const RelDirection& relDirection, const table_id_t& nodeTableID,
-        const table_id_t& relTableID) const {
-        return relTables.at(relTableID)->getAdjColumn(relDirection, nodeTableID);
+    inline bool hasAdjColumn(
+        RelDirection relDirection, table_id_t boundNodeTableID, table_id_t relTableID) const {
+        return relTables.at(relTableID)->hasAdjColumn(relDirection, boundNodeTableID);
     }
-    inline AdjLists* getAdjLists(const RelDirection& relDirection, const table_id_t& nodeTableID,
-        const table_id_t& relTableID) const {
-        return relTables.at(relTableID)->getAdjLists(relDirection, nodeTableID);
+    inline AdjColumn* getAdjColumn(
+        RelDirection relDirection, table_id_t boundNodeTableID, table_id_t relTableID) const {
+        return relTables.at(relTableID)->getAdjColumn(relDirection, boundNodeTableID);
+    }
+    inline bool hasAdjList(
+        RelDirection relDirection, table_id_t boundNodeTableID, table_id_t relTableID) const {
+        return relTables.at(relTableID)->hasAdjList(relDirection, boundNodeTableID);
+    }
+    inline AdjLists* getAdjLists(
+        RelDirection relDirection, table_id_t boundNodeTableID, table_id_t relTableID) const {
+        return relTables.at(relTableID)->getAdjLists(relDirection, boundNodeTableID);
     }
 
     pair<vector<AdjLists*>, vector<AdjColumn*>> getAdjListsAndColumns(

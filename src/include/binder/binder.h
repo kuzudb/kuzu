@@ -33,7 +33,7 @@ public:
 private:
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
-    table_id_t bindRelTable(const string& tableName) const;
+    table_id_t bindRelTableID(const string& tableName) const;
     table_id_t bindNodeTableID(const string& tableName) const;
 
     shared_ptr<Expression> createVariable(const string& name, const DataType& dataType);
@@ -87,8 +87,8 @@ private:
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
     // For RETURN clause, we write variable "v" as all properties of "v"
     expression_vector rewriteProjectionExpressions(const expression_vector& expressions);
-    expression_vector rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression);
-    expression_vector rewriteRelAsAllProperties(const shared_ptr<Expression>& expression);
+    expression_vector rewriteAsAllProperties(
+        const shared_ptr<Expression>& expression, DataTypeID nodeOrRelType);
 
     void bindOrderBySkipLimitIfNecessary(
         BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);
@@ -112,7 +112,14 @@ private:
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
-    unordered_set<table_id_t> bindNodeTableIDs(const vector<string>& nodeTableNames);
+    inline unordered_set<table_id_t> bindNodeTableIDs(const vector<string>& tableNames) {
+        return bindTableIDs(tableNames, NODE);
+    }
+    inline unordered_set<table_id_t> bindRelTableIDs(const vector<string>& tableNames) {
+        return bindTableIDs(tableNames, REL);
+    }
+    unordered_set<table_id_t> bindTableIDs(
+        const vector<string>& tableNames, DataTypeID nodeOrRelType);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age

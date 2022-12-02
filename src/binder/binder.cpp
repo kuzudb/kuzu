@@ -31,7 +31,7 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
     return whereExpression;
 }
 
-table_id_t Binder::bindRelTable(const string& tableName) const {
+table_id_t Binder::bindRelTableID(const string& tableName) const {
     if (tableName.empty()) {
         return ANY_TABLE_ID;
     }

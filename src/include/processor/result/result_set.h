@@ -18,14 +18,14 @@ public:
     explicit ResultSet(uint32_t numDataChunks)
         : multiplicity{1}, dataChunks(numDataChunks), listSyncStatesPerDataChunk(numDataChunks) {}
 
-    inline void insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk) {
+    inline void insert(uint32_t pos, shared_ptr<DataChunk> dataChunk) {
         assert(dataChunks.size() > pos);
-        dataChunks[pos] = dataChunk;
+        dataChunks[pos] = std::move(dataChunk);
     }
 
-    inline void insert(uint32_t pos, const shared_ptr<ListSyncState>& listSyncState) {
+    inline void initListSyncState(uint32_t pos) {
         assert(listSyncStatesPerDataChunk.size() > pos);
-        listSyncStatesPerDataChunk[pos] = listSyncState;
+        listSyncStatesPerDataChunk[pos] = make_shared<ListSyncState>();
     }
 
     inline shared_ptr<ValueVector> getValueVector(DataPos& dataPos) {

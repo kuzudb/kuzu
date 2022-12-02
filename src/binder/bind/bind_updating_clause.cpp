@@ -78,6 +78,10 @@ unique_ptr<BoundCreateNode> Binder::bindCreateNode(
 
 unique_ptr<BoundCreateRel> Binder::bindCreateRel(
     shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
+    if (rel->getNumTableIDs() > 1) {
+        throw BinderException(
+            "Create multi-labeled rel " + rel->getRawName() + "is not supported.");
+    }
     auto catalogContent = catalog.getReadOnlyVersion();
     // CreateRel requires all properties in schema as input. So we rewrite set property to
     // null if user does not specify a property in the query.
@@ -86,7 +90,8 @@ unique_ptr<BoundCreateRel> Binder::bindCreateRel(
         if (collection.hasPropertyKeyValPair(*rel, property.name)) {
             setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
         } else {
-            auto propertyExpression = expressionBinder.bindRelPropertyExpression(rel, property);
+            auto propertyExpression =
+                expressionBinder.bindRelPropertyExpression(rel, property.name);
             shared_ptr<Expression> nullExpression =
                 LiteralExpression::createNullLiteralExpression(getUniqueExpressionName("NULL"));
             nullExpression = ExpressionBinder::implicitCastIfNecessary(

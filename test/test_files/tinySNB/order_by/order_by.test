@@ -163,3 +163,17 @@ Elizabeth
 -NAME OrderByEmptyResult
 -QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
 ---- 0
+
+-NAME MultiLabelTest
+-QUERY MATCH (a:person)-[:studyAt|:workAt|:mixed]->(b:organisation) return b.orgCode order by b.ID desc
+-ENUMERATE
+---- 9
+824
+824
+824
+824
+934
+934
+325
+325
+325

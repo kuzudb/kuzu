@@ -1,0 +1,4 @@
+-NAME MixedMatchTest1
+-QUERY MATCH (a:organisation) OPTIONAL MATCH (a)<-[:knows|:studyAt|:mixed]-(b:person) RETURN COUNT(*)
+---- 1
+6

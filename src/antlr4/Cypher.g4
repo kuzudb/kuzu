@@ -259,7 +259,7 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.
@@ -267,20 +267,23 @@ oC_RelationshipDetail
 kU_Properties
     : '{' SP? ( oC_PropertyKeyName SP? ':' SP? oC_Expression SP? ( ',' SP? oC_PropertyKeyName SP? ':' SP? oC_Expression SP? )* )? '}';
 
+oC_RelationshipTypes
+    :  ':' SP? oC_RelTypeName ( SP? '|' ':'? SP? oC_RelTypeName )* ;
+
 oC_NodeLabels
-     :  oC_NodeLabel ( SP? oC_NodeLabel )* ;
+    :  oC_NodeLabel ( SP? oC_NodeLabel )* ;
 
 oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
 oC_RangeLiteral
-            :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+    :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
 
 oC_LabelName
     : oC_SchemaName ;
 
 oC_RelTypeName
-    : ':' SP? oC_SchemaName ;
+    : oC_SchemaName ;
 
 oC_Expression
     : oC_OrExpression ;

@@ -7,7 +7,7 @@ shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
     resultSet = ScanList::init(context);
     outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
+    resultSet->initListSyncState(outDataPos.dataChunkPos);
     listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
     return resultSet;
 }
