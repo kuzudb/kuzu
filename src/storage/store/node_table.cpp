@@ -28,12 +28,12 @@ void NodeTable::loadColumnsAndListsFromDisk(
 node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
     assert(primaryKeyVector->state->isFlat());
-    if (primaryKeyVector->isNull(primaryKeyVector->state->getPositionOfCurrIdx())) {
+    if (primaryKeyVector->isNull(primaryKeyVector->state->selVector->selectedPositions[0])) {
         throw RuntimeException("Null is not allowed as a primary key value.");
     }
-    if (!pkIndex->insert(
-            primaryKeyVector, primaryKeyVector->state->getPositionOfCurrIdx(), nodeOffset)) {
-        auto pkValPos = primaryKeyVector->state->getPositionOfCurrIdx();
+    if (!pkIndex->insert(primaryKeyVector, primaryKeyVector->state->selVector->selectedPositions[0],
+            nodeOffset)) {
+        auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
         string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
                            to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
                            primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
@@ -49,7 +49,7 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
     assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
            primaryKeyVector->hasNoNullsGuarantee());
     if (nodeIDVector->state->isFlat()) {
-        auto pos = nodeIDVector->state->getPositionOfCurrIdx();
+        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
     } else {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {

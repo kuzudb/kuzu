@@ -79,10 +79,10 @@ void ListsUpdateStore::readInsertionsToList(ListFileID& listFileID, vector<uint6
 void ListsUpdateStore::insertRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector,
     const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
-    auto srcNodeID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
-    auto dstNodeID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx());
+    auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
+        srcNodeIDVector->state->selVector->selectedPositions[0]);
+    auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
+        dstNodeIDVector->state->selVector->selectedPositions[0]);
     bool hasInsertedToFT = false;
     auto vectorsToAppendToFT = vector<shared_ptr<ValueVector>>{srcNodeIDVector, dstNodeIDVector};
     vectorsToAppendToFT.insert(
@@ -104,11 +104,12 @@ void ListsUpdateStore::insertRelIfNecessary(const shared_ptr<ValueVector>& srcNo
 
 void ListsUpdateStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
-    auto srcNodeID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx());
-    auto dstNodeID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx());
-    auto relID = relIDVector->getValue<int64_t>(relIDVector->state->getPositionOfCurrIdx());
+    auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
+        srcNodeIDVector->state->selVector->selectedPositions[0]);
+    auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
+        dstNodeIDVector->state->selVector->selectedPositions[0]);
+    auto relID =
+        relIDVector->getValue<int64_t>(relIDVector->state->selVector->selectedPositions[0]);
     auto tupleIdx = getTupleIdxIfInsertedRel(relID);
     if (tupleIdx != -1) {
         // If the rel that we are going to delete is a newly inserted rel, we need to delete

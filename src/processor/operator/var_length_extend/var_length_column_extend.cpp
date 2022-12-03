@@ -39,9 +39,10 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
                 // to copy the null mask to the nbrNodeValueVector.
                 auto elementSize = Types::getDataTypeSize(dfsLevelInfo->children->dataType);
                 memcpy(nbrNodeValueVector->getData() +
-                           elementSize * nbrNodeValueVector->state->getPositionOfCurrIdx(),
+                           elementSize * nbrNodeValueVector->state->selVector->selectedPositions[0],
                     dfsLevelInfo->children->getData() +
-                        elementSize * dfsLevelInfo->children->state->getPositionOfCurrIdx(),
+                        elementSize *
+                            dfsLevelInfo->children->state->selVector->selectedPositions[0],
                     elementSize);
                 dfsLevelInfo->hasBeenOutput = true;
                 return true;
@@ -56,9 +57,9 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
             if (!children[0]->getNextTuple()) {
                 return false;
             }
-        } while (
-            boundNodeValueVector->isNull(boundNodeValueVector->state->getPositionOfCurrIdx()) ||
-            !addDFSLevelToStackIfParentExtends(boundNodeValueVector, 1 /* level */));
+        } while (boundNodeValueVector->isNull(
+                     boundNodeValueVector->state->selVector->selectedPositions[0]) ||
+                 !addDFSLevelToStackIfParentExtends(boundNodeValueVector, 1 /* level */));
     }
 }
 
@@ -67,7 +68,8 @@ bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
     auto dfsLevelInfo = static_pointer_cast<ColumnExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset();
     ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children);
-    if (!dfsLevelInfo->children->isNull(parentValueVector->state->getPositionOfCurrIdx())) {
+    if (!dfsLevelInfo->children->isNull(
+            parentValueVector->state->selVector->selectedPositions[0])) {
         dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
     }

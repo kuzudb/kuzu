@@ -154,11 +154,16 @@ public:
 
         auto factorizedTable =
             make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
-        for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
+        // Manually flatten the data chunk.
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedSize = 1;
+        for (auto i = 0u; i < dataChunk->state->originalSize; i++) {
+            dataChunk->state->selVector->selectedPositions[0] = i;
             factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
+        dataChunk->state->selVector->resetSelectorToUnselected();
 
         factorizedTables.emplace_back(std::move(factorizedTable));
         return orderByKeyEncoder;
@@ -169,7 +174,7 @@ public:
         shared_ptr<DataChunk>& dataChunk) {
         assert(int64Values.size() == doubleValues.size());
         assert(doubleValues.size() == timestampValues.size());
-        dataChunk->state->selVector->selectedSize = int64Values.size();
+        dataChunk->state->initOriginalAndSelectedSize(int64Values.size());
         dataChunk->state->currIdx = 0;
 
         auto int64ValueVector = make_shared<ValueVector>(INT64, memoryManager.get());
@@ -282,7 +287,7 @@ public:
         vector<vector<string>>& strValues, uint16_t factorizedTableIdx,
         vector<shared_ptr<FactorizedTable>>& factorizedTables) {
         dataChunk->state->currIdx = 0;
-        dataChunk->state->selVector->selectedSize = strValues[0].size();
+        dataChunk->state->initOriginalAndSelectedSize(strValues[0].size());
         for (auto i = 0u; i < strValues.size(); i++) {
             auto strValueVector = make_shared<ValueVector>(STRING, memoryManager.get());
             dataChunk->insert(i, strValueVector);
@@ -315,12 +320,16 @@ public:
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
                 numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
-
+        // Manually flatten the data chunk.
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedSize = 1;
         for (auto i = 0u; i < strValues[0].size(); i++) {
+            dataChunk->state->selVector->selectedPositions[0] = i;
             factorizedTable->append(allVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
+        dataChunk->state->selVector->resetSelectorToUnselected();
 
         factorizedTables.emplace_back(std::move(factorizedTable));
         return orderByKeyEncoder;

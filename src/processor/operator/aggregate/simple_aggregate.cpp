@@ -57,20 +57,20 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                 assert(distinctHT != nullptr);
                 if (distinctHT->isAggregateValueDistinctForGroupByKeys(
                         vector<ValueVector*>{}, aggVector)) {
-                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                    if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, 1 /* Distinct aggregate should ignore
                                           multiplicity since they are known to be non-distinct. */
                             ,
-                            aggVector->state->getPositionOfCurrIdx());
+                            aggVector->state->selVector->selectedPositions[0]);
                     }
                 }
             } else {
                 if (aggVector && aggVector->state->isFlat()) {
-                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                    if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, resultSet->multiplicity,
-                            aggVector->state->getPositionOfCurrIdx());
+                            aggVector->state->selVector->selectedPositions[0]);
                     }
                 } else {
                     aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),

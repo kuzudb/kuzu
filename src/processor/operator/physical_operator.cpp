@@ -8,21 +8,21 @@ namespace processor {
 PhysicalOperator::PhysicalOperator(
     unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
-    children.push_back(move(child));
+    children.push_back(std::move(child));
 }
 
 PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
     unique_ptr<PhysicalOperator> right, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
-    children.push_back(move(left));
-    children.push_back(move(right));
+    children.push_back(std::move(left));
+    children.push_back(std::move(right));
 }
 
 PhysicalOperator::PhysicalOperator(
     vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
     for (auto& child : children) {
-        this->children.push_back(move(child));
+        this->children.push_back(std::move(child));
     }
 }
 
@@ -84,10 +84,10 @@ double PhysicalOperator::getExecutionTime(Profiler& profiler) const {
 }
 
 vector<string> PhysicalOperator::getAttributes(Profiler& profiler) const {
-    vector<string> metrics;
-    metrics.emplace_back("ExecutionTime: " + to_string(getExecutionTime(profiler)));
-    metrics.emplace_back("NumOutputTuples: " + to_string(getNumOutputTuples(profiler)));
-    return metrics;
+    vector<string> result;
+    result.emplace_back("ExecutionTime: " + to_string(getExecutionTime(profiler)));
+    result.emplace_back("NumOutputTuples: " + to_string(getNumOutputTuples(profiler)));
+    return result;
 }
 
 } // namespace processor

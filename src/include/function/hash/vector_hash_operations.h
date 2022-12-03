@@ -12,7 +12,7 @@ struct UnaryHashOperationExecutor {
         result.state = operand.state;
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             if (!operand.isNull(pos)) {
                 operation::Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos]);
             } else {

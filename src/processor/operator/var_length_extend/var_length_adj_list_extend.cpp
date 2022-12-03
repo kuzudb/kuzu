@@ -69,7 +69,7 @@ bool VarLengthAdjListExtend::getNextTuplesInternal() {
             if (!children[0]->getNextTuple()) {
                 return false;
             }
-            curIdx = boundNodeValueVector->state->getPositionOfCurrIdx();
+            curIdx = boundNodeValueVector->state->selVector->selectedPositions[0];
         } while (boundNodeValueVector->isNull(curIdx) ||
                  !addDFSLevelToStackIfParentExtends(
                      boundNodeValueVector->readNodeOffset(curIdx), 1 /* level */));

@@ -23,7 +23,7 @@ bool CreateNode::getNextTuplesInternal() {
         auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
-        vector->setValue(vector->state->getPositionOfCurrIdx(), nodeID);
+        vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);
         for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
             relTable->initEmptyRelsForNewNode(nodeID);
         }
@@ -57,7 +57,7 @@ bool CreateRel::getNextTuplesInternal() {
             if (j == createRelInfo->relIDEvaluatorIdx) {
                 auto relIDVector = evaluator->resultVector;
                 assert(relIDVector->dataType.typeID == INT64 &&
-                       relIDVector->state->getPositionOfCurrIdx() == 0);
+                       relIDVector->state->selVector->selectedPositions[0] == 0);
                 relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
                 relIDVector->setNull(0, false);
             } else {

@@ -3,9 +3,9 @@
 namespace kuzu {
 namespace common {
 
-shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
-    auto state = make_shared<DataChunkState>(1);
-    state->selVector->selectedSize = 1;
+std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
+    auto state = std::make_shared<DataChunkState>(1);
+    state->initOriginalAndSelectedSize(1);
     state->currIdx = 0;
     return state;
 }

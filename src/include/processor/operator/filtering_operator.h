@@ -15,7 +15,7 @@ public:
         for (auto i = 0u; i < numStatesToSave; ++i) {
             auto prevSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
             prevSelVector->selectedPositions = nullptr;
-            prevSelVectors.push_back(move(prevSelVector));
+            prevSelVectors.push_back(std::move(prevSelVector));
         }
     }
 
