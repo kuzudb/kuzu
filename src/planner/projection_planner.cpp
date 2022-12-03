@@ -112,7 +112,8 @@ void ProjectionPlanner::appendProjection(
             uint32_t outputPos;
             if (dependentGroupsPos.empty()) { // e.g. constant that does not depend on any input.
                 outputPos = schema->createGroup();
-                schema->flattenGroup(outputPos); // Mark group holding constant as flat.
+                // Mark group holding constant as single state.
+                schema->setGroupAsSingleState(outputPos);
             } else {
                 outputPos = QueryPlanner::appendFlattensButOne(dependentGroupsPos, plan);
             }

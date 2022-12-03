@@ -104,7 +104,7 @@ void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpres
     vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
     MapperContext& mapperContext, Schema* schema, vector<bool>& isInputGroupByHashKeyVectorFlat) {
     for (auto& expression : groupByExpressions) {
-        if (schema->getGroup(expression->getUniqueName())->getIsFlat()) {
+        if (schema->getGroup(expression->getUniqueName())->isFlat()) {
             inputGroupByHashKeyVectorsPos.push_back(
                 mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
             outputGroupByKeyVectorsPos.push_back(
@@ -116,7 +116,7 @@ void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpres
     }
 
     for (auto& expression : groupByExpressions) {
-        if (!schema->getGroup(expression->getUniqueName())->getIsFlat()) {
+        if (!schema->getGroup(expression->getUniqueName())->isFlat()) {
             inputGroupByHashKeyVectorsPos.push_back(
                 mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
             outputGroupByKeyVectorsPos.push_back(

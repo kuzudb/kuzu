@@ -11,32 +11,27 @@ public:
     FactorizedTableScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
         vector<uint32_t> colIndicesToScan, shared_ptr<FTableSharedState> sharedState,
-        vector<uint64_t> flatDataChunkPositions, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : BaseTableScan{std::move(resultSetDescriptor), std::move(outVecPositions),
               move(outVecDataTypes), std::move(colIndicesToScan), std::move(child), id,
               paramsString},
-          sharedState{std::move(sharedState)}, flatDataChunkPositions{
-                                                   std::move(flatDataChunkPositions)} {}
+          sharedState{std::move(sharedState)} {}
 
     // Scan some columns.
     FactorizedTableScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
-        vector<uint32_t> colIndicesToScan, vector<uint64_t> flatDataChunkPositions, uint32_t id,
-        const string& paramsString)
+        vector<uint32_t> colIndicesToScan, uint32_t id, const string& paramsString)
         : BaseTableScan{std::move(resultSetDescriptor), std::move(outVecPositions),
-              std::move(outVecDataTypes), std::move(colIndicesToScan), id, paramsString},
-          flatDataChunkPositions{std::move(flatDataChunkPositions)} {}
+              std::move(outVecDataTypes), std::move(colIndicesToScan), id, paramsString} {}
 
     // For clone only.
     FactorizedTableScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> outVecPositions, vector<DataType> outVecDataTypes,
-        vector<uint32_t> colIndicesToScan, shared_ptr<FTableSharedState> sharedState,
-        vector<uint64_t> flatDataChunkPositions, uint32_t id, const string& paramsString)
+        vector<uint32_t> colIndicesToScan, shared_ptr<FTableSharedState> sharedState, uint32_t id,
+        const string& paramsString)
         : BaseTableScan{std::move(resultSetDescriptor), std::move(outVecPositions),
               std::move(outVecDataTypes), std::move(colIndicesToScan), id, paramsString},
-          sharedState{std::move(sharedState)}, flatDataChunkPositions{
-                                                   std::move(flatDataChunkPositions)} {}
+          sharedState{std::move(sharedState)} {}
 
     inline void setSharedState(shared_ptr<FTableSharedState> state) {
         sharedState = std::move(state);
@@ -52,13 +47,11 @@ public:
     inline unique_ptr<PhysicalOperator> clone() override {
         assert(sharedState != nullptr);
         return make_unique<FactorizedTableScan>(resultSetDescriptor->copy(), outVecPositions,
-            outVecDataTypes, colIndicesToScan, sharedState, flatDataChunkPositions, id,
-            paramsString);
+            outVecDataTypes, colIndicesToScan, sharedState, id, paramsString);
     }
 
 private:
     shared_ptr<FTableSharedState> sharedState;
-    vector<uint64_t> flatDataChunkPositions;
 };
 
 } // namespace processor

@@ -138,7 +138,7 @@ unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
     for (auto& expression : expressionsToCollect) {
         auto expressionName = expression->getUniqueName();
         auto dataPos = mapperContext.getDataPos(expressionName);
-        auto isFlat = schema.getGroup(expressionName)->getIsFlat();
+        auto isFlat = schema.getGroup(expressionName)->isFlat();
         payloadsPosAndType.emplace_back(dataPos, expression->dataType);
         isPayloadFlat.push_back(isFlat);
     }

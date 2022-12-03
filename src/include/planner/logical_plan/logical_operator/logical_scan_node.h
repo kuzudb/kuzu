@@ -44,7 +44,7 @@ public:
     inline void computeSchema(Schema& schema) override {
         LogicalScanNode::computeSchema(schema);
         auto groupPos = schema.getGroupPos(node->getInternalIDPropertyName());
-        schema.getGroup(groupPos)->setIsFlat(true);
+        schema.setGroupAsSingleState(groupPos);
     }
 
     inline shared_ptr<Expression> getIndexExpression() const { return indexExpression; }

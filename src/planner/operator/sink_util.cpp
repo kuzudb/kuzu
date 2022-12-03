@@ -19,11 +19,11 @@ void SinkOperatorUtil::mergeSchema(
     auto flatPayloads = getFlatPayloadsIgnoringKeyGroup(inputSchema, keys);
     if (!flatPayloads.empty()) {
         auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
-        result.flattenGroup(flatPayloadsOutputGroupPos);
+        result.setGroupAsSingleState(flatPayloadsOutputGroupPos);
     }
     for (auto& payloadGroupPos : getGroupsPosIgnoringKeyGroups(inputSchema, keys)) {
         auto payloadGroup = inputSchema.getGroup(payloadGroupPos);
-        if (!payloadGroup->getIsFlat()) {
+        if (!payloadGroup->isFlat()) {
             auto payloads = inputSchema.getExpressionsInScope(payloadGroupPos);
             auto outputGroupPos = appendPayloadsToNewGroup(result, payloads);
             result.getGroup(outputGroupPos)->setMultiplier(payloadGroup->getMultiplier());
@@ -38,11 +38,11 @@ void SinkOperatorUtil::mergeSchema(const Schema& inputSchema, Schema& result) {
     } else {
         if (!flatPayloads.empty()) {
             auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
-            result.flattenGroup(flatPayloadsOutputGroupPos);
+            result.setGroupAsSingleState(flatPayloadsOutputGroupPos);
         }
         for (auto& payloadGroupPos : inputSchema.getGroupsPosInScope()) {
             auto payloadGroup = inputSchema.getGroup(payloadGroupPos);
-            if (!payloadGroup->getIsFlat()) {
+            if (!payloadGroup->isFlat()) {
                 auto payloads = inputSchema.getExpressionsInScope(payloadGroupPos);
                 auto outputGroupPos = appendPayloadsToNewGroup(result, payloads);
                 result.getGroup(outputGroupPos)->setMultiplier(payloadGroup->getMultiplier());
@@ -83,7 +83,7 @@ expression_vector SinkOperatorUtil::getFlatPayloads(
     const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
     expression_vector result;
     for (auto& payloadGroupPos : payloadGroupsPos) {
-        if (schema.getGroup(payloadGroupPos)->getIsFlat()) {
+        if (schema.getGroup(payloadGroupPos)->isFlat()) {
             for (auto& payload : schema.getExpressionsInScope(payloadGroupPos)) {
                 result.push_back(payload);
             }
@@ -95,7 +95,7 @@ expression_vector SinkOperatorUtil::getFlatPayloads(
 bool SinkOperatorUtil::hasUnFlatPayload(
     const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
     for (auto& payloadGroupPos : payloadGroupsPos) {
-        if (!schema.getGroup(payloadGroupPos)->getIsFlat()) {
+        if (!schema.getGroup(payloadGroupPos)->isFlat()) {
             return true;
         }
     }

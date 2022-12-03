@@ -19,8 +19,12 @@ public:
     DataChunkDescriptor() = default;
 
     DataChunkDescriptor(const DataChunkDescriptor& other)
-        : expressionNameToValueVectorPosMap{other.expressionNameToValueVectorPosMap},
+        : singleState{other.singleState},
+          expressionNameToValueVectorPosMap{other.expressionNameToValueVectorPosMap},
           expressionNames{other.expressionNames} {}
+
+    inline void setSingleState() { singleState = true; }
+    inline bool isSingleState() const { return singleState; }
 
     inline uint32_t getValueVectorPos(const string& name) const {
         assert(expressionNameToValueVectorPosMap.contains(name));
@@ -35,6 +39,7 @@ public:
     }
 
 private:
+    bool singleState = false;
     unordered_map<string, uint32_t> expressionNameToValueVectorPosMap;
     vector<string> expressionNames;
 };

@@ -17,7 +17,11 @@ protected:
         auto resultSet = make_shared<ResultSet>(numDataChunks);
         for (auto i = 0u; i < numDataChunks; ++i) {
             auto dataChunkDescriptor = resultSetDescriptor->getDataChunkDescriptor(i);
-            resultSet->insert(i, make_shared<DataChunk>(dataChunkDescriptor->getNumValueVectors()));
+            auto dataChunk = make_shared<DataChunk>(dataChunkDescriptor->getNumValueVectors());
+            if (dataChunkDescriptor->isSingleState()) {
+                dataChunk->state = DataChunkState::getSingleValueDataChunkState();
+            }
+            resultSet->insert(i, dataChunk);
         }
         return resultSet;
     }

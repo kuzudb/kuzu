@@ -29,7 +29,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         auto expressionName = expression->getUniqueName();
         payloadsPosAndType.emplace_back(
             mapperContextBeforeOrderBy.getDataPos(expressionName), expression->dataType);
-        isPayloadFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->getIsFlat());
+        isPayloadFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->isFlat());
         outVectorPosAndTypes.emplace_back(
             mapperContext.getDataPos(expressionName), expression->dataType);
         mapperContext.addComputedExpressions(expressionName);

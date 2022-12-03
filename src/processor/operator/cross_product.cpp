@@ -5,10 +5,6 @@ namespace processor {
 
 shared_ptr<ResultSet> CrossProduct::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
-    for (auto pos : flatDataChunkPositions) {
-        auto dataChunk = resultSet->dataChunks[pos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-    }
     for (auto& [pos, dataType] : outVecPosAndTypePairs) {
         auto vector = make_shared<ValueVector>(dataType, context->memoryManager);
         resultSet->dataChunks[pos.dataChunkPos]->insert(pos.valueVectorPos, vector);

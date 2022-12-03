@@ -31,8 +31,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     }
     return make_unique<CrossProduct>(resultCollector->getSharedState(),
         std::move(outVecPosAndTypePairs), std::move(colIndicesToScan),
-        logicalCrossProduct->getFlatOutputGroupPositions(), std::move(probeSidePrevOperator),
-        std::move(resultCollector), getOperatorID(),
+        std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
         logicalCrossProduct->getExpressionsForPrinting());
 }
 

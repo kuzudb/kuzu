@@ -39,12 +39,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
         mapperContext.addComputedExpressions(expressionName);
         colIndicesToScan.push_back(i);
     }
-    // static expressions must be output to one flat data chunk.
-    auto flatOutputDataChunkPositions = vector<uint64_t>{0};
     return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
         std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
-        sharedState, std::move(flatOutputDataChunkPositions), getOperatorID(),
-        logicalExpressionsScan.getExpressionsForPrinting());
+        sharedState, getOperatorID(), logicalExpressionsScan.getExpressionsForPrinting());
 }
 
 } // namespace processor
