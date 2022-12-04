@@ -47,28 +47,29 @@ void RelsStatistics::assertNumRelsIsSound(
     assert(sum == numRels);
 }
 
-// We should only call this function after we call incrementNumRelsPerDirectionBoundTableByOne.
-void RelsStatistics::incrementNumRelsByOneForTable(table_id_t relTableID) {
+void RelsStatistics::updateNumRelsByValue(
+    table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID, int64_t value) {
     lock_t lck{mtx};
     initTableStatisticPerTableForWriteTrxIfNecessary();
-    lck.unlock();
-    setNumRelsForTable(relTableID,
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)->getNumTuples() +
-            1);
-}
-
-void RelsStatistics::incrementNumRelsPerDirectionBoundTableByOne(
-    table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID) {
-    lock_t lck{mtx};
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    auto relStatistics =
+        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+            .get();
+    auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
+    relStatistics->setNumTuples(numRelsAfterUpdate);
     for (auto relDirection : REL_DIRECTIONS) {
         auto relStatistics =
             (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable
                 .at(relTableID)
                 .get();
         relStatistics->numRelsPerDirectionBoundTable[relDirection].at(
-            relDirection == FWD ? srcTableID : dstTableID)++;
+            relDirection == FWD ? srcTableID : dstTableID) += value;
     }
+    // Update the nextRelID only when we are inserting rels.
+    if (value > 0) {
+        tablesStatisticsContentForWriteTrx->nextRelID += value;
+    }
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRelsAfterUpdate);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRelsAfterUpdate);
 }
 
 void RelsStatistics::setNumRelsPerDirectionBoundTableID(
