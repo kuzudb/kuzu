@@ -24,20 +24,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
         prevOperators.push_back(move(resultCollector));
     }
     // append union all
-    vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
     for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
         auto expression = expressionsToUnion[i];
         outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outVecDataTypes.push_back(expression->getDataType());
         colIndicesToScan.push_back(i);
     }
     auto unionSharedState =
         make_shared<UnionAllScanSharedState>(std::move(resultCollectorSharedStates));
-    return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+    return make_unique<UnionAllScan>(std::move(outDataPoses), std::move(colIndicesToScan),
         unionSharedState, std::move(prevOperators), getOperatorID(),
         logicalUnionAll.getExpressionsForPrinting());
 }

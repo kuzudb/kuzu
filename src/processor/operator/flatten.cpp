@@ -3,10 +3,8 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
-    return resultSet;
 }
 
 bool Flatten::getNextTuplesInternal() {

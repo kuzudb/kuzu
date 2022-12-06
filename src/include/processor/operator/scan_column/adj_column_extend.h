@@ -19,8 +19,6 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
-
     bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {

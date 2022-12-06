@@ -28,12 +28,15 @@ private:
 
 class SimpleAggregate : public BaseAggregate {
 public:
-    SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
-        vector<DataPos> aggregateVectorsPos,
+    SimpleAggregate(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        shared_ptr<SimpleAggregateSharedState> sharedState, vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateVectorsPos),
+              std::move(aggregateFunctions), std::move(child), id, paramsString},
+          sharedState{std::move(sharedState)} {}
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 

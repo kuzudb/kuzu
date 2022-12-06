@@ -5,15 +5,10 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    auto dataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outVector = make_shared<ValueVector>(NODE_ID);
-    dataChunk->insert(outDataPos.valueVectorPos, outVector);
+void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    outVector = resultSet->getValueVector(outDataPos);
     indexKeyEvaluator->init(*resultSet, context->memoryManager);
     hasExecuted = false;
-    return resultSet;
 }
 
 bool IndexScan::getNextTuplesInternal() {

@@ -16,12 +16,11 @@ public:
 
     PhysicalOperatorType getOperatorType() override = 0;
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     DataPos inputNodeIDVectorPos;
 
-    shared_ptr<DataChunk> inputNodeIDDataChunk;
     shared_ptr<ValueVector> inputNodeIDVector;
 };
 
@@ -32,6 +31,8 @@ protected:
         : BaseScanColumn{inputNodeIDVectorPos, move(child), id, paramsString},
           outputVectorPos{outputVectorPos} {}
 
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+
 protected:
     DataPos outputVectorPos;
     shared_ptr<ValueVector> outputVector;
@@ -40,20 +41,18 @@ protected:
 class ScanMultipleColumns : public BaseScanColumn {
 protected:
     ScanMultipleColumns(const DataPos& inVectorPos, vector<DataPos> outVectorsPos,
-        vector<DataType> outDataTypes, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
-        : BaseScanColumn{inVectorPos, std::move(child), id, paramsString},
-          outVectorsPos{std::move(outVectorsPos)}, outDataTypes{std::move(outDataTypes)} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : BaseScanColumn{inVectorPos, std::move(child), id, paramsString}, outVectorsPos{std::move(
+                                                                               outVectorsPos)} {}
 
     inline PhysicalOperatorType getOperatorType() override {
         return PhysicalOperatorType::SCAN_COLUMN_PROPERTY;
     }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     vector<DataPos> outVectorsPos;
-    vector<DataType> outDataTypes;
     vector<shared_ptr<ValueVector>> outVectors;
 };
 

@@ -25,7 +25,7 @@ public:
         BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     DataPos boundNodeDataPos;

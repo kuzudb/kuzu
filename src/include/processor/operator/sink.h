@@ -1,20 +1,26 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
+#include "processor/result/result_set_descriptor.h"
 
 namespace kuzu {
 namespace processor {
 
 class Sink : public PhysicalOperator {
 public:
-    Sink(uint32_t id, const string& paramsString) : PhysicalOperator{id, paramsString} {}
-    Sink(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString} {}
+    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{id, paramsString}, resultSetDescriptor{std::move(resultSetDescriptor)} {}
+    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, unique_ptr<PhysicalOperator> child,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{std::move(child), id, paramsString}, resultSetDescriptor{std::move(
+                                                                    resultSetDescriptor)} {}
 
     PhysicalOperatorType getOperatorType() override = 0;
+    ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
 
-    inline void execute(ExecutionContext* context) {
-        init(context);
+    inline void execute(ResultSet* resultSet, ExecutionContext* context) {
+        initLocalState(resultSet, context);
         metrics->executionTime.start();
         executeInternal(context);
         metrics->executionTime.stop();
@@ -30,6 +36,9 @@ protected:
     bool getNextTuplesInternal() final {
         throw InternalException("getNextTupleInternal() should not be called on sink operator.");
     }
+
+protected:
+    unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
 } // namespace processor

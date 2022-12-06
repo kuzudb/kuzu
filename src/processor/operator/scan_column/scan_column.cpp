@@ -3,21 +3,21 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> BaseScanColumn::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    inputNodeIDDataChunk = resultSet->dataChunks[inputNodeIDVectorPos.dataChunkPos];
-    inputNodeIDVector = inputNodeIDDataChunk->valueVectors[inputNodeIDVectorPos.valueVectorPos];
-    return resultSet;
+void BaseScanColumn::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos);
 }
 
-shared_ptr<ResultSet> ScanMultipleColumns::init(ExecutionContext* context) {
-    resultSet = BaseScanColumn::init(context);
-    for (auto i = 0u; i < outVectorsPos.size(); ++i) {
-        auto vector = make_shared<ValueVector>(outDataTypes[i], context->memoryManager);
-        inputNodeIDDataChunk->insert(outVectorsPos[i].valueVectorPos, vector);
+void ScanSingleColumn::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseScanColumn::initLocalStateInternal(resultSet, context);
+    outputVector = resultSet->getValueVector(outputVectorPos);
+}
+
+void ScanMultipleColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseScanColumn::initLocalStateInternal(resultSet, context);
+    for (auto& dataPos : outVectorsPos) {
+        auto vector = resultSet->getValueVector(dataPos);
         outVectors.push_back(vector);
     }
-    return resultSet;
 }
 
 } // namespace processor

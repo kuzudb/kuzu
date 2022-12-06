@@ -14,7 +14,7 @@ public:
 
     inline PhysicalOperatorType getOperatorType() override { return SCAN_REL_PROPERTY; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

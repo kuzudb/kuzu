@@ -3,17 +3,12 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    for (auto [dataPos, dataType] : outVectorPosAndTypes) {
-        auto outDataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-        auto valueVector = make_shared<ValueVector>(dataType, context->memoryManager);
-        outDataChunk->insert(dataPos.valueVectorPos, valueVector);
+void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto dataPos : outVectorPos) {
+        auto valueVector = resultSet->getValueVector(dataPos);
         vectorsToRead.emplace_back(valueVector);
     }
     initMergedKeyBlockScanState();
-    return resultSet;
 }
 
 bool OrderByScan::getNextTuplesInternal() {

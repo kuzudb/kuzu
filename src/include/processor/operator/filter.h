@@ -21,7 +21,7 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return FILTER; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

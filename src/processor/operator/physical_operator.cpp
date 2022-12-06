@@ -33,20 +33,22 @@ unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
     return result;
 }
 
-shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
-    transaction = context->transaction;
-    registerProfilingMetrics(context->profiler);
-    if (!children.empty()) {
-        resultSet = children[0]->init(context);
-    }
-    return resultSet;
-}
-
 void PhysicalOperator::initGlobalState(ExecutionContext* context) {
     for (auto& child : children) {
         child->initGlobalState(context);
     }
     initGlobalStateInternal(context);
+}
+
+void PhysicalOperator::initLocalState(ResultSet* _resultSet, ExecutionContext* context) {
+    if (!children.empty()) {
+        assert(children.size() == 1);
+        children[0]->initLocalState(_resultSet, context);
+    }
+    transaction = context->transaction;
+    resultSet = _resultSet;
+    registerProfilingMetrics(context->profiler);
+    initLocalStateInternal(_resultSet, context);
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {

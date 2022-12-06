@@ -2,7 +2,6 @@
 
 #include "expression_evaluator/base_evaluator.h"
 #include "physical_operator.h"
-#include "source_operator.h"
 #include "storage/index/hash_index.h"
 
 using namespace kuzu::evaluator;
@@ -11,24 +10,23 @@ namespace kuzu {
 namespace processor {
 
 // Index scan does not run in parallel. So there is no shared state.
-class IndexScan : public PhysicalOperator, public SourceOperator {
+class IndexScan : public PhysicalOperator {
 public:
-    IndexScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, table_id_t tableID,
-        PrimaryKeyIndex* pkIndex, unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator,
-        const DataPos& outDataPos, uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString},
-          SourceOperator{std::move(resultSetDescriptor)}, tableID{tableID}, pkIndex{pkIndex},
+    IndexScan(table_id_t tableID, PrimaryKeyIndex* pkIndex,
+        unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator, const DataPos& outDataPos,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{id, paramsString}, tableID{tableID}, pkIndex{pkIndex},
           indexKeyEvaluator{std::move(indexKeyEvaluator)}, outDataPos{outDataPos} {}
 
     PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::INDEX_SCAN; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<IndexScan>(resultSetDescriptor->copy(), tableID, pkIndex,
-            indexKeyEvaluator->clone(), outDataPos, id, paramsString);
+        return make_unique<IndexScan>(
+            tableID, pkIndex, indexKeyEvaluator->clone(), outDataPos, id, paramsString);
     }
 
 private:

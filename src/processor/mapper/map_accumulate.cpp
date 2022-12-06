@@ -18,7 +18,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
     auto resultCollector = appendResultCollector(
         childSchema->getExpressionsInScope(), *childSchema, move(prevOperator), childMapperContext);
     // append factorized table scan
-    vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     auto expressions = logicalAccumulate->getExpressions();
@@ -26,13 +25,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
         auto expression = expressions[i];
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        outVecDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
         colIndicesToScan.push_back(i);
     }
     auto sharedState = resultCollector->getSharedState();
-    return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+    return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),
         sharedState, std::move(resultCollector), getOperatorID(),
         logicalAccumulate->getExpressionsForPrinting());
 }
@@ -40,21 +37,18 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto logicalFTableScan = (LogicalFTableScan*)logicalOperator;
-    vector<DataType> outDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     for (auto& expression : logicalFTableScan->getExpressionsToScan()) {
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        outDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
         auto colIdx =
             ExpressionUtil::find(expression.get(), logicalFTableScan->getExpressionsAccumulated());
         assert(colIdx != UINT32_MAX);
         colIndicesToScan.push_back(colIdx);
     }
-    return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outDataTypes), std::move(colIndicesToScan),
+    return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),
         getOperatorID(), logicalFTableScan->getExpressionsForPrinting());
 }
 

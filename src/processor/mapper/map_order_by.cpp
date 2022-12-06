@@ -24,14 +24,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     }
     vector<pair<DataPos, DataType>> payloadsPosAndType;
     vector<bool> isPayloadFlat;
-    vector<pair<DataPos, DataType>> outVectorPosAndTypes;
+    vector<DataPos> outVectorPos;
     for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {
         auto expressionName = expression->getUniqueName();
         payloadsPosAndType.emplace_back(
             mapperContextBeforeOrderBy.getDataPos(expressionName), expression->dataType);
         isPayloadFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->isFlat());
-        outVectorPosAndTypes.emplace_back(
-            mapperContext.getDataPos(expressionName), expression->dataType);
+        outVectorPos.emplace_back(mapperContext.getDataPos(expressionName));
         mapperContext.addComputedExpressions(expressionName);
     }
     // See comment in planOrderBy in projectionPlanner.cpp
@@ -40,14 +39,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         logicalOrderBy.getIsAscOrders(), mayContainUnflatKey);
     auto orderBySharedState = make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
-    auto orderBy = make_unique<OrderBy>(orderByDataInfo, orderBySharedState,
-        std::move(prevOperator), getOperatorID(), paramsString);
+    auto orderBy = make_unique<OrderBy>(mapperContextBeforeOrderBy.getResultSetDescriptor()->copy(),
+        orderByDataInfo, orderBySharedState, std::move(prevOperator), getOperatorID(),
+        paramsString);
     auto dispatcher = make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         std::move(orderBy), getOperatorID(), paramsString);
-    auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
-        outVectorPosAndTypes, orderBySharedState, std::move(orderByMerge), getOperatorID(),
-        paramsString);
+    auto orderByScan = make_unique<OrderByScan>(
+        outVectorPos, orderBySharedState, std::move(orderByMerge), getOperatorID(), paramsString);
     return orderByScan;
 }
 

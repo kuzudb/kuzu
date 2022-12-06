@@ -28,19 +28,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
     auto table = sharedState->getTable();
     table->append(vectors);
     // map factorized table scan
-    vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        outVecDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
         colIndicesToScan.push_back(i);
     }
-    return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+    return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),
         sharedState, getOperatorID(), logicalExpressionsScan.getExpressionsForPrinting());
 }
 

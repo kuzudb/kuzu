@@ -27,9 +27,7 @@ public:
     DataChunk(uint32_t numValueVectors, const shared_ptr<DataChunkState>& state)
         : valueVectors(numValueVectors), state{state} {};
 
-    void insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector);
-
-    inline void referState(const DataChunk& other) { state = other.state; }
+    void insert(uint32_t pos, shared_ptr<ValueVector> valueVector);
 
     inline uint32_t getNumValueVectors() const { return valueVectors.size(); }
 

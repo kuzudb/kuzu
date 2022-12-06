@@ -28,22 +28,20 @@ struct ProbeState {
 
 struct ProbeDataInfo {
 public:
-    ProbeDataInfo(
-        vector<DataPos> keysDataPos, vector<pair<DataPos, DataType>> payloadsOutPosAndType)
-        : keysDataPos{std::move(keysDataPos)},
-          payloadsOutPosAndType{std::move(payloadsOutPosAndType)}, markDataPos{
-                                                                       UINT32_MAX, UINT32_MAX} {}
+    ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutPos)
+        : keysDataPos{std::move(keysDataPos)}, payloadsOutPos{std::move(payloadsOutPos)},
+          markDataPos{UINT32_MAX, UINT32_MAX} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keysDataPos, other.payloadsOutPosAndType} {
+        : ProbeDataInfo{other.keysDataPos, other.payloadsOutPos} {
         markDataPos = other.markDataPos;
     }
 
-    inline uint32_t getNumPayloads() const { return payloadsOutPosAndType.size(); }
+    inline uint32_t getNumPayloads() const { return payloadsOutPos.size(); }
 
 public:
     vector<DataPos> keysDataPos;
-    vector<pair<DataPos, DataType>> payloadsOutPosAndType;
+    vector<DataPos> payloadsOutPos;
     DataPos markDataPos;
 };
 
@@ -68,7 +66,7 @@ public:
 
     inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

@@ -8,24 +8,18 @@ using namespace kuzu::function::operation;
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     probeState = make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
-        auto keyVector =
-            resultSet->dataChunks[keyDataPos.dataChunkPos]->valueVectors[keyDataPos.valueVectorPos];
+        auto keyVector = resultSet->getValueVector(keyDataPos);
         keyVectors.push_back(keyVector);
         keySelVectors.push_back(keyVector->state->selVector.get());
     }
     if (joinType == JoinType::MARK) {
-        markVector = make_shared<ValueVector>(BOOL);
-        resultSet->dataChunks[probeDataInfo.markDataPos.dataChunkPos]->insert(
-            probeDataInfo.markDataPos.valueVectorPos, markVector);
+        markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
     }
-    for (auto& [dataPos, dataType] : probeDataInfo.payloadsOutPosAndType) {
-        auto probePayloadVector = make_shared<ValueVector>(dataType, context->memoryManager);
-        auto [dataChunkPos, valueVectorPos] = dataPos;
-        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probePayloadVector);
+    for (auto& dataPos : probeDataInfo.payloadsOutPos) {
+        auto probePayloadVector = resultSet->getValueVector(dataPos);
         vectorsToReadInto.push_back(probePayloadVector);
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
@@ -35,7 +29,6 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    return resultSet;
 }
 
 bool HashJoinProbe::hasMoreLeft() {

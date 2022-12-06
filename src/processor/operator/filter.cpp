@@ -3,11 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Filter::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
-    return resultSet;
 }
 
 bool Filter::getNextTuplesInternal() {

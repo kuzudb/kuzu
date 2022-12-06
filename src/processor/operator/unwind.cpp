@@ -3,13 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Unwind::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->memoryManager);
-    outValueVector = make_shared<ValueVector>(outDataType, context->memoryManager);
-    resultSet->dataChunks[outDataPos.dataChunkPos]->insert(
-        outDataPos.valueVectorPos, outValueVector);
-    return resultSet;
+    outValueVector = resultSet->getValueVector(outDataPos);
 }
 
 bool Unwind::hasMoreToRead() const {

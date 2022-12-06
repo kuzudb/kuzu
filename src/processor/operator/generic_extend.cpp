@@ -3,12 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> GenericExtend::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void GenericExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     inVector = resultSet->getValueVector(inVectorPos);
-    auto outDataChunk = resultSet->dataChunks[outVectorPos.dataChunkPos];
-    outVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
-    outDataChunk->insert(outVectorPos.valueVectorPos, outVector);
+    outVector = resultSet->getValueVector(outVectorPos);
     resultSet->initListSyncState(outVectorPos.dataChunkPos);
     for (auto& list : lists) {
         listHandles.push_back(
@@ -17,7 +14,6 @@ shared_ptr<ResultSet> GenericExtend::init(ExecutionContext* context) {
     nextListIdx = lists.size();
     nextColumnIdx = columns.size();
     currentList = nullptr;
-    return resultSet;
 }
 
 bool GenericExtend::getNextTuplesInternal() {

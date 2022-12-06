@@ -43,10 +43,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
             move(prevOperator), mapperContextBeforeAggregate, mapperContext, paramsString);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
-        auto aggregate = make_unique<SimpleAggregate>(sharedState, inputAggVectorsPos,
-            move(aggregateFunctions), move(prevOperator), getOperatorID(), paramsString);
-        auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState,
-            mapperContext.getResultSetDescriptor()->copy(), outputAggVectorsPos,
+        auto aggregate = make_unique<SimpleAggregate>(
+            mapperContextBeforeAggregate.getResultSetDescriptor()->copy(), sharedState,
+            inputAggVectorsPos, move(aggregateFunctions), move(prevOperator), getOperatorID(),
+            paramsString);
+        auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState, outputAggVectorsPos,
             outputAggVectorsDataTypes, move(aggregate), getOperatorID(), paramsString);
         return aggregateScan;
     }
@@ -89,11 +90,12 @@ unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
         outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, mapperContextBeforeAggregate,
         mapperContext, schema, isInputGroupByHashKeyVectorFlat);
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
-    auto aggregate = make_unique<HashAggregate>(sharedState, inputGroupByHashKeyVectorsPos,
-        inputGroupByNonHashKeyVectorsPos, isInputGroupByHashKeyVectorFlat, move(inputAggVectorsPos),
-        move(aggregateFunctions), move(prevOperator), getOperatorID(), paramsString);
-    auto aggregateScan = make_unique<HashAggregateScan>(sharedState,
-        mapperContext.getResultSetDescriptor()->copy(), outputGroupByKeyVectorsPos,
+    auto aggregate =
+        make_unique<HashAggregate>(mapperContextBeforeAggregate.getResultSetDescriptor()->copy(),
+            sharedState, inputGroupByHashKeyVectorsPos, inputGroupByNonHashKeyVectorsPos,
+            isInputGroupByHashKeyVectorFlat, move(inputAggVectorsPos), move(aggregateFunctions),
+            move(prevOperator), getOperatorID(), paramsString);
+    auto aggregateScan = make_unique<HashAggregateScan>(sharedState, outputGroupByKeyVectorsPos,
         outputGroupByKeyVectorsDataTypeId, move(outputAggVectorsPos),
         move(outputAggVectorsDataType), move(aggregate), getOperatorID(), paramsString);
     return aggregateScan;
