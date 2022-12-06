@@ -269,6 +269,9 @@ public:
         const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
         BufferManager& bufferManager, bool isInMemory, WAL* wal,
         ListsUpdateStore* listsUpdateStore) {
+        // TODO(Ziyi): this is a super hacky design. Consider storing a relIDColumn/List in relTable
+        // just like adjColumn/List and we can have Extend read from both relIDColumn/List and
+        // adjColumn/List.
         if (structureIDAndFName.storageStructureID.listFileID.relPropertyListID.propertyID ==
             RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
             return make_unique<RelIDList>(structureIDAndFName, dataType,

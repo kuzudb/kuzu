@@ -1,48 +1,48 @@
 #pragma once
 
 #include "base_logical_operator.h"
-#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 
 namespace kuzu {
 namespace planner {
-using namespace kuzu::binder;
 
 class LogicalScanRelProperty : public LogicalOperator {
 public:
-    LogicalScanRelProperty(shared_ptr<NodeExpression> boundNodeExpression,
-        shared_ptr<NodeExpression> nbrNodeExpression, table_id_t relTableID, RelDirection direction,
-        string propertyName, uint32_t propertyID, bool isColumn, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, boundNodeExpression{move(boundNodeExpression)},
-          nbrNodeExpression{move(nbrNodeExpression)}, relTableID{relTableID}, direction{direction},
-          propertyName{move(propertyName)}, propertyID{propertyID}, isColumn{isColumn} {}
+    LogicalScanRelProperty(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+        shared_ptr<RelExpression> rel, RelDirection direction, shared_ptr<Expression> property,
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{std::move(child)}, boundNode{std::move(boundNode)}, nbrNode{std::move(
+                                                                                  nbrNode)},
+          rel{std::move(rel)}, direction{direction}, property{std::move(property)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
+    inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;
     }
 
-    string getExpressionsForPrinting() const override { return propertyName; }
+    inline string getExpressionsForPrinting() const override { return property->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getBoundNodeExpression() const { return boundNodeExpression; }
-    inline shared_ptr<NodeExpression> getNbrNodeExpression() const { return nbrNodeExpression; }
-    inline table_id_t getRelTableID() const { return relTableID; }
+    inline void computeSchema(Schema& schema) {
+        auto nbrGroupPos = schema.getGroupPos(nbrNode->getInternalIDPropertyName());
+        schema.insertToGroupAndScope(property, nbrGroupPos);
+    }
+
+    inline shared_ptr<NodeExpression> getBoundNode() const { return boundNode; }
+    inline shared_ptr<NodeExpression> getNbrNode() const { return nbrNode; }
+    inline shared_ptr<RelExpression> getRel() const { return rel; }
     inline RelDirection getDirection() const { return direction; }
-    inline string getPropertyName() const { return propertyName; }
-    inline uint32_t getPropertyID() const { return propertyID; }
-    inline bool getIsColumn() const { return isColumn; }
+    inline shared_ptr<Expression> getProperty() const { return property; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalScanRelProperty>(boundNodeExpression, nbrNodeExpression,
-            relTableID, direction, propertyName, propertyID, isColumn, children[0]->copy());
+        return make_unique<LogicalScanRelProperty>(
+            boundNode, nbrNode, rel, direction, property, children[0]->copy());
     }
 
 private:
-    shared_ptr<NodeExpression> boundNodeExpression;
-    shared_ptr<NodeExpression> nbrNodeExpression;
-    table_id_t relTableID;
+    shared_ptr<NodeExpression> boundNode;
+    shared_ptr<NodeExpression> nbrNode;
+    shared_ptr<RelExpression> rel;
     RelDirection direction;
-    string propertyName;
-    uint32_t propertyID;
-    bool isColumn;
+    shared_ptr<Expression> property;
 };
 
 } // namespace planner

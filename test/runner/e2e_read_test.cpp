@@ -58,15 +58,16 @@ TEST_F(TinySnbReadTest, Agg) {
 }
 
 TEST_F(TinySnbReadTest, Cyclic) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/cyclic/cyclic.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/cyclic/single_label.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/cyclic/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Projection) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/projection.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/single_label.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/skip_limit.test"));
     runTest(
         TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Subquery) {
@@ -82,13 +83,10 @@ TEST_F(TinySnbReadTest, OptionalMatch) {
 }
 
 TEST_F(TinySnbReadTest, OrderBy) {
-    auto queryConfigs = TestHelper::parseTestFile(
-        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/order_by/order_by.test"),
-        true /* checkOutputOrder */);
-    for (auto& queryConfig : queryConfigs) {
-        queryConfig->checkOutputOrder = true;
-    }
-    ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    runTestAndCheckOrder(
+        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/order_by/single_label.test"));
+    runTestAndCheckOrder(
+        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/order_by/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Union) {

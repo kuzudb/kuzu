@@ -1,5 +1,17 @@
--NAME MultiLabelTwoHopTest
+-NAME MultiLabelOneHopTest1
+-QUERY MATCH (a:person)-[e:knows|:marries|:mixed]->(b:person) WHERE e.date=date('2021-06-30') RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-NAME MultiLabelTwoHopTest1
 -QUERY MATCH (a:person)<-[e:knows|:mixed|:meets]-(b:person)-[:knows|:mixed|:meets]->(c:person) WHERE b.ID = 7 AND a.ID = c.ID RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
+
+-NAME MultiLabelTwoHopTest2
+-QUERY MATCH (a:person)<-[e1:knows|:mixed|:meets]-(b:person)-[e2:knows|:mixed|:meets]->(c:person) WHERE b.ID = 0 AND ID(e1)<>ID(e2) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+20

@@ -38,6 +38,8 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalGenericExtendToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
