@@ -25,7 +25,7 @@ bool GenericExtend::getNextTuplesInternal() {
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        auto currentIdx = inVector->state->getPositionOfCurrIdx();
+        auto currentIdx = inVector->state->selVector->selectedPositions[0];
         if (inVector->isNull(currentIdx)) {
             outVector->state->selVector->selectedSize = 0;
             continue;
@@ -84,7 +84,7 @@ bool GenericExtend::scanColumn(uint32_t idx) {
     }
     // We need to sync output vector state with input vector because we always write output to a new
     // data chunk and thus they don't share state.
-    auto inVectorCurrentIdx = inVector->state->getPositionOfCurrIdx();
+    auto inVectorCurrentIdx = inVector->state->selVector->selectedPositions[0];
     outVector->state->selVector->selectedPositions[0] = inVectorCurrentIdx;
     outVector->state->selVector->selectedSize = 1;
     columns[idx]->read(transaction, inVector, outVector);

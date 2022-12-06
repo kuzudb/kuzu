@@ -19,8 +19,8 @@ bool IndexScan::getNextTuplesInternal() {
     auto indexKeyVector = indexKeyEvaluator->resultVector.get();
     assert(indexKeyVector->state->isFlat());
     node_offset_t nodeOffset;
-    bool isSuccessfulLookup = pkIndex->lookup(
-        transaction, indexKeyVector, indexKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
+    bool isSuccessfulLookup = pkIndex->lookup(transaction, indexKeyVector,
+        indexKeyVector->state->selVector->selectedPositions[0], nodeOffset);
     if (isSuccessfulLookup) {
         hasExecuted = true;
         nodeID_t nodeID{nodeOffset, tableID};

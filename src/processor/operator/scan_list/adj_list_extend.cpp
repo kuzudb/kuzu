@@ -19,15 +19,14 @@ bool AdjListExtend::getNextTuplesInternal() {
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        auto currentIdx = inValueVector->state->getPositionOfCurrIdx();
+        auto currentIdx = inValueVector->state->selVector->selectedPositions[0];
         if (inValueVector->isNull(currentIdx)) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
         ((AdjLists*)lists)
             ->initListReadingState(
-                inValueVector->readNodeOffset(inValueVector->state->getPositionOfCurrIdx()),
-                *listHandle, transaction->getType());
+                inValueVector->readNodeOffset(currentIdx), *listHandle, transaction->getType());
         lists->readValues(outValueVector, *listHandle);
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);

@@ -9,7 +9,7 @@ class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
 
 public:
     LiteralExpressionEvaluator(shared_ptr<Literal> literal)
-        : BaseExpressionEvaluator{}, literal{move(literal)} {}
+        : BaseExpressionEvaluator{}, literal{std::move(literal)} {}
 
     ~LiteralExpressionEvaluator() = default;
 

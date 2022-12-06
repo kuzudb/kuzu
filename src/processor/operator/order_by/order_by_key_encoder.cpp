@@ -36,8 +36,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
 }
 
 void OrderByKeyEncoder::encodeKeys() {
-    uint32_t numEntries =
-        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selVector->selectedSize;
+    uint32_t numEntries = orderByVectors[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -100,15 +99,15 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
 
 void OrderByKeyEncoder::encodeFlatVector(
     shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
-    if (vector->isNull(vector->state->getPositionOfCurrIdx())) {
+    auto pos = vector->state->selVector->selectedPositions[0];
+    if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
             *(tuplePtr + j) = UINT8_MAX;
         }
     } else {
         *tuplePtr = 0;
-        encodeFunctions[keyColIdx](vector->getData() + vector->state->getPositionOfCurrIdx() *
-                                                           vector->getNumBytesPerValue(),
-            tuplePtr + 1, swapBytes);
+        encodeFunctions[keyColIdx](
+            vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1, swapBytes);
     }
 }
 

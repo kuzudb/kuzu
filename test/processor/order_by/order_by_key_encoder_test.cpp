@@ -100,10 +100,14 @@ public:
         auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(),
             ftIdx, numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
         if (isFlat) {
+            valueVectors[0]->state->selVector->resetSelectorToValuePosBuffer();
+            valueVectors[0]->state->selVector->selectedSize = 1;
             for (auto i = 0u; i < numOfElements; i++) {
+                valueVectors[0]->state->selVector->selectedPositions[0] = i;
                 orderByKeyEncoder.encodeKeys();
                 valueVectors[0]->state->currIdx++;
             }
+            valueVectors[0]->state->selVector->resetSelectorToUnselected();
         } else {
             orderByKeyEncoder.encodeKeys();
         }
@@ -581,10 +585,14 @@ TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
     auto isAscOrder = vector<bool>(numOfOrderByCols, false);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
+    valueVectors[0]->state->selVector->resetSelectorToValuePosBuffer();
+    valueVectors[0]->state->selVector->selectedSize = 1;
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
+        valueVectors[0]->state->selVector->selectedPositions[0] = i;
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;
     }
+    valueVectors[0]->state->selVector->resetSelectorToUnselected();
     auto& keyBlocks = orderByKeyEncoder.getKeyBlocks();
     checkKeyBlockForInt64TestValueVector(valueVectors, keyBlocks, numOfElementsPerCol, isAscOrder,
         orderByKeyEncoder.getMaxNumTuplesPerBlock());
@@ -647,10 +655,14 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     dateFlatValueVector->setValue(0, Date::FromCString("1978-09-12", strlen("1978-09-12")));
     dateFlatValueVector->setValue(1, Date::FromCString("2035-07-04", strlen("2035-07-04")));
     dateFlatValueVector->setNull(2, true);
+    mockDataChunk->state->selVector->resetSelectorToValuePosBuffer();
+    mockDataChunk->state->selVector->selectedSize = 1;
     for (auto i = 0u; i < 3; i++) {
+        mockDataChunk->state->selVector->selectedPositions[0] = i;
         orderByKeyEncoder.encodeKeys();
         mockDataChunk->state->currIdx++;
     }
+    valueVectors[0]->state->selVector->resetSelectorToUnselected();
 
     // Check encoding for: NULL FLAG(0x00) + 73=0x8000000000000049(big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -792,10 +804,14 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColMultiBlockTest) {
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
+    valueVectors[0]->state->selVector->resetSelectorToValuePosBuffer();
+    valueVectors[0]->state->selVector->selectedSize = 1;
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
+        valueVectors[0]->state->selVector->selectedPositions[0] = i;
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;
     }
+    valueVectors[0]->state->selVector->resetSelectorToUnselected();
     checkKeyBlockForInt64TestValueVector(valueVectors, orderByKeyEncoder.getKeyBlocks(),
         numOfElementsPerCol, isAscOrder, orderByKeyEncoder.getMaxNumTuplesPerBlock());
 }

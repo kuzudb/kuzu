@@ -62,7 +62,7 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->matchedTuples[numMatchedTuples] = currentTuple;
             bool isKeysEqual = true;
             for (auto i = 0u; i < keyVectors.size(); i++) {
-                auto pos = keyVectors[i]->state->getPositionOfCurrIdx();
+                auto pos = keyVectors[i]->state->selVector->selectedPositions[0];
                 if (((nodeID_t*)currentTuple)[i] != keyVectors[i]->getValue<nodeID_t>(pos)) {
                     isKeysEqual = false;
                     break;
@@ -95,7 +95,7 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
 void HashJoinProbe::setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors) {
     for (auto& vector : vectorsToReadInto) {
         if (vector->state->isFlat()) {
-            vector->setNull(vector->state->getPositionOfCurrIdx(), true);
+            vector->setNull(vector->state->selVector->selectedPositions[0], true);
         } else {
             assert(vector->state != keyVectors[0]->state);
             auto pos = vector->state->selVector->selectedPositions[0];
@@ -138,7 +138,7 @@ uint64_t HashJoinProbe::getNextLeftJoinResult() {
 uint64_t HashJoinProbe::getNextMarkJoinResult() {
     auto markValues = (bool*)markVector->getData();
     if (markVector->state->isFlat()) {
-        markValues[markVector->state->getPositionOfCurrIdx()] =
+        markValues[markVector->state->selVector->selectedPositions[0]] =
             probeState->matchedSelVector->selectedSize != 0;
     } else {
         fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);

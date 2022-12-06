@@ -148,11 +148,15 @@ public:
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
                 numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
+        mockDataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        mockDataChunk->state->selVector->selectedSize = 1;
         for (auto i = 0u; i < expectedBlockOffsetOrder.size(); i++) {
+            mockDataChunk->state->selVector->selectedPositions[0] = i;
             factorizedTable.append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             mockDataChunk->state->currIdx++;
         }
+        mockDataChunk->state->selVector->resetSelectorToUnselected();
 
         auto radixSort =
             RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder, strKeyColsInfo);
@@ -378,7 +382,7 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     tableSchema->appendColumn(make_unique<ColumnSchema>(
         false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DATE)));
 
-    FactorizedTable factorizedTable(memoryManager.get(), move(tableSchema));
+    FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
     vector<StrKeyColInfo> strKeyColsInfo = {StrKeyColInfo(16 /* colOffsetInFT */,
         OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
             OrderByKeyEncoder::getEncodingSize(DataType(DOUBLE)),
@@ -387,11 +391,15 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx,
             numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(orderByVectors));
+    mockDataChunk->state->selVector->resetSelectorToValuePosBuffer();
+    mockDataChunk->state->selVector->selectedSize = 1;
     for (auto i = 0u; i < 5; i++) {
+        mockDataChunk->state->selVector->selectedPositions[0] = i;
         orderByKeyEncoder.encodeKeys();
         factorizedTable.append(orderByVectors);
         mockDataChunk->state->currIdx++;
     }
+    mockDataChunk->state->selVector->resetSelectorToUnselected();
 
     RadixSort radixSort =
         RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder, strKeyColsInfo);

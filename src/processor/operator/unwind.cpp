@@ -33,7 +33,7 @@ bool Unwind::getNextTuplesInternal() {
             return false;
         }
         expressionEvaluator->evaluate();
-        auto pos = expressionEvaluator->resultVector->state->getPositionOfCurrIdx();
+        auto pos = expressionEvaluator->resultVector->state->selVector->selectedPositions[0];
         if (expressionEvaluator->resultVector->isNull(pos)) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;

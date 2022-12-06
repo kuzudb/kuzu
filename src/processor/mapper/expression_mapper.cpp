@@ -49,7 +49,7 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
     for (auto i = 0u; i < expression->getNumChildren(); ++i) {
         children.push_back(mapExpression(expression->getChild(i), mapperContext));
     }
-    return make_unique<FunctionExpressionEvaluator>(expression, move(children));
+    return make_unique<FunctionExpressionEvaluator>(expression, std::move(children));
 }
 
 } // namespace processor

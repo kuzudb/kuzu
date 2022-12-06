@@ -73,7 +73,7 @@ vector<nodeID_t> Intersect::getProbeKeys() {
     for (auto i = 0u; i < keys.size(); i++) {
         assert(probeKeyVectors[i]->state->isFlat());
         keys[i] = probeKeyVectors[i]->getValue<nodeID_t>(
-            probeKeyVectors[i]->state->getPositionOfCurrIdx());
+            probeKeyVectors[i]->state->selVector->selectedPositions[0]);
     }
     return keys;
 }

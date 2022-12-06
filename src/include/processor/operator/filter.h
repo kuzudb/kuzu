@@ -14,8 +14,8 @@ class Filter : public PhysicalOperator, public FilteringOperator {
 public:
     Filter(unique_ptr<BaseExpressionEvaluator> expressionEvaluator, uint32_t dataChunkToSelectPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */}, expressionEvaluator{move(
+        : PhysicalOperator{std::move(child), id, paramsString},
+          FilteringOperator{1 /* numStatesToSave */}, expressionEvaluator{std::move(
                                                           expressionEvaluator)},
           dataChunkToSelectPos(dataChunkToSelectPos) {}
 

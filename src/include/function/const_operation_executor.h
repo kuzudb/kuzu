@@ -13,7 +13,7 @@ struct ConstOperationExecutor {
     static void execute(ValueVector& result) {
         assert(result.state->isFlat());
         auto resultValues = (RESULT_TYPE*)result.getData();
-        auto idx = result.state->getPositionOfCurrIdx();
+        auto idx = result.state->selVector->selectedPositions[0];
         assert(idx == 0);
         OP::operation(resultValues[idx]);
     }

@@ -19,71 +19,71 @@ TEST_F(LongStringPKTest, LongStringPKTest) {
 }
 
 TEST_F(TinySnbReadTest, MatchExecute) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/node.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/one_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/two_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/three_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/four_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/multi_query_part.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/match/multi_label.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/node.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/one_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/two_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/three_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/four_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Filter) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/node.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/one_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/two_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/four_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/five_hop.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/multi_query_part.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/filter/multi_label.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/node.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/one_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/two_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/four_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/five_hop.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Function) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/date.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/timestamp.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/interval.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/list.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/arithmetic.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/boolean.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/string.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/function/cast.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/date.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/timestamp.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/interval.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/list.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/arithmetic.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/boolean.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/string.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/cast.test"));
 }
 
 TEST_F(TinySnbReadTest, Agg) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/simple.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/hash.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/distinct_agg.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/multi_query_part.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/agg/multi_label.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/agg/simple.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/agg/hash.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/agg/distinct_agg.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/agg/multi_query_part.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/agg/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Cyclic) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/cyclic/cyclic.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/cyclic/multi_label.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/cyclic/cyclic.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/cyclic/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, Projection) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/projection/projection.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/projection/skip_limit.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/projection.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/skip_limit.test"));
     runTest(
-        TestHelper::appendKuzuRootPath("test/test_files/tinySNB/projection/multi_query_part.test"));
+        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/projection/multi_query_part.test"));
 }
 
 TEST_F(TinySnbReadTest, Subquery) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/subquery/exists.test"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/subquery/multi_label.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/subquery/exists.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/subquery/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, OptionalMatch) {
     runTest(TestHelper::appendKuzuRootPath(
-        "test/test_files/tinySNB/optional_match/optional_match.test"));
+        "test/test_files/tinysnb/optional_match/optional_match.test"));
     runTest(
-        TestHelper::appendKuzuRootPath("test/test_files/tinySNB/optional_match/multi_label.test"));
+        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/optional_match/multi_label.test"));
 }
 
 TEST_F(TinySnbReadTest, OrderBy) {
     auto queryConfigs = TestHelper::parseTestFile(
-        TestHelper::appendKuzuRootPath("test/test_files/tinySNB/order_by/order_by.test"),
+        TestHelper::appendKuzuRootPath("test/test_files/tinysnb/order_by/order_by.test"),
         true /* checkOutputOrder */);
     for (auto& queryConfig : queryConfigs) {
         queryConfig->checkOutputOrder = true;
@@ -92,16 +92,16 @@ TEST_F(TinySnbReadTest, OrderBy) {
 }
 
 TEST_F(TinySnbReadTest, Union) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/union/union.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/union/union.test"));
 }
 
 TEST_F(TinySnbReadTest, Unwind) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinySNB/unwind/unwind.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/unwind/unwind.test"));
 }
 
 TEST_F(TinySnbReadTest, VarLengthExtendTests) {
     runTest(TestHelper::appendKuzuRootPath(
-        "test/test_files/tinySNB/var_length_extend/var_length_adj_list_extend.test"));
+        "test/test_files/tinysnb/var_length_extend/var_length_adj_list_extend.test"));
     runTest(TestHelper::appendKuzuRootPath(
-        "test/test_files/tinySNB/var_length_extend/var_length_column_extend.test"));
+        "test/test_files/tinysnb/var_length_extend/var_length_column_extend.test"));
 }

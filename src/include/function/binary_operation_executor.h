@@ -53,9 +53,9 @@ struct BinaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = left.state;
-        auto lPos = left.state->getPositionOfCurrIdx();
-        auto rPos = right.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
+        auto rPos = right.state->selVector->selectedPositions[0];
+        auto resPos = result.state->selVector->selectedPositions[0];
         result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
         if (!result.isNull(resPos)) {
             executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -67,7 +67,7 @@ struct BinaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = right.state;
-        auto lPos = left.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
         if (left.isNull(lPos)) {
             result.setAllNull();
         } else if (right.hasNoNullsGuarantee()) {
@@ -109,7 +109,7 @@ struct BinaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = left.state;
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto rPos = right.state->selVector->selectedPositions[0];
         if (right.isNull(rPos)) {
             result.setAllNull();
         } else if (left.hasNoNullsGuarantee()) {
@@ -239,8 +239,8 @@ struct BinaryOperationExecutor {
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
     static uint64_t selectBothFlat(ValueVector& left, ValueVector& right) {
-        auto lPos = left.state->getPositionOfCurrIdx();
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
+        auto rPos = right.state->selVector->selectedPositions[0];
         uint8_t resultValue = 0;
         if (!left.isNull(lPos) && !right.isNull(rPos)) {
             FUNC::operation(((LEFT_TYPE*)left.getData())[lPos],
@@ -252,7 +252,7 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool selectFlatUnFlat(
         ValueVector& left, ValueVector& right, SelectionVector& selVector) {
-        auto lPos = left.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (left.isNull(lPos)) {
@@ -295,7 +295,7 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool selectUnFlatFlat(
         ValueVector& left, ValueVector& right, SelectionVector& selVector) {
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (right.isNull(rPos)) {

@@ -34,16 +34,16 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static inline void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = left.state;
-        auto lPos = left.state->getPositionOfCurrIdx();
-        auto rPos = right.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
+        auto rPos = right.state->selVector->selectedPositions[0];
+        auto resPos = result.state->selVector->selectedPositions[0];
         executeOnValue<FUNC>(left, right, result, lPos, rPos, resPos);
     }
 
     template<typename FUNC>
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = right.state;
-        auto lPos = left.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
         if (right.state->selVector->isUnfiltered()) {
             if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
                 for (auto i = 0u; i < right.state->selVector->selectedSize; ++i) {
@@ -72,7 +72,7 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         result.state = left.state;
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto rPos = right.state->selVector->selectedPositions[0];
         if (left.state->selVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
                 for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
@@ -154,8 +154,8 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static bool selectBothFlat(ValueVector& left, ValueVector& right) {
-        auto lPos = left.state->getPositionOfCurrIdx();
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
+        auto rPos = right.state->selVector->selectedPositions[0];
         uint8_t resultValue = 0;
         FUNC::operation(left.getValue<bool>(lPos), right.getValue<bool>(rPos), resultValue,
             (bool)left.isNull(lPos), (bool)right.isNull(rPos));
@@ -165,7 +165,7 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static bool selectFlatUnFlat(
         ValueVector& left, ValueVector& right, SelectionVector& selVector) {
-        auto lPos = left.state->getPositionOfCurrIdx();
+        auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (right.state->selVector->isUnfiltered()) {
@@ -187,7 +187,7 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static bool selectUnFlatFlat(
         ValueVector& left, ValueVector& right, SelectionVector& selVector) {
-        auto rPos = right.state->getPositionOfCurrIdx();
+        auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (left.state->selVector->isUnfiltered()) {
@@ -258,7 +258,7 @@ struct UnaryBooleanOperationExecutor {
         result.resetOverflowBuffer();
         result.state = operand.state;
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             executeOnValue<FUNC>(operand, pos, result);
         } else {
             if (operand.state->selVector->isUnfiltered()) {
@@ -292,7 +292,7 @@ struct UnaryBooleanOperationExecutor {
     template<typename FUNC>
     static bool select(ValueVector& operand, SelectionVector& selVector) {
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             uint8_t resultValue = 0;
             FUNC::operation(operand.getValue<uint8_t>(pos), operand.isNull(pos), resultValue);
             return resultValue == true;

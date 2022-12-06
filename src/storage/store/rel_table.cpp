@@ -75,16 +75,18 @@ void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     assert(srcNodeIDVector->state->isFlat());
     assert(dstNodeIDVector->state->isFlat());
     auto srcTableID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx()).tableID;
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
     auto dstTableID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx()).tableID;
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
     for (auto direction : REL_DIRECTIONS) {
         auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
         auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
         auto nbrVector = (direction == RelDirection::FWD ? dstNodeIDVector : srcNodeIDVector);
         if (adjColumns[direction].contains(boundTableID)) {
             auto nodeOffset =
-                boundVector->readNodeOffset(boundVector->state->getPositionOfCurrIdx());
+                boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
             if (!adjColumns[direction]
                      .at(boundTableID)
                      ->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
