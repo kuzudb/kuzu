@@ -11,7 +11,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto scanRelProperty = (LogicalScanRelProperty*)logicalOperator;
     auto boundNode = scanRelProperty->getBoundNode();
     auto rel = scanRelProperty->getRel();
-    assert(rel->getNumTableIDs() == 1);
+    assert(
+        !rel->isVariableLength() && rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1);
     auto relID = rel->getTableID();
     auto direction = scanRelProperty->getDirection();
     auto propertyExpression = (PropertyExpression*)scanRelProperty->getProperty().get();

@@ -10,7 +10,7 @@
 30|2|1905-12-12
 39|2|1905-12-12
 
--NAME MultiLabelAggTest2
+-NAME MultiLabelAggTest3
 -QUERY MATCH (a:person)-[e1:marries|:mixed|studyAt]->(b:person) RETURN e1.year, COUNT(*)
 ---- 8
 |3
@@ -21,3 +21,13 @@
 2120|1
 2022|1
 2020|1
+
+-NAME MultiLabelAggTest4
+-QUERY MATCH (a:person)-[e1:mixed]->(b:person:organisation) RETURN b.age, COUNT(*)
+-ENUMERATE
+---- 4
+20|2
+30|2
+45|3
+|3
+

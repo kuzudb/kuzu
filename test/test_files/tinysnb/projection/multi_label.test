@@ -37,3 +37,10 @@
 ||2066
 ||2088
 ||2120
+
+-NAME MultiLabelReturnTest
+-QUERY MATCH (a:person:organisation)-[e:mixed|:studyAt]->(b:person:organisation) WHERE a.fName='Alice' RETURN e, b.fName, b.name
+-ENUMERATE
+---- 2
+1930||Bob|
+2021|[wwAewsdndweusd,wek]||ABFsUni
