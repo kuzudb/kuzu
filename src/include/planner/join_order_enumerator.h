@@ -72,17 +72,17 @@ private:
     void planPropertyScansForNode(shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
     void planRelScan(uint32_t relPos);
-    inline void planRelExtendFiltersAndProperties(shared_ptr<RelExpression>& rel,
-        RelDirection direction, expression_vector& predicates, LogicalPlan& plan) {
-        appendExtend(rel, direction, plan);
-        planFiltersForRel(predicates, *rel, direction, plan);
-        planPropertyScansForRel(*rel, direction, plan);
-    }
+
+    void planExtendFiltersAndPropertyScans(shared_ptr<RelExpression> rel, RelDirection direction,
+        expression_vector& predicates, LogicalPlan& plan);
     // Filter push down for rel table.
-    void planFiltersForRel(expression_vector& predicates, RelExpression& rel,
-        RelDirection direction, LogicalPlan& plan);
+    void planFiltersForRel(const expression_vector& predicates,
+        shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+        shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan);
     // Property push down for rel table.
-    void planPropertyScansForRel(RelExpression& rel, RelDirection direction, LogicalPlan& plan);
+    void planPropertyScansForRel(const expression_vector& properties,
+        shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+        shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
 
@@ -111,7 +111,9 @@ private:
     bool needFlatInput(RelExpression& rel, NodeExpression& boundNode, RelDirection direction);
     bool needExtendToNewGroup(
         RelExpression& rel, NodeExpression& boundNode, RelDirection direction);
-    void appendExtend(shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan);
+    void appendExtend(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+        shared_ptr<RelExpression> rel, RelDirection direction, const expression_vector& properties,
+        LogicalPlan& plan);
 
     static void planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
         shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

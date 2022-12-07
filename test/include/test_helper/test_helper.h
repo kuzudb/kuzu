@@ -204,6 +204,14 @@ public:
         auto queryConfigs = TestHelper::parseTestFile(queryFile);
         ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
     }
+
+    inline void runTestAndCheckOrder(const string& queryFile) {
+        auto queryConfigs = TestHelper::parseTestFile(queryFile, true /* checkOutputOrder */);
+        for (auto& queryConfig : queryConfigs) {
+            queryConfig->checkOutputOrder = true;
+        }
+        ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));
+    }
 };
 
 // This class starts database in in-memory mode.

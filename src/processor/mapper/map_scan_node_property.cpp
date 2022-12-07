@@ -24,6 +24,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
             unordered_map<table_id_t, Column*> tableIDToColumn;
             for (auto tableID : node->getTableIDs()) {
                 if (!property->hasPropertyID(tableID)) {
+                    // property doesn't exist for current node table
                     continue;
                 }
                 tableIDToColumn.insert({tableID,

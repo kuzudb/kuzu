@@ -1,0 +1,22 @@
+-NAME MultiLabelTest
+-QUERY MATCH (a:person)-[:studyAt|:workAt|:mixed]->(b:organisation) return b.orgCode order by b.ID desc
+-ENUMERATE
+---- 9
+824
+824
+824
+824
+934
+934
+325
+325
+325
+
+-NAME MultiLabelTest2
+-QUERY MATCH (a:person)-[e:marries|:workAt|:mixed]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+-ENUMERATE
+---- 4
+7|8
+3|5
+0|2
+10|2

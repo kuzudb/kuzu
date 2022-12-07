@@ -53,10 +53,15 @@ unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(vector<unique_ptr<LogicalPlan>
 // enumerate regular query level.
 vector<unique_ptr<LogicalPlan>> QueryPlanner::planSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
+    // populate properties to scan
     propertiesToScan.clear();
+    unordered_set<string> populatedProperties; // remove duplication
     for (auto& expression : singleQuery.getPropertiesToRead()) {
         assert(expression->expressionType == PROPERTY);
-        propertiesToScan.push_back(expression);
+        if (!populatedProperties.contains(expression->getUniqueName())) {
+            propertiesToScan.push_back(expression);
+            populatedProperties.insert(expression->getUniqueName());
+        }
     }
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
@@ -390,29 +395,18 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
     plan.setLastOperator(std::move(scanNodeProperty));
 }
 
-void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
-    RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
-    if (rel.getNumTableIDs() > 1) {
-        return;
-    }
+void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<NodeExpression> boundNode,
+    shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
+    shared_ptr<Expression> property, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    if (schema->isExpressionInScope(*expression)) {
+    if (schema->isExpressionInScope(*property)) {
         return;
     }
-    assert(!rel.isVariableLength());
-    auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
-    auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
-    auto isColumn =
-        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getTableID(), direction);
-    assert(expression->expressionType == PROPERTY);
-    auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto relTableID = rel.getTableID();
-    auto scanProperty = make_shared<LogicalScanRelProperty>(boundNode, nbrNode, relTableID,
-        direction, property->getUniqueName(), property->getPropertyID(relTableID), isColumn,
-        plan.getLastOperator());
-    auto groupPos = schema->getGroupPos(nbrNode->getInternalIDPropertyName());
-    schema->insertToGroupAndScope(property, groupPos);
-    plan.setLastOperator(move(scanProperty));
+    assert(!rel->isVariableLength() && rel->getNumTableIDs() == 1);
+    auto scanProperty = make_shared<LogicalScanRelProperty>(std::move(boundNode),
+        std::move(nbrNode), std::move(rel), direction, std::move(property), plan.getLastOperator());
+    scanProperty->computeSchema(*schema);
+    plan.setLastOperator(std::move(scanProperty));
 }
 
 unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(

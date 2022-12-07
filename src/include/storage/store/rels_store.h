@@ -18,15 +18,17 @@ public:
     RelsStore(const Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager,
         bool isInMemoryMode, WAL* wal);
 
-    inline Column* getRelPropertyColumn(const RelDirection& relDirection,
-        const table_id_t& relTableID, const table_id_t& nodeTableID,
-        const uint64_t& propertyIdx) const {
-        return relTables.at(relTableID)->getPropertyColumn(relDirection, nodeTableID, propertyIdx);
+    // TODO(Ziyi): other getters requires (direction, nodeID, relID) but this one is requiring
+    // (direction, relID, nodeID).
+    inline Column* getRelPropertyColumn(RelDirection relDirection, table_id_t relTableID,
+        table_id_t boundNodeTableID, uint64_t propertyIdx) const {
+        return relTables.at(relTableID)
+            ->getPropertyColumn(relDirection, boundNodeTableID, propertyIdx);
     }
-    inline Lists* getRelPropertyLists(const RelDirection& relDirection,
-        const table_id_t& nodeTableID, const table_id_t& relTableID,
-        const uint64_t& propertyIdx) const {
-        return relTables.at(relTableID)->getPropertyLists(relDirection, nodeTableID, propertyIdx);
+    inline Lists* getRelPropertyLists(RelDirection relDirection, table_id_t boundNodeTableID,
+        table_id_t relTableID, uint64_t propertyIdx) const {
+        return relTables.at(relTableID)
+            ->getPropertyLists(relDirection, boundNodeTableID, propertyIdx);
     }
     inline bool hasAdjColumn(
         RelDirection relDirection, table_id_t boundNodeTableID, table_id_t relTableID) const {

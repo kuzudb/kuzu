@@ -236,6 +236,13 @@ void JoinOrderEnumerator::planPropertyScansForNode(
     queryPlanner->appendScanNodePropIfNecessary(properties, node, plan);
 }
 
+static pair<shared_ptr<NodeExpression>, shared_ptr<NodeExpression>> getBoundAndNbrNodes(
+    const RelExpression& rel, RelDirection direction) {
+    auto boundNode = direction == FWD ? rel.getSrcNode() : rel.getDstNode();
+    auto dstNode = direction == FWD ? rel.getDstNode() : rel.getSrcNode();
+    return make_pair(boundNode, dstNode);
+}
+
 void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
     auto rel = context->queryGraph->getQueryRel(relPos);
     auto newSubgraph = context->getEmptySubqueryGraph();
@@ -244,26 +251,38 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     for (auto direction : REL_DIRECTIONS) {
         auto plan = make_unique<LogicalPlan>();
-        auto boundNode = direction == FWD ? rel->getSrcNode() : rel->getDstNode();
+        auto [boundNode, _] = getBoundAndNbrNodes(*rel, direction);
         appendScanNode(boundNode, *plan);
-        planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
+        planExtendFiltersAndPropertyScans(rel, direction, predicates, *plan);
         context->addPlan(newSubgraph, move(plan));
     }
 }
 
-void JoinOrderEnumerator::planFiltersForRel(
-    expression_vector& predicates, RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
+void JoinOrderEnumerator::planExtendFiltersAndPropertyScans(shared_ptr<RelExpression> rel,
+    RelDirection direction, expression_vector& predicates, LogicalPlan& plan) {
+    auto [boundNode, dstNode] = getBoundAndNbrNodes(*rel, direction);
+    auto properties = queryPlanner->getPropertiesForRel(*rel);
+    appendExtend(boundNode, dstNode, rel, direction, properties, plan);
+    planFiltersForRel(predicates, boundNode, dstNode, rel, direction, plan);
+    planPropertyScansForRel(properties, boundNode, dstNode, rel, direction, plan);
+}
+
+void JoinOrderEnumerator::planFiltersForRel(const expression_vector& predicates,
+    shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+    shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan) {
     for (auto& predicate : predicates) {
-        auto relPropertiesToScan = getPropertiesForVariable(*predicate, rel);
-        queryPlanner->appendScanRelPropsIfNecessary(relPropertiesToScan, rel, direction, plan);
+        auto relPropertiesToScan = getPropertiesForVariable(*predicate, *rel);
+        queryPlanner->appendScanRelPropsIfNecessary(
+            boundNode, nbrNode, rel, direction, relPropertiesToScan, plan);
         queryPlanner->appendFilter(predicate, plan);
     }
 }
 
-void JoinOrderEnumerator::planPropertyScansForRel(
-    RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
-    auto relProperties = queryPlanner->getPropertiesForRel(rel);
-    queryPlanner->appendScanRelPropsIfNecessary(relProperties, rel, direction, plan);
+void JoinOrderEnumerator::planPropertyScansForRel(const expression_vector& properties,
+    shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
+    shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan) {
+    queryPlanner->appendScanRelPropsIfNecessary(
+        boundNode, nbrNode, rel, direction, properties, plan);
 }
 
 static unordered_map<uint32_t, vector<shared_ptr<RelExpression>>> populateIntersectRelCandidates(
@@ -444,6 +463,7 @@ static uint32_t extractJoinRelPos(const SubqueryGraph& subgraph, const QueryGrap
 void JoinOrderEnumerator::planInnerINLJoin(const SubqueryGraph& subgraph,
     const SubqueryGraph& otherSubgraph, const vector<shared_ptr<NodeExpression>>& joinNodes) {
     assert(otherSubgraph.getNumQueryRels() == 1 && joinNodes.size() == 1);
+    auto boundNode = joinNodes[0].get();
     auto queryGraph = context->getQueryGraph();
     auto relPos = extractJoinRelPos(otherSubgraph, *queryGraph);
     auto rel = queryGraph->getQueryRel(relPos);
@@ -452,10 +472,10 @@ void JoinOrderEnumerator::planInnerINLJoin(const SubqueryGraph& subgraph,
     auto predicates =
         getNewlyMatchedExpressions(subgraph, newSubgraph, context->getWhereExpressions());
     for (auto& prevPlan : context->getPlans(subgraph)) {
-        if (isNodeSequential(*prevPlan, joinNodes[0].get())) {
+        if (isNodeSequential(*prevPlan, boundNode)) {
             auto plan = prevPlan->shallowCopy();
-            auto direction = joinNodes[0]->getUniqueName() == rel->getSrcNodeName() ? FWD : BWD;
-            planRelExtendFiltersAndProperties(rel, direction, predicates, *plan);
+            auto direction = boundNode->getUniqueName() == rel->getSrcNodeName() ? FWD : BWD;
+            planExtendFiltersAndPropertyScans(rel, direction, predicates, *plan);
             context->addPlan(newSubgraph, move(plan));
         }
     }
@@ -565,20 +585,25 @@ bool JoinOrderEnumerator::needFlatInput(
     return needFlatInput;
 }
 
-void JoinOrderEnumerator::appendExtend(
-    shared_ptr<RelExpression>& rel, RelDirection direction, LogicalPlan& plan) {
+void JoinOrderEnumerator::appendExtend(shared_ptr<NodeExpression> boundNode,
+    shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
+    const expression_vector& properties, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto boundNode = FWD == direction ? rel->getSrcNode() : rel->getDstNode();
     if (boundNode->getNumTableIDs() > 1) {
         throw NotImplementedException("Extend from multi-labeled node is not supported.");
     }
-    auto nbrNode = FWD == direction ? rel->getDstNode() : rel->getSrcNode();
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
     if (needFlatInput(*rel, *boundNode, direction)) {
         QueryPlanner::appendFlattenIfNecessary(boundNode->getInternalIDProperty(), plan);
     }
-    auto extend = make_shared<LogicalExtend>(
-        boundNode, nbrNode, rel, direction, extendToNewGroup, plan.getLastOperator());
+    shared_ptr<LogicalExtend> extend;
+    if (rel->getNumTableIDs() > 1) {
+        extend = make_shared<LogicalGenericExtend>(boundNode, nbrNode, rel, direction,
+            extendToNewGroup, properties, plan.getLastOperator());
+    } else {
+        extend = make_shared<LogicalExtend>(
+            boundNode, nbrNode, rel, direction, extendToNewGroup, plan.getLastOperator());
+    }
     extend->computeSchema(*schema);
     plan.setLastOperator(std::move(extend));
     // update cardinality estimation info
@@ -671,8 +696,6 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
             buildSideSchema->getGroupPos(joinNode->getInternalIDPropertyName()));
     }
     QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
-
-    auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
     vector<string> keys;
     for (auto& joinNode : joinNodes) {
         keys.push_back(joinNode->getInternalIDPropertyName());
@@ -749,7 +772,6 @@ void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan
     auto probeSideSchema = probePlan.getSchema();
     auto buildSideSchema = buildPlan.getSchema();
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    auto numGroupsBeforeMerging = probeSideSchema->getNumGroups();
     SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema);
     auto crossProduct = make_shared<LogicalCrossProduct>(
         buildSideSchema->copy(), probePlan.getLastOperator(), buildPlan.getLastOperator());

@@ -35,6 +35,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_GENERIC_EXTEND: {
+        physicalOperator = mapLogicalGenericExtendToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     case LOGICAL_FLATTEN: {
         physicalOperator = mapLogicalFlattenToPhysical(logicalOperator.get(), mapperContext);
     } break;
