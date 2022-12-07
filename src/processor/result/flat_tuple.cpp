@@ -6,6 +6,10 @@
 
 #include "common/type_utils.h"
 #include "common/utils.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
+
+using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace processor {
@@ -103,7 +107,17 @@ string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& deli
         if (colsWidth[i] != 0) {
             value = " " + value + " ";
         }
-        result << left << setw((int)colsWidth[i]) << setfill(' ') << value;
+        uint32_t fieldLen = 0;
+        uint32_t chrIter = 0;
+        while (chrIter < value.length()) {
+            fieldLen += Utf8Proc::renderWidth(value.c_str(), chrIter);
+            chrIter = utf8proc_next_grapheme(value.c_str(), value.length(), chrIter);
+        }
+        if (colsWidth[i] != 0) {
+            result << value << string(colsWidth[i] - fieldLen, ' ');
+        } else {
+            result << value;
+        }
         if (i != resultValues.size() - 1) {
             result << delimiter;
         }
