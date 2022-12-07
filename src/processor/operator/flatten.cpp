@@ -5,26 +5,27 @@ namespace processor {
 
 void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
-    unFlattenedSelVector = dataChunkToFlatten->state->selVector;
-    flattenedSelVector = make_shared<SelectionVector>(1 /* capacity */);
-    flattenedSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
-    dataChunkToFlatten->state->selVector = flattenedSelVector;
+    currentSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
 }
 
 bool Flatten::getNextTuplesInternal() {
     if (isCurrIdxInitialOrLast()) {
         dataChunkToFlatten->state->currIdx = -1;
-        dataChunkToFlatten->state->selVector = unFlattenedSelVector;
+        restoreSelVector(dataChunkToFlatten->state->selVector);
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        dataChunkToFlatten->state->selVector = flattenedSelVector;
+        saveSelVector(dataChunkToFlatten->state->selVector);
     }
     dataChunkToFlatten->state->currIdx++;
-    flattenedSelVector->selectedPositions[0] =
-        unFlattenedSelVector->selectedPositions[dataChunkToFlatten->state->currIdx];
+    currentSelVector->selectedPositions[0] =
+        prevSelVector->selectedPositions[dataChunkToFlatten->state->currIdx];
     metrics->numOutputTuple.incrementByOne();
     return true;
+}
+
+void Flatten::resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) {
+    selVector = currentSelVector;
 }
 
 } // namespace processor

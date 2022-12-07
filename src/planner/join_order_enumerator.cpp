@@ -479,12 +479,12 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
             planInnerHashJoin(joinNodes, *leftPlanProbeCopy, *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
-            context->addPlan(newSubgraph, move(leftPlanProbeCopy));
+            context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
                 planInnerHashJoin(joinNodes, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
-                context->addPlan(newSubgraph, move(rightPlanProbeCopy));
+                context->addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
         }
     }
@@ -678,7 +678,7 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
         buildSideSchema->copy(), buildSideSchema->getExpressionsInScope(),
         probePlan.getLastOperator(), buildPlan.getLastOperator());
-    probePlan.setLastOperator(move(hashJoin));
+    probePlan.setLastOperator(std::move(hashJoin));
 }
 
 void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
