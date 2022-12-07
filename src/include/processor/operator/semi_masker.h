@@ -11,11 +11,12 @@ class SemiMasker : public PhysicalOperator {
 public:
     SemiMasker(const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::SEMI_MASKER, std::move(child), id, paramsString},
           keyDataPos{keyDataPos}, maskerIdx{0}, scanTableNodeIDSharedState{nullptr} {}
 
     SemiMasker(const SemiMasker& other)
-        : PhysicalOperator{other.children[0]->clone(), other.id, other.paramsString},
+        : PhysicalOperator{PhysicalOperatorType::SEMI_MASKER, other.children[0]->clone(), other.id,
+              other.paramsString},
           keyDataPos{other.keyDataPos}, maskerIdx{other.maskerIdx},
           scanTableNodeIDSharedState{other.scanTableNodeIDSharedState} {}
 
@@ -25,8 +26,6 @@ public:
         assert(maskerIdx < UINT8_MAX);
         scanTableNodeIDSharedState->incrementNumMaskers();
     }
-
-    inline PhysicalOperatorType getOperatorType() override { return SEMI_MASKER; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

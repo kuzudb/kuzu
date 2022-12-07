@@ -11,17 +11,14 @@ namespace kuzu {
 namespace processor {
 
 class Projection : public PhysicalOperator {
-
 public:
     Projection(vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
         vector<DataPos> expressionsOutputPos, unordered_set<uint32_t> discardedDataChunksPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator(move(child), id, paramsString),
-          expressionEvaluators(move(expressionEvaluators)), expressionsOutputPos{move(
-                                                                expressionsOutputPos)},
-          discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{1} {}
-
-    PhysicalOperatorType getOperatorType() override { return PROJECTION; }
+        : PhysicalOperator(PhysicalOperatorType::PROJECTION, std::move(child), id, paramsString),
+          expressionEvaluators(std::move(expressionEvaluators)), expressionsOutputPos{std::move(
+                                                                     expressionsOutputPos)},
+          discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

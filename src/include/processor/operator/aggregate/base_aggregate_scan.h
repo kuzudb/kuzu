@@ -13,15 +13,16 @@ class BaseAggregateScan : public PhysicalOperator {
 public:
     BaseAggregateScan(vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, aggregatesPos{move(aggregatesPos)},
-          aggregateDataTypes{move(aggregateDataTypes)} {}
+        : PhysicalOperator{PhysicalOperatorType::AGGREGATE_SCAN, std::move(child), id,
+              paramsString},
+          aggregatesPos{std::move(aggregatesPos)}, aggregateDataTypes{
+                                                       std::move(aggregateDataTypes)} {}
 
     BaseAggregateScan(vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, aggregatesPos{move(aggregatesPos)},
-          aggregateDataTypes{move(aggregateDataTypes)} {}
-
-    PhysicalOperatorType getOperatorType() override { return AGGREGATE_SCAN; }
+        : PhysicalOperator{PhysicalOperatorType::AGGREGATE_SCAN, id, paramsString},
+          aggregatesPos{std::move(aggregatesPos)}, aggregateDataTypes{
+                                                       std::move(aggregateDataTypes)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

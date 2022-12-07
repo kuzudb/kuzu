@@ -23,12 +23,8 @@ class DeleteNode : public PhysicalOperator {
 public:
     DeleteNode(vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, deleteNodeInfos{
-                                                                    std::move(deleteNodeInfos)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::DELETE_NODE;
-    }
+        : PhysicalOperator{PhysicalOperatorType::DELETE_NODE, std::move(child), id, paramsString},
+          deleteNodeInfos{std::move(deleteNodeInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -73,12 +69,8 @@ class DeleteRel : public PhysicalOperator {
 public:
     DeleteRel(RelsStatistics& relsStatistics, vector<unique_ptr<DeleteRelInfo>> deleteRelInfos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, relsStatistics{relsStatistics},
-          deleteRelInfos{std::move(deleteRelInfos)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::DELETE_REL;
-    }
+        : PhysicalOperator{PhysicalOperatorType::DELETE_REL, std::move(child), id, paramsString},
+          relsStatistics{relsStatistics}, deleteRelInfos{std::move(deleteRelInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

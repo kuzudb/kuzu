@@ -7,16 +7,14 @@ namespace kuzu {
 namespace processor {
 
 class CreateNodeTable : public CreateTable {
-
 public:
     CreateNodeTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx, uint32_t id,
         const string& paramsString, NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
-        : CreateTable{catalog, move(tableName), move(propertyNameDataTypes), id, paramsString},
+        : CreateTable{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, std::move(tableName),
+              std::move(propertyNameDataTypes), id, paramsString},
           primaryKeyIdx{primaryKeyIdx}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
     }
-
-    PhysicalOperatorType getOperatorType() override { return CREATE_NODE_TABLE; }
 
     string execute() override;
 

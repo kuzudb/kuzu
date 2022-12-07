@@ -47,11 +47,10 @@ public:
         vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadFlat,
         shared_ptr<FTableSharedState> sharedState, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::RESULT_COLLECTOR,
+              std::move(child), id, paramsString},
           payloadsPosAndType{std::move(payloadsPosAndType)},
           isPayloadFlat{std::move(isPayloadFlat)}, sharedState{std::move(sharedState)} {}
-
-    PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

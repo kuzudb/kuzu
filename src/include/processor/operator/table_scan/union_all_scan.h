@@ -26,22 +26,21 @@ public:
     UnionAllScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan,
         shared_ptr<UnionAllScanSharedState> sharedState,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
-        : BaseTableScan{std::move(outVecPositions), std::move(colIndicesToScan),
-              std::move(children), id, paramsString},
+        : BaseTableScan{PhysicalOperatorType::UNION_ALL_SCAN, std::move(outVecPositions),
+              std::move(colIndicesToScan), std::move(children), id, paramsString},
           sharedState{std::move(sharedState)} {}
 
     // For clone only
     UnionAllScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan,
         shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id, const string& paramsString)
-        : BaseTableScan{std::move(outVecPositions), std::move(colIndicesToScan), id, paramsString},
+        : BaseTableScan{PhysicalOperatorType::UNION_ALL_SCAN, std::move(outVecPositions),
+              std::move(colIndicesToScan), id, paramsString},
           sharedState{std::move(sharedState)} {}
 
     inline void setMaxMorselSize() override { maxMorselSize = sharedState->getMaxMorselSize(); }
     inline unique_ptr<FTableScanMorsel> getMorsel() override {
         return sharedState->getMorsel(maxMorselSize);
     }
-
-    PhysicalOperatorType getOperatorType() override { return UNION_ALL_SCAN; }
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<UnionAllScan>(

@@ -7,10 +7,11 @@ namespace processor {
 
 class BaseExtendAndScanRelProperties : public PhysicalOperator {
 protected:
-    BaseExtendAndScanRelProperties(const DataPos& inNodeIDVectorPos,
-        const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString},
+    BaseExtendAndScanRelProperties(PhysicalOperatorType operatorType,
+        const DataPos& inNodeIDVectorPos, const DataPos& outNodeIDVectorPos,
+        vector<DataPos> outPropertyVectorsPos, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString},
           inNodeIDVectorPos{inNodeIDVectorPos}, outNodeIDVectorPos{outNodeIDVectorPos},
           outPropertyVectorsPos{std::move(outPropertyVectorsPos)} {}
     virtual ~BaseExtendAndScanRelProperties() override = default;

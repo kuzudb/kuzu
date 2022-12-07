@@ -6,14 +6,11 @@ namespace kuzu {
 namespace processor {
 
 class Flatten : public PhysicalOperator {
-
 public:
     Flatten(uint32_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, dataChunkToFlattenPos{
-                                                                    dataChunkToFlattenPos} {}
-
-    PhysicalOperatorType getOperatorType() override { return FLATTEN; }
+        : PhysicalOperator{PhysicalOperatorType::FLATTEN, std::move(child), id, paramsString},
+          dataChunkToFlattenPos{dataChunkToFlattenPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

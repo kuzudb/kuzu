@@ -9,12 +9,10 @@ namespace processor {
 
 class BaseScanColumn : public PhysicalOperator {
 public:
-    BaseScanColumn(const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, inputNodeIDVectorPos{
-                                                               inputNodeIDVectorPos} {}
-
-    PhysicalOperatorType getOperatorType() override = 0;
+    BaseScanColumn(PhysicalOperatorType operatorType, const DataPos& inputNodeIDVectorPos,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString},
+          inputNodeIDVectorPos{inputNodeIDVectorPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -27,12 +25,9 @@ class ScanMultipleColumns : public BaseScanColumn {
 protected:
     ScanMultipleColumns(const DataPos& inVectorPos, vector<DataPos> outPropertyVectorsPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseScanColumn{inVectorPos, std::move(child), id, paramsString},
+        : BaseScanColumn{PhysicalOperatorType::SCAN_NODE_PROPERTY, inVectorPos, std::move(child),
+              id, paramsString},
           outPropertyVectorsPos{std::move(outPropertyVectorsPos)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SCAN_COLUMN_PROPERTY;
-    }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

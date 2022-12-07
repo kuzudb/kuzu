@@ -12,12 +12,11 @@ public:
         const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos, Lists* adjList,
         vector<Lists*> propertyLists, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : BaseExtendAndScanRelProperties{inNodeIDVectorPos, outNodeIDVectorPos,
-              std::move(outPropertyVectorsPos), std::move(child), id, paramsString},
+        : BaseExtendAndScanRelProperties{PhysicalOperatorType::LIST_EXTEND, inNodeIDVectorPos,
+              outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
+              paramsString},
           adjList{adjList}, propertyLists{std::move(propertyLists)} {}
     ~ListExtendAndScanRelProperties() override = default;
-
-    inline PhysicalOperatorType getOperatorType() override { return LIST_EXTEND; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

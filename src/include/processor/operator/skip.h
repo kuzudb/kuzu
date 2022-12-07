@@ -7,18 +7,15 @@ namespace kuzu {
 namespace processor {
 
 class Skip : public PhysicalOperator, public FilteringOperator {
-
 public:
     Skip(uint64_t skipNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
         unordered_set<uint32_t> dataChunksPosInScope, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString},
-          FilteringOperator{1 /* numStatesToSave */}, skipNumber{skipNumber}, counter{move(
+        : PhysicalOperator{PhysicalOperatorType::SKIP, std::move(child), id, paramsString},
+          FilteringOperator{1 /* numStatesToSave */}, skipNumber{skipNumber}, counter{std::move(
                                                                                   counter)},
           dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksPosInScope{
-                                                          move(dataChunksPosInScope)} {}
-
-    PhysicalOperatorType getOperatorType() override { return SKIP; }
+                                                          std::move(dataChunksPosInScope)} {}
 
     bool getNextTuplesInternal() override;
 

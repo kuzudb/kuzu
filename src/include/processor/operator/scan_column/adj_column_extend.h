@@ -14,13 +14,12 @@ public:
         const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos, Column* adjColumn,
         vector<Column*> propertyColumns, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : BaseExtendAndScanRelProperties{inNodeIDVectorPos, outNodeIDVectorPos,
-              std::move(outPropertyVectorsPos), std::move(child), id, paramsString},
+        : BaseExtendAndScanRelProperties{PhysicalOperatorType::COLUMN_EXTEND, inNodeIDVectorPos,
+              outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
+              paramsString},
           FilteringOperator{1 /* numStatesToSave */}, adjColumn{adjColumn},
           propertyColumns{std::move(propertyColumns)} {}
     ~ColumnExtendAndScanRelProperties() override = default;
-
-    inline PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
 
     bool getNextTuplesInternal() override;
 

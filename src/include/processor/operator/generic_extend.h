@@ -78,14 +78,11 @@ public:
         unordered_map<table_id_t, unique_ptr<AdjAndPropertyCollection>>
             adjAndPropertyCollectionPerNodeTable,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseExtendAndScanRelProperties{inNodeIDVectorPos, outNodeIDVectorPos,
-              std::move(outPropertyVectorsPos), std::move(child), id, paramsString},
+        : BaseExtendAndScanRelProperties{PhysicalOperatorType::GENERIC_EXTEND, inNodeIDVectorPos,
+              outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
+              paramsString},
           adjAndPropertyCollectionPerNodeTable{std::move(adjAndPropertyCollectionPerNodeTable)} {}
     ~GenericExtendAndScanRelProperties() override = default;
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::GENERIC_EXTEND;
-    }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
