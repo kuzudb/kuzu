@@ -12,13 +12,10 @@ public:
     LogicalExtend(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
         shared_ptr<RelExpression> rel, RelDirection direction, expression_vector properties,
         bool extendToNewGroup, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, boundNode{std::move(boundNode)},
+        : LogicalOperator{LogicalOperatorType::EXTEND, std::move(child)}, boundNode{std::move(
+                                                                              boundNode)},
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction},
           properties{std::move(properties)}, extendToNewGroup{extendToNewGroup} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_EXTEND;
-    }
 
     inline string getExpressionsForPrinting() const override {
         return boundNode->getRawName() + (direction == RelDirection::FWD ? "->" : "<-") +

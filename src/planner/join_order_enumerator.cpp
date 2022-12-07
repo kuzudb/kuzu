@@ -514,8 +514,7 @@ void JoinOrderEnumerator::appendFTableScan(
             schema->setGroupAsSingleState(innerPos);
         }
     }
-    assert(outerPlan->getLastOperator()->getLogicalOperatorType() ==
-           LogicalOperatorType::LOGICAL_ACCUMULATE);
+    assert(outerPlan->getLastOperator()->getOperatorType() == LogicalOperatorType::ACCUMULATE);
     auto logicalAcc = (LogicalAccumulate*)outerPlan->getLastOperator().get();
     auto fTableScan =
         make_shared<LogicalFTableScan>(expressionsToScan, logicalAcc->getExpressions());
@@ -631,7 +630,7 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
         }
         firstop = firstop->getChild(0).get();
     }
-    if (firstop->getLogicalOperatorType() != LOGICAL_SCAN_NODE) {
+    if (firstop->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
         return false;
     }
     auto scanNodeID = (LogicalScanNode*)firstop;

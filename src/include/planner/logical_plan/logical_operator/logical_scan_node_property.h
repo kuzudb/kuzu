@@ -12,11 +12,8 @@ class LogicalScanNodeProperty : public LogicalOperator {
 public:
     LogicalScanNodeProperty(shared_ptr<NodeExpression> node, expression_vector properties,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, node{std::move(node)}, properties{std::move(properties)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SCAN_NODE_PROPERTY;
-    }
+        : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY, std::move(child)},
+          node{std::move(node)}, properties{std::move(properties)} {}
 
     inline string getExpressionsForPrinting() const override {
         return ExpressionUtil::toString(properties);

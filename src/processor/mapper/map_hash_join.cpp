@@ -14,7 +14,7 @@ namespace processor {
 static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
     auto op = logicalHashJoin->getChild(0); // check probe side
     while (op->getNumChildren() == 1) {     // check pipeline
-        if (op->getLogicalOperatorType() == LogicalOperatorType::LOGICAL_SEMI_MASKER) {
+        if (op->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
             return true;
         }
         op = op->getChild(0);
@@ -24,8 +24,7 @@ static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
 
 static bool containFTableScan(LogicalHashJoin* logicalHashJoin) {
     auto root = logicalHashJoin->getChild(1).get(); // check build side
-    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::LOGICAL_FTABLE_SCAN)
-                .empty();
+    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::FTABLE_SCAN).empty();
 }
 
 static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinProbe) {

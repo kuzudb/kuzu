@@ -9,11 +9,8 @@ using namespace kuzu::binder;
 
 class LogicalScanNode : public LogicalOperator {
 public:
-    explicit LogicalScanNode(shared_ptr<NodeExpression> node) : node{std::move(node)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SCAN_NODE;
-    }
+    explicit LogicalScanNode(shared_ptr<NodeExpression> node)
+        : LogicalOperator{LogicalOperatorType::SCAN_NODE}, node{std::move(node)} {}
 
     inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
@@ -32,21 +29,21 @@ protected:
     shared_ptr<NodeExpression> node;
 };
 
-class LogicalIndexScanNode : public LogicalScanNode {
+class LogicalIndexScanNode : public LogicalOperator {
 public:
     LogicalIndexScanNode(shared_ptr<NodeExpression> node, shared_ptr<Expression> indexExpression)
-        : LogicalScanNode{std::move(node)}, indexExpression{std::move(indexExpression)} {}
+        : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE}, node{std::move(node)},
+          indexExpression{std::move(indexExpression)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_INDEX_SCAN_NODE;
-    }
+    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
-    inline void computeSchema(Schema& schema) override {
-        LogicalScanNode::computeSchema(schema);
-        auto groupPos = schema.getGroupPos(node->getInternalIDPropertyName());
+    inline void computeSchema(Schema& schema) {
+        auto groupPos = schema.createGroup();
+        schema.insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
         schema.setGroupAsSingleState(groupPos);
     }
 
+    inline shared_ptr<NodeExpression> getNode() const { return node; }
     inline shared_ptr<Expression> getIndexExpression() const { return indexExpression; }
 
     unique_ptr<LogicalOperator> copy() override {
@@ -54,6 +51,7 @@ public:
     }
 
 private:
+    shared_ptr<NodeExpression> node;
     shared_ptr<Expression> indexExpression;
 };
 

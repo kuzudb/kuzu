@@ -10,11 +10,9 @@ class LogicalExpressionsScan : public LogicalOperator {
 public:
     // LogicalExpressionsScan does not take input from child operator. So its input expressions must
     // be evaluated statically i.e. must be literal.
-    LogicalExpressionsScan(expression_vector expressions) : expressions{std::move(expressions)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_EXPRESSIONS_SCAN;
-    }
+    explicit LogicalExpressionsScan(expression_vector expressions)
+        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
+                                                                      std::move(expressions)} {}
 
     inline string getExpressionsForPrinting() const override {
         return ExpressionUtil::toString(expressions);

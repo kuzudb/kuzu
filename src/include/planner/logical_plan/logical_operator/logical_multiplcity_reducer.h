@@ -6,14 +6,9 @@ namespace kuzu {
 namespace planner {
 
 class LogicalMultiplicityReducer : public LogicalOperator {
-
 public:
     explicit LogicalMultiplicityReducer(shared_ptr<LogicalOperator> child)
-        : LogicalOperator(move(child)) {}
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_MULTIPLICITY_REDUCER;
-    }
+        : LogicalOperator(LogicalOperatorType::MULTIPLICITY_REDUCER, std::move(child)) {}
 
     string getExpressionsForPrinting() const override { return string(); }
 
