@@ -25,6 +25,8 @@ public:
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
+    unique_ptr<LogicalPlan> getShortestPathPlan(const BoundStatement& boundStatement);
+
     inline unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement) {
         return getBestPlan(getAllPlans(boundStatement));
     }

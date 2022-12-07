@@ -94,7 +94,8 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-
+    unique_ptr<PhysicalOperator> mapLogicalShortestPathToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<ResultCollector> appendResultCollector(const expression_vector& expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator,
         MapperContext& mapperContext);

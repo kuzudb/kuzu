@@ -2,8 +2,10 @@
 
 #include <set>
 
+#include "planner/logical_plan/logical_operator/logical_shortest_path.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
+#include "processor/operator/shortest_path.h"
 
 using namespace kuzu::planner;
 
@@ -124,10 +126,28 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_DROP_TABLE: {
         physicalOperator = mapLogicalDropTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
+    case LOGICAL_SHORTEST_PATH: {
+        physicalOperator = mapLogicalShortestPathToPhysical(logicalOperator.get(), mapperContext);
+    } break;
     default:
         assert(false);
     }
     return physicalOperator;
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalShortestPathToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    auto* logicalShortestPath = (LogicalShortestPath*)logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto srcNodeExpressionEvaluator =
+        expressionMapper.mapExpression(logicalShortestPath->getSrcNodeExpression(), mapperContext);
+    auto destNodeExpressionEvaluator =
+        expressionMapper.mapExpression(logicalShortestPath->getDestNodeExpression(), mapperContext);
+    return make_unique<ShortestPath>(move(srcNodeExpressionEvaluator),
+        move(destNodeExpressionEvaluator), logicalShortestPath->getRelExpression()->getTableIDs(),
+        logicalShortestPath->getRelExpression()->getLowerBound(),
+        logicalShortestPath->getRelExpression()->getUpperBound(), move(prevOperator),
+        getOperatorID(), logicalShortestPath->getExpressionsForPrinting());
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
