@@ -139,15 +139,30 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalShortestPathToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto* logicalShortestPath = (LogicalShortestPath*)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto srcNodeExpressionEvaluator =
-        expressionMapper.mapExpression(logicalShortestPath->getSrcNodeExpression(), mapperContext);
-    auto destNodeExpressionEvaluator =
-        expressionMapper.mapExpression(logicalShortestPath->getDestNodeExpression(), mapperContext);
-    return make_unique<ShortestPath>(move(srcNodeExpressionEvaluator),
-        move(destNodeExpressionEvaluator), logicalShortestPath->getRelExpression()->getTableIDs(),
-        logicalShortestPath->getRelExpression()->getLowerBound(),
-        logicalShortestPath->getRelExpression()->getUpperBound(), move(prevOperator),
-        getOperatorID(), logicalShortestPath->getExpressionsForPrinting());
+    auto sourceNode = logicalShortestPath->getSrcNodeExpression();
+    auto destNode = logicalShortestPath->getDestNodeExpression();
+    auto rel = logicalShortestPath->getRelExpression();
+    // assume this here for now
+    auto direction = REL_DIRECTIONS[0];
+    auto srcDataPos = mapperContext.getDataPos(sourceNode->getInternalIDPropertyName());
+    auto destDataPos = mapperContext.getDataPos(destNode->getInternalIDPropertyName());
+    auto& relStore = storageManager.getRelsStore();
+    if (relStore.hasAdjColumn(direction, sourceNode->getTableID(), rel->getTableID())) {
+        vector<Column*> columns;
+        columns.push_back(
+            relStore.getAdjColumn(direction, sourceNode->getTableID(), rel->getTableID()));
+        return make_unique<ShortestPath>(srcDataPos, destDataPos, columns, rel->getLowerBound(),
+            rel->getUpperBound(), move(prevOperator), getOperatorID(),
+            logicalShortestPath->getExpressionsForPrinting());
+    } else {
+        assert(relStore.hasAdjList(direction, sourceNode->getTableID(), rel->getTableID()));
+        vector<AdjLists*> lists;
+        lists.push_back(
+            relStore.getAdjLists(direction, sourceNode->getTableID(), rel->getTableID()));
+        return make_unique<ShortestPath>(srcDataPos, destDataPos, lists, rel->getLowerBound(),
+            rel->getUpperBound(), move(prevOperator), getOperatorID(),
+            logicalShortestPath->getExpressionsForPrinting());
+    }
 }
 
 unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
