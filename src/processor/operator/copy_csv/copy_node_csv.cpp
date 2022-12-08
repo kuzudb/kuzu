@@ -7,8 +7,6 @@ namespace processor {
 
 string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     auto nodeCSVCopier =
-//        make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(), *taskScheduler,
-//            *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
             make_unique<InMemArrowNodeCSVCopier>(csvDescription, wal->getDirectory(), *taskScheduler,
                                             *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
     errorIfTableIsNonEmpty(&nodesStore->getNodesStatisticsAndDeletedIDs());
