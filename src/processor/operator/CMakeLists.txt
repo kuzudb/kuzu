@@ -27,6 +27,7 @@ add_library(kuzu_processor_operator
         scan_node_id.cpp
         semi_masker.cpp
         shortest_path.cpp
+        base_shortest_path.cpp
         skip.cpp
         unwind.cpp)
 

@@ -148,19 +148,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalShortestPathToPhysical(
     auto destDataPos = mapperContext.getDataPos(destNode->getInternalIDPropertyName());
     auto& relStore = storageManager.getRelsStore();
     if (relStore.hasAdjColumn(direction, sourceNode->getTableID(), rel->getTableID())) {
-        vector<Column*> columns;
-        columns.push_back(
-            relStore.getAdjColumn(direction, sourceNode->getTableID(), rel->getTableID()));
-        return make_unique<ShortestPath>(srcDataPos, destDataPos, columns, rel->getLowerBound(),
-            rel->getUpperBound(), move(prevOperator), getOperatorID(),
+        Column* column =
+            relStore.getAdjColumn(direction, sourceNode->getTableID(), rel->getTableID());
+        return make_unique<ShortestPathAdjCol>(srcDataPos, destDataPos, column,
+            rel->getLowerBound(), rel->getUpperBound(), move(prevOperator), getOperatorID(),
             logicalShortestPath->getExpressionsForPrinting());
     } else {
         assert(relStore.hasAdjList(direction, sourceNode->getTableID(), rel->getTableID()));
-        vector<AdjLists*> lists;
-        lists.push_back(
-            relStore.getAdjLists(direction, sourceNode->getTableID(), rel->getTableID()));
-        return make_unique<ShortestPath>(srcDataPos, destDataPos, lists, rel->getLowerBound(),
-            rel->getUpperBound(), move(prevOperator), getOperatorID(),
+        AdjLists* lists =
+            relStore.getAdjLists(direction, sourceNode->getTableID(), rel->getTableID());
+        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists,
+            rel->getLowerBound(), rel->getUpperBound(), move(prevOperator), getOperatorID(),
             logicalShortestPath->getExpressionsForPrinting());
     }
 }
