@@ -8,7 +8,9 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class CopyCSVArrowNodeTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-arrow-node-test/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-arrow-node-test/");
+    }
 
 public:
     static bool CheckEquals(const vector<string>& expected, const Literal& listVal) {
