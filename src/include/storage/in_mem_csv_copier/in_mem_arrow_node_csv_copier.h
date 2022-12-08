@@ -2,8 +2,8 @@
 
 #include "in_mem_structures_csv_copier.h"
 
-#include "src/storage/index/include/hash_index_builder.h"
-#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
+#include "storage/index/hash_index_builder.h"
+#include "storage/store/nodes_statistics_and_deleted_ids.h"
 
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>

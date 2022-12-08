@@ -1,5 +1,6 @@
 add_library(kuzu_storage_in_mem_csv_copier
         OBJECT
+        in_mem_arrow_node_csv_copier.cpp
         in_mem_node_csv_copier.cpp
         in_mem_rel_csv_copier.cpp
         in_mem_structures_csv_copier.cpp)
@@ -7,4 +8,3 @@ add_library(kuzu_storage_in_mem_csv_copier
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_in_mem_csv_copier>
         PARENT_SCOPE)
-target_link_libraries(kuzu_storage_in_mem_csv_copier PUBLIC arrow_shared)
