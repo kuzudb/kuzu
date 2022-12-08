@@ -1,6 +1,6 @@
-#include "include/var_length_adj_list_extend.h"
+#include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
 
-#include "src/common/types/include/types.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace processor {
@@ -25,16 +25,15 @@ void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
     this->hasBeenOutput = false;
 }
 
-shared_ptr<ResultSet> VarLengthAdjListExtend::init(ExecutionContext* context) {
-    resultSet = VarLengthExtend::init(context);
+void VarLengthAdjListExtend::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
         dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
     }
-    return resultSet;
 }
 
-bool VarLengthAdjListExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool VarLengthAdjListExtend::getNextTuplesInternal() {
     while (true) {
         while (!dfsStack.empty()) {
             auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsStack.top());
@@ -48,7 +47,6 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 nbrNodeValueVector->state->selVector->selectedSize =
                     dfsLevelInfo->children->state->selVector->selectedSize;
                 dfsLevelInfo->hasBeenOutput = true;
-                metrics->executionTime.stop();
                 return true;
             } else if (dfsLevelInfo->childrenIdx <
                            dfsLevelInfo->children->state->selVector->selectedSize &&
@@ -68,11 +66,10 @@ bool VarLengthAdjListExtend::getNextTuples() {
         }
         uint64_t curIdx;
         do {
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
+            if (!children[0]->getNextTuple()) {
                 return false;
             }
-            curIdx = boundNodeValueVector->state->getPositionOfCurrIdx();
+            curIdx = boundNodeValueVector->state->selVector->selectedPositions[0];
         } while (boundNodeValueVector->isNull(curIdx) ||
                  !addDFSLevelToStackIfParentExtends(
                      boundNodeValueVector->readNodeOffset(curIdx), 1 /* level */));

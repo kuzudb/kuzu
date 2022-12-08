@@ -1,0 +1,166 @@
+-NAME OrderByInt64Test
+-QUERY MATCH (p:person) RETURN p.age ORDER BY p.age
+-PARALLELISM 3
+---- 8
+20
+20
+25
+30
+35
+40
+45
+83
+
+-NAME OrderByBooleanTest
+-QUERY MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
+-PARALLELISM 3
+---- 8
+True
+True
+True
+False
+False
+False
+False
+False
+
+
+-NAME OrderByDoubleTest
+-QUERY MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
+-PARALLELISM 3
+---- 8
+4.500000
+4.700000
+4.800000
+4.900000
+4.900000
+5.000000
+5.000000
+5.100000
+
+-NAME OrderByDateTest
+-QUERY MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
+-PARALLELISM 3
+---- 8
+1990-11-27
+1980-10-26
+1980-10-26
+1980-10-26
+1950-07-23
+1940-06-22
+1900-01-01
+1900-01-01
+
+-NAME OrderByTimestampTest
+-QUERY MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
+-PARALLELISM 3
+---- 8
+1911-08-20 02:32:21
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+1976-12-23 11:21:42
+2008-11-03 15:25:30.000526
+2011-08-20 11:25:30
+2023-02-21 13:25:30
+2031-11-30 12:25:30
+
+-NAME OrderByIntervalTest
+-QUERY MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
+-PARALLELISM 2
+---- 8
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+3 years 2 days 13:02:00
+48:24:11
+48:24:11
+00:18:00.024
+
+-NAME OrderByStringTest
+-QUERY MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
+-PARALLELISM 2
+---- 8
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Greg
+Farooq
+Elizabeth
+Dan
+Carol
+Bob
+Alice
+
+-NAME OrderByStrMultipleColTest
+-QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
+-PARALLELISM 2
+---- 8
+20|4.800000
+20|4.700000
+45|5.000000
+83|4.900000
+25|4.500000
+30|5.100000
+35|5.000000
+40|4.900000
+
+-NAME OrderByProjectionTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
+-ENUMERATE
+-PARALLELISM 7
+---- 14
+Greg
+Farooq
+Dan
+Dan
+Dan
+Carol
+Carol
+Carol
+Bob
+Bob
+Bob
+Alice
+Alice
+Alice
+
+-NAME OrderByThreeHopTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
+-ENUMERATE
+---- 10
+Carol
+Alice
+Dan
+Carol
+Bob
+Dan
+Alice
+Bob
+Dan
+Carol
+
+# If the payload column and the orderBy key column are in different dataChunks and one of them is unflat, the order by
+# scanner can only scan one tuple from factorizedTable at a time.
+-NAME OrderByScanSingleTupleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
+#-PARALLELISM 2
+-ENUMERATE
+---- 14
+Bob
+Carol
+Dan
+Alice
+Carol
+Dan
+Alice
+Bob
+Dan
+Alice
+Bob
+Carol
+Elizabeth
+Elizabeth
+
+-NAME OrderByEmptyResult
+-QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
+---- 0
+

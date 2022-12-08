@@ -1,8 +1,8 @@
 import os
-
+import sys
 import pytest
-
-from tools.python_api import _kuzu as kuzu
+sys.path.append('../build/')
+import _kuzu as kuzu
 
 
 # Note conftest is the default file name for sharing fixture through multiple test files. Do not change file name.
@@ -17,13 +17,12 @@ def init_tiny_snb(tmp_path):
                  "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
                  "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
                  "KEY (ID))")
-    conn.execute("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)")
+    conn.execute("COPY person FROM \"../../../dataset/tinysnb/vPerson.csv\" (HEADER=true)")
     conn.execute(
         "create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, "
         "comments STRING[], MANY_MANY);")
-    conn.execute("COPY knows FROM \"dataset/tinysnb/eKnows.csv\"")
+    conn.execute("COPY knows FROM \"../../../dataset/tinysnb/eKnows.csv\"")
     return output_path
-
 
 @pytest.fixture
 def establish_connection(init_tiny_snb):

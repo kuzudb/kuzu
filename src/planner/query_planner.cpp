@@ -1,17 +1,17 @@
-#include "src/planner/include/query_planner.h"
+#include "planner/query_planner.h"
 
-#include "src/binder/query/include/bound_regular_query.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_accumulate.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_union.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_unwind.h"
-#include "src/planner/logical_plan/logical_operator/include/sink_util.h"
+#include "binder/query/bound_regular_query.h"
+#include "planner/logical_plan/logical_operator/logical_accumulate.h"
+#include "planner/logical_plan/logical_operator/logical_distinct.h"
+#include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
+#include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_filter.h"
+#include "planner/logical_plan/logical_operator/logical_flatten.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
+#include "planner/logical_plan/logical_operator/logical_scan_rel_property.h"
+#include "planner/logical_plan/logical_operator/logical_union.h"
+#include "planner/logical_plan/logical_operator/logical_unwind.h"
+#include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {
@@ -53,10 +53,15 @@ unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(vector<unique_ptr<LogicalPlan>
 // enumerate regular query level.
 vector<unique_ptr<LogicalPlan>> QueryPlanner::planSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
+    // populate properties to scan
     propertiesToScan.clear();
+    unordered_set<string> populatedProperties; // remove duplication
     for (auto& expression : singleQuery.getPropertiesToRead()) {
         assert(expression->expressionType == PROPERTY);
-        propertiesToScan.push_back(expression);
+        if (!populatedProperties.contains(expression->getUniqueName())) {
+            propertiesToScan.push_back(expression);
+            populatedProperties.insert(expression->getUniqueName());
+        }
     }
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
@@ -154,9 +159,9 @@ static expression_vector getCorrelatedExpressions(
             result.push_back(expression);
         }
     }
-    for (auto& nodeIDExpression : collection.getNodeIDExpressions()) {
-        if (outerSchema->isExpressionInScope(*nodeIDExpression)) {
-            result.push_back(nodeIDExpression);
+    for (auto& node : collection.getQueryNodes()) {
+        if (outerSchema->isExpressionInScope(*node->getInternalIDProperty())) {
+            result.push_back(node->getInternalIDProperty());
         }
     }
     return result;
@@ -191,7 +196,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
         for (auto& joinNode : joinNodes) {
-            appendFlattenIfNecessary(joinNode->getNodeIDPropertyExpression(), outerPlan);
+            appendFlattenIfNecessary(joinNode->getInternalIDProperty(), outerPlan);
         }
         JoinOrderEnumerator::planLeftHashJoin(joinNodes, outerPlan, *bestInnerPlan);
     } else {
@@ -269,14 +274,8 @@ void QueryPlanner::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto schemaBeforeSink = schema->copy();
     SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
-    vector<uint64_t> flatOutputGroupPositions;
-    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
-        if (schema->getGroup(i)->getIsFlat()) {
-            flatOutputGroupPositions.push_back(i);
-        }
-    }
     auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
-        flatOutputGroupPositions, std::move(schemaBeforeSink), plan.getLastOperator());
+        std::move(schemaBeforeSink), plan.getLastOperator());
     plan.setLastOperator(sink);
 }
 
@@ -284,7 +283,7 @@ void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, L
     assert(plan.isEmpty());
     auto schema = plan.getSchema();
     auto groupPos = schema->createGroup();
-    schema->flattenGroup(groupPos); // Mark group holding constant as flat.
+    schema->setGroupAsSingleState(groupPos); // Mark group holding constant as single state.
     for (auto& expression : expressions) {
         // No need to insert repeated constant.
         if (schema->isExpressionInScope(*expression)) {
@@ -340,7 +339,7 @@ uint32_t QueryPlanner::appendFlattensButOne(
     }
     vector<uint32_t> unFlatGroupsPos;
     for (auto& groupPos : groupsPos) {
-        if (!plan.getSchema()->getGroup(groupPos)->getIsFlat()) {
+        if (!plan.getSchema()->getGroup(groupPos)->isFlat()) {
             unFlatGroupsPos.push_back(groupPos);
         }
     }
@@ -357,7 +356,7 @@ void QueryPlanner::appendFlattenIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto group = schema->getGroup(expression);
-    if (group->getIsFlat()) {
+    if (group->isFlat()) {
         return;
     }
     auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
@@ -380,7 +379,7 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
     shared_ptr<NodeExpression> node, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     expression_vector propertyExpressionToScan;
-    auto groupPos = schema->getGroupPos(node->getIDProperty());
+    auto groupPos = schema->getGroupPos(node->getInternalIDPropertyName());
     for (auto& propertyExpression : propertyExpressions) {
         if (schema->isExpressionInScope(*propertyExpression)) {
             continue;
@@ -396,25 +395,18 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
     plan.setLastOperator(std::move(scanNodeProperty));
 }
 
-void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<Expression>& expression,
-    RelExpression& rel, RelDirection direction, LogicalPlan& plan) {
+void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<NodeExpression> boundNode,
+    shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
+    shared_ptr<Expression> property, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    if (schema->isExpressionInScope(*expression)) {
+    if (schema->isExpressionInScope(*property)) {
         return;
     }
-    assert(!rel.isVariableLength());
-    auto boundNode = FWD == direction ? rel.getSrcNode() : rel.getDstNode();
-    auto nbrNode = FWD == direction ? rel.getDstNode() : rel.getSrcNode();
-    auto isColumn =
-        catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(rel.getTableID(), direction);
-    assert(expression->expressionType == PROPERTY);
-    auto property = static_pointer_cast<PropertyExpression>(expression);
-    auto scanProperty =
-        make_shared<LogicalScanRelProperty>(boundNode, nbrNode, rel.getTableID(), direction,
-            property->getUniqueName(), property->getPropertyID(), isColumn, plan.getLastOperator());
-    auto groupPos = schema->getGroupPos(nbrNode->getIDProperty());
-    schema->insertToGroupAndScope(property, groupPos);
-    plan.setLastOperator(move(scanProperty));
+    assert(!rel->isVariableLength() && rel->getNumTableIDs() == 1);
+    auto scanProperty = make_shared<LogicalScanRelProperty>(std::move(boundNode),
+        std::move(nbrNode), std::move(rel), direction, std::move(property), plan.getLastOperator());
+    scanProperty->computeSchema(*schema);
+    plan.setLastOperator(std::move(scanProperty));
 }
 
 unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
@@ -429,7 +421,7 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
         for (auto& childPlan : childrenPlans) {
             auto childSchema = childPlan->getSchema();
             auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-            hasFlatExpression |= childSchema->getGroup(expressionName)->getIsFlat();
+            hasFlatExpression |= childSchema->getGroup(expressionName)->isFlat();
         }
         if (hasFlatExpression) {
             for (auto& childPlan : childrenPlans) {

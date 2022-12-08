@@ -1,9 +1,9 @@
-#include "include/in_mem_structures_csv_copier.h"
+#include "storage/in_mem_csv_copier/in_mem_structures_csv_copier.h"
 
-#include "spdlog/spdlog.h"
+//#include "spdlog/spdlog.h"
 
-#include "src/common/include/configs.h"
-#include "src/storage/storage_structure/include/lists/lists.h"
+#include "common/configs.h"
+#include "storage/storage_structure/lists/lists.h"
 
 namespace kuzu {
 namespace storage {

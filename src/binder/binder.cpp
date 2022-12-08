@@ -1,4 +1,4 @@
-#include "src/binder/include/binder.h"
+#include "binder/binder.h"
 
 namespace kuzu {
 namespace binder {
@@ -31,7 +31,7 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
     return whereExpression;
 }
 
-table_id_t Binder::bindRelTable(const string& tableName) const {
+table_id_t Binder::bindRelTableID(const string& tableName) const {
     if (tableName.empty()) {
         return ANY_TABLE_ID;
     }
@@ -41,7 +41,7 @@ table_id_t Binder::bindRelTable(const string& tableName) const {
     return catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
 }
 
-table_id_t Binder::bindNodeTable(const string& tableName) const {
+table_id_t Binder::bindNodeTableID(const string& tableName) const {
     if (tableName.empty()) {
         return ANY_TABLE_ID;
     }
@@ -67,21 +67,6 @@ void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     if (singleQuery.isFirstReadingClauseOptionalMatch()) {
         throw BinderException("First match clause cannot be optional match.");
     }
-}
-
-void Binder::validateNodeAndRelTableIsConnected(
-    const Catalog& catalog_, table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID) {
-    assert(relTableID != ANY_TABLE_ID && srcTableID != ANY_TABLE_ID && dstTableID != ANY_TABLE_ID);
-    for (auto& [srcTableID_, dstTableID_] :
-        catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID)->srcDstTableIDs) {
-        if (srcTableID_ == srcTableID && dstTableID_ == dstTableID) {
-            return;
-        }
-    }
-    throw BinderException(
-        "Node table " + catalog_.getReadOnlyVersion()->getNodeTableName(srcTableID) +
-        " doesn't connect to " + catalog_.getReadOnlyVersion()->getNodeTableName(dstTableID) +
-        " through rel table " + catalog_.getReadOnlyVersion()->getRelTableName(relTableID) + ".");
 }
 
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {

@@ -1,7 +1,7 @@
-#include "src/parser/antlr_parser/include/parser_error_listener.h"
+#include "parser/antlr_parser/parser_error_listener.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
 using namespace kuzu::common;
 

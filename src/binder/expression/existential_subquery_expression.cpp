@@ -1,4 +1,4 @@
-#include "include/existential_subquery_expression.h"
+#include "binder/expression/existential_subquery_expression.h"
 
 namespace kuzu {
 namespace binder {
@@ -17,8 +17,8 @@ unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames()
 // expressions from predicates and return clause. Plus nodeID expressions from query graph.
 expression_vector ExistentialSubqueryExpression::getChildren() const {
     expression_vector result;
-    for (auto& nodeIDExpression : queryGraphCollection->getNodeIDExpressions()) {
-        result.push_back(nodeIDExpression);
+    for (auto& node : queryGraphCollection->getQueryNodes()) {
+        result.push_back(node->getInternalIDProperty());
     }
     if (hasWhereExpression()) {
         result.push_back(whereExpression);

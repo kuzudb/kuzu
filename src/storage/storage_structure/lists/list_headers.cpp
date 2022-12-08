@@ -1,8 +1,7 @@
-#include "src/storage/storage_structure/include/lists/list_headers.h"
+#include "storage/storage_structure/lists/list_headers.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/utils.h"
 
 namespace kuzu {
 namespace storage {

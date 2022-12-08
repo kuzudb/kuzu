@@ -1,8 +1,8 @@
-#include "include/radix_sort.h"
+#include "processor/operator/order_by/radix_sort.h"
 
 #include <algorithm>
 
-#include "src/function/comparison/operations/include/comparison_operations.h"
+#include "function/comparison/comparison_operations.h"
 
 using namespace kuzu::function::operation;
 

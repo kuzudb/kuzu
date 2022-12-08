@@ -1,26 +1,28 @@
-#include "include/flatten.h"
+#include "processor/operator/flatten.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
-    return resultSet;
+    unFlattenedSelVector = dataChunkToFlatten->state->selVector;
+    flattenedSelVector = make_shared<SelectionVector>(1 /* capacity */);
+    flattenedSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
+    dataChunkToFlatten->state->selVector = flattenedSelVector;
 }
 
-bool Flatten::getNextTuples() {
-    metrics->executionTime.start();
-    // currentIdx == -1 is the check for initial case
-    if (dataChunkToFlatten->state->currIdx == -1 || dataChunkToFlatten->state->isCurrIdxLast()) {
+bool Flatten::getNextTuplesInternal() {
+    if (isCurrIdxInitialOrLast()) {
         dataChunkToFlatten->state->currIdx = -1;
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        dataChunkToFlatten->state->selVector = unFlattenedSelVector;
+        if (!children[0]->getNextTuple()) {
             return false;
         }
+        dataChunkToFlatten->state->selVector = flattenedSelVector;
     }
     dataChunkToFlatten->state->currIdx++;
-    metrics->executionTime.stop();
+    flattenedSelVector->selectedPositions[0] =
+        unFlattenedSelVector->selectedPositions[dataChunkToFlatten->state->currIdx];
     metrics->numOutputTuple.incrementByOne();
     return true;
 }

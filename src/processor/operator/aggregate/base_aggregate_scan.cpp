@@ -1,18 +1,13 @@
-#include "include/base_aggregate_scan.h"
+#include "processor/operator/aggregate/base_aggregate_scan.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> BaseAggregateScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    for (auto i = 0u; i < aggregatesPos.size(); i++) {
-        auto valueVector = make_shared<ValueVector>(aggregateDataTypes[i], context->memoryManager);
-        auto outDataChunk = resultSet->dataChunks[aggregatesPos[i].dataChunkPos];
-        outDataChunk->insert(aggregatesPos[i].valueVectorPos, valueVector);
+void BaseAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& dataPos : aggregatesPos) {
+        auto valueVector = resultSet->getValueVector(dataPos);
         aggregateVectors.push_back(valueVector);
     }
-    return resultSet;
 }
 
 void BaseAggregateScan::writeAggregateResultToVector(

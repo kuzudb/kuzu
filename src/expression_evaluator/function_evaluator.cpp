@@ -1,6 +1,6 @@
-#include "include/function_evaluator.h"
+#include "expression_evaluator/function_evaluator.h"
 
-#include "src/binder/expression/include/function_expression.h"
+#include "binder/expression/function_expression.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -12,7 +12,7 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     }
     resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
-    if (children.empty()) {
+    if (children.empty()) { // const function, e.g. PI()
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     }
     for (auto& child : children) {

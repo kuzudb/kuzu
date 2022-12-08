@@ -1,6 +1,5 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/common/include/configs.h"
+#include "common/configs.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -11,7 +10,7 @@ public:
         initWithoutLoadingGraph();
     }
 
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void initWithoutLoadingGraph() {
         systemConfig->largePageBufferPoolSize = (1ull << 22);
@@ -55,6 +54,8 @@ public:
     void readAndAssertAgePropertyNode(
         uint64_t nodeOffset, Transaction* trx, int64_t expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         personAgeColumn->read(trx, nodeVector, agePropertyVectorToReadDataInto);
         if (isNull) {
             ASSERT_TRUE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
@@ -68,6 +69,8 @@ public:
     void readAndAssertEyeSightPropertyNode(
         uint64_t nodeOffset, Transaction* trx, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         personEyeSightColumn->read(trx, nodeVector, eyeSightVectorToReadDataInto);
         if (isNull) {
             ASSERT_TRUE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
@@ -80,6 +83,8 @@ public:
 
     void writeToAgePropertyNode(uint64_t nodeOffset, int64_t expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         auto propertyVectorToWriteDataTo =
             make_shared<ValueVector>(INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
@@ -96,6 +101,8 @@ public:
 
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
+        dataChunk->state->selVector->resetSelectorToValuePosBuffer();
+        dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         auto propertyVectorToWriteDataTo =
             make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;

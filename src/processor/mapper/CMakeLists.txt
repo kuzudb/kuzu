@@ -1,0 +1,32 @@
+add_library(kuzu_processor_mapper
+        OBJECT
+        expression_mapper.cpp
+        map_accumulate.cpp
+        map_aggregate.cpp
+        map_create.cpp
+        map_cross_product.cpp
+        map_ddl.cpp
+        map_delete.cpp
+        map_distinct.cpp
+        map_expressions_scan.cpp
+        map_extend.cpp
+        map_filter.cpp
+        map_flatten.cpp
+        map_hash_join.cpp
+        map_intersect.cpp
+        map_limit.cpp
+        map_multiplicity_reducer.cpp
+        map_order_by.cpp
+        map_projection.cpp
+        map_scan_node.cpp
+        map_scan_node_property.cpp
+        map_scan_rel_property.cpp
+        map_set.cpp
+        map_skip.cpp
+        map_union.cpp
+        map_unwind.cpp
+        plan_mapper.cpp)
+
+set(ALL_OBJECT_FILES
+        ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_mapper>
+        PARENT_SCOPE)

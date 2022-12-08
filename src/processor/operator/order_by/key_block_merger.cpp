@@ -1,6 +1,6 @@
-#include "include/key_block_merger.h"
+#include "processor/operator/order_by/key_block_merger.h"
 
-#include "src/function/comparison/operations/include/comparison_operations.h"
+#include "function/comparison/comparison_operations.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::function::operation;
@@ -293,15 +293,11 @@ void KeyBlockMergeTaskDispatcher::doneMorsel(unique_ptr<KeyBlockMergeMorsel> mor
     }
 }
 
-void KeyBlockMergeTaskDispatcher::initIfNecessary(MemoryManager* memoryManager,
+void KeyBlockMergeTaskDispatcher::init(MemoryManager* memoryManager,
     shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
     vector<shared_ptr<FactorizedTable>>& factorizedTables, vector<StrKeyColInfo>& strKeyColsInfo,
     uint64_t numBytesPerTuple) {
-    lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
-    if (isInitialized) {
-        return;
-    }
-    isInitialized = true;
+    assert(this->keyBlockMerger == nullptr);
     this->memoryManager = memoryManager;
     this->sortedKeyBlocks = sortedKeyBlocks;
     this->keyBlockMerger =

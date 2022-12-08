@@ -1,10 +1,9 @@
-#include "include/database.h"
+#include "main/database.h"
 
+#include "common/configs.h"
+#include "common/logging_level_utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
-#include "src/common/include/logging_level_utils.h"
-#include "src/storage/include/wal_replayer.h"
+#include "storage/wal_replayer.h"
 
 namespace kuzu {
 namespace main {

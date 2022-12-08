@@ -1,6 +1,6 @@
-#include "include/transaction_manager.h"
+#include "transaction/transaction_manager.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 using namespace kuzu::common;
 
@@ -81,8 +81,8 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave() {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
     mtxForStartingNewTransactions.lock();
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
     uint64_t numTimesWaited = 0;
     while (true) {
         if (!activeReadOnlyTransactionIDs.empty()) {

@@ -1,5 +1,5 @@
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/include/binder.h"
+#include "binder/binder.h"
+#include "binder/expression/literal_expression.h"
 
 namespace kuzu {
 namespace binder {
@@ -58,11 +58,11 @@ expression_vector Binder::rewriteProjectionExpressions(const expression_vector& 
     expression_vector result;
     for (auto& expression : expressions) {
         if (expression->dataType.typeID == NODE) {
-            for (auto& property : rewriteNodeAsAllProperties(expression)) {
+            for (auto& property : rewriteAsAllProperties(expression, NODE)) {
                 result.push_back(property);
             }
         } else if (expression->dataType.typeID == REL) {
-            for (auto& property : rewriteRelAsAllProperties(expression)) {
+            for (auto& property : rewriteAsAllProperties(expression, REL)) {
                 result.push_back(property);
             }
         } else {
@@ -72,26 +72,52 @@ expression_vector Binder::rewriteProjectionExpressions(const expression_vector& 
     return result;
 }
 
-expression_vector Binder::rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression) {
-    auto& node = (NodeExpression&)*expression;
-    expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(node.getTableID())) {
-        auto propertyExpression = expressionBinder.bindNodePropertyExpression(expression, property);
-        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
-        result.emplace_back(propertyExpression);
+expression_vector Binder::rewriteAsAllProperties(
+    const shared_ptr<Expression>& expression, DataTypeID nodeOrRelType) {
+    vector<Property> properties;
+    switch (nodeOrRelType) {
+    case NODE: {
+        auto& node = (NodeExpression&)*expression;
+        for (auto tableID : node.getTableIDs()) {
+            for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(tableID)) {
+                properties.push_back(property);
+            }
+        }
+    } break;
+    case REL: {
+        auto& rel = (RelExpression&)*expression;
+        for (auto tableID : rel.getTableIDs()) {
+            for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(tableID)) {
+                properties.push_back(property);
+            }
+        }
+    } break;
+    default:
+        throw NotImplementedException(
+            "Cannot rewrite type " + Types::dataTypeToString(nodeOrRelType));
     }
-    return result;
-}
-
-expression_vector Binder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
-    auto& rel = (RelExpression&)*expression;
-    expression_vector result;
-    for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(rel.getTableID())) {
+    // Make sure columns are in the same order as specified in catalog.
+    vector<string> columnNames;
+    unordered_set<string> existingColumnNames;
+    for (auto& property : properties) {
         if (TableSchema::isReservedPropertyName(property.name)) {
             continue;
         }
-        auto propertyExpression = expressionBinder.bindRelPropertyExpression(expression, property);
-        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
+        if (!existingColumnNames.contains(property.name)) {
+            columnNames.push_back(property.name);
+            existingColumnNames.insert(property.name);
+        }
+    }
+    expression_vector result;
+    for (auto& columnName : columnNames) {
+        shared_ptr<Expression> propertyExpression;
+        if (nodeOrRelType == NODE) {
+            propertyExpression =
+                expressionBinder.bindNodePropertyExpression(expression, columnName);
+        } else {
+            propertyExpression = expressionBinder.bindRelPropertyExpression(expression, columnName);
+        }
+        propertyExpression->setRawName(expression->getRawName() + "." + columnName);
         result.emplace_back(propertyExpression);
     }
     return result;

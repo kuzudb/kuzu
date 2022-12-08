@@ -1,8 +1,4 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/planner/logical_plan/include/logical_plan_util.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -43,13 +39,13 @@ public:
         dataChunk->insert(5, dstNodeVector);
         dataChunk->state->currIdx = 0;
         vectorsToInsertToKnows = vector<shared_ptr<ValueVector>>{
-            lengthPropertyVector, placePropertyVector, tagPropertyVector, relIDPropertyVector};
+            relIDPropertyVector, lengthPropertyVector, placePropertyVector, tagPropertyVector};
         vectorsToInsertToPlays =
-            vector<shared_ptr<ValueVector>>{placePropertyVector, relIDPropertyVector};
+            vector<shared_ptr<ValueVector>>{relIDPropertyVector, placePropertyVector};
         vectorsToInsertToHasOwner = vector<shared_ptr<ValueVector>>{
-            lengthPropertyVector, placePropertyVector, relIDPropertyVector};
+            relIDPropertyVector, lengthPropertyVector, placePropertyVector};
         vectorsToInsertToTeaches =
-            vector<shared_ptr<ValueVector>>{lengthPropertyVector, relIDPropertyVector};
+            vector<shared_ptr<ValueVector>>{relIDPropertyVector, lengthPropertyVector};
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -70,17 +66,8 @@ public:
         return result;
     }
 
-    string getInputCSVDir() override { return "dataset/rel-insertion-tests/"; }
-
-    void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
-        auto catalog = getCatalog(*database);
-        auto statement = Parser::parseQuery(query);
-        auto parsedQuery = (RegularQuery*)statement.get();
-        auto boundQuery = Binder(*catalog).bind(*parsedQuery);
-        auto plan = Planner::getBestPlan(*catalog,
-            getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
-        ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
 
     inline void insertOneRelToRelTable(table_id_t relTableID,
@@ -89,7 +76,7 @@ public:
         getStorageManager(*database)
             ->getRelsStore()
             .getRelTable(relTableID)
-            ->insertRels(srcNodeVector_, dstNodeVector_, propertyVectors);
+            ->insertRel(srcNodeVector_, dstNodeVector_, propertyVectors);
     }
 
     inline void insertOneKnowsRel() {

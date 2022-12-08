@@ -1,8 +1,7 @@
-#include "include/hash_index.h"
+#include "storage/index/hash_index.h"
 
-#include "include/hash_index_utils.h"
-
-#include "src/common/include/exception.h"
+#include "common/exception.h"
+#include "storage/index/hash_index_utils.h"
 
 using namespace kuzu::common;
 
@@ -48,99 +47,75 @@ template class TemplatedHashIndexLocalStorage<string>;
 
 HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
     shared_lock sLck{localStorageSharedMutex};
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.lookup(keyVal, result);
-    }
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         auto keyVal = string((char*)key);
         return templatedLocalStorageForString.lookup(keyVal, result);
-    }
-    default:
-        assert(false);
     }
 }
 
 void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
     unique_lock xLck{localStorageSharedMutex};
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         templatedLocalStorageForInt.deleteKey(keyVal);
-    } break;
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         auto keyVal = string((char*)key);
         templatedLocalStorageForString.deleteKey(keyVal);
-    } break;
-    default:
-        assert(false);
     }
 }
 
 bool HashIndexLocalStorage::insert(const uint8_t* key, node_offset_t value) {
     unique_lock xLck{localStorageSharedMutex};
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.insert(keyVal, value);
-    }
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         auto keyVal = string((char*)key);
         return templatedLocalStorageForString.insert(keyVal, value);
-    }
-    default:
-        assert(false);
     }
 }
 
 void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
     const std::function<void(const uint8_t*, node_offset_t)>& insertOp) {
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         for (auto& key : templatedLocalStorageForInt.localDeletions) {
             deleteOp((uint8_t*)&key);
         }
         for (auto& [key, val] : templatedLocalStorageForInt.localInsertions) {
             insertOp((uint8_t*)&key, val);
         }
-    } break;
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         for (auto& key : templatedLocalStorageForString.localDeletions) {
             deleteOp((uint8_t*)key.c_str());
         }
         for (auto& [key, val] : templatedLocalStorageForString.localInsertions) {
             insertOp((uint8_t*)key.c_str(), val);
         }
-    } break;
-    default:
-        assert(false);
     }
 }
 
 bool HashIndexLocalStorage::hasUpdates() const {
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         return templatedLocalStorageForInt.hasUpdates();
-    }
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         return templatedLocalStorageForString.hasUpdates();
-    }
-    default:
-        assert(false);
     }
 }
 
 void HashIndexLocalStorage::clear() {
-    switch (keyDataType.typeID) {
-    case common::INT64: {
+    if (keyDataType.typeID == INT64) {
         templatedLocalStorageForInt.clear();
-    } break;
-    case common::STRING: {
+    } else {
+        assert(keyDataType.typeID == STRING);
         templatedLocalStorageForString.clear();
-    } break;
-    default:
-        assert(false);
     }
 }
 

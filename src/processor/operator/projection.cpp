@@ -1,10 +1,9 @@
-#include "include/projection.h"
+#include "processor/operator/projection.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Projection::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
         auto& expressionEvaluator = *expressionEvaluators[i];
         expressionEvaluator.init(*resultSet, context->memoryManager);
@@ -12,14 +11,11 @@ shared_ptr<ResultSet> Projection::init(ExecutionContext* context) {
         auto dataChunk = resultSet->dataChunks[outDataChunkPos];
         dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
     }
-    return resultSet;
 }
 
-bool Projection::getNextTuples() {
-    metrics->executionTime.start();
+bool Projection::getNextTuplesInternal() {
     restoreMultiplicity();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     saveMultiplicity();
@@ -31,7 +27,6 @@ bool Projection::getNextTuples() {
             resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
     metrics->numOutputTuple.increase(1);
-    metrics->executionTime.stop();
     return true;
 }
 

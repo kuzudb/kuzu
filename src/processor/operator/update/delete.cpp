@@ -1,66 +1,53 @@
-#include "include/delete.h"
+#include "processor/operator/update/delete.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> DeleteNode::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void DeleteNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteNodeInfo : deleteNodeInfos) {
-        auto nodeIDPos = deleteNodeInfo->nodeIDPos;
-        auto nodeIDVector =
-            resultSet->dataChunks[nodeIDPos.dataChunkPos]->valueVectors[nodeIDPos.valueVectorPos];
+        auto nodeIDVector = resultSet->getValueVector(deleteNodeInfo->nodeIDPos);
         nodeIDVectors.push_back(nodeIDVector.get());
-        auto pkPos = deleteNodeInfo->primaryKeyPos;
-        auto pkVector =
-            resultSet->dataChunks[pkPos.dataChunkPos]->valueVectors[pkPos.valueVectorPos];
+        auto pkVector = resultSet->getValueVector(deleteNodeInfo->primaryKeyPos);
         primaryKeyVectors.push_back(pkVector.get());
     }
-    return resultSet;
 }
 
-bool DeleteNode::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool DeleteNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < deleteNodeInfos.size(); ++i) {
         auto nodeTable = deleteNodeInfos[i]->table;
         nodeTable->deleteNodes(nodeIDVectors[i], primaryKeyVectors[i]);
     }
-    metrics->executionTime.stop();
     return true;
 }
 
-shared_ptr<ResultSet> DeleteRel::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteRelInfo : deleteRelInfos) {
-        auto srcNodePos = deleteRelInfo->srcNodePos;
-        auto srcNodeIDVector =
-            resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
-        auto dstNodePos = deleteRelInfo->dstNodePos;
-        auto dstNodeIDVector =
-            resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
-        srcDstNodeIDVectorPairs.emplace_back(srcNodeIDVector.get(), dstNodeIDVector.get());
+        auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
+        srcNodeVectors.push_back(srcNodeIDVector);
+        auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
+        dstNodeVectors.push_back(dstNodeIDVector);
+        auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
+        relIDVectors.push_back(relIDVector);
     }
-    return resultSet;
 }
 
-bool DeleteRel::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool DeleteRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
         auto createRelInfo = deleteRelInfos[i].get();
-        auto [srcNodeIDVector, dstNodeIDVector] = srcDstNodeIDVectorPairs[i];
-        // TODO(Ziyi): you need to update rel statistics here. Though I don't think this is best
-        // design, statistics update should be hidden inside deleteRel(). See how node create/delete
-        // works. You can discuss this with Semih and if you decide to change, change createRel too.
-        createRelInfo->table->deleteRel(srcNodeIDVector, dstNodeIDVector);
+        auto srcNodeVector = srcNodeVectors[i];
+        auto dstNodeVector = dstNodeVectors[i];
+        auto relIDVector = relIDVectors[i];
+        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

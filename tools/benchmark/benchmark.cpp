@@ -1,10 +1,9 @@
-#include "tools/benchmark/include/benchmark.h"
+#include "benchmark.h"
 
 #include <filesystem>
-#include <fstream>
 
 #include "spdlog/spdlog.h"
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper.h"
 
 using namespace kuzu::common;
 

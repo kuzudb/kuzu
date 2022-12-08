@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
-#include "src/processor/operator/intersect/include/intersect.h"
-#include "src/processor/operator/intersect/include/intersect_build.h"
+#include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/intersect/intersect.h"
+#include "processor/operator/intersect/intersect_build.h"
 
 using namespace kuzu::planner;
 
@@ -20,37 +19,35 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     // Map build side children.
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto buildInfo = logicalIntersect->getBuildInfo(i - 1);
-        auto buildKey = buildInfo->key->getIDProperty();
+        auto buildKey = buildInfo->key->getInternalIDPropertyName();
         auto buildSideSchema = buildInfo->schema.get();
         auto buildSideMapperContext =
             MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
         auto buildSidePrevOperator =
             mapLogicalOperatorToPhysical(logicalIntersect->getChild(i), buildSideMapperContext);
-        vector<DataType> payloadsDataTypes;
         vector<DataPos> payloadsDataPos;
         auto buildDataInfo = generateBuildDataInfo(mapperContext, buildInfo->schema.get(),
             {buildInfo->key}, buildInfo->expressionsToMaterialize);
-        for (auto& dataPos : buildDataInfo.payloadsDataPos) {
+        for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
             auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                                   ->getExpressions()[dataPos.valueVectorPos];
             if (expression->getUniqueName() ==
-                logicalIntersect->getIntersectNode()->getIDProperty()) {
+                logicalIntersect->getIntersectNode()->getInternalIDPropertyName()) {
                 continue;
             }
             payloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-            payloadsDataTypes.push_back(expression->getDataType());
         }
-        auto sharedState = make_shared<IntersectSharedState>(payloadsDataTypes);
+        auto sharedState = make_shared<IntersectSharedState>();
         sharedStates.push_back(sharedState);
-        children.push_back(make_unique<IntersectBuild>(sharedState, buildDataInfo,
+        children.push_back(make_unique<IntersectBuild>(
+            buildSideMapperContext.getResultSetDescriptor()->copy(), sharedState, buildDataInfo,
             std::move(buildSidePrevOperator), getOperatorID(), buildKey));
-        IntersectDataInfo info{
-            mapperContext.getDataPos(buildKey), payloadsDataPos, payloadsDataTypes};
+        IntersectDataInfo info{mapperContext.getDataPos(buildKey), payloadsDataPos};
         intersectDataInfos.push_back(info);
     }
     // Map intersect.
     auto outputDataPos =
-        mapperContext.getDataPos(logicalIntersect->getIntersectNode()->getIDProperty());
+        mapperContext.getDataPos(logicalIntersect->getIntersectNode()->getInternalIDPropertyName());
     return make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates, move(children),
         getOperatorID(), logicalIntersect->getExpressionsForPrinting());
 }

@@ -1,10 +1,11 @@
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
 
 #include <cerrno>
 #include <climits>
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/types/value.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {
@@ -75,7 +76,8 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
     case LIST:
         return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(dataType) +
+                               " for TypeUtils::elementToString.");
     }
 }
 
@@ -126,7 +128,8 @@ string TypeUtils::toString(const Literal& literal) {
         return result;
     }
     default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(literal.dataType) +
+                               " for TypeUtils::toString.");
     }
 }
 

@@ -1,0 +1,35 @@
+-NAME MultiLabelOneHopTest1
+-QUERY MATCH (a:person)-[e:knows|:marries]->(b:person) RETURN COUNT(*)
+---- 1
+17
+
+-NAME MultiLabelOneHopTest2
+-QUERY MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets|:mixed]->(b:person) RETURN COUNT(*)
+---- 1
+31
+
+-NAME MultiLabelOneHopTest3
+-QUERY MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets|:mixed]->(b:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+9
+
+-NAME MultiLabelOneHopTest4
+-QUERY MATCH (a:person)-[e:mixed|:marries]->(b:person) RETURN a.ID, ID(e), e.note, e.year, b.ID
+-ENUMERATE
+---- 10
+0|27||1930|2
+2|28||1945|5
+3|29||2088|7
+7|30||2066|3
+8|31||2120|3
+9|32||2022|3
+10|33||2020|2
+0|37|||2
+3|38|long long long string||5
+7|39|short str||8
+
+-NAME MultiLabelTwoHopTest
+-QUERY MATCH (a:person)-[e:knows|:mixed]->(b:person)-[:knows|:mixed]->(c:organisation) RETURN COUNT(*)
+---- 1
+11

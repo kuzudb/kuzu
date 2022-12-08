@@ -1,6 +1,6 @@
-#include "src/binder/include/binder.h"
-#include "src/binder/query/reading_clause/include/bound_unwind_clause.h"
-#include "src/parser/query/reading_clause/include/unwind_clause.h"
+#include "binder/binder.h"
+#include "binder/query/reading_clause/bound_unwind_clause.h"
+#include "parser/query/reading_clause/unwind_clause.h"
 
 namespace kuzu {
 namespace binder {
@@ -9,12 +9,12 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
     switch (readingClause.getClauseType()) {
     case ClauseType::MATCH: {
         return bindMatchClause((MatchClause&)readingClause);
-    } break;
+    }
     case ClauseType::UNWIND: {
         return bindUnwindClause((UnwindClause&)readingClause);
-    } break;
+    }
     default:
-        assert(false);
+        throw NotImplementedException("bindReadingClause().");
     }
 }
 

@@ -1,4 +1,4 @@
-#include "include/result_set.h"
+#include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace processor {

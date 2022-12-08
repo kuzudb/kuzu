@@ -1,6 +1,5 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/processor/mapper/include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 
@@ -18,15 +17,21 @@ public:
 
 class IntPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override { return "dataset/primary-key-tests/int-pk-tests/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/");
+    }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query("COPY Person FROM \"dataset/primary-key-tests/int-pk-tests/vPerson.csv\"");
-        conn->query("COPY Knows FROM \"dataset/primary-key-tests/int-pk-tests/eKnows.csv\"");
+        conn->query(
+            "COPY Person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/vPerson.csv\""));
+        conn->query(
+            "COPY Knows FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/eKnows.csv\""));
         auto tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 0"
                                  "RETURN COUNT(*)")
                          ->getNext();
@@ -52,15 +57,21 @@ public:
 
 class StringPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override { return "dataset/primary-key-tests/string-pk-tests/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/string-pk-tests/");
+    }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query("COPY Person FROM \"dataset/primary-key-tests/string-pk-tests/vPerson.csv\"");
-        conn->query("COPY Knows FROM \"dataset/primary-key-tests/string-pk-tests/eKnows.csv\"");
+        conn->query(
+            "COPY Person FROM \"" + TestHelper::appendKuzuRootPath(
+                                        "dataset/primary-key-tests/string-pk-tests/vPerson.csv\""));
+        conn->query(
+            "COPY Knows FROM \"" + TestHelper::appendKuzuRootPath(
+                                       "dataset/primary-key-tests/string-pk-tests/eKnows.csv\""));
         auto tuple =
             conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Alice\" "
                         "RETURN COUNT(*)")
@@ -104,7 +115,7 @@ public:
         catalog = getCatalog(*database);
     }
 
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
@@ -161,26 +172,25 @@ public:
         auto result = conn->query("MATCH (:person)-[:belongs]->(:organisation) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"2"});
-        result = conn->query("MATCH (:person)-[:belongs]->(:country) RETURN count(*)");
+        result = conn->query("MATCH (a:person)-[e:belongs]->(b:country) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table person doesn't connect "
-                                             "to country through rel table belongs.");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
         result = conn->query("MATCH (:organisation)-[:belongs]->(:country) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
         ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"1"});
-        result = conn->query("MATCH (:organisation)-[:belongs]->(:person) RETURN count(*)");
+        result = conn->query("MATCH (a:organisation)-[e:belongs]->(b:person) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(),
-            "Binder exception: Node table organisation doesn't connect "
-            "to person through rel table belongs.");
-        result = conn->query("MATCH (:country)-[:belongs]->(:person) RETURN count(*)");
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:person) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table country doesn't connect "
-                                             "to person through rel table belongs.");
-        result = conn->query("MATCH (:country)-[:belongs]->(:organisation) RETURN count(*)");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:organisation) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Binder exception: Node table country doesn't connect "
-                                             "to organisation through rel table belongs.");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
     }
 
     void createRelMixedRelationCommitAndRecoveryTest(TransactionTestType transactionTestType) {
@@ -201,7 +211,8 @@ public:
             catalog->getReadOnlyVersion()->getRelTableIDFromName("belongs"));
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
-        executeQueryWithoutCommit("COPY belongs FROM \"dataset/tinysnb/eBelongs.csv\"");
+        executeQueryWithoutCommit("COPY belongs FROM \"" +
+                                  TestHelper::appendKuzuRootPath("dataset/tinysnb/eBelongs.csv\""));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             initWithoutLoadingGraph();

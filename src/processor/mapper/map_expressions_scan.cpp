@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/common/include/vector/value_vector_utils.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_expressions_scan.h"
-#include "src/processor/operator/table_scan/include/factorized_table_scan.h"
+#include "common/vector/value_vector_utils.h"
+#include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {
@@ -29,23 +28,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
     auto table = sharedState->getTable();
     table->append(vectors);
     // map factorized table scan
-    vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         auto expressionName = expression->getUniqueName();
         outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        outVecDataTypes.push_back(expression->getDataType());
         mapperContext.addComputedExpressions(expressionName);
         colIndicesToScan.push_back(i);
     }
-    // static expressions must be output to one flat data chunk.
-    auto flatOutputDataChunkPositions = vector<uint64_t>{0};
-    return make_unique<FactorizedTableScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
-        sharedState, std::move(flatOutputDataChunkPositions), getOperatorID(),
-        logicalExpressionsScan.getExpressionsForPrinting());
+    return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),
+        sharedState, getOperatorID(), logicalExpressionsScan.getExpressionsForPrinting());
 }
 
 } // namespace processor

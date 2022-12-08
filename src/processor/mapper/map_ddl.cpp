@@ -1,14 +1,13 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_copy_csv.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_node_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create_rel_table.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_drop_table.h"
-#include "src/processor/operator/copy_csv/include/copy_node_csv.h"
-#include "src/processor/operator/copy_csv/include/copy_rel_csv.h"
-#include "src/processor/operator/ddl/include/create_node_table.h"
-#include "src/processor/operator/ddl/include/create_rel_table.h"
-#include "src/processor/operator/ddl/include/drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_copy_csv.h"
+#include "planner/logical_plan/logical_operator/logical_create_node_table.h"
+#include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
+#include "planner/logical_plan/logical_operator/logical_drop_table.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/copy_csv/copy_node_csv.h"
+#include "processor/operator/copy_csv/copy_rel_csv.h"
+#include "processor/operator/ddl/create_node_table.h"
+#include "processor/operator/ddl/create_rel_table.h"
+#include "processor/operator/ddl/drop_table.h"
 
 namespace kuzu {
 namespace processor {

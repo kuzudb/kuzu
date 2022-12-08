@@ -1,4 +1,4 @@
-#include "include/result_set_descriptor.h"
+#include "processor/result/result_set_descriptor.h"
 
 namespace kuzu {
 namespace processor {
@@ -7,12 +7,15 @@ ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
     for (auto i = 0u; i < schema.getNumGroups(); ++i) {
         auto group = schema.getGroup(i);
         auto dataChunkDescriptor = make_unique<DataChunkDescriptor>();
+        if (group->isSingleState()) {
+            dataChunkDescriptor->setSingleState();
+        }
         for (auto& expression : group->getExpressions()) {
             expressionNameToDataChunkPosMap.insert(
                 {expression->getUniqueName(), dataChunkDescriptors.size()});
-            dataChunkDescriptor->addExpressionName(expression->getUniqueName());
+            dataChunkDescriptor->addExpression(expression);
         }
-        dataChunkDescriptors.push_back(move(dataChunkDescriptor));
+        dataChunkDescriptors.push_back(std::move(dataChunkDescriptor));
     }
 }
 

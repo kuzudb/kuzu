@@ -1,6 +1,6 @@
-#include "include/join_hash_table.h"
+#include "processor/operator/hash_join/join_hash_table.h"
 
-#include "src/function/hash/include/vector_hash_operations.h"
+#include "function/hash/vector_hash_operations.h"
 
 namespace kuzu {
 namespace processor {
@@ -94,10 +94,8 @@ void JoinHashTable::probe(
         function::VectorHashOperations::combineHash(
             hashVector.get(), tmpHashVector.get(), hashVector.get());
     }
-    auto startIdx = hashVector->state->isFlat() ? hashVector->state->currIdx : 0;
-    auto numValues = hashVector->state->isFlat() ? 1 : hashVector->state->selVector->selectedSize;
-    for (auto i = 0u; i < numValues; i++) {
-        auto pos = hashVector->state->selVector->selectedPositions[i + startIdx];
+    for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
+        auto pos = hashVector->state->selVector->selectedPositions[i];
         probedTuples[i] = getTupleForHash(hashVector->getValue<hash_t>(pos));
     }
 }

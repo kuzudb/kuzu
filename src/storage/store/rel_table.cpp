@@ -1,4 +1,4 @@
-#include "src/storage/store/include/rel_table.h"
+#include "storage/store/rel_table.h"
 
 #include "spdlog/spdlog.h"
 
@@ -69,21 +69,24 @@ void RelTable::rollbackInMemoryIfNecessary() {
 
 // This function assumes that the order of vectors in relPropertyVectorsPerRelTable as:
 // [relProp1, relProp2, ..., relPropN] and all vectors are flat.
-void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
-    shared_ptr<ValueVector>& dstNodeIDVector, vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector,
+    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     assert(srcNodeIDVector->state->isFlat());
     assert(dstNodeIDVector->state->isFlat());
     auto srcTableID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->getPositionOfCurrIdx()).tableID;
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
     auto dstTableID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->getPositionOfCurrIdx()).tableID;
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
     for (auto direction : REL_DIRECTIONS) {
         auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
         auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
         auto nbrVector = (direction == RelDirection::FWD ? dstNodeIDVector : srcNodeIDVector);
         if (adjColumns[direction].contains(boundTableID)) {
             auto nodeOffset =
-                boundVector->readNodeOffset(boundVector->state->getPositionOfCurrIdx());
+                boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
             if (!adjColumns[direction]
                      .at(boundTableID)
                      ->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
@@ -101,6 +104,13 @@ void RelTable::insertRels(shared_ptr<ValueVector>& srcNodeIDVector,
         }
     }
     listsUpdateStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
+}
+
+void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
+    assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
+           relIDVector->state->isFlat());
+    listsUpdateStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
@@ -125,9 +135,6 @@ void RelTable::initAdjColumnOrLists(
                 catalog.getReadOnlyVersion()
                     ->getRelTableSchema(tableID)
                     ->getUniqueNbrTableIDsForBoundTableIDDirection(relDirection, boundTableID));
-            logger->debug("DIRECTION {} nodeTableForAdjColumnAndProperties {} relTable {} "
-                          "nodeIDCompressionScheme: commonTableID: {}",
-                relDirection, boundTableID, tableID, nodeIDCompressionScheme.getCommonTableID());
             if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     tableID, relDirection)) {
                 // Add adj column.
@@ -177,10 +184,6 @@ void RelTable::initPropertyColumnsForRelTable(
         propertyColumns[relDirection].emplace(
             boundTableID, vector<unique_ptr<Column>>(properties.size()));
         for (auto& property : properties) {
-            logger->debug(
-                "DIR {} nodeIDForAdjColumnAndProperties {} propertyIdx {} type {} name `{}`",
-                relDirection, boundTableID, property.propertyID, property.dataType.typeID,
-                property.name);
             propertyColumns[relDirection].at(boundTableID)[property.propertyID] =
                 ColumnFactory::getColumn(
                     StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
@@ -202,9 +205,6 @@ void RelTable::initPropertyListsForRelTable(
             boundTableID, vector<unique_ptr<Lists>>(properties.size()));
         for (auto& property : properties) {
             auto propertyID = property.propertyID;
-            logger->debug("relDirection {} nodeTableForAdjColumnAndProperties {} propertyIdx {} "
-                          "type {} name `{}`",
-                relDirection, boundTableID, propertyID, property.dataType.typeID, property.name);
             propertyLists[relDirection].at(boundTableID)[property.propertyID] =
                 ListsFactory::getLists(
                     StorageUtils::getRelPropertyListsStructureIDAndFName(

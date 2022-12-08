@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/binder/expression/include/node_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create.h"
-#include "src/processor/operator/update/include/create.h"
+#include "binder/expression/node_expression.h"
+#include "planner/logical_plan/logical_operator/logical_create.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/update/create.h"
 
 namespace kuzu {
 namespace processor {
@@ -24,7 +23,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
                 relTablesToInit.push_back(storageManager.getRelsStore().getRelTable(relTableID));
             }
         }
-        auto outDataPos = mapperContext.getDataPos(node->getIDProperty());
+        auto outDataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
         createNodeInfos.push_back(make_unique<CreateNodeInfo>(
             table, std::move(primaryKeyEvaluator), relTablesToInit, outDataPos));
     }
@@ -41,9 +40,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
     for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
         auto rel = logicalCreateRel->getRel(i);
         auto table = relStore.getRelTable(rel->getTableID());
-        auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getIDProperty());
+        auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getInternalIDPropertyName());
         auto srcNodeTableID = rel->getSrcNode()->getTableID();
-        auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getIDProperty());
+        auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getInternalIDPropertyName());
         auto dstNodeTableID = rel->getDstNode()->getTableID();
         vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
         uint32_t relIDEvaluatorIdx = UINT32_MAX;

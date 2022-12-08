@@ -1,14 +1,12 @@
-#include "include/multiplicity_reducer.h"
+#include "processor/operator/multiplicity_reducer.h"
 
 namespace kuzu {
 namespace processor {
 
-bool MultiplicityReducer::getNextTuples() {
-    metrics->executionTime.start();
+bool MultiplicityReducer::getNextTuplesInternal() {
     if (numRepeat == 0) {
         restoreMultiplicity();
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         saveMultiplicity();
@@ -18,7 +16,6 @@ bool MultiplicityReducer::getNextTuples() {
     if (numRepeat == prevMultiplicity) {
         numRepeat = 0;
     }
-    metrics->executionTime.stop();
     return true;
 }
 

@@ -1,7 +1,6 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_cross_product.h"
-#include "src/processor/operator/include/cross_product.h"
+#include "planner/logical_plan/logical_operator/logical_cross_product.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/cross_product.h"
 
 namespace kuzu {
 namespace processor {
@@ -19,22 +18,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     // map probe side
     auto probeSidePrevOperator =
         mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0), mapperContext);
-    vector<pair<DataPos, DataType>> outVecPosAndTypePairs;
+    vector<DataPos> outVecPos;
     vector<uint32_t> colIndicesToScan;
     auto expressions = buildSideSchema->getExpressionsInScope();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         auto expressionName = expression->getUniqueName();
-        outVecPosAndTypePairs.emplace_back(
-            mapperContext.getDataPos(expressionName), expression->dataType);
+        outVecPos.push_back(mapperContext.getDataPos(expressionName));
         mapperContext.addComputedExpressions(expressionName);
         colIndicesToScan.push_back(i);
     }
-    return make_unique<CrossProduct>(resultCollector->getSharedState(),
-        std::move(outVecPosAndTypePairs), std::move(colIndicesToScan),
-        logicalCrossProduct->getFlatOutputGroupPositions(), std::move(probeSidePrevOperator),
-        std::move(resultCollector), getOperatorID(),
-        logicalCrossProduct->getExpressionsForPrinting());
+    return make_unique<CrossProduct>(resultCollector->getSharedState(), std::move(outVecPos),
+        std::move(colIndicesToScan), std::move(probeSidePrevOperator), std::move(resultCollector),
+        getOperatorID(), logicalCrossProduct->getExpressionsForPrinting());
 }
 
 } // namespace processor

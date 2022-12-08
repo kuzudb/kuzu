@@ -1,11 +1,11 @@
-#include "include/processor.h"
+#include "processor/processor.h"
 
-#include "src/processor/include/processor_task.h"
-#include "src/processor/operator/aggregate/include/base_aggregate.h"
-#include "src/processor/operator/copy_csv/include/copy_csv.h"
-#include "src/processor/operator/ddl/include/ddl.h"
-#include "src/processor/operator/include/result_collector.h"
-#include "src/processor/operator/include/sink.h"
+#include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/operator/copy_csv/copy_csv.h"
+#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/result_collector.h"
+#include "processor/operator/sink.h"
+#include "processor/processor_task.h"
 
 using namespace kuzu::common;
 
@@ -28,6 +28,9 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
         return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
+        // Init global state before decompose into pipelines. Otherwise, each pipeline will try to
+        // init global state. Result in global state being initialized multiple times.
+        lastOperator->initGlobalState(context);
         auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
         // The root pipeline(task) consists of operators and its prevOperator only, because we
         // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its

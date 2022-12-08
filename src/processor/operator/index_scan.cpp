@@ -1,35 +1,26 @@
-#include "include/index_scan.h"
+#include "processor/operator/index_scan.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> IndexScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    auto dataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-    outVector = make_shared<ValueVector>(NODE_ID);
-    dataChunk->insert(outDataPos.valueVectorPos, outVector);
+void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    outVector = resultSet->getValueVector(outDataPos);
     indexKeyEvaluator->init(*resultSet, context->memoryManager);
     hasExecuted = false;
-    return resultSet;
 }
 
-bool IndexScan::getNextTuples() {
-    metrics->executionTime.start();
+bool IndexScan::getNextTuplesInternal() {
     if (hasExecuted) {
-        metrics->executionTime.stop();
         return false;
     }
     indexKeyEvaluator->evaluate();
     auto indexKeyVector = indexKeyEvaluator->resultVector.get();
     assert(indexKeyVector->state->isFlat());
     node_offset_t nodeOffset;
-    bool isSuccessfulLookup = pkIndex->lookup(
-        transaction, indexKeyVector, indexKeyVector->state->getPositionOfCurrIdx(), nodeOffset);
-    metrics->executionTime.stop();
+    bool isSuccessfulLookup = pkIndex->lookup(transaction, indexKeyVector,
+        indexKeyVector->state->selVector->selectedPositions[0], nodeOffset);
     if (isSuccessfulLookup) {
         hasExecuted = true;
         nodeID_t nodeID{nodeOffset, tableID};

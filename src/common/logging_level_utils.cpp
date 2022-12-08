@@ -1,6 +1,6 @@
-#include "src/common/include/logging_level_utils.h"
+#include "common/logging_level_utils.h"
 
-#include "src/common/include/utils.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace common {
@@ -42,7 +42,7 @@ string LoggingLevelUtils::convertLevelEnumToStr(spdlog::level::level_enum levelE
         return "off";
     }
     default:
-        assert(false);
+        throw ConversionException("Unsupported logging level conversion to string.");
     }
 }
 

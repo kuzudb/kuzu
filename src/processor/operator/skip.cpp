@@ -1,18 +1,16 @@
-#include "include/skip.h"
+#include "processor/operator/skip.h"
 
 namespace kuzu {
 namespace processor {
 
-bool Skip::getNextTuples() {
-    metrics->executionTime.start();
+bool Skip::getNextTuplesInternal() {
     auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
         restoreSelVector(dataChunkToSelect->state->selVector.get());
         // end of execution due to no more input
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         saveSelVector(dataChunkToSelect->state->selVector.get());
@@ -44,7 +42,6 @@ bool Skip::getNextTuples() {
             dataChunkToSelect->state->selVector->selectedSize - numTupleToSkipInCurrentResultSet;
         metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

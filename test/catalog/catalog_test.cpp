@@ -1,13 +1,14 @@
-#include "include/gtest/gtest.h"
-
-#include "src/catalog/include/catalog.h"
+#include "catalog/catalog.h"
+#include "gtest/gtest.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
 using namespace kuzu::catalog;
 
 class CatalogTest : public testing::Test {
 public:
-    const string CATALOG_TEMP_DIRECTORY = "test/catalog_temp";
+    const string CATALOG_TEMP_DIRECTORY =
+        kuzu::testing::TestHelper::appendKuzuRootPath("test/catalog_temp");
 
     void SetUp() override {
         FileUtils::createDir(CATALOG_TEMP_DIRECTORY);

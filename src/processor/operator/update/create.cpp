@@ -1,26 +1,18 @@
-#include "include/create.h"
+#include "processor/operator/update/create.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void CreateNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createNodeInfo : createNodeInfos) {
         createNodeInfo->primaryKeyEvaluator->init(*resultSet, context->memoryManager);
-        auto pos = createNodeInfo->outNodeIDVectorPos;
-        auto valueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
+        auto valueVector = resultSet->getValueVector(createNodeInfo->outNodeIDVectorPos);
         outValueVectors.push_back(valueVector.get());
-        auto dataChunk = resultSet->dataChunks[pos.dataChunkPos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-        dataChunk->insert(pos.valueVectorPos, valueVector);
     }
-    return resultSet;
 }
 
-bool CreateNode::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
@@ -31,38 +23,29 @@ bool CreateNode::getNextTuples() {
         auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
-        vector->setValue(vector->state->getPositionOfCurrIdx(), nodeID);
+        vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);
         for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
             relTable->initEmptyRelsForNewNode(nodeID);
         }
     }
-    metrics->executionTime.stop();
     return true;
 }
 
-shared_ptr<ResultSet> CreateRel::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createRelInfo : createRelInfos) {
-        auto srcNodePos = createRelInfo->srcNodePos;
         auto createRelVectors = make_unique<CreateRelVectors>();
-        createRelVectors->srcNodeIDVector =
-            resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
-        auto dstNodePos = createRelInfo->dstNodePos;
-        createRelVectors->dstNodeIDVector =
-            resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
+        createRelVectors->srcNodeIDVector = resultSet->getValueVector(createRelInfo->srcNodePos);
+        createRelVectors->dstNodeIDVector = resultSet->getValueVector(createRelInfo->dstNodePos);
         for (auto& evaluator : createRelInfo->evaluators) {
             evaluator->init(*resultSet, context->memoryManager);
             createRelVectors->propertyVectors.push_back(evaluator->resultVector);
         }
         createRelVectorsPerRel.push_back(std::move(createRelVectors));
     }
-    return resultSet;
 }
 
-bool CreateRel::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createRelInfos.size(); ++i) {
@@ -74,23 +57,19 @@ bool CreateRel::getNextTuples() {
             if (j == createRelInfo->relIDEvaluatorIdx) {
                 auto relIDVector = evaluator->resultVector;
                 assert(relIDVector->dataType.typeID == INT64 &&
-                       relIDVector->state->getPositionOfCurrIdx() == 0);
+                       relIDVector->state->selVector->selectedPositions[0] == 0);
                 relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
                 relIDVector->setNull(0, false);
-                // TODO(Ziyi): the following two functions should be wrapped into 1 (issue #891)
-                relsStatistics.incrementNumRelsPerDirectionBoundTableByOne(
-                    createRelInfo->table->getRelTableID(), createRelInfo->srcNodeTableID,
-                    createRelInfo->dstNodeTableID);
-                relsStatistics.incrementNumRelsByOneForTable(createRelInfo->table->getRelTableID());
-
             } else {
                 createRelInfo->evaluators[j]->evaluate();
             }
         }
-        createRelInfo->table->insertRels(createRelVectors->srcNodeIDVector,
+        createRelInfo->table->insertRel(createRelVectors->srcNodeIDVector,
             createRelVectors->dstNodeIDVector, createRelVectors->propertyVectors);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            1 /* increment numRelsPerDirectionBoundTable by 1 */);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

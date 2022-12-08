@@ -21,17 +21,15 @@ Please refer to [our website](https://kuzudb.com/) for installation and usage in
 
 
 ## Development
-For development, Kùzu requires Bazel, Python 3, and a compiler that supports `C++20`. 
-### Bazel configuration
-- Create bazel configuration file with `touch .bazelrc`
-- Add bazel configuration `echo build --cxxopt="-std=c++2a" --cxxopt='-O3' > .bazelrc`
-### Bazel build
+For development, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`. 
+
+### Build
 
 - To do a full clean build
-    - `bazel clean --expunge`
-    - `bazel build //...:all`
-- To test
-    - `bazel test //...:all`
+    - `make clean`
+    - `make NUM_THREADS=x`
+- To test (after running the build)
+    - `make test`
 
 
 ## Code of Conduct

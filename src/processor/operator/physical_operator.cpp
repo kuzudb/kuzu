@@ -1,4 +1,4 @@
-#include "include/physical_operator.h"
+#include "processor/operator/physical_operator.h"
 
 #include <regex>
 
@@ -8,21 +8,21 @@ namespace processor {
 PhysicalOperator::PhysicalOperator(
     unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
-    children.push_back(move(child));
+    children.push_back(std::move(child));
 }
 
 PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
     unique_ptr<PhysicalOperator> right, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
-    children.push_back(move(left));
-    children.push_back(move(right));
+    children.push_back(std::move(left));
+    children.push_back(std::move(right));
 }
 
 PhysicalOperator::PhysicalOperator(
     vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
     : PhysicalOperator{id, paramsString} {
     for (auto& child : children) {
-        this->children.push_back(move(child));
+        this->children.push_back(std::move(child));
     }
 }
 
@@ -33,21 +33,22 @@ unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
     return result;
 }
 
-PhysicalOperator* PhysicalOperator::getLeafOperator() {
-    PhysicalOperator* op = this;
-    while (op->getNumChildren()) {
-        op = op->getChild(0);
+void PhysicalOperator::initGlobalState(ExecutionContext* context) {
+    for (auto& child : children) {
+        child->initGlobalState(context);
     }
-    return op;
+    initGlobalStateInternal(context);
 }
 
-shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
-    transaction = context->transaction;
-    registerProfilingMetrics(context->profiler);
+void PhysicalOperator::initLocalState(ResultSet* _resultSet, ExecutionContext* context) {
     if (!children.empty()) {
-        resultSet = children[0]->init(context);
+        assert(children.size() == 1);
+        children[0]->initLocalState(_resultSet, context);
     }
-    return resultSet;
+    transaction = context->transaction;
+    resultSet = _resultSet;
+    registerProfilingMetrics(context->profiler);
+    initLocalStateInternal(_resultSet, context);
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
@@ -83,10 +84,10 @@ double PhysicalOperator::getExecutionTime(Profiler& profiler) const {
 }
 
 vector<string> PhysicalOperator::getAttributes(Profiler& profiler) const {
-    vector<string> metrics;
-    metrics.emplace_back("ExecutionTime: " + to_string(getExecutionTime(profiler)));
-    metrics.emplace_back("NumOutputTuples: " + to_string(getNumOutputTuples(profiler)));
-    return metrics;
+    vector<string> result;
+    result.emplace_back("ExecutionTime: " + to_string(getExecutionTime(profiler)));
+    result.emplace_back("NumOutputTuples: " + to_string(getNumOutputTuples(profiler)));
+    return result;
 }
 
 } // namespace processor

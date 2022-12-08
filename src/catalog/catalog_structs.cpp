@@ -1,6 +1,6 @@
-#include "include/catalog_structs.h"
+#include "catalog/catalog_structs.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
 namespace kuzu {
 namespace catalog {
@@ -15,7 +15,7 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     } else if ("MANY_MANY" == relMultiplicityString) {
         return MANY_MANY;
     }
-    throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
+    throw CatalogException("Invalid relMultiplicity string '" + relMultiplicityString + "'.");
 }
 
 string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
@@ -33,7 +33,7 @@ string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
         return "ONE_MANY";
     }
     default:
-        assert(false);
+        throw CatalogException("Cannot convert rel multiplicity to string.");
     }
 }
 

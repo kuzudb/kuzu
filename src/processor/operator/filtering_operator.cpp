@@ -1,4 +1,4 @@
-#include "include/filtering_operator.h"
+#include "processor/operator/filtering_operator.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,6 +1,6 @@
-#include "include/copy_rel_csv.h"
+#include "processor/operator/copy_csv/copy_rel_csv.h"
 
-#include "src/storage/in_mem_csv_copier/include/in_mem_rel_csv_copier.h"
+#include "storage/in_mem_csv_copier/in_mem_rel_csv_copier.h"
 
 namespace kuzu {
 namespace processor {

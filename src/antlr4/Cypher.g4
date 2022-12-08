@@ -246,8 +246,8 @@ oC_PatternElement
         ;
 
 oC_NodePattern
-    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? ')'
-        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ( kU_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
+    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabels SP? )? ( kU_Properties SP? )? ')'
+        | SP? ( oC_Variable SP? )? ( oC_NodeLabels SP? )? ( kU_Properties SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
         ;
 
 oC_PatternElementChain
@@ -259,7 +259,7 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.
@@ -267,17 +267,23 @@ oC_RelationshipDetail
 kU_Properties
     : '{' SP? ( oC_PropertyKeyName SP? ':' SP? oC_Expression SP? ( ',' SP? oC_PropertyKeyName SP? ':' SP? oC_Expression SP? )* )? '}';
 
+oC_RelationshipTypes
+    :  ':' SP? oC_RelTypeName ( SP? '|' ':'? SP? oC_RelTypeName )* ;
+
+oC_NodeLabels
+    :  oC_NodeLabel ( SP? oC_NodeLabel )* ;
+
 oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
 oC_RangeLiteral
-            :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+    :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
 
 oC_LabelName
     : oC_SchemaName ;
 
 oC_RelTypeName
-    : ':' SP? oC_SchemaName ;
+    : oC_SchemaName ;
 
 oC_Expression
     : oC_OrExpression ;
@@ -334,8 +340,13 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : ( SP ? '[' oC_Expression ']' )
-        | ( SP ? '[' oC_Expression? ':' oC_Expression? ']' );
+    : ( kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression ) oC_ListOperatorExpression ? ;
+
+kU_ListExtractOperatorExpression
+    : SP ? '[' oC_Expression ']' ;
+
+kU_ListSliceOperatorExpression
+    : SP ? '[' oC_Expression? ':' oC_Expression? ']' ;
 
 oC_StringOperatorExpression
     :  ( ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;

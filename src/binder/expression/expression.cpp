@@ -1,4 +1,4 @@
-#include "include/expression.h"
+#include "binder/expression/expression.h"
 
 namespace kuzu {
 namespace binder {

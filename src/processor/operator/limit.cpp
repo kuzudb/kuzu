@@ -1,13 +1,11 @@
-#include "include/limit.h"
+#include "processor/operator/limit.h"
 
 namespace kuzu {
 namespace processor {
 
-bool Limit::getNextTuples() {
-    metrics->executionTime.start();
+bool Limit::getNextTuplesInternal() {
     // end of execution due to no more input
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     auto numTupleAvailable = resultSet->getNumTuples(dataChunksPosInScope);
@@ -16,7 +14,6 @@ bool Limit::getNextTuples() {
         int64_t numTupleToProcessInCurrentResultSet = limitNumber - numTupleProcessedBefore;
         // end of execution due to limit has reached
         if (numTupleToProcessInCurrentResultSet <= 0) {
-            metrics->executionTime.stop();
             return false;
         } else {
             // If all dataChunks are flat, numTupleAvailable = 1 which means numTupleProcessedBefore
@@ -29,7 +26,6 @@ bool Limit::getNextTuples() {
     } else {
         metrics->numOutputTuple.increase(numTupleAvailable);
     }
-    metrics->executionTime.stop();
     return true;
 }
 

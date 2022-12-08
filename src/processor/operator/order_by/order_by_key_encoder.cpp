@@ -1,4 +1,4 @@
-#include "include/order_by_key_encoder.h"
+#include "processor/operator/order_by/order_by_key_encoder.h"
 
 #include <string.h>
 
@@ -13,19 +13,16 @@ namespace processor {
 
 OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
     vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
-    uint32_t numTuplesPerBlockInFT)
+    uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
-      ftIdx{ftIdx}, numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
+      numBytesPerTuple{numBytesPerTuple}, ftIdx{ftIdx},
+      numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
     if (numTuplesPerBlockInFT > MAX_FT_BLOCK_OFFSET) {
         throw RuntimeException(
             "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
     }
     keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
-    numBytesPerTuple = 0;
-    for (auto& orderByVector : orderByVectors) {
-        numBytesPerTuple += getEncodingSize(orderByVector->dataType);
-    }
-    numBytesPerTuple += 8;
+    assert(this->numBytesPerTuple == getNumBytesPerTuple(orderByVectors));
     maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
@@ -39,8 +36,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
 }
 
 void OrderByKeyEncoder::encodeKeys() {
-    uint32_t numEntries =
-        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selVector->selectedSize;
+    uint32_t numEntries = orderByVectors[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -59,6 +55,15 @@ void OrderByKeyEncoder::encodeKeys() {
         keyBlocks.back()->numTuples += numEntriesToEncode;
         numEntries -= numEntriesToEncode;
     }
+}
+
+uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const vector<shared_ptr<ValueVector>>& keyVectors) {
+    uint32_t result = 0u;
+    for (auto& vector : keyVectors) {
+        result += getEncodingSize(vector->dataType);
+    }
+    result += 8;
+    return result;
 }
 
 uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
@@ -94,15 +99,15 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
 
 void OrderByKeyEncoder::encodeFlatVector(
     shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
-    if (vector->isNull(vector->state->getPositionOfCurrIdx())) {
+    auto pos = vector->state->selVector->selectedPositions[0];
+    if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
             *(tuplePtr + j) = UINT8_MAX;
         }
     } else {
         *tuplePtr = 0;
-        encodeFunctions[keyColIdx](vector->getData() + vector->state->getPositionOfCurrIdx() *
-                                                           vector->getNumBytesPerValue(),
-            tuplePtr + 1, swapBytes);
+        encodeFunctions[keyColIdx](
+            vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1, swapBytes);
     }
 }
 

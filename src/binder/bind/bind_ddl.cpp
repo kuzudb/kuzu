@@ -1,9 +1,9 @@
-#include "src/binder/bound_ddl/include/bound_create_node_clause.h"
-#include "src/binder/bound_ddl/include/bound_create_rel_clause.h"
-#include "src/binder/bound_ddl/include/bound_drop_table.h"
-#include "src/binder/include/binder.h"
-#include "src/parser/ddl/include/create_node_clause.h"
-#include "src/parser/ddl/include/drop_table.h"
+#include "binder/bind/bound_create_node_clause.h"
+#include "binder/bind/bound_create_rel_clause.h"
+#include "binder/bind/bound_drop_table.h"
+#include "binder/binder.h"
+#include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/drop_table.h"
 
 namespace kuzu {
 namespace binder {
@@ -34,7 +34,7 @@ unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statemen
     auto relConnections = createRelClause.getRelConnections();
     vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
     for (auto& [srcTableName, dstTableName] : relConnections) {
-        srcDstTableIDs.emplace_back(bindNodeTable(srcTableName), bindNodeTable(dstTableName));
+        srcDstTableIDs.emplace_back(bindNodeTableID(srcTableName), bindNodeTableID(dstTableName));
     }
     return make_unique<BoundCreateRelClause>(
         tableName, move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);

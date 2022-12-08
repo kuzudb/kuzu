@@ -1,4 +1,4 @@
-#include "src/common/include/task_system/task.h"
+#include "common/task_system/task.h"
 
 namespace kuzu {
 namespace common {

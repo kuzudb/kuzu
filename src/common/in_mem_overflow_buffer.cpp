@@ -1,4 +1,4 @@
-#include "src/common/include/in_mem_overflow_buffer.h"
+#include "common/in_mem_overflow_buffer.h"
 
 namespace kuzu {
 namespace common {

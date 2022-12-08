@@ -1,8 +1,7 @@
-#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
+#include "storage/store/nodes_statistics_and_deleted_ids.h"
 
+#include "common/configs.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
 
 using namespace std;
 
@@ -42,8 +41,8 @@ node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     node_offset_t retVal = *nodeOffsetIter;
     iter->second.erase(nodeOffsetIter);
     if (iter->second.empty()) {
-        deletedNodeOffsetsPerMorsel.erase(iter);
         hasDeletedNodesPerMorsel[iter->first] = false;
+        deletedNodeOffsetsPerMorsel.erase(iter);
     }
     return retVal;
 }
@@ -74,11 +73,12 @@ void NodeStatisticsAndDeletedIDs::deleteNode(node_offset_t nodeOffset) {
     hasDeletedNodesPerMorsel[morselIdxAndOffset.first] = true;
 }
 
+// Note: this function will always be called right after scanNodeID, so we have the guarantee
+// that the nodeOffsetVector is always unselected.
 void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     const shared_ptr<ValueVector>& nodeOffsetVector) {
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
         nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
-
     if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
         auto deletedNodeOffsets = deletedNodeOffsetsPerMorsel[morselIdxAndOffset.first];
         uint64_t morselBeginOffset = morselIdxAndOffset.first * DEFAULT_VECTOR_CAPACITY;

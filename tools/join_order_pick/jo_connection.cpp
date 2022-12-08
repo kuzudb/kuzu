@@ -1,10 +1,9 @@
-#include "include/jo_connection.h"
+#include "jo_connection.h"
 
-#include "src/binder/include/binder.h"
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/processor/mapper/include/plan_mapper.h"
+#include "binder/binder.h"
+#include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace main {

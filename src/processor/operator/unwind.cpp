@@ -1,15 +1,11 @@
-#include "include/unwind.h"
+#include "processor/operator/unwind.h"
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Unwind::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->memoryManager);
-    outValueVector = make_shared<ValueVector>(outDataType, context->memoryManager);
-    resultSet->dataChunks[outDataPos.dataChunkPos]->insert(
-        outDataPos.valueVectorPos, outValueVector);
-    return resultSet;
+    outValueVector = resultSet->getValueVector(outDataPos);
 }
 
 bool Unwind::hasMoreToRead() const {
@@ -24,23 +20,20 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
     }
 }
 
-bool Unwind::getNextTuples() {
-    metrics->executionTime.start();
+bool Unwind::getNextTuplesInternal() {
     if (hasMoreToRead()) {
         auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
         copyTuplesToOutVector(startIndex, (totalElementsCopy + startIndex));
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(totalElementsCopy);
-        metrics->executionTime.stop();
         return true;
     }
     do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         expressionEvaluator->evaluate();
-        auto pos = expressionEvaluator->resultVector->state->getPositionOfCurrIdx();
+        auto pos = expressionEvaluator->resultVector->state->selVector->selectedPositions[0];
         if (expressionEvaluator->resultVector->isNull(pos)) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
@@ -52,7 +45,6 @@ bool Unwind::getNextTuples() {
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);
     } while (outValueVector->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     return true;
 }
 

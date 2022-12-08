@@ -1,8 +1,7 @@
-#include "include/plan_mapper.h"
-
-#include "src/planner/logical_plan/logical_operator/include/logical_unwind.h"
-#include "src/processor/operator/include/physical_operator.h"
-#include "src/processor/operator/include/unwind.h"
+#include "planner/logical_plan/logical_operator/logical_unwind.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/physical_operator.h"
+#include "processor/operator/unwind.h"
 
 namespace kuzu {
 namespace processor {

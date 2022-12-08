@@ -1,8 +1,8 @@
 import numpy as np
-
+import sys
+sys.path.append('../build/')
+import _kuzu as kuzu
 from pandas import Timestamp, Timedelta, isna
-from tools.python_api import _kuzu as kuzu
-
 
 def test_to_df(establish_connection):
     conn, db = establish_connection

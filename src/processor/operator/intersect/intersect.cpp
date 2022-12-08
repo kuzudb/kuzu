@@ -1,23 +1,18 @@
-#include "include/intersect.h"
+#include "processor/operator/intersect/intersect.h"
 
 #include <algorithm>
 
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    outKeyVector = make_shared<ValueVector>(NODE_ID);
-    resultSet->dataChunks[outputDataPos.dataChunkPos]->insert(
-        outputDataPos.valueVectorPos, outKeyVector);
+void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    outKeyVector = resultSet->getValueVector(outputDataPos);
     for (auto& dataInfo : intersectDataInfos) {
         probeKeyVectors.push_back(resultSet->getValueVector(dataInfo.keyDataPos));
         vector<uint32_t> columnIdxesToScanFrom;
         vector<shared_ptr<ValueVector>> vectorsToReadInto;
         for (auto i = 0u; i < dataInfo.payloadsDataPos.size(); i++) {
-            auto dataPos = dataInfo.payloadsDataPos[i];
-            auto vector = make_shared<ValueVector>(dataInfo.payloadsDataType[i]);
-            resultSet->dataChunks[dataPos.dataChunkPos]->insert(dataPos.valueVectorPos, vector);
+            auto vector = resultSet->getValueVector(dataInfo.payloadsDataPos[i]);
             // Always skip the first two columns in the fTable: build key and intersect key.
             columnIdxesToScanFrom.push_back(i + 2);
             vectorsToReadInto.push_back(vector);
@@ -26,10 +21,10 @@ shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
         payloadVectorsToScanInto.push_back(std::move(vectorsToReadInto));
     }
     for (auto& sharedHT : sharedHTs) {
+        intersectSelVectors.push_back(make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY));
         isIntersectListAFlatValue.push_back(
             sharedHT->getHashTable()->getTableSchema()->getColumn(1)->isFlat());
     }
-    return resultSet;
 }
 
 vector<uint8_t*> Intersect::probeHTs(const vector<nodeID_t>& keys) {
@@ -78,7 +73,7 @@ vector<nodeID_t> Intersect::getProbeKeys() {
     for (auto i = 0u; i < keys.size(); i++) {
         assert(probeKeyVectors[i]->state->isFlat());
         keys[i] = probeKeyVectors[i]->getValue<nodeID_t>(
-            probeKeyVectors[i]->state->getPositionOfCurrIdx());
+            probeKeyVectors[i]->state->selVector->selectedPositions[0]);
     }
     return keys;
 }
@@ -162,11 +157,9 @@ void Intersect::populatePayloads(
     }
 }
 
-bool Intersect::getNextTuples() {
-    metrics->executionTime.start();
+bool Intersect::getNextTuplesInternal() {
     do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
         auto tuples = probeHTs(getProbeKeys());
@@ -177,7 +170,6 @@ bool Intersect::getNextTuples() {
             populatePayloads(tuples, listIdxes);
         }
     } while (outKeyVector->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
     return true;
 }
 

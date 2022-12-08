@@ -1,9 +1,8 @@
-#include "src/storage/wal/include/wal.h"
+#include "storage/wal/wal.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/utils.h"
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {

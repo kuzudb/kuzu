@@ -1,4 +1,4 @@
-#include "include/create_rel_table.h"
+#include "processor/operator/ddl/create_rel_table.h"
 
 namespace kuzu {
 namespace processor {

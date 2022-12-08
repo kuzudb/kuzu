@@ -1,10 +1,9 @@
-#include "include/asp_optimizer.h"
+#include "planner/asp_optimizer.h"
 
-#include "include/query_planner.h"
-
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_scan_node.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node.h"
+#include "planner/logical_plan/logical_operator/logical_semi_masker.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/query_planner.h"
 
 namespace kuzu {
 namespace planner {

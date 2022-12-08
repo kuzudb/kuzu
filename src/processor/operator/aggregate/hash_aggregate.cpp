@@ -1,4 +1,4 @@
-#include "include/hash_aggregate.h"
+#include "processor/operator/aggregate/hash_aggregate.h"
 
 namespace kuzu {
 namespace processor {
@@ -43,13 +43,11 @@ pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     return make_pair(startOffset, startOffset + range);
 }
 
-shared_ptr<ResultSet> HashAggregate::init(ExecutionContext* context) {
-    resultSet = BaseAggregate::init(context);
+void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseAggregate::initLocalStateInternal(resultSet, context);
     vector<DataType> groupByHashKeysDataTypes;
     for (auto i = 0u; i < groupByHashKeyVectorsPos.size(); i++) {
-        auto dataPos = groupByHashKeyVectorsPos[i];
-        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos].get();
+        auto vector = resultSet->getValueVector(groupByHashKeyVectorsPos[i]).get();
         if (isGroupByHashKeyVectorFlat[i]) {
             groupByFlatHashKeyVectors.push_back(vector);
         } else {
@@ -59,25 +57,20 @@ shared_ptr<ResultSet> HashAggregate::init(ExecutionContext* context) {
     }
     vector<DataType> groupByNonHashKeysDataTypes;
     for (auto& dataPos : groupByNonHashKeyVectorsPos) {
-        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos].get();
+        auto vector = resultSet->getValueVector(dataPos).get();
         groupByNonHashKeyVectors.push_back(vector);
         groupByNonHashKeysDataTypes.push_back(vector->dataType);
     }
     localAggregateHashTable = make_unique<AggregateHashTable>(*context->memoryManager,
         groupByHashKeysDataTypes, groupByNonHashKeysDataTypes, aggregateFunctions, 0);
-    return resultSet;
 }
 
-void HashAggregate::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
-    while (children[0]->getNextTuples()) {
+void HashAggregate::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple()) {
         localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
             groupByNonHashKeyVectors, aggregateVectors, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(move(localAggregateHashTable));
-    metrics->executionTime.stop();
 }
 
 void HashAggregate::finalize(ExecutionContext* context) {
@@ -90,9 +83,10 @@ unique_ptr<PhysicalOperator> HashAggregate::clone() {
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<HashAggregate>(sharedState, groupByHashKeyVectorsPos,
-        groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat, aggregateVectorsPos,
-        move(clonedAggregateFunctions), children[0]->clone(), id, paramsString);
+    return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
+        groupByHashKeyVectorsPos, groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat,
+        aggregateVectorsPos, std::move(clonedAggregateFunctions), children[0]->clone(), id,
+        paramsString);
 }
 
 } // namespace processor

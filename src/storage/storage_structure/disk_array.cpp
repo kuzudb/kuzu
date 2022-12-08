@@ -1,9 +1,9 @@
-#include "include/disk_array.h"
+#include "storage/storage_structure/disk_array.h"
 
-#include "src/common/include/utils.h"
-#include "src/storage/buffer_manager/include/versioned_file_handle.h"
-#include "src/storage/index/include/hash_index_header.h"
-#include "src/storage/index/include/hash_index_slot.h"
+#include "common/utils.h"
+#include "storage/buffer_manager/versioned_file_handle.h"
+#include "storage/index/hash_index_header.h"
+#include "storage/index/hash_index_slot.h"
 
 namespace kuzu {
 namespace storage {
