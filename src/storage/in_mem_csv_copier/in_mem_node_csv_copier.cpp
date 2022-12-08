@@ -3,6 +3,7 @@
 #include "spdlog/spdlog.h"
 #include "storage/in_mem_csv_copier/copy_csv_task.h"
 #include "storage/storage_structure/in_mem_file.h"
+#include <arrow/api.h>
 
 namespace kuzu {
 namespace storage {

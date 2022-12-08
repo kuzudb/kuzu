@@ -1,0 +1,17 @@
+Detecting CXX compiler ABI info failed to compile with the following output:
+Change Dir: /Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):bazel -f Makefile cmTC_f3951/fast && [FATAL 22:03:58.273 src/main/cpp/blaze.cc:1295] Unknown startup option: '-f'.
+  For more info, run 'bazel help startup_options'.
+
+
+
+
+Determining if the CXX compiler works failed with the following output:
+Change Dir: /Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):bazel -f Makefile cmTC_4fce7/fast && [FATAL 22:03:58.392 src/main/cpp/blaze.cc:1295] Unknown startup option: '-f'.
+  For more info, run 'bazel help startup_options'.
+
+
+

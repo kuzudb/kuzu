@@ -1,0 +1,32 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=bazel -DCMAKE_CXX_COMPILER=clang -G "CodeBlocks - Unix Makefiles" -S /Users/calvin/Desktop/kuzu_cmake -B /Users/calvin/Desktop/kuzu_cmake/cmake-build-debug
+-- The CXX compiler identification is AppleClang 14.0.0.14000029
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - failed
+-- Check for working CXX compiler: /usr/bin/clang
+-- Check for working CXX compiler: /usr/bin/clang - broken
+CMake Error at /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.24/Modules/CMakeTestCXXCompiler.cmake:62 (message):
+  The C++ compiler
+
+    "/usr/bin/clang"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: /Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/CMakeFiles/CMakeTmp
+    
+    Run Build Command(s):bazel -f Makefile cmTC_4fce7/fast && [FATAL 22:03:58.392 src/main/cpp/blaze.cc:1295] Unknown startup option: '-f'.
+      For more info, run 'bazel help startup_options'.
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:3 (project)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/CMakeFiles/CMakeError.log".
