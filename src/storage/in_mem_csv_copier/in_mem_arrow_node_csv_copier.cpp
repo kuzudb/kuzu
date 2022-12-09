@@ -184,6 +184,11 @@ namespace storage {
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
         }
+
+        auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
+        arrowConvert.strings_can_be_null = true;
+        arrowConvert.quoted_strings_can_be_null = false;
+
         ARROW_ASSIGN_OR_RAISE(
                 csv_streaming_reader,
                 arrow::csv::StreamingReader::Make(
@@ -191,7 +196,7 @@ namespace storage {
                         arrow_input_stream,
                         arrowRead,
                         arrow::csv::ParseOptions::Defaults(),
-                        arrow::csv::ConvertOptions::Defaults()
+                        arrowConvert
                 ));
         return arrow::Status::OK();
     }
