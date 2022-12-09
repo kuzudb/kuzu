@@ -7,16 +7,11 @@ void BaseScanColumn::initLocalStateInternal(ResultSet* resultSet, ExecutionConte
     inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos);
 }
 
-void ScanSingleColumn::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    BaseScanColumn::initLocalStateInternal(resultSet, context);
-    outputVector = resultSet->getValueVector(outputVectorPos);
-}
-
 void ScanMultipleColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseScanColumn::initLocalStateInternal(resultSet, context);
-    for (auto& dataPos : outVectorsPos) {
+    for (auto& dataPos : outPropertyVectorsPos) {
         auto vector = resultSet->getValueVector(dataPos);
-        outVectors.push_back(vector);
+        outPropertyVectors.push_back(vector);
     }
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/physical_operator.h"
+#include "processor/operator/base_extend.h"
 #include "storage/storage_structure/column.h"
 #include "storage/storage_structure/lists/lists.h"
 
@@ -52,6 +52,8 @@ private:
     bool scanList(uint32_t idx, const shared_ptr<ValueVector>& inVector,
         const shared_ptr<ValueVector>& outNodeVector,
         const vector<shared_ptr<ValueVector>>& outPropertyVectors, Transaction* transaction);
+    void scanPropertyList(uint32_t idx, const vector<shared_ptr<ValueVector>>& outPropertyVectors,
+        Transaction* transaction);
 
 private:
     unique_ptr<ColumnAndListCollection> adjCollection;
@@ -69,18 +71,17 @@ private:
     unique_ptr<ListSyncState> listSyncState = nullptr;
 };
 
-class GenericExtend : public PhysicalOperator {
+class GenericExtendAndScanRelProperties : public BaseExtendAndScanRelProperties {
 public:
-    GenericExtend(const DataPos& inVectorPos, const DataPos& outNodeVectorPos,
-        vector<DataPos> outPropertyVectorsPos,
+    GenericExtendAndScanRelProperties(const DataPos& inNodeIDVectorPos,
+        const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos,
         unordered_map<table_id_t, unique_ptr<AdjAndPropertyCollection>>
             adjAndPropertyCollectionPerNodeTable,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, inVectorPos{inVectorPos},
-          outNodeVectorPos{outNodeVectorPos}, outPropertyVectorsPos{std::move(
-                                                  outPropertyVectorsPos)},
+        : BaseExtendAndScanRelProperties{inNodeIDVectorPos, outNodeIDVectorPos,
+              std::move(outPropertyVectorsPos), std::move(child), id, paramsString},
           adjAndPropertyCollectionPerNodeTable{std::move(adjAndPropertyCollectionPerNodeTable)} {}
-    ~GenericExtend() override = default;
+    ~GenericExtendAndScanRelProperties() override = default;
 
     inline PhysicalOperatorType getOperatorType() override {
         return PhysicalOperatorType::GENERIC_EXTEND;
@@ -95,8 +96,9 @@ public:
         for (auto& [tableID, adjAndPropertyCollection] : adjAndPropertyCollectionPerNodeTable) {
             clonedCollections.insert({tableID, adjAndPropertyCollection->clone()});
         }
-        return make_unique<GenericExtend>(inVectorPos, outNodeVectorPos, outPropertyVectorsPos,
-            std::move(clonedCollections), children[0]->clone(), id, paramsString);
+        return make_unique<GenericExtendAndScanRelProperties>(inNodeIDVectorPos, outNodeIDVectorPos,
+            outPropertyVectorsPos, std::move(clonedCollections), children[0]->clone(), id,
+            paramsString);
     }
 
 private:
@@ -104,15 +106,6 @@ private:
     void initCurrentAdjAndPropertyCollection(const nodeID_t& nodeID);
 
 private:
-    // vector positions
-    DataPos inVectorPos;
-    DataPos outNodeVectorPos;
-    vector<DataPos> outPropertyVectorsPos;
-    // vectors
-    shared_ptr<ValueVector> inVector;
-    shared_ptr<ValueVector> outNodeVector;
-    vector<shared_ptr<ValueVector>> outPropertyVectors;
-    // storage structures
     unordered_map<table_id_t, unique_ptr<AdjAndPropertyCollection>>
         adjAndPropertyCollectionPerNodeTable;
     AdjAndPropertyCollection* currentAdjAndPropertyCollection = nullptr;

@@ -9,43 +9,28 @@
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto extend = (LogicalExtend*)logicalOperator;
-    auto boundNode = extend->getBoundNode();
-    auto nbrNode = extend->getNbrNode();
-    auto rel = extend->getRel();
-    auto direction = extend->getDirection();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inDataPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
-    auto outDataPos = mapperContext.getDataPos(nbrNode->getInternalIDPropertyName());
-    mapperContext.addComputedExpressions(nbrNode->getInternalIDPropertyName());
-    auto& relsStore = storageManager.getRelsStore();
-    auto boundNodeTableID = boundNode->getTableID();
-    assert(rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1);
-    auto relTableID = *rel->getTableIDs().begin();
-    if (relsStore.hasAdjColumn(direction, boundNodeTableID, relTableID)) {
-        auto column = relsStore.getAdjColumn(direction, boundNodeTableID, relTableID);
-        if (rel->isVariableLength()) {
-            return make_unique<VarLengthColumnExtend>(inDataPos, outDataPos, column,
-                rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                getOperatorID(), extend->getExpressionsForPrinting());
-        } else {
-            return make_unique<AdjColumnExtend>(inDataPos, outDataPos, column,
-                std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
-        }
-    } else {
-        assert(relsStore.hasAdjList(direction, boundNodeTableID, relTableID));
-        auto list = relsStore.getAdjLists(direction, boundNodeTableID, relTableID);
-        if (rel->isVariableLength()) {
-            return make_unique<VarLengthAdjListExtend>(inDataPos, outDataPos, list,
-                rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                getOperatorID(), extend->getExpressionsForPrinting());
-        } else {
-            return make_unique<AdjListExtend>(inDataPos, outDataPos, list, std::move(prevOperator),
-                getOperatorID(), extend->getExpressionsForPrinting());
-        }
+static vector<Column*> populatePropertyColumns(table_id_t boundNodeTableID, table_id_t relID,
+    RelDirection direction, const expression_vector& properties, const RelsStore& relsStore) {
+    vector<Column*> propertyColumns;
+    for (auto& expression : properties) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        auto column = relsStore.getRelPropertyColumn(
+            direction, relID, boundNodeTableID, propertyExpression->getPropertyID(relID));
+        propertyColumns.push_back(column);
     }
+    return propertyColumns;
+}
+
+static vector<Lists*> populatePropertyLists(table_id_t boundNodeTableID, table_id_t relID,
+    RelDirection direction, const expression_vector& properties, const RelsStore& relsStore) {
+    vector<Lists*> propertyLists;
+    for (auto& expression : properties) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        auto list = relsStore.getRelPropertyLists(
+            direction, boundNodeTableID, relID, propertyExpression->getPropertyID(relID));
+        propertyLists.push_back(list);
+    }
+    return propertyLists;
 }
 
 static unique_ptr<ColumnAndListCollection> populateAdjCollection(table_id_t boundNodeTableID,
@@ -90,16 +75,28 @@ static unique_ptr<ColumnAndListCollection> populatePropertyCollection(table_id_t
         std::move(propertyColumns), std::move(propertyLists));
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalGenericExtendToPhysical(
+static vector<unique_ptr<ColumnAndListCollection>> populatePropertyCollections(
+    table_id_t boundNodeTableID, const RelExpression& rel, RelDirection direction,
+    const expression_vector& properties, const RelsStore& relsStore) {
+    vector<unique_ptr<ColumnAndListCollection>> propertyCollections;
+    for (auto& expression : properties) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        propertyCollections.push_back(populatePropertyCollection(
+            boundNodeTableID, rel, direction, *propertyExpression, relsStore));
+    }
+    return propertyCollections;
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto extend = (LogicalGenericExtend*)logicalOperator;
+    auto extend = (LogicalExtend*)logicalOperator;
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
     auto direction = extend->getDirection();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inDataPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
-    auto outNodePos = mapperContext.getDataPos(nbrNode->getInternalIDPropertyName());
+    auto inNodeIDVectorPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
+    auto outNodeIDVectorPos = mapperContext.getDataPos(nbrNode->getInternalIDPropertyName());
     mapperContext.addComputedExpressions(nbrNode->getInternalIDPropertyName());
     vector<DataPos> outPropertyVectorsPos;
     for (auto& expression : extend->getProperties()) {
@@ -107,23 +104,55 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalGenericExtendToPhysical(
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     auto& relsStore = storageManager.getRelsStore();
-    unordered_map<table_id_t, unique_ptr<AdjAndPropertyCollection>>
-        adjAndPropertyCollectionPerNodeTable;
-    for (auto boundNodeTableID : boundNode->getTableIDs()) {
-        auto adjCollection = populateAdjCollection(boundNodeTableID, *rel, direction, relsStore);
-        vector<unique_ptr<ColumnAndListCollection>> propertyCollections;
-        for (auto& expression : extend->getProperties()) {
-            auto propertyExpression = (PropertyExpression*)expression.get();
-            propertyCollections.push_back(populatePropertyCollection(
-                boundNodeTableID, *rel, direction, *propertyExpression, relsStore));
+    if (rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1) {
+        auto boundNodeTableID = boundNode->getTableID();
+        auto relTableID = *rel->getTableIDs().begin();
+        if (relsStore.hasAdjColumn(direction, boundNodeTableID, relTableID)) {
+            auto adjColumn = relsStore.getAdjColumn(direction, boundNodeTableID, relTableID);
+            if (rel->isVariableLength()) {
+                return make_unique<VarLengthColumnExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
+                    adjColumn, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
+                    getOperatorID(), extend->getExpressionsForPrinting());
+            } else {
+                auto propertyColumns = populatePropertyColumns(
+                    boundNodeTableID, relTableID, direction, extend->getProperties(), relsStore);
+                return make_unique<ColumnExtendAndScanRelProperties>(inNodeIDVectorPos,
+                    outNodeIDVectorPos, std::move(outPropertyVectorsPos), adjColumn,
+                    std::move(propertyColumns), std::move(prevOperator), getOperatorID(),
+                    extend->getExpressionsForPrinting());
+            }
+        } else {
+            assert(relsStore.hasAdjList(direction, boundNodeTableID, relTableID));
+            auto adjList = relsStore.getAdjLists(direction, boundNodeTableID, relTableID);
+            if (rel->isVariableLength()) {
+                return make_unique<VarLengthAdjListExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
+                    adjList, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
+                    getOperatorID(), extend->getExpressionsForPrinting());
+            } else {
+                auto propertyLists = populatePropertyLists(
+                    boundNodeTableID, relTableID, direction, extend->getProperties(), relsStore);
+                return make_unique<ListExtendAndScanRelProperties>(inNodeIDVectorPos,
+                    outNodeIDVectorPos, std::move(outPropertyVectorsPos), adjList,
+                    std::move(propertyLists), std::move(prevOperator), getOperatorID(),
+                    extend->getExpressionsForPrinting());
+            }
         }
-        adjAndPropertyCollectionPerNodeTable.insert(
-            {boundNodeTableID, make_unique<AdjAndPropertyCollection>(
-                                   std::move(adjCollection), std::move(propertyCollections))});
+    } else { // map to generic extend
+        unordered_map<table_id_t, unique_ptr<AdjAndPropertyCollection>>
+            adjAndPropertyCollectionPerNodeTable;
+        for (auto boundNodeTableID : boundNode->getTableIDs()) {
+            auto adjCollection =
+                populateAdjCollection(boundNodeTableID, *rel, direction, relsStore);
+            auto propertyCollections = populatePropertyCollections(
+                boundNodeTableID, *rel, direction, extend->getProperties(), relsStore);
+            adjAndPropertyCollectionPerNodeTable.insert(
+                {boundNodeTableID, make_unique<AdjAndPropertyCollection>(
+                                       std::move(adjCollection), std::move(propertyCollections))});
+        }
+        return make_unique<GenericExtendAndScanRelProperties>(inNodeIDVectorPos, outNodeIDVectorPos,
+            outPropertyVectorsPos, std::move(adjAndPropertyCollectionPerNodeTable),
+            std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     }
-    return make_unique<GenericExtend>(inDataPos, outNodePos, outPropertyVectorsPos,
-        std::move(adjAndPropertyCollectionPerNodeTable), std::move(prevOperator), getOperatorID(),
-        extend->getExpressionsForPrinting());
 }
 
 } // namespace processor

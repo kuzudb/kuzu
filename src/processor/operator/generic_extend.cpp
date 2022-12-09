@@ -60,18 +60,7 @@ bool AdjAndPropertyCollection::scanLists(const shared_ptr<ValueVector>& inVector
         if (currentAdjListHandle->listSyncState.hasMoreToRead()) {
             // scan current adjList
             currentAdjList->readValues(outNodeVector, *currentAdjListHandle);
-            // scan current propertyLists
-            for (auto i = 0u; i < propertyCollections.size(); ++i) {
-                auto currentPropertyList = propertyCollections[i]->lists[currentListIdx];
-                auto currentPropertyListHandle =
-                    propertyCollections[i]->listHandles[currentListIdx].get();
-                if (currentPropertyList == nullptr) {
-                    outPropertyVectors[i]->setAllNull();
-                } else {
-                    currentPropertyList->readValues(
-                        outPropertyVectors[i], *currentPropertyListHandle);
-                }
-            }
+            scanPropertyList(currentListIdx, outPropertyVectors, transaction);
             return true;
         } else {
             // no more to scan on current list, move to next list.
@@ -109,10 +98,12 @@ bool AdjAndPropertyCollection::scanColumn(uint32_t idx, const shared_ptr<ValueVe
     // scan propertyColumns
     for (auto i = 0u; i < propertyCollections.size(); ++i) {
         auto propertyColumn = propertyCollections[i]->columns[idx];
+        auto& propertyVector = outPropertyVectors[i];
+        propertyVector->resetOverflowBuffer();
         if (propertyColumn == nullptr) {
-            outPropertyVectors[i]->setAllNull();
+            propertyVector->setAllNull();
         } else {
-            propertyColumn->read(transaction, inVector, outPropertyVectors[i]);
+            propertyColumn->read(transaction, inVector, propertyVector);
         }
     }
     return true;
@@ -134,19 +125,25 @@ bool AdjAndPropertyCollection::scanList(uint32_t idx, const shared_ptr<ValueVect
         return false;
     }
     currentListIdx = idx;
-    // scan propertyLists
+    scanPropertyList(idx, outPropertyVectors, transaction);
+    return selVector->selectedSize != 0;
+}
+
+void AdjAndPropertyCollection::scanPropertyList(uint32_t idx,
+    const vector<shared_ptr<ValueVector>>& outPropertyVectors, Transaction* transaction) {
     for (auto i = 0u; i < propertyCollections.size(); ++i) {
         auto propertyList = propertyCollections[i]->lists[idx];
         auto propertyListHandle = propertyCollections[i]->listHandles[idx].get();
+        auto& propertyVector = outPropertyVectors[i];
+        propertyVector->resetOverflowBuffer();
         if (propertyList == nullptr) {
             outPropertyVectors[i]->setAllNull();
         } else {
-            propertyList->readValues(outPropertyVectors[i], *propertyListHandle);
+            propertyList->readValues(propertyVector, *propertyListHandle);
             propertyList->setDeletedRelsIfNecessary(
-                transaction, propertyListHandle->listSyncState, outPropertyVectors[i]);
+                transaction, propertyListHandle->listSyncState, propertyVector);
         }
     }
-    return selVector->selectedSize != 0;
 }
 
 unique_ptr<AdjAndPropertyCollection> AdjAndPropertyCollection::clone() const {
@@ -161,13 +158,9 @@ unique_ptr<AdjAndPropertyCollection> AdjAndPropertyCollection::clone() const {
         std::move(clonedAdjCollection), std::move(clonedPropertyCollections));
 }
 
-void GenericExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    inVector = resultSet->getValueVector(inVectorPos);
-    outNodeVector = resultSet->getValueVector(outNodeVectorPos);
-    for (auto& dataPos : outPropertyVectorsPos) {
-        auto vector = resultSet->getValueVector(dataPos);
-        outPropertyVectors.push_back(vector);
-    }
+void GenericExtendAndScanRelProperties::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    BaseExtendAndScanRelProperties::initLocalStateInternal(resultSet, context);
     for (auto& [_, adjAndPropertyCollection] : adjAndPropertyCollectionPerNodeTable) {
         adjAndPropertyCollection->populateListHandles();
     }
@@ -175,34 +168,35 @@ void GenericExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     currentAdjAndPropertyCollection = nullptr;
 }
 
-bool GenericExtend::getNextTuplesInternal() {
+bool GenericExtendAndScanRelProperties::getNextTuplesInternal() {
     while (true) {
         if (scanCurrentAdjAndPropertyCollection()) {
-            metrics->numOutputTuple.increase(outNodeVector->state->selVector->selectedSize);
+            metrics->numOutputTuple.increase(outNodeIDVector->state->selVector->selectedSize);
             return true;
         }
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        auto currentIdx = inVector->state->selVector->selectedPositions[0];
-        if (inVector->isNull(currentIdx)) {
-            outNodeVector->state->selVector->selectedSize = 0;
+        auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
+        if (inNodeIDVector->isNull(currentIdx)) {
+            outNodeIDVector->state->selVector->selectedSize = 0;
             continue;
         }
-        auto nodeID = inVector->getValue<nodeID_t>(currentIdx);
+        auto nodeID = inNodeIDVector->getValue<nodeID_t>(currentIdx);
         initCurrentAdjAndPropertyCollection(nodeID);
     }
 }
 
-bool GenericExtend::scanCurrentAdjAndPropertyCollection() {
+bool GenericExtendAndScanRelProperties::scanCurrentAdjAndPropertyCollection() {
     if (currentAdjAndPropertyCollection == nullptr) {
         return false;
     }
     return currentAdjAndPropertyCollection->scan(
-        inVector, outNodeVector, outPropertyVectors, transaction);
+        inNodeIDVector, outNodeIDVector, outPropertyVectors, transaction);
 }
 
-void GenericExtend::initCurrentAdjAndPropertyCollection(const nodeID_t& nodeID) {
+void GenericExtendAndScanRelProperties::initCurrentAdjAndPropertyCollection(
+    const nodeID_t& nodeID) {
     if (adjAndPropertyCollectionPerNodeTable.contains(nodeID.tableID)) {
         currentAdjAndPropertyCollection =
             adjAndPropertyCollectionPerNodeTable.at(nodeID.tableID).get();
