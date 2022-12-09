@@ -427,15 +427,13 @@ namespace storage {
             if constexpr (is_same<T, int64_t>::value) {
                 auto key = (int64_t *) column->getElement(offset);
                 if (!hashIndex->append(*key, offset)) {
-                    throw CopyCSVException("ID value " + to_string(*key) +
-                                           " violates the uniqueness constraint for the ID property.");
+                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(to_string(*key)));
                 }
             } else {
                 auto element = (ku_string_t *) column->getElement(offset);
                 auto key = column->getInMemOverflowFile()->readString(element);
                 if (!hashIndex->append(key.c_str(), offset)) {
-                    throw CopyCSVException("ID value  " + key +
-                                           " violates the uniqueness constraint for the ID property.");
+                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(key));
                 }
             }
         }
