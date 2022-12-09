@@ -1,4 +1,3 @@
-include(FetchContent)
 project(_kuzu)
 
 set(CMAKE_CXX_STANDARD 20)

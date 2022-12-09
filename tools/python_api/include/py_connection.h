@@ -6,11 +6,10 @@
 class PyConnection {
 
 public:
-    static void initialize(py::handle& m);
-
     explicit PyConnection(PyDatabase* pyDatabase, uint64_t numThreads);
-
     ~PyConnection() = default;
+
+    static void initialize(py::handle& m);
 
     unique_ptr<PyQueryResult> execute(const string& query, py::list params);
 

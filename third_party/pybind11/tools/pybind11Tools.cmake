@@ -149,7 +149,7 @@ endif()
 function(pybind11_extension name)
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(${name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                           SUFFIX "${PYTHON_MODULE_EXTENSION}")
+                                           SUFFIX ".so")
 endfunction()
 
 # Build a Python extension module:

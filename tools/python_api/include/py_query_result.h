@@ -9,16 +9,17 @@ class PyQueryResult {
     friend class PyConnection;
 
 public:
-    static void initialize(py::handle& m);
-
-    PyQueryResult() = default;
+    PyQueryResult();
     ~PyQueryResult() = default;
+
+    static void initialize(py::handle& m);
 
     bool hasNext();
 
     py::list getNext();
 
-    void writeToCSV(py::str filename, py::str delimiter, py::str escapeCharacter, py::str newline);
+    void writeToCSV(const py::str& filename, const py::str& delimiter,
+        const py::str& escapeCharacter, const py::str& newline);
 
     void close();
 

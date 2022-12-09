@@ -1,12 +1,16 @@
 #include "include/py_query_result.h"
 
-#include <fstream>
 #include <string>
 
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
 using namespace kuzu::common;
+
+PyQueryResult::PyQueryResult() {
+    auto atexit = py::module_::import("atexit");
+    atexit.attr("register")(py::cpp_function([&]() { queryResult.reset(); }));
+}
 
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
@@ -35,11 +39,11 @@ py::list PyQueryResult::getNext() {
     for (auto i = 0u; i < tuple->len(); ++i) {
         result[i] = convertValueToPyObject(*tuple->getResultValue(i));
     }
-    return move(result);
+    return std::move(result);
 }
 
-void PyQueryResult::writeToCSV(
-    py::str filename, py::str delimiter, py::str escapeCharacter, py::str newline) {
+void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter,
+    const py::str& escapeCharacter, const py::str& newline) {
     std::string delimiterStr = delimiter;
     std::string escapeCharacterStr = escapeCharacter;
     std::string newlineStr = newline;
@@ -104,7 +108,7 @@ py::object PyQueryResult::convertValueToPyObject(const ResultValue& value) {
         for (auto i = 0u; i < listVal.size(); ++i) {
             list.append(convertValueToPyObject(listVal[i]));
         }
-        return move(list);
+        return std::move(list);
     }
     default:
         throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));
@@ -121,7 +125,7 @@ py::list PyQueryResult::getColumnDataTypes() {
     for (auto i = 0u; i < columnDataTypes.size(); ++i) {
         result[i] = py::cast(Types::dataTypeToString(columnDataTypes[i]));
     }
-    return move(result);
+    return std::move(result);
 }
 
 py::list PyQueryResult::getColumnNames() {
@@ -130,5 +134,5 @@ py::list PyQueryResult::getColumnNames() {
     for (auto i = 0u; i < columnNames.size(); ++i) {
         result[i] = py::cast(columnNames[i]);
     }
-    return move(result);
+    return std::move(result);
 }

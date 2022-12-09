@@ -2,6 +2,15 @@
 
 #include "datetime.h" // from Python
 
+PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
+    conn = make_unique<Connection>(pyDatabase->database.get());
+    if (numThreads > 0) {
+        conn->setMaxNumThreadForExec(numThreads);
+    }
+    auto atexit = py::module_::import("atexit");
+    atexit.attr("register")(py::cpp_function([&]() { conn.reset(); }));
+}
+
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
@@ -12,16 +21,9 @@ void PyConnection::initialize(py::handle& m) {
     PyDateTime_IMPORT;
 }
 
-PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
-    conn = make_unique<Connection>(pyDatabase->database.get());
-    if (numThreads > 0) {
-        conn->setMaxNumThreadForExec(numThreads);
-    }
-}
-
 unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list params) {
     auto preparedStatement = conn->prepare(query);
-    auto parameters = transformPythonParameters(params);
+    auto parameters = transformPythonParameters(std::move(params));
     py::gil_scoped_release release;
     auto queryResult = conn->executeWithParams(preparedStatement.get(), parameters);
     py::gil_scoped_acquire acquire;
@@ -29,7 +31,7 @@ unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list pa
         throw runtime_error(queryResult->getErrorMessage());
     }
     auto pyQueryResult = make_unique<PyQueryResult>();
-    pyQueryResult->queryResult = move(queryResult);
+    pyQueryResult->queryResult = std::move(queryResult);
     return pyQueryResult;
 }
 

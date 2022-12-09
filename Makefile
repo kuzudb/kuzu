@@ -39,7 +39,6 @@ debug:
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug -- -j $(NUM_THREADS)
 
-
 test:
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest

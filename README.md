@@ -26,9 +26,18 @@ To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compile
 After build, our CLI binary `kuzu_shell` is available under the directory `build/release/tools/shell/`.
 
 ## Installation
-### Precompiled binary
+### Install from source
+```python
+cd scripts/pip-package
+chmod +x package_tar.sh
+./package_tar.sh
+pip install kuzu.tar.gz
+```
+
+### Install from latest release
+#### Precompiled binary
 Precompiled binary of our latest release can be downloaded [here](https://github.com/kuzudb/kuzu/releases/tag/0.0.1).  
-### Python package
+#### Python package
 Our Python package can be directly install through pip.
 ```
 pip install kuzu
@@ -75,6 +84,7 @@ conn.execute("COPY knows FROM 'dataset/tinysnb/eKnows.csv';")
 result = conn.execute("MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)")
 while result.hasNext():
   print(result.getNext())
+result.close()
 ```
 
 Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
