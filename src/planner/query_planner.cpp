@@ -402,7 +402,8 @@ void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<NodeExpression> bound
     if (schema->isExpressionInScope(*property)) {
         return;
     }
-    assert(!rel->isVariableLength() && rel->getNumTableIDs() == 1);
+    assert(
+        !rel->isVariableLength() && rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1);
     auto scanProperty = make_shared<LogicalScanRelProperty>(std::move(boundNode),
         std::move(nbrNode), std::move(rel), direction, std::move(property), plan.getLastOperator());
     scanProperty->computeSchema(*schema);

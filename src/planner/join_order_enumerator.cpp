@@ -569,6 +569,7 @@ void JoinOrderEnumerator::appendIndexScanNode(
 bool JoinOrderEnumerator::needExtendToNewGroup(
     RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
     auto extendToNewGroup = false;
+    extendToNewGroup |= boundNode.getNumTableIDs() > 1;
     extendToNewGroup |= rel.getNumTableIDs() > 1;
     if (rel.getNumTableIDs() == 1) {
         auto relTableID = *rel.getTableIDs().begin();
@@ -589,15 +590,13 @@ void JoinOrderEnumerator::appendExtend(shared_ptr<NodeExpression> boundNode,
     shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
     const expression_vector& properties, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    if (boundNode->getNumTableIDs() > 1) {
-        throw NotImplementedException("Extend from multi-labeled node is not supported.");
-    }
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
     if (needFlatInput(*rel, *boundNode, direction)) {
         QueryPlanner::appendFlattenIfNecessary(boundNode->getInternalIDProperty(), plan);
     }
     shared_ptr<LogicalExtend> extend;
-    if (rel->getNumTableIDs() > 1) {
+    // TODO(Xiyang): merge extend and generic extend on the logical level.
+    if (rel->getNumTableIDs() > 1 || boundNode->getNumTableIDs() > 1) {
         extend = make_shared<LogicalGenericExtend>(boundNode, nbrNode, rel, direction,
             extendToNewGroup, properties, plan.getLastOperator());
     } else {
@@ -792,15 +791,17 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
     const RelExpression& rel, const NodeExpression& boundNode, RelDirection direction) {
-    auto boundNodeTableID = boundNode.getTableID();
-    double numBoundNodes =
-        nodesStatistics.getNodeStatisticsAndDeletedIDs(boundNodeTableID)->getNumTuples();
+    double numBoundNodes = 0;
     double numRels = 0;
-    for (auto relTableID : rel.getTableIDs()) {
-        auto relStatistic = (RelStatistics*)relsStatistics.getReadOnlyVersion()
-                                ->tableStatisticPerTable[relTableID]
-                                .get();
-        numRels += relStatistic->getNumRelsForDirectionBoundTable(direction, boundNodeTableID);
+    for (auto boundNodeTableID : boundNode.getTableIDs()) {
+        numBoundNodes +=
+            nodesStatistics.getNodeStatisticsAndDeletedIDs(boundNodeTableID)->getNumTuples();
+        for (auto relTableID : rel.getTableIDs()) {
+            auto relStatistic = (RelStatistics*)relsStatistics.getReadOnlyVersion()
+                                    ->tableStatisticPerTable[relTableID]
+                                    .get();
+            numRels += relStatistic->getNumRelsForDirectionBoundTable(direction, boundNodeTableID);
+        }
     }
     return ceil(numRels / numBoundNodes);
 }

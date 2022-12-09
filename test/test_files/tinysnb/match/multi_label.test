@@ -29,7 +29,19 @@
 3|38|long long long string||5
 7|39|short str||8
 
+-NAME MultiLabelOneHopTest5
+-QUERY MATCH (a:person)-[e:mixed|:studyAt|:knows]->(b:person:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+27
+
 -NAME MultiLabelTwoHopTest
 -QUERY MATCH (a:person)-[e:knows|:mixed]->(b:person)-[:knows|:mixed]->(c:organisation) RETURN COUNT(*)
 ---- 1
 11
+
+-NAME MultiLabelTwoHopTest2
+-QUERY MATCH (a:person:organisation)-[e:workAt|:mixed|:studyAt]->(b:organisation)<-[:knows|:mixed]-(c:organisation:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+10
