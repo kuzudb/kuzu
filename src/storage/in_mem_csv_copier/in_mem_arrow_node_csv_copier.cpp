@@ -481,84 +481,60 @@ namespace storage {
         for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
             auto column = structuredColumns[columnIdx].get();
             auto currentToken = arrow_columns[columnIdx]->GetScalar(bufferOffset);
+            if ((*currentToken)->is_valid) {
+                auto stringToken = currentToken->get()->ToString();
+                const char* data = stringToken.c_str();
 
-            switch (column->getDataType().typeID) {
-                case INT64: {
-                    if ((*currentToken)->is_valid) {
-                        int64_t int64Val = std::dynamic_pointer_cast<arrow::Int64Scalar>(*currentToken)->value;
-                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&int64Val));
-                    }
-                }
-                    break;
-                case DOUBLE: {
-                    if ((*currentToken)->is_valid) {
-                        double_t val = std::dynamic_pointer_cast<arrow::DoubleScalar>(*currentToken)->value;
+                switch (column->getDataType().typeID) {
+                    case INT64: {
+                        int64_t val = TypeUtils::convertToInt64(data);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case BOOL: {
-                    if ((*currentToken)->is_valid) {
-                        bool val = std::dynamic_pointer_cast<arrow::BooleanScalar>(*currentToken)->value;
+                        break;
+                    case DOUBLE: {
+                        double_t val = TypeUtils::convertToDouble(data);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case DATE: {
-                    if ((*currentToken)->is_valid) {
-                        string val = currentToken->get()->ToString();
-                        date_t dateVal = Date::FromCString(val.c_str(), val.length());
-                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&dateVal));
+                        break;
+                    case BOOL: {
+                        bool val = TypeUtils::convertToBoolean(data);
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case TIMESTAMP: {
-                    if ((*currentToken)->is_valid) {
-                        string val = currentToken->get()->ToString();
-                        timestamp_t timeVal = Timestamp::FromCString(val.c_str(), val.length());
-                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&timeVal));
+                        break;
+                    case DATE: {
+                        date_t val = Date::FromCString(data, stringToken.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case INTERVAL: {
-                    if ((*currentToken)->is_valid) {
-                        string val = currentToken->get()->ToString();
-                        interval_t intervalVal = Interval::FromCString(val.c_str(), val.length());
-                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&intervalVal));
+                        break;
+                    case TIMESTAMP: {
+                        timestamp_t val = Timestamp::FromCString(data, stringToken.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case STRING: {
-                    if ((*currentToken)->is_valid) {
-                        string val = currentToken->get()->ToString();
-                        auto stringVal = column->getInMemOverflowFile()->copyString(val.c_str(),
-                                                                                    overflowCursors[columnIdx]);
-                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&stringVal));
+                        break;
+                    case INTERVAL: {
+                        interval_t val = Interval::FromCString(data, stringToken.length());
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
-                }
-                    break;
-                case LIST: {
-                    if ((*currentToken)->is_valid) {
-                        auto val = currentToken->get()->ToString();
-                        Literal listVal = getArrowList(val, 1, val.length() - 2, column->getDataType());
+                        break;
+                    case STRING: {
+                        auto val = column->getInMemOverflowFile()->copyString(data,
+                                                                              overflowCursors[columnIdx]);
+                        column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
+                    }
+                        break;
+                    case LIST: {
+                        Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2, column->getDataType());
                         auto kuList =
                                 column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&kuList));
                     }
+                        break;
+                    default:
+                        break;
                 }
-                    break;
-                default:
-                    break;
+
             }
         }
-    }
-
-    bool to_bool(std::string str) {
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
-        std::istringstream is(str);
-        bool b;
-        is >> std::boolalpha >> b;
-        return b;
     }
 
     Literal InMemArrowNodeCSVCopier::getArrowList(string& l, int64_t from, int64_t to, const DataType &dataType) {
