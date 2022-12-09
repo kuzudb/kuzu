@@ -45,6 +45,10 @@ public:
 
     bool getNextTuplesInternal() override;
 
+    bool addBFSLevel(uint64_t parent, uint64_t bfsLevel, uint64_t predecessor);
+
+    bool getNextBatchOfChildNodes(BFSState* bfsState);
+
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, adjList, lowerBound,
             upperBound, children[0]->clone(), id, paramsString);

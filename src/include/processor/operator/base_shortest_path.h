@@ -1,9 +1,22 @@
 #pragma once
 
+#include "queue"
+
 #include "processor/operator/physical_operator.h"
+#include "storage/storage_structure/lists/lists.h"
 
 namespace kuzu {
 namespace processor {
+
+struct BFSState {
+    uint64_t parentNodeID;
+    uint64_t bfsLevel;
+    shared_ptr<ValueVector> children;
+    uint64_t currChildIdx;
+    bool hasBeenOutput;
+    shared_ptr<ListSyncState> listSyncState;
+    shared_ptr<ListHandle> listHandle;
+};
 
 class BaseShortestPath : public PhysicalOperator {
 public:
@@ -30,6 +43,9 @@ protected:
     uint64_t upperBound;
     shared_ptr<ValueVector> srcValueVector;
     shared_ptr<ValueVector> destValueVector;
+    map<uint64_t, shared_ptr<BFSState>> bfsVisitedNodesMap;
+    queue<uint64_t> bfsQueue;
+    MemoryManager* memoryManager;
 };
 
 } // namespace processor
