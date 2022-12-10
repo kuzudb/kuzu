@@ -269,58 +269,40 @@ void QueryPlanner::planSubqueryIfNecessary(
     }
 }
 
-void QueryPlanner::appendAccumulate(kuzu::planner::LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto schemaBeforeSink = schema->copy();
-    SinkOperatorUtil::recomputeSchema(*schemaBeforeSink, *schema);
-    auto sink = make_shared<LogicalAccumulate>(schemaBeforeSink->getExpressionsInScope(),
-        std::move(schemaBeforeSink), plan.getLastOperator());
+void QueryPlanner::appendAccumulate(LogicalPlan& plan) {
+    auto sink = make_shared<LogicalAccumulate>(
+        plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());
+    sink->computeSchema();
     plan.setLastOperator(sink);
 }
 
 void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto schema = plan.getSchema();
-    auto groupPos = schema->createGroup();
-    schema->setGroupAsSingleState(groupPos); // Mark group holding constant as single state.
-    for (auto& expression : expressions) {
-        // No need to insert repeated constant.
-        if (schema->isExpressionInScope(*expression)) {
-            continue;
-        }
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    auto expressionsScan = make_shared<LogicalExpressionsScan>(std::move(expressions));
+    auto expressionsScan = make_shared<LogicalExpressionsScan>(expressions);
+    expressionsScan->computeSchema();
     plan.setLastOperator(std::move(expressionsScan));
 }
 
 void QueryPlanner::appendDistinct(
     const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     for (auto& expression : expressionsToDistinct) {
-        auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+        auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
         appendFlattens(dependentGroupsPos, plan);
     }
-    auto distinct =
-        make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
-    schema->clear();
-    auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToDistinct) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    plan.setLastOperator(move(distinct));
+    auto distinct = make_shared<LogicalDistinct>(expressionsToDistinct, plan.getLastOperator());
+    distinct->computeSchema();
+    plan.setLastOperator(std::move(distinct));
 }
 
 void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto dependentGroupPos = schema->getDependentGroupsPos(boundUnwindClause.getExpression());
+    auto dependentGroupPos =
+        plan.getSchema()->getDependentGroupsPos(boundUnwindClause.getExpression());
     if (!dependentGroupPos.empty()) {
         appendFlattens(dependentGroupPos, plan);
     }
-    auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(boundUnwindClause.getAliasExpression(), groupPos);
     auto logicalUnwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
         boundUnwindClause.getAliasExpression(), plan.getLastOperator());
+    logicalUnwind->computeSchema();
     plan.setLastOperator(logicalUnwind);
 }
 
@@ -353,16 +335,15 @@ uint32_t QueryPlanner::appendFlattensButOne(
 
 void QueryPlanner::appendFlattenIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto group = schema->getGroup(expression);
+    auto group = plan.getSchema()->getGroup(expression);
     if (group->isFlat()) {
         return;
     }
     auto flatten = make_shared<LogicalFlatten>(expression, plan.getLastOperator());
-    flatten->computeSchema(*schema);
-    plan.setLastOperator(std::move(flatten));
+    flatten->computeSchema();
     // update cardinality estimation info
     plan.multiplyCardinality(group->getMultiplier());
+    plan.setLastOperator(std::move(flatten));
 }
 
 void QueryPlanner::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
@@ -370,27 +351,26 @@ void QueryPlanner::appendFilter(const shared_ptr<Expression>& expression, Logica
     auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
+    filter->computeSchema();
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
     plan.setLastOperator(std::move(filter));
 }
 
 void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
     shared_ptr<NodeExpression> node, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     expression_vector propertyExpressionToScan;
-    auto groupPos = schema->getGroupPos(node->getInternalIDPropertyName());
     for (auto& propertyExpression : propertyExpressions) {
-        if (schema->isExpressionInScope(*propertyExpression)) {
+        if (plan.getSchema()->isExpressionInScope(*propertyExpression)) {
             continue;
         }
         propertyExpressionToScan.push_back(propertyExpression);
-        schema->insertToGroupAndScope(propertyExpression, groupPos);
     }
     if (propertyExpressionToScan.empty()) { // all properties have been scanned before
         return;
     }
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
         std::move(node), std::move(propertyExpressionToScan), plan.getLastOperator());
+    scanNodeProperty->computeSchema();
     plan.setLastOperator(std::move(scanNodeProperty));
 }
 
@@ -399,8 +379,7 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     // If an expression to union has different flat/unflat state in different child, we
     // need to flatten that expression in all the single queries.
     assert(!childrenPlans.empty());
-    auto firstChildSchema = childrenPlans[0]->getSchema();
-    auto numExpressionsToUnion = firstChildSchema->getExpressionsInScope().size();
+    auto numExpressionsToUnion = childrenPlans[0]->getSchema()->getExpressionsInScope().size();
     for (auto i = 0u; i < numExpressionsToUnion; i++) {
         bool hasFlatExpression = false;
         for (auto& childPlan : childrenPlans) {
@@ -418,7 +397,6 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     }
     // we compute the schema based on first child
     auto plan = make_unique<LogicalPlan>();
-    SinkOperatorUtil::recomputeSchema(*firstChildSchema, *plan->getSchema());
     vector<unique_ptr<Schema>> schemaBeforeUnion;
     vector<shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {
@@ -426,8 +404,10 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
         schemaBeforeUnion.push_back(childPlan->getSchema()->copy());
         children.push_back(childPlan->getLastOperator());
     }
-    auto logicalUnion = make_shared<LogicalUnion>(
-        firstChildSchema->getExpressionsInScope(), move(schemaBeforeUnion), move(children));
+    auto logicalUnion =
+        make_shared<LogicalUnion>(childrenPlans[0]->getSchema()->getExpressionsInScope(),
+            std::move(schemaBeforeUnion), std::move(children));
+    logicalUnion->computeSchema();
     plan->setLastOperator(logicalUnion);
     if (!isUnionAll) {
         appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
@@ -472,7 +452,7 @@ vector<vector<unique_ptr<LogicalPlan>>> QueryPlanner::cartesianProductChildrenPl
             if (resultChildrenPlans.empty()) {
                 vector<unique_ptr<LogicalPlan>> logicalPlans;
                 logicalPlans.push_back(childLogicalPlan->deepCopy());
-                curChildResultLogicalPlans.push_back(move(logicalPlans));
+                curChildResultLogicalPlans.push_back(std::move(logicalPlans));
             } else {
                 for (auto& resultChildPlans : resultChildrenPlans) {
                     vector<unique_ptr<LogicalPlan>> logicalPlans;
@@ -480,7 +460,7 @@ vector<vector<unique_ptr<LogicalPlan>>> QueryPlanner::cartesianProductChildrenPl
                         logicalPlans.push_back(resultChildPlan->deepCopy());
                     }
                     logicalPlans.push_back(childLogicalPlan->deepCopy());
-                    curChildResultLogicalPlans.push_back(move(logicalPlans));
+                    curChildResultLogicalPlans.push_back(std::move(logicalPlans));
                 }
             }
         }

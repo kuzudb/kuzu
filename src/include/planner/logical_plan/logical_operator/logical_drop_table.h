@@ -13,6 +13,8 @@ public:
 
     inline TableSchema* getTableSchema() const { return tableSchema; }
 
+    void computeSchema() override { createEmptySchema(); }
+
     inline string getExpressionsForPrinting() const override { return tableSchema->tableName; }
 
     inline unique_ptr<LogicalOperator> copy() override {

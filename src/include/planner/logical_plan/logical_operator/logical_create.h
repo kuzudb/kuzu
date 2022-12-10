@@ -13,7 +13,9 @@ public:
         : LogicalCreateOrDeleteNode{
               LogicalOperatorType::CREATE_NODE, std::move(nodeAndPrimaryKeys), std::move(child)} {}
 
-    unique_ptr<LogicalOperator> copy() override {
+    void computeSchema() override;
+
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateNode>(nodeAndPrimaryKeys, children[0]->copy());
     }
 };
@@ -28,7 +30,7 @@ public:
 
     inline vector<expression_pair> getSetItems(uint32_t idx) const { return setItemsPerRel[idx]; }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateRel>(rels, setItemsPerRel, children[0]->copy());
     }
 

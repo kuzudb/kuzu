@@ -20,14 +20,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto buildInfo = logicalIntersect->getBuildInfo(i - 1);
         auto buildKey = buildInfo->key->getInternalIDPropertyName();
-        auto buildSideSchema = buildInfo->schema.get();
+        auto buildSideSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildSideMapperContext =
             MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
         auto buildSidePrevOperator =
             mapLogicalOperatorToPhysical(logicalIntersect->getChild(i), buildSideMapperContext);
         vector<DataPos> payloadsDataPos;
-        auto buildDataInfo = generateBuildDataInfo(mapperContext, buildInfo->schema.get(),
-            {buildInfo->key}, buildInfo->expressionsToMaterialize);
+        auto buildDataInfo = generateBuildDataInfo(
+            mapperContext, buildSideSchema, {buildInfo->key}, buildInfo->expressionsToMaterialize);
         for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
             auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
                                   ->getExpressions()[dataPos.valueVectorPos];

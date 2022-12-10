@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base_logical_operator.h"
 #include "logical_ddl.h"
 
 namespace kuzu {

@@ -15,9 +15,11 @@ public:
         : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
           expression{std::move(expression)}, groupPosToSelect{groupPosToSelect} {}
 
-    string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    inline void computeSchema() override { copyChildSchema(0); }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalFilter>(expression, groupPosToSelect, children[0]->copy());
     }
 

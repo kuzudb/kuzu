@@ -12,6 +12,8 @@ public:
         : LogicalOperator{LogicalOperatorType::SET_NODE_PROPERTY, std::move(child)},
           setItems{std::move(setItems)} {}
 
+    inline void computeSchema() override { copyChildSchema(0); }
+
     inline string getExpressionsForPrinting() const override {
         string result;
         for (auto& [propertyExpression, expression] : setItems) {
