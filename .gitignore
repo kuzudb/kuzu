@@ -1,4 +1,4 @@
-idea/
+.idea/
 .vscode
 bazel-*
 .clwb
