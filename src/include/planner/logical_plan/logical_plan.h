@@ -19,11 +19,14 @@ public:
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
+    // TODO(Xiyang): check read only from parser
     inline bool isReadOnly() const {
-        return !lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
-            LOGICAL_SET_NODE_PROPERTY, LOGICAL_CREATE_NODE, LOGICAL_CREATE_REL, LOGICAL_DELETE_NODE,
-            LOGICAL_DELETE_REL, LOGICAL_CREATE_NODE_TABLE, LOGICAL_CREATE_REL_TABLE,
-            LOGICAL_COPY_CSV, LOGICAL_DROP_TABLE});
+        return !lastOperator->descendantsContainType(
+            unordered_set<LogicalOperatorType>{LogicalOperatorType::SET_NODE_PROPERTY,
+                LogicalOperatorType::CREATE_NODE, LogicalOperatorType::CREATE_REL,
+                LogicalOperatorType::DELETE_NODE, LogicalOperatorType::DELETE_REL,
+                LogicalOperatorType::CREATE_NODE_TABLE, LogicalOperatorType::CREATE_REL_TABLE,
+                LogicalOperatorType::COPY_CSV, LogicalOperatorType::DROP_TABLE});
     }
 
     inline void setExpressionsToCollect(expression_vector expressions) {
@@ -47,9 +50,9 @@ public:
     inline string toString() const { return lastOperator->toString(); }
 
     inline bool isDDLOrCopyCSV() const {
-        return lastOperator->descendantsContainType(
-            unordered_set<LogicalOperatorType>{LOGICAL_COPY_CSV, LOGICAL_CREATE_NODE_TABLE,
-                LOGICAL_CREATE_REL_TABLE, LOGICAL_DROP_TABLE});
+        return lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
+            LogicalOperatorType::COPY_CSV, LogicalOperatorType::CREATE_NODE_TABLE,
+            LogicalOperatorType::CREATE_REL_TABLE, LogicalOperatorType::DROP_TABLE});
     }
 
     unique_ptr<LogicalPlan> shallowCopy() const;

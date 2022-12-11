@@ -9,16 +9,11 @@ namespace kuzu {
 namespace planner {
 
 class LogicalFilter : public LogicalOperator {
-
 public:
     LogicalFilter(shared_ptr<Expression> expression, uint32_t groupPosToSelect,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expression{move(expression)}, groupPosToSelect{
-                                                                          groupPosToSelect} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_FILTER;
-    }
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
+          expression{std::move(expression)}, groupPosToSelect{groupPosToSelect} {}
 
     string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
 

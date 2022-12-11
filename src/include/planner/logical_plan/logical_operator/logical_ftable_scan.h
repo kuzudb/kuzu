@@ -10,12 +10,9 @@ using namespace kuzu::binder;
 class LogicalFTableScan : public LogicalOperator {
 public:
     LogicalFTableScan(expression_vector expressionsToScan, expression_vector expressionsAccumulated)
-        : expressionsToScan{std::move(expressionsToScan)}, expressionsAccumulated{
+        : LogicalOperator{LogicalOperatorType::FTABLE_SCAN},
+          expressionsToScan{std::move(expressionsToScan)}, expressionsAccumulated{
                                                                std::move(expressionsAccumulated)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_FTABLE_SCAN;
-    }
 
     inline string getExpressionsForPrinting() const override {
         return ExpressionUtil::toString(expressionsToScan);

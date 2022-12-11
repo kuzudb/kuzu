@@ -28,15 +28,11 @@ public:
     LogicalIntersect(shared_ptr<NodeExpression> intersectNode,
         shared_ptr<LogicalOperator> probeChild, vector<shared_ptr<LogicalOperator>> buildChildren,
         vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos)
-        : LogicalOperator{std::move(probeChild)}, intersectNode{move(intersectNode)},
-          buildInfos{move(buildInfos)} {
+        : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
+          intersectNode{std::move(intersectNode)}, buildInfos{std::move(buildInfos)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
-    }
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_INTERSECT;
     }
 
     string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }

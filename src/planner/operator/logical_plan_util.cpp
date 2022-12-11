@@ -10,7 +10,7 @@ namespace planner {
 
 shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
     auto pipelineSource = getCurrentPipelineSourceOperator(plan);
-    if (pipelineSource->getLogicalOperatorType() != LOGICAL_SCAN_NODE) {
+    if (pipelineSource->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
         // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
         // and we loose any sequential guarantees.
         return nullptr;
@@ -36,8 +36,8 @@ LogicalOperator* LogicalPlanUtil::getCurrentPipelineSourceOperator(LogicalPlan& 
 }
 
 void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, string& encodeString) {
-    switch (logicalOperator->getLogicalOperatorType()) {
-    case LogicalOperatorType::LOGICAL_CROSS_PRODUCT: {
+    switch (logicalOperator->getOperatorType()) {
+    case LogicalOperatorType::CROSS_PRODUCT: {
         encodeCrossProduct(logicalOperator, encodeString);
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
             encodeString += "{";
@@ -45,7 +45,7 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
             encodeString += "}";
         }
     } break;
-    case LogicalOperatorType::LOGICAL_INTERSECT: {
+    case LogicalOperatorType::INTERSECT: {
         encodeIntersect(logicalOperator, encodeString);
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
             encodeString += "{";
@@ -53,7 +53,7 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
             encodeString += "}";
         }
     } break;
-    case LogicalOperatorType::LOGICAL_HASH_JOIN: {
+    case LogicalOperatorType::HASH_JOIN: {
         encodeHashJoin(logicalOperator, encodeString);
         encodeString += "{";
         encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
@@ -61,11 +61,11 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
         encodeJoinRecursive(logicalOperator->getChild(1).get(), encodeString);
         encodeString += "}";
     } break;
-    case LogicalOperatorType::LOGICAL_EXTEND: {
+    case LogicalOperatorType::EXTEND: {
         encodeExtend(logicalOperator, encodeString);
         encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
     } break;
-    case LogicalOperatorType::LOGICAL_SCAN_NODE: {
+    case LogicalOperatorType::SCAN_NODE: {
         encodeScanNodeID(logicalOperator, encodeString);
     } break;
     default:
@@ -77,7 +77,7 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
 
 void LogicalPlanUtil::collectOperatorsRecursive(
     LogicalOperator* op, LogicalOperatorType operatorType, vector<LogicalOperator*>& result) {
-    if (op->getLogicalOperatorType() == operatorType) {
+    if (op->getOperatorType() == operatorType) {
         result.push_back(op);
     }
     for (auto i = 0u; i < op->getNumChildren(); ++i) {

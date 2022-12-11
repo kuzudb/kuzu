@@ -10,11 +10,8 @@ using namespace kuzu::binder;
 class LogicalSemiMasker : public LogicalOperator {
 public:
     LogicalSemiMasker(shared_ptr<NodeExpression> node, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, node{move(node)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SEMI_MASKER;
-    }
+        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, node{std::move(
+                                                                                   node)} {}
 
     inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 

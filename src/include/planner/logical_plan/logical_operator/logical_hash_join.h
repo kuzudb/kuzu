@@ -35,15 +35,13 @@ public:
         shared_ptr<Expression> mark, bool isProbeAcc, unique_ptr<Schema> buildSideSchema,
         expression_vector expressionsToMaterialize, shared_ptr<LogicalOperator> probeSideChild,
         shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalOperator{std::move(probeSideChild), std::move(buildSideChild)},
+        : LogicalOperator{LogicalOperatorType::HASH_JOIN, std::move(probeSideChild),
+              std::move(buildSideChild)},
           joinNodes(std::move(joinNodes)), joinType{joinType}, mark{std::move(mark)},
           isProbeAcc{isProbeAcc},
           buildSideSchema(std::move(buildSideSchema)), expressionsToMaterialize{
                                                            std::move(expressionsToMaterialize)} {}
 
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_HASH_JOIN;
-    }
     inline string getExpressionsForPrinting() const override {
         string result;
         for (auto i = 0u; i < joinNodes.size() - 1; i++) {

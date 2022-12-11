@@ -10,12 +10,9 @@ class LogicalUnion : public LogicalOperator {
 public:
     LogicalUnion(expression_vector expressions, vector<unique_ptr<Schema>> schemasBeforeUnion,
         vector<shared_ptr<LogicalOperator>> children)
-        : LogicalOperator{move(children)}, expressionsToUnion{move(expressions)},
-          schemasBeforeUnion{move(schemasBeforeUnion)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_UNION_ALL;
-    }
+        : LogicalOperator{LogicalOperatorType::UNION_ALL, std::move(children)},
+          expressionsToUnion{std::move(expressions)}, schemasBeforeUnion{
+                                                          std::move(schemasBeforeUnion)} {}
 
     string getExpressionsForPrinting() const override;
 

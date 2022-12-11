@@ -9,11 +9,7 @@ class LogicalDropTable : public LogicalOperator {
 
 public:
     explicit LogicalDropTable(TableSchema* tableSchema)
-        : LogicalOperator{}, tableSchema{tableSchema} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LOGICAL_DROP_TABLE;
-    }
+        : LogicalOperator{LogicalOperatorType::DROP_TABLE}, tableSchema{tableSchema} {}
 
     inline TableSchema* getTableSchema() const { return tableSchema; }
 

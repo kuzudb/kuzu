@@ -12,12 +12,8 @@ class LogicalProjection : public LogicalOperator {
 public:
     explicit LogicalProjection(expression_vector expressions,
         unordered_set<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressions{move(expressions)}, discardedGroupsPos{move(
-                                                                            discardedGroupsPos)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_PROJECTION;
-    }
+        : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child)},
+          expressions{std::move(expressions)}, discardedGroupsPos{std::move(discardedGroupsPos)} {}
 
     string getExpressionsForPrinting() const override;
 

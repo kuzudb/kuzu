@@ -7,16 +7,12 @@ namespace kuzu {
 namespace planner {
 
 class LogicalCreateRelTable : public LogicalDDL {
-
 public:
     LogicalCreateRelTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
         RelMultiplicity relMultiplicity, vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
-        : LogicalDDL{move(tableName), move(propertyNameDataTypes)},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LOGICAL_CREATE_REL_TABLE;
-    }
+        : LogicalDDL{LogicalOperatorType::CREATE_REL_TABLE, std::move(tableName),
+              std::move(propertyNameDataTypes)},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)} {}
 
     inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
