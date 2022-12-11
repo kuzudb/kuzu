@@ -5,7 +5,8 @@
 #include "planner/logical_plan/logical_operator/logical_shortest_path.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
-#include "processor/operator/shortest_path.h"
+#include "processor/operator/shortest_path_adj_col.h"
+#include "processor/operator/shortest_path_adj_list.h"
 
 using namespace kuzu::planner;
 

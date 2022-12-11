@@ -16,19 +16,24 @@ struct BFSState {
     bool hasBeenOutput;
     shared_ptr<ListSyncState> listSyncState;
     shared_ptr<ListHandle> listHandle;
+
+    BFSState(uint64_t parentNodeID, uint64_t bfsLevel, shared_ptr<ValueVector> children,
+        uint64_t currChildIdx, bool hasBeenOutput, shared_ptr<ListSyncState> listSyncState,
+        shared_ptr<ListHandle> listHandle)
+        : parentNodeID{parentNodeID}, bfsLevel{bfsLevel}, children{move(children)},
+          currChildIdx{currChildIdx}, hasBeenOutput{hasBeenOutput},
+          listSyncState{move(listSyncState)}, listHandle{move(listHandle)} {}
 };
 
 class BaseShortestPath : public PhysicalOperator {
 public:
-    BaseShortestPath(const DataPos& srcDataPos, const DataPos& destDataPos, uint64_t lowerBound,
-        uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+    BaseShortestPath(const DataPos& srcDataPos, const DataPos& destDataPos,
+        BaseColumnOrList* storage, uint64_t lowerBound, uint64_t upperBound,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, srcDataPos{srcDataPos},
-          destDataPos{destDataPos}, lowerBound{lowerBound}, upperBound{upperBound} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SHORTEST_PATH;
-    }
+          destDataPos{destDataPos}, storage{storage}, lowerBound{lowerBound},
+          upperBound{upperBound}, bfsQueue{queue<uint64_t>()},
+          bfsVisitedNodesMap{map<uint64_t, shared_ptr<BFSState>>()} {}
 
     virtual bool getNextTuplesInternal() = 0;
 
@@ -44,7 +49,8 @@ protected:
     shared_ptr<ValueVector> srcValueVector;
     shared_ptr<ValueVector> destValueVector;
     map<uint64_t, shared_ptr<BFSState>> bfsVisitedNodesMap;
-    queue<uint64_t> bfsQueue;
+    queue<uint64_t> bfsQueue = queue<uint64_t>();
+    BaseColumnOrList* storage;
     MemoryManager* memoryManager;
 };
 
