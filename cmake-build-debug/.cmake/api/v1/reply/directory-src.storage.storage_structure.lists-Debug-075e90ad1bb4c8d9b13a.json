@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "src/storage/storage_structure/lists",
+		"source" : "src/storage/storage_structure/lists"
+	}
+}

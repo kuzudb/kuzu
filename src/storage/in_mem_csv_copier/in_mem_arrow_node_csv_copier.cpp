@@ -188,6 +188,11 @@ namespace storage {
         auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
         arrowConvert.strings_can_be_null = true;
         arrowConvert.quoted_strings_can_be_null = false;
+        auto arrowParse = arrow::csv::ParseOptions::Defaults();
+        arrowParse.delimiter = csvDescription.csvReaderConfig.tokenSeparator;
+        arrowParse.escape_char = csvDescription.csvReaderConfig.escapeChar;
+        arrowParse.quote_char = csvDescription.csvReaderConfig.quoteChar;
+        arrowParse.escaping = true;
 
         ARROW_ASSIGN_OR_RAISE(
                 csv_streaming_reader,
@@ -195,9 +200,8 @@ namespace storage {
                         arrow::io::default_io_context(),
                         arrow_input_stream,
                         arrowRead,
-                        arrow::csv::ParseOptions::Defaults(),
-                        arrowConvert
-                ));
+                        arrowParse,
+                        arrowConvert));
         return arrow::Status::OK();
     }
 
@@ -517,6 +521,7 @@ namespace storage {
                     case STRING: {
                         auto val = column->getInMemOverflowFile()->copyString(data,
                                                                               overflowCursors[columnIdx]);
+
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
                         break;

@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/copy_csv/copy_csv_arrow_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/copy_csv/copy_csv_arrow_test[1]_tests.cmake")
+else()
+  add_test(copy_csv_arrow_test_NOT_BUILT copy_csv_arrow_test_NOT_BUILT)
+endif()

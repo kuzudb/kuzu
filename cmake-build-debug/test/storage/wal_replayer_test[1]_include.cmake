@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/wal_replayer_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/wal_replayer_test[1]_tests.cmake")
+else()
+  add_test(wal_replayer_test_NOT_BUILT wal_replayer_test_NOT_BUILT)
+endif()

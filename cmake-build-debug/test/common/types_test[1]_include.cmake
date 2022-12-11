@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/common/types_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/common/types_test[1]_tests.cmake")
+else()
+  add_test(types_test_NOT_BUILT types_test_NOT_BUILT)
+endif()

@@ -1,0 +1,425 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "test/runner/e2e_delete_rel_test"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"add_kuzu_test",
+			"target_link_libraries",
+			"add_definitions",
+			"include_directories",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt",
+			"test/runner/CMakeLists.txt",
+			"test/CMakeLists.txt",
+			"cmake-build-debug/_deps/googletest-src/googlemock/CMakeLists.txt",
+			"cmake-build-debug/_deps/googletest-src/googletest/CMakeLists.txt",
+			"test/test_helper/CMakeLists.txt",
+			"src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 10,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 59,
+				"parent" : 1
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 10,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 11,
+				"parent" : 3
+			},
+			{
+				"file" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 3,
+				"line" : 105,
+				"parent" : 6
+			},
+			{
+				"file" : 4
+			},
+			{
+				"command" : 2,
+				"file" : 4,
+				"line" : 146,
+				"parent" : 8
+			},
+			{
+				"file" : 5
+			},
+			{
+				"command" : 2,
+				"file" : 5,
+				"line" : 13,
+				"parent" : 10
+			},
+			{
+				"file" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 6,
+				"line" : 14,
+				"parent" : 12
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 60,
+				"parent" : 1
+			},
+			{
+				"file" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 66,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 68,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 69,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 70,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 71,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 72,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 73,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 74,
+				"parent" : 15
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 61,
+				"parent" : 1
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 75,
+				"parent" : 15
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk -fPIE -fcolor-diagnostics"
+				},
+				{
+					"backtrace" : 14,
+					"fragment" : "-Wno-attributes"
+				},
+				{
+					"fragment" : "-std=gnu++20"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 16,
+					"define" : "KUZU_ROOT_DIRECTORY=\"/Users/calvin/Desktop/kuzu_cmake\""
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 17,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/src/include"
+				},
+				{
+					"backtrace" : 18,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_cypher/include"
+				},
+				{
+					"backtrace" : 19,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_runtime/src"
+				},
+				{
+					"backtrace" : 20,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/spdlog"
+				},
+				{
+					"backtrace" : 21,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/nlohmann_json"
+				},
+				{
+					"backtrace" : 22,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/include"
+				},
+				{
+					"backtrace" : 23,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/pybind11/include"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/test/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/test/test_helper/../include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/test/test_helper/../../src/include"
+				},
+				{
+					"backtrace" : 14,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/./include"
+				},
+				{
+					"backtrace" : 25,
+					"isSystem" : true,
+					"path" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/include"
+				},
+				{
+					"backtrace" : 14,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googletest/include"
+				},
+				{
+					"backtrace" : 14,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googletest"
+				},
+				{
+					"backtrace" : 14,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googlemock/include"
+				},
+				{
+					"backtrace" : 14,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googlemock"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					14,
+					14
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 14,
+			"id" : "gmock::@0f7bb11d64f3678238c7"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "gmock_main::@0f7bb11d64f3678238c7"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "gtest::@1ea2dfc0605fe3ab2a3f"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "gtest_main::@1ea2dfc0605fe3ab2a3f"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "test_helper::@d94fb9bfe4e6a5fa20fc"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "antlr4_runtime::@76f4c5c68041e4b6f673"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "antlr4_cypher::@38a01a0cd89e62f81448"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "utf8proc::@2dbecabd61c9acf3c24b"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "kuzu::@145eef247bfb46b6828c"
+		}
+	],
+	"id" : "e2e_delete_rel_test::@ed08b8bb375936f476d9",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "../../lib/libgtest_maind.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "../../lib/libgmock_maind.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 7,
+				"fragment" : "../../lib/libgmockd.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 9,
+				"fragment" : "../../lib/libgtestd.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 11,
+				"fragment" : "../../src/libkuzu.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "../../third_party/antlr4_cypher/libantlr4_cypher.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "../../third_party/antlr4_runtime/libantlr4_runtime.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "../../third_party/utf8proc/libutf8proc.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/lib/libparquet.1000.1.0.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/lib/libarrow.1000.1.0.dylib",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "e2e_delete_rel_test",
+	"nameOnDisk" : "e2e_delete_rel_test",
+	"paths" : 
+	{
+		"build" : "test/runner",
+		"source" : "test/runner"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "Object Libraries",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "test/runner/e2e_delete_rel_test.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 14,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/test/test_helper/CMakeFiles/test_helper.dir/test_helper.cpp.o",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}

@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/runner/e2e_exception_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/runner/e2e_exception_test[1]_tests.cmake")
+else()
+  add_test(e2e_exception_test_NOT_BUILT e2e_exception_test_NOT_BUILT)
+endif()

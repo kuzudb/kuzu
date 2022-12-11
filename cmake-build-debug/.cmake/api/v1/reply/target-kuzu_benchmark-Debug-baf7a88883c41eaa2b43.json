@@ -1,0 +1,477 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "tools/benchmark/kuzu_benchmark"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"link_directories",
+			"target_link_libraries",
+			"add_definitions",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"tools/benchmark/CMakeLists.txt",
+			"src/CMakeLists.txt",
+			"test/CMakeLists.txt",
+			"cmake-build-debug/_deps/googletest-src/googlemock/CMakeLists.txt",
+			"cmake-build-debug/_deps/googletest-src/googletest/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 14,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 12,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 19,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 14,
+				"parent" : 4
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 10,
+				"parent" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 11,
+				"parent" : 6
+			},
+			{
+				"file" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 3,
+				"line" : 105,
+				"parent" : 9
+			},
+			{
+				"file" : 4
+			},
+			{
+				"command" : 2,
+				"file" : 4,
+				"line" : 146,
+				"parent" : 11
+			},
+			{
+				"file" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 5,
+				"line" : 66,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 68,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 69,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 70,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 71,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 72,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 73,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 74,
+				"parent" : 13
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 5,
+				"line" : 75,
+				"parent" : 13
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk -fPIE -fcolor-diagnostics"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wno-attributes"
+				},
+				{
+					"fragment" : "-std=gnu++20"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 14,
+					"define" : "KUZU_ROOT_DIRECTORY=\"/Users/calvin/Desktop/kuzu_cmake\""
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 15,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/src/include"
+				},
+				{
+					"backtrace" : 16,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_cypher/include"
+				},
+				{
+					"backtrace" : 17,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_runtime/src"
+				},
+				{
+					"backtrace" : 18,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/spdlog"
+				},
+				{
+					"backtrace" : 19,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/nlohmann_json"
+				},
+				{
+					"backtrace" : 20,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/include"
+				},
+				{
+					"backtrace" : 21,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/pybind11/include"
+				},
+				{
+					"backtrace" : 22,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/../../src/include"
+				},
+				{
+					"backtrace" : 22,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/./include"
+				},
+				{
+					"backtrace" : 22,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/../../test/test_helper/include"
+				},
+				{
+					"backtrace" : 22,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/../../tools/join_order_pick/include"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/./include"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/join_order_pick/./include"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/join_order_pick/../../src/include"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/tools/join_order_pick/../../test/include/test_helper"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/test/test_helper/../include"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/test/test_helper/../../src/include"
+				},
+				{
+					"backtrace" : 23,
+					"isSystem" : true,
+					"path" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googletest/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googletest"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googlemock/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-src/googlemock"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					3,
+					3
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "gmock::@0f7bb11d64f3678238c7"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "gmock_main::@0f7bb11d64f3678238c7"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "gtest::@1ea2dfc0605fe3ab2a3f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "gtest_main::@1ea2dfc0605fe3ab2a3f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "test_helper::@d94fb9bfe4e6a5fa20fc"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "join_order_pick::@367113b67a12da959962"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "antlr4_runtime::@76f4c5c68041e4b6f673"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "antlr4_cypher::@38a01a0cd89e62f81448"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "utf8proc::@2dbecabd61c9acf3c24b"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "kuzu::@145eef247bfb46b6828c"
+		}
+	],
+	"id" : "kuzu_benchmark::@fb290bedab6065f3abb9",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-L/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/../../build/release/src",
+				"role" : "libraryPath"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/Users/calvin/Desktop/kuzu_cmake/tools/benchmark/../../build/release/src",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "../../src/libkuzu.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "../join_order_pick/libjoin_order_pick.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "../../src/libkuzu.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "../../third_party/antlr4_cypher/libantlr4_cypher.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "../../third_party/antlr4_runtime/libantlr4_runtime.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "../../third_party/utf8proc/libutf8proc.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/lib/libparquet.1000.1.0.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/lib/libarrow.1000.1.0.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 7,
+				"fragment" : "../../lib/libgtest_maind.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "../../lib/libgmock_maind.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 10,
+				"fragment" : "../../lib/libgmockd.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "../../lib/libgtestd.a",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "kuzu_benchmark",
+	"nameOnDisk" : "kuzu_benchmark",
+	"paths" : 
+	{
+		"build" : "tools/benchmark",
+		"source" : "tools/benchmark"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		},
+		{
+			"name" : "Object Libraries",
+			"sourceIndexes" : 
+			[
+				3
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tools/benchmark/benchmark.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tools/benchmark/benchmark_runner.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tools/benchmark/main.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 3,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/test/test_helper/CMakeFiles/test_helper.dir/test_helper.cpp.o",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}

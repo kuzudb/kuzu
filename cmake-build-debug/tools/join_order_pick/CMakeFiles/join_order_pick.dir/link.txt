@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libjoin_order_pick.a CMakeFiles/join_order_pick.dir/jo_connection.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libjoin_order_pick.a

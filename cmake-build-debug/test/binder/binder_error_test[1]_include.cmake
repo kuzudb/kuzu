@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/binder/binder_error_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/binder/binder_error_test[1]_tests.cmake")
+else()
+  add_test(binder_error_test_NOT_BUILT binder_error_test_NOT_BUILT)
+endif()

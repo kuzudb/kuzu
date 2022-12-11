@@ -1,0 +1,254 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/node_table.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/nodes_statistics_and_deleted_ids.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/nodes_store.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/rel_table.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/rels_statistics.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/rels_store.cpp.o"
+		},
+		{
+			"path" : "src/storage/store/CMakeFiles/kuzu_storage_store.dir/table_statistics.cpp.o"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_definitions",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"src/storage/store/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 66,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 68,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 69,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 70,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 71,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 72,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 73,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 74,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 75,
+				"parent" : 2
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk -fPIC -fcolor-diagnostics"
+				},
+				{
+					"fragment" : "-std=gnu++20"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "KUZU_ROOT_DIRECTORY=\"/Users/calvin/Desktop/kuzu_cmake\""
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/src/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_cypher/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_runtime/src"
+				},
+				{
+					"backtrace" : 7,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/spdlog"
+				},
+				{
+					"backtrace" : 8,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/nlohmann_json"
+				},
+				{
+					"backtrace" : 9,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/include"
+				},
+				{
+					"backtrace" : 10,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/pybind11/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"id" : "kuzu_storage_store::@77ec554ace72c57e6db1",
+	"name" : "kuzu_storage_store",
+	"paths" : 
+	{
+		"build" : "src/storage/store",
+		"source" : "src/storage/store"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/node_table.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/nodes_statistics_and_deleted_ids.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/nodes_store.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/rel_table.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/rels_statistics.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/rels_store.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/storage/store/table_statistics.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

@@ -1,0 +1,254 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/aggregate_hash_table.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/base_aggregate.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/base_aggregate_scan.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/hash_aggregate.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/hash_aggregate_scan.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/simple_aggregate.cpp.o"
+		},
+		{
+			"path" : "src/processor/operator/aggregate/CMakeFiles/kuzu_processor_operator_aggregate.dir/simple_aggregate_scan.cpp.o"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_definitions",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"src/processor/operator/aggregate/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 66,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 68,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 69,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 70,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 71,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 72,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 73,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 74,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 75,
+				"parent" : 2
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk -fPIC -fcolor-diagnostics"
+				},
+				{
+					"fragment" : "-std=gnu++20"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "KUZU_ROOT_DIRECTORY=\"/Users/calvin/Desktop/kuzu_cmake\""
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/src/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_cypher/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/antlr4_runtime/src"
+				},
+				{
+					"backtrace" : 7,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/spdlog"
+				},
+				{
+					"backtrace" : 8,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/nlohmann_json"
+				},
+				{
+					"backtrace" : 9,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/utf8proc/include"
+				},
+				{
+					"backtrace" : 10,
+					"path" : "/Users/calvin/Desktop/kuzu_cmake/third_party/pybind11/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/opt/homebrew/Cellar/apache-arrow/10.0.1_2/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"id" : "kuzu_processor_operator_aggregate::@2221f0c588f5e60c8cfd",
+	"name" : "kuzu_processor_operator_aggregate",
+	"paths" : 
+	{
+		"build" : "src/processor/operator/aggregate",
+		"source" : "src/processor/operator/aggregate"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/aggregate_hash_table.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/base_aggregate.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/base_aggregate_scan.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/hash_aggregate.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/hash_aggregate_scan.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/simple_aggregate.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/processor/operator/aggregate/simple_aggregate_scan.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

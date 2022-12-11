@@ -1,0 +1,60 @@
+{
+	"kind" : "toolchains",
+	"toolchains" : 
+	[
+		{
+			"compiler" : 
+			{
+				"implicit" : {},
+				"path" : "/Library/Developer/CommandLineTools/usr/bin/cc"
+			},
+			"language" : "C"
+		},
+		{
+			"compiler" : 
+			{
+				"id" : "AppleClang",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/usr/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk/usr/include"
+					],
+					"linkDirectories" : 
+					[
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk/usr/lib"
+					],
+					"linkFrameworkDirectories" : 
+					[
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX13.0.sdk/System/Library/Frameworks"
+					],
+					"linkLibraries" : []
+				},
+				"path" : "/Library/Developer/CommandLineTools/usr/bin/c++",
+				"version" : "14.0.0.14000029"
+			},
+			"language" : "CXX",
+			"sourceFileExtensions" : 
+			[
+				"C",
+				"M",
+				"c++",
+				"cc",
+				"cpp",
+				"cxx",
+				"m",
+				"mm",
+				"mpp",
+				"CPP",
+				"ixx",
+				"cppm"
+			]
+		}
+	],
+	"version" : 
+	{
+		"major" : 1,
+		"minor" : 0
+	}
+}

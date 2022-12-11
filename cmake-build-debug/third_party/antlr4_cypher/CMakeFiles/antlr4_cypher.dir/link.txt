@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libantlr4_cypher.a CMakeFiles/antlr4_cypher.dir/cypher_lexer.cpp.o CMakeFiles/antlr4_cypher.dir/cypher_parser.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libantlr4_cypher.a

@@ -1,0 +1,2 @@
+# Empty compiler generated dependencies file for kuzu_catalog.
+# This may be replaced when dependencies are built.

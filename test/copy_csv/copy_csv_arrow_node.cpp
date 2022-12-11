@@ -80,7 +80,7 @@ public:
     }
 
 
-    static vector<string> splitStr(string& s, string delimiter) {
+    static vector<string> splitStr(string& s, const string& delimiter) {
         size_t pos = 0;
         std::string token;
         vector<string> split;

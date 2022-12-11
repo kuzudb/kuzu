@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/copy_csv/copy_csv_dos_style_newline_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/copy_csv/copy_csv_dos_style_newline_test[1]_tests.cmake")
+else()
+  add_test(copy_csv_dos_style_newline_test_NOT_BUILT copy_csv_dos_style_newline_test_NOT_BUILT)
+endif()

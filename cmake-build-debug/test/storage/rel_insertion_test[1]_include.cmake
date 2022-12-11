@@ -1,0 +1,5 @@
+if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/rel_insertion_test[1]_tests.cmake")
+  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/rel_insertion_test[1]_tests.cmake")
+else()
+  add_test(rel_insertion_test_NOT_BUILT rel_insertion_test_NOT_BUILT)
+endif()
