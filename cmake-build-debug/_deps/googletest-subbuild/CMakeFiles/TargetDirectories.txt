@@ -1,3 +1,0 @@
-/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-subbuild/CMakeFiles/googletest-populate.dir
-/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-subbuild/CMakeFiles/edit_cache.dir
-/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/_deps/googletest-subbuild/CMakeFiles/rebuild_cache.dir

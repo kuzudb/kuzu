@@ -1,3 +1,0 @@
-ToolSet: 1.0 (local)Options: 
-
-Options:-DPYBIND11_FINDPYTHON:BOOL=ON

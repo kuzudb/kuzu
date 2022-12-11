@@ -1,5 +1,0 @@
-if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/processor/order_by/order_by_test[1]_tests.cmake")
-  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/processor/order_by/order_by_test[1]_tests.cmake")
-else()
-  add_test(order_by_test_NOT_BUILT order_by_test_NOT_BUILT)
-endif()

@@ -1,5 +1,0 @@
-if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/demo_db/demo_db_test[1]_tests.cmake")
-  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/demo_db/demo_db_test[1]_tests.cmake")
-else()
-  add_test(demo_db_test_NOT_BUILT demo_db_test_NOT_BUILT)
-endif()

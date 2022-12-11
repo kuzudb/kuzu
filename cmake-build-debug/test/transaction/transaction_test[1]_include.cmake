@@ -1,5 +1,0 @@
-if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/transaction/transaction_test[1]_tests.cmake")
-  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/transaction/transaction_test[1]_tests.cmake")
-else()
-  add_test(transaction_test_NOT_BUILT transaction_test_NOT_BUILT)
-endif()

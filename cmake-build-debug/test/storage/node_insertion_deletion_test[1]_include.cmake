@@ -1,5 +1,0 @@
-if(EXISTS "/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/node_insertion_deletion_test[1]_tests.cmake")
-  include("/Users/calvin/Desktop/kuzu_cmake/cmake-build-debug/test/storage/node_insertion_deletion_test[1]_tests.cmake")
-else()
-  add_test(node_insertion_deletion_test_NOT_BUILT node_insertion_deletion_test_NOT_BUILT)
-endif()
