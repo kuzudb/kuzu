@@ -18,7 +18,7 @@ TEST_F(LongStringPKTest, LongStringPKTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/long_string_pk/long_string_pk.test"));
 }
 
-TEST_F(TinySnbReadTest, MatchExecute) {
+TEST_F(TinySnbReadTest, Match) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/node.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/one_hop.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/match/two_hop.test"));

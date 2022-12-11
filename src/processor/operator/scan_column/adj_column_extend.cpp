@@ -3,19 +3,26 @@
 namespace kuzu {
 namespace processor {
 
-bool AdjColumnExtend::getNextTuplesInternal() {
+bool ColumnExtendAndScanRelProperties::getNextTuplesInternal() {
     bool hasAtLeastOneNonNullValue;
+    // join with adjColumn
     do {
-        restoreSelVector(inputNodeIDVector->state->selVector.get());
+        restoreSelVector(inNodeIDVector->state->selVector.get());
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(inputNodeIDVector->state->selVector.get());
-        outputVector->setAllNull();
-        nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
-        hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
+        saveSelVector(inNodeIDVector->state->selVector.get());
+        outNodeIDVector->setAllNull();
+        adjColumn->read(transaction, inNodeIDVector, outNodeIDVector);
+        hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outNodeIDVector);
     } while (!hasAtLeastOneNonNullValue);
-    metrics->numOutputTuple.increase(inputNodeIDVector->state->selVector->selectedSize);
+    // scan column properties
+    for (auto i = 0u; i < propertyColumns.size(); ++i) {
+        auto vector = outPropertyVectors[i];
+        vector->resetOverflowBuffer();
+        propertyColumns[i]->read(transaction, inNodeIDVector, vector);
+    }
+    metrics->numOutputTuple.increase(inNodeIDVector->state->selVector->selectedSize);
     return true;
 }
 

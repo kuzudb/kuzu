@@ -8,7 +8,6 @@
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
-#include "planner/logical_plan/logical_operator/logical_scan_rel_property.h"
 #include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
@@ -393,21 +392,6 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
         std::move(node), std::move(propertyExpressionToScan), plan.getLastOperator());
     plan.setLastOperator(std::move(scanNodeProperty));
-}
-
-void QueryPlanner::appendScanRelPropIfNecessary(shared_ptr<NodeExpression> boundNode,
-    shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
-    shared_ptr<Expression> property, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    if (schema->isExpressionInScope(*property)) {
-        return;
-    }
-    assert(
-        !rel->isVariableLength() && rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1);
-    auto scanProperty = make_shared<LogicalScanRelProperty>(std::move(boundNode),
-        std::move(nbrNode), std::move(rel), direction, std::move(property), plan.getLastOperator());
-    scanProperty->computeSchema(*schema);
-    plan.setLastOperator(std::move(scanProperty));
 }
 
 unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(

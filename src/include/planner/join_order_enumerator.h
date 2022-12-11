@@ -73,16 +73,8 @@ private:
 
     void planRelScan(uint32_t relPos);
 
-    void planExtendFiltersAndPropertyScans(shared_ptr<RelExpression> rel, RelDirection direction,
+    void planExtendAndFilters(shared_ptr<RelExpression> rel, RelDirection direction,
         expression_vector& predicates, LogicalPlan& plan);
-    // Filter push down for rel table.
-    void planFiltersForRel(const expression_vector& predicates,
-        shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
-        shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan);
-    // Property push down for rel table.
-    void planPropertyScansForRel(const expression_vector& properties,
-        shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
-        shared_ptr<RelExpression> rel, RelDirection direction, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
 
