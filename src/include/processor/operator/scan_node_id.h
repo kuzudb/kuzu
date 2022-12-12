@@ -120,13 +120,12 @@ class ScanNodeID : public PhysicalOperator {
 public:
     ScanNodeID(string nodeName, const DataPos& outDataPos,
         shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, nodeName{std::move(nodeName)}, outDataPos{outDataPos},
-          sharedState{std::move(sharedState)} {}
+        : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_ID, id, paramsString},
+          nodeName{std::move(nodeName)}, outDataPos{outDataPos}, sharedState{
+                                                                     std::move(sharedState)} {}
 
     inline string getNodeName() const { return nodeName; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
-
-    inline PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

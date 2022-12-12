@@ -29,12 +29,8 @@ class CreateNode : public PhysicalOperator {
 public:
     CreateNode(vector<unique_ptr<CreateNodeInfo>> createNodeInfos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, createNodeInfos{
-                                                                    std::move(createNodeInfos)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::CREATE_NODE;
-    }
+        : PhysicalOperator{PhysicalOperatorType::CREATE_NODE, std::move(child), id, paramsString},
+          createNodeInfos{std::move(createNodeInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -84,10 +80,8 @@ class CreateRel : public PhysicalOperator {
 public:
     CreateRel(RelsStatistics& relsStatistics, vector<unique_ptr<CreateRelInfo>> createRelInfos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, relsStatistics{relsStatistics},
-          createRelInfos{std::move(createRelInfos)} {}
-
-    PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::CREATE_REL; }
+        : PhysicalOperator{PhysicalOperatorType::CREATE_REL, std::move(child), id, paramsString},
+          relsStatistics{relsStatistics}, createRelInfos{std::move(createRelInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

@@ -46,11 +46,12 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
 void QueryProcessor::decomposePlanIntoTasks(
     PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, ExecutionContext* context) {
     switch (op->getOperatorType()) {
-    case RESULT_COLLECTOR: {
-        if (parent->getOperatorType() == UNION_ALL_SCAN ||
-            parent->getOperatorType() == FACTORIZED_TABLE_SCAN ||
-            parent->getOperatorType() == HASH_JOIN_PROBE ||
-            parent->getOperatorType() == INTERSECT || parent->getOperatorType() == CROSS_PRODUCT) {
+    case PhysicalOperatorType::RESULT_COLLECTOR: {
+        if (parent->getOperatorType() == PhysicalOperatorType::UNION_ALL_SCAN ||
+            parent->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN ||
+            parent->getOperatorType() == PhysicalOperatorType::HASH_JOIN_PROBE ||
+            parent->getOperatorType() == PhysicalOperatorType::INTERSECT ||
+            parent->getOperatorType() == PhysicalOperatorType::CROSS_PRODUCT) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
             parentTask->addChildTask(std::move(childTask));
@@ -58,20 +59,20 @@ void QueryProcessor::decomposePlanIntoTasks(
             decomposePlanIntoTasks(op->getChild(0), op, parentTask, context);
         }
     } break;
-    case ORDER_BY_MERGE: {
+    case PhysicalOperatorType::ORDER_BY_MERGE: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(std::move(childTask));
         parentTask->setSingleThreadedTask();
     } break;
-    case ORDER_BY:
-    case HASH_JOIN_BUILD:
-    case INTERSECT_BUILD: {
+    case PhysicalOperatorType::ORDER_BY:
+    case PhysicalOperatorType::HASH_JOIN_BUILD:
+    case PhysicalOperatorType::INTERSECT_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(std::move(childTask));
     } break;
-    case AGGREGATE: {
+    case PhysicalOperatorType::AGGREGATE: {
         auto aggregate = (BaseAggregate*)op;
         auto childTask = make_unique<ProcessorTask>(aggregate, context);
         if (aggregate->containDistinctAggregate()) {
@@ -80,7 +81,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(std::move(childTask));
     } break;
-    case INDEX_SCAN: {
+    case PhysicalOperatorType::INDEX_SCAN: {
         parentTask->setSingleThreadedTask();
     } break;
     default: {

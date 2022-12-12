@@ -102,7 +102,7 @@ public:
     }
 
     static inline string getOperatorName(PhysicalOperator* physicalOperator) {
-        return PhysicalOperatorTypeNames[physicalOperator->getOperatorType()];
+        return PhysicalOperatorUtils::operatorTypeToString(physicalOperator->getOperatorType());
     }
 
     static inline string getOperatorParams(PhysicalOperator* physicalOperator) {

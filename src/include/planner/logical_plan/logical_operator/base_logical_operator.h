@@ -7,62 +7,56 @@ using namespace std;
 namespace kuzu {
 namespace planner {
 
-enum LogicalOperatorType : uint8_t {
-    LOGICAL_SCAN_NODE,
-    LOGICAL_INDEX_SCAN_NODE,
-    LOGICAL_UNWIND,
-    LOGICAL_EXTEND,
-    LOGICAL_GENERIC_EXTEND,
-    LOGICAL_FLATTEN,
-    LOGICAL_FILTER,
-    LOGICAL_INTERSECT,
-    LOGICAL_PROJECTION,
-    LOGICAL_SCAN_NODE_PROPERTY,
-    LOGICAL_SCAN_REL_PROPERTY,
-    LOGICAL_CROSS_PRODUCT,
-    LOGICAL_SEMI_MASKER,
-    LOGICAL_HASH_JOIN,
-    LOGICAL_MULTIPLICITY_REDUCER,
-    LOGICAL_LIMIT,
-    LOGICAL_SKIP,
-    LOGICAL_AGGREGATE,
-    LOGICAL_ORDER_BY,
-    LOGICAL_UNION_ALL,
-    LOGICAL_DISTINCT,
-    LOGICAL_CREATE_NODE,
-    LOGICAL_CREATE_REL,
-    LOGICAL_SET_NODE_PROPERTY,
-    LOGICAL_DELETE_NODE,
-    LOGICAL_DELETE_REL,
-    LOGICAL_ACCUMULATE,
-    LOGICAL_EXPRESSIONS_SCAN,
-    LOGICAL_FTABLE_SCAN,
-    LOGICAL_CREATE_NODE_TABLE,
-    LOGICAL_CREATE_REL_TABLE,
-    LOGICAL_COPY_CSV,
-    LOGICAL_DROP_TABLE,
+enum class LogicalOperatorType : uint8_t {
+    ACCUMULATE,
+    AGGREGATE,
+    COPY_CSV,
+    CREATE_NODE,
+    CREATE_REL,
+    CREATE_NODE_TABLE,
+    CREATE_REL_TABLE,
+    CROSS_PRODUCT,
+    DELETE_NODE,
+    DELETE_REL,
+    DISTINCT,
+    DROP_TABLE,
+    EXPRESSIONS_SCAN,
+    EXTEND,
+    FILTER,
+    FLATTEN,
+    FTABLE_SCAN,
+    HASH_JOIN,
+    INTERSECT,
+    LIMIT,
+    MULTIPLICITY_REDUCER,
+    ORDER_BY,
+    PROJECTION,
+    SCAN_NODE,
+    INDEX_SCAN_NODE,
+    SCAN_NODE_PROPERTY,
+    SEMI_MASKER,
+    SET_NODE_PROPERTY,
+    SKIP,
+    UNION_ALL,
+    UNWIND,
 };
 
-const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE", "LOGICAL_INDEX_SCAN_NODE",
-    "LOGICAL_UNWIND", "LOGICAL_EXTEND", "LOGICAL_GENERIC_EXTEND", "LOGICAL_FLATTEN",
-    "LOGICAL_FILTER", "LOGICAL_INTERSECT", "LOGICAL_PROJECTION", "LOGICAL_SCAN_NODE_PROPERTY",
-    "LOGICAL_SCAN_REL_PROPERTY", "LOGICAL_CROSS_PRODUCT", "LOGICAL_SEMI_MASKER",
-    "LOGICAL_HASH_JOIN", "LOGICAL_MULTIPLICITY_REDUCER", "LOGICAL_LIMIT", "LOGICAL_SKIP",
-    "LOGICAL_AGGREGATE", "LOGICAL_ORDER_BY", "LOGICAL_UNION_ALL", "LOGICAL_DISTINCT",
-    "LOGICAL_CREATE_NODE", "LOGICAL_CREATE_REL", "LOGICAL_SET_NODE_PROPERTY", "LOGICAL_DELETE_NODE",
-    "LOGICAL_DELETE_REL", "LOGICAL_ACCUMULATE", "LOGICAL_EXPRESSIONS_SCAN", "LOGICAL_FTABLE_SCAN",
-    "LOGICAL_CREATE_NODE_TABLE", "LOGICAL_CREATE_REL_TABLE", "LOGICAL_COPY_CSV",
-    "LOGICAL_DROP_TABLE"};
+class LogicalOperatorUtils {
+public:
+    static std::string logicalOperatorTypeToString(LogicalOperatorType type);
+};
 
 class LogicalOperator {
 public:
     // Leaf operator.
-    LogicalOperator() = default;
+    explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
     // Unary operator.
-    LogicalOperator(shared_ptr<LogicalOperator> child);
+    explicit LogicalOperator(LogicalOperatorType operatorType, shared_ptr<LogicalOperator> child);
     // Binary operator.
-    LogicalOperator(shared_ptr<LogicalOperator> left, shared_ptr<LogicalOperator> right);
-    LogicalOperator(vector<shared_ptr<LogicalOperator>> children);
+    explicit LogicalOperator(LogicalOperatorType operatorType, shared_ptr<LogicalOperator> left,
+        shared_ptr<LogicalOperator> right);
+    explicit LogicalOperator(
+        LogicalOperatorType operatorType, vector<shared_ptr<LogicalOperator>> children);
 
     virtual ~LogicalOperator() = default;
 
@@ -73,7 +67,7 @@ public:
 
     inline shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
 
-    virtual LogicalOperatorType getLogicalOperatorType() const = 0;
+    inline LogicalOperatorType getOperatorType() const { return operatorType; }
 
     virtual string getExpressionsForPrinting() const = 0;
 
@@ -86,6 +80,7 @@ public:
     virtual unique_ptr<LogicalOperator> copy() = 0;
 
 protected:
+    LogicalOperatorType operatorType;
     vector<shared_ptr<LogicalOperator>> children;
 };
 

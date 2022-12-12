@@ -10,12 +10,8 @@ class LogicalAccumulate : public LogicalOperator {
 public:
     LogicalAccumulate(expression_vector expressions, unique_ptr<Schema> schemaBeforeSink,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, expressions{std::move(expressions)},
-          schemaBeforeSink{std::move(schemaBeforeSink)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_ACCUMULATE;
-    }
+        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)},
+          expressions{std::move(expressions)}, schemaBeforeSink{std::move(schemaBeforeSink)} {}
 
     string getExpressionsForPrinting() const override {
         return ExpressionUtil::toString(expressions);

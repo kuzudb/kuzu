@@ -10,10 +10,9 @@ class LogicalDistinct : public LogicalOperator {
 public:
     LogicalDistinct(expression_vector expressionsToDistinct,
         unique_ptr<Schema> schemaBeforeDistinct, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressionsToDistinct{move(expressionsToDistinct)},
-          schemaBeforeDistinct{move(schemaBeforeDistinct)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_DISTINCT; }
+        : LogicalOperator{LogicalOperatorType::DISTINCT, std::move(child)},
+          expressionsToDistinct{std::move(expressionsToDistinct)}, schemaBeforeDistinct{std::move(
+                                                                       schemaBeforeDistinct)} {}
 
     string getExpressionsForPrinting() const override;
 

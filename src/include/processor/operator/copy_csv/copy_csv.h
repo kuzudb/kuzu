@@ -12,11 +12,12 @@ namespace processor {
 
 class CopyCSV : public PhysicalOperator {
 public:
-    CopyCSV(Catalog* catalog, CSVDescription csvDescription, TableSchema tableSchema, WAL* wal,
-        uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, catalog{catalog},
-          csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)}, wal{wal} {}
-    virtual ~CopyCSV() = default;
+    CopyCSV(PhysicalOperatorType operatorType, Catalog* catalog, CSVDescription csvDescription,
+        TableSchema tableSchema, WAL* wal, uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog},
+          csvDescription{std::move(csvDescription)}, tableSchema{std::move(tableSchema)}, wal{wal} {
+    }
+    virtual ~CopyCSV() override = default;
 
     virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 

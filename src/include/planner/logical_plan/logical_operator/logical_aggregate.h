@@ -11,13 +11,10 @@ public:
     LogicalAggregate(expression_vector expressionsToGroupBy,
         expression_vector expressionsToAggregate, unique_ptr<Schema> schemaBeforeAggregate,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressionsToGroupBy{move(expressionsToGroupBy)},
-          expressionsToAggregate{move(expressionsToAggregate)}, schemaBeforeAggregate{
-                                                                    move(schemaBeforeAggregate)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_AGGREGATE;
-    }
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
+          expressionsToGroupBy{std::move(expressionsToGroupBy)}, expressionsToAggregate{std::move(
+                                                                     expressionsToAggregate)},
+          schemaBeforeAggregate{std::move(schemaBeforeAggregate)} {}
 
     string getExpressionsForPrinting() const override;
 

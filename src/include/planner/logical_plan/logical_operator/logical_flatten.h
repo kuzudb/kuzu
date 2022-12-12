@@ -11,11 +11,8 @@ namespace planner {
 class LogicalFlatten : public LogicalOperator {
 public:
     LogicalFlatten(shared_ptr<Expression> expression, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expression{move(expression)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_FLATTEN;
-    }
+        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child)}, expression{std::move(
+                                                                               expression)} {}
 
     inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
 

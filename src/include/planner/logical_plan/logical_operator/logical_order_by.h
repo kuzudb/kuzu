@@ -13,13 +13,10 @@ public:
     LogicalOrderBy(expression_vector expressionsToOrderBy, vector<bool> sortOrders,
         expression_vector expressionsToMaterialize, unique_ptr<Schema> schemaBeforeOrderBy,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressionsToOrderBy{move(expressionsToOrderBy)},
-          isAscOrders{move(sortOrders)}, expressionsToMaterialize{move(expressionsToMaterialize)},
-          schemaBeforeOrderBy{move(schemaBeforeOrderBy)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_ORDER_BY;
-    }
+        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
+          expressionsToOrderBy{std::move(expressionsToOrderBy)}, isAscOrders{std::move(sortOrders)},
+          expressionsToMaterialize{std::move(expressionsToMaterialize)},
+          schemaBeforeOrderBy{std::move(schemaBeforeOrderBy)} {}
 
     string getExpressionsForPrinting() const override;
 

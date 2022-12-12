@@ -15,17 +15,11 @@ namespace processor {
 class ResultSet {
 
 public:
-    explicit ResultSet(uint32_t numDataChunks)
-        : multiplicity{1}, dataChunks(numDataChunks), listSyncStatesPerDataChunk(numDataChunks) {}
+    explicit ResultSet(uint32_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
 
     inline void insert(uint32_t pos, shared_ptr<DataChunk> dataChunk) {
         assert(dataChunks.size() > pos);
         dataChunks[pos] = std::move(dataChunk);
-    }
-
-    inline void initListSyncState(uint32_t pos) {
-        assert(listSyncStatesPerDataChunk.size() > pos);
-        listSyncStatesPerDataChunk[pos] = make_shared<ListSyncState>();
     }
 
     inline shared_ptr<ValueVector> getValueVector(DataPos& dataPos) {
@@ -40,16 +34,9 @@ public:
 
     uint64_t getNumTuplesWithoutMultiplicity(const unordered_set<uint32_t>& dataChunksPosInScope);
 
-    shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
-        return listSyncStatesPerDataChunk[dataChunkPos];
-    }
-
 public:
     uint64_t multiplicity;
     vector<shared_ptr<DataChunk>> dataChunks;
-
-private:
-    vector<shared_ptr<ListSyncState>> listSyncStatesPerDataChunk;
 };
 
 } // namespace processor

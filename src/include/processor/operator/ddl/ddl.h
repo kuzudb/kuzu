@@ -11,11 +11,11 @@ namespace kuzu {
 namespace processor {
 
 class DDL : public PhysicalOperator {
-
 public:
-    DDL(Catalog* catalog, uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, catalog{catalog} {}
-    virtual ~DDL() = default;
+    DDL(PhysicalOperatorType operatorType, Catalog* catalog, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog} {}
+    virtual ~DDL() override = default;
 
     virtual string execute() = 0;
 

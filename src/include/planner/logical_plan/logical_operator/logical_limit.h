@@ -10,10 +10,8 @@ class LogicalLimit : public LogicalOperator {
 public:
     LogicalLimit(uint64_t limitNumber, uint32_t groupPosToSelect,
         unordered_set<uint32_t> groupsPosInScope, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, limitNumber{limitNumber},
-          groupPosToSelect{groupPosToSelect}, groupsPosInScope{move(groupsPosInScope)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_LIMIT; }
+        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, limitNumber{limitNumber},
+          groupPosToSelect{groupPosToSelect}, groupsPosInScope{std::move(groupsPosInScope)} {}
 
     string getExpressionsForPrinting() const override { return to_string(limitNumber); }
 

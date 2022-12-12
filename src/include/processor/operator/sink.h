@@ -8,15 +8,15 @@ namespace processor {
 
 class Sink : public PhysicalOperator {
 public:
-    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, resultSetDescriptor{std::move(resultSetDescriptor)} {}
-    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, unique_ptr<PhysicalOperator> child,
+    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType operatorType,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, resultSetDescriptor{std::move(
-                                                                    resultSetDescriptor)} {}
+        : PhysicalOperator{operatorType, id, paramsString}, resultSetDescriptor{
+                                                                std::move(resultSetDescriptor)} {}
+    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType operatorType,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString},
+          resultSetDescriptor{std::move(resultSetDescriptor)} {}
 
-    PhysicalOperatorType getOperatorType() override = 0;
     ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
 
     inline void execute(ResultSet* resultSet, ExecutionContext* context) {

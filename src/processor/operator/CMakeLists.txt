@@ -12,6 +12,7 @@ add_subdirectory(var_length_extend)
 
 add_library(kuzu_processor_operator
         OBJECT
+        base_extend.cpp
         base_table_scan.cpp
         cross_product.cpp
         filter.cpp

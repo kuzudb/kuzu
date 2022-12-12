@@ -36,11 +36,10 @@ protected:
         vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE, std::move(child),
+              id, paramsString},
           aggregateVectorsPos{std::move(aggregateVectorsPos)}, aggregateFunctions{
                                                                    std::move(aggregateFunctions)} {}
-
-    PhysicalOperatorType getOperatorType() override { return AGGREGATE; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

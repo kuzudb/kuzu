@@ -21,110 +21,103 @@ unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logic
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext) {
     unique_ptr<PhysicalOperator> physicalOperator;
-    auto operatorType = logicalOperator->getLogicalOperatorType();
+    auto operatorType = logicalOperator->getOperatorType();
     switch (operatorType) {
-    case LOGICAL_SCAN_NODE: {
+    case LogicalOperatorType::SCAN_NODE: {
         physicalOperator = mapLogicalScanNodeToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_INDEX_SCAN_NODE: {
+    case LogicalOperatorType::INDEX_SCAN_NODE: {
         physicalOperator = mapLogicalIndexScanNodeToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_UNWIND: {
+    case LogicalOperatorType::UNWIND: {
         physicalOperator = mapLogicalUnwindToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_EXTEND: {
+    case LogicalOperatorType::EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_GENERIC_EXTEND: {
-        physicalOperator = mapLogicalGenericExtendToPhysical(logicalOperator.get(), mapperContext);
-    } break;
-    case LOGICAL_FLATTEN: {
+    case LogicalOperatorType::FLATTEN: {
         physicalOperator = mapLogicalFlattenToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_FILTER: {
+    case LogicalOperatorType::FILTER: {
         physicalOperator = mapLogicalFilterToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_PROJECTION: {
+    case LogicalOperatorType::PROJECTION: {
         physicalOperator = mapLogicalProjectionToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SEMI_MASKER: {
+    case LogicalOperatorType::SEMI_MASKER: {
         physicalOperator = mapLogicalSemiMaskerToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_HASH_JOIN: {
+    case LogicalOperatorType::HASH_JOIN: {
         physicalOperator = mapLogicalHashJoinToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_INTERSECT: {
+    case LogicalOperatorType::INTERSECT: {
         physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_CROSS_PRODUCT: {
+    case LogicalOperatorType::CROSS_PRODUCT: {
         physicalOperator = mapLogicalCrossProductToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SCAN_NODE_PROPERTY: {
+    case LogicalOperatorType::SCAN_NODE_PROPERTY: {
         physicalOperator =
             mapLogicalScanNodePropertyToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SCAN_REL_PROPERTY: {
-        physicalOperator =
-            mapLogicalScanRelPropertyToPhysical(logicalOperator.get(), mapperContext);
-    } break;
-    case LOGICAL_MULTIPLICITY_REDUCER: {
+    case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         physicalOperator =
             mapLogicalMultiplicityReducerToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SKIP: {
+    case LogicalOperatorType::SKIP: {
         physicalOperator = mapLogicalSkipToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_LIMIT: {
+    case LogicalOperatorType::LIMIT: {
         physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_AGGREGATE: {
+    case LogicalOperatorType::AGGREGATE: {
         physicalOperator = mapLogicalAggregateToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_DISTINCT: {
+    case LogicalOperatorType::DISTINCT: {
         physicalOperator = mapLogicalDistinctToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_ORDER_BY: {
+    case LogicalOperatorType::ORDER_BY: {
         physicalOperator = mapLogicalOrderByToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_UNION_ALL: {
+    case LogicalOperatorType::UNION_ALL: {
         physicalOperator = mapLogicalUnionAllToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_ACCUMULATE: {
+    case LogicalOperatorType::ACCUMULATE: {
         physicalOperator = mapLogicalAccumulateToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_EXPRESSIONS_SCAN: {
+    case LogicalOperatorType::EXPRESSIONS_SCAN: {
         physicalOperator =
             mapLogicalExpressionsScanToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_FTABLE_SCAN: {
+    case LogicalOperatorType::FTABLE_SCAN: {
         physicalOperator = mapLogicalFTableScanToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_CREATE_NODE: {
+    case LogicalOperatorType::CREATE_NODE: {
         physicalOperator = mapLogicalCreateNodeToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_CREATE_REL: {
+    case LogicalOperatorType::CREATE_REL: {
         physicalOperator = mapLogicalCreateRelToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_SET_NODE_PROPERTY: {
+    case LogicalOperatorType::SET_NODE_PROPERTY: {
         physicalOperator = mapLogicalSetToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_DELETE_NODE: {
+    case LogicalOperatorType::DELETE_NODE: {
         physicalOperator = mapLogicalDeleteNodeToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_DELETE_REL: {
+    case LogicalOperatorType::DELETE_REL: {
         physicalOperator = mapLogicalDeleteRelToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_CREATE_NODE_TABLE: {
+    case LogicalOperatorType::CREATE_NODE_TABLE: {
         physicalOperator =
             mapLogicalCreateNodeTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_CREATE_REL_TABLE: {
+    case LogicalOperatorType::CREATE_REL_TABLE: {
         physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_COPY_CSV: {
+    case LogicalOperatorType::COPY_CSV: {
         physicalOperator = mapLogicalCopyCSVToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_DROP_TABLE: {
+    case LogicalOperatorType::DROP_TABLE: {
         physicalOperator = mapLogicalDropTableToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:

@@ -16,14 +16,16 @@ public:
     inline bool isReadOnly() const { return readOnly; }
 
     inline bool isCopyCSV() const {
-        return lastOperator->getChild(0)->getOperatorType() == COPY_REL_CSV ||
-               lastOperator->getChild(0)->getOperatorType() == COPY_NODE_CSV;
+        return lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_REL_CSV ||
+               lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_NODE_CSV;
     }
 
     inline bool isDDL() const {
-        return lastOperator->getChild(0)->getOperatorType() == CREATE_NODE_TABLE ||
-               lastOperator->getChild(0)->getOperatorType() == CREATE_REL_TABLE ||
-               lastOperator->getChild(0)->getOperatorType() == DROP_TABLE;
+        return lastOperator->getChild(0)->getOperatorType() ==
+                   PhysicalOperatorType::CREATE_NODE_TABLE ||
+               lastOperator->getChild(0)->getOperatorType() ==
+                   PhysicalOperatorType::CREATE_REL_TABLE ||
+               lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::DROP_TABLE;
     }
 
 public:

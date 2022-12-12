@@ -9,12 +9,9 @@ class LogicalCrossProduct : public LogicalOperator {
 public:
     LogicalCrossProduct(unique_ptr<Schema> buildSideSchema,
         shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalOperator{std::move(probeSideChild), std::move(buildSideChild)},
+        : LogicalOperator{LogicalOperatorType::CROSS_PRODUCT, std::move(probeSideChild),
+              std::move(buildSideChild)},
           buildSideSchema{std::move(buildSideSchema)} {}
-
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_CROSS_PRODUCT;
-    }
 
     inline string getExpressionsForPrinting() const override { return string(); }
 

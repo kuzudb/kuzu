@@ -9,51 +9,31 @@ namespace processor {
 
 class BaseScanColumn : public PhysicalOperator {
 public:
-    BaseScanColumn(const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, inputNodeIDVectorPos{
-                                                               inputNodeIDVectorPos} {}
-
-    PhysicalOperatorType getOperatorType() override = 0;
+    BaseScanColumn(PhysicalOperatorType operatorType, const DataPos& inputNodeIDVectorPos,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString},
+          inputNodeIDVectorPos{inputNodeIDVectorPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     DataPos inputNodeIDVectorPos;
-
     shared_ptr<ValueVector> inputNodeIDVector;
-};
-
-class ScanSingleColumn : public BaseScanColumn {
-protected:
-    ScanSingleColumn(const DataPos& inputNodeIDVectorPos, const DataPos& outputVectorPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), id, paramsString},
-          outputVectorPos{outputVectorPos} {}
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-
-protected:
-    DataPos outputVectorPos;
-    shared_ptr<ValueVector> outputVector;
 };
 
 class ScanMultipleColumns : public BaseScanColumn {
 protected:
-    ScanMultipleColumns(const DataPos& inVectorPos, vector<DataPos> outVectorsPos,
+    ScanMultipleColumns(const DataPos& inVectorPos, vector<DataPos> outPropertyVectorsPos,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseScanColumn{inVectorPos, std::move(child), id, paramsString}, outVectorsPos{std::move(
-                                                                               outVectorsPos)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SCAN_COLUMN_PROPERTY;
-    }
+        : BaseScanColumn{PhysicalOperatorType::SCAN_NODE_PROPERTY, inVectorPos, std::move(child),
+              id, paramsString},
+          outPropertyVectorsPos{std::move(outPropertyVectorsPos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
-    vector<DataPos> outVectorsPos;
-    vector<shared_ptr<ValueVector>> outVectors;
+    vector<DataPos> outPropertyVectorsPos;
+    vector<shared_ptr<ValueVector>> outPropertyVectors;
 };
 
 } // namespace processor
