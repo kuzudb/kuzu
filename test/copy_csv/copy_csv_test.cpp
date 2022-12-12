@@ -241,8 +241,8 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("the - should be escaped", col->readValue(2).strVal);
     EXPECT_EQ("this -is #a mixed test", col->readValue(3).strVal);
     EXPECT_EQ("only one # should be recognized", col->readValue(4).strVal);
-    EXPECT_EQ("this is a ##plain## #string", col->readValue(5).strVal);
-    EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6).strVal);
+    EXPECT_EQ("this is a #plain# string", col->readValue(5).strVal);
+    EXPECT_EQ("this is another #plain# string with \\", col->readValue(6).strVal);
 
     tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
     propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");

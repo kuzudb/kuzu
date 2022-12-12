@@ -8,6 +8,10 @@
 
 namespace kuzu {
 namespace storage {
+    //TODO: remove this once implement reading rel files
+    //set as consts as for now. Will change to better implementation once implement reading rel files.
+    char delimiter;
+    int default_page_size = DEFAULT_PAGE_SIZE;
 
     InMemArrowNodeCSVCopier::InMemArrowNodeCSVCopier(CSVDescription &csvDescription, string outputDirectory,
                                                      TaskScheduler &taskScheduler, Catalog &catalog, table_id_t tableID,
@@ -15,6 +19,9 @@ namespace storage {
             : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
               numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
         nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
+
+        //TODO: remove this once implement reading rel files
+        delimiter = csvDescription.csvReaderConfig.tokenSeparator;
     }
 
     uint64_t InMemArrowNodeCSVCopier::copy() {
@@ -188,6 +195,11 @@ namespace storage {
         auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
         arrowConvert.strings_can_be_null = true;
         arrowConvert.quoted_strings_can_be_null = false;
+        auto arrowParse = arrow::csv::ParseOptions::Defaults();
+        arrowParse.delimiter = csvDescription.csvReaderConfig.tokenSeparator;
+        arrowParse.escape_char = csvDescription.csvReaderConfig.escapeChar;
+        arrowParse.quote_char = csvDescription.csvReaderConfig.quoteChar;
+        arrowParse.escaping = true;
 
         ARROW_ASSIGN_OR_RAISE(
                 csv_streaming_reader,
@@ -195,9 +207,8 @@ namespace storage {
                         arrow::io::default_io_context(),
                         arrow_input_stream,
                         arrowRead,
-                        arrow::csv::ParseOptions::Defaults(),
-                        arrowConvert
-                ));
+                        arrowParse,
+                        arrowConvert));
         return arrow::Status::OK();
     }
 
@@ -454,8 +465,6 @@ namespace storage {
                                                                     const vector<shared_ptr<T2>> &batchColumns) {
         copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
-        // TODO: Consider skip header
-//        skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
         for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++bufferOffset) {
             putPropsOfLineIntoColumns(copier->structuredColumns,
                                       copier->nodeTableSchema->structuredProperties,
@@ -515,8 +524,13 @@ namespace storage {
                     }
                         break;
                     case STRING: {
+                        //TODO: remove this once implement reading rel files
+                        stringToken = stringToken.substr(0, default_page_size);
+                        data = stringToken.c_str();
+
                         auto val = column->getInMemOverflowFile()->copyString(data,
                                                                               overflowCursors[columnIdx]);
+
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     }
                         break;
