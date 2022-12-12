@@ -95,6 +95,20 @@ public:
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {
         return relTableSchemas.at(tableID)->properties;
     }
+    inline vector<table_id_t> getNodeTableIDs() const {
+        vector<table_id_t> nodeTableIDs;
+        for (auto& [tableID, _] : nodeTableSchemas) {
+            nodeTableIDs.push_back(tableID);
+        }
+        return nodeTableIDs;
+    }
+    inline vector<table_id_t> getRelTableIDs() const {
+        vector<table_id_t> relTableIDs;
+        for (auto& [tableID, _] : relTableSchemas) {
+            relTableIDs.push_back(tableID);
+        }
+        return relTableIDs;
+    }
     inline unordered_map<table_id_t, unique_ptr<NodeTableSchema>>& getNodeTableSchemas() {
         return nodeTableSchemas;
     }

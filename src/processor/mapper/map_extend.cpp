@@ -104,9 +104,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     auto& relsStore = storageManager.getRelsStore();
-    if (rel->getNumTableIDs() == 1 && boundNode->getNumTableIDs() == 1) {
-        auto boundNodeTableID = boundNode->getTableID();
-        auto relTableID = *rel->getTableIDs().begin();
+    if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled()) {
+        auto boundNodeTableID = boundNode->getSingleTableID();
+        auto relTableID = rel->getSingleTableID();
         if (relsStore.hasAdjColumn(direction, boundNodeTableID, relTableID)) {
             auto adjColumn = relsStore.getAdjColumn(direction, boundNodeTableID, relTableID);
             if (rel->isVariableLength()) {

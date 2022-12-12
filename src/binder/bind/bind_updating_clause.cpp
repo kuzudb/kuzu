@@ -47,23 +47,23 @@ unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(const UpdatingClause& u
             }
         }
     }
-
     return boundCreateClause;
 }
 
 unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
-    if (node->getNumTableIDs() > 1) {
+    if (node->isMultiLabeled()) {
         throw BinderException(
-            "Create multi-labeled node " + node->getRawName() + "is not supported.");
+            "Create node " + node->getRawName() + " with multiple node labels is not supported.");
     }
-    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
+    auto nodeTableID = node->getSingleTableID();
+    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     shared_ptr<Expression> primaryKeyExpression;
     vector<expression_pair> setItems;
     for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
-        if (propertyExpression->getPropertyID(node->getTableID()) == primaryKey.propertyID) {
+        if (propertyExpression->getPropertyID(nodeTableID) == primaryKey.propertyID) {
             primaryKeyExpression = val;
         }
         setItems.emplace_back(key, val);
@@ -78,15 +78,17 @@ unique_ptr<BoundCreateNode> Binder::bindCreateNode(
 
 unique_ptr<BoundCreateRel> Binder::bindCreateRel(
     shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
-    if (rel->getNumTableIDs() > 1) {
+    if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
         throw BinderException(
-            "Create multi-labeled rel " + rel->getRawName() + "is not supported.");
+            "Create rel " + rel->getRawName() +
+            " with multiple rel labels or bound by multiple node labels is not supported.");
     }
+    auto relTableID = rel->getSingleTableID();
     auto catalogContent = catalog.getReadOnlyVersion();
     // CreateRel requires all properties in schema as input. So we rewrite set property to
     // null if user does not specify a property in the query.
     vector<expression_pair> setItems;
-    for (auto& property : catalogContent->getRelProperties(rel->getTableID())) {
+    for (auto& property : catalogContent->getRelProperties(relTableID)) {
         if (collection.hasPropertyKeyValPair(*rel, property.name)) {
             setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
         } else {
@@ -108,8 +110,15 @@ unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& upda
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
         auto boundLhs = expressionBinder.bindExpression(*setItem->origin);
-        if (boundLhs->getChild(0)->dataType.typeID != NODE) {
-            throw BinderException("Only updating node properties is supported.");
+        auto boundNodeOrRel = boundLhs->getChild(0);
+        if (boundNodeOrRel->dataType.typeID != NODE) {
+            throw BinderException("Set " + Types::dataTypeToString(boundNodeOrRel->dataType) +
+                                  " property is supported.");
+        }
+        auto boundNode = static_pointer_cast<NodeExpression>(boundNodeOrRel);
+        if (boundNode->isMultiLabeled()) {
+            throw BinderException("Set property of node " + boundNode->getRawName() +
+                                  " with multiple node labels is not supported.");
         }
         auto boundRhs = expressionBinder.bindExpression(*setItem->target);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
@@ -124,10 +133,11 @@ unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& u
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto boundExpression = expressionBinder.bindExpression(*deleteClause.getExpression(i));
         if (boundExpression->dataType.typeID == NODE) {
-            boundDeleteClause->addDeleteNode(
-                bindDeleteNode(static_pointer_cast<NodeExpression>(boundExpression)));
+            auto deleteNode = bindDeleteNode(static_pointer_cast<NodeExpression>(boundExpression));
+            boundDeleteClause->addDeleteNode(std::move(deleteNode));
         } else if (boundExpression->dataType.typeID == REL) {
-            boundDeleteClause->addDeleteRel(static_pointer_cast<RelExpression>(boundExpression));
+            auto deleteRel = bindDeleteRel(static_pointer_cast<RelExpression>(boundExpression));
+            boundDeleteClause->addDeleteRel(std::move(deleteRel));
         } else {
             throw BinderException("Delete " +
                                   expressionTypeToString(boundExpression->expressionType) +
@@ -138,15 +148,25 @@ unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& u
 }
 
 unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(shared_ptr<NodeExpression> node) {
-    if (node->getNumTableIDs() > 1) {
+    if (node->isMultiLabeled()) {
         throw BinderException(
-            "Delete multi-labeled node " + node->getRawName() + "is not supported.");
+            "Delete node " + node->getRawName() + " with multiple node labels is not supported.");
     }
-    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(node->getTableID());
+    auto nodeTableID = node->getSingleTableID();
+    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     auto primaryKeyExpression =
         expressionBinder.bindNodePropertyExpression(node, vector<Property>{primaryKey});
     return make_unique<BoundDeleteNode>(node, primaryKeyExpression);
+}
+
+shared_ptr<RelExpression> Binder::bindDeleteRel(shared_ptr<RelExpression> rel) {
+    if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
+        throw BinderException(
+            "Delete rel " + rel->getRawName() +
+            " with multiple rel labels or bound by multiple node labels is not supported.");
+    }
+    return rel;
 }
 
 } // namespace binder

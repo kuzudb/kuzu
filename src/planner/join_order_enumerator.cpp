@@ -147,7 +147,7 @@ static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expres
         return false;
     }
     auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.getPropertyID(node.getTableID()) == primaryKeyID;
+    return propertyExpression.getPropertyID(node.getSingleTableID()) == primaryKeyID;
 }
 
 static bool isIndexScanExpression(
@@ -174,7 +174,7 @@ static shared_ptr<Expression> extractIndexExpression(Expression& expression) {
 static pair<shared_ptr<Expression>, expression_vector> splitIndexAndPredicates(
     const CatalogContent& catalogContent, NodeExpression& node,
     const expression_vector& predicates) {
-    auto nodeTableSchema = catalogContent.getNodeTableSchema(node.getTableID());
+    auto nodeTableSchema = catalogContent.getNodeTableSchema(node.getSingleTableID());
     auto primaryKeyID = nodeTableSchema->getPrimaryKey().propertyID;
     shared_ptr<Expression> indexExpression;
     expression_vector predicatesToApply;
@@ -202,7 +202,7 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     if (!context->nodeNeedScanTwice(node.get())) {
         shared_ptr<Expression> indexExpression = nullptr;
         expression_vector predicatesToApply = predicates;
-        if (node->getNumTableIDs() == 1) { // check for index scan
+        if (!node->isMultiLabeled()) { // check for index scan
             auto [_indexExpression, _predicatesToApply] =
                 splitIndexAndPredicates(*catalog.getReadOnlyVersion(), *node, predicates);
             indexExpression = _indexExpression;
@@ -551,10 +551,10 @@ void JoinOrderEnumerator::appendIndexScanNode(
 bool JoinOrderEnumerator::needExtendToNewGroup(
     RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
     auto extendToNewGroup = false;
-    extendToNewGroup |= boundNode.getNumTableIDs() > 1;
-    extendToNewGroup |= rel.getNumTableIDs() > 1;
-    if (rel.getNumTableIDs() == 1) {
-        auto relTableID = *rel.getTableIDs().begin();
+    extendToNewGroup |= boundNode.isMultiLabeled();
+    extendToNewGroup |= rel.isMultiLabeled();
+    if (!rel.isMultiLabeled()) {
+        auto relTableID = rel.getSingleTableID();
         extendToNewGroup |=
             !catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(relTableID, direction);
     }

@@ -14,7 +14,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     auto catalogContent = catalog->getReadOnlyVersion();
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
     for (auto& [node, primaryKey] : logicalCreateNode->getNodeAndPrimaryKeys()) {
-        auto nodeTableID = node->getTableID();
+        auto nodeTableID = node->getSingleTableID();
         auto table = nodesStore.getNodeTable(nodeTableID);
         auto primaryKeyEvaluator = expressionMapper.mapExpression(primaryKey, mapperContext);
         vector<RelTable*> relTablesToInit;
@@ -39,11 +39,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
     vector<unique_ptr<CreateRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
         auto rel = logicalCreateRel->getRel(i);
-        auto table = relStore.getRelTable(rel->getTableID());
+        auto table = relStore.getRelTable(rel->getSingleTableID());
         auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getInternalIDPropertyName());
-        auto srcNodeTableID = rel->getSrcNode()->getTableID();
+        auto srcNodeTableID = rel->getSrcNode()->getSingleTableID();
         auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getInternalIDPropertyName());
-        auto dstNodeTableID = rel->getDstNode()->getTableID();
+        auto dstNodeTableID = rel->getDstNode()->getSingleTableID();
         vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
         uint32_t relIDEvaluatorIdx = UINT32_MAX;
         auto setItems = logicalCreateRel->getSetItems(i);
