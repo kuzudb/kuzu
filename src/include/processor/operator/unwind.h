@@ -16,10 +16,9 @@ public:
     Unwind(DataType outDataType, DataPos outDataPos,
         unique_ptr<BaseExpressionEvaluator> expressionEvaluator, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, outDataType{move(outDataType)},
-          outDataPos{outDataPos}, expressionEvaluator{move(expressionEvaluator)}, startIndex{0u} {}
-
-    inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
+        : PhysicalOperator{PhysicalOperatorType::UNWIND, std::move(child), id, paramsString},
+          outDataType{std::move(outDataType)}, outDataPos{outDataPos},
+          expressionEvaluator{std::move(expressionEvaluator)}, startIndex{0u} {}
 
     bool getNextTuplesInternal() override;
 

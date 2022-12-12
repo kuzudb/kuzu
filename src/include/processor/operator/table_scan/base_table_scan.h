@@ -8,23 +8,25 @@ namespace processor {
 class BaseTableScan : public PhysicalOperator {
 protected:
     // For factorized table scan of all columns
-    BaseTableScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString}, maxMorselSize{0},
+    BaseTableScan(PhysicalOperatorType operatorType, vector<DataPos> outVecPositions,
+        vector<uint32_t> colIndicesToScan, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString}, maxMorselSize{0},
           outVecPositions{std::move(outVecPositions)}, colIndicesToScan{
                                                            std::move(colIndicesToScan)} {}
 
     // For factorized table scan of some columns
-    BaseTableScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{id, paramsString}, maxMorselSize{0},
+    BaseTableScan(PhysicalOperatorType operatorType, vector<DataPos> outVecPositions,
+        vector<uint32_t> colIndicesToScan, uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, maxMorselSize{0},
           outVecPositions{std::move(outVecPositions)}, colIndicesToScan{
                                                            std::move(colIndicesToScan)} {}
 
     // For union all scan
-    BaseTableScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan,
-        vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(children), id, paramsString}, maxMorselSize{0},
+    BaseTableScan(PhysicalOperatorType operatorType, vector<DataPos> outVecPositions,
+        vector<uint32_t> colIndicesToScan, vector<unique_ptr<PhysicalOperator>> children,
+        uint32_t id, const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(children), id, paramsString}, maxMorselSize{0},
           outVecPositions{std::move(outVecPositions)}, colIndicesToScan{
                                                            std::move(colIndicesToScan)} {}
 

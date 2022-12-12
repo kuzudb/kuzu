@@ -19,17 +19,17 @@ public:
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{nullptr /* resultSetDescriptor */, std::move(child), id, paramsString},
+        : Sink{nullptr /* resultSetDescriptor */, PhysicalOperatorType::ORDER_BY_MERGE,
+              std::move(child), id, paramsString},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
     // This constructor is used for cloning only.
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher, uint32_t id,
         const string& paramsString)
-        : Sink{nullptr /* resultSetDescriptor */, id, paramsString},
+        : Sink{nullptr /* resultSetDescriptor */, PhysicalOperatorType::ORDER_BY_MERGE, id,
+              paramsString},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
-
-    PhysicalOperatorType getOperatorType() override { return ORDER_BY_MERGE; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

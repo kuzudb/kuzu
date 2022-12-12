@@ -64,11 +64,15 @@ public:
     HashJoinBuild(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+        : HashJoinBuild{std::move(resultSetDescriptor), PhysicalOperatorType::HASH_JOIN_BUILD,
+              std::move(sharedState), buildDataInfo, std::move(child), id, paramsString} {}
+    HashJoinBuild(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        PhysicalOperatorType operatorType, shared_ptr<HashJoinSharedState> sharedState,
+        const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : Sink{std::move(resultSetDescriptor), operatorType, std::move(child), id, paramsString},
           sharedState{std::move(sharedState)}, buildDataInfo{buildDataInfo} {}
     ~HashJoinBuild() override = default;
-
-    inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

@@ -15,10 +15,9 @@ public:
     IndexScan(table_id_t tableID, PrimaryKeyIndex* pkIndex,
         unique_ptr<BaseExpressionEvaluator> indexKeyEvaluator, const DataPos& outDataPos,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{id, paramsString}, tableID{tableID}, pkIndex{pkIndex},
-          indexKeyEvaluator{std::move(indexKeyEvaluator)}, outDataPos{outDataPos} {}
-
-    PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::INDEX_SCAN; }
+        : PhysicalOperator{PhysicalOperatorType::INDEX_SCAN, id, paramsString}, tableID{tableID},
+          pkIndex{pkIndex}, indexKeyEvaluator{std::move(indexKeyEvaluator)}, outDataPos{
+                                                                                 outDataPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

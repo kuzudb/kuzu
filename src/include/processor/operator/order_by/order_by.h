@@ -103,10 +103,9 @@ public:
         const OrderByDataInfo& orderByDataInfo,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{std::move(resultSetDescriptor), std::move(child), id, paramsString},
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::ORDER_BY, std::move(child), id,
+              paramsString},
           orderByDataInfo{orderByDataInfo}, sharedState{std::move(sharedState)} {}
-
-    PhysicalOperatorType getOperatorType() override { return ORDER_BY; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

@@ -16,10 +16,9 @@ public:
     Intersect(const DataPos& outputDataPos, vector<IntersectDataInfo> intersectDataInfos,
         vector<shared_ptr<IntersectSharedState>> sharedHTs,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(children), id, paramsString}, outputDataPos{outputDataPos},
-          intersectDataInfos{move(intersectDataInfos)}, sharedHTs{move(sharedHTs)} {}
-
-    inline PhysicalOperatorType getOperatorType() override { return INTERSECT; }
+        : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
+          outputDataPos{outputDataPos},
+          intersectDataInfos{std::move(intersectDataInfos)}, sharedHTs{std::move(sharedHTs)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

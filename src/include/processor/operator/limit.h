@@ -6,16 +6,14 @@ namespace kuzu {
 namespace processor {
 
 class Limit : public PhysicalOperator {
-
 public:
     Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
         unordered_set<uint32_t> dataChunksPosInScope, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, limitNumber{limitNumber},
-          counter{move(counter)}, dataChunkToSelectPos{dataChunkToSelectPos},
-          dataChunksPosInScope(move(dataChunksPosInScope)) {}
-
-    PhysicalOperatorType getOperatorType() override { return LIMIT; }
+        : PhysicalOperator{PhysicalOperatorType::LIMIT, std::move(child), id, paramsString},
+          limitNumber{limitNumber}, counter{std::move(counter)},
+          dataChunkToSelectPos{dataChunkToSelectPos},
+          dataChunksPosInScope(std::move(dataChunksPosInScope)) {}
 
     bool getNextTuplesInternal() override;
 

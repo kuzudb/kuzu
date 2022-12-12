@@ -23,17 +23,15 @@ public:
     OrderByScan(vector<DataPos> outVectorPos,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, std::move(child), id, paramsString},
           outVectorPos{std::move(outVectorPos)}, sharedState{std::move(sharedState)} {}
 
     // This constructor is used for cloning only.
     OrderByScan(vector<DataPos> outVectorPos,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{id, paramsString}, outVectorPos{std::move(outVectorPos)},
-          sharedState{std::move(sharedState)} {}
-
-    PhysicalOperatorType getOperatorType() override { return ORDER_BY_SCAN; }
+        : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, id, paramsString},
+          outVectorPos{std::move(outVectorPos)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

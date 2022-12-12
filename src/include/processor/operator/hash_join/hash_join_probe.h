@@ -51,7 +51,8 @@ public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild,
         unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild),
+              std::move(buildChild), id, paramsString},
           FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
@@ -60,11 +61,10 @@ public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{std::move(probeChild), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild), id,
+              paramsString},
           FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
-
-    inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
