@@ -17,7 +17,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
         outVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
-    if (node->getNumTableIDs() > 1) {
+    if (node->isMultiLabeled()) {
         unordered_map<table_id_t, vector<Column*>> tableIDToColumns;
         for (auto& tableID : node->getTableIDs()) {
             vector<Column*> columns;
@@ -36,7 +36,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
             std::move(outVectorsPos), std::move(tableIDToColumns), std::move(prevOperator),
             getOperatorID(), scanProperty.getExpressionsForPrinting());
     } else {
-        auto tableID = node->getTableID();
+        auto tableID = node->getSingleTableID();
         vector<Column*> columns;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);

@@ -13,7 +13,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteNodeToPhysical(
     auto& nodesStore = storageManager.getNodesStore();
     vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
     for (auto& [node, primaryKey] : logicalDeleteNode->getNodeAndPrimaryKeys()) {
-        auto nodeTable = nodesStore.getNodeTable(node->getTableID());
+        auto nodeTable = nodesStore.getNodeTable(node->getSingleTableID());
         auto nodeIDPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
         auto primaryKeyPos = mapperContext.getDataPos(primaryKey->getUniqueName());
         deleteNodeInfos.push_back(make_unique<DeleteNodeInfo>(nodeTable, nodeIDPos, primaryKeyPos));
@@ -30,11 +30,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteRelToPhysical(
     vector<unique_ptr<DeleteRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalDeleteRel->getNumRels(); ++i) {
         auto rel = logicalDeleteRel->getRel(i);
-        auto table = relStore.getRelTable(rel->getTableID());
+        auto table = relStore.getRelTable(rel->getSingleTableID());
         auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getInternalIDPropertyName());
-        auto srcNodeTableID = rel->getSrcNode()->getTableID();
+        auto srcNodeTableID = rel->getSrcNode()->getSingleTableID();
         auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getInternalIDPropertyName());
-        auto dstNodeTableID = rel->getDstNode()->getTableID();
+        auto dstNodeTableID = rel->getDstNode()->getSingleTableID();
         auto relIDPos = mapperContext.getDataPos(rel->getInternalIDProperty()->getUniqueName());
         createRelInfos.push_back(make_unique<DeleteRelInfo>(
             table, srcNodePos, srcNodeTableID, dstNodePos, dstNodeTableID, relIDPos));

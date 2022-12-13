@@ -29,7 +29,7 @@ bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNod
     }
     auto rightScanNodeID = (LogicalScanNode*)rightScanNodeIDs[0];
     // Semi mask cannot be applied to a ScanNodeID on multiple node tables.
-    if (rightScanNodeID->getNode()->getNumTableIDs() > 1) {
+    if (rightScanNodeID->getNode()->isMultiLabeled()) {
         return false;
     }
     // Semi mask can only be pushed to ScanNodeIDs.

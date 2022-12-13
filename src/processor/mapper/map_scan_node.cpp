@@ -28,7 +28,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
     auto node = logicalIndexScan->getNode();
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getTableID());
+    auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getSingleTableID());
     auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
     auto evaluator =
         expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);

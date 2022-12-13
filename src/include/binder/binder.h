@@ -77,6 +77,7 @@ private:
     unique_ptr<BoundCreateRel> bindCreateRel(
         shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
     unique_ptr<BoundDeleteNode> bindDeleteNode(shared_ptr<NodeExpression> node);
+    shared_ptr<RelExpression> bindDeleteRel(shared_ptr<RelExpression> rel);
 
     /*** bind projection clause ***/
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
@@ -112,14 +113,13 @@ private:
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
-    inline unordered_set<table_id_t> bindNodeTableIDs(const vector<string>& tableNames) {
+    inline vector<table_id_t> bindNodeTableIDs(const vector<string>& tableNames) {
         return bindTableIDs(tableNames, NODE);
     }
-    inline unordered_set<table_id_t> bindRelTableIDs(const vector<string>& tableNames) {
+    inline vector<table_id_t> bindRelTableIDs(const vector<string>& tableNames) {
         return bindTableIDs(tableNames, REL);
     }
-    unordered_set<table_id_t> bindTableIDs(
-        const vector<string>& tableNames, DataTypeID nodeOrRelType);
+    vector<table_id_t> bindTableIDs(const vector<string>& tableNames, DataTypeID nodeOrRelType);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age

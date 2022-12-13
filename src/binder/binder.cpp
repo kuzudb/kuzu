@@ -32,9 +32,6 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
 }
 
 table_id_t Binder::bindRelTableID(const string& tableName) const {
-    if (tableName.empty()) {
-        return ANY_TABLE_ID;
-    }
     if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Rel table " + tableName + " does not exist.");
     }
@@ -42,9 +39,6 @@ table_id_t Binder::bindRelTableID(const string& tableName) const {
 }
 
 table_id_t Binder::bindNodeTableID(const string& tableName) const {
-    if (tableName.empty()) {
-        return ANY_TABLE_ID;
-    }
     if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
         throw BinderException("Node table " + tableName + " does not exist.");
     }

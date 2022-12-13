@@ -27,16 +27,16 @@
 -QUERY MATCH (a:person)-[e:mixed|:marries]->(b:person) RETURN e
 -ENUMERATE
 ---- 10
-[toronto]||
-|long long long string|
-[vancouver]|short str|
-||1930
-||1945
-||2020
-||2022
-||2066
-||2088
-||2120
+1930||
+1945||
+2020||
+2022||
+2066||
+2088||
+2120||
+|[toronto]|
+|[vancouver]|short str
+||long long long string
 
 -NAME MultiLabelReturnTest
 -QUERY MATCH (a:person:organisation)-[e:mixed|:studyAt]->(b:person:organisation) WHERE a.fName='Alice' RETURN e, b.fName, b.name
