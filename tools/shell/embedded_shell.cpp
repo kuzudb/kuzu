@@ -327,6 +327,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         auto& oss = querySummary->getPlanAsOstream();
         printf("%s", oss.str().c_str());
     } else {
+        const uint32_t maxWidth = 80;
         uint64_t numTuples = queryResult.getNumTuples();
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
@@ -350,8 +351,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
                 // An extra 2 spaces are added for an extra space on either
                 // side of the string.
-                fieldLen += 2;
-                colsWidth[i] = max(colsWidth[i], fieldLen);
+                colsWidth[i] = max(colsWidth[i], min(fieldLen, maxWidth) + 2);
             }
         }
         for (auto width : colsWidth) {
@@ -374,7 +374,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         queryResult.resetIterator();
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
-            printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
+            printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
             printf("%s\n", lineSeparator.c_str());
         }
 
