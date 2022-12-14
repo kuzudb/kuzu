@@ -7,11 +7,11 @@ bool ColumnExtendAndScanRelProperties::getNextTuplesInternal() {
     bool hasAtLeastOneNonNullValue;
     // join with adjColumn
     do {
-        restoreSelVector(inNodeIDVector->state->selVector.get());
+        restoreSelVector(inNodeIDVector->state->selVector);
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(inNodeIDVector->state->selVector.get());
+        saveSelVector(inNodeIDVector->state->selVector);
         outNodeIDVector->setAllNull();
         adjColumn->read(transaction, inNodeIDVector, outNodeIDVector);
         hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outNodeIDVector);

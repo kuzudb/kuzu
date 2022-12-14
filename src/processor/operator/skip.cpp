@@ -3,21 +3,24 @@
 namespace kuzu {
 namespace processor {
 
+void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
+}
+
 bool Skip::getNextTuplesInternal() {
-    auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
-        restoreSelVector(dataChunkToSelect->state->selVector.get());
+        restoreSelVector(dataChunkToSelect->state->selVector);
         // end of execution due to no more input
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(dataChunkToSelect->state->selVector.get());
+        saveSelVector(dataChunkToSelect->state->selVector);
         numTuplesAvailable = resultSet->getNumTuples(dataChunksPosInScope);
         numTupleSkippedBefore = counter->fetch_add(numTuplesAvailable);
     } while (numTupleSkippedBefore + numTuplesAvailable <= skipNumber);
-    int64_t numTupleToSkipInCurrentResultSet = skipNumber - numTupleSkippedBefore;
+    auto numTupleToSkipInCurrentResultSet = (int64_t)(skipNumber - numTupleSkippedBefore);
     if (numTupleToSkipInCurrentResultSet <= 0) {
         // Other thread has finished skipping. Process everything in current result set.
         metrics->numOutputTuple.increase(numTuplesAvailable);

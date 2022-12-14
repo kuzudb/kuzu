@@ -11,11 +11,11 @@ void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 bool Filter::getNextTuplesInternal() {
     bool hasAtLeastOneSelectedValue;
     do {
-        restoreSelVector(dataChunkToSelect->state->selVector.get());
+        restoreSelVector(dataChunkToSelect->state->selVector);
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(dataChunkToSelect->state->selVector.get());
+        saveSelVector(dataChunkToSelect->state->selVector);
         hasAtLeastOneSelectedValue =
             expressionEvaluator->select(*dataChunkToSelect->state->selVector);
         if (!dataChunkToSelect->state->isFlat() &&
