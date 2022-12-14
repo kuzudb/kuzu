@@ -9,7 +9,11 @@ using namespace kuzu::common;
 
 PyQueryResult::PyQueryResult() {
     auto atexit = py::module_::import("atexit");
-    atexit.attr("register")(py::cpp_function([&]() { queryResult.reset(); }));
+    atexit.attr("register")(py::cpp_function([&]() {
+        if (queryResult) {
+            queryResult.reset();
+        }
+    }));
 }
 
 void PyQueryResult::initialize(py::handle& m) {

@@ -8,7 +8,11 @@ PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
         conn->setMaxNumThreadForExec(numThreads);
     }
     auto atexit = py::module_::import("atexit");
-    atexit.attr("register")(py::cpp_function([&]() { conn.reset(); }));
+    atexit.attr("register")(py::cpp_function([&]() {
+        if (conn) {
+            conn.reset();
+        }
+    }));
 }
 
 void PyConnection::initialize(py::handle& m) {

@@ -10,7 +10,11 @@ PyDatabase::PyDatabase(const string& databasePath, uint64_t bufferPoolSize) {
     }
     database = make_unique<Database>(DatabaseConfig(databasePath), systemConfig);
     auto atexit = py::module_::import("atexit");
-    atexit.attr("register")(py::cpp_function([&]() { database.reset(); }));
+    atexit.attr("register")(py::cpp_function([&]() {
+        if (database) {
+            database.reset();
+        }
+    }));
 }
 
 void PyDatabase::initialize(py::handle& m) {

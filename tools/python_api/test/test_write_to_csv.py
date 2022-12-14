@@ -1,3 +1,5 @@
+import os
+
 from pandas import read_csv
 
 def test_write_to_csv(establish_connection):
@@ -8,7 +10,8 @@ def test_write_to_csv(establish_connection):
     result.writeToCSV("test_PYTHON_CSV.csv")
     with open("test_PYTHON_CSV.csv") as csv_file:
          data = csv_file.read()
-    assert(data == outputString)  
+    assert(data == outputString)
+    os.remove("test_PYTHON_CSV.csv")
 
 def test_write_to_csv_extra_args(establish_connection):
     outputString = """35|1~30|2~45|1~20|2~20|1~25|2~40|2~83|2~"""
@@ -18,6 +21,7 @@ def test_write_to_csv_extra_args(establish_connection):
     with open("test_PYTHON_CSV.csv") as csv_file:
         data = csv_file.read()
     assert(data == outputString)
+    os.remove("test_PYTHON_CSV.csv")
 
 def test_pandas_read_csv_extra_args(establish_connection):
     conn, db = establish_connection
@@ -27,3 +31,4 @@ def test_pandas_read_csv_extra_args(establish_connection):
     assert(df.iloc[:,0].tolist() == ['Bob', 'Carol', 'Dan', 'Elizabeth', 'Farooq', 'Greg', 'Hubert Blaine Wolfeschlegelsteinhausenbergerdorff'])
     assert(df.iloc[:,1].tolist() == ['[12,8]', '[4,5]', '[1,9]', '[2]', '[3,4,5,6,7]','[1]','[10,11,12,3,4,5,6,7]'])
     assert(df.iloc[:,2].tolist() == ["[''Bobby'']", "[''Carmen'',''Fred'']", "[''Wolfeschlegelstein'',''Daniel'']","[''Ein'']","[''Fesdwe'']","[''Grad'']","[''Ad'',''De'',''Hi'',''Kye'',''Orlan'']"])
+    os.remove("test_PYTHON_CSV.csv")
