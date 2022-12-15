@@ -3,20 +3,25 @@
 namespace kuzu {
 namespace evaluator {
 
-BaseExpressionEvaluator::BaseExpressionEvaluator(unique_ptr<BaseExpressionEvaluator> child) {
-    children.push_back(move(child));
-}
-
-BaseExpressionEvaluator::BaseExpressionEvaluator(
-    unique_ptr<BaseExpressionEvaluator> left, unique_ptr<BaseExpressionEvaluator> right) {
-    children.push_back(move(left));
-    children.push_back(move(right));
-}
-
 void BaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     for (auto& child : children) {
         child->init(resultSet, memoryManager);
     }
+    resolveResultVector(resultSet, memoryManager);
+}
+
+void BaseExpressionEvaluator::resolveResultStateFromChildren(
+    const vector<BaseExpressionEvaluator*>& inputEvaluators) {
+    for (auto& input : inputEvaluators) {
+        if (!input->isResultFlat()) {
+            isResultFlat_ = false;
+            resultVector->state = input->resultVector->state;
+            return;
+        }
+    }
+    // All children are flat.
+    isResultFlat_ = true;
+    resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }
 
 } // namespace evaluator

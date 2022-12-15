@@ -1,6 +1,7 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
+#include "binder/expression/case_expression.h"
 #include "binder/expression/existential_subquery_expression.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
@@ -9,6 +10,7 @@
 #include "common/type_utils.h"
 #include "function/boolean/vector_boolean_operations.h"
 #include "function/null/vector_null_operations.h"
+#include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"
@@ -42,6 +44,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindVariableExpression(parsedExpression);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
         expression = bindExistentialSubqueryExpression(parsedExpression);
+    } else if (CASE_ELSE == expressionType) {
+        expression = bindCaseExpression(parsedExpression);
     } else {
         throw NotImplementedException(
             "bindExpression(" + expressionTypeToString(expressionType) + ").");
@@ -376,10 +380,14 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
     auto literal = literalExpression.getLiteral();
     if (literal->isNull()) {
-        return LiteralExpression::createNullLiteralExpression(
-            binder->getUniqueExpressionName("NULL"));
+        return bindNullLiteralExpression();
     }
     return make_shared<LiteralExpression>(literal->dataType, make_unique<Literal>(*literal));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindNullLiteralExpression() {
+    return make_shared<LiteralExpression>(
+        DataType(ANY), make_unique<Literal>(), binder->getUniqueExpressionName("NULL"));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
@@ -406,6 +414,49 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     }
     binder->exitSubquery(move(prevVariablesInScope));
     return boundSubqueryExpression;
+}
+
+shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
+    const ParsedExpression& parsedExpression) {
+    auto& parsedCaseExpression = (ParsedCaseExpression&)parsedExpression;
+    auto anchorCaseAlternative = parsedCaseExpression.getCaseAlternative(0);
+    auto outDataType = bindExpression(*anchorCaseAlternative->thenExpression)->dataType;
+    auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
+    // bind ELSE ...
+    shared_ptr<Expression> elseExpression;
+    if (parsedCaseExpression.hasElseExpression()) {
+        elseExpression = bindExpression(*parsedCaseExpression.getElseExpression());
+    } else {
+        elseExpression = bindNullLiteralExpression();
+    }
+    elseExpression = implicitCastIfNecessary(elseExpression, outDataType);
+    auto boundCaseExpression =
+        make_shared<CaseExpression>(outDataType, std::move(elseExpression), name);
+    // bind WHEN ... THEN ...
+    if (parsedCaseExpression.hasCaseExpression()) {
+        auto boundCase = bindExpression(*parsedCaseExpression.getCaseExpression());
+        for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
+            auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
+            auto boundWhen = bindExpression(*caseAlternative->whenExpression);
+            boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
+            // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
+            boundWhen = bindComparisonExpression(
+                EQUALS, vector<shared_ptr<Expression>>{boundCase, boundWhen});
+            auto boundThen = bindExpression(*caseAlternative->thenExpression);
+            boundThen = implicitCastIfNecessary(boundThen, outDataType);
+            boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
+        }
+    } else {
+        for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
+            auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
+            auto boundWhen = bindExpression(*caseAlternative->whenExpression);
+            boundWhen = implicitCastIfNecessary(boundWhen, BOOL);
+            auto boundThen = bindExpression(*caseAlternative->thenExpression);
+            boundThen = implicitCastIfNecessary(boundThen, outDataType);
+            boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
+        }
+    }
+    return boundCaseExpression;
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(

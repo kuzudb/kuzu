@@ -47,6 +47,7 @@ TEST_F(TinySnbReadTest, Function) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/boolean.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/string.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/cast.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/case.test"));
 }
 
 TEST_F(TinySnbReadTest, Agg) {

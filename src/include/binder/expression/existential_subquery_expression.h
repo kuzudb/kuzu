@@ -23,8 +23,6 @@ public:
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
     inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
-    unordered_set<string> getDependentVariableNames() override;
-
     expression_vector getChildren() const override;
 
 private:

@@ -11,10 +11,6 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     if (expression->dataType.typeID == BOOL) {
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     }
-    resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
-    if (children.empty()) { // const function, e.g. PI()
-        resultVector->state = DataChunkState::getSingleValueDataChunkState();
-    }
     for (auto& child : children) {
         parameters.push_back(child->resultVector);
     }
@@ -40,6 +36,16 @@ unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
         clonedChildren.push_back(child->clone());
     }
     return make_unique<FunctionExpressionEvaluator>(expression, move(clonedChildren));
+}
+
+void FunctionExpressionEvaluator::resolveResultVector(
+    const ResultSet& resultSet, MemoryManager* memoryManager) {
+    resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
+    vector<BaseExpressionEvaluator*> inputEvaluators;
+    for (auto& child : children) {
+        inputEvaluators.push_back(child.get());
+    }
+    resolveResultStateFromChildren(inputEvaluators);
 }
 
 } // namespace evaluator

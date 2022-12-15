@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.9
+// Generated from /Users/xiyangfeng/kuzu/kuzu/src/antlr4/Cypher.g4 by ANTLR 4.9
 
 #pragma once
 
@@ -27,11 +27,12 @@ public:
     ASC = 75, DESCENDING = 76, DESC = 77, WHERE = 78, OR = 79, XOR = 80, 
     AND = 81, NOT = 82, INVALID_NOT_EQUAL = 83, MINUS = 84, FACTORIAL = 85, 
     STARTS = 86, ENDS = 87, CONTAINS = 88, IS = 89, NULL_ = 90, TRUE = 91, 
-    FALSE = 92, EXISTS = 93, StringLiteral = 94, EscapedChar = 95, DecimalInteger = 96, 
-    HexLetter = 97, HexDigit = 98, Digit = 99, NonZeroDigit = 100, NonZeroOctDigit = 101, 
-    ZeroDigit = 102, RegularDecimalReal = 103, UnescapedSymbolicName = 104, 
-    IdentifierStart = 105, IdentifierPart = 106, EscapedSymbolicName = 107, 
-    SP = 108, WHITESPACE = 109, Comment = 110, Unknown = 111
+    FALSE = 92, EXISTS = 93, CASE = 94, ELSE = 95, END = 96, WHEN = 97, 
+    THEN = 98, StringLiteral = 99, EscapedChar = 100, DecimalInteger = 101, 
+    HexLetter = 102, HexDigit = 103, Digit = 104, NonZeroDigit = 105, NonZeroOctDigit = 106, 
+    ZeroDigit = 107, RegularDecimalReal = 108, UnescapedSymbolicName = 109, 
+    IdentifierStart = 110, IdentifierPart = 111, EscapedSymbolicName = 112, 
+    SP = 113, WHITESPACE = 114, Comment = 115, Unknown = 116
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

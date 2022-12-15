@@ -13,6 +13,7 @@ namespace kuzu {
 namespace binder {
 
 class Binder;
+class CaseAlternative;
 
 class ExpressionBinder {
     friend class Binder;
@@ -60,11 +61,14 @@ private:
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindNullLiteralExpression();
 
     shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindExistentialSubqueryExpression(
         const ParsedExpression& parsedExpression);
+
+    shared_ptr<Expression> bindCaseExpression(const ParsedExpression& parsedExpression);
 
     /****** cast *****/
     // Note: we expose two implicitCastIfNecessary interfaces.

@@ -13,7 +13,6 @@ namespace kuzu {
 namespace parser {
 
 class ParsedExpression {
-
 public:
     ParsedExpression(ExpressionType type, unique_ptr<ParsedExpression> child, string rawName);
 

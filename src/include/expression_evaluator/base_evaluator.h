@@ -11,29 +11,18 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace evaluator {
 
-using binary_exec_operation = std::function<void(ValueVector&, ValueVector&, ValueVector&)>;
-using binary_select_operation = std::function<uint64_t(ValueVector&, ValueVector&, sel_t*)>;
-using unary_exec_operation = std::function<void(ValueVector&, ValueVector&)>;
-using unary_select_operation = std::function<uint64_t(ValueVector&, sel_t*)>;
-
 class BaseExpressionEvaluator {
-
 public:
-    // Literal or reference evaluator
     BaseExpressionEvaluator() = default;
+    // Leaf evaluators (reference or literal)
+    explicit BaseExpressionEvaluator(bool isResultFlat) : isResultFlat_{isResultFlat} {}
 
-    // Unary evaluator
-    explicit BaseExpressionEvaluator(unique_ptr<BaseExpressionEvaluator> child);
-
-    // Binary evaluator
-    BaseExpressionEvaluator(
-        unique_ptr<BaseExpressionEvaluator> left, unique_ptr<BaseExpressionEvaluator> right);
-
-    // Function evaluator
     explicit BaseExpressionEvaluator(vector<unique_ptr<BaseExpressionEvaluator>> children)
-        : children{move(children)} {}
+        : children{std::move(children)} {}
 
     virtual ~BaseExpressionEvaluator() = default;
+
+    inline bool isResultFlat() const { return isResultFlat_; }
 
     virtual void init(const ResultSet& resultSet, MemoryManager* memoryManager);
 
@@ -43,10 +32,16 @@ public:
 
     virtual unique_ptr<BaseExpressionEvaluator> clone() = 0;
 
+protected:
+    virtual void resolveResultVector(const ResultSet& resultSet, MemoryManager* memoryManager) = 0;
+
+    void resolveResultStateFromChildren(const vector<BaseExpressionEvaluator*>& inputEvaluators);
+
 public:
     shared_ptr<ValueVector> resultVector;
 
 protected:
+    bool isResultFlat_ = true;
     vector<unique_ptr<BaseExpressionEvaluator>> children;
 };
 

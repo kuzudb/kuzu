@@ -1,23 +1,18 @@
 #pragma once
 
 #include "cypher_parser.h"
-#include "parser/copy_csv/copy_csv.h"
-#include "parser/ddl/create_node_clause.h"
-#include "parser/ddl/create_rel_clause.h"
-#include "parser/ddl/drop_table.h"
-#include "parser/query/reading_clause/unwind_clause.h"
+#include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
-#include "parser/query/updating_clause/create_clause.h"
-#include "parser/query/updating_clause/delete_clause.h"
-#include "parser/query/updating_clause/set_clause.h"
 
 using namespace std;
 
 namespace kuzu {
 namespace parser {
 
-class Transformer {
+struct ParsedCaseAlternative;
+struct SetItem;
 
+class Transformer {
 public:
     explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
 
@@ -40,17 +35,17 @@ private:
 
     unique_ptr<ReadingClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
-    unique_ptr<MatchClause> transformMatch(CypherParser::OC_MatchContext& ctx);
+    unique_ptr<ReadingClause> transformMatch(CypherParser::OC_MatchContext& ctx);
 
-    unique_ptr<UnwindClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
+    unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
 
-    unique_ptr<CreateClause> transformCreate(CypherParser::OC_CreateContext& ctx);
+    unique_ptr<UpdatingClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 
-    unique_ptr<SetClause> transformSet(CypherParser::OC_SetContext& ctx);
+    unique_ptr<UpdatingClause> transformSet(CypherParser::OC_SetContext& ctx);
 
     unique_ptr<SetItem> transformSetItem(CypherParser::OC_SetItemContext& ctx);
 
-    unique_ptr<DeleteClause> transformDelete(CypherParser::OC_DeleteContext& ctx);
+    unique_ptr<UpdatingClause> transformDelete(CypherParser::OC_DeleteContext& ctx);
 
     unique_ptr<WithClause> transformWith(CypherParser::OC_WithContext& ctx);
 
@@ -181,6 +176,12 @@ private:
 
     string transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx);
 
+    unique_ptr<ParsedExpression> transformCaseExpression(
+        CypherParser::OC_CaseExpressionContext& ctx);
+
+    unique_ptr<ParsedCaseAlternative> transformCaseAlternative(
+        CypherParser::OC_CaseAlternativeContext& ctx);
+
     string transformVariable(CypherParser::OC_VariableContext& ctx);
 
     unique_ptr<ParsedExpression> transformNumberLiteral(CypherParser::OC_NumberLiteralContext& ctx);
@@ -198,13 +199,13 @@ private:
 
     string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
 
-    unique_ptr<DDL> transformDDL();
+    unique_ptr<Statement> transformDDL();
 
-    unique_ptr<CreateNodeClause> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
+    unique_ptr<Statement> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
 
-    unique_ptr<CreateRelClause> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);
+    unique_ptr<Statement> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);
 
-    unique_ptr<DropTable> transformDropTable(CypherParser::KU_DropTableContext& ctx);
+    unique_ptr<Statement> transformDropTable(CypherParser::KU_DropTableContext& ctx);
 
     string transformDataType(CypherParser::KU_DataTypeContext& ctx);
 
@@ -220,7 +221,7 @@ private:
 
     vector<string> transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx);
 
-    unique_ptr<CopyCSV> transformCopyCSV();
+    unique_ptr<Statement> transformCopyCSV();
 
     unordered_map<string, unique_ptr<ParsedExpression>> transformParsingOptions(
         CypherParser::KU_ParsingOptionsContext& ctx);

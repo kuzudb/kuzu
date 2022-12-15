@@ -9,7 +9,7 @@ unordered_set<string> Expression::getDependentVariableNames() {
         result.insert(getUniqueName());
         return result;
     }
-    for (auto& child : children) {
+    for (auto& child : getChildren()) {
         for (auto& variableName : child->getDependentVariableNames()) {
             result.insert(variableName);
         }

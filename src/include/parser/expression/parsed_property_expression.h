@@ -6,11 +6,11 @@ namespace kuzu {
 namespace parser {
 
 class ParsedPropertyExpression : public ParsedExpression {
-
 public:
     ParsedPropertyExpression(
         ExpressionType type, string propertyName, unique_ptr<ParsedExpression> child, string raw)
-        : ParsedExpression{type, move(child), move(raw)}, propertyName{move(propertyName)} {}
+        : ParsedExpression{type, std::move(child), std::move(raw)}, propertyName{
+                                                                        std::move(propertyName)} {}
 
     inline string getPropertyName() const { return propertyName; }
 

@@ -8,12 +8,6 @@ inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 
-void ReferenceExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
-    assert(children.empty());
-    resultVector =
-        resultSet.dataChunks[vectorPos.dataChunkPos]->valueVectors[vectorPos.valueVectorPos];
-}
-
 bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
     uint64_t numSelectedValues = 0;
     auto selectedBuffer = resultVector->state->selVector->getSelectedPositionsBuffer();

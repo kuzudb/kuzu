@@ -30,6 +30,9 @@ private:
     unique_ptr<BaseExpressionEvaluator> mapReferenceExpression(
         const shared_ptr<Expression>& expression, const Schema& schema);
 
+    unique_ptr<BaseExpressionEvaluator> mapCaseExpression(
+        const shared_ptr<Expression>& expression, const Schema& schema);
+
     unique_ptr<BaseExpressionEvaluator> mapFunctionExpression(
         const shared_ptr<Expression>& expression, const Schema& schema);
 };

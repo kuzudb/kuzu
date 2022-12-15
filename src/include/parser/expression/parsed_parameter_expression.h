@@ -6,10 +6,9 @@ namespace kuzu {
 namespace parser {
 
 class ParsedParameterExpression : public ParsedExpression {
-
 public:
     explicit ParsedParameterExpression(string parameterName, string raw)
-        : ParsedExpression{PARAMETER, move(raw)}, parameterName{move(parameterName)} {}
+        : ParsedExpression{PARAMETER, std::move(raw)}, parameterName{std::move(parameterName)} {}
 
     inline string getParameterName() const { return parameterName; }
 
