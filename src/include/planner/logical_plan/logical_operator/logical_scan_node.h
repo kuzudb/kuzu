@@ -12,12 +12,9 @@ public:
     explicit LogicalScanNode(shared_ptr<NodeExpression> node)
         : LogicalOperator{LogicalOperatorType::SCAN_NODE}, node{std::move(node)} {}
 
-    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
+    void computeSchema() override;
 
-    inline virtual void computeSchema(Schema& schema) {
-        auto groupPos = schema.createGroup();
-        schema.insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
-    }
+    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
     inline shared_ptr<NodeExpression> getNode() const { return node; }
 
@@ -25,7 +22,7 @@ public:
         return make_unique<LogicalScanNode>(node);
     }
 
-protected:
+private:
     shared_ptr<NodeExpression> node;
 };
 
@@ -35,13 +32,9 @@ public:
         : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE}, node{std::move(node)},
           indexExpression{std::move(indexExpression)} {}
 
-    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
+    void computeSchema() override;
 
-    inline void computeSchema(Schema& schema) {
-        auto groupPos = schema.createGroup();
-        schema.insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
-        schema.setGroupAsSingleState(groupPos);
-    }
+    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
     inline shared_ptr<NodeExpression> getNode() const { return node; }
     inline shared_ptr<Expression> getIndexExpression() const { return indexExpression; }

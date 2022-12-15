@@ -47,6 +47,7 @@ void ASPOptimizer::applyASP(
 
 void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     auto semiMasker = make_shared<LogicalSemiMasker>(node, plan.getLastOperator());
+    semiMasker->computeSchema();
     plan.setLastOperator(std::move(semiMasker));
 }
 

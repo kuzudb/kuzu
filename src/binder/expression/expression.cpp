@@ -95,9 +95,9 @@ string ExpressionUtil::toString(const expression_vector& expressions) {
     if (expressions.empty()) {
         return string{};
     }
-    auto result = expressions[0]->getUniqueName();
+    auto result = expressions[0]->getRawName();
     for (auto i = 1u; i < expressions.size(); ++i) {
-        result += "," + expressions[i]->getUniqueName();
+        result += "," + expressions[i]->getRawName();
     }
     return result;
 }

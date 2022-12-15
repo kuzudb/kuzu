@@ -10,24 +10,30 @@ namespace planner {
 
 class LogicalProjection : public LogicalOperator {
 public:
-    explicit LogicalProjection(expression_vector expressions,
-        unordered_set<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
+    explicit LogicalProjection(expression_vector expressions, vector<uint32_t> expressionsOutputPos,
+        shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child)},
-          expressions{std::move(expressions)}, discardedGroupsPos{std::move(discardedGroupsPos)} {}
+          expressions{std::move(expressions)}, expressionsOutputPos{
+                                                   std::move(expressionsOutputPos)} {}
 
-    string getExpressionsForPrinting() const override;
+    void computeSchema() override;
+
+    inline string getExpressionsForPrinting() const override {
+        return ExpressionUtil::toString(expressions);
+    }
 
     inline expression_vector getExpressionsToProject() const { return expressions; }
 
-    inline unordered_set<uint32_t> getDiscardedGroupsPos() const { return discardedGroupsPos; }
+    unordered_set<uint32_t> getDiscardedGroupsPos() const;
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(expressions, discardedGroupsPos, children[0]->copy());
+        return make_unique<LogicalProjection>(
+            expressions, expressionsOutputPos, children[0]->copy());
     }
 
 private:
     expression_vector expressions;
-    unordered_set<uint32_t> discardedGroupsPos;
+    vector<uint32_t> expressionsOutputPos;
 };
 
 } // namespace planner

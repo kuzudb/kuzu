@@ -126,6 +126,13 @@ LogicalOperator::LogicalOperator(
     }
 }
 
+void LogicalOperator::computeSchemaRecursive() {
+    for (auto& child : children) {
+        child->computeSchemaRecursive();
+    }
+    computeSchema();
+}
+
 bool LogicalOperator::descendantsContainType(
     const unordered_set<LogicalOperatorType>& types) const {
     if (types.contains(operatorType)) {

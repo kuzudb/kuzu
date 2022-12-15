@@ -5,21 +5,17 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalPlan::setLastOperator(shared_ptr<LogicalOperator> op) {
-    lastOperator = move(op);
-}
-
 unique_ptr<LogicalPlan> LogicalPlan::shallowCopy() const {
-    auto plan =
-        make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, estCardinality, cost);
+    auto plan = make_unique<LogicalPlan>(expressionsToCollect, estCardinality, cost);
     plan->lastOperator = lastOperator;
     return plan;
 }
 
 unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
-    auto plan =
-        make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, estCardinality, cost);
-    plan->lastOperator = lastOperator ? lastOperator->copy() : lastOperator;
+    assert(!isEmpty());
+    auto plan = make_unique<LogicalPlan>(expressionsToCollect, estCardinality, cost);
+    plan->lastOperator = lastOperator->copy();
+    plan->lastOperator->computeSchemaRecursive();
     return plan;
 }
 

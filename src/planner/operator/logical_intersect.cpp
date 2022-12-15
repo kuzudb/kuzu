@@ -3,6 +3,26 @@
 namespace kuzu {
 namespace planner {
 
+void LogicalIntersect::computeSchema() {
+    auto probeSchema = children[0]->getSchema();
+    schema = probeSchema->copy();
+    // Write intersect node and rels into a new group regardless of whether rel is n-n.
+    auto outGroupPos = schema->createGroup();
+    schema->insertToGroupAndScope(intersectNode->getInternalIDProperty(), outGroupPos);
+    for (auto i = 1; i < children.size(); ++i) {
+        auto buildSchema = children[i]->getSchema();
+        auto buildInfo = buildInfos[i - 1].get();
+        // Write rel properties into output group.
+        for (auto& expression : buildSchema->getExpressionsInScope()) {
+            if (expression->getUniqueName() == intersectNode->getInternalIDPropertyName() ||
+                expression->getUniqueName() == buildInfo->key->getInternalIDPropertyName()) {
+                continue;
+            }
+            schema->insertToGroupAndScope(expression, outGroupPos);
+        }
+    }
+}
+
 unique_ptr<LogicalOperator> LogicalIntersect::copy() {
     vector<shared_ptr<LogicalOperator>> buildChildren;
     vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos_;

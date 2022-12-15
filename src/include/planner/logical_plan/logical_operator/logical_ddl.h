@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "base_logical_operator.h"
 
 namespace kuzu {
@@ -15,6 +13,8 @@ public:
           propertyNameDataTypes{std::move(propertyNameDataTypes)} {}
 
     inline string getExpressionsForPrinting() const override { return tableName; }
+
+    inline void computeSchema() override { schema = make_unique<Schema>(); }
 
     inline string getTableName() const { return tableName; }
 

@@ -22,7 +22,6 @@ void ProjectionPlanner::planProjectionBody(
 
 void ProjectionPlanner::planProjectionBody(
     const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
         expression_vector expressionsToScan;
         for (auto& expression : projectionBody.getProjectionExpressions()) {
@@ -41,9 +40,10 @@ void ProjectionPlanner::planProjectionBody(
     // E.g. MATCH (a) WITH a RETURN a.age -> MATCH (a) WITH a.age RETURN a.age
     // This rewrite should be removed once we add an optimizer that can remove unnecessary columns.
     auto expressionsToProject =
-        rewriteExpressionsToProject(projectionBody.getProjectionExpressions(), *schema);
-    auto expressionsToAggregate = getExpressionsToAggregate(expressionsToProject, *schema);
-    auto expressionsToGroupBy = getExpressionToGroupBy(expressionsToProject, *schema);
+        rewriteExpressionsToProject(projectionBody.getProjectionExpressions(), *plan.getSchema());
+    auto expressionsToAggregate =
+        getExpressionsToAggregate(expressionsToProject, *plan.getSchema());
+    auto expressionsToGroupBy = getExpressionToGroupBy(expressionsToProject, *plan.getSchema());
     if (!expressionsToAggregate.empty()) {
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
@@ -83,67 +83,34 @@ void ProjectionPlanner::planAggregate(const expression_vector& expressionsToAggr
     appendAggregate(expressionsToGroupBy, expressionsToAggregate, plan);
 }
 
-static unordered_set<uint32_t> getDiscardedGroupsPos(unordered_set<uint32_t>& groupsPosBefore,
-    unordered_set<uint32_t>& groupsPosAfter, uint32_t totalNumGroups) {
-    unordered_set<uint32_t> discardGroupsPos;
-    for (auto i = 0u; i < totalNumGroups; ++i) {
-        if (groupsPosBefore.contains(i) && !groupsPosAfter.contains(i)) {
-            discardGroupsPos.insert(i);
-        }
-    }
-    return discardGroupsPos;
-}
-
 void ProjectionPlanner::appendProjection(
     const expression_vector& expressionsToProject, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    expression_vector expressionsToReference;
-    vector<uint32_t> expressionsToReferenceOutputPos;
-    expression_vector expressionsToEvaluate;
-    vector<uint32_t> expressionsToEvaluateOutputPos;
     for (auto& expression : expressionsToProject) {
         queryPlanner->planSubqueryIfNecessary(expression, plan);
-        if (schema->isExpressionInScope(*expression)) {
-            expressionsToReference.push_back(expression);
-            expressionsToReferenceOutputPos.push_back(schema->getGroupPos(*expression));
+    }
+    vector<uint32_t> expressionsOutputPos;
+    for (auto& expression : expressionsToProject) {
+        if (plan.getSchema()->isExpressionInScope(*expression)) {
+            expressionsOutputPos.push_back(
+                plan.getSchema()->getGroupPos(expression->getUniqueName()));
         } else {
-            expressionsToEvaluate.push_back(expression);
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
-            uint32_t outputPos;
+            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
             if (dependentGroupsPos.empty()) { // e.g. constant that does not depend on any input.
-                outputPos = schema->createGroup();
-                // Mark group holding constant as single state.
-                schema->setGroupAsSingleState(outputPos);
+                expressionsOutputPos.push_back(UINT32_MAX);
             } else {
-                outputPos = QueryPlanner::appendFlattensButOne(dependentGroupsPos, plan);
+                auto outputPos = QueryPlanner::appendFlattensButOne(dependentGroupsPos, plan);
+                expressionsOutputPos.push_back(outputPos);
             }
-            expressionsToEvaluateOutputPos.push_back(outputPos);
         }
     }
-    auto groupsPosInScopeBeforeProjection = schema->getGroupsPosInScope();
-    schema->clearExpressionsInScope();
-    for (auto i = 0u; i < expressionsToReference.size(); ++i) {
-        // E.g. RETURN MIN(a.age), MAX(a.age). We first project each expression in aggregate. So
-        // a.age might be projected twice.
-        if (schema->isExpressionInScope(*expressionsToReference[i])) {
-            continue;
-        }
-        schema->insertToScope(expressionsToReference[i], expressionsToReferenceOutputPos[i]);
-    }
-    for (auto i = 0u; i < expressionsToEvaluate.size(); ++i) {
-        schema->insertToGroupAndScope(expressionsToEvaluate[i], expressionsToEvaluateOutputPos[i]);
-    }
-    auto groupsPosInScopeAfterProjection = schema->getGroupsPosInScope();
-    auto discardGroupsPos = getDiscardedGroupsPos(
-        groupsPosInScopeBeforeProjection, groupsPosInScopeAfterProjection, schema->getNumGroups());
     auto projection = make_shared<LogicalProjection>(
-        expressionsToProject, std::move(discardGroupsPos), plan.getLastOperator());
+        expressionsToProject, expressionsOutputPos, plan.getLastOperator());
+    projection->computeSchema();
     plan.setLastOperator(std::move(projection));
 }
 
 void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     bool hasDistinctFunc = false;
     for (auto& expressionToAggregate : expressionsToAggregate) {
         auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
@@ -153,46 +120,39 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
     }
     if (hasDistinctFunc) { // Flatten all inputs.
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
+            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
             QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
         for (auto& expressionToAggregate : expressionsToAggregate) {
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
+            auto dependentGroupsPos =
+                plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
             QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
     } else {
         // Flatten all but one for ALL group by keys.
         unordered_set<uint32_t> groupByPoses;
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToGroupBy);
+            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
             groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
         }
         QueryPlanner::appendFlattensButOne(groupByPoses, plan);
         if (expressionsToAggregate.size() > 1) {
             for (auto& expressionToAggregate : expressionsToAggregate) {
-                auto dependentGroupsPos = schema->getDependentGroupsPos(expressionToAggregate);
+                auto dependentGroupsPos =
+                    plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
                 QueryPlanner::appendFlattens(dependentGroupsPos, plan);
             }
         }
     }
     auto aggregate = make_shared<LogicalAggregate>(
-        expressionsToGroupBy, expressionsToAggregate, schema->copy(), plan.getLastOperator());
-    schema->clear();
-    auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToGroupBy) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    for (auto& expression : expressionsToAggregate) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    plan.setLastOperator(move(aggregate));
+        expressionsToGroupBy, expressionsToAggregate, plan.getLastOperator());
+    aggregate->computeSchema();
+    plan.setLastOperator(std::move(aggregate));
 }
 
 void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     for (auto& expression : expressions) {
-        queryPlanner->planSubqueryIfNecessary(expression, plan);
         // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
         // group and there is no other factorized group in the schema, so any payload is also unflat
         // and part of the same factorization group. The rationale for this limitation is this: (1)
@@ -206,39 +166,39 @@ void ProjectionPlanner::appendOrderBy(
         // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
         // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
         // cannot read back a flat column into an unflat vector.
-        if (schema->getNumGroups() > 1) {
-            auto dependentGroupsPos = schema->getDependentGroupsPos(expression);
+        if (plan.getSchema()->getNumGroups() > 1) {
+            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
             QueryPlanner::appendFlattens(dependentGroupsPos, plan);
         }
     }
-    auto schemaBeforeOrderBy = schema->copy();
-    SinkOperatorUtil::recomputeSchema(*schemaBeforeOrderBy, *schema);
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
-        schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),
-        plan.getLastOperator());
-    plan.setLastOperator(move(orderBy));
+        plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());
+    orderBy->computeSchema();
+    plan.setLastOperator(std::move(orderBy));
 }
 
 void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
-    plan.setLastOperator(make_shared<LogicalMultiplicityReducer>(plan.getLastOperator()));
+    auto multiplicityReducer = make_shared<LogicalMultiplicityReducer>(plan.getLastOperator());
+    multiplicityReducer->computeSchema();
+    plan.setLastOperator(std::move(multiplicityReducer));
 }
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto groupPosToSelect = QueryPlanner::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
-    auto limit = make_shared<LogicalLimit>(
-        limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
+    auto groupPosToSelect =
+        QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    auto limit = make_shared<LogicalLimit>(limitNumber, groupPosToSelect, plan.getLastOperator());
+    limit->computeSchema();
     plan.setCardinality(limitNumber);
-    plan.setLastOperator(move(limit));
+    plan.setLastOperator(std::move(limit));
 }
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto groupPosToSelect = QueryPlanner::appendFlattensButOne(schema->getGroupsPosInScope(), plan);
-    auto skip = make_shared<LogicalSkip>(
-        skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
+    auto groupPosToSelect =
+        QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    auto skip = make_shared<LogicalSkip>(skipNumber, groupPosToSelect, plan.getLastOperator());
+    skip->computeSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);
-    plan.setLastOperator(move(skip));
+    plan.setLastOperator(std::move(skip));
 }
 
 expression_vector ProjectionPlanner::getExpressionToGroupBy(
