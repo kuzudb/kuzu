@@ -7,18 +7,20 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalExpressionsScan = (LogicalExpressionsScan&)*logicalOperator;
+    auto outSchema = logicalExpressionsScan.getSchema();
+    auto inSchema = make_unique<Schema>();
     auto expressions = logicalExpressionsScan.getExpressions();
     auto sharedState = make_shared<FTableSharedState>();
     // populate static table
     unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
     vector<shared_ptr<ValueVector>> vectors;
     for (auto& expression : expressions) {
-        tableSchema->appendColumn(make_unique<ColumnSchema>(false,
-            mapperContext.getDataPos(expression->getUniqueName()).dataChunkPos,
-            Types::getDataTypeSize(expression->dataType)));
-        auto expressionEvaluator = expressionMapper.mapExpression(expression, mapperContext);
+        tableSchema->appendColumn(
+            make_unique<ColumnSchema>(false, 0 /* all expressions are in the same datachunk */,
+                Types::getDataTypeSize(expression->dataType)));
+        auto expressionEvaluator = expressionMapper.mapExpression(expression, *inSchema);
         // expression can be evaluated statically and does not require an actual resultset to init
         expressionEvaluator->init(ResultSet(0) /* dummy resultset */, memoryManager);
         expressionEvaluator->evaluate();
@@ -32,9 +34,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
     vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
-        auto expressionName = expression->getUniqueName();
-        outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        mapperContext.addComputedExpressions(expressionName);
+        outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
     return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),

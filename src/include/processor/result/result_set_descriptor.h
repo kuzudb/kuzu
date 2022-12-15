@@ -25,11 +25,6 @@ public:
     inline void setSingleState() { singleState = true; }
     inline bool isSingleState() const { return singleState; }
 
-    inline uint32_t getValueVectorPos(const string& name) const {
-        assert(expressionNameToValueVectorPosMap.contains(name));
-        return expressionNameToValueVectorPosMap.at(name);
-    }
-
     inline uint32_t getNumValueVectors() const { return expressions.size(); }
 
     inline void addExpression(shared_ptr<Expression> expression) {
@@ -49,8 +44,6 @@ public:
     explicit ResultSetDescriptor(const Schema& schema);
     ResultSetDescriptor(const ResultSetDescriptor& other);
     ~ResultSetDescriptor() = default;
-
-    DataPos getDataPos(const string& name) const;
 
     inline uint32_t getNumDataChunks() const { return dataChunkDescriptors.size(); }
 

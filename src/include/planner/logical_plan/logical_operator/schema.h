@@ -17,7 +17,8 @@ public:
     FactorizationGroup() : flat{false}, singleState{false}, cardinalityMultiplier{1} {}
     FactorizationGroup(const FactorizationGroup& other)
         : flat{other.flat}, singleState{other.singleState},
-          cardinalityMultiplier{other.cardinalityMultiplier}, expressions{other.expressions} {}
+          cardinalityMultiplier{other.cardinalityMultiplier}, expressions{other.expressions},
+          expressionNameToPos{other.expressionNameToPos} {}
 
     inline void setFlat() {
         assert(!flat);
@@ -35,15 +36,22 @@ public:
     inline uint64_t getMultiplier() const { return cardinalityMultiplier; }
 
     inline void insertExpression(const shared_ptr<Expression>& expression) {
+        assert(!expressionNameToPos.contains(expression->getUniqueName()));
+        expressionNameToPos.insert({expression->getUniqueName(), expressions.size()});
         expressions.push_back(expression);
     }
     inline expression_vector getExpressions() const { return expressions; }
+    inline uint32_t getExpressionPos(const Expression& expression) {
+        assert(expressionNameToPos.contains(expression.getUniqueName()));
+        return expressionNameToPos.at(expression.getUniqueName());
+    }
 
 private:
     bool flat;
     bool singleState;
     uint64_t cardinalityMultiplier;
     expression_vector expressions;
+    unordered_map<string, uint32_t> expressionNameToPos;
 };
 
 class Schema {
@@ -68,13 +76,18 @@ public:
 
     void insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos);
 
-    inline uint32_t getGroupPos(const Expression& expression) {
+    inline uint32_t getGroupPos(const Expression& expression) const {
         return getGroupPos(expression.getUniqueName());
     }
 
     inline uint32_t getGroupPos(const string& expressionName) const {
         assert(expressionNameToGroupPos.contains(expressionName));
         return expressionNameToGroupPos.at(expressionName);
+    }
+
+    inline pair<uint32_t, uint32_t> getExpressionPos(const Expression& expression) const {
+        auto groupPos = getGroupPos(expression);
+        return make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }
 
     inline void flattenGroup(uint32_t pos) { groups[pos]->setFlat(); }

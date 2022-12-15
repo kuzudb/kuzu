@@ -26,12 +26,5 @@ ResultSetDescriptor::ResultSetDescriptor(const ResultSetDescriptor& other)
     }
 }
 
-DataPos ResultSetDescriptor::getDataPos(const string& name) const {
-    assert(expressionNameToDataChunkPosMap.contains(name));
-    auto dataChunkPos = expressionNameToDataChunkPosMap.at(name);
-    auto valueVectorPos = dataChunkDescriptors[dataChunkPos]->getValueVectorPos(name);
-    return DataPos{dataChunkPos, valueVectorPos};
-}
-
 } // namespace processor
 } // namespace kuzu

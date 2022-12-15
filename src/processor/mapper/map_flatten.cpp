@@ -6,11 +6,11 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto flatten = (LogicalFlatten*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto dataChunkPos =
-        mapperContext.getDataPos(flatten->getExpression()->getUniqueName()).dataChunkPos;
+    auto inSchema = flatten->getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto dataChunkPos = inSchema->getExpressionPos(*flatten->getExpression()).first;
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), getOperatorID(), flatten->getExpressionsForPrinting());
 }

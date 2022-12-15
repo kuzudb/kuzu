@@ -6,18 +6,19 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto outSchema = logicalProjection.getSchema();
+    auto inSchema = logicalProjection.getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.getExpressionsToProject()) {
-        expressionEvaluators.push_back(expressionMapper.mapExpression(expression, mapperContext));
-        expressionsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        mapperContext.addComputedExpressions(expression->getUniqueName());
+        expressionEvaluators.push_back(expressionMapper.mapExpression(expression, *inSchema));
+        expressionsOutputPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
-        logicalProjection.getDiscardedGroupsPos(), move(prevOperator), getOperatorID(),
+    return make_unique<Projection>(std::move(expressionEvaluators), std::move(expressionsOutputPos),
+        logicalProjection.getDiscardedGroupsPos(), std::move(prevOperator), getOperatorID(),
         logicalProjection.getExpressionsForPrinting());
 }
 

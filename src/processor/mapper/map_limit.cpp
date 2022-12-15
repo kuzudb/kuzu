@@ -6,12 +6,12 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
-        dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator),
+        dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), std::move(prevOperator),
         getOperatorID(), logicalLimit.getExpressionsForPrinting());
 }
 
