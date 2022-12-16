@@ -10,16 +10,16 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
-    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
+    const shared_ptr<Expression>& expression, const Schema& schema) {
     auto expressionType = expression->expressionType;
-    if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
-        return mapReferenceExpression(expression, mapperContext);
+    if (schema.isExpressionInScope(*expression)) {
+        return mapReferenceExpression(expression, schema);
     } else if (isExpressionLiteral(expressionType)) {
         return mapLiteralExpression(expression);
     } else if (PARAMETER == expressionType) {
         return mapParameterExpression((expression));
     } else {
-        return mapFunctionExpression(expression, mapperContext);
+        return mapFunctionExpression(expression, schema);
     }
 }
 
@@ -38,16 +38,16 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
-    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
-    auto vectorPos = mapperContext.getDataPos(expression->getUniqueName());
+    const shared_ptr<Expression>& expression, const Schema& schema) {
+    auto vectorPos = DataPos(schema.getExpressionPos(*expression));
     return make_unique<ReferenceExpressionEvaluator>(vectorPos);
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
-    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
+    const shared_ptr<Expression>& expression, const Schema& schema) {
     vector<unique_ptr<BaseExpressionEvaluator>> children;
     for (auto i = 0u; i < expression->getNumChildren(); ++i) {
-        children.push_back(mapExpression(expression->getChild(i), mapperContext));
+        children.push_back(mapExpression(expression->getChild(i), schema));
     }
     return make_unique<FunctionExpressionEvaluator>(expression, std::move(children));
 }

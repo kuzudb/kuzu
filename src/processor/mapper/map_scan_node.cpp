@@ -8,13 +8,12 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalScan = (LogicalScanNode*)logicalOperator;
+    auto outSchema = logicalScan->getSchema();
     auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
-
-    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
-    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
+    auto dataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto sharedState = make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : node->getTableIDs()) {
         auto nodeTable = nodesStore.getNodeTable(tableID);
@@ -25,14 +24,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
+    auto outSchema = logicalIndexScan->getSchema();
+    auto inSchema = make_unique<Schema>();
     auto node = logicalIndexScan->getNode();
     auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getSingleTableID());
-    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
+    auto dataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto evaluator =
-        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
-    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
+        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), *inSchema);
     return make_unique<IndexScan>(nodeTable->getTableID(), nodeTable->getPKIndex(),
         std::move(evaluator), dataPos, getOperatorID(),
         logicalIndexScan->getExpressionsForPrinting());

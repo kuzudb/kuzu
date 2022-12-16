@@ -88,20 +88,22 @@ static vector<unique_ptr<ColumnAndListCollection>> populatePropertyCollections(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto extend = (LogicalExtend*)logicalOperator;
+    auto outSchema = extend->getSchema();
+    auto inSchema = extend->getChild(0)->getSchema();
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
     auto direction = extend->getDirection();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto inNodeIDVectorPos = mapperContext.getDataPos(boundNode->getInternalIDPropertyName());
-    auto outNodeIDVectorPos = mapperContext.getDataPos(nbrNode->getInternalIDPropertyName());
-    mapperContext.addComputedExpressions(nbrNode->getInternalIDPropertyName());
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto inNodeIDVectorPos =
+        DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
+    auto outNodeIDVectorPos =
+        DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     vector<DataPos> outPropertyVectorsPos;
     for (auto& expression : extend->getProperties()) {
-        outPropertyVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        mapperContext.addComputedExpressions(expression->getUniqueName());
+        outPropertyVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto& relsStore = storageManager.getRelsStore();
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled()) {

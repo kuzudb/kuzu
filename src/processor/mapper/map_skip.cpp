@@ -6,9 +6,9 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator), getOperatorID(),

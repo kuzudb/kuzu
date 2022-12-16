@@ -8,19 +8,15 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
-    auto& schemaBeforeOrderBy = *logicalOrderBy.getSchemaBeforeOrderBy();
-    auto mapperContextBeforeOrderBy =
-        MapperContext(make_unique<ResultSetDescriptor>(schemaBeforeOrderBy));
-    auto prevOperator =
-        mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0), mapperContextBeforeOrderBy);
+    auto outSchema = logicalOrderBy.getSchema();
+    auto inSchema = logicalOrderBy.getSchemaBeforeOrderBy();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0));
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
     vector<pair<DataPos, DataType>> keysPosAndType;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
-        keysPosAndType.emplace_back(
-            mapperContextBeforeOrderBy.getDataPos(expression->getUniqueName()),
-            expression->dataType);
+        keysPosAndType.emplace_back(inSchema->getExpressionPos(*expression), expression->dataType);
     }
     vector<pair<DataPos, DataType>> payloadsPosAndType;
     vector<bool> isPayloadFlat;
@@ -28,10 +24,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {
         auto expressionName = expression->getUniqueName();
         payloadsPosAndType.emplace_back(
-            mapperContextBeforeOrderBy.getDataPos(expressionName), expression->dataType);
-        isPayloadFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->isFlat());
-        outVectorPos.emplace_back(mapperContext.getDataPos(expressionName));
-        mapperContext.addComputedExpressions(expressionName);
+            inSchema->getExpressionPos(*expression), expression->dataType);
+        isPayloadFlat.push_back(inSchema->getGroup(expressionName)->isFlat());
+        outVectorPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     // See comment in planOrderBy in projectionPlanner.cpp
     auto mayContainUnflatKey = logicalOrderBy.getSchemaBeforeOrderBy()->getNumGroups() == 1;
@@ -39,9 +34,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         logicalOrderBy.getIsAscOrders(), mayContainUnflatKey);
     auto orderBySharedState = make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
-    auto orderBy = make_unique<OrderBy>(mapperContextBeforeOrderBy.getResultSetDescriptor()->copy(),
-        orderByDataInfo, orderBySharedState, std::move(prevOperator), getOperatorID(),
-        paramsString);
+    auto orderBy =
+        make_unique<OrderBy>(make_unique<ResultSetDescriptor>(*inSchema), orderByDataInfo,
+            orderBySharedState, std::move(prevOperator), getOperatorID(), paramsString);
     auto dispatcher = make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         std::move(orderBy), getOperatorID(), paramsString);
