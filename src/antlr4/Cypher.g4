@@ -309,14 +309,25 @@ oC_NotExpression
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
 oC_ComparisonExpression
-    : oC_AddOrSubtractExpression ( SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression )?
-        | oC_AddOrSubtractExpression ( SP? INVALID_NOT_EQUAL SP? oC_AddOrSubtractExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
-        | oC_AddOrSubtractExpression SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression ( SP? kU_ComparisonOperator SP? oC_AddOrSubtractExpression )+ { notifyNonBinaryComparison($ctx->start); }
+    : kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )?
+        | kU_BitwiseOrOperatorExpression ( SP? INVALID_NOT_EQUAL SP? kU_BitwiseOrOperatorExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
+        | kU_BitwiseOrOperatorExpression SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )+ { notifyNonBinaryComparison($ctx->start); }
         ;
 
 kU_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
 
 INVALID_NOT_EQUAL : '!=' ;
+
+kU_BitwiseOrOperatorExpression
+    : kU_BitwiseAndOperatorExpression ( SP? '|' SP? kU_BitwiseAndOperatorExpression )* ;
+
+kU_BitwiseAndOperatorExpression
+    : kU_BitShiftOperatorExpression ( SP? '&' SP? kU_BitShiftOperatorExpression )* ;
+
+kU_BitShiftOperatorExpression
+    : oC_AddOrSubtractExpression ( SP? kU_BitShiftOperator SP? oC_AddOrSubtractExpression )* ;
+
+kU_BitShiftOperator : '>>' | '<<' ;
 
 oC_AddOrSubtractExpression
     : oC_MultiplyDivideModuloExpression ( SP? kU_AddOrSubtractOperator SP? oC_MultiplyDivideModuloExpression )* ;
@@ -329,12 +340,14 @@ oC_MultiplyDivideModuloExpression
 kU_MultiplyDivideModuloOperator : '*' | '/' | '%' ;
 
 oC_PowerOfExpression
-    : oC_UnaryAddOrSubtractExpression ( SP? '^' SP? oC_UnaryAddOrSubtractExpression )* ;
+    : oC_UnaryAddSubtractOrFactorialExpression ( SP? '^' SP? oC_UnaryAddSubtractOrFactorialExpression )* ;
 
-oC_UnaryAddOrSubtractExpression
-    : ( MINUS SP? )? oC_StringListNullOperatorExpression ;
+oC_UnaryAddSubtractOrFactorialExpression
+    : ( MINUS SP? )? oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
 
 MINUS : '-' ;
+
+FACTORIAL : '!' ;
 
 oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression | oC_NullOperatorExpression )? ;

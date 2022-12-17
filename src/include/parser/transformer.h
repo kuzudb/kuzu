@@ -109,6 +109,15 @@ private:
     unique_ptr<ParsedExpression> transformComparisonExpression(
         CypherParser::OC_ComparisonExpressionContext& ctx);
 
+    unique_ptr<ParsedExpression> transformBitwiseOrOperatorExpression(
+        CypherParser::KU_BitwiseOrOperatorExpressionContext& ctx);
+
+    unique_ptr<ParsedExpression> transformBitwiseAndOperatorExpression(
+        CypherParser::KU_BitwiseAndOperatorExpressionContext& ctx);
+
+    unique_ptr<ParsedExpression> transformBitShiftOperatorExpression(
+        CypherParser::KU_BitShiftOperatorExpressionContext& ctx);
+
     unique_ptr<ParsedExpression> transformAddOrSubtractExpression(
         CypherParser::OC_AddOrSubtractExpressionContext& ctx);
 
@@ -118,8 +127,8 @@ private:
     unique_ptr<ParsedExpression> transformPowerOfExpression(
         CypherParser::OC_PowerOfExpressionContext& ctx);
 
-    unique_ptr<ParsedExpression> transformUnaryAddOrSubtractExpression(
-        CypherParser::OC_UnaryAddOrSubtractExpressionContext& ctx);
+    unique_ptr<ParsedExpression> transformUnaryAddSubtractOrFactorialExpression(
+        CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx);
 
     unique_ptr<ParsedExpression> transformStringListNullOperatorExpression(
         CypherParser::OC_StringListNullOperatorExpressionContext& ctx);

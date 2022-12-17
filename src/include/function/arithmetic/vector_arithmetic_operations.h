@@ -140,6 +140,22 @@ struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct BitwiseAndVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitwiseOrVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitShiftLeftVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitShiftRightVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct CbrtVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
