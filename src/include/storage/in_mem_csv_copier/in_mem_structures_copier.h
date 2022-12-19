@@ -12,12 +12,12 @@ namespace storage {
 
 using namespace kuzu::catalog;
 
-class InMemStructuresCSVCopier {
+class InMemStructuresCopier {
 protected:
-    InMemStructuresCSVCopier(CSVDescription& csvDescription, string outputDirectory,
+    InMemStructuresCopier(CSVDescription& csvDescription, string outputDirectory,
         TaskScheduler& taskScheduler, Catalog& catalog);
 
-    virtual ~InMemStructuresCSVCopier() = default;
+    virtual ~InMemStructuresCopier() = default;
 
 public:
     virtual void saveToFile() = 0;
@@ -29,7 +29,8 @@ protected:
 
     // Concurrent tasks
     static void countNumLinesPerBlockTask(
-        const string& fName, uint64_t blockId, InMemStructuresCSVCopier* copier);
+        const string& fName, uint64_t blockId,
+        InMemStructuresCopier* copier);
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
@@ -39,7 +40,7 @@ protected:
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
     // largeListsPagesMap, using listSizes and listHeadersBuilder.
     // **Note that this file also allocates the in-memory pages of the InMemFile that will actually
-    // stores the data in the lists (e.g., neighbor ids or edge properties).
+    // store the data in the lists (e.g., neighbor ids or edge properties).
     static void calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
         uint32_t elementSize, atomic_uint64_vec_t* listSizes,
         ListHeadersBuilder* listHeadersBuilder, InMemLists* inMemList, bool hasNULLBytes,

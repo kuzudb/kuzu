@@ -1,20 +1,17 @@
 #pragma once
 
-#include "in_mem_structures_csv_copier.h"
-
+#include "in_mem_structures_copier.h"
 #include "storage/index/hash_index_builder.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
-
+#include <arrow/api.h>
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
-#include <arrow/api.h>
+#include <arrow/ipc/reader.h>
 #include <arrow/pretty_print.h>
 #include <arrow/result.h>
+#include <arrow/scalar.h>
 #include <arrow/status.h>
 #include <arrow/table.h>
-#include <arrow/ipc/reader.h>
-#include <arrow/scalar.h>
-
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
 #include <parquet/exception.h>
@@ -22,7 +19,7 @@
 namespace kuzu {
 namespace storage {
 
-    class InMemArrowNodeCopier : public InMemStructuresCSVCopier {
+    class InMemArrowNodeCopier : public InMemStructuresCopier {
 
     public:
         InMemArrowNodeCopier(CSVDescription &csvDescription, string outputDirectory,
@@ -66,7 +63,6 @@ namespace storage {
 
         template<typename T>
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
-                                              const vector<Property> &properties,
                                               vector<PageByteCursor> &overflowCursors,
                                               const std::vector<shared_ptr<T>> &arrow_columns,
                                               uint64_t nodeOffset, uint64_t bufferOffset);
@@ -90,15 +86,16 @@ namespace storage {
                                                       InMemArrowNodeCopier *copier,
                                                       const vector<shared_ptr<T2>> &batchColumns);
 
+        arrow::Status initArrowCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+            const std::string &filePath);
+
+        static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
+
     private:
         NodeTableSchema *nodeTableSchema;
         uint64_t numNodes;
         vector<unique_ptr<InMemColumn>> structuredColumns;
         NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs;
-
-        arrow::Status initArrowCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-                                        const std::string &filePath);
-        static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
     };
 
 } // namespace storage

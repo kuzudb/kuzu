@@ -1,6 +1,6 @@
 #pragma once
 
-#include "in_mem_structures_csv_copier.h"
+#include "in_mem_structures_copier.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/rels_statistics.h"
 
@@ -13,7 +13,7 @@ using table_adj_in_mem_lists_map_t = unordered_map<table_id_t, unique_ptr<InMemA
 using table_property_in_mem_columns_map_t =
     unordered_map<table_id_t, vector<unique_ptr<InMemColumn>>>;
 
-class InMemRelCSVCopier : public InMemStructuresCSVCopier {
+class InMemRelCSVCopier : public InMemStructuresCopier {
 
 public:
     InMemRelCSVCopier(CSVDescription& csvDescription, string outputDirectory,

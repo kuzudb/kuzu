@@ -6,19 +6,17 @@
 
 namespace kuzu {
 namespace storage {
-    //TODO: remove this once implement reading rel files
-    //set as consts as for now. Will change to better implementation once implement reading rel files.
+    //TODO: refactor this once implement reading rel files.
     char delimiter;
-    int default_page_size = DEFAULT_PAGE_SIZE;
 
     InMemArrowNodeCopier::InMemArrowNodeCopier(CSVDescription &csvDescription, string outputDirectory,
                                                TaskScheduler &taskScheduler, Catalog &catalog, table_id_t tableID,
                                                NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs)
-            : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
+            : InMemStructuresCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
               numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
         nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 
-        //TODO: remove this once implement reading rel files
+        //TODO: refactor this once implement reading rel files.
         delimiter = csvDescription.csvReaderConfig.tokenSeparator;
     }
 
@@ -186,7 +184,7 @@ namespace storage {
         ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
         auto arrowRead = arrow::csv::ReadOptions::Defaults();
 
-        //TODO: remove this once implement reading rel files
+        //TODO: Refactor this once implement reading rel files.
         arrowRead.block_size = 80000;
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
@@ -465,13 +463,12 @@ namespace storage {
                                                                  const vector<shared_ptr<T2>> &batchColumns) {
         copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
-        for (auto bufferOffset = 0u; bufferOffset < copier->numLinesPerBlock[blockId]; ++bufferOffset) {
+        for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
             putPropsOfLineIntoColumns(copier->structuredColumns,
-                                      copier->nodeTableSchema->structuredProperties,
                                       overflowCursors,
                                       batchColumns,
-                                      offsetStart + bufferOffset,
-                                      bufferOffset);
+                                      offsetStart + blockOffset,
+                                      blockOffset);
         }
         populatePKIndex(copier->structuredColumns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
                         copier->numLinesPerBlock[blockId]);
@@ -481,13 +478,11 @@ namespace storage {
 
     template<typename T>
     void InMemArrowNodeCopier::putPropsOfLineIntoColumns(
-            vector<unique_ptr<InMemColumn>> &structuredColumns,
-            const vector<Property> &structuredProperties, vector<PageByteCursor> &overflowCursors,
-            const std::vector<shared_ptr<T>> &arrow_columns,
-            uint64_t nodeOffset, uint64_t bufferOffset) {
+            vector<unique_ptr<InMemColumn>> &structuredColumns, vector<PageByteCursor> &overflowCursors,
+            const std::vector<shared_ptr<T>> &arrow_columns, uint64_t nodeOffset, uint64_t blockOffset) {
         for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
             auto column = structuredColumns[columnIdx].get();
-            auto currentToken = arrow_columns[columnIdx]->GetScalar(bufferOffset);
+            auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);
             if ((*currentToken)->is_valid) {
                 auto stringToken = currentToken->get()->ToString();
                 const char* data = stringToken.c_str();
@@ -496,55 +491,45 @@ namespace storage {
                     case INT64: {
                         int64_t val = TypeUtils::convertToInt64(data);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case DOUBLE: {
                         double_t val = TypeUtils::convertToDouble(data);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case BOOL: {
                         bool val = TypeUtils::convertToBoolean(data);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case DATE: {
                         date_t val = Date::FromCString(data, stringToken.length());
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case TIMESTAMP: {
                         timestamp_t val = Timestamp::FromCString(data, stringToken.length());
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case INTERVAL: {
                         interval_t val = Interval::FromCString(data, stringToken.length());
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case STRING: {
-                        //TODO: remove this once implement reading rel files
-                        stringToken = stringToken.substr(0, default_page_size);
+                        //TODO: Refactor this once implement reading rel files.
+                        stringToken = stringToken.substr(0, DEFAULT_PAGE_SIZE);
                         data = stringToken.c_str();
 
                         auto val = column->getInMemOverflowFile()->copyString(data,
                                                                               overflowCursors[columnIdx]);
 
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
-                    }
-                        break;
+                    } break;
                     case LIST: {
                         Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2, column->getDataType());
                         auto kuList =
                                 column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&kuList));
-                    }
-                        break;
-                    default:
-                        break;
+                    } break;
+                    default: break;
                 }
-
             }
         }
     }
@@ -563,12 +548,12 @@ namespace storage {
                 } else if (l[i] == ']') {
                     bracket -= 1;
                 } else if (bracket == 0 && l[i] == delimiter) {
-                    split.emplace_back(make_pair(last, i - last));
+                    split.emplace_back(last, i - last);
                     last = i + 1;
                 }
             }
         }
-        split.emplace_back(make_pair(last, to - last + 1));
+        split.emplace_back(last, to - last + 1);
 
         for (auto pair: split) {
             string element = l.substr(pair.first, pair.second);
@@ -578,41 +563,33 @@ namespace storage {
             switch (childDataType.typeID) {
                 case INT64: {
                     result.listVal.emplace_back((int64_t) stoll(element));
-                }
-                    break;
+                } break;
                 case DOUBLE: {
                     result.listVal.emplace_back( stod(element));
-                }
-                    break;
+                } break;
                 case BOOL: {
                     transform(element.begin(), element.end(), element.begin(), ::tolower);
                     std::istringstream is(element);
                     bool b;
                     is >> std::boolalpha >> b;
                     result.listVal.emplace_back(b);
-                }
-                    break;
+                } break;
                 case STRING: {
                     result.listVal.emplace_back(element);
-                }
-                    break;
+                } break;
                 case DATE: {
                     result.listVal.emplace_back(Date::FromCString(element.c_str(), element.length()));
-                }
-                    break;
+                } break;
                 case TIMESTAMP: {
                     result.listVal.emplace_back(Timestamp::FromCString(element.c_str(), element.length()));
-                }
-                    break;
+                } break;
                 case INTERVAL: {
                     result.listVal.emplace_back(Interval::FromCString(element.c_str(), element.length()));
-                }
-                    break;
+                } break;
                 case LIST: {
                     result.listVal.emplace_back(getArrowList(l, pair.first + 1,
                                                              pair.second + pair.first - 1, *dataType.childType));
-                }
-                    break;
+                } break;
                 default:
                     throw CSVReaderException("Unsupported data type " +
                                              Types::dataTypeToString(dataType.childType->typeID) +
