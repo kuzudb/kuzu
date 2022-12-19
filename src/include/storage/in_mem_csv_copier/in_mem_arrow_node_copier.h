@@ -32,34 +32,40 @@ namespace storage {
 
         void saveToFile() override;
 
+        enum class FileTypes {
+            CSV,
+            ARROW,
+            PARQUET
+        };
+
+        static std::string getFileTypeName(FileTypes fileTypes);
+
+        static std::string getFileTypeSuffix(FileTypes fileTypes);
 
     private:
-        uint64_t copyFromCSVFile();
+        void setFileType(std::string const &fileName);
 
-        uint64_t copyFromArrowFile();
+        void countNumLines(const std::string &filePath);
 
-        uint64_t copyFromParquetFile();
+        arrow::Status countNumLinesCSV(std::string const &filePath);
 
-        static uint64_t getFileType(std::string const &fileName);
+        arrow::Status countNumLinesArrow(std::string const &filePath);
 
-        arrow::Status initializeArrowCSV(const string &filePath);
-
-        arrow::Status initializeArrowArrow(std::shared_ptr<arrow::io::ReadableFile> &infile,
-                                           std::shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
-
-        void initializeArrowParquet(std::shared_ptr<arrow::io::ReadableFile> &infile,
-                                    std::unique_ptr<parquet::arrow::FileReader> &reader);
+        arrow::Status countNumLinesParquet(std::string const &filePath);
 
         void initializeColumnsAndList();
 
         template<typename T>
-        arrow::Status csvPopulateColumns();
+        arrow::Status populateColumns();
 
         template<typename T>
-        arrow::Status arrowPopulateColumns(const shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader);
+        arrow::Status populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>> &pkIndex);
 
         template<typename T>
-        void parquetPopulateColumns(const std::unique_ptr<parquet::arrow::FileReader> &reader);
+        arrow::Status populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>> &pkIndex);
+
+        template<typename T>
+        arrow::Status populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>> &pkIndex);
 
         template<typename T>
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
@@ -86,8 +92,14 @@ namespace storage {
                                                       InMemArrowNodeCopier *copier,
                                                       const vector<shared_ptr<T2>> &batchColumns);
 
-        arrow::Status initArrowCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-            const std::string &filePath);
+        arrow::Status initCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+                                         const std::string &filePath);
+
+        arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
+                                           const std::string &filePath);
+
+        arrow::Status initParquetReader(std::unique_ptr<parquet::arrow::FileReader> &reader,
+                                             const std::string &filePath);
 
         static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
 
@@ -96,6 +108,7 @@ namespace storage {
         uint64_t numNodes;
         vector<unique_ptr<InMemColumn>> structuredColumns;
         NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs;
+        FileTypes inputFileType;
     };
 
 } // namespace storage

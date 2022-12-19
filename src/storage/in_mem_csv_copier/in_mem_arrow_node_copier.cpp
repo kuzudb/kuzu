@@ -4,10 +4,14 @@
 
 #include "storage/storage_structure/in_mem_file.h"
 
+#include <iostream>
+
 namespace kuzu {
 namespace storage {
     //TODO: refactor this once implement reading rel files.
     char delimiter;
+
+
 
     InMemArrowNodeCopier::InMemArrowNodeCopier(CSVDescription &csvDescription, string outputDirectory,
                                                TaskScheduler &taskScheduler, Catalog &catalog, table_id_t tableID,
@@ -18,48 +22,25 @@ namespace storage {
 
         //TODO: refactor this once implement reading rel files.
         delimiter = csvDescription.csvReaderConfig.tokenSeparator;
+        setFileType(csvDescription.filePath);
     }
 
     uint64_t InMemArrowNodeCopier::copy() {
-        switch (getFileType(csvDescription.filePath)) {
-            case 0: {
-                logger->info("Reading CSV file.");
-                return copyFromCSVFile();
-            }
-                break;
-            case 1: {
-                logger->info("Reading ARROW file.");
-                return copyFromArrowFile();
-            }
-                break;
-            case 2: {
-                logger->info("Reading PARQUET file.");
-                return copyFromParquetFile();
-            }
-                break;
-            default: {
-                throw CopyCSVException("Unsupported file type: " + csvDescription.filePath);
-            }
-        }
-    }
-
-    uint64_t InMemArrowNodeCopier::copyFromCSVFile() {
         auto read_start = std::chrono::high_resolution_clock::now();
+        logger->info("Reading " + getFileTypeName(inputFileType) + " file.");
+        countNumLines(csvDescription.filePath);
+
+        initializeColumnsAndList();
+
         arrow::Status status;
-        status = initializeArrowCSV(csvDescription.filePath);
-        if (!status.ok()) {
-            throw CopyCSVException(status.ToString());
-        }
-
-        initializeColumnsAndList();
 
         switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
             case INT64: {
-                status = csvPopulateColumns<int64_t>();
+                status = populateColumns<int64_t>();
             }
                 break;
             case STRING: {
-                status = csvPopulateColumns<ku_string_t>();
+                status = populateColumns<ku_string_t>();
             }
                 break;
             default: {
@@ -72,96 +53,11 @@ namespace storage {
         if (!status.ok()) {
             throw CopyCSVException(status.ToString());
         }
+
         auto read_end = std::chrono::high_resolution_clock::now();
         auto write_start = std::chrono::high_resolution_clock::now();
 
         saveToFile();
-        nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
-        logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
-                     nodeTableSchema->tableID);
-        auto write_end = std::chrono::high_resolution_clock::now();
-        auto read_time = std::chrono::duration_cast<std::chrono::microseconds>(read_end - read_start);
-        auto write_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - write_start);
-        auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - read_start);
-        logger->debug("read time: {}.", read_time.count());
-        logger->debug("write time: {}.", write_time.count());
-        logger->debug("total time: {}.", total_time.count());
-        return numNodes;
-    }
-
-    uint64_t InMemArrowNodeCopier::copyFromArrowFile() {
-        auto read_start = std::chrono::high_resolution_clock::now();
-        std::shared_ptr<arrow::io::ReadableFile> infile;
-        shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-        auto status = initializeArrowArrow(infile, ipc_reader);
-        if (!status.ok()) {
-            throw CopyCSVException(status.ToString());
-        }
-
-        initializeColumnsAndList();
-
-        switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
-            case INT64: {
-                status = arrowPopulateColumns<int64_t>(ipc_reader);
-            }
-                break;
-            case STRING: {
-                status = arrowPopulateColumns<ku_string_t>(ipc_reader);
-            }
-                break;
-            default: {
-                throw CopyCSVException("Unsupported data type " +
-                                       Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
-                                       " for the ID index.");
-            }
-        }
-        if (!status.ok()) {
-            throw CopyCSVException(status.ToString());
-        }
-        auto read_end = std::chrono::high_resolution_clock::now();
-        auto write_start = std::chrono::high_resolution_clock::now();
-        saveToFile();
-
-        nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
-        logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
-                     nodeTableSchema->tableID);
-        auto write_end = std::chrono::high_resolution_clock::now();
-        auto read_time = std::chrono::duration_cast<std::chrono::microseconds>(read_end - read_start);
-        auto write_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - write_start);
-        auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - read_start);
-        logger->debug("read time: {}.", read_time.count());
-        logger->debug("write time: {}.", write_time.count());
-        logger->debug("total time: {}.", total_time.count());
-        return numNodes;
-    }
-
-    uint64_t InMemArrowNodeCopier::copyFromParquetFile() {
-        auto read_start = std::chrono::high_resolution_clock::now();
-        std::shared_ptr<arrow::io::ReadableFile> infile;
-        std::unique_ptr<parquet::arrow::FileReader> reader;
-        initializeArrowParquet(infile, reader);
-
-        initializeColumnsAndList();
-
-        switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
-            case INT64: {
-                parquetPopulateColumns<int64_t>(reader);
-            }
-                break;
-            case STRING: {
-                parquetPopulateColumns<ku_string_t>(reader);
-            }
-                break;
-            default: {
-                throw CopyCSVException("Unsupported data type " +
-                                       Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
-                                       " for the ID index.");
-            }
-        }
-        auto read_end = std::chrono::high_resolution_clock::now();
-        auto write_start = std::chrono::high_resolution_clock::now();
-        saveToFile();
-
         nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
         logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
                      nodeTableSchema->tableID);
@@ -177,7 +73,7 @@ namespace storage {
     }
 
 
-    arrow::Status InMemArrowNodeCopier::initArrowCSVReader(
+    arrow::Status InMemArrowNodeCopier::initCSVReader(
             shared_ptr<arrow::csv::StreamingReader> &csv_streaming_reader,
             const std::string &filePath) {
         shared_ptr<arrow::io::InputStream> arrow_input_stream;
@@ -185,7 +81,6 @@ namespace storage {
         auto arrowRead = arrow::csv::ReadOptions::Defaults();
 
         //TODO: Refactor this once implement reading rel files.
-        arrowRead.block_size = 80000;
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
         }
@@ -193,6 +88,7 @@ namespace storage {
         auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
         arrowConvert.strings_can_be_null = true;
         arrowConvert.quoted_strings_can_be_null = false;
+
         auto arrowParse = arrow::csv::ParseOptions::Defaults();
         arrowParse.delimiter = csvDescription.csvReaderConfig.tokenSeparator;
         arrowParse.escape_char = csvDescription.csvReaderConfig.escapeChar;
@@ -210,12 +106,59 @@ namespace storage {
         return arrow::Status::OK();
     }
 
-    arrow::Status InMemArrowNodeCopier::initializeArrowCSV(const std::string &filePath) {
-        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-        auto status = initArrowCSVReader(csv_streaming_reader, filePath);
+    arrow::Status InMemArrowNodeCopier::initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
+                                                        const std::string &filePath) {
+        std::shared_ptr<arrow::io::ReadableFile> infile;
+
+        ARROW_ASSIGN_OR_RAISE(
+                infile,
+                arrow::io::ReadableFile::Open(
+                        filePath,
+                        arrow::default_memory_pool()));
+
+        ARROW_ASSIGN_OR_RAISE(
+                ipc_reader,
+                arrow::ipc::RecordBatchFileReader::Open(infile));
+
+        return arrow::Status::OK();
+    }
+
+    arrow::Status InMemArrowNodeCopier::initParquetReader(std::unique_ptr<parquet::arrow::FileReader>& reader,
+                                                          const std::string &filePath) {
+        std::shared_ptr<arrow::io::ReadableFile> infile;
+        ARROW_ASSIGN_OR_RAISE(infile,
+                              arrow::io::ReadableFile::Open(csvDescription.filePath,
+                                                            arrow::default_memory_pool()));
+
+        ARROW_RETURN_NOT_OK(
+                parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
+
+        return arrow::Status::OK();
+    }
+
+    void InMemArrowNodeCopier::countNumLines(const std::string &filePath) {
+        arrow::Status status;
+        switch (inputFileType) {
+            case FileTypes::CSV:
+                status = countNumLinesCSV(filePath);
+                break;
+
+            case FileTypes::ARROW:
+                status = countNumLinesArrow(filePath);
+                break;
+
+            case FileTypes::PARQUET:
+                status = countNumLinesParquet(filePath);
+                break;
+        }
         if (!status.ok()) {
             throw CopyCSVException(status.ToString());
         }
+    }
+
+    arrow::Status InMemArrowNodeCopier::countNumLinesCSV(const std::string &filePath) {
+        shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+        auto status = initCSVReader(csv_streaming_reader, filePath);
 
         numBlocks = 0;
         numNodes = 0;
@@ -230,20 +173,12 @@ namespace storage {
             numNodes += currNumRows;
         }
 
-        return arrow::Status::OK();
+        return status;
     }
 
-    arrow::Status InMemArrowNodeCopier::initializeArrowArrow(std::shared_ptr<arrow::io::ReadableFile> &infile,
-                                                             std::shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader) {
-        ARROW_ASSIGN_OR_RAISE(
-                infile,
-                arrow::io::ReadableFile::Open(
-                        csvDescription.filePath,
-                        arrow::default_memory_pool()));
-
-        ARROW_ASSIGN_OR_RAISE(
-                ipc_reader,
-                arrow::ipc::RecordBatchFileReader::Open(infile));
+    arrow::Status InMemArrowNodeCopier::countNumLinesArrow(const std::string &filePath) {
+        std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
+        auto status = initArrowReader(ipc_reader, filePath);
 
         numBlocks = ipc_reader->num_record_batches();
         numLinesPerBlock.resize(numBlocks);
@@ -255,61 +190,59 @@ namespace storage {
             numNodes += rbatch->num_rows();
         }
 
-        return arrow::Status::OK();
+        return status;
     }
 
-    void InMemArrowNodeCopier::initializeArrowParquet(std::shared_ptr<arrow::io::ReadableFile> &infile,
-                                                      std::unique_ptr<parquet::arrow::FileReader> &reader) {
-        PARQUET_ASSIGN_OR_THROW(infile,
-                                arrow::io::ReadableFile::Open(csvDescription.filePath,
-                                                              arrow::default_memory_pool()));
-        PARQUET_THROW_NOT_OK(
-                parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
+    arrow::Status InMemArrowNodeCopier::countNumLinesParquet(const std::string &filePath) {
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        auto status = initParquetReader(reader, filePath);
 
         numBlocks = reader->num_row_groups();
         numLinesPerBlock.resize(numBlocks);
-        logger->debug("num row groups: {}.", numBlocks);
         std::shared_ptr<arrow::Table> table;
 
         for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
-            PARQUET_THROW_NOT_OK(reader->RowGroup(blockId)->ReadTable(&table));
+            ARROW_RETURN_NOT_OK(reader->RowGroup(blockId)->ReadTable(&table));
             numLinesPerBlock[blockId] = table->num_rows();
             numNodes += table->num_rows();
         }
+
+        return status;
     }
 
-    uint64_t InMemArrowNodeCopier::getFileType(std::string const &fileName) {
-        // type 0: csv file
-        // type 1: arrow file
-        // type 2: parquet file
-        std::string CSV_SUFFIX = ".csv";
-        std::string ARROW_SUFFIX = ".arrow";
-        std::string PARQUET_SUFFIX = ".parquet";
 
-        if (fileName.length() >= CSV_SUFFIX.length()) {
+    void InMemArrowNodeCopier::setFileType(std::string const &fileName) {
+        auto csvSuffix = getFileTypeSuffix(FileTypes::CSV);
+        auto arrowSuffix = getFileTypeSuffix(FileTypes::ARROW);
+        auto parquetSuffix = getFileTypeSuffix(FileTypes::PARQUET);
+
+        if (fileName.length() >= csvSuffix.length()) {
             if (!fileName.compare(
-                    fileName.length() - CSV_SUFFIX.length(),
-                    CSV_SUFFIX.length(),
-                    CSV_SUFFIX)) {
-                return 0;
+                    fileName.length() - csvSuffix.length(),
+                    csvSuffix.length(),
+                    csvSuffix)) {
+                inputFileType = FileTypes::CSV;
+                return;
             }
         }
 
-        if (fileName.length() >= ARROW_SUFFIX.length()) {
+        if (fileName.length() >= arrowSuffix.length()) {
             if (!fileName.compare(
-                    fileName.length() - ARROW_SUFFIX.length(),
-                    ARROW_SUFFIX.length(),
-                    ARROW_SUFFIX)) {
-                return 1;
+                    fileName.length() - arrowSuffix.length(),
+                    arrowSuffix.length(),
+                    arrowSuffix)) {
+                inputFileType = FileTypes::ARROW;
+                return;
             }
         }
 
-        if (fileName.length() >= PARQUET_SUFFIX.length()) {
+        if (fileName.length() >= parquetSuffix.length()) {
             if (!fileName.compare(
-                    fileName.length() - PARQUET_SUFFIX.length(),
-                    PARQUET_SUFFIX.length(),
-                    PARQUET_SUFFIX)) {
-                return 2;
+                    fileName.length() - parquetSuffix.length(),
+                    parquetSuffix.length(),
+                    parquetSuffix)) {
+                inputFileType = FileTypes::PARQUET;
+                return;
             }
         }
 
@@ -330,8 +263,9 @@ namespace storage {
         logger->info("Done initializing in memory structured columns.");
     }
 
+
     template<typename T>
-    arrow::Status InMemArrowNodeCopier::csvPopulateColumns() {
+    arrow::Status InMemArrowNodeCopier::populateColumns() {
         logger->info("Populating structured properties");
         auto pkIndex =
                 make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
@@ -339,16 +273,40 @@ namespace storage {
                                                                                  DBFileType::WAL_VERSION),
                                                  nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numNodes);
+
+        arrow::Status status;
+        switch (inputFileType) {
+            case FileTypes::CSV:
+                status = populateColumnsFromCSV<T>(pkIndex);
+                break;
+
+            case FileTypes::ARROW:
+                status = populateColumnsFromArrow<T>(pkIndex);
+                break;
+
+            case FileTypes::PARQUET:
+                status = populateColumnsFromParquet<T>(pkIndex);
+                break;
+        }
+
+        logger->info("Flush the pk index to disk.");
+        pkIndex->flush();
+        logger->info("Done populating structured properties, constructing the pk index.");
+
+        return status;
+    }
+
+    template<typename T>
+    arrow::Status InMemArrowNodeCopier::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>> &pkIndex) {
         node_offset_t offsetStart = 0;
 
         shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-        auto status = initArrowCSVReader(csv_streaming_reader, csvDescription.filePath);
+        auto status = initCSVReader(csv_streaming_reader, csvDescription.filePath);
         if (!status.ok()) {
-            throw CopyCSVException(status.ToString());
+            return status;
         }
 
         std::shared_ptr<arrow::RecordBatch> currBatch;
-
 
         int blockIdx = 0;
         auto endIt = csv_streaming_reader->end();
@@ -363,24 +321,19 @@ namespace storage {
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
-        logger->info("Flush the pk index to disk.");
-        pkIndex->flush();
-        logger->info("Done populating structured properties, constructing the pk index.");
 
         return arrow::Status::OK();
     }
 
     template<typename T>
-    arrow::Status
-    InMemArrowNodeCopier::arrowPopulateColumns(const shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader) {
-        logger->info("Populating structured properties");
-        auto pkIndex =
-                make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                                                                 nodeTableSchema->tableID,
-                                                                                 DBFileType::WAL_VERSION),
-                                                 nodeTableSchema->getPrimaryKey().dataType);
-        pkIndex->bulkReserve(numNodes);
+    arrow::Status InMemArrowNodeCopier::populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>> &pkIndex) {
         node_offset_t offsetStart = 0;
+
+        std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
+        auto status = initArrowReader(ipc_reader, csvDescription.filePath);
+        if (!status.ok()) {
+            return status;
+        }
 
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
@@ -394,27 +347,22 @@ namespace storage {
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
-        logger->info("Flush the pk index to disk.");
-        pkIndex->flush();
-        logger->info("Done populating structured properties, constructing the pk index.");
-
         return arrow::Status::OK();
     }
 
     template<typename T>
-    void InMemArrowNodeCopier::parquetPopulateColumns(const std::unique_ptr<parquet::arrow::FileReader> &reader) {
-        logger->info("Populating structured properties");
-        auto pkIndex =
-                make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                                                                 nodeTableSchema->tableID,
-                                                                                 DBFileType::WAL_VERSION),
-                                                 nodeTableSchema->getPrimaryKey().dataType);
-        pkIndex->bulkReserve(numNodes);
+    arrow::Status InMemArrowNodeCopier::populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>> &pkIndex) {
         node_offset_t offsetStart = 0;
+
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        auto status = initParquetReader(reader, csvDescription.filePath);
+        if (!status.ok()) {
+            return status;
+        }
 
         std::shared_ptr<arrow::Table> currTable;
         for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-            PARQUET_THROW_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
+            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                     batchPopulateColumnsTask<T, arrow::ChunkedArray>,
                     nodeTableSchema->primaryKeyPropertyIdx,
@@ -423,9 +371,8 @@ namespace storage {
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
-        logger->info("Flush the pk index to disk.");
-        pkIndex->flush();
-        logger->info("Done populating structured properties, constructing the pk index.");
+
+        return arrow::Status::OK();
     }
 
     template<typename T>
@@ -615,6 +562,23 @@ namespace storage {
         }
         taskScheduler.waitAllTasksToCompleteOrError();
         logger->debug("Done writing node structured columns to disk.");
+    }
+
+    std::string InMemArrowNodeCopier::getFileTypeName(FileTypes fileTypes) {
+        switch (fileTypes) {
+            case FileTypes::CSV:
+                return "csv";
+
+            case FileTypes::ARROW:
+                return "arrow";
+
+            case FileTypes::PARQUET:
+                return "parquet";
+        }
+    }
+
+    std::string InMemArrowNodeCopier::getFileTypeSuffix(FileTypes fileTypes) {
+        return "." + getFileTypeName(fileTypes);
     }
 
 } // namespace storage
