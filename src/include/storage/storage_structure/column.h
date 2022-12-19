@@ -62,7 +62,7 @@ private:
     virtual inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
         memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
-            vectorToWriteFrom->getData() + posInVectorToWriteFrom * elementSize, elementSize);
+            vectorToWriteFrom->getData() + getElemByteOffset(posInVectorToWriteFrom), elementSize);
     }
     // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
     // length part of the value that will be written to.
