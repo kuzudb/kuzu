@@ -29,22 +29,32 @@ shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const shared_ptr<Task>& ta
     return scheduledTask;
 }
 
+void TaskScheduler::errorIfThereIsAnException() {
+    lock_t lck{mtx};
+    errorIfThereIsAnExceptionNoLock();
+    lck.unlock();
+}
+
+void TaskScheduler::errorIfThereIsAnExceptionNoLock() {
+    for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
+        auto task = (*it)->task;
+        if (task->hasException()) {
+            taskQueue.erase(it);
+            std::rethrow_exception(task->getExceptionPtr());
+        }
+        // TODO(Semih): We can optimize to stop after finding a registrable task. This is
+        // because tasks after the first registrable task in the queue cannot have any thread
+        // yet registered to them, so they cannot have errored.
+    }
+}
+
 void TaskScheduler::waitAllTasksToCompleteOrError() {
     while (true) {
         lock_t lck{mtx};
         if (taskQueue.empty()) {
             return;
         }
-        for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
-            auto task = (*it)->task;
-            if (task->hasException()) {
-                taskQueue.erase(it);
-                std::rethrow_exception(task->getExceptionPtr());
-            }
-            // TODO(Semih): We can optimize to stop after finding a registrable task. This is
-            // because tasks after the first registrable task in the queue cannot have any thread
-            // yet registered to them, so they cannot have errored.
-        }
+        errorIfThereIsAnExceptionNoLock();
         lck.unlock();
         this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }

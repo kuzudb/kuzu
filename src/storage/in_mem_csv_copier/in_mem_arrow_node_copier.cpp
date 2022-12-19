@@ -84,6 +84,7 @@ namespace storage {
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
         }
+        arrowRead.block_size = 80000;
 
         auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
         arrowConvert.strings_can_be_null = true;
@@ -127,7 +128,7 @@ namespace storage {
                                                           const std::string &filePath) {
         std::shared_ptr<arrow::io::ReadableFile> infile;
         ARROW_ASSIGN_OR_RAISE(infile,
-                              arrow::io::ReadableFile::Open(csvDescription.filePath,
+                              arrow::io::ReadableFile::Open(filePath,
                                                             arrow::default_memory_pool()));
 
         ARROW_RETURN_NOT_OK(
@@ -309,15 +310,26 @@ namespace storage {
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
         int blockIdx = 0;
+        auto it = csv_streaming_reader->begin();
         auto endIt = csv_streaming_reader->end();
-        for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
-            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-            taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                    batchPopulateColumnsTask<T, arrow::Array>,
-                    nodeTableSchema->primaryKeyPropertyIdx,
-                    blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
-            offsetStart += currBatch->num_rows();
-            ++blockIdx;
+        while (it != endIt) {
+            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+                if (it == endIt) {
+                    break;
+                }
+                ARROW_ASSIGN_OR_RAISE(currBatch, *it);
+                taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
+                        batchPopulateColumnsTask<T, arrow::Array>,
+                        nodeTableSchema->primaryKeyPropertyIdx,
+                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
+                offsetStart += currBatch->num_rows();
+                ++blockIdx;
+                ++ it;
+            }
+            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
+                taskScheduler.errorIfThereIsAnException();
+                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            }
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
@@ -337,13 +349,24 @@ namespace storage {
 
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
-        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-            ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                    batchPopulateColumnsTask<T, arrow::Array>,
-                    nodeTableSchema->primaryKeyPropertyIdx,
-                    blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
-            offsetStart += currBatch->num_rows();
+        int blockIdx = 0;
+        while (blockIdx < numBlocks) {
+            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+                if (blockIdx == numBlocks) {
+                    break;
+                }
+                ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
+                taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
+                        batchPopulateColumnsTask<T, arrow::Array>,
+                        nodeTableSchema->primaryKeyPropertyIdx,
+                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
+                offsetStart += currBatch->num_rows();
+                ++ blockIdx;
+            }
+            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
+                taskScheduler.errorIfThereIsAnException();
+                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            }
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
@@ -361,13 +384,24 @@ namespace storage {
         }
 
         std::shared_ptr<arrow::Table> currTable;
-        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
-            taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
-                    batchPopulateColumnsTask<T, arrow::ChunkedArray>,
-                    nodeTableSchema->primaryKeyPropertyIdx,
-                    blockIdx, offsetStart, pkIndex.get(), this, currTable->columns()));
-            offsetStart += currTable->num_rows();
+        int blockIdx = 0;
+        while (blockIdx < numBlocks) {
+            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+                if (blockIdx == numBlocks) {
+                    break;
+                }
+                ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
+                taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
+                        batchPopulateColumnsTask<T, arrow::ChunkedArray>,
+                        nodeTableSchema->primaryKeyPropertyIdx,
+                        blockIdx, offsetStart, pkIndex.get(), this, currTable->columns()));
+                offsetStart += currTable->num_rows();
+                ++ blockIdx;
+            }
+            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
+                taskScheduler.errorIfThereIsAnException();
+                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            }
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();

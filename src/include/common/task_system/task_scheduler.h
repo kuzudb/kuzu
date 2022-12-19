@@ -76,10 +76,17 @@ public:
     // from the task queue and remain in the queue. So for now, use this function if you
     // want the system to crash if any of the tasks fails.
     void waitAllTasksToCompleteOrError();
+
+    // Checks if there is an erroring task in the queue and if so, errors.
+    void errorIfThereIsAnException();
+
     bool isTaskQueueEmpty() { return taskQueue.empty(); }
+    uint64_t getTaskNum() { return taskQueue.size(); }
 
 private:
     void removeErroringTask(uint64_t scheduledTaskID);
+
+    void errorIfThereIsAnExceptionNoLock();
 
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();

@@ -87,6 +87,12 @@ struct CopyCSVConfig {
     // Size (in bytes) of the chunks to be read in InMemNode/RelCSVCopier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
+    // Number of tasks to be assigned in a batch when reading files.
+    static constexpr uint64_t NUM_TASKS_PER_BATCH = 200;
+
+    // Minimum number of tasks in a queue. If reached, assign a new batch.
+    static constexpr uint64_t MINIMUM_TASKS_TO_SCHEDULE_MORE = 50;
+
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};
