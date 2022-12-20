@@ -80,8 +80,12 @@ unique_ptr<LogicalPlan> QueryPlanner::getShortestPathPlan(const BoundStatement& 
     JoinOrderEnumerator::appendCrossProduct(*leftPlan, *rightPlan);
     appendFlattenIfNecessary(sourceNode->getInternalIDProperty(), *leftPlan);
     appendFlattenIfNecessary(destNode->getInternalIDProperty(), *leftPlan);
+    auto dataType = make_unique<DataType>(DataTypeID::REL);
+    auto m = unordered_map<table_id_t, property_id_t>();
+    m[rel->getTableID()] = 0;
+    auto p = make_shared<PropertyExpression>(*dataType, "_id", m,  rel);
     auto logicalShortestPath =
-        make_shared<LogicalShortestPath>(sourceNode, destNode, rel, leftPlan->getLastOperator());
+        make_shared<LogicalShortestPath>(sourceNode, destNode, rel, p, leftPlan->getLastOperator());
     leftPlan->setLastOperator(logicalShortestPath);
     return leftPlan;
 }

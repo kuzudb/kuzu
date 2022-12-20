@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "binder/expression/expression.h"
 #include "common/vector/value_vector_utils.h"
 #include "expression_evaluator/base_evaluator.h"
@@ -17,11 +19,13 @@ namespace processor {
 class ShortestPathAdjList : public BaseShortestPath {
 public:
     ShortestPathAdjList(const DataPos& srcDataPos, const DataPos& destDataPos, AdjLists* adjList,
+        vector<Lists*> relPropertyLists,
         uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
         : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
-              paramsString},
-          lists{adjList} {}
+              paramsString}, lists{adjList}, relPropertyLists{move(relPropertyLists)} {}
+
+    shared_ptr<ResultSet> init(ExecutionContext* context);
 
     bool getNextTuplesInternal() override;
 
@@ -45,12 +49,15 @@ public:
     }
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists, lowerBound,
+        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists, relPropertyLists,
+            lowerBound,
             upperBound, children[0]->clone(), id, paramsString);
     }
 
 private:
     AdjLists* lists;
+    vector<Lists*> relPropertyLists;
+    vector<shared_ptr<ListHandle>> relListHandles;
 };
 
 } // namespace processor

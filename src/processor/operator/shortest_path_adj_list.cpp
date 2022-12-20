@@ -7,6 +7,15 @@ using namespace std;
 namespace kuzu {
 namespace processor {
 
+shared_ptr<ResultSet> ShortestPathAdjList::init(ExecutionContext* context) {
+    resultSet = BaseShortestPath::init(context);
+    for(int i = 0; i < relPropertyLists.size(); i++) {
+        relListHandles.push_back(make_shared<ListHandle>(*listSyncState));
+    }
+    return resultSet;
+}
+
+
 bool ShortestPathAdjList::getNextTuplesInternal() {
     while (true) {
         if (!children[0]->getNextTuple()) {

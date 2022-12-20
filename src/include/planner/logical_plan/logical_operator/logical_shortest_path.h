@@ -13,15 +13,21 @@ class LogicalShortestPath : public LogicalOperator {
 
 public:
     LogicalShortestPath(shared_ptr<NodeExpression> sourceNode, shared_ptr<NodeExpression> destNode,
-        shared_ptr<RelExpression> rel, shared_ptr<LogicalOperator> child)
+        shared_ptr<RelExpression> rel, shared_ptr<PropertyExpression> relProperty,
+                        shared_ptr<LogicalOperator> child)
         : LogicalOperator{std::move(child)},
-          sourceNode{std::move(sourceNode)}, destNode{std::move(destNode)}, rel{std::move(rel)} {}
+          sourceNode{std::move(sourceNode)}, destNode{std::move(destNode)}, rel{std::move(rel)},
+          relProperty{move(relProperty)} {}
 
     shared_ptr<NodeExpression> getSrcNodeExpression() { return sourceNode; }
 
     shared_ptr<NodeExpression> getDestNodeExpression() { return destNode; }
 
     shared_ptr<RelExpression> getRelExpression() { return rel; }
+
+    shared_ptr<PropertyExpression> getRelPropertyExpression() {
+        return relProperty;
+    }
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SHORTEST_PATH;
@@ -32,13 +38,14 @@ public:
     }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalShortestPath>(sourceNode, destNode, rel, children[0]->copy());
+        return make_unique<LogicalShortestPath>(sourceNode, destNode, rel, relProperty, children[0]->copy());
     }
 
 private:
     shared_ptr<NodeExpression> sourceNode;
     shared_ptr<NodeExpression> destNode;
     shared_ptr<RelExpression> rel;
+    shared_ptr<PropertyExpression> relProperty;
 };
 
 } // namespace planner

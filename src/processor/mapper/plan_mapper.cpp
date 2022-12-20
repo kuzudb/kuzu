@@ -156,9 +156,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalShortestPathToPhysical(
             logicalShortestPath->getExpressionsForPrinting());
     } else {
         assert(relStore.hasAdjList(direction, sourceNode->getTableID(), rel->getTableID()));
+        auto relProperties = logicalShortestPath->getRelPropertyExpression();
+        vector<Lists*> propertyLists;
+        auto list = relStore.getRelPropertyLists(
+            direction, sourceNode->getTableID(), rel->getTableID(), relProperties->getPropertyID(rel->getTableID()));
+        propertyLists.push_back(list);
         AdjLists* lists =
             relStore.getAdjLists(direction, sourceNode->getTableID(), rel->getTableID());
-        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists,
+        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists, propertyLists,
             rel->getLowerBound(), rel->getUpperBound(), move(prevOperator), getOperatorID(),
             logicalShortestPath->getExpressionsForPrinting());
     }
