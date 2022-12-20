@@ -157,8 +157,8 @@ namespace storage {
         shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
         auto status = initCSVReader(csv_streaming_reader, filePath);
 
-        numBlocks = 0;
         numNodes = 0;
+        numBlocks = 0;
         std::shared_ptr<arrow::RecordBatch> currBatch;
 
         auto endIt = csv_streaming_reader->end();
@@ -177,10 +177,11 @@ namespace storage {
         std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
         auto status = initArrowReader(ipc_reader, filePath);
 
+        numNodes = 0;
         numBlocks = ipc_reader->num_record_batches();
         numLinesPerBlock.resize(numBlocks);
         std::shared_ptr<arrow::RecordBatch> rbatch;
-        numNodes = 0;
+
         for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
             ARROW_ASSIGN_OR_RAISE(rbatch, ipc_reader->ReadRecordBatch(blockId));
             numLinesPerBlock[blockId] = rbatch->num_rows();
@@ -194,6 +195,7 @@ namespace storage {
         std::unique_ptr<parquet::arrow::FileReader> reader;
         auto status = initParquetReader(reader, filePath);
 
+        numNodes = 0;
         numBlocks = reader->num_row_groups();
         numLinesPerBlock.resize(numBlocks);
         std::shared_ptr<arrow::Table> table;
