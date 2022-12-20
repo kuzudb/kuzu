@@ -8,10 +8,6 @@
 
 namespace kuzu {
 namespace storage {
-    //TODO: refactor this once implement reading rel files.
-    char delimiter;
-
-
 
     InMemArrowNodeCopier::InMemArrowNodeCopier(CSVDescription &csvDescription, string outputDirectory,
                                                TaskScheduler &taskScheduler, Catalog &catalog, table_id_t tableID,
@@ -21,15 +17,14 @@ namespace storage {
         nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 
         //TODO: refactor this once implement reading rel files.
-        delimiter = csvDescription.csvReaderConfig.tokenSeparator;
         setFileType(csvDescription.filePath);
     }
 
     uint64_t InMemArrowNodeCopier::copy() {
         auto read_start = std::chrono::high_resolution_clock::now();
         logger->info("Reading " + getFileTypeName(inputFileType) + " file.");
-        countNumLines(csvDescription.filePath);
 
+        countNumLines(csvDescription.filePath);
         initializeColumnsAndList();
 
         arrow::Status status;
@@ -61,6 +56,7 @@ namespace storage {
         nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numNodes);
         logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
                      nodeTableSchema->tableID);
+
         auto write_end = std::chrono::high_resolution_clock::now();
         auto read_time = std::chrono::duration_cast<std::chrono::microseconds>(read_end - read_start);
         auto write_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - write_start);
@@ -79,12 +75,12 @@ namespace storage {
         shared_ptr<arrow::io::InputStream> arrow_input_stream;
         ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
         auto arrowRead = arrow::csv::ReadOptions::Defaults();
+        arrowRead.block_size = 80000;
 
         //TODO: Refactor this once implement reading rel files.
         if (!csvDescription.csvReaderConfig.hasHeader) {
             arrowRead.autogenerate_column_names = true;
         }
-        arrowRead.block_size = 80000;
 
         auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
         arrowConvert.strings_can_be_null = true;
@@ -321,7 +317,8 @@ namespace storage {
                 taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                         batchPopulateColumnsTask<T, arrow::Array>,
                         nodeTableSchema->primaryKeyPropertyIdx,
-                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
+                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns(),
+                        csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currBatch->num_rows();
                 ++blockIdx;
                 ++ it;
@@ -359,7 +356,8 @@ namespace storage {
                 taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                         batchPopulateColumnsTask<T, arrow::Array>,
                         nodeTableSchema->primaryKeyPropertyIdx,
-                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns()));
+                        blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns(),
+                        csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currBatch->num_rows();
                 ++ blockIdx;
             }
@@ -394,7 +392,8 @@ namespace storage {
                 taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                         batchPopulateColumnsTask<T, arrow::ChunkedArray>,
                         nodeTableSchema->primaryKeyPropertyIdx,
-                        blockIdx, offsetStart, pkIndex.get(), this, currTable->columns()));
+                        blockIdx, offsetStart, pkIndex.get(), this, currTable->columns(),
+                        csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currTable->num_rows();
                 ++ blockIdx;
             }
@@ -441,7 +440,8 @@ namespace storage {
                                                                  uint64_t offsetStart,
                                                                  HashIndexBuilder<T1> *pkIndex,
                                                                  InMemArrowNodeCopier *copier,
-                                                                 const vector<shared_ptr<T2>> &batchColumns) {
+                                                                 const vector<shared_ptr<T2>> &batchColumns,
+                                                                 char delimiter) {
         copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
         vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
         for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
@@ -449,7 +449,8 @@ namespace storage {
                                       overflowCursors,
                                       batchColumns,
                                       offsetStart + blockOffset,
-                                      blockOffset);
+                                      blockOffset,
+                                      delimiter);
         }
         populatePKIndex(copier->structuredColumns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
                         copier->numLinesPerBlock[blockId]);
@@ -460,7 +461,8 @@ namespace storage {
     template<typename T>
     void InMemArrowNodeCopier::putPropsOfLineIntoColumns(
             vector<unique_ptr<InMemColumn>> &structuredColumns, vector<PageByteCursor> &overflowCursors,
-            const std::vector<shared_ptr<T>> &arrow_columns, uint64_t nodeOffset, uint64_t blockOffset) {
+            const std::vector<shared_ptr<T>> &arrow_columns, uint64_t nodeOffset, uint64_t blockOffset,
+            char delimiter) {
         for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
             auto column = structuredColumns[columnIdx].get();
             auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);
@@ -504,7 +506,8 @@ namespace storage {
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&val));
                     } break;
                     case LIST: {
-                        Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2, column->getDataType());
+                        Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+                                                       column->getDataType(), delimiter);
                         auto kuList =
                                 column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                         column->setElement(nodeOffset, reinterpret_cast<uint8_t *>(&kuList));
@@ -515,7 +518,8 @@ namespace storage {
         }
     }
 
-    Literal InMemArrowNodeCopier::getArrowList(string& l, int64_t from, int64_t to, const DataType &dataType) {
+    Literal InMemArrowNodeCopier::getArrowList(string& l, int64_t from, int64_t to, const DataType &dataType,
+                                               char delimiter) {
         auto childDataType = *dataType.childType;
         Literal result(DataType(LIST, make_unique<DataType>(childDataType)));
 
@@ -569,7 +573,8 @@ namespace storage {
                 } break;
                 case LIST: {
                     result.listVal.emplace_back(getArrowList(l, pair.first + 1,
-                                                             pair.second + pair.first - 1, *dataType.childType));
+                                                             pair.second + pair.first - 1, *dataType.childType,
+                                                             delimiter));
                 } break;
                 default:
                     throw CSVReaderException("Unsupported data type " +

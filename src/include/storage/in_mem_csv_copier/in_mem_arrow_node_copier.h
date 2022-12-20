@@ -71,7 +71,7 @@ namespace storage {
         static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
                                               vector<PageByteCursor> &overflowCursors,
                                               const std::vector<shared_ptr<T>> &arrow_columns,
-                                              uint64_t nodeOffset, uint64_t bufferOffset);
+                                              uint64_t nodeOffset, uint64_t bufferOffset, char delimiter);
 
         template<typename T>
         static void addIDsToIndex(InMemColumn *column, HashIndexBuilder<T> *hashIndex,
@@ -90,18 +90,20 @@ namespace storage {
                                                       uint64_t blockId, uint64_t offsetStart,
                                                       HashIndexBuilder<T1> *pkIndex,
                                                       InMemArrowNodeCopier *copier,
-                                                      const vector<shared_ptr<T2>> &batchColumns);
+                                                      const vector<shared_ptr<T2>> &batchColumns,
+                                                      char delimiter);
 
         arrow::Status initCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-                                         const std::string &filePath);
+                                    const std::string &filePath);
 
         arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
-                                           const std::string &filePath);
+                                      const std::string &filePath);
 
         arrow::Status initParquetReader(std::unique_ptr<parquet::arrow::FileReader> &reader,
-                                             const std::string &filePath);
+                                        const std::string &filePath);
 
-        static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType);
+        static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType,
+                                    char delimiter);
 
     private:
         NodeTableSchema *nodeTableSchema;
