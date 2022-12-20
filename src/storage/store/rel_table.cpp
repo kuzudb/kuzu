@@ -170,8 +170,7 @@ void RelTable::rollbackInMemoryIfNecessary() {
 void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector,
     const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
-    assert(srcNodeIDVector->state->isFlat());
-    assert(dstNodeIDVector->state->isFlat());
+    assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat());
     auto srcTableID =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
             .tableID;
@@ -208,6 +207,24 @@ void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
+    auto srcTableID =
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
+    auto dstTableID =
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
+    for (auto direction : REL_DIRECTIONS) {
+        auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
+        auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
+        if (adjColumns[direction].contains(boundTableID)) {
+            auto nodeOffset =
+                boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
+            adjColumns[direction].at(boundTableID)->setNodeOffsetToNull(nodeOffset);
+            for (auto i = 0; i < propertyColumns[direction].size(); i++) {
+                propertyColumns[direction].at(boundTableID)[i]->setNodeOffsetToNull(nodeOffset);
+            }
+        }
+    }
     listsUpdateStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
