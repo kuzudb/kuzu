@@ -15,6 +15,8 @@ public:
         : LogicalCreateOrDeleteNode{
               LogicalOperatorType::DELETE_NODE, std::move(nodeAndPrimaryKeys), std::move(child)} {}
 
+    inline void computeSchema() override { copyChildSchema(0); }
+
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDeleteNode>(nodeAndPrimaryKeys, children[0]->copy());
     }

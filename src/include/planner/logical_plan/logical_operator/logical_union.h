@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base_logical_operator.h"
-#include "schema.h"
 
 namespace kuzu {
 namespace planner {
@@ -14,22 +13,15 @@ public:
           expressionsToUnion{std::move(expressions)}, schemasBeforeUnion{
                                                           std::move(schemasBeforeUnion)} {}
 
-    string getExpressionsForPrinting() const override;
+    void computeSchema() override;
+
+    inline string getExpressionsForPrinting() const override { return string(); }
 
     inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
 
     inline Schema* getSchemaBeforeUnion(uint32_t idx) { return schemasBeforeUnion[idx].get(); }
 
-    inline unique_ptr<LogicalOperator> copy() override {
-        vector<unique_ptr<Schema>> copiedSchemas;
-        vector<shared_ptr<LogicalOperator>> copiedChildren;
-        for (auto i = 0u; i < getNumChildren(); ++i) {
-            copiedSchemas.push_back(schemasBeforeUnion[i]->copy());
-            copiedChildren.push_back(getChild(i)->copy());
-        }
-        return make_unique<LogicalUnion>(
-            expressionsToUnion, move(copiedSchemas), move(copiedChildren));
-    }
+    unique_ptr<LogicalOperator> copy() override;
 
 private:
     expression_vector expressionsToUnion;

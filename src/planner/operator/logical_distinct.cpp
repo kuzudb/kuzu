@@ -11,5 +11,13 @@ string LogicalDistinct::getExpressionsForPrinting() const {
     return result;
 }
 
+void LogicalDistinct::computeSchema() {
+    createEmptySchema();
+    auto groupPos = schema->createGroup();
+    for (auto& expression : expressionsToDistinct) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+}
+
 } // namespace planner
 } // namespace kuzu

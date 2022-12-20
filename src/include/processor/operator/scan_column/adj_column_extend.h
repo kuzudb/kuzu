@@ -8,7 +8,7 @@ namespace kuzu {
 namespace processor {
 
 class ColumnExtendAndScanRelProperties : public BaseExtendAndScanRelProperties,
-                                         public FilteringOperator {
+                                         public SelVectorOverWriter {
 public:
     ColumnExtendAndScanRelProperties(const DataPos& inNodeIDVectorPos,
         const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos, Column* adjColumn,
@@ -17,8 +17,7 @@ public:
         : BaseExtendAndScanRelProperties{PhysicalOperatorType::COLUMN_EXTEND, inNodeIDVectorPos,
               outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
               paramsString},
-          FilteringOperator{1 /* numStatesToSave */}, adjColumn{adjColumn},
-          propertyColumns{std::move(propertyColumns)} {}
+          adjColumn{adjColumn}, propertyColumns{std::move(propertyColumns)} {}
     ~ColumnExtendAndScanRelProperties() override = default;
 
     bool getNextTuplesInternal() override;

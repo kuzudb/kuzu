@@ -13,7 +13,6 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
         auto keyVector = resultSet->getValueVector(keyDataPos);
         keyVectors.push_back(keyVector);
-        keySelVectors.push_back(keyVector->state->selVector.get());
     }
     if (joinType == JoinType::MARK) {
         markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
@@ -43,11 +42,11 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         return true;
     }
     if (!hasMoreLeft()) {
-        restoreSelVectors(keySelVectors);
+        restoreSelVector(keyVectors[0]->state->selVector);
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVectors(keySelVectors);
+        saveSelVector(keyVectors[0]->state->selVector);
         sharedState->getHashTable()->probe(keyVectors, probeState->probedTuples.get());
     }
     auto numMatchedTuples = 0;
@@ -92,7 +91,7 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
     return true;
 }
 
-void HashJoinProbe::setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors) {
+void HashJoinProbe::setVectorsToNull() {
     for (auto& vector : vectorsToReadInto) {
         if (vector->state->isFlat()) {
             vector->setNull(vector->state->selVector->selectedPositions[0], true);
@@ -130,7 +129,7 @@ uint64_t HashJoinProbe::getNextInnerJoinResult() {
 
 uint64_t HashJoinProbe::getNextLeftJoinResult() {
     if (getNextInnerJoinResult() == 0) {
-        setVectorsToNull(vectorsToReadInto);
+        setVectorsToNull();
     }
     return 1;
 }

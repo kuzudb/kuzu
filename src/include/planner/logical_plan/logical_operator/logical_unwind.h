@@ -12,6 +12,8 @@ public:
         : LogicalOperator{LogicalOperatorType::UNWIND, std::move(childOperator)},
           expression{std::move(expression)}, aliasExpression{std::move(aliasExpression)} {}
 
+    void computeSchema() override;
+
     inline shared_ptr<Expression> getExpression() { return expression; }
 
     inline shared_ptr<Expression> getAliasExpression() { return aliasExpression; }

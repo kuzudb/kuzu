@@ -14,12 +14,15 @@ public:
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
                                                                       std::move(expressions)} {}
 
+    void computeSchema() override;
+
     inline string getExpressionsForPrinting() const override {
         return ExpressionUtil::toString(expressions);
     }
+
     inline expression_vector getExpressions() const { return expressions; }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExpressionsScan>(expressions);
     }
 

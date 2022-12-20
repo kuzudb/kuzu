@@ -1,14 +1,12 @@
 #include "planner/join_order_enumerator.h"
 
 #include "planner/asp_optimizer.h"
-#include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_cross_product.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
-#include "planner/logical_plan/logical_operator/sink_util.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/projection_planner.h"
 #include "planner/query_planner.h"
@@ -147,7 +145,7 @@ static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expres
         return false;
     }
     auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.getPropertyID(node.getTableID()) == primaryKeyID;
+    return propertyExpression.getPropertyID(node.getSingleTableID()) == primaryKeyID;
 }
 
 static bool isIndexScanExpression(
@@ -174,7 +172,7 @@ static shared_ptr<Expression> extractIndexExpression(Expression& expression) {
 static pair<shared_ptr<Expression>, expression_vector> splitIndexAndPredicates(
     const CatalogContent& catalogContent, NodeExpression& node,
     const expression_vector& predicates) {
-    auto nodeTableSchema = catalogContent.getNodeTableSchema(node.getTableID());
+    auto nodeTableSchema = catalogContent.getNodeTableSchema(node.getSingleTableID());
     auto primaryKeyID = nodeTableSchema->getPrimaryKey().propertyID;
     shared_ptr<Expression> indexExpression;
     expression_vector predicatesToApply;
@@ -202,7 +200,7 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     if (!context->nodeNeedScanTwice(node.get())) {
         shared_ptr<Expression> indexExpression = nullptr;
         expression_vector predicatesToApply = predicates;
-        if (node->getNumTableIDs() == 1) { // check for index scan
+        if (!node->isMultiLabeled()) { // check for index scan
             auto [_indexExpression, _predicatesToApply] =
                 splitIndexAndPredicates(*catalog.getReadOnlyVersion(), *node, predicates);
             indexExpression = _indexExpression;
@@ -479,12 +477,12 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
             auto rightPlanProbeCopy = rightPlan->shallowCopy();
             planInnerHashJoin(joinNodes, *leftPlanProbeCopy, *rightPlanBuildCopy);
             planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
-            context->addPlan(newSubgraph, move(leftPlanProbeCopy));
+            context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             // flip build and probe side to get another HashJoin plan
             if (flipPlan) {
                 planInnerHashJoin(joinNodes, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
-                context->addPlan(newSubgraph, move(rightPlanProbeCopy));
+                context->addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
         }
     }
@@ -498,36 +496,18 @@ void JoinOrderEnumerator::planFiltersForHashJoin(expression_vector& predicates, 
 
 void JoinOrderEnumerator::appendFTableScan(
     LogicalPlan* outerPlan, expression_vector& expressionsToScan, LogicalPlan& plan) {
-    unordered_map<uint32_t, expression_vector> groupPosToExpressionsMap;
-    for (auto& expression : expressionsToScan) {
-        auto outerPos = outerPlan->getSchema()->getGroupPos(expression->getUniqueName());
-        if (!groupPosToExpressionsMap.contains(outerPos)) {
-            groupPosToExpressionsMap.insert({outerPos, expression_vector{}});
-        }
-        groupPosToExpressionsMap.at(outerPos).push_back(expression);
-    }
-    auto schema = plan.getSchema();
-    for (auto& [outerPos, expressions] : groupPosToExpressionsMap) {
-        auto innerPos = schema->createGroup();
-        schema->insertToGroupAndScope(expressions, innerPos);
-        if (outerPlan->getSchema()->getGroup(outerPos)->isFlat()) {
-            schema->setGroupAsSingleState(innerPos);
-        }
-    }
-    assert(outerPlan->getLastOperator()->getOperatorType() == LogicalOperatorType::ACCUMULATE);
-    auto logicalAcc = (LogicalAccumulate*)outerPlan->getLastOperator().get();
     auto fTableScan =
-        make_shared<LogicalFTableScan>(expressionsToScan, logicalAcc->getExpressions());
+        make_shared<LogicalFTableScan>(expressionsToScan, outerPlan->getSchema()->copy());
+    fTableScan->computeSchema();
     plan.setLastOperator(std::move(fTableScan));
 }
 
 void JoinOrderEnumerator::appendScanNode(shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto schema = plan.getSchema();
     auto scan = make_shared<LogicalScanNode>(node);
-    scan->computeSchema(*schema);
+    scan->computeSchema();
     // update cardinality
-    auto group = schema->getGroup(node->getInternalIDPropertyName());
+    auto group = scan->getSchema()->getGroup(node->getInternalIDPropertyName());
     auto numNodes = 0u;
     for (auto& tableID : node->getTableIDs()) {
         numNodes += nodesStatistics.getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples();
@@ -539,11 +519,10 @@ void JoinOrderEnumerator::appendScanNode(shared_ptr<NodeExpression>& node, Logic
 void JoinOrderEnumerator::appendIndexScanNode(
     shared_ptr<NodeExpression>& node, shared_ptr<Expression> indexExpression, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto schema = plan.getSchema();
     auto scan = make_shared<LogicalIndexScanNode>(node, std::move(indexExpression));
-    scan->computeSchema(*schema);
+    scan->computeSchema();
     // update cardinality
-    auto group = schema->getGroup(node->getInternalIDPropertyName());
+    auto group = scan->getSchema()->getGroup(node->getInternalIDPropertyName());
     group->setMultiplier(1);
     plan.setLastOperator(std::move(scan));
 }
@@ -551,10 +530,10 @@ void JoinOrderEnumerator::appendIndexScanNode(
 bool JoinOrderEnumerator::needExtendToNewGroup(
     RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
     auto extendToNewGroup = false;
-    extendToNewGroup |= boundNode.getNumTableIDs() > 1;
-    extendToNewGroup |= rel.getNumTableIDs() > 1;
-    if (rel.getNumTableIDs() == 1) {
-        auto relTableID = *rel.getTableIDs().begin();
+    extendToNewGroup |= boundNode.isMultiLabeled();
+    extendToNewGroup |= rel.isMultiLabeled();
+    if (!rel.isMultiLabeled()) {
+        auto relTableID = rel.getSingleTableID();
         extendToNewGroup |=
             !catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(relTableID, direction);
     }
@@ -571,19 +550,20 @@ bool JoinOrderEnumerator::needFlatInput(
 void JoinOrderEnumerator::appendExtend(shared_ptr<NodeExpression> boundNode,
     shared_ptr<NodeExpression> nbrNode, shared_ptr<RelExpression> rel, RelDirection direction,
     const expression_vector& properties, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
     if (needFlatInput(*rel, *boundNode, direction)) {
         QueryPlanner::appendFlattenIfNecessary(boundNode->getInternalIDProperty(), plan);
     }
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, extendToNewGroup, plan.getLastOperator());
-    extend->computeSchema(*schema);
+    extend->computeSchema();
     plan.setLastOperator(std::move(extend));
     // update cardinality estimation info
     if (extendToNewGroup) {
         auto extensionRate = getExtensionRate(*rel, *boundNode, direction);
-        schema->getGroup(nbrNode->getInternalIDPropertyName())->setMultiplier(extensionRate);
+        plan.getSchema()
+            ->getGroup(nbrNode->getInternalIDPropertyName())
+            ->setMultiplier(extensionRate);
     }
     plan.increaseCost(plan.getCardinality());
 }
@@ -642,8 +622,6 @@ static bool isJoinKeyUniqueOnBuildSide(const string& joinNodeID, LogicalPlan& bu
 
 void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
     JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    auto buildSideSchema = buildPlan.getSchema();
-    auto probeSideSchema = probePlan.getSchema();
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     // Flat probe side key group in either of the following two cases:
     // 1. there are multiple join nodes;
@@ -652,54 +630,53 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     // keep probe side key unflat only when we know that there is only 0 or 1 match for each key.
     // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
-    if (joinNodes.size() > 1 ||
-        !isJoinKeyUniqueOnBuildSide(joinNodes[0]->getInternalIDPropertyName(), buildPlan)) {
+    auto needFlattenProbeJoinKey = false;
+    needFlattenProbeJoinKey |= joinNodes.size() > 1;
+    needFlattenProbeJoinKey |=
+        !isJoinKeyUniqueOnBuildSide(joinNodes[0]->getInternalIDPropertyName(), buildPlan);
+    if (needFlattenProbeJoinKey) {
         for (auto& joinNode : joinNodes) {
             auto probeSideKeyGroupPos =
-                probeSideSchema->getGroupPos(joinNode->getInternalIDPropertyName());
+                probePlan.getSchema()->getGroupPos(joinNode->getInternalIDPropertyName());
             QueryPlanner::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
         }
-        probePlan.multiplyCardinality(
-            buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
-        probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
     }
     // Flat all but one build side key groups.
     unordered_set<uint32_t> joinNodesGroupPos;
     for (auto& joinNode : joinNodes) {
         joinNodesGroupPos.insert(
-            buildSideSchema->getGroupPos(joinNode->getInternalIDPropertyName()));
+            buildPlan.getSchema()->getGroupPos(joinNode->getInternalIDPropertyName()));
     }
     QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
-    vector<string> keys;
-    for (auto& joinNode : joinNodes) {
-        keys.push_back(joinNode->getInternalIDPropertyName());
-    }
-    SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema, keys);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, joinType, isProbeAcc,
-        buildSideSchema->copy(), buildSideSchema->getExpressionsInScope(),
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
-    probePlan.setLastOperator(move(hashJoin));
+        buildPlan.getSchema()->getExpressionsInScope(), probePlan.getLastOperator(),
+        buildPlan.getLastOperator());
+    hashJoin->computeSchema();
+    if (needFlattenProbeJoinKey) {
+        probePlan.multiplyCardinality(
+            buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
+        probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
+    }
+    probePlan.setLastOperator(std::move(hashJoin));
 }
 
 void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
     const shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
     LogicalPlan& buildPlan) {
-    auto buildSchema = buildPlan.getSchema();
-    auto probeSchema = probePlan.getSchema();
     // Apply flattening all but one on join nodes of both probe and build side.
     unordered_set<uint32_t> joinNodeGroupsPosInProbeSide, joinNodeGroupsPosInBuildSide;
     for (auto& joinNode : joinNodes) {
         joinNodeGroupsPosInProbeSide.insert(
-            probeSchema->getGroupPos(joinNode->getInternalIDPropertyName()));
+            probePlan.getSchema()->getGroupPos(joinNode->getInternalIDPropertyName()));
         joinNodeGroupsPosInBuildSide.insert(
-            buildSchema->getGroupPos(joinNode->getInternalIDPropertyName()));
+            buildPlan.getSchema()->getGroupPos(joinNode->getInternalIDPropertyName()));
     }
     auto markGroupPos = QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInProbeSide, probePlan);
     QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    probeSchema->insertToGroupAndScope(mark, markGroupPos);
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, isProbeAcc, buildSchema->copy(),
+    auto hashJoin = make_shared<LogicalHashJoin>(joinNodes, mark, markGroupPos, isProbeAcc,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
+    hashJoin->computeSchema();
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -707,58 +684,48 @@ void JoinOrderEnumerator::appendIntersect(const shared_ptr<NodeExpression>& inte
     vector<shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
     vector<unique_ptr<LogicalPlan>>& buildPlans) {
     auto intersectNodeID = intersectNode->getInternalIDPropertyName();
-    auto probeSchema = probePlan.getSchema();
     assert(boundNodes.size() == buildPlans.size());
-    // Write intersect node and rels into a new group regardless of whether rel is n-n.
-    auto outGroupPos = probeSchema->createGroup();
-    // Write intersect node into output group.
-    probeSchema->insertToGroupAndScope(intersectNode->getInternalIDProperty(), outGroupPos);
     vector<shared_ptr<LogicalOperator>> buildChildren;
     vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         auto boundNode = boundNodes[i];
         QueryPlanner::appendFlattenIfNecessary(
-            probeSchema->getGroupPos(boundNode->getInternalIDPropertyName()), probePlan);
+            probePlan.getSchema()->getGroupPos(boundNode->getInternalIDPropertyName()), probePlan);
         auto buildPlan = buildPlans[i].get();
         auto buildSchema = buildPlan->getSchema();
         QueryPlanner::appendFlattenIfNecessary(
             buildSchema->getGroupPos(boundNode->getInternalIDPropertyName()), *buildPlan);
         auto expressions = buildSchema->getExpressionsInScope();
-        // Write rel properties into output group.
-        for (auto& expression : expressions) {
-            if (expression->getUniqueName() == intersectNodeID ||
-                expression->getUniqueName() == boundNode->getInternalIDPropertyName()) {
-                continue;
-            }
-            probeSchema->insertToGroupAndScope(expression, outGroupPos);
-        }
-        auto buildInfo =
-            make_unique<LogicalIntersectBuildInfo>(boundNode, buildSchema->copy(), expressions);
+        auto buildInfo = make_unique<LogicalIntersectBuildInfo>(boundNode, expressions);
         buildChildren.push_back(buildPlan->getLastOperator());
         buildInfos.push_back(std::move(buildInfo));
     }
     auto logicalIntersect = make_shared<LogicalIntersect>(intersectNode,
         probePlan.getLastOperator(), std::move(buildChildren), std::move(buildInfos));
+    logicalIntersect->computeSchema();
     probePlan.setLastOperator(std::move(logicalIntersect));
 }
 
 void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    auto probeSideSchema = probePlan.getSchema();
-    auto buildSideSchema = buildPlan.getSchema();
+    auto crossProduct =
+        make_shared<LogicalCrossProduct>(probePlan.getLastOperator(), buildPlan.getLastOperator());
+    crossProduct->computeSchema();
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    SinkOperatorUtil::mergeSchema(*buildSideSchema, *probeSideSchema);
-    auto crossProduct = make_shared<LogicalCrossProduct>(
-        buildSideSchema->copy(), probePlan.getLastOperator(), buildPlan.getLastOperator());
     probePlan.setLastOperator(std::move(crossProduct));
 }
 
 expression_vector JoinOrderEnumerator::getPropertiesForVariable(
     Expression& expression, Expression& variable) {
     expression_vector result;
+    unordered_set<string> matchedPropertyNames; // remove duplication
     for (auto& propertyExpression : expression.getSubPropertyExpressions()) {
         if (propertyExpression->getChild(0)->getUniqueName() != variable.getUniqueName()) {
             continue;
         }
+        if (matchedPropertyNames.contains(propertyExpression->getUniqueName())) {
+            continue;
+        }
+        matchedPropertyNames.insert(propertyExpression->getUniqueName());
         result.push_back(propertyExpression);
     }
     return result;

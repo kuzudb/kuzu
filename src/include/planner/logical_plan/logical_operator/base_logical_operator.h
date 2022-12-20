@@ -63,11 +63,14 @@ public:
     inline uint32_t getNumChildren() const { return children.size(); }
 
     // Used for operators with more than two children e.g. Union
-    inline void addChild(shared_ptr<LogicalOperator> op) { children.push_back(move(op)); }
-
+    inline void addChild(shared_ptr<LogicalOperator> op) { children.push_back(std::move(op)); }
     inline shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
 
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
+
+    inline Schema* getSchema() const { return schema.get(); }
+    void computeSchemaRecursive();
+    virtual void computeSchema() = 0;
 
     virtual string getExpressionsForPrinting() const = 0;
 
@@ -80,7 +83,12 @@ public:
     virtual unique_ptr<LogicalOperator> copy() = 0;
 
 protected:
+    inline void createEmptySchema() { schema = make_unique<Schema>(); }
+    inline void copyChildSchema(uint32_t idx) { schema = children[idx]->getSchema()->copy(); }
+
+protected:
     LogicalOperatorType operatorType;
+    unique_ptr<Schema> schema;
     vector<shared_ptr<LogicalOperator>> children;
 };
 

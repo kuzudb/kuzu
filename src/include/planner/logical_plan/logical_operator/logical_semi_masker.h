@@ -13,6 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, node{std::move(
                                                                                    node)} {}
 
+    inline void computeSchema() override { copyChildSchema(0); }
+
     inline string getExpressionsForPrinting() const override { return node->getRawName(); }
 
     inline shared_ptr<NodeExpression> getNode() const { return node; }

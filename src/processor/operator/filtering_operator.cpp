@@ -3,32 +3,29 @@
 namespace kuzu {
 namespace processor {
 
-void FilteringOperator::restoreSelVector(
-    SelectionVector* prevSelVector, SelectionVector* selVector) {
-    if (prevSelVector->selectedPositions == nullptr) {
-        return;
-    }
-    selVector->selectedSize = prevSelVector->selectedSize;
-    if (prevSelVector->isUnfiltered()) {
-        selVector->resetSelectorToUnselected();
-    } else {
-        auto sizeToCopy = prevSelVector->selectedSize * sizeof(sel_t);
-        selVector->resetSelectorToValuePosBuffer();
-        memcpy(
-            selVector->selectedPositions, prevSelVector->getSelectedPositionsBuffer(), sizeToCopy);
+void SelVectorOverWriter::restoreSelVector(shared_ptr<SelectionVector>& selVector) {
+    if (prevSelVector != nullptr) {
+        selVector = prevSelVector;
     }
 }
 
-void FilteringOperator::saveSelVector(SelectionVector* prevSelVector, SelectionVector* selVector) {
-    prevSelVector->selectedSize = selVector->selectedSize;
-    if (selVector->isUnfiltered()) {
-        prevSelVector->resetSelectorToUnselected();
-    } else {
-        auto sizeToCopy = prevSelVector->selectedSize * sizeof(sel_t);
-        memcpy(prevSelVector->getSelectedPositionsBuffer(), selVector->getSelectedPositionsBuffer(),
-            sizeToCopy);
-        prevSelVector->resetSelectorToValuePosBuffer();
+void SelVectorOverWriter::saveSelVector(shared_ptr<SelectionVector>& selVector) {
+    if (prevSelVector == nullptr) {
+        prevSelVector = selVector;
     }
+    resetToCurrentSelVector(selVector);
+}
+
+void SelVectorOverWriter::resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) {
+    currentSelVector->selectedSize = selVector->selectedSize;
+    if (selVector->isUnfiltered()) {
+        currentSelVector->resetSelectorToUnselected();
+    } else {
+        memcpy(currentSelVector->getSelectedPositionsBuffer(), selVector->selectedPositions,
+            selVector->selectedSize * sizeof(sel_t));
+        currentSelVector->resetSelectorToValuePosBuffer();
+    }
+    selVector = currentSelVector;
 }
 
 } // namespace processor

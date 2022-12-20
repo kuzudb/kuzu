@@ -6,18 +6,19 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto outSchema = scanProperty.getSchema();
+    auto inSchema = scanProperty.getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto node = scanProperty.getNode();
-    auto inputNodeIDVectorPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
+    auto inputNodeIDVectorPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto& nodeStore = storageManager.getNodesStore();
     vector<DataPos> outVectorsPos;
     for (auto& expression : scanProperty.getProperties()) {
-        outVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        mapperContext.addComputedExpressions(expression->getUniqueName());
+        outVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    if (node->getNumTableIDs() > 1) {
+    if (node->isMultiLabeled()) {
         unordered_map<table_id_t, vector<Column*>> tableIDToColumns;
         for (auto& tableID : node->getTableIDs()) {
             vector<Column*> columns;
@@ -36,7 +37,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
             std::move(outVectorsPos), std::move(tableIDToColumns), std::move(prevOperator),
             getOperatorID(), scanProperty.getExpressionsForPrinting());
     } else {
-        auto tableID = node->getTableID();
+        auto tableID = node->getSingleTableID();
         vector<Column*> columns;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);

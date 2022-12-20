@@ -46,14 +46,13 @@ public:
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
-class HashJoinProbe : public PhysicalOperator, FilteringOperator {
+class HashJoinProbe : public PhysicalOperator, SelVectorOverWriter {
 public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild,
         unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild),
               std::move(buildChild), id, paramsString},
-          FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
@@ -63,7 +62,6 @@ public:
         const string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild), id,
               paramsString},
-          FilteringOperator{probeDataInfo.keysDataPos.size()},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -81,7 +79,7 @@ private:
     uint64_t getNextInnerJoinResult();
     uint64_t getNextLeftJoinResult();
     uint64_t getNextMarkJoinResult();
-    void setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors);
+    void setVectorsToNull();
 
     uint64_t getNextJoinResult();
 
@@ -93,7 +91,6 @@ private:
     vector<shared_ptr<ValueVector>> vectorsToReadInto;
     vector<uint32_t> columnIdxsToReadFrom;
     vector<shared_ptr<ValueVector>> keyVectors;
-    vector<SelectionVector*> keySelVectors;
     shared_ptr<ValueVector> markVector;
     unique_ptr<ProbeState> probeState;
 };

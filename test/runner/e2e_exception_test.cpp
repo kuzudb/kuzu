@@ -199,3 +199,32 @@ TEST_F(TinySnbExceptionTest, ReadAfterUpdate2) {
     ASSERT_STREQ(
         result->getErrorMessage().c_str(), "Binder exception: Read after update is not supported.");
 }
+
+TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
+    unique_ptr<QueryResult> result;
+    result = conn->query("CREATE (a:person:organisation {ID:0})");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Create node a with multiple node labels is not supported.");
+    result = conn->query("CREATE (a:person {ID:0})-[e:knows|:mixed]->(b:person {ID:1})");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "
+        "is not supported.");
+    result = conn->query("MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "
+        "is not supported.");
+    result = conn->query("MATCH (a:person:organisation) DELETE a");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Delete node a with multiple node labels is not supported.");
+    result = conn->query("MATCH (a:person:organisation)-[e:knows]->(b:person) DELETE e");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Delete rel e with multiple rel labels or bound by multiple node labels "
+        "is not supported.");
+    result = conn->query("MATCH (a:person:organisation) SET a.age = 0");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Set property of node a with multiple node labels is not supported.");
+    result = conn->query(
+        "MATCH (a:person:organisation)-[e:knows]->(b:person) SET e.date=date('2022-12-12')");
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Binder exception: Set REL property is supported.");
+}

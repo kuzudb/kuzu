@@ -118,8 +118,12 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto otherTableIDs = bindNodeTableIDs(nodePattern.getTableNames());
-        queryNode->addTableIDs(otherTableIDs);
+        // E.g. MATCH (a:person) MATCH (a:organisation)
+        // We bind to single node a with both labels
+        if (!nodePattern.getTableNames().empty()) {
+            auto otherTableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+            queryNode->addTableIDs(otherTableIDs);
+        }
     } else {
         queryNode = createQueryNode(nodePattern);
     }
@@ -147,29 +151,38 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     return queryNode;
 }
 
-unordered_set<table_id_t> Binder::bindTableIDs(
+vector<table_id_t> Binder::bindTableIDs(
     const vector<string>& tableNames, DataTypeID nodeOrRelType) {
-    unordered_set<table_id_t> result;
+    unordered_set<table_id_t> tableIDs;
     switch (nodeOrRelType) {
     case NODE: {
-        for (auto& tableName : tableNames) {
-            result.insert(bindNodeTableID(tableName));
+        if (tableNames.empty()) {
+            for (auto tableID : catalog.getReadOnlyVersion()->getNodeTableIDs()) {
+                tableIDs.insert(tableID);
+            }
+        } else {
+            for (auto& tableName : tableNames) {
+                tableIDs.insert(bindNodeTableID(tableName));
+            }
         }
+
     } break;
     case REL: {
+        if (tableNames.empty()) {
+            for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
+                tableIDs.insert(tableID);
+            }
+        }
         for (auto& tableName : tableNames) {
-            result.insert(bindRelTableID(tableName));
+            tableIDs.insert(bindRelTableID(tableName));
         }
     } break;
     default:
         throw NotImplementedException(
             "bindTableIDs(" + Types::dataTypeToString(nodeOrRelType) + ").");
     }
-    for (auto& tableID : result) {
-        if (tableID == ANY_TABLE_ID) {
-            throw BinderException("Any-table is not supported.");
-        }
-    }
+    auto result = vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
+    std::sort(result.begin(), result.end());
     return result;
 }
 

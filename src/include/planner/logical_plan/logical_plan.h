@@ -8,14 +8,13 @@ namespace planner {
 
 class LogicalPlan {
 public:
-    LogicalPlan() : schema{make_unique<Schema>()}, estCardinality{1}, cost{0} {}
+    LogicalPlan() : estCardinality{1}, cost{0} {}
 
-    LogicalPlan(unique_ptr<Schema> schema, expression_vector expressionsToCollect,
-        uint64_t estCardinality, uint64_t cost)
-        : schema{move(schema)}, expressionsToCollect{move(expressionsToCollect)},
+    LogicalPlan(expression_vector expressionsToCollect, uint64_t estCardinality, uint64_t cost)
+        : expressionsToCollect{std::move(expressionsToCollect)},
           estCardinality{estCardinality}, cost{cost} {}
 
-    void setLastOperator(shared_ptr<LogicalOperator> op);
+    inline void setLastOperator(shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
@@ -30,14 +29,13 @@ public:
     }
 
     inline void setExpressionsToCollect(expression_vector expressions) {
-        expressionsToCollect = move(expressions);
+        expressionsToCollect = std::move(expressions);
     }
 
     inline expression_vector getExpressionsToCollect() { return expressionsToCollect; }
 
     inline shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
-
-    inline Schema* getSchema() { return schema.get(); }
+    inline Schema* getSchema() const { return lastOperator->getSchema(); }
 
     inline void multiplyCardinality(uint64_t factor) { estCardinality *= factor; }
     inline void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
@@ -61,7 +59,6 @@ public:
 
 private:
     shared_ptr<LogicalOperator> lastOperator;
-    unique_ptr<Schema> schema;
     // This fields represents return columns in the same order as user input.
     expression_vector expressionsToCollect;
     uint64_t estCardinality;

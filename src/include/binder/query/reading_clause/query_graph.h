@@ -8,7 +8,6 @@
 namespace kuzu {
 namespace binder {
 
-const table_id_t ANY_TABLE_ID = numeric_limits<uint32_t>::max();
 const uint8_t MAX_NUM_VARIABLES = 64;
 
 class QueryGraph;

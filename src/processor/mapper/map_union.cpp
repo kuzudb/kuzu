@@ -8,20 +8,20 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalUnionAll = (LogicalUnion&)*logicalOperator;
+    auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child
     vector<unique_ptr<PhysicalOperator>> prevOperators;
     vector<shared_ptr<FTableSharedState>> resultCollectorSharedStates;
     for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
         auto child = logicalOperator->getChild(i);
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
-        auto childMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*childSchema));
-        auto prevOperator = mapLogicalOperatorToPhysical(child, childMapperContext);
-        auto resultCollector = appendResultCollector(childSchema->getExpressionsInScope(),
-            *childSchema, move(prevOperator), childMapperContext);
+        auto prevOperator = mapLogicalOperatorToPhysical(child);
+        auto resultCollector = appendResultCollector(
+            childSchema->getExpressionsInScope(), *childSchema, std::move(prevOperator));
         resultCollectorSharedStates.push_back(resultCollector->getSharedState());
-        prevOperators.push_back(move(resultCollector));
+        prevOperators.push_back(std::move(resultCollector));
     }
     // append union all
     vector<DataPos> outDataPoses;
@@ -29,7 +29,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
     for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
         auto expression = expressionsToUnion[i];
-        outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
+        outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
     auto unionSharedState =

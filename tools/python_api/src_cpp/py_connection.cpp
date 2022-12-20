@@ -3,7 +3,7 @@
 #include "datetime.h" // from Python
 
 void PyConnection::initialize(py::handle& m) {
-    py::class_<PyConnection>(m, "connection")
+    py::class_<PyConnection>(m, "Connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
         .def(
             "execute", &PyConnection::execute, py::arg("query"), py::arg("parameters") = py::list())

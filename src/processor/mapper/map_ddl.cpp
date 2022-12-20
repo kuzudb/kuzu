@@ -13,7 +13,7 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto createNodeTable = (LogicalCreateNodeTable*)logicalOperator;
     return make_unique<CreateNodeTable>(catalog, createNodeTable->getTableName(),
         createNodeTable->getPropertyNameDataTypes(), createNodeTable->getPrimaryKeyIdx(),
@@ -22,7 +22,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto createRelTable = (LogicalCreateRelTable*)logicalOperator;
     return make_unique<CreateRelTable>(catalog, createRelTable->getTableName(),
         createRelTable->getPropertyNameDataTypes(), createRelTable->getRelMultiplicity(),
@@ -32,7 +32,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto copyCSV = (LogicalCopyCSV*)logicalOperator;
     if (copyCSV->getTableSchema().isNodeTable) {
         return make_unique<CopyNodeCSV>(catalog, copyCSV->getCSVDescription(),
@@ -48,7 +48,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
     return make_unique<DropTable>(catalog, dropTable->getTableSchema(), storageManager,
         getOperatorID(), dropTable->getExpressionsForPrinting());

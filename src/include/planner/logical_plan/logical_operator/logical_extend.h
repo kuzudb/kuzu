@@ -17,24 +17,11 @@ public:
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction},
           properties{std::move(properties)}, extendToNewGroup{extendToNewGroup} {}
 
+    void computeSchema() override;
+
     inline string getExpressionsForPrinting() const override {
         return boundNode->getRawName() + (direction == RelDirection::FWD ? "->" : "<-") +
                nbrNode->getRawName();
-    }
-
-    inline void computeSchema(Schema& schema) {
-        auto boundGroupPos = schema.getGroupPos(boundNode->getInternalIDPropertyName());
-        uint32_t nbrGroupPos = 0u;
-        if (!extendToNewGroup) {
-            nbrGroupPos = boundGroupPos;
-        } else {
-            assert(schema.getGroup(boundGroupPos)->isFlat());
-            nbrGroupPos = schema.createGroup();
-        }
-        schema.insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-        for (auto& property : properties) {
-            schema.insertToGroupAndScope(property, nbrGroupPos);
-        }
     }
 
     inline shared_ptr<NodeExpression> getBoundNode() const { return boundNode; }
@@ -43,7 +30,7 @@ public:
     inline RelDirection getDirection() const { return direction; }
     inline expression_vector getProperties() const { return properties; }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExtend>(
             boundNode, nbrNode, rel, direction, properties, extendToNewGroup, children[0]->copy());
     }

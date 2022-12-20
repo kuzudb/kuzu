@@ -39,6 +39,8 @@ public:
         vector<shared_ptr<RelExpression>> rels, shared_ptr<LogicalOperator> child)
         : LogicalOperator{operatorType, std::move(child)}, rels{std::move(rels)} {}
 
+    inline void computeSchema() override { copyChildSchema(0); }
+
     inline string getExpressionsForPrinting() const override {
         expression_vector expressions;
         for (auto& rel : rels) {

@@ -108,7 +108,8 @@ public:
 
     ResultValue* getResultValue(uint32_t valIdx);
 
-    string toString(const vector<uint32_t>& colsWidth, const string& delimiter = "|");
+    string toString(const vector<uint32_t>& colsWidth, const string& delimiter = "|",
+        const uint32_t maxWidth = -1);
 
 private:
     vector<unique_ptr<ResultValue>> resultValues;

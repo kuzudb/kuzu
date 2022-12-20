@@ -8,18 +8,14 @@ namespace kuzu {
 namespace planner {
 
 struct LogicalIntersectBuildInfo {
-    LogicalIntersectBuildInfo(
-        shared_ptr<NodeExpression> key, unique_ptr<Schema> schema, expression_vector expressions)
-        : key{std::move(key)}, schema{std::move(schema)}, expressionsToMaterialize{
-                                                              std::move(expressions)} {}
+    LogicalIntersectBuildInfo(shared_ptr<NodeExpression> key, expression_vector expressions)
+        : key{std::move(key)}, expressionsToMaterialize{std::move(expressions)} {}
 
     inline unique_ptr<LogicalIntersectBuildInfo> copy() {
-        return make_unique<LogicalIntersectBuildInfo>(
-            key, schema->copy(), expressionsToMaterialize);
+        return make_unique<LogicalIntersectBuildInfo>(key, expressionsToMaterialize);
     }
 
     shared_ptr<NodeExpression> key;
-    unique_ptr<Schema> schema;
     expression_vector expressionsToMaterialize;
 };
 
@@ -34,6 +30,8 @@ public:
             children.push_back(std::move(child));
         }
     }
+
+    void computeSchema() override;
 
     string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }
 

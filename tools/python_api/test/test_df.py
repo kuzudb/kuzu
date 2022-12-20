@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 sys.path.append('../build/')
-import _kuzu as kuzu
+import kuzu
 from pandas import Timestamp, Timedelta, isna
 
 def test_to_df(establish_connection):
@@ -9,7 +9,7 @@ def test_to_df(establish_connection):
 
     def _test_to_df(conn):
         query = "MATCH (p:person) return * ORDER BY p.ID"
-        pd = conn.execute(query).getAsDF()
+        pd = conn.execute(query).get_as_df()
         assert pd['p.ID'].tolist() == [0, 2, 3, 5, 7, 8, 9, 10]
         assert str(pd['p.ID'].dtype) == "int64"
         assert pd['p.fName'].tolist() == ["Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",

@@ -41,19 +41,18 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
 }
 
 void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     auto lhs = setItem.first;
     auto rhs = setItem.second;
     // Check LHS
     assert(lhs->getChild(0)->dataType.typeID == NODE);
     auto nodeExpression = static_pointer_cast<NodeExpression>(lhs->getChild(0));
-    auto lhsGroupPos = schema->getGroupPos(nodeExpression->getInternalIDPropertyName());
-    auto isLhsFlat = schema->getGroup(lhsGroupPos)->isFlat();
+    auto lhsGroupPos = plan.getSchema()->getGroupPos(nodeExpression->getInternalIDPropertyName());
+    auto isLhsFlat = plan.getSchema()->getGroup(lhsGroupPos)->isFlat();
     // Check RHS
-    auto rhsDependentGroupsPos = schema->getDependentGroupsPos(rhs);
+    auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
     if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
         auto rhsPos = QueryPlanner::appendFlattensButOne(rhsDependentGroupsPos, plan);
-        auto isRhsFlat = schema->getGroup(rhsPos)->isFlat();
+        auto isRhsFlat = plan.getSchema()->getGroup(rhsPos)->isFlat();
         // If both are unflat and from different groups, we flatten LHS.
         if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
             QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
@@ -77,14 +76,10 @@ void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& pla
 
 void UpdatePlanner::appendCreateNode(
     const vector<unique_ptr<BoundCreateNode>>& createNodes, LogicalPlan& plan) {
-    auto schema = plan.getSchema();
     vector<expression_pair> setItems;
     vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeyPairs;
     for (auto& createNode : createNodes) {
         auto node = createNode->getNode();
-        auto groupPos = schema->createGroup();
-        schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
-        schema->setGroupAsSingleState(groupPos);
         nodeAndPrimaryKeyPairs.emplace_back(node, createNode->getPrimaryKeyExpression());
         for (auto& setItem : createNode->getSetItems()) {
             setItems.push_back(setItem);
@@ -92,6 +87,7 @@ void UpdatePlanner::appendCreateNode(
     }
     auto createNode =
         make_shared<LogicalCreateNode>(std::move(nodeAndPrimaryKeyPairs), plan.getLastOperator());
+    createNode->computeSchema();
     plan.setLastOperator(createNode);
     appendSet(std::move(setItems), plan);
 }
@@ -106,17 +102,20 @@ void UpdatePlanner::appendCreateRel(
     }
     auto createRel = make_shared<LogicalCreateRel>(
         std::move(rels), std::move(setItemsPerRel), plan.getLastOperator());
+    createRel->computeSchema();
     plan.setLastOperator(createRel);
 }
 
 void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& plan) {
+    if (setItems.empty()) {
+        return;
+    }
     for (auto& setItem : setItems) {
         planSetItem(setItem, plan);
     }
-    if (!setItems.empty()) {
-        plan.setLastOperator(
-            make_shared<LogicalSetNodeProperty>(std::move(setItems), plan.getLastOperator()));
-    }
+    auto setNode = make_shared<LogicalSetNodeProperty>(std::move(setItems), plan.getLastOperator());
+    setNode->computeSchema();
+    plan.setLastOperator(std::move(setNode));
 }
 
 void UpdatePlanner::planDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan) {
@@ -137,6 +136,7 @@ void UpdatePlanner::appendDeleteNode(
     }
     auto deleteNode =
         make_shared<LogicalDeleteNode>(std::move(nodeAndPrimaryKeyPairs), plan.getLastOperator());
+    deleteNode->computeSchema();
     plan.setLastOperator(std::move(deleteNode));
 }
 
@@ -150,6 +150,7 @@ void UpdatePlanner::appendDeleteRel(
         QueryPlanner::appendFlattenIfNecessary(dstNodeID, plan);
     }
     auto deleteRel = make_shared<LogicalDeleteRel>(deleteRels, plan.getLastOperator());
+    deleteRel->computeSchema();
     plan.setLastOperator(std::move(deleteRel));
 }
 
