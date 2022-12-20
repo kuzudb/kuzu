@@ -386,14 +386,14 @@ unique_ptr<ParsedExpression> Transformer::transformNotExpression(
 
 unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
     CypherParser::OC_ComparisonExpressionContext& ctx) {
-    if (1 == ctx.oC_AddOrSubtractExpression().size()) {
-        return transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0));
+    if (1 == ctx.kU_BitwiseOrOperatorExpression().size()) {
+        return transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(0));
     }
     // Antlr parser throws error for conjunctive comparison.
     // Transformer should only handle the case of single comparison operator.
     assert(ctx.kU_ComparisonOperator().size() == 1);
-    auto left = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0));
-    auto right = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(1));
+    auto left = transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(0));
+    auto right = transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(1));
     auto comparisonOperator = ctx.kU_ComparisonOperator()[0]->getText();
     if (comparisonOperator == "=") {
         return make_unique<ParsedExpression>(
@@ -415,6 +415,62 @@ unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
         return make_unique<ParsedExpression>(
             LESS_THAN_EQUALS, std::move(left), std::move(right), ctx.getText());
     }
+}
+
+unique_ptr<ParsedExpression> Transformer::transformBitwiseOrOperatorExpression(
+    CypherParser::KU_BitwiseOrOperatorExpressionContext& ctx) {
+    unique_ptr<ParsedExpression> expression;
+    for (auto i = 0ul; i < ctx.kU_BitwiseAndOperatorExpression().size(); ++i) {
+        auto next = transformBitwiseAndOperatorExpression(*ctx.kU_BitwiseAndOperatorExpression(i));
+        if (!expression) {
+            expression = std::move(next);
+        } else {
+            auto rawName = expression->getRawName() + " | " + next->getRawName();
+            expression = make_unique<ParsedFunctionExpression>(
+                BITWISE_OR_FUNC_NAME, std::move(expression), std::move(next), rawName);
+        }
+    }
+    return expression;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformBitwiseAndOperatorExpression(
+    CypherParser::KU_BitwiseAndOperatorExpressionContext& ctx) {
+    unique_ptr<ParsedExpression> expression;
+    for (auto i = 0ul; i < ctx.kU_BitShiftOperatorExpression().size(); ++i) {
+        auto next = transformBitShiftOperatorExpression(*ctx.kU_BitShiftOperatorExpression(i));
+        if (!expression) {
+            expression = std::move(next);
+        } else {
+            auto rawName = expression->getRawName() + " & " + next->getRawName();
+            expression = make_unique<ParsedFunctionExpression>(
+                BITWISE_AND_FUNC_NAME, std::move(expression), std::move(next), rawName);
+        }
+    }
+    return expression;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpression(
+    CypherParser::KU_BitShiftOperatorExpressionContext& ctx) {
+    unique_ptr<ParsedExpression> expression;
+    for (auto i = 0ul; i < ctx.oC_AddOrSubtractExpression().size(); ++i) {
+        auto next = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(i));
+        if (!expression) {
+            expression = std::move(next);
+        } else {
+            auto bitShiftOperator = ctx.kU_BitShiftOperator(i - 1)->getText();
+            auto rawName =
+                expression->getRawName() + " " + bitShiftOperator + " " + next->getRawName();
+            if (bitShiftOperator == "<<") {
+                expression = make_unique<ParsedFunctionExpression>(
+                    BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+            } else {
+                assert(bitwiseOperator == ">>");
+                expression = make_unique<ParsedFunctionExpression>(
+                    BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
+            }
+        }
+    }
+    return expression;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
@@ -457,8 +513,8 @@ unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpressio
 unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
     CypherParser::OC_PowerOfExpressionContext& ctx) {
     unique_ptr<ParsedExpression> expression;
-    for (auto& unaryAddOrSubtractExpression : ctx.oC_UnaryAddOrSubtractExpression()) {
-        auto next = transformUnaryAddOrSubtractExpression(*unaryAddOrSubtractExpression);
+    for (auto& unaryAddOrSubtractExpression : ctx.oC_UnaryAddSubtractOrFactorialExpression()) {
+        auto next = transformUnaryAddSubtractOrFactorialExpression(*unaryAddOrSubtractExpression);
         if (!expression) {
             expression = std::move(next);
         } else {
@@ -470,10 +526,20 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
     return expression;
 }
 
-unique_ptr<ParsedExpression> Transformer::transformUnaryAddOrSubtractExpression(
-    CypherParser::OC_UnaryAddOrSubtractExpressionContext& ctx) {
-    if (ctx.MINUS()) {
+unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
+    CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
+    if (ctx.MINUS() && ctx.FACTORIAL()) {
+        auto exp1 = make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
+            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
+            ctx.getText());
+        return make_unique<ParsedFunctionExpression>(
+            NEGATE_FUNC_NAME, std::move(exp1), ctx.getText());
+    } else if (ctx.MINUS()) {
         return make_unique<ParsedFunctionExpression>(NEGATE_FUNC_NAME,
+            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
+            ctx.getText());
+    } else if (ctx.FACTORIAL()) {
+        return make_unique<ParsedFunctionExpression>(FACTORIAL_FUNC_NAME,
             transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
             ctx.getText());
     }
