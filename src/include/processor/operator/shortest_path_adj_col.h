@@ -16,11 +16,12 @@ namespace processor {
 
 class ShortestPathAdjCol : public BaseShortestPath {
 public:
-    ShortestPathAdjCol(const DataPos& srcDataPos, const DataPos& destDataPos,
-        BaseColumnOrList* columns, uint64_t lowerBound, uint64_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseShortestPath{srcDataPos, destDataPos, columns, lowerBound, upperBound, move(child),
-              id, paramsString} {}
+    ShortestPathAdjCol(const DataPos& srcDataPos, const DataPos& destDataPos, Column* columns,
+        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
+              paramsString},
+          col{columns} {}
 
     bool getNextTuplesInternal() override;
 
@@ -29,9 +30,12 @@ public:
     }
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ShortestPathAdjCol>(srcDataPos, destDataPos, storage, lowerBound,
-            upperBound, children[0]->clone(), id, paramsString);
+        return make_unique<ShortestPathAdjCol>(srcDataPos, destDataPos, col, lowerBound, upperBound,
+            children[0]->clone(), id, paramsString);
     }
+
+private:
+    Column* col;
 };
 
 } // namespace processor

@@ -8,32 +8,26 @@
 namespace kuzu {
 namespace processor {
 
-struct BFSState {
+struct NodeState {
     uint64_t parentNodeID;
-    uint64_t bfsLevel;
     shared_ptr<ValueVector> children;
-    uint64_t currChildIdx;
-    bool hasBeenOutput;
-    shared_ptr<ListSyncState> listSyncState;
-    shared_ptr<ListHandle> listHandle;
 
-    BFSState(uint64_t parentNodeID, uint64_t bfsLevel, shared_ptr<ValueVector> children,
-        uint64_t currChildIdx, bool hasBeenOutput, shared_ptr<ListSyncState> listSyncState,
-        shared_ptr<ListHandle> listHandle)
-        : parentNodeID{parentNodeID}, bfsLevel{bfsLevel}, children{move(children)},
-          currChildIdx{currChildIdx}, hasBeenOutput{hasBeenOutput},
-          listSyncState{move(listSyncState)}, listHandle{move(listHandle)} {}
+    NodeState(uint64_t parentNodeID, shared_ptr<ValueVector> children)
+        : parentNodeID{parentNodeID}, children{move(children)} {}
 };
 
 class BaseShortestPath : public PhysicalOperator {
 public:
-    BaseShortestPath(const DataPos& srcDataPos, const DataPos& destDataPos,
-        BaseColumnOrList* storage, uint64_t lowerBound, uint64_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    BaseShortestPath(const DataPos& srcDataPos, const DataPos& destDataPos, uint64_t lowerBound,
+        uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
         : PhysicalOperator{move(child), id, paramsString}, srcDataPos{srcDataPos},
-          destDataPos{destDataPos}, storage{storage}, lowerBound{lowerBound},
-          upperBound{upperBound}, bfsQueue{queue<uint64_t>()},
-          bfsVisitedNodesMap{map<uint64_t, shared_ptr<BFSState>>()} {}
+          destDataPos{destDataPos}, lowerBound{lowerBound}, upperBound{upperBound},
+          currFrontier{make_shared<vector<node_offset_t>>()},
+          nextFrontier{make_shared<vector<node_offset_t>>()},
+          listSyncState{make_shared<ListSyncState>()}, listHandle{make_shared<ListHandle>(
+                                                           *listSyncState)},
+          bfsVisitedNodesMap{map<uint64_t, shared_ptr<NodeState>>()} {}
 
     virtual bool getNextTuplesInternal() = 0;
 
@@ -48,9 +42,11 @@ protected:
     uint64_t upperBound;
     shared_ptr<ValueVector> srcValueVector;
     shared_ptr<ValueVector> destValueVector;
-    map<uint64_t, shared_ptr<BFSState>> bfsVisitedNodesMap;
-    queue<uint64_t> bfsQueue = queue<uint64_t>();
-    BaseColumnOrList* storage;
+    map<uint64_t, shared_ptr<NodeState>> bfsVisitedNodesMap;
+    shared_ptr<vector<node_offset_t>> currFrontier;
+    shared_ptr<vector<node_offset_t>> nextFrontier;
+    shared_ptr<ListSyncState> listSyncState;
+    shared_ptr<ListHandle> listHandle;
     MemoryManager* memoryManager;
 };
 

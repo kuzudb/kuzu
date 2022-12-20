@@ -16,28 +16,41 @@ namespace processor {
 
 class ShortestPathAdjList : public BaseShortestPath {
 public:
-    ShortestPathAdjList(const DataPos& srcDataPos, const DataPos& destDataPos,
-        BaseColumnOrList* adjList, uint64_t lowerBound, uint64_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseShortestPath{srcDataPos, destDataPos, adjList, lowerBound, upperBound, move(child),
-              id, paramsString} {}
+    ShortestPathAdjList(const DataPos& srcDataPos, const DataPos& destDataPos, AdjLists* adjList,
+        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
+              paramsString},
+          lists{adjList} {}
 
     bool getNextTuplesInternal() override;
 
-    void computeShortestPath();
+    bool computeShortestPath(uint64_t currIdx, uint64_t destIdx);
 
-    bool addBFSLevel(uint64_t parent, uint64_t bfsLevel, uint64_t predecessor);
+    bool addToNextFrontier(NodeState*& nodeState, uint64_t index, node_offset_t parentNodeOffset,
+        node_offset_t destNodeOffset);
 
-    bool getNextBatchOfChildNodes(BFSState* bfsState);
+    bool visitNextFrontierNode(uint64_t parent, uint64_t predecessor);
+
+    bool getNextBatchOfChildNodes(NodeState* nodeState);
+
+    bool extendToNextFrontier(node_offset_t destNodeOffset, uint64_t currLevel);
+
+    void printShortestPath(node_offset_t destNodeOffset);
+
+    void resetFrontier();
 
     PhysicalOperatorType getOperatorType() override {
         return PhysicalOperatorType::SHORTEST_PATH_ADJ_LIST;
     }
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, storage, lowerBound,
+        return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists, lowerBound,
             upperBound, children[0]->clone(), id, paramsString);
     }
+
+private:
+    AdjLists* lists;
 };
 
 } // namespace processor
