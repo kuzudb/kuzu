@@ -1,6 +1,5 @@
 #pragma once
 
-#include "json.hpp"
 #include "processor/data_pos.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
@@ -88,12 +87,17 @@ public:
 
     inline uint32_t getOperatorID() const { return id; }
 
+    inline PhysicalOperatorType getOperatorType() const { return operatorType; }
+
+    inline virtual bool isSource() const { return false; }
+    inline virtual bool isSink() const { return false; }
+
     inline void addChild(unique_ptr<PhysicalOperator> op) { children.push_back(std::move(op)); }
     inline PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
     inline uint64_t getNumChildren() const { return children.size(); }
     unique_ptr<PhysicalOperator> moveUnaryChild();
 
-    inline PhysicalOperatorType getOperatorType() const { return operatorType; }
+    inline string getParamsString() const { return paramsString; }
 
     // Global state is initialized once.
     void initGlobalState(ExecutionContext* context);
@@ -107,19 +111,10 @@ public:
         return result;
     }
 
+    unordered_map<string, string> getProfilerKeyValAttributes(Profiler& profiler) const;
+    vector<string> getProfilerAttributes(Profiler& profiler) const;
+
     virtual unique_ptr<PhysicalOperator> clone() = 0;
-
-    virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
-
-    virtual double getExecutionTime(Profiler& profiler) const;
-
-    inline uint64_t getNumOutputTuples(Profiler& profiler) const {
-        return profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
-    }
-
-    vector<string> getAttributes(Profiler& profiler) const;
-
-    inline string getParamsString() const { return paramsString; }
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* context) {}
@@ -132,7 +127,8 @@ protected:
 
     void registerProfilingMetrics(Profiler* profiler);
 
-    void printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
+    double getExecutionTime(Profiler& profiler) const;
+    uint64_t getNumOutputTuples(Profiler& profiler) const;
 
 protected:
     uint32_t id;

@@ -184,39 +184,34 @@ void PhysicalOperator::initLocalState(ResultSet* _resultSet, ExecutionContext* c
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
     auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());
-
     metrics = make_unique<OperatorMetrics>(*executionTime, *numOutputTuple);
 }
 
-void PhysicalOperator::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
-    printTimeAndNumOutputMetrics(json, profiler);
-}
-
-void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
-    double prevExecutionTime = 0.0;
-    if (getNumChildren()) {
-        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(children[0]->getTimeMetricKey());
-    }
-    // Time metric measures execution time of the subplan under current operator (like a CDF).
-    // By subtracting prevOperator runtime, we get the runtime of current operator
-    auto executionTime = profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
-    auto numOutputTuples = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
-    json["executionTime"] = to_string(executionTime);
-    json["numOutputTuples"] = numOutputTuples;
-}
-
 double PhysicalOperator::getExecutionTime(Profiler& profiler) const {
-    double prevExecutionTime = 0.0;
-    for (auto i = 0u; i < getNumChildren(); i++) {
-        prevExecutionTime += profiler.sumAllTimeMetricsWithKey(children[i]->getTimeMetricKey());
+    auto executionTime = profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
+    if (!isSource()) {
+        executionTime -= profiler.sumAllTimeMetricsWithKey(children[0]->getTimeMetricKey());
     }
-    return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
+    return executionTime;
 }
 
-vector<string> PhysicalOperator::getAttributes(Profiler& profiler) const {
+uint64_t PhysicalOperator::getNumOutputTuples(Profiler& profiler) const {
+    return profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
+}
+
+unordered_map<string, string> PhysicalOperator::getProfilerKeyValAttributes(
+    Profiler& profiler) const {
+    unordered_map<string, string> result;
+    result.insert({"ExecutionTime", to_string(getExecutionTime(profiler))});
+    result.insert({"NumOutputTuples", to_string(getNumOutputTuples(profiler))});
+    return result;
+}
+
+vector<string> PhysicalOperator::getProfilerAttributes(Profiler& profiler) const {
     vector<string> result;
-    result.emplace_back("ExecutionTime: " + to_string(getExecutionTime(profiler)));
-    result.emplace_back("NumOutputTuples: " + to_string(getNumOutputTuples(profiler)));
+    for (auto& [key, val] : getProfilerKeyValAttributes(profiler)) {
+        result.emplace_back(key + ": " + val);
+    }
     return result;
 }
 

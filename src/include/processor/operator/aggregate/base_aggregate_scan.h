@@ -9,7 +9,6 @@ namespace kuzu {
 namespace processor {
 
 class BaseAggregateScan : public PhysicalOperator {
-
 public:
     BaseAggregateScan(vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
@@ -24,15 +23,13 @@ public:
           aggregatesPos{std::move(aggregatesPos)}, aggregateDataTypes{
                                                        std::move(aggregateDataTypes)} {}
 
+    bool isSource() const override { return true; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override = 0;
 
     unique_ptr<PhysicalOperator> clone() override = 0;
-
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
-    }
 
 protected:
     void writeAggregateResultToVector(

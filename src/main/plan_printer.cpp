@@ -106,7 +106,7 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
 uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
     uint32_t& maxFieldWidth, Profiler& profiler) {
     auto opProfileBox = make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
-        PlanPrinter::getOperatorParams(op), op->getAttributes(profiler));
+        PlanPrinter::getOperatorParams(op), op->getProfilerAttributes(profiler));
     maxFieldWidth = max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, move(opProfileBox));
     if (!op->getNumChildren()) {
@@ -290,15 +290,14 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
 
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
     auto json = nlohmann::json();
-    json["name"] = getOperatorName(physicalOperator);
-    if (physicalOperator->getNumChildren()) {
-        json["prev"] = toJson(physicalOperator->getChild(0), profiler);
-    }
-    if (physicalOperator->getNumChildren() > 1) {
-        json["right"] = toJson(physicalOperator->getChild(1), profiler);
-    }
+    json["Name"] = getOperatorName(physicalOperator);
     if (profiler.enabled) {
-        physicalOperator->printMetricsToJson(json, profiler);
+        for (auto& [key, val] : physicalOperator->getProfilerKeyValAttributes(profiler)) {
+            json[key] = val;
+        }
+    }
+    for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
+        json["Child"] = toJson(physicalOperator->getChild(i), profiler);
     }
     return json;
 }
