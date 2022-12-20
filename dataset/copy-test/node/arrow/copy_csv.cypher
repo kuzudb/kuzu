@@ -1,1 +1,1 @@
-COPY table_arrow FROM "dataset/copy-test/node/arrow/types_50k.arrow" (HEADER=true);
+COPY tableTypes FROM "dataset/copy-test/node/arrow/types_50k.arrow" (HEADER=true);
