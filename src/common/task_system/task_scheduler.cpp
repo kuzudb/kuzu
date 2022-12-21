@@ -74,6 +74,13 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
     }
 }
 
+void TaskScheduler::waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore) {
+    while (getNumTasks() > minimumNumTasksToScheduleMore) {
+        errorIfThereIsAnException();
+        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+    }
+}
+
 shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
     lock_t lck{mtx};
     if (taskQueue.empty()) {

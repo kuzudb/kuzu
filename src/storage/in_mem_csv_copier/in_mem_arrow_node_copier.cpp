@@ -16,7 +16,7 @@ namespace storage {
               numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
         nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 
-        //TODO: refactor this once implement reading rel files.
+        //TODO: refactor this when implementing reading rel files.
         setFileType(csvDescription.filePath);
     }
 
@@ -64,7 +64,6 @@ namespace storage {
         logger->debug("read time: {}.", read_time.count());
         logger->debug("write time: {}.", write_time.count());
         logger->debug("total time: {}.", total_time.count());
-
         return numNodes;
     }
 
@@ -75,7 +74,6 @@ namespace storage {
         shared_ptr<arrow::io::InputStream> arrow_input_stream;
         ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
         auto arrowRead = arrow::csv::ReadOptions::Defaults();
-        arrowRead.block_size = 80000;
 
         //TODO: Refactor this once implement reading rel files.
         if (!csvDescription.csvReaderConfig.hasHeader) {
@@ -116,7 +114,6 @@ namespace storage {
         ARROW_ASSIGN_OR_RAISE(
                 ipc_reader,
                 arrow::ipc::RecordBatchFileReader::Open(infile));
-
         return arrow::Status::OK();
     }
 
@@ -126,10 +123,8 @@ namespace storage {
         ARROW_ASSIGN_OR_RAISE(infile,
                               arrow::io::ReadableFile::Open(filePath,
                                                             arrow::default_memory_pool()));
-
         ARROW_RETURN_NOT_OK(
                 parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-
         return arrow::Status::OK();
     }
 
@@ -139,11 +134,9 @@ namespace storage {
             case FileTypes::CSV:
                 status = countNumLinesCSV(filePath);
                 break;
-
             case FileTypes::ARROW:
                 status = countNumLinesArrow(filePath);
                 break;
-
             case FileTypes::PARQUET:
                 status = countNumLinesParquet(filePath);
                 break;
@@ -169,7 +162,6 @@ namespace storage {
             numLinesPerBlock.push_back(currNumRows);
             numNodes += currNumRows;
         }
-
         return status;
     }
 
@@ -187,7 +179,6 @@ namespace storage {
             numLinesPerBlock[blockId] = rbatch->num_rows();
             numNodes += rbatch->num_rows();
         }
-
         return status;
     }
 
@@ -205,7 +196,6 @@ namespace storage {
             numLinesPerBlock[blockId] = table->num_rows();
             numNodes += table->num_rows();
         }
-
         return status;
     }
 
@@ -244,8 +234,6 @@ namespace storage {
                 return;
             }
         }
-
-
         throw CopyCSVException("Unsupported file type: " + fileName);
     }
 
@@ -278,11 +266,9 @@ namespace storage {
             case FileTypes::CSV:
                 status = populateColumnsFromCSV<T>(pkIndex);
                 break;
-
             case FileTypes::ARROW:
                 status = populateColumnsFromArrow<T>(pkIndex);
                 break;
-
             case FileTypes::PARQUET:
                 status = populateColumnsFromParquet<T>(pkIndex);
                 break;
@@ -291,7 +277,6 @@ namespace storage {
         logger->info("Flush the pk index to disk.");
         pkIndex->flush();
         logger->info("Done populating structured properties, constructing the pk index.");
-
         return status;
     }
 
@@ -311,7 +296,7 @@ namespace storage {
         auto it = csv_streaming_reader->begin();
         auto endIt = csv_streaming_reader->end();
         while (it != endIt) {
-            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+            for (int i = 0; i < CopyCSVConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
                 if (it == endIt) {
                     break;
                 }
@@ -323,16 +308,11 @@ namespace storage {
                         csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currBatch->num_rows();
                 ++blockIdx;
-                ++ it;
+                ++it;
             }
-            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
-                taskScheduler.errorIfThereIsAnException();
-                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-            }
+            taskScheduler.waitUntilEnoughTasksFinish(CopyCSVConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
-
         taskScheduler.waitAllTasksToCompleteOrError();
-
         return arrow::Status::OK();
     }
 
@@ -350,7 +330,7 @@ namespace storage {
 
         int blockIdx = 0;
         while (blockIdx < numBlocks) {
-            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+            for (int i = 0; i < CopyCSVConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
                 if (blockIdx == numBlocks) {
                     break;
                 }
@@ -361,12 +341,9 @@ namespace storage {
                         blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns(),
                         csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currBatch->num_rows();
-                ++ blockIdx;
+                ++blockIdx;
             }
-            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
-                taskScheduler.errorIfThereIsAnException();
-                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-            }
+            taskScheduler.waitUntilEnoughTasksFinish(CopyCSVConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
@@ -386,7 +363,7 @@ namespace storage {
         std::shared_ptr<arrow::Table> currTable;
         int blockIdx = 0;
         while (blockIdx < numBlocks) {
-            for (int batchOfTasksId = 0; batchOfTasksId < CopyCSVConfig::NUM_TASKS_PER_BATCH; ++ batchOfTasksId) {
+            for (int i = 0; i < CopyCSVConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
                 if (blockIdx == numBlocks) {
                     break;
                 }
@@ -397,43 +374,33 @@ namespace storage {
                         blockIdx, offsetStart, pkIndex.get(), this, currTable->columns(),
                         csvDescription.csvReaderConfig.tokenSeparator));
                 offsetStart += currTable->num_rows();
-                ++ blockIdx;
+                ++blockIdx;
             }
-            while (taskScheduler.getTaskNum() > CopyCSVConfig::MINIMUM_TASKS_TO_SCHEDULE_MORE) {
-                taskScheduler.errorIfThereIsAnException();
-                this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-            }
+            taskScheduler.waitUntilEnoughTasksFinish(CopyCSVConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
 
         taskScheduler.waitAllTasksToCompleteOrError();
-
         return arrow::Status::OK();
-    }
-
-    template<typename T>
-    void InMemArrowNodeCopier::addIDsToIndex(InMemColumn *column, HashIndexBuilder<T> *hashIndex,
-                                             node_offset_t startOffset, uint64_t numValues) {
-        for (auto i = 0u; i < numValues; i++) {
-            auto offset = i + startOffset;
-            if constexpr (is_same<T, int64_t>::value) {
-                auto key = (int64_t *) column->getElement(offset);
-                if (!hashIndex->append(*key, offset)) {
-                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(to_string(*key)));
-                }
-            } else {
-                auto element = (ku_string_t *) column->getElement(offset);
-                auto key = column->getInMemOverflowFile()->readString(element);
-                if (!hashIndex->append(key.c_str(), offset)) {
-                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(key));
-                }
-            }
-        }
     }
 
     template<typename T>
     void InMemArrowNodeCopier::populatePKIndex(InMemColumn *column, HashIndexBuilder<T> *pkIndex,
                                                node_offset_t startOffset, uint64_t numValues) {
-        addIDsToIndex(column, pkIndex, startOffset, numValues);
+        for (auto i = 0u; i < numValues; i++) {
+            auto offset = i + startOffset;
+            if constexpr (is_same<T, int64_t>::value) {
+                auto key = (int64_t *) column->getElement(offset);
+                if (!pkIndex->append(*key, offset)) {
+                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(to_string(*key)));
+                }
+            } else {
+                auto element = (ku_string_t *) column->getElement(offset);
+                auto key = column->getInMemOverflowFile()->readString(element);
+                if (!pkIndex->append(key.c_str(), offset)) {
+                    throw CopyCSVException(Exception::getExistedPKExceptionMsg(key));
+                }
+            }
+        }
     }
 
     template<typename T1, typename T2>
@@ -609,10 +576,8 @@ namespace storage {
         switch (fileTypes) {
             case FileTypes::CSV:
                 return "csv";
-
             case FileTypes::ARROW:
                 return "arrow";
-
             case FileTypes::PARQUET:
                 return "parquet";
         }

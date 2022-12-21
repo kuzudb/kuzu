@@ -77,11 +77,13 @@ public:
     // want the system to crash if any of the tasks fails.
     void waitAllTasksToCompleteOrError();
 
+    void waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore);
+
     // Checks if there is an erroring task in the queue and if so, errors.
     void errorIfThereIsAnException();
 
     bool isTaskQueueEmpty() { return taskQueue.empty(); }
-    uint64_t getTaskNum() { return taskQueue.size(); }
+    uint64_t getNumTasks() { return taskQueue.size(); }
 
 private:
     void removeErroringTask(uint64_t scheduledTaskID);

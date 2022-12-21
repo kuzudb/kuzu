@@ -74,10 +74,6 @@ namespace storage {
                                               uint64_t nodeOffset, uint64_t bufferOffset, char delimiter);
 
         template<typename T>
-        static void addIDsToIndex(InMemColumn *column, HashIndexBuilder<T> *hashIndex,
-                                  node_offset_t startOffset, uint64_t numValues);
-
-        template<typename T>
         static void populatePKIndex(InMemColumn *column, HashIndexBuilder<T> *pkIndex,
                                     node_offset_t startOffset, uint64_t numValues);
 
