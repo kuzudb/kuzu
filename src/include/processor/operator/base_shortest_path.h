@@ -18,18 +18,18 @@ struct NodeState {
 
 class BaseShortestPath : public PhysicalOperator {
 public:
-    BaseShortestPath(const DataPos& srcDataPos, const DataPos& destDataPos, uint64_t lowerBound,
-        uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, srcDataPos{srcDataPos},
-          destDataPos{destDataPos}, lowerBound{lowerBound}, upperBound{upperBound},
-          currFrontier{make_shared<vector<node_offset_t>>()},
+    BaseShortestPath(PhysicalOperatorType physicalOperatorType, const DataPos& srcDataPos,
+        const DataPos& destDataPos, uint64_t lowerBound, uint64_t upperBound,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        : PhysicalOperator{physicalOperatorType, move(child), id, paramsString},
+          srcDataPos{srcDataPos}, destDataPos{destDataPos}, lowerBound{lowerBound},
+          upperBound{upperBound}, currFrontier{make_shared<vector<node_offset_t>>()},
           nextFrontier{make_shared<vector<node_offset_t>>()},
           bfsVisitedNodesMap{map<uint64_t, unique_ptr<NodeState>>()} {}
 
     virtual bool getNextTuplesInternal() = 0;
 
-    shared_ptr<ResultSet> init(ExecutionContext* context);
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 

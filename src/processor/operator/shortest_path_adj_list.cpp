@@ -7,14 +7,13 @@ using namespace std;
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> ShortestPathAdjList::init(ExecutionContext* context) {
-    resultSet = BaseShortestPath::init(context);
+void ShortestPathAdjList::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseShortestPath::initLocalStateInternal(resultSet, context);
     adjNodeIDVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
     adjNodeIDVector->state = make_shared<DataChunkState>();
     relIDVector = make_shared<ValueVector>(INT64, context->memoryManager);
     relIDVector->state = adjNodeIDVector->state;
     relListHandles = make_shared<ListHandle>(*listSyncState);
-    return resultSet;
 }
 
 bool ShortestPathAdjList::getNextTuplesInternal() {
@@ -82,11 +81,12 @@ bool ShortestPathAdjList::addToNextFrontier(
     node_offset_t nodeOffset;
     uint64_t relOffset;
     for (auto pos = 0u; pos < adjNodeIDVector->state->selVector->selectedSize; pos++) {
-        nodeOffset = adjNodeIDVector->readNodeOffset(pos);
+        auto offsetPos = adjNodeIDVector->state->selVector->selectedPositions[pos];
+        nodeOffset = adjNodeIDVector->readNodeOffset(offsetPos);
         if (bfsVisitedNodesMap.contains(nodeOffset)) {
             continue;
         }
-        relOffset = relIDVector->getValue<int64_t>(pos);
+        relOffset = relIDVector->getValue<int64_t>(offsetPos);
         auto nodeState = make_unique<NodeState>(parentNodeOffset, relOffset);
         bfsVisitedNodesMap[nodeOffset] = move(nodeState);
         if (nodeOffset == destNodeOffset) {

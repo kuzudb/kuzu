@@ -136,8 +136,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalShortestPathToPhysical(
     auto rel = logicalShortestPath->getRelExpression();
     // assume this here for now
     auto direction = REL_DIRECTIONS[0];
-    auto srcDataPos = DataPos(logicalShortestPath->getSchema()->getExpressionPos(*sourceNode));
-    auto destDataPos = DataPos(logicalShortestPath->getSchema()->getExpressionPos(*destNode));
+    auto srcDataPos = DataPos(logicalShortestPath->getSchema()->getExpressionPos(*sourceNode->getInternalIDProperty()));
+    auto destDataPos = DataPos(logicalShortestPath->getSchema()->getExpressionPos(*destNode->getInternalIDProperty()));
     auto& relStore = storageManager.getRelsStore();
     if (relStore.hasAdjColumn(direction, sourceNode->getSingleTableID(), rel->getSingleTableID())) {
         Column* column = relStore.getAdjColumn(

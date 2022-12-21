@@ -5,7 +5,6 @@
 #include "expression_evaluator/base_evaluator.h"
 #include "processor/operator/base_shortest_path.h"
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/source_operator.h"
 #include "storage/storage_structure/column.h"
 #include "storage/storage_structure/lists/lists.h"
 
@@ -19,15 +18,11 @@ public:
     ShortestPathAdjCol(const DataPos& srcDataPos, const DataPos& destDataPos, Column* columns,
         uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
-              paramsString},
+        : BaseShortestPath{PhysicalOperatorType::SHORTEST_PATH_ADJ_LIST, srcDataPos, destDataPos,
+              lowerBound, upperBound, move(child), id, paramsString},
           col{columns} {}
 
     bool getNextTuplesInternal() override;
-
-    PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SHORTEST_PATH_ADJ_COL;
-    }
 
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ShortestPathAdjCol>(srcDataPos, destDataPos, col, lowerBound, upperBound,

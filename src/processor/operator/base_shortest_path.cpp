@@ -5,14 +5,11 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> kuzu::processor::BaseShortestPath::init(
-    kuzu::processor::ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void BaseShortestPath::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     srcValueVector =
         resultSet->dataChunks[srcDataPos.dataChunkPos]->getValueVector(srcDataPos.valueVectorPos);
     destValueVector =
         resultSet->dataChunks[destDataPos.dataChunkPos]->getValueVector(destDataPos.valueVectorPos);
-    return resultSet;
 }
 
 } // namespace processor

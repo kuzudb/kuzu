@@ -464,7 +464,7 @@ unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpression(
                 expression = make_unique<ParsedFunctionExpression>(
                     BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             } else {
-                assert(bitwiseOperator == ">>");
+                assert(bitShiftOperator == ">>");
                 expression = make_unique<ParsedFunctionExpression>(
                     BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             }
