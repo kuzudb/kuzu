@@ -9,12 +9,9 @@ namespace processor {
 
 shared_ptr<ResultSet> ShortestPathAdjList::init(ExecutionContext* context) {
     resultSet = BaseShortestPath::init(context);
-    for(int i = 0; i < relPropertyLists.size(); i++) {
-        relListHandles.push_back(make_shared<ListHandle>(*listSyncState));
-    }
+    relListHandles = make_shared<ListHandle>(*listSyncState);
     return resultSet;
 }
-
 
 bool ShortestPathAdjList::getNextTuplesInternal() {
     while (true) {
@@ -39,7 +36,7 @@ bool ShortestPathAdjList::computeShortestPath(uint64_t currIdx, uint64_t destIdx
     listHandle->reset();
 
     uint64_t currLevel = 1, destNodeOffset;
-    if (!visitNextFrontierNode(srcValueVector->readNodeOffset(currIdx), UINT64_MAX)) {
+    if (!visitNextFrontierNode(srcValueVector->readNodeOffset(currIdx), UINT64_MAX, INT64_MAX)) {
         return false;
     }
     currFrontier->push_back(srcValueVector->readNodeOffset(currIdx));
@@ -47,7 +44,7 @@ bool ShortestPathAdjList::computeShortestPath(uint64_t currIdx, uint64_t destIdx
     while (currLevel <= upperBound) {
         destNodeOffset =
             currLevel < lowerBound ? UINT64_MAX : destValueVector->readNodeOffset(destIdx);
-        if (extendToNextFrontier(destNodeOffset, currLevel)) {
+        if (extendToNextFrontier(destNodeOffset)) {
             printShortestPath(destNodeOffset);
             return true;
         }
@@ -57,7 +54,7 @@ bool ShortestPathAdjList::computeShortestPath(uint64_t currIdx, uint64_t destIdx
     return false;
 }
 
-bool ShortestPathAdjList::extendToNextFrontier(node_offset_t destNodeOffset, uint64_t currLevel) {
+bool ShortestPathAdjList::extendToNextFrontier(node_offset_t destNodeOffset) {
     NodeState* nodeState;
     for (auto i = 0u; i < currFrontier->size(); i++) {
         nodeState = bfsVisitedNodesMap[currFrontier->operator[](i)].get();
@@ -75,7 +72,8 @@ bool ShortestPathAdjList::extendToNextFrontier(node_offset_t destNodeOffset, uin
 bool ShortestPathAdjList::addToNextFrontier(NodeState*& nodeState, uint64_t index,
     node_offset_t parentNodeOffset, node_offset_t destNodeOffset) {
     node_offset_t nextFrontierNodeOffset = nodeState->children->readNodeOffset(index);
-    if (visitNextFrontierNode(nodeState->children->readNodeOffset(index), parentNodeOffset)) {
+    if (visitNextFrontierNode(nodeState->children->readNodeOffset(index), parentNodeOffset,
+            nodeState->relIDVector->getValue<int64_t>(index))) {
         nextFrontier->push_back(nextFrontierNodeOffset);
         if (nextFrontierNodeOffset == destNodeOffset) {
             return true;
@@ -84,16 +82,19 @@ bool ShortestPathAdjList::addToNextFrontier(NodeState*& nodeState, uint64_t inde
     return false;
 }
 
-bool ShortestPathAdjList::visitNextFrontierNode(uint64_t parent, uint64_t predecessor) {
-    if (!bfsVisitedNodesMap.contains(parent)) {
-        auto listSyncState = make_shared<ListSyncState>();
-        auto listHandle = make_shared<ListHandle>(*listSyncState);
-        lists->initListReadingState(parent, *listHandle, transaction->getType());
+bool ShortestPathAdjList::visitNextFrontierNode(
+    uint64_t nodeOffset, uint64_t predecessor, int64_t parentRelID) {
+    if (!bfsVisitedNodesMap.contains(nodeOffset)) {
+        lists->initListReadingState(nodeOffset, *listHandle, transaction->getType());
         auto children = make_shared<ValueVector>(NODE_ID, memoryManager);
+        auto relVector = make_shared<ValueVector>(INT64, memoryManager);
         children->state = make_shared<DataChunkState>();
+        relVector->state = make_shared<DataChunkState>();
         lists->readValues(children, *listHandle);
-        auto newBFSState = make_shared<NodeState>(predecessor, children);
-        bfsVisitedNodesMap.emplace(parent, newBFSState);
+        relVector->state->initOriginalAndSelectedSize(children->state->selVector->selectedSize);
+        relPropertyLists->readValues(relVector, *relListHandles);
+        auto newBFSState = make_shared<NodeState>(predecessor, parentRelID, children, relVector);
+        bfsVisitedNodesMap.emplace(nodeOffset, newBFSState);
         return true;
     } else {
         return false;
@@ -116,6 +117,9 @@ void ShortestPathAdjList::resetFrontier() {
 void ShortestPathAdjList::printShortestPath(node_offset_t destNodeOffset) {
     do {
         cout << destNodeOffset << " ";
+        if (bfsVisitedNodesMap[destNodeOffset]->relParentID != INT64_MAX) {
+            cout << bfsVisitedNodesMap[destNodeOffset]->relParentID << " ";
+        }
         destNodeOffset = bfsVisitedNodesMap[destNodeOffset]->parentNodeID;
     } while (destNodeOffset != UINT64_MAX);
     cout << endl;

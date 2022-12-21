@@ -19,11 +19,11 @@ namespace processor {
 class ShortestPathAdjList : public BaseShortestPath {
 public:
     ShortestPathAdjList(const DataPos& srcDataPos, const DataPos& destDataPos, AdjLists* adjList,
-        vector<Lists*> relPropertyLists,
-        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+        Lists* relPropertyLists, uint64_t lowerBound, uint64_t upperBound,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
-              paramsString}, lists{adjList}, relPropertyLists{move(relPropertyLists)} {}
+              paramsString},
+          lists{adjList}, relPropertyLists{move(relPropertyLists)} {}
 
     shared_ptr<ResultSet> init(ExecutionContext* context);
 
@@ -34,11 +34,11 @@ public:
     bool addToNextFrontier(NodeState*& nodeState, uint64_t index, node_offset_t parentNodeOffset,
         node_offset_t destNodeOffset);
 
-    bool visitNextFrontierNode(uint64_t parent, uint64_t predecessor);
+    bool visitNextFrontierNode(uint64_t nodeOffset, uint64_t predecessor, int64_t parentRelID);
 
     bool getNextBatchOfChildNodes(NodeState* nodeState);
 
-    bool extendToNextFrontier(node_offset_t destNodeOffset, uint64_t currLevel);
+    bool extendToNextFrontier(node_offset_t destNodeOffset);
 
     void printShortestPath(node_offset_t destNodeOffset);
 
@@ -50,14 +50,13 @@ public:
 
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ShortestPathAdjList>(srcDataPos, destDataPos, lists, relPropertyLists,
-            lowerBound,
-            upperBound, children[0]->clone(), id, paramsString);
+            lowerBound, upperBound, children[0]->clone(), id, paramsString);
     }
 
 private:
     AdjLists* lists;
-    vector<Lists*> relPropertyLists;
-    vector<shared_ptr<ListHandle>> relListHandles;
+    Lists* relPropertyLists;
+    shared_ptr<ListHandle> relListHandles;
 };
 
 } // namespace processor

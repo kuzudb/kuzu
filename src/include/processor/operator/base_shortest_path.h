@@ -10,11 +10,14 @@ namespace processor {
 
 struct NodeState {
     uint64_t parentNodeID;
+    uint64_t relParentID;
     shared_ptr<ValueVector> children;
     shared_ptr<ValueVector> relIDVector;
 
-    NodeState(uint64_t parentNodeID, shared_ptr<ValueVector> children, shared_ptr<ValueVector> relIDVector)
-        : parentNodeID{parentNodeID}, children{move(children)}, relIDVector{move(relIDVector)} {}
+    NodeState(uint64_t parentNodeID, uint64_t relParentID, shared_ptr<ValueVector> children,
+        shared_ptr<ValueVector> relIDVector)
+        : parentNodeID{parentNodeID}, relParentID{relParentID}, children{move(children)},
+          relIDVector{move(relIDVector)} {}
 };
 
 class BaseShortestPath : public PhysicalOperator {

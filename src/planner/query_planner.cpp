@@ -69,6 +69,11 @@ unique_ptr<LogicalPlan> QueryPlanner::getShortestPathPlan(const BoundStatement& 
     auto sourceNode = queryGraph->getQueryNode(0);
     auto destNode = queryGraph->getQueryNode(1);
     auto rel = queryGraph->getQueryRel(0);
+    auto dataType = make_unique<DataType>(DataTypeID::REL);
+    auto relTableToProperty = unordered_map<table_id_t, property_id_t>();
+    relTableToProperty[rel->getTableID()] = 0;
+    shared_ptr<Expression> relPropertyExpr =
+        make_shared<PropertyExpression>(*dataType, "_id", relTableToProperty, rel);
     auto leftPlan = make_unique<LogicalPlan>();
     joinOrderEnumerator.appendScanNode(sourceNode, *leftPlan);
     joinOrderEnumerator.planFiltersForNode(srcPredicate, sourceNode, *leftPlan);
@@ -80,12 +85,8 @@ unique_ptr<LogicalPlan> QueryPlanner::getShortestPathPlan(const BoundStatement& 
     JoinOrderEnumerator::appendCrossProduct(*leftPlan, *rightPlan);
     appendFlattenIfNecessary(sourceNode->getInternalIDProperty(), *leftPlan);
     appendFlattenIfNecessary(destNode->getInternalIDProperty(), *leftPlan);
-    auto dataType = make_unique<DataType>(DataTypeID::REL);
-    auto m = unordered_map<table_id_t, property_id_t>();
-    m[rel->getTableID()] = 0;
-    auto p = make_shared<PropertyExpression>(*dataType, "_id", m,  rel);
-    auto logicalShortestPath =
-        make_shared<LogicalShortestPath>(sourceNode, destNode, rel, p, leftPlan->getLastOperator());
+    auto logicalShortestPath = make_shared<LogicalShortestPath>(
+        sourceNode, destNode, rel, relPropertyExpr, leftPlan->getLastOperator());
     leftPlan->setLastOperator(logicalShortestPath);
     return leftPlan;
 }
