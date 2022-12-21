@@ -23,6 +23,8 @@ public:
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : BaseShortestPath{srcDataPos, destDataPos, lowerBound, upperBound, move(child), id,
               paramsString},
+          listSyncState{make_shared<ListSyncState>()}, listHandle{make_shared<ListHandle>(
+                                                           *listSyncState)},
           lists{adjList}, relPropertyLists{move(relPropertyLists)} {}
 
     shared_ptr<ResultSet> init(ExecutionContext* context);
@@ -31,12 +33,9 @@ public:
 
     bool computeShortestPath(uint64_t currIdx, uint64_t destIdx);
 
-    bool addToNextFrontier(NodeState*& nodeState, uint64_t index, node_offset_t parentNodeOffset,
-        node_offset_t destNodeOffset);
+    bool addToNextFrontier(node_offset_t parentNodeOffset, node_offset_t destNodeOffset);
 
-    bool visitNextFrontierNode(uint64_t nodeOffset, uint64_t predecessor, int64_t parentRelID);
-
-    bool getNextBatchOfChildNodes(NodeState* nodeState);
+    bool getNextBatchOfChildNodes();
 
     bool extendToNextFrontier(node_offset_t destNodeOffset);
 
@@ -54,6 +53,10 @@ public:
     }
 
 private:
+    shared_ptr<ValueVector> adjNodeIDVector;
+    shared_ptr<ValueVector> relIDVector;
+    shared_ptr<ListSyncState> listSyncState;
+    shared_ptr<ListHandle> listHandle;
     AdjLists* lists;
     Lists* relPropertyLists;
     shared_ptr<ListHandle> relListHandles;

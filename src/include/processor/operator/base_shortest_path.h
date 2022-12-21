@@ -11,13 +11,9 @@ namespace processor {
 struct NodeState {
     uint64_t parentNodeID;
     uint64_t relParentID;
-    shared_ptr<ValueVector> children;
-    shared_ptr<ValueVector> relIDVector;
 
-    NodeState(uint64_t parentNodeID, uint64_t relParentID, shared_ptr<ValueVector> children,
-        shared_ptr<ValueVector> relIDVector)
-        : parentNodeID{parentNodeID}, relParentID{relParentID}, children{move(children)},
-          relIDVector{move(relIDVector)} {}
+    NodeState(uint64_t parentNodeID, uint64_t relParentID)
+        : parentNodeID{parentNodeID}, relParentID{relParentID} {}
 };
 
 class BaseShortestPath : public PhysicalOperator {
@@ -29,9 +25,7 @@ public:
           destDataPos{destDataPos}, lowerBound{lowerBound}, upperBound{upperBound},
           currFrontier{make_shared<vector<node_offset_t>>()},
           nextFrontier{make_shared<vector<node_offset_t>>()},
-          listSyncState{make_shared<ListSyncState>()}, listHandle{make_shared<ListHandle>(
-                                                           *listSyncState)},
-          bfsVisitedNodesMap{map<uint64_t, shared_ptr<NodeState>>()} {}
+          bfsVisitedNodesMap{map<uint64_t, unique_ptr<NodeState>>()} {}
 
     virtual bool getNextTuplesInternal() = 0;
 
@@ -46,11 +40,9 @@ protected:
     uint64_t upperBound;
     shared_ptr<ValueVector> srcValueVector;
     shared_ptr<ValueVector> destValueVector;
-    map<uint64_t, shared_ptr<NodeState>> bfsVisitedNodesMap;
+    map<uint64_t, unique_ptr<NodeState>> bfsVisitedNodesMap;
     shared_ptr<vector<node_offset_t>> currFrontier;
     shared_ptr<vector<node_offset_t>> nextFrontier;
-    shared_ptr<ListSyncState> listSyncState;
-    shared_ptr<ListHandle> listHandle;
     MemoryManager* memoryManager;
 };
 

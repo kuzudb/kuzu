@@ -9,6 +9,10 @@ namespace processor {
 
 shared_ptr<ResultSet> ShortestPathAdjList::init(ExecutionContext* context) {
     resultSet = BaseShortestPath::init(context);
+    adjNodeIDVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
+    adjNodeIDVector->state = make_shared<DataChunkState>();
+    relIDVector = make_shared<ValueVector>(INT64, context->memoryManager);
+    relIDVector->state = adjNodeIDVector->state;
     relListHandles = make_shared<ListHandle>(*listSyncState);
     return resultSet;
 }
@@ -30,18 +34,17 @@ bool ShortestPathAdjList::getNextTuplesInternal() {
 }
 
 bool ShortestPathAdjList::computeShortestPath(uint64_t currIdx, uint64_t destIdx) {
-    bfsVisitedNodesMap = map<uint64_t, shared_ptr<NodeState>>();
+    bfsVisitedNodesMap = map<uint64_t, unique_ptr<NodeState>>();
     currFrontier = make_shared<vector<node_offset_t>>();
     nextFrontier = make_shared<vector<node_offset_t>>();
     listHandle->reset();
 
     uint64_t currLevel = 1, destNodeOffset;
-    if (!visitNextFrontierNode(srcValueVector->readNodeOffset(currIdx), UINT64_MAX, INT64_MAX)) {
-        return false;
-    }
-    currFrontier->push_back(srcValueVector->readNodeOffset(currIdx));
+    auto srcNodeOffset = srcValueVector->readNodeOffset(currIdx);
+    currFrontier->push_back(srcNodeOffset);
+    bfsVisitedNodesMap[srcNodeOffset] = make_unique<NodeState>(UINT64_MAX, INT64_MAX);
 
-    while (currLevel <= upperBound) {
+    while (currLevel < upperBound) {
         destNodeOffset =
             currLevel < lowerBound ? UINT64_MAX : destValueVector->readNodeOffset(destIdx);
         if (extendToNextFrontier(destNodeOffset)) {
@@ -55,55 +58,48 @@ bool ShortestPathAdjList::computeShortestPath(uint64_t currIdx, uint64_t destIdx
 }
 
 bool ShortestPathAdjList::extendToNextFrontier(node_offset_t destNodeOffset) {
-    NodeState* nodeState;
+    uint64_t nodeOffset;
     for (auto i = 0u; i < currFrontier->size(); i++) {
-        nodeState = bfsVisitedNodesMap[currFrontier->operator[](i)].get();
-        do {
-            for (auto j = 0u; j < nodeState->children->state->selVector->selectedSize; j++) {
-                if (addToNextFrontier(nodeState, j, currFrontier->operator[](i), destNodeOffset)) {
-                    return true;
-                }
-            }
-        } while (getNextBatchOfChildNodes(nodeState));
-    }
-    return false;
-}
-
-bool ShortestPathAdjList::addToNextFrontier(NodeState*& nodeState, uint64_t index,
-    node_offset_t parentNodeOffset, node_offset_t destNodeOffset) {
-    node_offset_t nextFrontierNodeOffset = nodeState->children->readNodeOffset(index);
-    if (visitNextFrontierNode(nodeState->children->readNodeOffset(index), parentNodeOffset,
-            nodeState->relIDVector->getValue<int64_t>(index))) {
-        nextFrontier->push_back(nextFrontierNodeOffset);
-        if (nextFrontierNodeOffset == destNodeOffset) {
+        nodeOffset = currFrontier->operator[](i);
+        lists->initListReadingState(nodeOffset, *listHandle, transaction->getType());
+        lists->readValues(adjNodeIDVector, *listHandle);
+        relPropertyLists->readValues(relIDVector, *relListHandles);
+        if (addToNextFrontier(nodeOffset, destNodeOffset)) {
             return true;
+        }
+        while (getNextBatchOfChildNodes()) {
+            relPropertyLists->readValues(relIDVector, *relListHandles);
+            if (addToNextFrontier(nodeOffset, destNodeOffset)) {
+                return true;
+            }
         }
     }
     return false;
 }
 
-bool ShortestPathAdjList::visitNextFrontierNode(
-    uint64_t nodeOffset, uint64_t predecessor, int64_t parentRelID) {
-    if (!bfsVisitedNodesMap.contains(nodeOffset)) {
-        lists->initListReadingState(nodeOffset, *listHandle, transaction->getType());
-        auto children = make_shared<ValueVector>(NODE_ID, memoryManager);
-        auto relVector = make_shared<ValueVector>(INT64, memoryManager);
-        children->state = make_shared<DataChunkState>();
-        relVector->state = make_shared<DataChunkState>();
-        lists->readValues(children, *listHandle);
-        relVector->state->initOriginalAndSelectedSize(children->state->selVector->selectedSize);
-        relPropertyLists->readValues(relVector, *relListHandles);
-        auto newBFSState = make_shared<NodeState>(predecessor, parentRelID, children, relVector);
-        bfsVisitedNodesMap.emplace(nodeOffset, newBFSState);
-        return true;
-    } else {
-        return false;
+bool ShortestPathAdjList::addToNextFrontier(
+    node_offset_t parentNodeOffset, node_offset_t destNodeOffset) {
+    node_offset_t nodeOffset;
+    uint64_t relOffset;
+    for (auto pos = 0u; pos < adjNodeIDVector->state->selVector->selectedSize; pos++) {
+        nodeOffset = adjNodeIDVector->readNodeOffset(pos);
+        if (bfsVisitedNodesMap.contains(nodeOffset)) {
+            continue;
+        }
+        relOffset = relIDVector->getValue<int64_t>(pos);
+        auto nodeState = make_unique<NodeState>(parentNodeOffset, relOffset);
+        bfsVisitedNodesMap[nodeOffset] = move(nodeState);
+        if (nodeOffset == destNodeOffset) {
+            return true;
+        }
+        nextFrontier->push_back(nodeOffset);
     }
+    return false;
 }
 
-bool ShortestPathAdjList::getNextBatchOfChildNodes(NodeState* bfsState) {
+bool ShortestPathAdjList::getNextBatchOfChildNodes() {
     if (listHandle->listSyncState.hasMoreToRead()) {
-        lists->readValues(bfsState->children, *listHandle);
+        lists->readValues(adjNodeIDVector, *listHandle);
         return true;
     }
     return false;
@@ -118,7 +114,8 @@ void ShortestPathAdjList::printShortestPath(node_offset_t destNodeOffset) {
     do {
         cout << destNodeOffset << " ";
         if (bfsVisitedNodesMap[destNodeOffset]->relParentID != INT64_MAX) {
-            cout << bfsVisitedNodesMap[destNodeOffset]->relParentID << " ";
+            cout << "<" <<
+                bfsVisitedNodesMap[destNodeOffset]->relParentID << "> ";
         }
         destNodeOffset = bfsVisitedNodesMap[destNodeOffset]->parentNodeID;
     } while (destNodeOffset != UINT64_MAX);
