@@ -22,17 +22,15 @@ struct ColumnExtendDFSLevelInfo : DFSLevelInfo {
 };
 
 class VarLengthColumnExtend : public VarLengthExtend {
-
 public:
     VarLengthColumnExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
         BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, storage, lowerBound, upperBound,
-              move(child), id, paramsString) {}
+        : VarLengthExtend(PhysicalOperatorType::VAR_LENGTH_COLUMN_EXTEND, boundNodeDataPos,
+              nbrNodeDataPos, storage, lowerBound, upperBound, std::move(child), id, paramsString) {
+    }
 
-    PhysicalOperatorType getOperatorType() override { return VAR_LENGTH_COLUMN_EXTEND; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

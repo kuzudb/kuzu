@@ -8,24 +8,17 @@ using namespace kuzu::function::operation;
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     probeState = make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
-        auto keyVector =
-            resultSet->dataChunks[keyDataPos.dataChunkPos]->valueVectors[keyDataPos.valueVectorPos];
+        auto keyVector = resultSet->getValueVector(keyDataPos);
         keyVectors.push_back(keyVector);
-        keySelVectors.push_back(keyVector->state->selVector.get());
     }
     if (joinType == JoinType::MARK) {
-        markVector = make_shared<ValueVector>(BOOL);
-        resultSet->dataChunks[probeDataInfo.markDataPos.dataChunkPos]->insert(
-            probeDataInfo.markDataPos.valueVectorPos, markVector);
+        markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
     }
-    for (auto& [dataPos, dataType] : probeDataInfo.payloadsOutPosAndType) {
-        auto probePayloadVector = make_shared<ValueVector>(dataType, context->memoryManager);
-        auto [dataChunkPos, valueVectorPos] = dataPos;
-        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probePayloadVector);
+    for (auto& dataPos : probeDataInfo.payloadsOutPos) {
+        auto probePayloadVector = resultSet->getValueVector(dataPos);
         vectorsToReadInto.push_back(probePayloadVector);
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
@@ -35,7 +28,6 @@ shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    return resultSet;
 }
 
 bool HashJoinProbe::hasMoreLeft() {
@@ -50,11 +42,11 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         return true;
     }
     if (!hasMoreLeft()) {
-        restoreSelVectors(keySelVectors);
+        restoreSelVector(keyVectors[0]->state->selVector);
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVectors(keySelVectors);
+        saveSelVector(keyVectors[0]->state->selVector);
         sharedState->getHashTable()->probe(keyVectors, probeState->probedTuples.get());
     }
     auto numMatchedTuples = 0;
@@ -69,7 +61,7 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->matchedTuples[numMatchedTuples] = currentTuple;
             bool isKeysEqual = true;
             for (auto i = 0u; i < keyVectors.size(); i++) {
-                auto pos = keyVectors[i]->state->getPositionOfCurrIdx();
+                auto pos = keyVectors[i]->state->selVector->selectedPositions[0];
                 if (((nodeID_t*)currentTuple)[i] != keyVectors[i]->getValue<nodeID_t>(pos)) {
                     isKeysEqual = false;
                     break;
@@ -99,10 +91,10 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
     return true;
 }
 
-void HashJoinProbe::setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors) {
+void HashJoinProbe::setVectorsToNull() {
     for (auto& vector : vectorsToReadInto) {
         if (vector->state->isFlat()) {
-            vector->setNull(vector->state->getPositionOfCurrIdx(), true);
+            vector->setNull(vector->state->selVector->selectedPositions[0], true);
         } else {
             assert(vector->state != keyVectors[0]->state);
             auto pos = vector->state->selVector->selectedPositions[0];
@@ -137,7 +129,7 @@ uint64_t HashJoinProbe::getNextInnerJoinResult() {
 
 uint64_t HashJoinProbe::getNextLeftJoinResult() {
     if (getNextInnerJoinResult() == 0) {
-        setVectorsToNull(vectorsToReadInto);
+        setVectorsToNull();
     }
     return 1;
 }
@@ -145,7 +137,7 @@ uint64_t HashJoinProbe::getNextLeftJoinResult() {
 uint64_t HashJoinProbe::getNextMarkJoinResult() {
     auto markValues = (bool*)markVector->getData();
     if (markVector->state->isFlat()) {
-        markValues[markVector->state->getPositionOfCurrIdx()] =
+        markValues[markVector->state->selVector->selectedPositions[0]] =
             probeState->matchedSelVector->selectedSize != 0;
     } else {
         fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);

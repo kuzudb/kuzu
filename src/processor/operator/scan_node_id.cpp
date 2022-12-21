@@ -47,14 +47,9 @@ ScanNodeIDSharedState::getNextRangeToRead() {
     return make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
-shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
+void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    outValueVector = resultSet->getValueVector(outDataPos);
     outValueVector->setSequential();
-    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    return resultSet;
 }
 
 bool ScanNodeID::getNextTuplesInternal() {

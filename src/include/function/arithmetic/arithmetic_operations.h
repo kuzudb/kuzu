@@ -263,6 +263,30 @@ struct BitwiseXor {
     }
 };
 
+struct BitwiseAnd {
+    static inline void operation(int64_t& left, int64_t& right, int64_t& result) {
+        result = left & right;
+    }
+};
+
+struct BitwiseOr {
+    static inline void operation(int64_t& left, int64_t& right, int64_t& result) {
+        result = left | right;
+    }
+};
+
+struct BitShiftLeft {
+    static inline void operation(int64_t& left, int64_t& right, int64_t& result) {
+        result = left << right;
+    }
+};
+
+struct BitShiftRight {
+    static inline void operation(int64_t& left, int64_t& right, int64_t& result) {
+        result = left >> right;
+    }
+};
+
 struct Pi {
     static inline void operation(double_t& result) { result = M_PI; }
 };

@@ -13,9 +13,10 @@ class LogicalCopyCSV : public LogicalOperator {
 
 public:
     LogicalCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
-        : LogicalOperator{}, csvDescription{move(csvDescription)}, tableSchema{move(tableSchema)} {}
+        : LogicalOperator{LogicalOperatorType::COPY_CSV}, csvDescription{std::move(csvDescription)},
+          tableSchema{std::move(tableSchema)} {}
 
-    inline LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_COPY_CSV; }
+    inline void computeSchema() override { createEmptySchema(); }
 
     inline string getExpressionsForPrinting() const override { return tableSchema.tableName; }
 

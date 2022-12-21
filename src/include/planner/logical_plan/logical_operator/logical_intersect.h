@@ -8,18 +8,14 @@ namespace kuzu {
 namespace planner {
 
 struct LogicalIntersectBuildInfo {
-    LogicalIntersectBuildInfo(
-        shared_ptr<NodeExpression> key, unique_ptr<Schema> schema, expression_vector expressions)
-        : key{std::move(key)}, schema{std::move(schema)}, expressionsToMaterialize{
-                                                              std::move(expressions)} {}
+    LogicalIntersectBuildInfo(shared_ptr<NodeExpression> key, expression_vector expressions)
+        : key{std::move(key)}, expressionsToMaterialize{std::move(expressions)} {}
 
     inline unique_ptr<LogicalIntersectBuildInfo> copy() {
-        return make_unique<LogicalIntersectBuildInfo>(
-            key, schema->copy(), expressionsToMaterialize);
+        return make_unique<LogicalIntersectBuildInfo>(key, expressionsToMaterialize);
     }
 
     shared_ptr<NodeExpression> key;
-    unique_ptr<Schema> schema;
     expression_vector expressionsToMaterialize;
 };
 
@@ -28,16 +24,14 @@ public:
     LogicalIntersect(shared_ptr<NodeExpression> intersectNode,
         shared_ptr<LogicalOperator> probeChild, vector<shared_ptr<LogicalOperator>> buildChildren,
         vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos)
-        : LogicalOperator{std::move(probeChild)}, intersectNode{move(intersectNode)},
-          buildInfos{move(buildInfos)} {
+        : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
+          intersectNode{std::move(intersectNode)}, buildInfos{std::move(buildInfos)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
     }
 
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_INTERSECT;
-    }
+    void computeSchema() override;
 
     string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }
 

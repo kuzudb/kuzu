@@ -18,15 +18,13 @@ unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize
     return morsel;
 }
 
-shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto [dataPos, _] : payloadsPosAndType) {
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
         vectorsToCollect.push_back(vector);
     }
     localTable = make_unique<FactorizedTable>(context->memoryManager, populateTableSchema());
-    return resultSet;
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {

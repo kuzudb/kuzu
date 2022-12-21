@@ -20,7 +20,6 @@ add_library(kuzu_processor_mapper
         map_projection.cpp
         map_scan_node.cpp
         map_scan_node_property.cpp
-        map_scan_rel_property.cpp
         map_set.cpp
         map_skip.cpp
         map_union.cpp

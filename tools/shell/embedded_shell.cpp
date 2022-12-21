@@ -6,6 +6,10 @@
 
 #include "common/logging_level_utils.h"
 #include "common/type_utils.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
+
+using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace main {
@@ -131,13 +135,35 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
 
 void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
     string buf(buffer);
+    auto bufLen = buf.length();
     ostringstream highlightBuffer;
     string word;
     vector<string> tokenList;
     if (cursorPos > maxLen) {
-        buf = buf.substr(cursorPos - maxLen, maxLen);
+        uint32_t counter = 0;
+        uint32_t thisChar = 0;
+        uint32_t lineLen = 0;
+        while (counter < cursorPos) {
+            counter += Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
+        }
+        lineLen = thisChar;
+        while (counter > cursorPos - maxLen + 1) {
+            counter -= Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
+        }
+        lineLen -= thisChar;
+        buf = buf.substr(thisChar, lineLen);
+        bufLen = buf.length();
     } else if (buf.length() > maxLen) {
-        buf = buf.substr(0, maxLen);
+        uint32_t counter = 0;
+        uint32_t lineLen = 0;
+        while (counter < maxLen) {
+            counter += Utf8Proc::renderWidth(buffer, lineLen);
+            lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
+        }
+        buf = buf.substr(0, lineLen);
+        bufLen = buf.length();
     }
     for (auto i = 0u; i < buf.length(); i++) {
         if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
@@ -301,6 +327,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         auto& oss = querySummary->getPlanAsOstream();
         printf("%s", oss.str().c_str());
     } else {
+        const uint32_t maxWidth = 80;
         uint64_t numTuples = queryResult.getNumTuples();
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
@@ -314,9 +341,17 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 if (tuple->getResultValue(i)->isNullVal()) {
                     continue;
                 }
-                uint32_t fieldLen = tuple->getResultValue(i)->toString().length() + 2;
-                colsWidth[i] =
-                    max(colsWidth[i], (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i]);
+                string tupleString = tuple->getResultValue(i)->toString();
+                uint32_t fieldLen = 0;
+                uint32_t chrIter = 0;
+                while (chrIter < tupleString.length()) {
+                    fieldLen += Utf8Proc::renderWidth(tupleString.c_str(), chrIter);
+                    chrIter =
+                        utf8proc_next_grapheme(tupleString.c_str(), tupleString.length(), chrIter);
+                }
+                // An extra 2 spaces are added for an extra space on either
+                // side of the string.
+                colsWidth[i] = max(colsWidth[i], min(fieldLen, maxWidth) + 2);
             }
         }
         for (auto width : colsWidth) {
@@ -339,7 +374,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         queryResult.resetIterator();
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
-            printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
+            printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
             printf("%s\n", lineSeparator.c_str());
         }
 

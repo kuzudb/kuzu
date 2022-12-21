@@ -32,15 +32,16 @@ public:
     bool containDistinctAggregate() const;
 
 protected:
-    BaseAggregate(vector<DataPos> aggregateVectorsPos,
+    BaseAggregate(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : Sink{move(child), id, paramsString}, aggregateVectorsPos{move(aggregateVectorsPos)},
-          aggregateFunctions{move(aggregateFunctions)} {}
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE, std::move(child),
+              id, paramsString},
+          aggregateVectorsPos{std::move(aggregateVectorsPos)}, aggregateFunctions{
+                                                                   std::move(aggregateFunctions)} {}
 
-    PhysicalOperatorType getOperatorType() override { return AGGREGATE; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void finalize(ExecutionContext* context) override = 0;
 

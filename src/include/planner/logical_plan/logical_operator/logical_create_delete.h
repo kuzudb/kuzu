@@ -8,12 +8,11 @@ namespace planner {
 
 class LogicalCreateOrDeleteNode : public LogicalOperator {
 public:
-    LogicalCreateOrDeleteNode(
+    LogicalCreateOrDeleteNode(LogicalOperatorType operatorType,
         vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeys,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, nodeAndPrimaryKeys{std::move(nodeAndPrimaryKeys)} {}
-
-    LogicalOperatorType getLogicalOperatorType() const override = 0;
+        : LogicalOperator{operatorType, std::move(child)}, nodeAndPrimaryKeys{
+                                                               std::move(nodeAndPrimaryKeys)} {}
 
     inline string getExpressionsForPrinting() const override {
         expression_vector expressions;
@@ -36,11 +35,11 @@ protected:
 
 class LogicalCreateOrDeleteRel : public LogicalOperator {
 public:
-    LogicalCreateOrDeleteRel(
+    LogicalCreateOrDeleteRel(LogicalOperatorType operatorType,
         vector<shared_ptr<RelExpression>> rels, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, rels{std::move(rels)} {}
+        : LogicalOperator{operatorType, std::move(child)}, rels{std::move(rels)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override = 0;
+    inline void computeSchema() override { copyChildSchema(0); }
 
     inline string getExpressionsForPrinting() const override {
         expression_vector expressions;

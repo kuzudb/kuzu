@@ -28,33 +28,31 @@ struct ProbeState {
 
 struct ProbeDataInfo {
 public:
-    ProbeDataInfo(
-        vector<DataPos> keysDataPos, vector<pair<DataPos, DataType>> payloadsOutPosAndType)
-        : keysDataPos{std::move(keysDataPos)},
-          payloadsOutPosAndType{std::move(payloadsOutPosAndType)}, markDataPos{
-                                                                       UINT32_MAX, UINT32_MAX} {}
+    ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutPos)
+        : keysDataPos{std::move(keysDataPos)}, payloadsOutPos{std::move(payloadsOutPos)},
+          markDataPos{UINT32_MAX, UINT32_MAX} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keysDataPos, other.payloadsOutPosAndType} {
+        : ProbeDataInfo{other.keysDataPos, other.payloadsOutPos} {
         markDataPos = other.markDataPos;
     }
 
-    inline uint32_t getNumPayloads() const { return payloadsOutPosAndType.size(); }
+    inline uint32_t getNumPayloads() const { return payloadsOutPos.size(); }
 
 public:
     vector<DataPos> keysDataPos;
-    vector<pair<DataPos, DataType>> payloadsOutPosAndType;
+    vector<DataPos> payloadsOutPos;
     DataPos markDataPos;
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
-class HashJoinProbe : public PhysicalOperator, FilteringOperator {
+class HashJoinProbe : public PhysicalOperator, SelVectorOverWriter {
 public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild,
         unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(probeChild), std::move(buildChild), id, paramsString},
-          FilteringOperator{probeDataInfo.keysDataPos.size()},
+        : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild),
+              std::move(buildChild), id, paramsString},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
@@ -62,13 +60,11 @@ public:
     HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
         const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{std::move(probeChild), id, paramsString},
-          FilteringOperator{probeDataInfo.keysDataPos.size()},
+        : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild), id,
+              paramsString},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
-    inline PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
@@ -83,7 +79,7 @@ private:
     uint64_t getNextInnerJoinResult();
     uint64_t getNextLeftJoinResult();
     uint64_t getNextMarkJoinResult();
-    void setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors);
+    void setVectorsToNull();
 
     uint64_t getNextJoinResult();
 
@@ -95,7 +91,6 @@ private:
     vector<shared_ptr<ValueVector>> vectorsToReadInto;
     vector<uint32_t> columnIdxsToReadFrom;
     vector<shared_ptr<ValueVector>> keyVectors;
-    vector<SelectionVector*> keySelVectors;
     shared_ptr<ValueVector> markVector;
     unique_ptr<ProbeState> probeState;
 };

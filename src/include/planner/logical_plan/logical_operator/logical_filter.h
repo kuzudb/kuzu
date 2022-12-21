@@ -9,20 +9,17 @@ namespace kuzu {
 namespace planner {
 
 class LogicalFilter : public LogicalOperator {
-
 public:
     LogicalFilter(shared_ptr<Expression> expression, uint32_t groupPosToSelect,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expression{move(expression)}, groupPosToSelect{
-                                                                          groupPosToSelect} {}
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
+          expression{std::move(expression)}, groupPosToSelect{groupPosToSelect} {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_FILTER;
-    }
+    inline void computeSchema() override { copyChildSchema(0); }
 
-    string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalFilter>(expression, groupPosToSelect, children[0]->copy());
     }
 

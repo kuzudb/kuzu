@@ -3,7 +3,7 @@
 # Collect source files
 cp ../../LICENSE ./LICENSE.txt
 tar --exclude="$(pwd)" \
-    --exclude="./bazel-*" \
+    --exclude="./build" \
     --exclude="./scripts" \
     --exclude="./.?*" \
     -cf\

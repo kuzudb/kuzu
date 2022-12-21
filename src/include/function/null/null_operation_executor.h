@@ -13,7 +13,7 @@ struct NullOperationExecutor {
         result.state = operand.state;
         auto resultValues = (uint8_t*)result.getData();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             FUNC::operation(
                 operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos), resultValues[pos]);
         } else {
@@ -35,7 +35,7 @@ struct NullOperationExecutor {
     template<typename FUNC>
     static bool select(ValueVector& operand, SelectionVector& selVector) {
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             uint8_t resultValue = 0;
             FUNC::operation(operand.getValue<uint8_t>(pos), operand.isNull(pos), resultValue);
             return resultValue == true;

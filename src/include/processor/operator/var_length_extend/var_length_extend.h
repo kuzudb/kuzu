@@ -19,13 +19,18 @@ struct DFSLevelInfo {
 };
 
 class VarLengthExtend : public PhysicalOperator {
-
 public:
-    VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
-        BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
+    VarLengthExtend(PhysicalOperatorType operatorType, const DataPos& boundNodeDataPos,
+        const DataPos& nbrNodeDataPos, BaseColumnOrList* storage, uint8_t lowerBound,
+        uint8_t upperBound, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString},
+          boundNodeDataPos{boundNodeDataPos}, nbrNodeDataPos{nbrNodeDataPos}, storage{storage},
+          lowerBound{lowerBound}, upperBound{upperBound} {
+        dfsLevelInfos.resize(upperBound);
+    }
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     DataPos boundNodeDataPos;

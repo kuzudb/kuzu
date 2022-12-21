@@ -3,19 +3,13 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> DeleteNode::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void DeleteNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteNodeInfo : deleteNodeInfos) {
-        auto nodeIDPos = deleteNodeInfo->nodeIDPos;
-        auto nodeIDVector =
-            resultSet->dataChunks[nodeIDPos.dataChunkPos]->valueVectors[nodeIDPos.valueVectorPos];
+        auto nodeIDVector = resultSet->getValueVector(deleteNodeInfo->nodeIDPos);
         nodeIDVectors.push_back(nodeIDVector.get());
-        auto pkPos = deleteNodeInfo->primaryKeyPos;
-        auto pkVector =
-            resultSet->dataChunks[pkPos.dataChunkPos]->valueVectors[pkPos.valueVectorPos];
+        auto pkVector = resultSet->getValueVector(deleteNodeInfo->primaryKeyPos);
         primaryKeyVectors.push_back(pkVector.get());
     }
-    return resultSet;
 }
 
 bool DeleteNode::getNextTuplesInternal() {
@@ -29,23 +23,15 @@ bool DeleteNode::getNextTuplesInternal() {
     return true;
 }
 
-shared_ptr<ResultSet> DeleteRel::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteRelInfo : deleteRelInfos) {
-        auto srcNodePos = deleteRelInfo->srcNodePos;
-        auto srcNodeIDVector =
-            resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
+        auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
         srcNodeVectors.push_back(srcNodeIDVector);
-        auto dstNodePos = deleteRelInfo->dstNodePos;
-        auto dstNodeIDVector =
-            resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
+        auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
         dstNodeVectors.push_back(dstNodeIDVector);
-        auto relIDPos = deleteRelInfo->relIDPos;
-        auto relIDVector =
-            resultSet->dataChunks[relIDPos.dataChunkPos]->valueVectors[relIDPos.valueVectorPos];
+        auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
         relIDVectors.push_back(relIDVector);
     }
-    return resultSet;
 }
 
 bool DeleteRel::getNextTuplesInternal() {

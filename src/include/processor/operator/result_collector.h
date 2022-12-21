@@ -43,22 +43,22 @@ private:
 
 class ResultCollector : public Sink {
 public:
-    ResultCollector(vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadFlat,
+    ResultCollector(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadFlat,
         shared_ptr<FTableSharedState> sharedState, unique_ptr<PhysicalOperator> child, uint32_t id,
         const string& paramsString)
-        : Sink{std::move(child), id, paramsString}, payloadsPosAndType{std::move(
-                                                        payloadsPosAndType)},
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::RESULT_COLLECTOR,
+              std::move(child), id, paramsString},
+          payloadsPosAndType{std::move(payloadsPosAndType)},
           isPayloadFlat{std::move(isPayloadFlat)}, sharedState{std::move(sharedState)} {}
 
-    PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultCollector>(
-            payloadsPosAndType, isPayloadFlat, sharedState, children[0]->clone(), id, paramsString);
+        return make_unique<ResultCollector>(resultSetDescriptor->copy(), payloadsPosAndType,
+            isPayloadFlat, sharedState, children[0]->clone(), id, paramsString);
     }
 
     inline shared_ptr<FTableSharedState> getSharedState() { return sharedState; }

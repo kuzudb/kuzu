@@ -130,9 +130,9 @@ public:
     KeyBlockMergeTask(shared_ptr<MergedKeyBlocks> leftKeyBlock,
         shared_ptr<MergedKeyBlocks> rightKeyBlock, shared_ptr<MergedKeyBlocks> resultKeyBlock,
         KeyBlockMerger& keyBlockMerger)
-        : leftKeyBlock{move(leftKeyBlock)}, rightKeyBlock{move(rightKeyBlock)},
-          resultKeyBlock{move(resultKeyBlock)}, leftKeyBlockNextIdx{0}, rightKeyBlockNextIdx{0},
-          activeMorsels{0}, keyBlockMerger{keyBlockMerger} {}
+        : leftKeyBlock{std::move(leftKeyBlock)}, rightKeyBlock{std::move(rightKeyBlock)},
+          resultKeyBlock{std::move(resultKeyBlock)}, leftKeyBlockNextIdx{0},
+          rightKeyBlockNextIdx{0}, activeMorsels{0}, keyBlockMerger{keyBlockMerger} {}
 
     unique_ptr<KeyBlockMergeMorsel> getMorsel();
 

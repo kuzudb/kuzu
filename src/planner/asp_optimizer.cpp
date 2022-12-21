@@ -15,17 +15,23 @@ bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNod
     if (joinNodes.size() > 1 || isLeftAcc) {
         return false;
     }
-    auto isLeftPlanFiltered = !LogicalPlanUtil::collectOperators(leftPlan, LOGICAL_FILTER).empty();
+    auto isLeftPlanFiltered =
+        !LogicalPlanUtil::collectOperators(leftPlan, LogicalOperatorType::FILTER).empty();
     // ASP join benefits only when left branch is selective.
     if (!isLeftPlanFiltered) {
         return false;
     }
-    auto rightScanNodeIDs = LogicalPlanUtil::collectOperators(rightPlan, LOGICAL_SCAN_NODE);
+    auto rightScanNodeIDs =
+        LogicalPlanUtil::collectOperators(rightPlan, LogicalOperatorType::SCAN_NODE);
     // TODO(Xiyang): multiple scan node IDs probably also works, but let's do a separate PR.
     if (rightScanNodeIDs.size() != 1) {
         return false;
     }
     auto rightScanNodeID = (LogicalScanNode*)rightScanNodeIDs[0];
+    // Semi mask cannot be applied to a ScanNodeID on multiple node tables.
+    if (rightScanNodeID->getNode()->isMultiLabeled()) {
+        return false;
+    }
     // Semi mask can only be pushed to ScanNodeIDs.
     if (joinNodes[0]->getUniqueName() != rightScanNodeID->getNode()->getUniqueName()) {
         return false;
@@ -41,6 +47,7 @@ void ASPOptimizer::applyASP(
 
 void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
     auto semiMasker = make_shared<LogicalSemiMasker>(node, plan.getLastOperator());
+    semiMasker->computeSchema();
     plan.setLastOperator(std::move(semiMasker));
 }
 

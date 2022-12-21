@@ -8,35 +8,34 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalScan = (LogicalScanNode*)logicalOperator;
+    auto outSchema = logicalScan->getSchema();
     auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
-
-    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
-    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
+    auto dataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto sharedState = make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : node->getTableIDs()) {
         auto nodeTable = nodesStore.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
     }
-    return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        node->getUniqueName(), dataPos, sharedState, getOperatorID(),
+    return make_unique<ScanNodeID>(node->getUniqueName(), dataPos, sharedState, getOperatorID(),
         logicalScan->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
+    auto outSchema = logicalIndexScan->getSchema();
+    auto inSchema = make_unique<Schema>();
     auto node = logicalIndexScan->getNode();
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getTableID());
-    auto dataPos = mapperContext.getDataPos(node->getInternalIDPropertyName());
+    auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getSingleTableID());
+    auto dataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto evaluator =
-        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), mapperContext);
-    mapperContext.addComputedExpressions(node->getInternalIDPropertyName());
-    return make_unique<IndexScan>(mapperContext.getResultSetDescriptor()->copy(),
-        nodeTable->getTableID(), nodeTable->getPKIndex(), std::move(evaluator), dataPos,
-        getOperatorID(), logicalIndexScan->getExpressionsForPrinting());
+        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), *inSchema);
+    return make_unique<IndexScan>(nodeTable->getTableID(), nodeTable->getPKIndex(),
+        std::move(evaluator), dataPos, getOperatorID(),
+        logicalIndexScan->getExpressionsForPrinting());
 }
 
 } // namespace processor

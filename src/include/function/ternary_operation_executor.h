@@ -40,10 +40,10 @@ struct TernaryOperationExecutor {
     static void executeAllFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         result.state = a.state;
-        auto aPos = a.state->getPositionOfCurrIdx();
-        auto bPos = b.state->getPositionOfCurrIdx();
-        auto cPos = c.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
+        auto aPos = a.state->selVector->selectedPositions[0];
+        auto bPos = b.state->selVector->selectedPositions[0];
+        auto cPos = c.state->selVector->selectedPositions[0];
+        auto resPos = result.state->selVector->selectedPositions[0];
         result.setNull(resPos, a.isNull(aPos) || b.isNull(bPos) || c.isNull(cPos));
         if (!result.isNull(resPos)) {
             executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -56,8 +56,8 @@ struct TernaryOperationExecutor {
     static void executeFlatFlatUnflat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         result.state = c.state;
-        auto aPos = a.state->getPositionOfCurrIdx();
-        auto bPos = b.state->getPositionOfCurrIdx();
+        auto aPos = a.state->selVector->selectedPositions[0];
+        auto bPos = b.state->selVector->selectedPositions[0];
         if (a.isNull(aPos) || b.isNull(bPos)) {
             result.setAllNull();
         } else if (c.hasNoNullsGuarantee()) {
@@ -101,7 +101,7 @@ struct TernaryOperationExecutor {
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         assert(b.state == c.state);
         result.state = b.state;
-        auto aPos = a.state->getPositionOfCurrIdx();
+        auto aPos = a.state->selVector->selectedPositions[0];
         if (a.isNull(aPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
@@ -144,8 +144,8 @@ struct TernaryOperationExecutor {
     static void executeFlatUnflatFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         result.state = b.state;
-        auto aPos = a.state->getPositionOfCurrIdx();
-        auto cPos = c.state->getPositionOfCurrIdx();
+        auto aPos = a.state->selVector->selectedPositions[0];
+        auto cPos = c.state->selVector->selectedPositions[0];
         if (a.isNull(aPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (b.hasNoNullsGuarantee()) {
@@ -229,8 +229,8 @@ struct TernaryOperationExecutor {
     static void executeUnflatFlatFlat(
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         result.state = a.state;
-        auto bPos = b.state->getPositionOfCurrIdx();
-        auto cPos = c.state->getPositionOfCurrIdx();
+        auto bPos = b.state->selVector->selectedPositions[0];
+        auto cPos = c.state->selVector->selectedPositions[0];
         if (b.isNull(bPos) || c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee()) {
@@ -274,7 +274,7 @@ struct TernaryOperationExecutor {
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         assert(a.state == c.state);
         result.state = a.state;
-        auto bPos = b.state->getPositionOfCurrIdx();
+        auto bPos = b.state->selVector->selectedPositions[0];
         if (b.isNull(bPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
@@ -318,7 +318,7 @@ struct TernaryOperationExecutor {
         ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
         assert(a.state == b.state);
         result.state = a.state;
-        auto cPos = c.state->getPositionOfCurrIdx();
+        auto cPos = c.state->selVector->selectedPositions[0];
         if (c.isNull(cPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee()) {

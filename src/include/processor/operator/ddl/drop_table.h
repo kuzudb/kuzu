@@ -9,14 +9,11 @@ namespace kuzu {
 namespace processor {
 
 class DropTable : public DDL {
-
 public:
     DropTable(Catalog* catalog, TableSchema* tableSchema, StorageManager& storageManager,
         uint32_t id, const string& paramsString)
-        : DDL{catalog, id, paramsString}, tableSchema{tableSchema}, storageManager{storageManager} {
-    }
-
-    PhysicalOperatorType getOperatorType() override { return DROP_TABLE; }
+        : DDL{PhysicalOperatorType::DROP_TABLE, catalog, id, paramsString},
+          tableSchema{tableSchema}, storageManager{storageManager} {}
 
     string execute() override {
         catalog->removeTableSchema(tableSchema);

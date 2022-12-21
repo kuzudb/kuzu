@@ -9,7 +9,7 @@ namespace storage {
 void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->state->isFlat()) {
-        auto pos = nodeIDVector->state->getPositionOfCurrIdx();
+        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         lookup(transaction, nodeIDVector, resultVector, pos);
     } else if (nodeIDVector->isSequential()) {
         // In sequential read, we fetch start offset regardless of selected position.
@@ -31,19 +31,21 @@ void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeI
 void Column::writeValues(
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& vectorToWriteFrom) {
     if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
-        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
-        writeValueForSingleNodeIDPosition(
-            nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
+        auto nodeOffset =
+            nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
+        writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom,
+            vectorToWriteFrom->state->selVector->selectedPositions[0]);
     } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
-        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
+        auto nodeOffset =
+            nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
         auto lastPos = vectorToWriteFrom->state->selVector->selectedSize - 1;
         writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom, lastPos);
     } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto nodeOffset =
                 nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[i]);
-            writeValueForSingleNodeIDPosition(
-                nodeOffset, vectorToWriteFrom, vectorToWriteFrom->state->getPositionOfCurrIdx());
+            writeValueForSingleNodeIDPosition(nodeOffset, vectorToWriteFrom,
+                vectorToWriteFrom->state->selVector->selectedPositions[0]);
         }
     } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
@@ -113,8 +115,8 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, cursor.pageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    auto vectorBytesOffset = vectorPos * elementSize;
-    auto frameBytesOffset = cursor.elemPosInPage * elementSize;
+    auto vectorBytesOffset = getElemByteOffset(vectorPos);
+    auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
     memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
     readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);

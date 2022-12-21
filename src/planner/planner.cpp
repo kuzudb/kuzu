@@ -48,32 +48,40 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
 unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
     auto& createNodeClause = (BoundCreateNodeClause&)statement;
     auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
-        createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx()));
+    auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
+        createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx());
+    createNodeTable->computeSchema();
+    plan->setLastOperator(std::move(createNodeTable));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statement) {
     auto& createRelClause = (BoundCreateRelClause&)statement;
     auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
+    auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
         createRelClause.getPropertyNameDataTypes(), createRelClause.getRelMultiplicity(),
-        createRelClause.getSrcDstTableIDs()));
+        createRelClause.getSrcDstTableIDs());
+    createRelTable->computeSchema();
+    plan->setLastOperator(std::move(createRelTable));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
-    auto& dropTable = (BoundDropTable&)statement;
+    auto& dropTableClause = (BoundDropTable&)statement;
     auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(make_shared<LogicalDropTable>(dropTable.getTableSchema()));
+    auto dropTable = make_shared<LogicalDropTable>(dropTableClause.getTableSchema());
+    dropTable->computeSchema();
+    plan->setLastOperator(std::move(dropTable));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Planner::planCopyCSV(const BoundStatement& statement) {
-    auto& copyCSV = (BoundCopyCSV&)statement;
+    auto& copyCSVClause = (BoundCopyCSV&)statement;
     auto plan = make_unique<LogicalPlan>();
-    plan->setLastOperator(
-        make_shared<LogicalCopyCSV>(copyCSV.getCSVDescription(), copyCSV.getTableSchema()));
+    auto copyCSV = make_shared<LogicalCopyCSV>(
+        copyCSVClause.getCSVDescription(), copyCSVClause.getTableSchema());
+    copyCSV->computeSchema();
+    plan->setLastOperator(std::move(copyCSV));
     return plan;
 }
 

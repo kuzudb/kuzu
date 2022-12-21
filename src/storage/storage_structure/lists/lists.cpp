@@ -7,14 +7,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void Lists::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    auto updateItr = ListsUpdateIteratorFactory::getListsUpdateIterator(this);
-    if (isCommit) {
-        prepareCommit(*updateItr);
-    }
-    updateItr->doneUpdating();
-}
-
 // Note: The given nodeOffset and largeListHandle may not be connected. For example if we
 // are about to read a new nodeOffset, say v5, after having read a previous nodeOffset, say v7, with
 // a largeList, then the input to this function can be nodeOffset: 5 and largeListHandle containing
@@ -59,34 +51,10 @@ void Lists::readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle&
     }
 }
 
-void Lists::fillInMemListsFromPersistentStore(
-    CursorAndMapper& cursorAndMapper, uint64_t numElementsInPersistentStore, InMemList& inMemList) {
-    uint64_t numElementsRead = 0;
-    auto numElementsToRead = numElementsInPersistentStore;
-    auto listData = inMemList.getListData();
-    while (numElementsRead < numElementsToRead) {
-        auto numElementsToReadInCurPage = min(numElementsToRead - numElementsRead,
-            (uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage));
-        auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(listData, frame + cursorAndMapper.cursor.elemPosInPage * elementSize,
-            numElementsToReadInCurPage * elementSize);
-        if (inMemList.hasNullBuffer()) {
-            NullMask::copyNullMask((uint64_t*)(frame + numElementsPerPage * elementSize),
-                cursorAndMapper.cursor.elemPosInPage, inMemList.getNullMask(), numElementsRead,
-                numElementsToReadInCurPage);
-        }
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-        numElementsRead += numElementsToReadInCurPage;
-        listData += numElementsToReadInCurPage * elementSize;
-        cursorAndMapper.cursor.nextPage();
-    }
-}
-
 uint64_t Lists::getNumElementsInPersistentStore(
     TransactionType transactionType, node_offset_t nodeOffset) {
     if (transactionType == TransactionType::WRITE &&
-        listsUpdateStore->isListEmptyInPersistentStore(
+        listsUpdateStore->isNewlyAddedNode(
             storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset)) {
         return 0;
     }
@@ -98,9 +66,9 @@ void Lists::initListReadingState(
     auto& listSyncState = listHandle.listSyncState;
     listSyncState.reset();
     listSyncState.setBoundNodeOffset(nodeOffset);
-    auto isListEmptyInPersistentStore = listsUpdateStore->isListEmptyInPersistentStore(
+    auto isNewlyAddedNode = listsUpdateStore->isNewlyAddedNode(
         storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
-    if (transactionType == TransactionType::READ_ONLY || !isListEmptyInPersistentStore) {
+    if (transactionType == TransactionType::READ_ONLY || !isNewlyAddedNode) {
         listSyncState.setListHeader(headers->getHeader(nodeOffset));
     } else {
         // ListHeader is UINT32_MAX in two cases: (i) ListSyncState is not initialized; or (ii) the
@@ -121,8 +89,7 @@ void Lists::initListReadingState(
     // If there's no element is persistentStore and the listsUpdateStore is non-empty,
     // we can skip reading from persistentStore and start reading from listsUpdateStore directly.
     listSyncState.setSourceStore(
-        ((numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0) ||
-            isListEmptyInPersistentStore) ?
+        ((numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0) || isNewlyAddedNode) ?
             ListSourceStore::ListsUpdateStore :
             ListSourceStore::PersistentStore);
 }
@@ -137,49 +104,74 @@ unique_ptr<InMemList> Lists::getInMemListWithDataFromUpdateStoreOnly(
     return inMemList;
 }
 
-void Lists::prepareCommit(ListsUpdateIterator& listsUpdateIterator) {
-    // Note: In C++ iterating through maps happens in non-descending order of the keys. This
-    // property is critical when using listsUpdateIterator, which requires
-    // the user to make calls to writeInMemListToListPages in ascending order of nodeOffsets.
-    auto& listUpdatesPerChunk = listsUpdateStore->getListUpdatesPerChunk(
-        storageStructureIDAndFName.storageStructureID.listFileID);
-    for (auto updatedChunkItr = listUpdatesPerChunk.begin();
-         updatedChunkItr != listUpdatesPerChunk.end(); ++updatedChunkItr) {
-        for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
-             updatedNodeOffsetItr != updatedChunkItr->second.end(); updatedNodeOffsetItr++) {
-            auto nodeOffset = updatedNodeOffsetItr->first;
-            if (listsUpdateStore->isListEmptyInPersistentStore(
-                    storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset)) {
-                listsUpdateIterator.updateList(
-                    nodeOffset, *getInMemListWithDataFromUpdateStoreOnly(nodeOffset,
-                                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT));
-            } else if (ListHeaders::isALargeList(headers->headersDiskArray->get(
-                           nodeOffset, TransactionType::READ_ONLY))) {
-                // We do an optimization for relPropertyList and adjList:
-                // If the initial list is a largeList, we can simply append the data from the
-                // relUpdateStore to largeList. In this case, we can skip reading the data from
-                // persistentStore to InMemList and only need to read the data from relUpdateStore
-                // to InMemList.
-                listsUpdateIterator.appendToLargeList(
-                    nodeOffset, *getInMemListWithDataFromUpdateStoreOnly(nodeOffset,
-                                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT));
-            } else {
-                auto inMemList = make_unique<InMemList>(
-                    getTotalNumElementsInList(TransactionType::WRITE, nodeOffset), elementSize,
-                    mayContainNulls());
-                CursorAndMapper cursorAndMapper;
-                cursorAndMapper.reset(
-                    metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
-                auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
-                fillInMemListsFromPersistentStore(
-                    cursorAndMapper, numElementsInPersistentStore, *inMemList);
-                listsUpdateStore->readInsertionsToList(
-                    storageStructureIDAndFName.storageStructureID.listFileID,
-                    updatedNodeOffsetItr->second.insertedRelsTupleIdxInFT, *inMemList,
-                    numElementsInPersistentStore, getDiskOverflowFileIfExists(), dataType,
-                    getNodeIDCompressionIfExists());
-                listsUpdateIterator.updateList(nodeOffset, *inMemList);
+unique_ptr<InMemList> Lists::writeToInMemList(node_offset_t nodeOffset,
+    const vector<uint64_t>& insertedRelTupleIdxesInFT,
+    const unordered_set<uint64_t>& deletedRelOffsetsForList) {
+    auto inMemList =
+        make_unique<InMemList>(getTotalNumElementsInList(TransactionType::WRITE, nodeOffset),
+            elementSize, mayContainNulls());
+    CursorAndMapper cursorAndMapper;
+    cursorAndMapper.reset(metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+    auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
+    fillInMemListsFromPersistentStore(
+        cursorAndMapper, numElementsInPersistentStore, *inMemList, deletedRelOffsetsForList);
+    listsUpdateStore->readInsertionsToList(storageStructureIDAndFName.storageStructureID.listFileID,
+        insertedRelTupleIdxesInFT, *inMemList,
+        numElementsInPersistentStore - deletedRelOffsetsForList.size(),
+        getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
+    return inMemList;
+}
+
+void Lists::fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
+    uint64_t numElementsInPersistentStore, InMemList& inMemList,
+    const unordered_set<uint64_t>& deletedRelOffsetsInList) {
+    uint64_t numElementsRead = 0;
+    uint64_t nextPosToWriteToInMemList = 0;
+    auto numElementsToRead = numElementsInPersistentStore;
+    while (numElementsRead < numElementsToRead) {
+        auto numElementsToReadInCurPage = min(numElementsToRead - numElementsRead,
+            (uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage));
+        auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        fillInMemListsFromFrame(inMemList, frame, cursorAndMapper.cursor.elemPosInPage,
+            numElementsToReadInCurPage, deletedRelOffsetsInList, numElementsRead,
+            nextPosToWriteToInMemList);
+        bufferManager.unpin(fileHandle, physicalPageIdx);
+        numElementsRead += numElementsToReadInCurPage;
+        cursorAndMapper.cursor.nextPage();
+    }
+}
+
+void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
+    uint64_t elemPosInPage, uint64_t numElementsToReadInCurPage,
+    const unordered_set<uint64_t>& deletedRelOffsetsInList, uint64_t numElementsRead,
+    uint64_t& nextPosToWriteToInMemList) {
+    auto nullBufferInPage = (uint64_t*)getNullBufferInPage(frame);
+    auto frameData = frame + getElemByteOffset(elemPosInPage);
+    auto listData = inMemList.getListData() + getElemByteOffset(nextPosToWriteToInMemList);
+    // If we don't have any deleted rels, we can simply do sequential copy from frame to inMemList.
+    if (deletedRelOffsetsInList.empty()) {
+        memcpy(listData, frameData, numElementsToReadInCurPage * elementSize);
+        if (inMemList.hasNullBuffer()) {
+            NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
+                nextPosToWriteToInMemList, numElementsToReadInCurPage);
+        }
+        nextPosToWriteToInMemList += numElementsToReadInCurPage;
+    } else {
+        // If we have some deleted rels, we should check whether each rel has been deleted
+        // or not before copying to inMemList.
+        for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
+            auto relOffsetInList = numElementsRead + i;
+            if (!deletedRelOffsetsInList.contains(relOffsetInList)) {
+                memcpy(listData, frameData, elementSize);
+                if (inMemList.hasNullBuffer()) {
+                    NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
+                        nextPosToWriteToInMemList, 1 /* numBitsToCopy */);
+                }
+                listData += elementSize;
+                nextPosToWriteToInMemList++;
             }
+            frameData += elementSize;
         }
     }
 }
@@ -372,6 +364,34 @@ void RelIDList::setDeletedRelsIfNecessary(Transaction* transaction, ListSyncStat
         }
         selVector->selectedSize = nextSelectedPos;
     }
+}
+
+unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
+    node_offset_t nodeOffset) {
+    unordered_set<uint64_t> deletedRelOffsetsInList;
+    CursorAndMapper cursorAndMapper;
+    cursorAndMapper.reset(metadata, numElementsPerPage, headers->getHeader(nodeOffset), nodeOffset);
+    auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
+    uint64_t numElementsRead = 0;
+    while (numElementsRead < numElementsInPersistentStore) {
+        auto numElementsToReadInCurPage = min(numElementsInPersistentStore - numElementsRead,
+            (uint64_t)(numElementsPerPage - cursorAndMapper.cursor.elemPosInPage));
+        auto physicalPageIdx = cursorAndMapper.mapper(cursorAndMapper.cursor.pageIdx);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx) +
+                     getElemByteOffset(cursorAndMapper.cursor.elemPosInPage);
+        for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
+            auto relID = *(int64_t*)frame;
+            if (listsUpdateStore->isRelDeletedInPersistentStore(
+                    storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset, relID)) {
+                deletedRelOffsetsInList.emplace(numElementsRead);
+            }
+            numElementsRead++;
+            frame += elementSize;
+        }
+        bufferManager.unpin(fileHandle, physicalPageIdx);
+        cursorAndMapper.cursor.nextPage();
+    }
+    return deletedRelOffsetsInList;
 }
 
 } // namespace storage

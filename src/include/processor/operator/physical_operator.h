@@ -9,8 +9,7 @@
 namespace kuzu {
 namespace processor {
 
-// Sort in alphabetical order
-enum PhysicalOperatorType : uint8_t {
+enum class PhysicalOperatorType : uint8_t {
     AGGREGATE,
     AGGREGATE_SCAN,
     COLUMN_EXTEND,
@@ -40,9 +39,9 @@ enum PhysicalOperatorType : uint8_t {
     SCAN_REL_PROPERTY,
     RESULT_COLLECTOR,
     SCAN_NODE_ID,
-    SCAN_COLUMN_PROPERTY,
+    SCAN_NODE_PROPERTY,
     SEMI_MASKER,
-    SET_STRUCTURED_NODE_PROPERTY,
+    SET_NODE_PROPERTY,
     SKIP,
     ORDER_BY,
     ORDER_BY_MERGE,
@@ -55,15 +54,10 @@ enum PhysicalOperatorType : uint8_t {
     SHORTEST_PATH_ADJ_LIST
 };
 
-const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",
-    "COPY_NODE_CSV", "COPY_REL_CSV", "CREATE_NODE", "CREATE_NODE_TABLE", "CREATE_REL",
-    "CREATE_REL_TABLE", "CROSS_PRODUCT", "DELETE_NODE", "DELETE_REL", "DROP_TABLE",
-    "FACTORIZED_TABLE_SCAN", "FILTER", "FLATTEN", "GENERIC_EXTEND", "HASH_JOIN_BUILD",
-    "HASH_JOIN_PROBE", "INDEX_SCAN", "INTERSECT_BUILD", "INTERSECT", "LIMIT", "LIST_EXTEND",
-    "MULTIPLICITY_REDUCER", "PROJECTION", "SCAN_REL_PROPERTY", "RESULT_COLLECTOR", "SCAN_NODE_ID",
-    "SCAN_COLUMN_PROPERTY", "SEMI_MASKER", "SET_STRUCTURED_NODE_PROPERTY", "SKIP", "ORDER_BY",
-    "ORDER_BY_MERGE", "ORDER_BY_SCAN", "UNION_ALL_SCAN", "UNWIND", "VAR_LENGTH_ADJ_LIST_EXTEND",
-    "VAR_LENGTH_COLUMN_EXTEND", "SHORTEST_PATH_ADJ_COL", "SHORTEST_PATH_ADJ_LIST"};
+class PhysicalOperatorUtils {
+public:
+    static std::string operatorTypeToString(PhysicalOperatorType operatorType);
+};
 
 struct OperatorMetrics {
 
@@ -77,18 +71,19 @@ public:
 };
 
 class PhysicalOperator {
-
 public:
     // Leaf operator
-    PhysicalOperator(uint32_t id, string paramsString)
-        : id{id}, transaction{nullptr}, paramsString{std::move(paramsString)} {}
+    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, string paramsString)
+        : operatorType{operatorType}, id{id}, transaction{nullptr}, paramsString{
+                                                                        std::move(paramsString)} {}
     // Unary operator
-    PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString);
-    // Binary operator
-    PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
+    PhysicalOperator(PhysicalOperatorType operatorType, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString);
+    // Binary operator
+    PhysicalOperator(PhysicalOperatorType operatorType, unique_ptr<PhysicalOperator> left,
+        unique_ptr<PhysicalOperator> right, uint32_t id, const string& paramsString);
     // This constructor is used by UnionAllScan only since it may have multiple children.
-    PhysicalOperator(
+    PhysicalOperator(PhysicalOperatorType operatorType,
         vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString);
 
     virtual ~PhysicalOperator() = default;
@@ -100,13 +95,12 @@ public:
     inline uint64_t getNumChildren() const { return children.size(); }
     unique_ptr<PhysicalOperator> moveUnaryChild();
 
-    virtual PhysicalOperatorType getOperatorType() = 0;
-
-    // Local state is initialized for each thread.
-    virtual shared_ptr<ResultSet> init(ExecutionContext* context);
+    inline PhysicalOperatorType getOperatorType() const { return operatorType; }
 
     // Global state is initialized once.
     void initGlobalState(ExecutionContext* context);
+    // Local state is initialized for each thread.
+    void initLocalState(ResultSet* resultSet, ExecutionContext* context);
 
     inline bool getNextTuple() {
         metrics->executionTime.start();
@@ -131,6 +125,7 @@ public:
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* context) {}
+    virtual void initLocalStateInternal(ResultSet* _resultSet, ExecutionContext* context) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal() = 0;
 
@@ -144,10 +139,11 @@ protected:
 protected:
     uint32_t id;
     unique_ptr<OperatorMetrics> metrics;
+    PhysicalOperatorType operatorType;
 
     vector<unique_ptr<PhysicalOperator>> children;
-    shared_ptr<ResultSet> resultSet;
     Transaction* transaction;
+    ResultSet* resultSet;
 
     string paramsString;
 };

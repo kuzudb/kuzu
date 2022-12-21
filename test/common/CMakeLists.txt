@@ -4,5 +4,3 @@ add_kuzu_test(types_test
         time_test.cpp
         timestamp_test.cpp
         types_test.cpp)
-
-add_subdirectory(vector)

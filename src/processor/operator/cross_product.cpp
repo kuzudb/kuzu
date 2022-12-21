@@ -3,15 +3,12 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> CrossProduct::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    for (auto& [pos, dataType] : outVecPosAndTypePairs) {
-        auto vector = make_shared<ValueVector>(dataType, context->memoryManager);
-        resultSet->dataChunks[pos.dataChunkPos]->insert(pos.valueVectorPos, vector);
+void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto pos : outVecPos) {
+        auto vector = resultSet->getValueVector(pos);
         vectorsToScan.push_back(vector);
     }
     startIdx = sharedState->getTable()->getNumTuples();
-    return resultSet;
 }
 
 bool CrossProduct::getNextTuplesInternal() {

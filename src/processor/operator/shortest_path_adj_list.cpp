@@ -114,8 +114,7 @@ void ShortestPathAdjList::printShortestPath(node_offset_t destNodeOffset) {
     do {
         cout << destNodeOffset << " ";
         if (bfsVisitedNodesMap[destNodeOffset]->relParentID != INT64_MAX) {
-            cout << "<" <<
-                bfsVisitedNodesMap[destNodeOffset]->relParentID << "> ";
+            cout << "<" << bfsVisitedNodesMap[destNodeOffset]->relParentID << "> ";
         }
         destNodeOffset = bfsVisitedNodesMap[destNodeOffset]->parentNodeID;
     } while (destNodeOffset != UINT64_MAX);

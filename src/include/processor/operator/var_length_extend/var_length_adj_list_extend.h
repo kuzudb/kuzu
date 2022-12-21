@@ -21,17 +21,15 @@ struct AdjListExtendDFSLevelInfo : DFSLevelInfo {
 };
 
 class VarLengthAdjListExtend : public VarLengthExtend {
-
 public:
     VarLengthAdjListExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
         BaseColumnOrList* adjLists, uint8_t lowerBound, uint8_t upperBound,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, adjLists, lowerBound, upperBound,
-              move(child), id, paramsString) {}
+        : VarLengthExtend(PhysicalOperatorType::VAR_LENGTH_ADJ_LIST_EXTEND, boundNodeDataPos,
+              nbrNodeDataPos, adjLists, lowerBound, upperBound, std::move(child), id,
+              paramsString) {}
 
-    PhysicalOperatorType getOperatorType() override { return VAR_LENGTH_ADJ_LIST_EXTEND; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 

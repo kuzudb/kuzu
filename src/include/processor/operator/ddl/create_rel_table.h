@@ -7,17 +7,15 @@ namespace kuzu {
 namespace processor {
 
 class CreateRelTable : public CreateTable {
-
 public:
     CreateRelTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs, uint32_t id,
         const string& paramsString, RelsStatistics* relsStatistics)
-        : CreateTable{catalog, move(tableName), move(propertyNameDataTypes), id, paramsString},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)},
+        : CreateTable{PhysicalOperatorType::CREATE_REL_TABLE, catalog, std::move(tableName),
+              std::move(propertyNameDataTypes), id, paramsString},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)},
           relsStatistics{relsStatistics} {}
-
-    PhysicalOperatorType getOperatorType() override { return CREATE_REL_TABLE; }
 
     string execute() override;
 

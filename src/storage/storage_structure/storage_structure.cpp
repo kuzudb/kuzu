@@ -150,7 +150,7 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
         readNullBitsFromAPage(
             vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     }
-    auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
+    auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
     for (auto i = 0u; i < numValuesToRead; i++) {
         nodeID_t nodeID{0, 0};
         nodeIDCompressionScheme.readNodeID(currentFrameHead, &nodeID);
@@ -162,7 +162,7 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
 
 void BaseColumnOrList::readSingleNullBit(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) const {
-    auto inputNullEntries = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    auto inputNullEntries = (uint64_t*)getNullBufferInPage(frame);
     bool isNull = NullMask::isNull(inputNullEntries, elementPos);
     valueVector->setNull(offsetInVector, isNull);
 }
@@ -173,8 +173,8 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, physicalPageIdx, *wal, transaction->getType());
-    auto vectorBytesOffset = vectorStartPos * elementSize;
-    auto frameBytesOffset = pagePosOfFirstElement * elementSize;
+    auto vectorBytesOffset = getElemByteOffset(vectorStartPos);
+    auto frameBytesOffset = getElemByteOffset(pagePosOfFirstElement);
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
         numValuesToRead * elementSize);
@@ -184,17 +184,16 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
 
 void BaseColumnOrList::readNullBitsFromAPage(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
-    auto hasNullInSrcNullMask =
-        NullMask::copyNullMask((uint64_t*)(frame + (numElementsPerPage * elementSize)), posInPage,
-            valueVector->getNullMaskData(), posInVector, numBitsToRead);
+    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
+        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
     if (hasNullInSrcNullMask) {
         valueVector->setMayContainNulls();
     }
 }
 
 void BaseColumnOrList::setNullBitOfAPosInFrame(
-    uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
-    auto nullMask = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    const uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
+    auto nullMask = (uint64_t*)getNullBufferInPage(frame);
     auto nullEntryPos = elementPosInPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
     auto bitOffsetInEntry =
         elementPosInPage - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);

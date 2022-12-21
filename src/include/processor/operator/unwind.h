@@ -4,7 +4,6 @@
 #include "common/vector/value_vector_utils.h"
 #include "expression_evaluator/base_evaluator.h"
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/source_operator.h"
 #include "processor/result/result_set.h"
 
 using namespace kuzu::evaluator;
@@ -17,14 +16,13 @@ public:
     Unwind(DataType outDataType, DataPos outDataPos,
         unique_ptr<BaseExpressionEvaluator> expressionEvaluator, unique_ptr<PhysicalOperator> child,
         uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, outDataType{move(outDataType)},
-          outDataPos{outDataPos}, expressionEvaluator{move(expressionEvaluator)}, startIndex{0u} {}
-
-    inline PhysicalOperatorType getOperatorType() override { return PhysicalOperatorType::UNWIND; }
+        : PhysicalOperator{PhysicalOperatorType::UNWIND, std::move(child), id, paramsString},
+          outDataType{std::move(outDataType)}, outDataPos{outDataPos},
+          expressionEvaluator{std::move(expressionEvaluator)}, startIndex{0u} {}
 
     bool getNextTuplesInternal() override;
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Unwind>(outDataType, outDataPos, expressionEvaluator->clone(),

@@ -25,12 +25,12 @@ void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
     this->hasBeenOutput = false;
 }
 
-shared_ptr<ResultSet> VarLengthAdjListExtend::init(ExecutionContext* context) {
-    resultSet = VarLengthExtend::init(context);
+void VarLengthAdjListExtend::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
         dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
     }
-    return resultSet;
 }
 
 bool VarLengthAdjListExtend::getNextTuplesInternal() {
@@ -69,7 +69,7 @@ bool VarLengthAdjListExtend::getNextTuplesInternal() {
             if (!children[0]->getNextTuple()) {
                 return false;
             }
-            curIdx = boundNodeValueVector->state->getPositionOfCurrIdx();
+            curIdx = boundNodeValueVector->state->selVector->selectedPositions[0];
         } while (boundNodeValueVector->isNull(curIdx) ||
                  !addDFSLevelToStackIfParentExtends(
                      boundNodeValueVector->readNodeOffset(curIdx), 1 /* level */));

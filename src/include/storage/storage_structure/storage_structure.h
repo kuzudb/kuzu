@@ -77,7 +77,15 @@ public:
         return pageElementPos * elementSize;
     }
 
+    inline const uint8_t* getNullBufferInPage(const uint8_t* pageFrame) const {
+        return pageFrame + numElementsPerPage * elementSize;
+    }
+
 protected:
+    inline uint64_t getElemByteOffset(uint64_t elemPosInPage) const {
+        return elemPosInPage * elementSize;
+    }
+
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, bool isInMemory, WAL* wal);
@@ -108,7 +116,7 @@ protected:
     void readSingleNullBit(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector) const;
 
-    void setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) const;
+    void setNullBitOfAPosInFrame(const uint8_t* frame, uint16_t elementPos, bool isNull) const;
 
 private:
     void readAPageBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,

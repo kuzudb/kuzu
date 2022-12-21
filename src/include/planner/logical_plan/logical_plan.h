@@ -8,33 +8,34 @@ namespace planner {
 
 class LogicalPlan {
 public:
-    LogicalPlan() : schema{make_unique<Schema>()}, estCardinality{1}, cost{0} {}
+    LogicalPlan() : estCardinality{1}, cost{0} {}
 
-    LogicalPlan(unique_ptr<Schema> schema, expression_vector expressionsToCollect,
-        uint64_t estCardinality, uint64_t cost)
-        : schema{move(schema)}, expressionsToCollect{move(expressionsToCollect)},
+    LogicalPlan(expression_vector expressionsToCollect, uint64_t estCardinality, uint64_t cost)
+        : expressionsToCollect{std::move(expressionsToCollect)},
           estCardinality{estCardinality}, cost{cost} {}
 
-    void setLastOperator(shared_ptr<LogicalOperator> op);
+    inline void setLastOperator(shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
+    // TODO(Xiyang): check read only from parser
     inline bool isReadOnly() const {
-        return !lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
-            LOGICAL_SET_NODE_PROPERTY, LOGICAL_CREATE_NODE, LOGICAL_CREATE_REL, LOGICAL_DELETE_NODE,
-            LOGICAL_DELETE_REL, LOGICAL_CREATE_NODE_TABLE, LOGICAL_CREATE_REL_TABLE,
-            LOGICAL_COPY_CSV, LOGICAL_DROP_TABLE});
+        return !lastOperator->descendantsContainType(
+            unordered_set<LogicalOperatorType>{LogicalOperatorType::SET_NODE_PROPERTY,
+                LogicalOperatorType::CREATE_NODE, LogicalOperatorType::CREATE_REL,
+                LogicalOperatorType::DELETE_NODE, LogicalOperatorType::DELETE_REL,
+                LogicalOperatorType::CREATE_NODE_TABLE, LogicalOperatorType::CREATE_REL_TABLE,
+                LogicalOperatorType::COPY_CSV, LogicalOperatorType::DROP_TABLE});
     }
 
     inline void setExpressionsToCollect(expression_vector expressions) {
-        expressionsToCollect = move(expressions);
+        expressionsToCollect = std::move(expressions);
     }
 
     inline expression_vector getExpressionsToCollect() { return expressionsToCollect; }
 
     inline shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
-
-    inline Schema* getSchema() { return schema.get(); }
+    inline Schema* getSchema() const { return lastOperator->getSchema(); }
 
     inline void multiplyCardinality(uint64_t factor) { estCardinality *= factor; }
     inline void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
@@ -47,9 +48,9 @@ public:
     inline string toString() const { return lastOperator->toString(); }
 
     inline bool isDDLOrCopyCSV() const {
-        return lastOperator->descendantsContainType(
-            unordered_set<LogicalOperatorType>{LOGICAL_COPY_CSV, LOGICAL_CREATE_NODE_TABLE,
-                LOGICAL_CREATE_REL_TABLE, LOGICAL_DROP_TABLE});
+        return lastOperator->descendantsContainType(unordered_set<LogicalOperatorType>{
+            LogicalOperatorType::COPY_CSV, LogicalOperatorType::CREATE_NODE_TABLE,
+            LogicalOperatorType::CREATE_REL_TABLE, LogicalOperatorType::DROP_TABLE});
     }
 
     unique_ptr<LogicalPlan> shallowCopy() const;
@@ -58,7 +59,6 @@ public:
 
 private:
     shared_ptr<LogicalOperator> lastOperator;
-    unique_ptr<Schema> schema;
     // This fields represents return columns in the same order as user input.
     expression_vector expressionsToCollect;
     uint64_t estCardinality;

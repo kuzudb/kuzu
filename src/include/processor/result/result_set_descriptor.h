@@ -14,44 +14,36 @@ namespace kuzu {
 namespace processor {
 
 class DataChunkDescriptor {
-
 public:
     DataChunkDescriptor() = default;
-
     DataChunkDescriptor(const DataChunkDescriptor& other)
         : singleState{other.singleState},
           expressionNameToValueVectorPosMap{other.expressionNameToValueVectorPosMap},
-          expressionNames{other.expressionNames} {}
+          expressions{other.expressions} {}
+    ~DataChunkDescriptor() = default;
 
     inline void setSingleState() { singleState = true; }
     inline bool isSingleState() const { return singleState; }
 
-    inline uint32_t getValueVectorPos(const string& name) const {
-        assert(expressionNameToValueVectorPosMap.contains(name));
-        return expressionNameToValueVectorPosMap.at(name);
-    }
+    inline uint32_t getNumValueVectors() const { return expressions.size(); }
 
-    inline uint32_t getNumValueVectors() const { return expressionNames.size(); }
-
-    inline void addExpressionName(const string& name) {
-        expressionNameToValueVectorPosMap.insert({name, expressionNames.size()});
-        expressionNames.push_back(name);
+    inline void addExpression(shared_ptr<Expression> expression) {
+        expressionNameToValueVectorPosMap.insert({expression->getUniqueName(), expressions.size()});
+        expressions.push_back(std::move(expression));
     }
+    inline shared_ptr<Expression> getExpression(uint32_t idx) const { return expressions[idx]; }
 
 private:
     bool singleState = false;
     unordered_map<string, uint32_t> expressionNameToValueVectorPosMap;
-    vector<string> expressionNames;
+    expression_vector expressions;
 };
 
 class ResultSetDescriptor {
-
 public:
     explicit ResultSetDescriptor(const Schema& schema);
-
     ResultSetDescriptor(const ResultSetDescriptor& other);
-
-    DataPos getDataPos(const string& name) const;
+    ~ResultSetDescriptor() = default;
 
     inline uint32_t getNumDataChunks() const { return dataChunkDescriptors.size(); }
 
@@ -64,7 +56,6 @@ public:
     }
 
 private:
-    // Map each variable to its position pair (dataChunkPos, vectorPos)
     unordered_map<string, uint32_t> expressionNameToDataChunkPosMap;
     vector<unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
 };

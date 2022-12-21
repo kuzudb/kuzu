@@ -14,14 +14,13 @@ protected:
     BaseSetNodeProperty(vector<DataPos> nodeIDPositions,
         vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::SET_NODE_PROPERTY, std::move(child), id,
+              paramsString},
           nodeIDPositions{std::move(nodeIDPositions)}, expressionEvaluators{
                                                            std::move(expressionEvaluators)} {}
     virtual ~BaseSetNodeProperty() override = default;
 
-    PhysicalOperatorType getOperatorType() override = 0;
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override = 0;
 
@@ -41,10 +40,6 @@ public:
         : BaseSetNodeProperty{std::move(nodeIDPositions), std::move(expressionEvaluators),
               std::move(child), id, paramsString},
           columns{std::move(columns)} {}
-
-    inline PhysicalOperatorType getOperatorType() override {
-        return PhysicalOperatorType::SET_STRUCTURED_NODE_PROPERTY;
-    }
 
     bool getNextTuplesInternal() override;
 

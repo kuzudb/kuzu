@@ -51,7 +51,7 @@ struct UnaryOperationExecutor {
         result.state = operand.state;
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
+            auto pos = operand.state->selVector->selectedPositions[0];
             result.setNull(pos, operand.isNull(pos));
             if (!result.isNull(pos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(

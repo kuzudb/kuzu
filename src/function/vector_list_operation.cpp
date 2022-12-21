@@ -32,35 +32,21 @@ void VectorListOperations::ListCreation(
     auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);
     auto elements = make_unique<uint8_t[]>(parameters.size() * numBytesOfListElement);
-    if (result.state->isFlat()) {
-        auto pos = result.state->getPositionOfCurrIdx();
+    for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
+         ++selectedPos) {
+        auto pos = result.state->selVector->selectedPositions[selectedPos];
         auto& kuList = ((ku_list_t*)result.getData())[pos];
         for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
-            assert(parameters[paramIdx]->state->isFlat());
+            auto paramPos = parameters[paramIdx]->state->isFlat() ?
+                                parameters[paramIdx]->state->selVector->selectedPositions[0] :
+                                pos;
             memcpy(elements.get() + paramIdx * numBytesOfListElement,
-                parameters[paramIdx]->getData() + pos * numBytesOfListElement,
+                parameters[paramIdx]->getData() + paramPos * numBytesOfListElement,
                 numBytesOfListElement);
         }
         ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
             tmpList, kuList, result.dataType, result.getOverflowBuffer());
-    } else {
-        for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
-             ++selectedPos) {
-            auto pos = result.state->selVector->selectedPositions[selectedPos];
-            auto& kuList = ((ku_list_t*)result.getData())[pos];
-            for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
-                auto parameterPos = parameters[paramIdx]->state->isFlat() ?
-                                        parameters[paramIdx]->state->getPositionOfCurrIdx() :
-                                        pos;
-                memcpy(elements.get() + paramIdx * numBytesOfListElement,
-                    parameters[paramIdx]->getData() + parameterPos * numBytesOfListElement,
-                    numBytesOfListElement);
-            }
-            ku_list_t tmpList(parameters.size(), (uint64_t)elements.get());
-            InMemOverflowBufferUtils::copyListRecursiveIfNested(
-                tmpList, kuList, result.dataType, result.getOverflowBuffer());
-        }
     }
 }
 

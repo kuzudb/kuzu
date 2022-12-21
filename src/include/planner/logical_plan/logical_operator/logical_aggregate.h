@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base_logical_operator.h"
-#include "schema.h"
 
 namespace kuzu {
 namespace planner {
@@ -9,32 +8,28 @@ namespace planner {
 class LogicalAggregate : public LogicalOperator {
 public:
     LogicalAggregate(expression_vector expressionsToGroupBy,
-        expression_vector expressionsToAggregate, unique_ptr<Schema> schemaBeforeAggregate,
-        shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, expressionsToGroupBy{move(expressionsToGroupBy)},
-          expressionsToAggregate{move(expressionsToAggregate)}, schemaBeforeAggregate{
-                                                                    move(schemaBeforeAggregate)} {}
+        expression_vector expressionsToAggregate, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
+          expressionsToGroupBy{std::move(expressionsToGroupBy)}, expressionsToAggregate{std::move(
+                                                                     expressionsToAggregate)} {}
 
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_AGGREGATE;
-    }
+    void computeSchema() override;
 
     string getExpressionsForPrinting() const override;
 
     inline bool hasExpressionsToGroupBy() const { return !expressionsToGroupBy.empty(); }
     inline expression_vector getExpressionsToGroupBy() const { return expressionsToGroupBy; }
     inline expression_vector getExpressionsToAggregate() const { return expressionsToAggregate; }
-    inline Schema* getSchemaBeforeAggregate() const { return schemaBeforeAggregate.get(); }
+    inline Schema* getSchemaBeforeAggregate() const { return children[0]->getSchema(); }
 
-    unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAggregate>(expressionsToGroupBy, expressionsToAggregate,
-            schemaBeforeAggregate->copy(), children[0]->copy());
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalAggregate>(
+            expressionsToGroupBy, expressionsToAggregate, children[0]->copy());
     }
 
 private:
     expression_vector expressionsToGroupBy;
     expression_vector expressionsToAggregate;
-    unique_ptr<Schema> schemaBeforeAggregate;
 };
 
 } // namespace planner

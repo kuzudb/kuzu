@@ -6,18 +6,15 @@ namespace kuzu {
 namespace planner {
 
 class LogicalMultiplicityReducer : public LogicalOperator {
-
 public:
     explicit LogicalMultiplicityReducer(shared_ptr<LogicalOperator> child)
-        : LogicalOperator(move(child)) {}
+        : LogicalOperator(LogicalOperatorType::MULTIPLICITY_REDUCER, std::move(child)) {}
 
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_MULTIPLICITY_REDUCER;
-    }
+    inline void computeSchema() override { copyChildSchema(0); }
 
-    string getExpressionsForPrinting() const override { return string(); }
+    inline string getExpressionsForPrinting() const override { return string(); }
 
-    unique_ptr<LogicalOperator> copy() override {
+    inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalMultiplicityReducer>(children[0]->copy());
     }
 };

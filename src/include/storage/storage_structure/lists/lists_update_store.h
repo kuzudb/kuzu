@@ -17,8 +17,15 @@ using namespace processor;
 using namespace catalog;
 
 struct ListUpdates {
-    ListUpdates() : emptyListInPersistentStore{false} {}
-    bool emptyListInPersistentStore;
+public:
+    ListUpdates() : newlyAddedNode{false} {}
+
+    inline bool hasUpdates() const {
+        return newlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty();
+    }
+
+public:
+    bool newlyAddedNode;
     vector<uint64_t> insertedRelsTupleIdxInFT;
     unordered_set<int64_t> deletedRelIDs;
 };
@@ -47,7 +54,9 @@ public:
         return listUpdatesPerTablePerDirection;
     }
 
-    bool isListEmptyInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
+    uint64_t getNumDeletedRels(ListFileID& listFileID, node_offset_t nodeOffset) const;
+
+    bool isNewlyAddedNode(ListFileID& listFileID, node_offset_t nodeOffset) const;
 
     bool isRelDeletedInPersistentStore(
         ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const;
@@ -74,13 +83,13 @@ public:
     void readValues(ListFileID& listFileID, ListSyncState& listSyncState,
         shared_ptr<ValueVector> valueVector) const;
 
-    void initEmptyListInPersistentStore(nodeID_t& nodeID) {
+    void initNewlyAddedNodes(nodeID_t& nodeID) {
         for (auto direction : REL_DIRECTIONS) {
             if (listUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
                 listUpdatesPerTablePerDirection[direction][nodeID.tableID]
                                                [StorageUtils::getListChunkIdx(nodeID.offset)]
                                                [nodeID.offset]
-                                                   .emptyListInPersistentStore = true;
+                                                   .newlyAddedNode = true;
             }
         }
     }
@@ -114,10 +123,6 @@ private:
     shared_ptr<ValueVector> srcNodeVector;
     shared_ptr<ValueVector> dstNodeVector;
     shared_ptr<DataChunk> nodeDataChunk;
-    // Note: An empty listUpdates can exist for a nodeOffset, because we don't fix the listUpdates,
-    // listUpdatesPerNode and ListUpdatesPerChunk indices after we insert or delete a rel. For
-    // example: a user inserts 1 rel to nodeOffset1, and then deletes that rel. We will end up
-    // getting an empty listUpdates for nodeOffset1.
     vector<map<table_id_t, ListUpdatesPerChunk>> listUpdatesPerTablePerDirection;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;

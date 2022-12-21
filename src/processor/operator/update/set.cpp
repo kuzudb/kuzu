@@ -3,17 +3,14 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> BaseSetNodeProperty::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void BaseSetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& pos : nodeIDPositions) {
-        auto dataChunk = resultSet->dataChunks[pos.dataChunkPos];
-        auto nodeIDVector = dataChunk->valueVectors[pos.valueVectorPos];
+        auto nodeIDVector = resultSet->getValueVector(pos);
         nodeIDVectors.push_back(std::move(nodeIDVector));
     }
     for (auto& expressionEvaluator : expressionEvaluators) {
         expressionEvaluator->init(*resultSet, context->memoryManager);
     }
-    return resultSet;
 }
 
 bool SetNodeStructuredProperty::getNextTuplesInternal() {

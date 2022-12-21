@@ -1,0 +1,400 @@
+-NAME moduloFunctionOnDoubleDoubleTest
+-QUERY MATCH (a:organisation) RETURN a.orgCode % a.rating
+---- 3
+0.000000
+0.340000
+0.320000
+
+-NAME sinFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
+---- 3
+-0.529836
+-0.818277
+-0.818277
+
+-NAME sinFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN sin(a.orgCode)
+---- 3
+-0.988036
+-0.811656
+0.785018
+
+-NAME cosFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN cos(a.mark)
+---- 3
+-0.848100
+-0.574824
+-0.574824
+-NAME cosFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN cos(a.orgCode)
+---- 3
+-0.154222
+-0.584135
+0.619473
+
+-NAME tanFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN tan(a.mark)
+---- 3
+0.624733
+1.423526
+1.423526
+
+-NAME tanFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN tan(a.orgCode)
+---- 3
+6.406598
+1.389500
+1.267234
+
+-NAME cotFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN cot(a.mark)
+---- 3
+1.600684
+0.702481
+0.702481
+
+-NAME cotFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN cot(a.orgCode)
+---- 3
+0.156089
+0.719683
+0.789120
+
+-NAME asinFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN asin(a.rating)
+---- 3
+1.570796
+0.894666
+0.546851
+
+-NAME asinFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN asin(a.orgCode % 2 - 1)
+---- 3
+0.000000
+-1.570796
+-1.570796
+
+-NAME acosFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN acos(a.rating)
+---- 3
+0.000000
+0.676131
+1.023945
+
+-NAME acosFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN acos(a.orgCode % 2 - 1)
+---- 3
+1.570796
+3.141593
+3.141593
+
+-NAME atanFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN atan(a.rating)
+---- 3
+0.785398
+0.662426
+0.479519
+
+-NAME atanFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN atan(a.orgCode % 2 - 1)
+---- 3
+0.000000
+-0.785398
+-0.785398
+
+-NAME evenFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN even(a.mark)
+---- 3
+4
+6
+6
+
+-NAME evenFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN even(a.orgCode)
+---- 3
+326
+934
+824
+
+-NAME factorialFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
+---- 3
+120
+24
+87178291200
+
+-NAME factorialFunctionSyntaxInt64Test
+-QUERY MATCH (a:organisation) RETURN (a.orgCode % 20)!
+---- 3
+120
+24
+87178291200
+
+-NAME signFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN sign(a.mark)
+---- 3
+1
+1
+1
+
+-NAME signFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN sign(a.orgCode)
+---- 3
+1
+1
+1
+
+-NAME sqrtFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN sqrt(a.mark)
+---- 3
+1.923538
+2.024846
+2.024846
+
+-NAME sqrtFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN sqrt(a.orgCode)
+---- 3
+18.027756
+30.561414
+28.705400
+
+-NAME cbrtFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN cbrt(a.mark)
+---- 3
+1.546680
+1.600521
+1.600521
+
+-NAME cbrtFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN cbrt(a.orgCode)
+---- 3
+6.875344
+9.774974
+9.375096
+
+-NAME gammaFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN gamma(a.mark)
+---- 3
+4.170652
+6.812623
+6.812623
+
+-NAME gammaFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN gamma(a.orgCode % 10)
+---- 3
+24
+6
+6
+
+-NAME lgammaFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN lgamma(a.mark)
+---- 3
+1.428072
+1.918777
+1.918777
+
+-NAME lgammaFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN lgamma(a.orgCode)
+---- 3
+1552.770467
+5451.570283
+4706.038471
+
+-NAME lnFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN ln(a.mark)
+---- 3
+1.308333
+1.410987
+1.410987
+
+-NAME lnFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN ln(a.orgCode)
+---- 3
+5.783825
+6.839476
+6.714171
+
+-NAME logFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN log(a.mark)
+---- 3
+0.568202
+0.612784
+0.612784
+
+-NAME logFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN log(a.orgCode)
+---- 3
+2.511883
+2.970347
+2.915927
+
+-NAME log2FunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN log2(a.mark)
+---- 3
+1.887525
+2.035624
+2.035624
+
+-NAME log2FunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN log2(a.orgCode)
+---- 3
+8.344296
+9.867279
+9.686501
+
+-NAME degreesFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN degrees(a.mark)
+---- 3
+211.994384
+234.912696
+234.912696
+
+-NAME degreesFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN degrees(a.orgCode)
+---- 3
+18621.128342
+53514.258065
+47211.722319
+
+-NAME radiansFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN radians(a.mark)
+---- 3
+0.064577
+0.071558
+0.071558
+
+-NAME radiansFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN radians(a.orgCode)
+---- 3
+5.672320
+16.301375
+14.381513
+
+-NAME atan2FunctionOnDoubleDoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-NAME atan2FunctionOnDoubleInt64Test
+-QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.orgCode)
+---- 3
+0.011384
+0.004390
+0.004976
+
+-NAME atan2FunctionOnInt64Int64Test
+-QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.orgCode)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-NAME atan2FunctionOnInt64DoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.mark)
+---- 3
+1.559412
+1.566407
+1.565821
+
+-NAME roundFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
+---- 3
+0.800000
+0.500000
+1.000000
+
+-NAME roundFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN round(a.orgCode, 2)
+---- 3
+325.000000
+824.000000
+934.000000
+
+-NAME piFunctionAddStrIntTest
+-QUERY MATCH (a:organisation) RETURN a.orgCode + pi()
+---- 3
+328.141593
+937.141593
+827.141593
+
+-NAME AbsFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN abs(a.score)
+---- 3
+100
+2
+7
+
+-NAME FloorFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN floor(a.score)
+---- 3
+-2
+-100
+7
+
+-NAME CeilFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN ceil(a.score)
+---- 3
+-2
+-100
+7
+
+-NAME BitwiseAndFunctionTest
+-QUERY MATCH (p:person) RETURN p.age & 21
+---- 8
+1
+20
+5
+20
+20
+17
+0
+17
+
+-NAME BitwiseOrFunctionTest
+-QUERY MATCH (o:organisation) RETURN o.score | 35
+---- 3
+-1
+-65
+39
+
+-NAME BitshiftLeftFunctionTest
+-QUERY MATCH (p:person) RETURN p.age << 2
+---- 8
+140
+120
+180
+80
+80
+100
+160
+332
+
+-NAME BitshiftRightFunctionTest
+-QUERY MATCH (o:organisation) RETURN o.orgCode >> 3
+---- 3
+40
+116
+103
+
+-NAME BitwiseOperatorPrecedenceTest
+-QUERY MATCH (o:organisation) RETURN o.orgCode >> 2 | o.score & 2 << 1
+---- 3
+85
+237
+206
+
+-NAME NumericalOperatorPrecedenceTest1
+-QUERY MATCH (o:organisation) RETURN 3 & (o.score + 50)
+---- 3
+0
+2
+1
+
+-NAME NumericalOperatorPrecedenceTest2
+-QUERY MATCH (o:organisation) RETURN 2 + 3 << 5 + 2 & 1 + o.orgCode
+---- 3
+0
+640
+512

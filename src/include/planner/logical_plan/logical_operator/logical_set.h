@@ -9,11 +9,10 @@ namespace planner {
 class LogicalSetNodeProperty : public LogicalOperator {
 public:
     LogicalSetNodeProperty(vector<expression_pair> setItems, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, setItems{std::move(setItems)} {}
+        : LogicalOperator{LogicalOperatorType::SET_NODE_PROPERTY, std::move(child)},
+          setItems{std::move(setItems)} {}
 
-    inline LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SET_NODE_PROPERTY;
-    }
+    inline void computeSchema() override { copyChildSchema(0); }
 
     inline string getExpressionsForPrinting() const override {
         string result;

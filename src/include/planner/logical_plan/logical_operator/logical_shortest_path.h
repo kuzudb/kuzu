@@ -15,8 +15,11 @@ public:
     LogicalShortestPath(shared_ptr<NodeExpression> sourceNode, shared_ptr<NodeExpression> destNode,
         shared_ptr<RelExpression> rel, shared_ptr<Expression> relProperty,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{std::move(child)}, sourceNode{std::move(sourceNode)},
-          destNode{std::move(destNode)}, rel{std::move(rel)}, relProperty{move(relProperty)} {}
+        : LogicalOperator{LogicalOperatorType::SHORTEST_PATH, std::move(child)},
+          sourceNode{std::move(sourceNode)}, destNode{std::move(destNode)}, rel{std::move(rel)},
+          relProperty{move(relProperty)} {}
+
+    void computeSchema() override { copyChildSchema(0); }
 
     shared_ptr<NodeExpression> getSrcNodeExpression() { return sourceNode; }
 
@@ -25,10 +28,6 @@ public:
     shared_ptr<RelExpression> getRelExpression() { return rel; }
 
     shared_ptr<Expression> getRelPropertyExpression() { return relProperty; }
-
-    LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_SHORTEST_PATH;
-    }
 
     string getExpressionsForPrinting() const override {
         return sourceNode->getRawName() + ("->") + destNode->getRawName();

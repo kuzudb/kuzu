@@ -1,27 +1,44 @@
 #pragma once
 
-#include "processor/operator/scan_list/scan_list.h"
+#include "processor/operator/base_extend.h"
+#include "storage/storage_structure/lists/lists.h"
 
 namespace kuzu {
 namespace processor {
 
-class AdjListExtend : public ScanList {
-
+class ListExtendAndScanRelProperties : public BaseExtendAndScanRelProperties {
 public:
-    AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* adjLists,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : ScanList{inDataPos, outDataPos, adjLists, move(child), id, paramsString} {}
+    ListExtendAndScanRelProperties(const DataPos& inNodeIDVectorPos,
+        const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos, Lists* adjList,
+        vector<Lists*> propertyLists, unique_ptr<PhysicalOperator> child, uint32_t id,
+        const string& paramsString)
+        : BaseExtendAndScanRelProperties{PhysicalOperatorType::LIST_EXTEND, inNodeIDVectorPos,
+              outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
+              paramsString},
+          adjList{adjList}, propertyLists{std::move(propertyLists)} {}
+    ~ListExtendAndScanRelProperties() override = default;
 
-    inline PhysicalOperatorType getOperatorType() override { return LIST_EXTEND; }
-
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjListExtend>(
-            inDataPos, outDataPos, (AdjLists*)lists, children[0]->clone(), id, paramsString);
+        return make_unique<ListExtendAndScanRelProperties>(inNodeIDVectorPos, outNodeIDVectorPos,
+            outPropertyVectorsPos, adjList, propertyLists, children[0]->clone(), id, paramsString);
     }
+
+private:
+    void scanPropertyLists();
+
+private:
+    // lists
+    Lists* adjList;
+    vector<Lists*> propertyLists;
+    // list handles
+    shared_ptr<ListHandle> adjListHandle;
+    vector<shared_ptr<ListHandle>> propertyListHandles;
+    // sync state between adj and property lists
+    unique_ptr<ListSyncState> syncState;
 };
 
 } // namespace processor

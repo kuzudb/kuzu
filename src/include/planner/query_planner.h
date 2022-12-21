@@ -80,15 +80,6 @@ private:
     void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
         shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
-    inline void appendScanRelPropsIfNecessary(expression_vector& properties, RelExpression& rel,
-        RelDirection direction, LogicalPlan& plan) {
-        for (auto& property : properties) {
-            appendScanRelPropIfNecessary(property, rel, direction, plan);
-        }
-    }
-    void appendScanRelPropIfNecessary(shared_ptr<Expression>& expression, RelExpression& rel,
-        RelDirection direction, LogicalPlan& plan);
-
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 

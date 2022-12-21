@@ -5,13 +5,11 @@
 namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> OrderByMerge::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void OrderByMerge::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     // OrderByMerge is the only sink operator in a pipeline and only modifies the
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     localMerger = make_unique<KeyBlockMerger>(
         sharedState->factorizedTables, sharedState->strKeyColsInfo, sharedState->numBytesPerTuple);
-    return resultSet;
 }
 
 void OrderByMerge::executeInternal(ExecutionContext* context) {

@@ -405,7 +405,7 @@ uint8_t* FactorizedTable::allocateUnflatTupleBlock(uint32_t numBytes) {
 
 void FactorizedTable::copyFlatVectorToFlatColumn(
     const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, uint32_t colIdx) {
-    auto valuePositionInVectorToAppend = vector.state->getPositionOfCurrIdx();
+    auto valuePositionInVectorToAppend = vector.state->selVector->selectedPositions[0];
     auto colOffsetInDataBlock = tableSchema->getColOffset(colIdx);
     auto dstDataPtr = blockAppendInfo.data;
     for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
@@ -604,7 +604,7 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
 void FactorizedTable::readFlatColToFlatVector(
     uint8_t** tuplesToRead, uint32_t colIdx, ValueVector& vector) const {
     assert(vector.state->isFlat());
-    auto pos = vector.state->getPositionOfCurrIdx();
+    auto pos = vector.state->selVector->selectedPositions[0];
     if (isNonOverflowColNull(tuplesToRead[0] + tableSchema->getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
     } else {

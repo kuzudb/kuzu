@@ -13,10 +13,10 @@ void LiteralExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager*
 }
 
 bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
-    assert(resultVector->dataType.typeID == BOOL); // TODO(Guodong): Is this expected here?
-    auto pos = resultVector->state->getPositionOfCurrIdx();
+    assert(resultVector->dataType.typeID == BOOL);
+    auto pos = resultVector->state->selVector->selectedPositions[0];
     assert(pos == 0u);
-    return resultVector->getValue<bool>(pos) == true && (!resultVector->isNull(pos));
+    return resultVector->getValue<bool>(pos) && (!resultVector->isNull(pos));
 }
 
 } // namespace evaluator

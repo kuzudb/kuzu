@@ -5,10 +5,10 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    LogicalOperator* logicalOperator) {
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     return make_unique<MultiplicityReducer>(
-        move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
+        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 } // namespace processor

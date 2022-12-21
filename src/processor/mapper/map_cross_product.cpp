@@ -6,33 +6,27 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
+    auto outSchema = logicalCrossProduct->getSchema();
     // map build side
     auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
-    auto buildSideMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
-    auto buildSidePrevOperator =
-        mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(1), buildSideMapperContext);
+    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(1));
     auto resultCollector = appendResultCollector(buildSideSchema->getExpressionsInScope(),
-        *buildSideSchema, std::move(buildSidePrevOperator), buildSideMapperContext);
+        *buildSideSchema, std::move(buildSidePrevOperator));
     // map probe side
-    auto probeSidePrevOperator =
-        mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0), mapperContext);
-    vector<pair<DataPos, DataType>> outVecPosAndTypePairs;
+    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0));
+    vector<DataPos> outVecPos;
     vector<uint32_t> colIndicesToScan;
     auto expressions = buildSideSchema->getExpressionsInScope();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
-        auto expressionName = expression->getUniqueName();
-        outVecPosAndTypePairs.emplace_back(
-            mapperContext.getDataPos(expressionName), expression->dataType);
-        mapperContext.addComputedExpressions(expressionName);
+        outVecPos.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
-    return make_unique<CrossProduct>(resultCollector->getSharedState(),
-        std::move(outVecPosAndTypePairs), std::move(colIndicesToScan),
-        std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
-        logicalCrossProduct->getExpressionsForPrinting());
+    return make_unique<CrossProduct>(resultCollector->getSharedState(), std::move(outVecPos),
+        std::move(colIndicesToScan), std::move(probeSidePrevOperator), std::move(resultCollector),
+        getOperatorID(), logicalCrossProduct->getExpressionsForPrinting());
 }
 
 } // namespace processor

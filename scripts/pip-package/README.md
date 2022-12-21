@@ -5,7 +5,7 @@ chmod +x package_tar.sh
 pip install kuzu.tar.gz    
 ```
 
-Note: installing from source requires the full toolchain for building the project, including bazel, OpenJDK, and a compiler compatible with C++20. The package works for both Linux and macOS.
+Note: installing from source requires the full toolchain for building the project, including Cmake(>=3.11), Python 3, and a compiler compatible with C++20. The package works for both Linux and macOS.
 
 # Container for self-hosted manylinux builder
 ## Introduction

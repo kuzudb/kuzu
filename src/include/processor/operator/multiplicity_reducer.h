@@ -9,9 +9,9 @@ class MultiplicityReducer : public PhysicalOperator {
 
 public:
     MultiplicityReducer(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : PhysicalOperator{move(child), id, paramsString}, prevMultiplicity{1}, numRepeat{0} {}
-
-    PhysicalOperatorType getOperatorType() override { return MULTIPLICITY_REDUCER; }
+        : PhysicalOperator{PhysicalOperatorType::MULTIPLICITY_REDUCER, std::move(child), id,
+              paramsString},
+          prevMultiplicity{1}, numRepeat{0} {}
 
     bool getNextTuplesInternal() override;
 

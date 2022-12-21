@@ -7,15 +7,15 @@ namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto unwind = (LogicalUnwind*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto dataPos = mapperContext.getDataPos(unwind->getAliasExpression()->getUniqueName());
-    auto expressionEvaluator =
-        expressionMapper.mapExpression(unwind->getExpression(), mapperContext);
-    mapperContext.addComputedExpressions(unwind->getAliasExpression()->getUniqueName());
+    auto outSchema = unwind->getSchema();
+    auto inSchema = unwind->getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto dataPos = DataPos(outSchema->getExpressionPos(*unwind->getAliasExpression()));
+    auto expressionEvaluator = expressionMapper.mapExpression(unwind->getExpression(), *inSchema);
     return make_unique<Unwind>(*unwind->getExpression()->getDataType().childType, dataPos,
-        move(expressionEvaluator), move(prevOperator), getOperatorID(),
+        std::move(expressionEvaluator), std::move(prevOperator), getOperatorID(),
         unwind->getExpressionsForPrinting());
 }
 

@@ -24,24 +24,24 @@ public:
 
 public:
     inline Column* getPropertyColumn(
-        RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
-        return propertyColumns[relDirection].at(tableID)[propertyIdx].get();
+        RelDirection relDirection, table_id_t boundNodeTableID, uint64_t propertyIdx) {
+        return propertyColumns[relDirection].at(boundNodeTableID)[propertyIdx].get();
     }
     inline Lists* getPropertyLists(
-        RelDirection relDirection, table_id_t tableID, uint64_t propertyIdx) {
-        return propertyLists[relDirection].at(tableID)[propertyIdx].get();
+        RelDirection relDirection, table_id_t boundNodeTableID, uint64_t propertyIdx) {
+        return propertyLists[relDirection].at(boundNodeTableID)[propertyIdx].get();
     }
     inline bool hasAdjColumn(RelDirection relDirection, table_id_t boundNodeTableID) {
         return adjColumns[relDirection].contains(boundNodeTableID);
     }
-    inline AdjColumn* getAdjColumn(RelDirection relDirection, table_id_t tableID) {
-        return adjColumns[relDirection].at(tableID).get();
+    inline AdjColumn* getAdjColumn(RelDirection relDirection, table_id_t boundNodeTableID) {
+        return adjColumns[relDirection].at(boundNodeTableID).get();
     }
     inline bool hasAdjList(RelDirection relDirection, table_id_t boundNodeTableID) {
         return adjLists[relDirection].contains(boundNodeTableID);
     }
-    inline AdjLists* getAdjLists(RelDirection relDirection, table_id_t tableID) {
-        return adjLists[relDirection].at(tableID).get();
+    inline AdjLists* getAdjLists(RelDirection relDirection, table_id_t boundNodeTableID) {
+        return adjLists[relDirection].at(boundNodeTableID).get();
     }
     inline ListsUpdateStore* getListsUpdateStore() { return listsUpdateStore.get(); }
     inline table_id_t getRelTableID() const { return tableID; }
@@ -74,6 +74,8 @@ private:
     void performOpOnListsWithUpdates(
         std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasUpdates);
     string inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTableID);
+    vector<unique_ptr<ListsUpdateIterator>> getListsUpdateIterators(
+        RelDirection relDirection, table_id_t srcTableID) const;
 
 private:
     shared_ptr<spdlog::logger> logger;
