@@ -22,12 +22,12 @@ bool ShortestPathAdjList::getNextTuplesInternal() {
         if (!children[0]->getNextTuple()) {
             return false;
         }
-        uint64_t currIdx = srcValueVector->state->currIdx;
-        uint64_t destIdx = destValueVector->state->currIdx;
-        if (srcValueVector->isNull(currIdx) || destValueVector->isNull(destIdx)) {
+        uint64_t srcIdx = srcValueVector->state->selVector->selectedPositions[0];
+        uint64_t destIdx = destValueVector->state->selVector->selectedPositions[0];
+        if (srcValueVector->isNull(srcIdx) || destValueVector->isNull(destIdx)) {
             continue;
         }
-        if (computeShortestPath(currIdx, destIdx)) {
+        if (computeShortestPath(srcIdx, destIdx)) {
             return true;
         }
     }
