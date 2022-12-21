@@ -115,8 +115,8 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, cursor.pageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    auto vectorBytesOffset = vectorPos * elementSize;
-    auto frameBytesOffset = cursor.elemPosInPage * elementSize;
+    auto vectorBytesOffset = getElemByteOffset(vectorPos);
+    auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
     memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
     readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);

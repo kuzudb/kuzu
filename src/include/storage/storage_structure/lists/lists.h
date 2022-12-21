@@ -106,7 +106,10 @@ public:
         TransactionType transactionType, node_offset_t nodeOffset) {
         return getNumElementsInPersistentStore(transactionType, nodeOffset) +
                (transactionType == TransactionType::WRITE ?
-                       getNumElementsInListsUpdateStore(nodeOffset) :
+                       getNumElementsInListsUpdateStore(nodeOffset) -
+                           listsUpdateStore->getNumDeletedRels(
+                               storageStructureIDAndFName.storageStructureID.listFileID,
+                               nodeOffset) :
                        0);
     }
     virtual inline void checkpointInMemoryIfNecessary() {
@@ -116,23 +119,26 @@ public:
     virtual inline bool mayContainNulls() const { return true; }
     virtual inline void setDeletedRelsIfNecessary(Transaction* transaction,
         ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector) {}
-    // Prepares all the db file changes necessary to update the "persistent" store of lists with the
-    // listsUpdateStore, which stores the updates by the write trx locally.
-    virtual void prepareCommitOrRollbackIfNecessary(bool isCommit);
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readFromSmallList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-    void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
-        uint64_t numElementsInPersistentStore, InMemList& inMemList);
     uint64_t getNumElementsInPersistentStore(
         TransactionType transactionType, node_offset_t nodeOffset);
     void initListReadingState(
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
     unique_ptr<InMemList> getInMemListWithDataFromUpdateStoreOnly(
         node_offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT);
+    // This function writes the persistent store data (skipping over the deleted rels) and update
+    // store data to the inMemList.
+    unique_ptr<InMemList> writeToInMemList(node_offset_t nodeOffset,
+        const vector<uint64_t>& insertedRelTupleIdxesInFT,
+        const unordered_set<uint64_t>& deletedRelOffsetsForList);
+    void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
+        uint64_t numElfementsInPersistentStore, InMemList& inMemList,
+        const unordered_set<uint64_t>& deletedRelOffsetsInList);
 
 protected:
     virtual inline DiskOverflowFile* getDiskOverflowFileIfExists() { return nullptr; }
@@ -148,7 +154,9 @@ protected:
           listsUpdateStore{listsUpdateStore} {};
 
 private:
-    void prepareCommit(ListsUpdateIterator& listsUpdateIterator);
+    void fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame, uint64_t elemPosInPage,
+        uint64_t numElementsToReadInCurPage, const unordered_set<uint64_t>& deletedRelOffsetsInList,
+        uint64_t numElementsRead, uint64_t& nextPosToWriteToInMemList);
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;
@@ -260,6 +268,7 @@ public:
               isInMemory, wal, listsUpdateStore} {}
     void setDeletedRelsIfNecessary(Transaction* transaction, ListSyncState& listSyncState,
         const shared_ptr<ValueVector>& relIDVector) override;
+    unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(node_offset_t nodeOffset);
 };
 
 class ListsFactory {
