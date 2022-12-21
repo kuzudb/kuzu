@@ -43,7 +43,6 @@ protected:
     map<uint64_t, unique_ptr<NodeState>> bfsVisitedNodesMap;
     shared_ptr<vector<node_offset_t>> currFrontier;
     shared_ptr<vector<node_offset_t>> nextFrontier;
-    MemoryManager* memoryManager;
 };
 
 } // namespace processor

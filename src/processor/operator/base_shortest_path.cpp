@@ -12,7 +12,6 @@ shared_ptr<ResultSet> kuzu::processor::BaseShortestPath::init(
         resultSet->dataChunks[srcDataPos.dataChunkPos]->getValueVector(srcDataPos.valueVectorPos);
     destValueVector =
         resultSet->dataChunks[destDataPos.dataChunkPos]->getValueVector(destDataPos.valueVectorPos);
-    memoryManager = context->memoryManager;
     return resultSet;
 }
 
