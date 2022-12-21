@@ -13,10 +13,21 @@ public:
             srcTable.c_str(), dstTable.c_str(), srcID, dstID);
     }
     string getInsertKnowsRelQuery(string srcTable, string dstTable, int64_t srcID, int64_t dstID) {
-        auto str = StringUtils::string_format("MATCH (p1:%s), (p2:%s) WHERE p1.ID = %d AND p2.ID "
-                                              "= %d create (p1)-[:knows {length: %d}]->(p2);",
+        return StringUtils::string_format("MATCH (p1:%s), (p2:%s) WHERE p1.ID = %d AND p2.ID "
+                                          "= %d create (p1)-[:knows {length: %d}]->(p2);",
             srcTable.c_str(), dstTable.c_str(), srcID, dstID, srcID);
-        return str;
+    }
+
+    string getDeleteTeachesRelQuery(int64_t srcID, int64_t dstID) {
+        return StringUtils::string_format(
+            "MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = %d AND p2.ID = %d delete t;",
+            srcID, dstID);
+    }
+
+    string getDeleteHasOwnerRelQuery(int64_t srcID, int64_t dstID) {
+        return StringUtils::string_format(
+            "MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = %d AND p.ID = %d delete h;",
+            srcID, dstID);
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -231,6 +242,36 @@ public:
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
+    void deleteRelsFromManyToOneTable(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        conn->query(getDeleteTeachesRelQuery(11, 1));
+        conn->query(getDeleteTeachesRelQuery(31, 3));
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        auto result = conn->query("MATCH (:person)-[t:teaches]->(:person) return t.length");
+        auto actualResult = TestHelper::convertResultToString(*result);
+        vector<string> expectedResult = isCommit ?
+                                            vector<string>{"21", "22", "32", "33"} :
+                                            vector<string>{"11", "21", "22", "31", "32", "33"};
+        sortAndCheckTestResults(actualResult, expectedResult);
+    }
+
+    void deleteRelsFromOneToOneTable(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        conn->query(getDeleteHasOwnerRelQuery(1, 51));
+        conn->query(getDeleteHasOwnerRelQuery(3, 53));
+        conn->query(getDeleteHasOwnerRelQuery(5, 55));
+        conn->query(getDeleteHasOwnerRelQuery(7, 57));
+        conn->query(getDeleteHasOwnerRelQuery(9, 59));
+        conn->query(getDeleteHasOwnerRelQuery(11, 61));
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        auto result = conn->query("MATCH (:animal)-[h:hasOwner]->(:person) return h.length");
+        auto actualResult = TestHelper::convertResultToString(*result);
+        vector<string> expectedResult =
+            isCommit ? vector<string>{"2", "4", "6", "8"} :
+                       vector<string>{"1", "2", "3", "4", "5", "6", "7", "8", "9", "11"};
+        sortAndCheckTestResults(actualResult, expectedResult);
+    }
+
     static constexpr uint64_t NUM_RELS_FOR_PERSON_KNOWS_PERSON = 2500;
     static constexpr uint64_t NUM_RELS_FOR_ANIMAL_KNOWS_PERSON = 51;
 };
@@ -420,4 +461,36 @@ TEST_F(DeleteRelTest, MixedDeleteAndCreateRels) {
     ASSERT_EQ(
         TestHelper::convertResultToString(*conn->query(knowsRelQuery), true /* checkOutputOrder */),
         expectedResult);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromManyToOneTableCommitNormalExecution) {
+    deleteRelsFromManyToOneTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromManyToOneTableCommitRecovery) {
+    deleteRelsFromManyToOneTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromManyToOneTableRollbackNormalExecution) {
+    deleteRelsFromManyToOneTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromManyToOneTableRollbackRecovery) {
+    deleteRelsFromManyToOneTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromOneToOneTableCommitNormalExecution) {
+    deleteRelsFromOneToOneTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromOneToOneTableCommitRecovery) {
+    deleteRelsFromOneToOneTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromOneToOneTableRollbackNormalExecution) {
+    deleteRelsFromOneToOneTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(DeleteRelTest, DeleteRelsFromOneToOneTableRollbackRecovery) {
+    deleteRelsFromOneToOneTable(false /* isCommit */, TransactionTestType::RECOVERY);
 }
