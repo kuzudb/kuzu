@@ -17,6 +17,8 @@ public:
         : PhysicalOperator{operatorType, std::move(child), id, paramsString},
           resultSetDescriptor{std::move(resultSetDescriptor)} {}
 
+    inline bool isSink() const override { return true; }
+
     ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
 
     inline void execute(ResultSet* resultSet, ExecutionContext* context) {

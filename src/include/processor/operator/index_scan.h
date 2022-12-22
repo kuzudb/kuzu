@@ -19,6 +19,8 @@ public:
           pkIndex{pkIndex}, indexKeyEvaluator{std::move(indexKeyEvaluator)}, outDataPos{
                                                                                  outDataPos} {}
 
+    bool isSource() const override { return true; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;

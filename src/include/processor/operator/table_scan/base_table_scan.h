@@ -30,16 +30,14 @@ protected:
           outVecPositions{std::move(outVecPositions)}, colIndicesToScan{
                                                            std::move(colIndicesToScan)} {}
 
+    inline bool isSource() const override { return true; }
+
     virtual void setMaxMorselSize() = 0;
     virtual unique_ptr<FTableScanMorsel> getMorsel() = 0;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
-
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
-    }
 
 protected:
     uint64_t maxMorselSize;

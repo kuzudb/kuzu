@@ -19,6 +19,8 @@ public:
     }
     virtual ~CopyCSV() override = default;
 
+    inline bool isSource() const override { return true; }
+
     virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 
     bool getNextTuplesInternal() override {

@@ -124,6 +124,8 @@ public:
           nodeName{std::move(nodeName)}, outDataPos{outDataPos}, sharedState{
                                                                      std::move(sharedState)} {}
 
+    bool isSource() const override { return true; }
+
     inline string getNodeName() const { return nodeName; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 

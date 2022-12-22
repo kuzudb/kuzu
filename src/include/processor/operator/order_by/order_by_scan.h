@@ -33,16 +33,14 @@ public:
         : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, id, paramsString},
           outVectorPos{std::move(outVectorPos)}, sharedState{std::move(sharedState)} {}
 
+    inline bool isSource() const override { return true; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderByScan>(outVectorPos, sharedState, id, paramsString);
-    }
-
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
 
 private:

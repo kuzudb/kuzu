@@ -31,16 +31,14 @@ public:
               paramsString},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
+    inline bool isSource() const override { return true; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, paramsString);
-    }
-
-    inline double getExecutionTime(Profiler& profiler) const override {
-        return profiler.sumAllTimeMetricsWithKey(getTimeMetricKey());
     }
 
 private:

@@ -7,6 +7,7 @@
 #include "common/profiler.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/physical_plan.h"
+#include <json.hpp>
 
 using namespace kuzu::planner;
 using namespace kuzu::processor;
