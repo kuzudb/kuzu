@@ -11,7 +11,7 @@ add_subdirectory(storage)
 add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
-target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc Threads::Threads)
+target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc Threads::Threads Arrow::arrow_shared parquet_shared)
 target_include_directories(
         kuzu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

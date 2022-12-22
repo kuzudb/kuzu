@@ -10,7 +10,7 @@ InMemRelCSVCopier::InMemRelCSVCopier(CSVDescription& csvDescription, string outp
     TaskScheduler& taskScheduler, Catalog& catalog,
     map<table_id_t, node_offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
-    : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
+    : InMemStructuresCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
       maxNodeOffsetsPerTable{move(maxNodeOffsetsPerNodeTable)}, relsStatistics{relsStatistics} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     startRelID = relsStatistics->getNextRelID(dummyReadOnlyTrx.get());

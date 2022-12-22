@@ -127,9 +127,9 @@ void InMemOverflowFile::copyVarSizedValuesToPages(ku_list_t& resultKUList,
 }
 
 ku_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
-    assert(listLiteral.dataType.typeID == LIST && !listLiteral.listVal.empty());
+    assert(listLiteral.dataType.typeID == LIST);
     ku_list_t resultKUList;
-    auto childDataTypeID = listLiteral.listVal[0].dataType.typeID;
+    auto childDataTypeID = listLiteral.dataType.childType->typeID;
     auto numBytesOfListElement = Types::getDataTypeSize(childDataTypeID);
     resultKUList.size = listLiteral.listVal.size();
     // Allocate a new page if necessary.
