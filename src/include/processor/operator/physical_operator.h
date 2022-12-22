@@ -50,6 +50,8 @@ enum class PhysicalOperatorType : uint8_t {
     UNWIND,
     VAR_LENGTH_ADJ_LIST_EXTEND,
     VAR_LENGTH_COLUMN_EXTEND,
+    SHORTEST_PATH_ADJ_COL,
+    SHORTEST_PATH_ADJ_LIST
 };
 
 class PhysicalOperatorUtils {

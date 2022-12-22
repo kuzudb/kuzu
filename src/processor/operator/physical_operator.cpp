@@ -129,6 +129,12 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::VAR_LENGTH_COLUMN_EXTEND: {
         return "VAR_LENGTH_COL_EXTEND";
     }
+    case PhysicalOperatorType::SHORTEST_PATH_ADJ_LIST: {
+        return "SHORTEST_PATH_ADJ_LIST";
+    }
+    case PhysicalOperatorType::SHORTEST_PATH_ADJ_COL: {
+        return "SHORTEST_PATH_ADJ_COL";
+    }
     default:
         throw common::NotImplementedException("physicalOperatorTypeToString()");
     }
