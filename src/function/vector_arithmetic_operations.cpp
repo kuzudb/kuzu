@@ -363,6 +363,38 @@ vector<unique_ptr<VectorOperationDefinition>> BitwiseXorVectorOperation::getDefi
     return result;
 }
 
+vector<unique_ptr<VectorOperationDefinition>> BitwiseAndVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(BITWISE_AND_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseAnd>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> BitwiseOrVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(BITWISE_OR_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseOr>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> BitShiftLeftVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(BITSHIFT_LEFT_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitShiftLeft>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> BitShiftRightVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(BITSHIFT_RIGHT_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitShiftRight>));
+    return result;
+}
+
 vector<unique_ptr<VectorOperationDefinition>> PiVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(

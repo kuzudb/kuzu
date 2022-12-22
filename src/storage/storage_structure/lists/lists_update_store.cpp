@@ -30,8 +30,20 @@ ListsUpdateStore::ListsUpdateStore(MemoryManager& memoryManager, RelTableSchema&
     initListUpdatesPerTablePerDirection();
 }
 
-bool ListsUpdateStore::isListEmptyInPersistentStore(
+uint64_t ListsUpdateStore::getNumDeletedRels(
     ListFileID& listFileID, node_offset_t nodeOffset) const {
+    auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
+    auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
+        relNodeTableAndDir.srcNodeTableID);
+    auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
+    if (!listUpdatesPerChunk.contains(chunkIdx) ||
+        !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
+        return 0;
+    }
+    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).deletedRelIDs.size();
+}
+
+bool ListsUpdateStore::isNewlyAddedNode(ListFileID& listFileID, node_offset_t nodeOffset) const {
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listUpdatesPerChunk = listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
         relNodeTableAndDir.srcNodeTableID);
@@ -40,7 +52,7 @@ bool ListsUpdateStore::isListEmptyInPersistentStore(
         !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
         return false;
     }
-    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).emptyListInPersistentStore;
+    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).newlyAddedNode;
 }
 
 bool ListsUpdateStore::isRelDeletedInPersistentStore(

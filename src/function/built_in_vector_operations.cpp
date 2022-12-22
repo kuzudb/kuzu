@@ -188,6 +188,12 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({ATAN_FUNC_NAME, AtanVectorOperation::getDefinitions()});
     vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
     vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_AND_FUNC_NAME, BitwiseAndVectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_OR_FUNC_NAME, BitwiseOrVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {BITSHIFT_LEFT_FUNC_NAME, BitShiftLeftVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {BITSHIFT_RIGHT_FUNC_NAME, BitShiftRightVectorOperation::getDefinitions()});
     vectorOperations.insert({CBRT_FUNC_NAME, CbrtVectorOperation::getDefinitions()});
     vectorOperations.insert({CEIL_FUNC_NAME, CeilVectorOperation::getDefinitions()});
     vectorOperations.insert({CEILING_FUNC_NAME, CeilVectorOperation::getDefinitions()});

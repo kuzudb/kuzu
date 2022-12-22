@@ -37,7 +37,7 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
         // prevOperator in the same pipeline, and decompose build and its prevOperator into another
         // one.
         auto task = make_shared<ProcessorTask>(resultCollector, context);
-        decomposePlanIntoTasks(lastOperator, lastOperator, task.get(), context);
+        decomposePlanIntoTasks(lastOperator, nullptr, task.get(), context);
         taskScheduler->scheduleTaskAndWaitOrError(task);
         return resultCollector->getResultFactorizedTable();
     }
@@ -45,51 +45,33 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
 
 void QueryProcessor::decomposePlanIntoTasks(
     PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, ExecutionContext* context) {
-    switch (op->getOperatorType()) {
-    case PhysicalOperatorType::RESULT_COLLECTOR: {
-        if (parent->getOperatorType() == PhysicalOperatorType::UNION_ALL_SCAN ||
-            parent->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN ||
-            parent->getOperatorType() == PhysicalOperatorType::HASH_JOIN_PROBE ||
-            parent->getOperatorType() == PhysicalOperatorType::INTERSECT ||
-            parent->getOperatorType() == PhysicalOperatorType::CROSS_PRODUCT) {
-            auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
-            decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-            parentTask->addChildTask(std::move(childTask));
-        } else {
-            decomposePlanIntoTasks(op->getChild(0), op, parentTask, context);
-        }
-    } break;
-    case PhysicalOperatorType::ORDER_BY_MERGE: {
+    if (op->isSink() && parent != nullptr) {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
-        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(std::move(childTask));
-        parentTask->setSingleThreadedTask();
-    } break;
-    case PhysicalOperatorType::ORDER_BY:
-    case PhysicalOperatorType::HASH_JOIN_BUILD:
-    case PhysicalOperatorType::INTERSECT_BUILD: {
-        auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
-        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
-        parentTask->addChildTask(std::move(childTask));
-    } break;
-    case PhysicalOperatorType::AGGREGATE: {
-        auto aggregate = (BaseAggregate*)op;
-        auto childTask = make_unique<ProcessorTask>(aggregate, context);
-        if (aggregate->containDistinctAggregate()) {
-            childTask->setSingleThreadedTask();
+        if (op->getOperatorType() == PhysicalOperatorType::AGGREGATE) {
+            auto aggregate = (BaseAggregate*)op;
+            if (aggregate->containDistinctAggregate()) {
+                // Distinct aggregate should be executed in single-thread mode.
+                childTask->setSingleThreadedTask();
+            }
         }
         decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
         parentTask->addChildTask(std::move(childTask));
-    } break;
-    case PhysicalOperatorType::INDEX_SCAN: {
-        parentTask->setSingleThreadedTask();
-    } break;
-    default: {
+    } else {
         // Schedule the right most side (e.g., build side of the hash join) first.
         for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
             decomposePlanIntoTasks(op->getChild(i), op, parentTask, context);
         }
+    }
+    switch (op->getOperatorType()) {
+        // Ordered table should be scanned in single-thread mode.
+    case PhysicalOperatorType::ORDER_BY_MERGE:
+        // Index lookup should happen exactly once. We don't need to lock if index look is executed
+        // in single-thread mode.
+    case PhysicalOperatorType::INDEX_SCAN: {
+        parentTask->setSingleThreadedTask();
     } break;
+    default:
+        break;
     }
 }
 

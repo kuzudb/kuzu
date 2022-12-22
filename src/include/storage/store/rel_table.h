@@ -74,6 +74,8 @@ private:
     void performOpOnListsWithUpdates(
         std::function<void(Lists*)> opOnListsWithUpdates, std::function<void()> opIfHasUpdates);
     string inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTableID);
+    vector<unique_ptr<ListsUpdateIterator>> getListsUpdateIterators(
+        RelDirection relDirection, table_id_t srcTableID) const;
 
 private:
     shared_ptr<spdlog::logger> logger;

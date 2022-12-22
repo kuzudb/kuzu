@@ -17,6 +17,8 @@ public:
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog} {}
     virtual ~DDL() override = default;
 
+    inline bool isSource() const override { return true; }
+
     virtual string execute() = 0;
 
     bool getNextTuplesInternal() override {

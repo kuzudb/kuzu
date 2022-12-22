@@ -7,26 +7,26 @@ namespace kuzu {
 namespace processor {
 
 class HashAggregateScan : public BaseAggregateScan {
-
 public:
     HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
         vector<DataPos> groupByKeyVectorsPos, vector<DataType> groupByKeyVectorDataTypes,
         vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
         unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-        : BaseAggregateScan{move(aggregatesPos), move(aggregateDataTypes), move(child), id,
-              paramsString},
-          groupByKeyVectorsPos{move(groupByKeyVectorsPos)},
-          groupByKeyVectorDataTypes{move(groupByKeyVectorDataTypes)}, sharedState{
-                                                                          move(sharedState)} {}
+        : BaseAggregateScan{std::move(aggregatesPos), std::move(aggregateDataTypes),
+              std::move(child), id, paramsString},
+          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
+          groupByKeyVectorDataTypes{std::move(groupByKeyVectorDataTypes)}, sharedState{std::move(
+                                                                               sharedState)} {}
 
     HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
         vector<DataPos> groupByKeyVectorsPos, vector<DataType> groupByKeyVectorDataTypes,
         vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id,
         const string& paramsString)
-        : BaseAggregateScan{move(aggregatesPos), move(aggregateDataTypes), id, paramsString},
-          groupByKeyVectorsPos{move(groupByKeyVectorsPos)},
-          groupByKeyVectorDataTypes{move(groupByKeyVectorDataTypes)}, sharedState{
-                                                                          move(sharedState)} {}
+        : BaseAggregateScan{std::move(aggregatesPos), std::move(aggregateDataTypes), id,
+              paramsString},
+          groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
+          groupByKeyVectorDataTypes{std::move(groupByKeyVectorDataTypes)}, sharedState{std::move(
+                                                                               sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

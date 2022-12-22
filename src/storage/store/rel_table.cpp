@@ -1,6 +1,7 @@
 #include "storage/store/rel_table.h"
 
 #include "spdlog/spdlog.h"
+#include "storage/storage_structure/lists/lists_update_iterator.h"
 
 using namespace kuzu::catalog;
 
@@ -49,10 +50,107 @@ vector<AdjColumn*> RelTable::getAdjColumnsForNodeTable(table_id_t tableID) {
     return retVal;
 }
 
+// Prepares all the db file changes necessary to update the "persistent" store of lists with the
+// listsUpdateStore, which stores the updates by the write trx locally.
 void RelTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    performOpOnListsWithUpdates(
-        std::bind(&Lists::prepareCommitOrRollbackIfNecessary, std::placeholders::_1, isCommit),
-        std::bind(&RelTable::addToUpdatedRelTables, this));
+    auto& listUpdatesPerDirection = listsUpdateStore->getListUpdatesPerTablePerDirection();
+    for (auto& relDirection : REL_DIRECTIONS) {
+        for (auto& listUpdatesPerTable : listUpdatesPerDirection[relDirection]) {
+            if (isCommit && !listUpdatesPerTable.second.empty()) {
+                auto srcTableID = listUpdatesPerTable.first;
+                auto listsUpdateIterators = getListsUpdateIterators(relDirection, srcTableID);
+                // Note: In C++ iterating through maps happens in non-descending order of the keys.
+                // This property is critical when using listsUpdateIterator, which requires the user
+                // to make calls to writeInMemListToListPages in ascending order of nodeOffsets.
+                auto& listUpdatesPerChunk = listUpdatesPerTable.second;
+                for (auto updatedChunkItr = listUpdatesPerChunk.begin();
+                     updatedChunkItr != listUpdatesPerChunk.end(); ++updatedChunkItr) {
+                    for (auto updatedNodeOffsetItr = updatedChunkItr->second.begin();
+                         updatedNodeOffsetItr != updatedChunkItr->second.end();
+                         updatedNodeOffsetItr++) {
+                        auto nodeOffset = updatedNodeOffsetItr->first;
+                        auto& listUpdates = updatedNodeOffsetItr->second;
+                        // Note: An empty listUpdates can exist for a nodeOffset, because we don't
+                        // fix the listUpdates, listUpdatesPerNode and ListUpdatesPerChunk indices
+                        // after we insert or delete a rel. For example: a user inserts 1 rel to
+                        // nodeOffset1, and then deletes that rel. We will end up getting an empty
+                        // listUpdates for nodeOffset1.
+                        if (!listUpdates.hasUpdates()) {
+                            continue;
+                        }
+                        if (listUpdates.newlyAddedNode) {
+                            listsUpdateIterators[0]->updateList(nodeOffset,
+                                *adjLists[relDirection]
+                                     .at(srcTableID)
+                                     ->getInMemListWithDataFromUpdateStoreOnly(
+                                         nodeOffset, listUpdates.insertedRelsTupleIdxInFT));
+                            for (auto i = 0u; i < propertyLists[relDirection].at(srcTableID).size();
+                                 i++) {
+                                listsUpdateIterators[i + 1]->updateList(nodeOffset,
+                                    *propertyLists[relDirection]
+                                         .at(srcTableID)[i]
+                                         ->getInMemListWithDataFromUpdateStoreOnly(
+                                             nodeOffset, listUpdates.insertedRelsTupleIdxInFT));
+                            }
+                        } else if (ListHeaders::isALargeList(adjLists[relDirection]
+                                                                 .at(srcTableID)
+                                                                 ->getHeaders()
+                                                                 ->headersDiskArray->get(nodeOffset,
+                                                                     TransactionType::READ_ONLY)) &&
+                                   listUpdates.deletedRelIDs.empty()) {
+                            // We do an optimization for relPropertyList and adjList :
+                            // If the initial list is a largeList and we don't delete any rel from
+                            // the persistentStore, we can simply append the newly inserted rels
+                            // from the relUpdateStore to largeList. In this case, we can skip
+                            // reading the data from persistentStore to InMemList and only need to
+                            // read the data from relUpdateStore to InMemList.
+                            listsUpdateIterators[0]->appendToLargeList(nodeOffset,
+                                *adjLists[relDirection]
+                                     .at(srcTableID)
+                                     ->getInMemListWithDataFromUpdateStoreOnly(
+                                         nodeOffset, listUpdates.insertedRelsTupleIdxInFT));
+                            for (auto i = 0u; i < propertyLists[relDirection].at(srcTableID).size();
+                                 i++) {
+                                listsUpdateIterators[i + 1]->appendToLargeList(nodeOffset,
+                                    *propertyLists[relDirection]
+                                         .at(srcTableID)[i]
+                                         ->getInMemListWithDataFromUpdateStoreOnly(
+                                             nodeOffset, listUpdates.insertedRelsTupleIdxInFT));
+                            }
+                        } else {
+                            auto deletedRelOffsetsForList =
+                                ((RelIDList*)(propertyLists[relDirection]
+                                                  .at(srcTableID)
+                                                      [RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX]
+                                                  .get()))
+                                    ->getDeletedRelOffsetsInListForNodeOffset(nodeOffset);
+                            listsUpdateIterators[0]->updateList(
+                                nodeOffset, *adjLists[relDirection]
+                                                 .at(srcTableID)
+                                                 ->writeToInMemList(nodeOffset,
+                                                     listUpdates.insertedRelsTupleIdxInFT,
+                                                     deletedRelOffsetsForList));
+                            for (auto i = 0u; i < propertyLists[relDirection].at(srcTableID).size();
+                                 i++) {
+                                listsUpdateIterators[i + 1]->updateList(
+                                    nodeOffset, *propertyLists[relDirection]
+                                                     .at(srcTableID)[i]
+                                                     ->writeToInMemList(nodeOffset,
+                                                         listUpdates.insertedRelsTupleIdxInFT,
+                                                         deletedRelOffsetsForList));
+                            }
+                        }
+                    }
+                    for (auto& listsUpdateIterator : listsUpdateIterators) {
+                        listsUpdateIterator->doneUpdating();
+                    }
+                }
+            }
+        }
+    }
+    if (listsUpdateStore->hasUpdates()) {
+        addToUpdatedRelTables();
+    }
 }
 
 void RelTable::checkpointInMemoryIfNecessary() {
@@ -72,8 +170,7 @@ void RelTable::rollbackInMemoryIfNecessary() {
 void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector,
     const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
-    assert(srcNodeIDVector->state->isFlat());
-    assert(dstNodeIDVector->state->isFlat());
+    assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat());
     auto srcTableID =
         srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
             .tableID;
@@ -110,6 +207,24 @@ void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
+    auto srcTableID =
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
+    auto dstTableID =
+        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
+            .tableID;
+    for (auto direction : REL_DIRECTIONS) {
+        auto boundTableID = (direction == RelDirection::FWD ? srcTableID : dstTableID);
+        auto boundVector = (direction == RelDirection::FWD ? srcNodeIDVector : dstNodeIDVector);
+        if (adjColumns[direction].contains(boundTableID)) {
+            auto nodeOffset =
+                boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
+            adjColumns[direction].at(boundTableID)->setNodeOffsetToNull(nodeOffset);
+            for (auto i = 0; i < propertyColumns[direction].size(); i++) {
+                propertyColumns[direction].at(boundTableID)[i]->setNodeOffsetToNull(nodeOffset);
+            }
+        }
+    }
     listsUpdateStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
@@ -119,7 +234,7 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
             adjColumns[direction].at(nodeID.tableID)->setNodeOffsetToNull(nodeID.offset);
         }
     }
-    listsUpdateStore->initEmptyListInPersistentStore(nodeID);
+    listsUpdateStore->initNewlyAddedNodes(nodeID);
 }
 
 void RelTable::initAdjColumnOrLists(
@@ -247,6 +362,18 @@ string RelTable::inferRelMultiplicity(table_id_t srcTableID, table_id_t dstTable
     } else {
         return "MANY_MANY";
     }
+}
+
+vector<unique_ptr<ListsUpdateIterator>> RelTable::getListsUpdateIterators(
+    RelDirection relDirection, table_id_t srcTableID) const {
+    vector<unique_ptr<ListsUpdateIterator>> listsUpdateIterators;
+    listsUpdateIterators.push_back(ListsUpdateIteratorFactory::getListsUpdateIterator(
+        adjLists[relDirection].at(srcTableID).get()));
+    for (auto& propList : propertyLists[relDirection].at(srcTableID)) {
+        listsUpdateIterators.push_back(
+            ListsUpdateIteratorFactory::getListsUpdateIterator(propList.get()));
+    }
+    return listsUpdateIterators;
 }
 
 } // namespace storage

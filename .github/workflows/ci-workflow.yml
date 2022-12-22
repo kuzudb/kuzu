@@ -53,6 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo apt install -y python3-pip && sudo apt install -y sqlite3
+      - run: >
+          sudo apt-get update &&
+          sudo apt-get install -y ca-certificates lsb-release wget &&
+          wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb &&
+          sudo apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb &&
+          rm ./apache-arrow* &&
+          sudo apt-get update &&
+          sudo apt-get install -y libarrow-dev libparquet-dev
+      
       - run: pip3 install -r tools/python_api/requirements_dev.txt
 
       - name: build

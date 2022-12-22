@@ -21,7 +21,6 @@ private:
 };
 
 class UnionAllScan : public BaseTableScan {
-
 public:
     UnionAllScan(vector<DataPos> outVecPositions, vector<uint32_t> colIndicesToScan,
         shared_ptr<UnionAllScanSharedState> sharedState,
