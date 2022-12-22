@@ -64,9 +64,9 @@ private:
         LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
         LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalShortestPathToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCopyCSVToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(LogicalOperator* logicalOperator);
-
     unique_ptr<ResultCollector> appendResultCollector(const expression_vector& expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator);
 

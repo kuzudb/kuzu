@@ -39,6 +39,7 @@ enum class LogicalOperatorType : uint8_t {
     SKIP,
     UNION_ALL,
     UNWIND,
+    SHORTEST_PATH
 };
 
 class LogicalOperatorUtils {
