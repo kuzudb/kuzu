@@ -28,8 +28,7 @@ protected:
     uint64_t calculateNumRows(bool hasHeader);
 
     // Concurrent tasks
-    static void countNumLinesPerBlockTask(
-        const string& fName, uint64_t blockId,
+    static void countNumLinesPerBlockTask(const string& fName, uint64_t blockId,
         InMemStructuresCopier* copier);
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
