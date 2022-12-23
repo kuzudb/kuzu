@@ -13,7 +13,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteNodeToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& nodesStore = storageManager.getNodesStore();
     vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
-    for (auto& [node, primaryKey] : logicalDeleteNode->getNodeAndPrimaryKeys()) {
+    for (auto i = 0u; i < logicalDeleteNode->getNumNodes(); ++i) {
+        auto node = logicalDeleteNode->getNode(i);
+        auto primaryKey = logicalDeleteNode->getPrimaryKey(i);
         auto nodeTable = nodesStore.getNodeTable(node->getSingleTableID());
         auto nodeIDPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
         auto primaryKeyPos = DataPos(inSchema->getExpressionPos(*primaryKey));

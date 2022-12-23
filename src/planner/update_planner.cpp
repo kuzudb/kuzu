@@ -27,7 +27,7 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
     }
     case ClauseType::SET: {
         QueryPlanner::appendAccumulate(plan);
-        appendSet((BoundSetClause&)updatingClause, plan);
+        planSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
@@ -37,26 +37,6 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
     }
     default:
         assert(false);
-    }
-}
-
-void UpdatePlanner::planSetItem(expression_pair setItem, LogicalPlan& plan) {
-    auto lhs = setItem.first;
-    auto rhs = setItem.second;
-    // Check LHS
-    assert(lhs->getChild(0)->dataType.typeID == NODE);
-    auto nodeExpression = static_pointer_cast<NodeExpression>(lhs->getChild(0));
-    auto lhsGroupPos = plan.getSchema()->getGroupPos(nodeExpression->getInternalIDPropertyName());
-    auto isLhsFlat = plan.getSchema()->getGroup(lhsGroupPos)->isFlat();
-    // Check RHS
-    auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
-    if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
-        auto rhsPos = QueryPlanner::appendFlattensButOne(rhsDependentGroupsPos, plan);
-        auto isRhsFlat = plan.getSchema()->getGroup(rhsPos)->isFlat();
-        // If both are unflat and from different groups, we flatten LHS.
-        if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
-            QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
-        }
     }
 }
 
@@ -76,20 +56,22 @@ void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& pla
 
 void UpdatePlanner::appendCreateNode(
     const vector<unique_ptr<BoundCreateNode>>& createNodes, LogicalPlan& plan) {
-    vector<expression_pair> setItems;
-    vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeyPairs;
+    vector<shared_ptr<NodeExpression>> nodes;
+    expression_vector primaryKeys;
+    vector<unique_ptr<BoundSetNodeProperty>> setNodeProperties;
     for (auto& createNode : createNodes) {
         auto node = createNode->getNode();
-        nodeAndPrimaryKeyPairs.emplace_back(node, createNode->getPrimaryKeyExpression());
+        nodes.push_back(node);
+        primaryKeys.push_back(createNode->getPrimaryKeyExpression());
         for (auto& setItem : createNode->getSetItems()) {
-            setItems.push_back(setItem);
+            setNodeProperties.push_back(make_unique<BoundSetNodeProperty>(node, setItem));
         }
     }
-    auto createNode =
-        make_shared<LogicalCreateNode>(std::move(nodeAndPrimaryKeyPairs), plan.getLastOperator());
+    auto createNode = make_shared<LogicalCreateNode>(
+        std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
     createNode->computeSchema();
     plan.setLastOperator(createNode);
-    appendSet(std::move(setItems), plan);
+    appendSetNodeProperty(setNodeProperties, plan);
 }
 
 void UpdatePlanner::appendCreateRel(
@@ -106,16 +88,58 @@ void UpdatePlanner::appendCreateRel(
     plan.setLastOperator(createRel);
 }
 
-void UpdatePlanner::appendSet(vector<expression_pair> setItems, LogicalPlan& plan) {
-    if (setItems.empty()) {
-        return;
+void UpdatePlanner::planSet(BoundSetClause& setClause, LogicalPlan& plan) {
+    if (setClause.hasSetNodeProperty()) {
+        appendSetNodeProperty(setClause.getSetNodeProperties(), plan);
     }
-    for (auto& setItem : setItems) {
-        planSetItem(setItem, plan);
+    if (setClause.hasSetRelProperty()) {
+        appendSetRelProperty(setClause.getSetRelProperties(), plan);
     }
-    auto setNode = make_shared<LogicalSetNodeProperty>(std::move(setItems), plan.getLastOperator());
-    setNode->computeSchema();
-    plan.setLastOperator(std::move(setNode));
+}
+
+void UpdatePlanner::appendSetNodeProperty(
+    const vector<unique_ptr<BoundSetNodeProperty>>& setNodeProperties, LogicalPlan& plan) {
+    vector<shared_ptr<NodeExpression>> nodes;
+    vector<expression_pair> setItems;
+    for (auto& setNodeProperty : setNodeProperties) {
+        auto node = setNodeProperty->getNode();
+        auto lhsGroupPos = plan.getSchema()->getGroupPos(node->getInternalIDPropertyName());
+        auto isLhsFlat = plan.getSchema()->getGroup(lhsGroupPos)->isFlat();
+        auto rhs = setNodeProperty->getSetItem().second;
+        auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
+        if (!rhsDependentGroupsPos.empty()) { // RHS is not constant
+            auto rhsPos = QueryPlanner::appendFlattensButOne(rhsDependentGroupsPos, plan);
+            auto isRhsFlat = plan.getSchema()->getGroup(rhsPos)->isFlat();
+            // If both are unflat and from different groups, we flatten LHS.
+            if (!isRhsFlat && !isLhsFlat && lhsGroupPos != rhsPos) {
+                QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
+            }
+        }
+        nodes.push_back(node);
+        setItems.push_back(setNodeProperty->getSetItem());
+    }
+    auto setNodeProperty = make_shared<LogicalSetNodeProperty>(
+        std::move(nodes), std::move(setItems), plan.getLastOperator());
+    setNodeProperty->computeSchema();
+    plan.setLastOperator(setNodeProperty);
+}
+
+void UpdatePlanner::appendSetRelProperty(
+    const vector<unique_ptr<BoundSetRelProperty>>& setRelProperties, LogicalPlan& plan) {
+    vector<shared_ptr<RelExpression>> rels;
+    vector<expression_pair> setItems;
+    for (auto& setRelProperty : setRelProperties) {
+        flattenRel(*setRelProperty->getRel(), plan);
+        auto rhs = setRelProperty->getSetItem().second;
+        auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
+        QueryPlanner::appendFlattens(rhsDependentGroupsPos, plan);
+        rels.push_back(setRelProperty->getRel());
+        setItems.push_back(setRelProperty->getSetItem());
+    }
+    auto setRelProperty = make_shared<LogicalSetRelProperty>(
+        std::move(rels), std::move(setItems), plan.getLastOperator());
+    setRelProperty->computeSchema();
+    plan.setLastOperator(setRelProperty);
 }
 
 void UpdatePlanner::planDelete(BoundDeleteClause& deleteClause, LogicalPlan& plan) {
@@ -129,13 +153,14 @@ void UpdatePlanner::planDelete(BoundDeleteClause& deleteClause, LogicalPlan& pla
 
 void UpdatePlanner::appendDeleteNode(
     const vector<unique_ptr<BoundDeleteNode>>& deleteNodes, LogicalPlan& plan) {
-    vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeyPairs;
+    vector<shared_ptr<NodeExpression>> nodes;
+    expression_vector primaryKeys;
     for (auto& deleteNode : deleteNodes) {
-        nodeAndPrimaryKeyPairs.emplace_back(
-            deleteNode->getNode(), deleteNode->getPrimaryKeyExpression());
+        nodes.push_back(deleteNode->getNode());
+        primaryKeys.push_back(deleteNode->getPrimaryKeyExpression());
     }
-    auto deleteNode =
-        make_shared<LogicalDeleteNode>(std::move(nodeAndPrimaryKeyPairs), plan.getLastOperator());
+    auto deleteNode = make_shared<LogicalDeleteNode>(
+        std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
     deleteNode->computeSchema();
     plan.setLastOperator(std::move(deleteNode));
 }
@@ -144,14 +169,18 @@ void UpdatePlanner::appendDeleteRel(
     const vector<shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan) {
     // Delete one rel at a time so we flatten for each rel.
     for (auto& rel : deleteRels) {
-        auto srcNodeID = rel->getSrcNode()->getInternalIDProperty();
-        QueryPlanner::appendFlattenIfNecessary(srcNodeID, plan);
-        auto dstNodeID = rel->getDstNode()->getInternalIDProperty();
-        QueryPlanner::appendFlattenIfNecessary(dstNodeID, plan);
+        flattenRel(*rel, plan);
     }
     auto deleteRel = make_shared<LogicalDeleteRel>(deleteRels, plan.getLastOperator());
     deleteRel->computeSchema();
     plan.setLastOperator(std::move(deleteRel));
+}
+
+void UpdatePlanner::flattenRel(const RelExpression& rel, LogicalPlan& plan) {
+    auto srcNodeID = rel.getSrcNode()->getInternalIDProperty();
+    QueryPlanner::appendFlattenIfNecessary(srcNodeID, plan);
+    auto dstNodeID = rel.getDstNode()->getInternalIDProperty();
+    QueryPlanner::appendFlattenIfNecessary(dstNodeID, plan);
 }
 
 } // namespace planner

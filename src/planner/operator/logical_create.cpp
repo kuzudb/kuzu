@@ -4,8 +4,8 @@ namespace kuzu {
 namespace planner {
 
 void LogicalCreateNode::computeSchema() {
-    copyChildSchema(0);
-    for (auto& [node, _] : nodeAndPrimaryKeys) {
+    LogicalUpdateNode::computeSchema();
+    for (auto& node : nodes) {
         auto groupPos = schema->createGroup();
         schema->setGroupAsSingleState(groupPos);
         schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
