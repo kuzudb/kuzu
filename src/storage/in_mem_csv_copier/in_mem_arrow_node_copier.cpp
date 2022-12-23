@@ -86,9 +86,9 @@ arrow::Status InMemArrowNodeCopier::initCSVReader(
     arrowParse.quote_char = csvDescription.csvReaderConfig.quoteChar;
     arrowParse.escaping = true;
 
-    ARROW_ASSIGN_OR_RAISE(csv_streaming_reader,
-        arrow::csv::StreamingReader::Make(arrow::io::default_io_context(), arrow_input_stream,
-            arrowRead, arrowParse, arrowConvert));
+    ARROW_ASSIGN_OR_RAISE(
+        csv_streaming_reader, arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
+                                  arrow_input_stream, arrowRead, arrowParse, arrowConvert));
     return arrow::Status::OK();
 }
 
@@ -96,8 +96,8 @@ arrow::Status InMemArrowNodeCopier::initArrowReader(
     std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
 
-    ARROW_ASSIGN_OR_RAISE(infile,
-        arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
+    ARROW_ASSIGN_OR_RAISE(
+        infile, arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
 
     ARROW_ASSIGN_OR_RAISE(ipc_reader, arrow::ipc::RecordBatchFileReader::Open(infile));
     return arrow::Status::OK();
@@ -106,8 +106,8 @@ arrow::Status InMemArrowNodeCopier::initArrowReader(
 arrow::Status InMemArrowNodeCopier::initParquetReader(
     std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
-    ARROW_ASSIGN_OR_RAISE(infile,
-        arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
+    ARROW_ASSIGN_OR_RAISE(
+        infile, arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
     ARROW_RETURN_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
     return arrow::Status::OK();
 }
@@ -189,16 +189,16 @@ void InMemArrowNodeCopier::setFileType(std::string const& fileName) {
     auto parquetSuffix = getFileTypeSuffix(FileTypes::PARQUET);
 
     if (fileName.length() >= csvSuffix.length()) {
-        if (!fileName.compare(fileName.length() - csvSuffix.length(), csvSuffix.length(),
-                csvSuffix)) {
+        if (!fileName.compare(
+                fileName.length() - csvSuffix.length(), csvSuffix.length(), csvSuffix)) {
             inputFileType = FileTypes::CSV;
             return;
         }
     }
 
     if (fileName.length() >= arrowSuffix.length()) {
-        if (!fileName.compare(fileName.length() - arrowSuffix.length(), arrowSuffix.length(),
-                arrowSuffix)) {
+        if (!fileName.compare(
+                fileName.length() - arrowSuffix.length(), arrowSuffix.length(), arrowSuffix)) {
             inputFileType = FileTypes::ARROW;
             return;
         }
@@ -444,8 +444,8 @@ void InMemArrowNodeCopier::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case LIST: {
-                Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
-                    column->getDataType(), delimiter);
+                Literal listVal = getArrowList(
+                    stringToken, 1, stringToken.length() - 2, column->getDataType(), delimiter);
                 auto kuList =
                     column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
@@ -457,8 +457,8 @@ void InMemArrowNodeCopier::putPropsOfLineIntoColumns(
     }
 }
 
-Literal InMemArrowNodeCopier::getArrowList(string& l, int64_t from, int64_t to,
-    const DataType& dataType, char delimiter) {
+Literal InMemArrowNodeCopier::getArrowList(
+    string& l, int64_t from, int64_t to, const DataType& dataType, char delimiter) {
     auto childDataType = *dataType.childType;
     Literal result(DataType(LIST, make_unique<DataType>(childDataType)));
 
@@ -511,8 +511,8 @@ Literal InMemArrowNodeCopier::getArrowList(string& l, int64_t from, int64_t to,
             result.listVal.emplace_back(Interval::FromCString(element.c_str(), element.length()));
         } break;
         case LIST: {
-            result.listVal.emplace_back(getArrowList(l, pair.first + 1,
-                pair.second + pair.first - 1, *dataType.childType, delimiter));
+            result.listVal.emplace_back(getArrowList(
+                l, pair.first + 1, pair.second + pair.first - 1, *dataType.childType, delimiter));
         } break;
         default:
             throw CSVReaderException("Unsupported data type " +
