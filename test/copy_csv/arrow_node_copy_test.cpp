@@ -1,5 +1,6 @@
-#include "test_helper/test_helper.h"
 #include <iostream>
+
+#include "test_helper/test_helper.h"
 
 using namespace std;
 using namespace kuzu::common;
