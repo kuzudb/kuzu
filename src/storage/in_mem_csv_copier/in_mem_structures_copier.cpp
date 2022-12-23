@@ -39,8 +39,8 @@ uint64_t InMemStructuresCopier::calculateNumRows(bool hasHeader) {
     return numRows;
 }
 
-void InMemStructuresCopier::countNumLinesPerBlockTask(const string& fName, uint64_t blockId,
-    InMemStructuresCopier* copier) {
+void InMemStructuresCopier::countNumLinesPerBlockTask(
+    const string& fName, uint64_t blockId, InMemStructuresCopier* copier) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
     CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
     copier->numLinesPerBlock[blockId] = 0ull;
