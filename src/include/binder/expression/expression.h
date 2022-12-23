@@ -76,7 +76,7 @@ public:
 
     bool hasSubqueryExpression() const { return hasSubExpressionOfType(isExpressionSubquery); }
 
-    virtual unordered_set<string> getDependentVariableNames();
+    unordered_set<string> getDependentVariableNames();
 
     expression_vector getSubPropertyExpressions();
 

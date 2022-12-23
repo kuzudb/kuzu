@@ -19,9 +19,8 @@ ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
 
 void ValueVector::addString(uint32_t pos, char* value, uint64_t len) const {
     assert(dataType.typeID == STRING);
-    auto vectorData = (ku_string_t*)valueBuffer.get();
-    auto& result = vectorData[pos];
-    InMemOverflowBufferUtils::copyString(value, len, result, *inMemOverflowBuffer);
+    auto& entry = ((ku_string_t*)getData())[pos];
+    InMemOverflowBufferUtils::copyString(value, len, entry, *inMemOverflowBuffer);
 }
 
 bool NodeIDVector::discardNull(ValueVector& vector) {

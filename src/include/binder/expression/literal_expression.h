@@ -32,11 +32,6 @@ public:
         literal->dataType = targetType;
     }
 
-    static unique_ptr<LiteralExpression> createNullLiteralExpression(const string& uniqueName) {
-        auto nullLiteral = make_unique<Literal>();
-        return make_unique<LiteralExpression>(DataType(ANY), std::move(nullLiteral), uniqueName);
-    }
-
 public:
     unique_ptr<Literal> literal;
 };

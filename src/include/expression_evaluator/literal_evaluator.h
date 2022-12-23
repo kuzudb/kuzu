@@ -6,14 +6,11 @@ namespace kuzu {
 namespace evaluator {
 
 class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
-
 public:
     LiteralExpressionEvaluator(shared_ptr<Literal> literal)
-        : BaseExpressionEvaluator{}, literal{std::move(literal)} {}
+        : BaseExpressionEvaluator{true /* isResultFlat */}, literal{std::move(literal)} {}
 
     ~LiteralExpressionEvaluator() = default;
-
-    void init(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
     inline void evaluate() override {}
 
@@ -22,6 +19,9 @@ public:
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
         return make_unique<LiteralExpressionEvaluator>(literal);
     }
+
+protected:
+    void resolveResultVector(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
 private:
     shared_ptr<Literal> literal;

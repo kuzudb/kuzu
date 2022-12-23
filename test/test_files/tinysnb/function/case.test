@@ -1,0 +1,64 @@
+-NAME CaseIntTest
+-QUERY MATCH (a:person) WHERE a.ID < 6 RETURN CASE a.age WHEN 35 THEN a.age + 1 ELSE 0 END
+---- 4
+36
+0
+0
+0
+
+-NAME CaseStringTest
+-QUERY MATCH (a:person) WHERE a.ID > 6 RETURN CASE WHEN true THEN a.fName ELSE 'a' END
+---- 4
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME CaseDoubleTest
+-QUERY MATCH (a:person) WHERE a.ID < 6 RETURN CASE WHEN a.eyeSight > 4.9 THEN a.eyeSight ELSE 1.0 END + 2.0
+---- 4
+3.000000
+7.000000
+7.000000
+7.100000
+
+-NAME CaseListTest
+-QUERY MATCH (a:person) WHERE a.ID > 6 RETURN CASE WHEN len(a.workedHours) = 1 THEN a.courseScoresPerTerm END
+---- 4
+
+
+[[10]]
+[[6],[7],[8]]
+
+-NAME CaseIntTest
+-QUERY MATCH (a:person) WHERE CASE a.fName WHEN 'Bob' THEN a.isStudent WHEN 'Carol' THEN NOT a.isStudent END RETURN a.fName
+---- 2
+Bob
+Carol
+
+-NAME Case2HopTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN CASE a.age WHEN 35 THEN b.fName ELSE "abcdefghijklmnopq" END
+-ENUMERATE
+---- 14
+Bob
+Carol
+Dan
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+abcdefghijklmnopq
+
+-NAME Case2HopTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 RETURN CASE WHEN (a.ID = 0 AND b.ID = 2) THEN a.ID WHEN true THEN b.ID ELSE 111 END
+-ENUMERATE
+---- 3
+0
+3
+5

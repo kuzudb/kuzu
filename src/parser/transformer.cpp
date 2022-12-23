@@ -2,12 +2,21 @@
 
 #include "common/exception.h"
 #include "common/utils.h"
+#include "parser/copy_csv/copy_csv.h"
+#include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/create_rel_clause.h"
+#include "parser/ddl/drop_table.h"
+#include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
+#include "parser/query/reading_clause/unwind_clause.h"
+#include "parser/query/updating_clause/create_clause.h"
+#include "parser/query/updating_clause/delete_clause.h"
+#include "parser/query/updating_clause/set_clause.h"
 
 using namespace std;
 
@@ -110,7 +119,7 @@ unique_ptr<ReadingClause> Transformer::transformReadingClause(
     }
 }
 
-unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
+unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
     auto matchClause =
         make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), ctx.OPTIONAL());
     if (ctx.oC_Where()) {
@@ -119,17 +128,17 @@ unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContex
     return matchClause;
 }
 
-unique_ptr<UnwindClause> Transformer::transformUnwind(CypherParser::OC_UnwindContext& ctx) {
+unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_UnwindContext& ctx) {
     auto expression = transformExpression(*ctx.oC_Expression());
     auto transformedVariable = transformVariable(*ctx.oC_Variable());
     return make_unique<UnwindClause>(std::move(expression), std::move(transformedVariable));
 }
 
-unique_ptr<CreateClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
+unique_ptr<UpdatingClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
     return make_unique<CreateClause>(transformPattern(*ctx.oC_Pattern()));
 }
 
-unique_ptr<SetClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
+unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
     auto setClause = make_unique<SetClause>();
     for (auto& setItem : ctx.oC_SetItem()) {
         setClause->addSetItem(transformSetItem(*setItem));
@@ -142,7 +151,7 @@ unique_ptr<SetItem> Transformer::transformSetItem(CypherParser::OC_SetItemContex
         transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
 }
 
-unique_ptr<DeleteClause> Transformer::transformDelete(CypherParser::OC_DeleteContext& ctx) {
+unique_ptr<UpdatingClause> Transformer::transformDelete(CypherParser::OC_DeleteContext& ctx) {
     auto deleteClause = make_unique<DeleteClause>();
     for (auto& expression : ctx.oC_Expression()) {
         deleteClause->addExpression(transformExpression(*expression));
@@ -464,7 +473,7 @@ unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpression(
                 expression = make_unique<ParsedFunctionExpression>(
                     BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             } else {
-                assert(bitwiseOperator == ">>");
+                assert(bitShiftOperator == ">>");
                 expression = make_unique<ParsedFunctionExpression>(
                     BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             }
@@ -675,6 +684,8 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
         return transformLiteral(*ctx.oC_Literal());
     } else if (ctx.oC_Parameter()) {
         return transformParameterExpression(*ctx.oC_Parameter());
+    } else if (ctx.oC_CaseExpression()) {
+        return transformCaseExpression(*ctx.oC_CaseExpression());
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
@@ -772,6 +783,39 @@ string Transformer::transformPropertyLookup(CypherParser::OC_PropertyLookupConte
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 
+unique_ptr<ParsedExpression> Transformer::transformCaseExpression(
+    CypherParser::OC_CaseExpressionContext& ctx) {
+    unique_ptr<ParsedExpression> caseExpression = nullptr;
+    unique_ptr<ParsedExpression> elseExpression = nullptr;
+    if (ctx.ELSE()) {
+        if (ctx.oC_Expression().size() == 1) {
+            elseExpression = transformExpression(*ctx.oC_Expression(0));
+        } else {
+            assert(ctx.oC_Expression().size() == 2);
+            caseExpression = transformExpression(*ctx.oC_Expression(0));
+            elseExpression = transformExpression(*ctx.oC_Expression(1));
+        }
+    } else {
+        if (ctx.oC_Expression().size() == 1) {
+            caseExpression = transformExpression(*ctx.oC_Expression(0));
+        }
+    }
+    auto parsedCaseExpression = make_unique<ParsedCaseExpression>(ctx.getText());
+    parsedCaseExpression->setCaseExpression(std::move(caseExpression));
+    parsedCaseExpression->setElseExpression(std::move(elseExpression));
+    for (auto& caseAlternative : ctx.oC_CaseAlternative()) {
+        parsedCaseExpression->addCaseAlternative(transformCaseAlternative(*caseAlternative));
+    }
+    return parsedCaseExpression;
+}
+
+unique_ptr<ParsedCaseAlternative> Transformer::transformCaseAlternative(
+    CypherParser::OC_CaseAlternativeContext& ctx) {
+    auto whenExpression = transformExpression(*ctx.oC_Expression(0));
+    auto thenExpression = transformExpression(*ctx.oC_Expression(1));
+    return make_unique<ParsedCaseAlternative>(std::move(whenExpression), std::move(thenExpression));
+}
+
 string Transformer::transformVariable(CypherParser::OC_VariableContext& ctx) {
     return transformSymbolicName(*ctx.oC_SymbolicName());
 }
@@ -826,7 +870,7 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
     }
 }
 
-unique_ptr<DDL> Transformer::transformDDL() {
+unique_ptr<Statement> Transformer::transformDDL() {
     if (root.kU_DDL()->kU_CreateNode()) {
         return transformCreateNodeClause(*root.kU_DDL()->kU_CreateNode());
     } else if (root.kU_DDL()->kU_CreateRel()) {
@@ -836,7 +880,7 @@ unique_ptr<DDL> Transformer::transformDDL() {
     }
 }
 
-unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
+unique_ptr<Statement> Transformer::transformCreateNodeClause(
     CypherParser::KU_CreateNodeContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
     auto propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
@@ -846,7 +890,7 @@ unique_ptr<CreateNodeClause> Transformer::transformCreateNodeClause(
         std::move(schemaName), std::move(propertyDefinitions), pkColName);
 }
 
-unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
+unique_ptr<Statement> Transformer::transformCreateRelClause(
     CypherParser::KU_CreateRelContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
     auto propertyDefinitions = ctx.kU_PropertyDefinitions() ?
@@ -859,7 +903,7 @@ unique_ptr<CreateRelClause> Transformer::transformCreateRelClause(
         relMultiplicity, std::move(relConnections));
 }
 
-unique_ptr<DropTable> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
+unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
     return make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
 }
 
@@ -919,7 +963,7 @@ vector<string> Transformer::transformNodeLabels(CypherParser::KU_NodeLabelsConte
     return nodeLabels;
 }
 
-unique_ptr<CopyCSV> Transformer::transformCopyCSV() {
+unique_ptr<Statement> Transformer::transformCopyCSV() {
     auto& ctx = *root.kU_CopyCSV();
     auto csvFileName = transformStringLiteral(*ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());

@@ -1,7 +1,9 @@
 #include "processor/mapper/expression_mapper.h"
 
+#include "binder/expression/case_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
@@ -17,7 +19,9 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     } else if (isExpressionLiteral(expressionType)) {
         return mapLiteralExpression(expression);
     } else if (PARAMETER == expressionType) {
-        return mapParameterExpression((expression));
+        return mapParameterExpression(expression);
+    } else if (CASE_ELSE == expressionType) {
+        return mapCaseExpression(expression, schema);
     } else {
         return mapFunctionExpression(expression, schema);
     }
@@ -40,7 +44,24 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
     const shared_ptr<Expression>& expression, const Schema& schema) {
     auto vectorPos = DataPos(schema.getExpressionPos(*expression));
-    return make_unique<ReferenceExpressionEvaluator>(vectorPos);
+    auto expressionGroup = schema.getGroup(expression->getUniqueName());
+    return make_unique<ReferenceExpressionEvaluator>(vectorPos, expressionGroup->isFlat());
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapCaseExpression(
+    const shared_ptr<Expression>& expression, const Schema& schema) {
+    auto& caseExpression = (CaseExpression&)*expression;
+    vector<unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
+    for (auto i = 0u; i < caseExpression.getNumCaseAlternatives(); ++i) {
+        auto alternative = caseExpression.getCaseAlternative(i);
+        auto whenEvaluator = mapExpression(alternative->whenExpression, schema);
+        auto thenEvaluator = mapExpression(alternative->thenExpression, schema);
+        alternativeEvaluators.push_back(make_unique<CaseAlternativeEvaluator>(
+            std::move(whenEvaluator), std::move(thenEvaluator)));
+    }
+    auto elseEvaluator = mapExpression(caseExpression.getElseExpression(), schema);
+    return make_unique<CaseExpressionEvaluator>(
+        expression, std::move(alternativeEvaluators), std::move(elseEvaluator));
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(

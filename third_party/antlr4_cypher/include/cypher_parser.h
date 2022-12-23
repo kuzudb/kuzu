@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.9
+// Generated from /Users/xiyangfeng/kuzu/kuzu/src/antlr4/Cypher.g4 by ANTLR 4.9
 
 #pragma once
 
@@ -27,11 +27,12 @@ public:
     ASC = 75, DESCENDING = 76, DESC = 77, WHERE = 78, OR = 79, XOR = 80, 
     AND = 81, NOT = 82, INVALID_NOT_EQUAL = 83, MINUS = 84, FACTORIAL = 85, 
     STARTS = 86, ENDS = 87, CONTAINS = 88, IS = 89, NULL_ = 90, TRUE = 91, 
-    FALSE = 92, EXISTS = 93, StringLiteral = 94, EscapedChar = 95, DecimalInteger = 96, 
-    HexLetter = 97, HexDigit = 98, Digit = 99, NonZeroDigit = 100, NonZeroOctDigit = 101, 
-    ZeroDigit = 102, RegularDecimalReal = 103, UnescapedSymbolicName = 104, 
-    IdentifierStart = 105, IdentifierPart = 106, EscapedSymbolicName = 107, 
-    SP = 108, WHITESPACE = 109, Comment = 110, Unknown = 111
+    FALSE = 92, EXISTS = 93, CASE = 94, ELSE = 95, END = 96, WHEN = 97, 
+    THEN = 98, StringLiteral = 99, EscapedChar = 100, DecimalInteger = 101, 
+    HexLetter = 102, HexDigit = 103, Digit = 104, NonZeroDigit = 105, NonZeroOctDigit = 106, 
+    ZeroDigit = 107, RegularDecimalReal = 108, UnescapedSymbolicName = 109, 
+    IdentifierStart = 110, IdentifierPart = 111, EscapedSymbolicName = 112, 
+    SP = 113, WHITESPACE = 114, Comment = 115, Unknown = 116
   };
 
   enum {
@@ -66,11 +67,11 @@ public:
     RuleOC_PropertyOrLabelsExpression = 84, RuleOC_Atom = 85, RuleOC_Literal = 86, 
     RuleOC_BooleanLiteral = 87, RuleOC_ListLiteral = 88, RuleOC_ParenthesizedExpression = 89, 
     RuleOC_FunctionInvocation = 90, RuleOC_FunctionName = 91, RuleOC_ExistentialSubquery = 92, 
-    RuleOC_PropertyLookup = 93, RuleOC_Variable = 94, RuleOC_NumberLiteral = 95, 
-    RuleOC_Parameter = 96, RuleOC_PropertyExpression = 97, RuleOC_PropertyKeyName = 98, 
-    RuleOC_IntegerLiteral = 99, RuleOC_DoubleLiteral = 100, RuleOC_SchemaName = 101, 
-    RuleOC_SymbolicName = 102, RuleOC_LeftArrowHead = 103, RuleOC_RightArrowHead = 104, 
-    RuleOC_Dash = 105
+    RuleOC_PropertyLookup = 93, RuleOC_CaseExpression = 94, RuleOC_CaseAlternative = 95, 
+    RuleOC_Variable = 96, RuleOC_NumberLiteral = 97, RuleOC_Parameter = 98, 
+    RuleOC_PropertyExpression = 99, RuleOC_PropertyKeyName = 100, RuleOC_IntegerLiteral = 101, 
+    RuleOC_DoubleLiteral = 102, RuleOC_SchemaName = 103, RuleOC_SymbolicName = 104, 
+    RuleOC_LeftArrowHead = 105, RuleOC_RightArrowHead = 106, RuleOC_Dash = 107
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -177,6 +178,8 @@ public:
   class OC_FunctionNameContext;
   class OC_ExistentialSubqueryContext;
   class OC_PropertyLookupContext;
+  class OC_CaseExpressionContext;
+  class OC_CaseAlternativeContext;
   class OC_VariableContext;
   class OC_NumberLiteralContext;
   class OC_ParameterContext;
@@ -1391,6 +1394,7 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_LiteralContext *oC_Literal();
     OC_ParameterContext *oC_Parameter();
+    OC_CaseExpressionContext *oC_CaseExpression();
     OC_ParenthesizedExpressionContext *oC_ParenthesizedExpression();
     OC_FunctionInvocationContext *oC_FunctionInvocation();
     OC_ExistentialSubqueryContext *oC_ExistentialSubquery();
@@ -1510,6 +1514,41 @@ public:
   };
 
   OC_PropertyLookupContext* oC_PropertyLookup();
+
+  class  OC_CaseExpressionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_CaseExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *END();
+    antlr4::tree::TerminalNode *ELSE();
+    std::vector<OC_ExpressionContext *> oC_Expression();
+    OC_ExpressionContext* oC_Expression(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *CASE();
+    std::vector<OC_CaseAlternativeContext *> oC_CaseAlternative();
+    OC_CaseAlternativeContext* oC_CaseAlternative(size_t i);
+
+   
+  };
+
+  OC_CaseExpressionContext* oC_CaseExpression();
+
+  class  OC_CaseAlternativeContext : public antlr4::ParserRuleContext {
+  public:
+    OC_CaseAlternativeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *WHEN();
+    std::vector<OC_ExpressionContext *> oC_Expression();
+    OC_ExpressionContext* oC_Expression(size_t i);
+    antlr4::tree::TerminalNode *THEN();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  OC_CaseAlternativeContext* oC_CaseAlternative();
 
   class  OC_VariableContext : public antlr4::ParserRuleContext {
   public:

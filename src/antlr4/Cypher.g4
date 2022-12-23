@@ -384,6 +384,7 @@ oC_PropertyOrLabelsExpression
 oC_Atom
     : oC_Literal
         | oC_Parameter
+        | oC_CaseExpression
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
         | oC_ExistentialSubquery
@@ -427,6 +428,22 @@ EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) (
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName ) ;
+
+oC_CaseExpression
+    :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;
+
+CASE : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )  ;
+
+ELSE : ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' )  ;
+
+END : ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' )  ;
+
+oC_CaseAlternative
+    :  WHEN SP? oC_Expression SP? THEN SP? oC_Expression ;
+
+WHEN : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' )  ;
+
+THEN : ( 'T' | 't' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' )  ;
 
 oC_Variable
     : oC_SymbolicName ;
