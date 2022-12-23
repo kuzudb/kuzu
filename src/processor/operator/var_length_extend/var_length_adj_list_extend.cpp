@@ -81,7 +81,8 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
     dfsLevelInfo->reset(parent);
     ((AdjLists*)storage)
         ->initListReadingState(parent, *dfsLevelInfo->listHandle, transaction->getType());
-    ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listHandle);
+    ((AdjLists*)storage)
+        ->readValues(transaction, dfsLevelInfo->children, *dfsLevelInfo->listHandle);
     if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
         dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
@@ -92,7 +93,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
     shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
     if (dfsLevel->listHandle->hasMoreAndSwitchSourceIfNecessary()) {
-        ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listHandle);
+        ((AdjLists*)storage)->readValues(transaction, dfsLevel->children, *dfsLevel->listHandle);
         return true;
     }
     return false;

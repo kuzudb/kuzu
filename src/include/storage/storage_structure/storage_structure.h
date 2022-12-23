@@ -18,6 +18,8 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+typedef uint64_t chunk_idx_t;
+
 class ListsUpdateIterator;
 
 class StorageStructure {

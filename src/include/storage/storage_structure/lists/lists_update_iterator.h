@@ -9,8 +9,8 @@ namespace storage {
  * This class implements the CSR reconstruction algorithm to update lists transactionally.
  * It is designed to be used as follows through calls to updateLists:
  *     auto updateItr = ListsUpdateIteratorFactory::getListsUpdateIterator(this);
- *     for (auto updatedChunkItr = listUpdateStore.updatedChunks.begin();
- *         updatedChunkItr != listUpdateStore.updatedChunks.end(); ++updatedChunkItr) {
+ *     for (auto updatedChunkItr = listsUpdatesStore.updatedChunks.begin();
+ *         updatedChunkItr != listsUpdatesStore.updatedChunks.end(); ++updatedChunkItr) {
  *         for (auto updatedNodeOffsetItr = updatedChunkItr->second->begin();
  *              updatedNodeOffsetItr != updatedChunkItr->second->end(); updatedNodeOffsetItr++) {
  *              updateItr.updateList(nodeOffset, inMemList);

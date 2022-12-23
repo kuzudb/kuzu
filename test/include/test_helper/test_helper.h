@@ -147,6 +147,11 @@ protected:
     static inline void rollbackIfNecessaryNoLock(Connection& connection) {
         connection.rollbackIfNecessaryNoLock();
     }
+    static inline void sortAndCheckTestResults(
+        vector<string>& actualResult, vector<string>& expectedResult) {
+        sort(expectedResult.begin(), expectedResult.end());
+        ASSERT_EQ(actualResult, expectedResult);
+    }
 
     void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);
 

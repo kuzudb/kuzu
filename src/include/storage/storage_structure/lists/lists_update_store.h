@@ -16,56 +16,84 @@ namespace storage {
 using namespace processor;
 using namespace catalog;
 
-struct ListUpdates {
-public:
-    ListUpdates() : isNewlyAddedNode{false} {}
+typedef uint64_t list_offset_t;
 
-    inline bool hasUpdates() const {
-        return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty();
+struct UpdatedPersistentListOffsets {
+public:
+    inline void insertOffset(list_offset_t listOffset, ft_tuple_idx_t ftTupleIdx) {
+        listOffsetFTIdxMap[listOffset] = ftTupleIdx;
     }
+    inline bool hasUpdates() const { return !listOffsetFTIdxMap.empty(); }
+
+public:
+    map<list_offset_t, ft_tuple_idx_t> listOffsetFTIdxMap;
+};
+
+struct ListsUpdatesForNodeOffset {
+public:
+    explicit ListsUpdatesForNodeOffset(const RelTableSchema& relTableSchema);
+
+    bool hasUpdates() const;
 
 public:
     bool isNewlyAddedNode;
-    vector<uint64_t> insertedRelsTupleIdxInFT;
+    vector<ft_tuple_idx_t> insertedRelsTupleIdxInFT;
+    unordered_map<property_id_t, UpdatedPersistentListOffsets> updatedPersistentListOffsets;
     unordered_set<int64_t> deletedRelIDs;
 };
 
-using ListUpdatesPerNode = map<node_offset_t, ListUpdates>;
-using ListUpdatesPerChunk = map<uint64_t, ListUpdatesPerNode>;
+struct ListsUpdateInfo {
+public:
+    ListsUpdateInfo(const shared_ptr<ValueVector>& propertyVector, property_id_t propertyID,
+        int64_t relID, uint64_t fwdListOffset, uint64_t bwdListOffset)
+        : propertyVector{propertyVector}, propertyID{propertyID}, relID{relID},
+          fwdListOffset{fwdListOffset}, bwdListOffset{bwdListOffset} {}
+
+    bool isStoredInPersistentStore() const { return fwdListOffset != -1 || bwdListOffset != -1; }
+
+public:
+    shared_ptr<ValueVector> propertyVector;
+    property_id_t propertyID;
+    int64_t relID;
+    list_offset_t fwdListOffset;
+    list_offset_t bwdListOffset;
+};
+
+using ListsUpdatesPerNode = map<node_offset_t, unique_ptr<ListsUpdatesForNodeOffset>>;
+using ListsUpdatesPerChunk = map<chunk_idx_t, ListsUpdatesPerNode>;
 
 struct InMemList;
 
-class ListsUpdateStore {
+class ListsUpdatesStore {
 
 public:
-    ListsUpdateStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema);
+    ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema);
 
-    inline bool isEmpty() const { return factorizedTable->isEmpty(); }
     inline void clear() {
-        factorizedTable->clear();
-        initListUpdatesPerTablePerDirection();
+        ftOfInsertedRels->clear();
+        initListsUpdatesPerTablePerDirection();
     }
-    inline map<table_id_t, ListUpdatesPerChunk>& getListUpdatesPerBoundNodeTableOfDirection(
+    inline map<table_id_t, ListsUpdatesPerChunk>& getListsUpdatesPerBoundNodeTableOfDirection(
         RelDirection relDirection) {
-        return listUpdatesPerTablePerDirection[relDirection];
+        return listsUpdatesPerTablePerDirection[relDirection];
     }
-
-    uint64_t getNumDeletedRels(ListFileID& listFileID, node_offset_t nodeOffset) const;
 
     bool isNewlyAddedNode(ListFileID& listFileID, node_offset_t nodeOffset) const;
+
+    uint64_t getNumDeletedRels(ListFileID& listFileID, node_offset_t nodeOffset) const;
 
     bool isRelDeletedInPersistentStore(
         ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const;
 
     bool hasUpdates() const;
 
-    void readInsertionsToList(ListFileID& listFileID, vector<uint64_t> tupleIdxes,
+    void readInsertedRelsToList(ListFileID& listFileID, vector<ft_tuple_idx_t> tupleIdxes,
         InMemList& inMemList, uint64_t numElementsInPersistentStore,
         DiskOverflowFile* diskOverflowFile, DataType dataType,
         NodeIDCompressionScheme* nodeIDCompressionScheme);
 
     // If this is a one-to-one relTable, all properties are stored in columns.
-    // In this case, the listsUpdateStore should not store the insert rels in FT.
+    // In this case, the listsUpdatesStore should not store the insert rels in FT.
     void insertRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
         const shared_ptr<ValueVector>& dstNodeIDVector,
         const vector<shared_ptr<ValueVector>>& relPropertyVectors);
@@ -76,21 +104,21 @@ public:
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, node_offset_t nodeOffset) const;
 
-    void readValues(
-        ListFileID& listFileID, ListHandle& listHandle, shared_ptr<ValueVector> valueVector) const;
-
-    void initNewlyAddedNodes(nodeID_t& nodeID) {
-        for (auto direction : REL_DIRECTIONS) {
-            if (listUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
-                listUpdatesPerTablePerDirection[direction][nodeID.tableID]
-                                               [StorageUtils::getListChunkIdx(nodeID.offset)]
-                                               [nodeID.offset]
-                                                   .isNewlyAddedNode = true;
-            }
-        }
-    }
+    void readValues(ListFileID& listFileID, ListHandle& listSyncState,
+        shared_ptr<ValueVector> valueVector) const;
 
     bool hasAnyDeletedRelsInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
+
+    // This function is called ifNecessary because it only handles the updates to a propertyList.
+    // If the property is stored as a column in both direction(e.g. we are updating a ONE-ONE rel
+    // table), this function won't do any operations in this case.
+    void updateRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo);
+
+    void readUpdatesToPropertyVectorIfExists(ListFileID& listFileID, node_offset_t nodeOffset,
+        const shared_ptr<ValueVector>& valueVector, list_offset_t startListOffset);
+
+    void initNewlyAddedNodes(nodeID_t& nodeID);
 
 private:
     static inline RelNodeTableAndDir getRelNodeTableAndDirFromListFileID(ListFileID& listFileID) {
@@ -99,26 +127,40 @@ private:
                    listFileID.relPropertyListID.relNodeTableAndDir;
     }
     inline int64_t getTupleIdxIfInsertedRel(int64_t relID) {
-        return factorizedTable->findValueInFlatColumn(INTERNAL_REL_ID_IDX_IN_FT, relID);
+        return ftOfInsertedRels->findValueInFlatColumn(INTERNAL_REL_ID_IDX_IN_FT, relID);
     }
 
-    uint32_t getColIdxInFT(ListFileID& listFileID) const;
+    void initInsertedRels();
 
-    void initListUpdatesPerTablePerDirection();
+    ft_col_idx_t getColIdxInFT(ListFileID& listFileID) const;
+
+    void initListsUpdatesPerTablePerDirection();
+
+    ListsUpdatesForNodeOffset* getOrCreateListsUpdatesForNodeOffset(
+        RelDirection relDirection, nodeID_t nodeID);
+
+    ListsUpdatesForNodeOffset* getListsUpdatesForNodeOffsetIfExists(
+        ListFileID& listFileID, node_offset_t nodeOffset) const;
 
 private:
-    /* ListsUpdateStore stores all inserted edges in a factorizedTable in the format:
+    /* ListsUpdatesStore stores all inserted edges in a factorizedTable in the format:
      * [srcNodeID, dstNodeID, relID, relProp1, relProp2, ..., relPropN]. In order to efficiently
      * find the insertedEdges for a nodeTable, we introduce a mapping which stores the tupleIdxes of
      * insertedEdges for each nodeTable per direction.
      */
-    static constexpr uint64_t SRC_TABLE_ID_IDX_IN_FT = 0;
-    static constexpr uint64_t DST_TABLE_ID_IDX_IN_FT = 1;
-    static constexpr uint64_t INTERNAL_REL_ID_IDX_IN_FT = 2;
-    unique_ptr<FactorizedTable> factorizedTable;
-    vector<map<table_id_t, ListUpdatesPerChunk>> listUpdatesPerTablePerDirection;
-    unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
+    static constexpr ft_col_idx_t SRC_TABLE_ID_IDX_IN_FT = 0;
+    static constexpr ft_col_idx_t DST_TABLE_ID_IDX_IN_FT = 1;
+    static constexpr ft_col_idx_t INTERNAL_REL_ID_IDX_IN_FT = 2;
+    static constexpr ft_col_idx_t LISTS_UPDATES_IDX_IN_FT = 0;
+    unique_ptr<FactorizedTable> ftOfInsertedRels;
+    // We store all updates to the same property list inside a special factorizedTable which
+    // only has one column. ListsUpdates is a collection of these special factorizedTable indexed by
+    // propertyID.
+    unordered_map<property_id_t, unique_ptr<FactorizedTable>> listsUpdates;
+    vector<map<table_id_t, ListsUpdatesPerChunk>> listsUpdatesPerTablePerDirection;
+    unordered_map<property_id_t, ft_col_idx_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;
+    MemoryManager& memoryManager;
 };
 
 } // namespace storage

@@ -48,7 +48,13 @@ bool SetRelProperty::getNextTuplesInternal() {
     if (!children[0]->getNextTuple()) {
         return false;
     }
-    throw NotImplementedException("Unimplemented SetRelProperty.");
+    for (auto i = 0u; i < infos.size(); ++i) {
+        auto info = infos[i].get();
+        info->evaluator->evaluate();
+        info->table->updateRel(srcNodeVectors[i], dstNodeVectors[i], relIDVectors[i],
+            info->evaluator->resultVector, info->propertyId);
+    }
+    return true;
 }
 
 unique_ptr<PhysicalOperator> SetRelProperty::clone() {

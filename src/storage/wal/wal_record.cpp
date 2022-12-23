@@ -3,10 +3,27 @@
 namespace kuzu {
 namespace storage {
 
+string storageStructureTypeToString(StorageStructureType storageStructureType) {
+    switch (storageStructureType) {
+    case StorageStructureType::COLUMN: {
+        return "COLUMN";
+    } break;
+    case StorageStructureType::LISTS: {
+        return "LISTS";
+    } break;
+    case StorageStructureType::NODE_INDEX: {
+        return "NODE_INDEX";
+    } break;
+    default: {
+        assert(false);
+    }
+    }
+}
+
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
     table_id_t tableID, uint32_t propertyID) {
     StorageStructureID retVal;
-    retVal.storageStructureType = COLUMN;
+    retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.isOverflow = false;
     retVal.columnFileID = ColumnFileID(
         StructuredNodePropertyColumnID(StructuredNodePropertyColumnID(tableID, propertyID)));
@@ -16,7 +33,7 @@ StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
 StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
-    retVal.storageStructureType = NODE_INDEX;
+    retVal.storageStructureType = StorageStructureType::NODE_INDEX;
     retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
 }
@@ -25,7 +42,7 @@ StorageStructureID StorageStructureID::newAdjListsID(
     table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
-    retVal.storageStructureType = LISTS;
+    retVal.storageStructureType = StorageStructureType::LISTS;
     retVal.listFileID =
         ListFileID(listFileType, AdjListsID(RelNodeTableAndDir(tableID, srcNodeTableID, dir)));
     return retVal;
@@ -35,7 +52,7 @@ StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTabl
     table_id_t relTableID, RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
-    retVal.storageStructureType = LISTS;
+    retVal.storageStructureType = StorageStructureType::LISTS;
     retVal.listFileID = ListFileID(listFileType,
         RelPropertyListID(RelNodeTableAndDir(nodeTableID, relTableID, dir), propertyID));
     return retVal;
@@ -45,7 +62,7 @@ StorageStructureID StorageStructureID::newRelPropertyColumnID(
     table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, uint32_t propertyID) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
-    retVal.storageStructureType = COLUMN;
+    retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.columnFileID = ColumnFileID(
         RelPropertyColumnID(RelNodeTableAndDir(relTableID, nodeTableID, dir), propertyID));
     return retVal;
@@ -55,7 +72,7 @@ StorageStructureID StorageStructureID::newAdjColumnID(
     table_id_t nodeTableID, table_id_t relTableID, RelDirection dir) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
-    retVal.storageStructureType = COLUMN;
+    retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.columnFileID =
         ColumnFileID(AdjColumnID(RelNodeTableAndDir(relTableID, nodeTableID, dir)));
     return retVal;

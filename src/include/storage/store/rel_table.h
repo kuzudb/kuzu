@@ -52,8 +52,8 @@ public:
 class DirectedRelTableData {
 public:
     DirectedRelTableData(table_id_t tableID, RelDirection direction,
-        ListsUpdateStore* listsUpdateStore, bool isInMemoryMode)
-        : tableID{tableID}, direction{direction}, listsUpdateStore{listsUpdateStore},
+        ListsUpdatesStore* listsUpdatesStore, bool isInMemoryMode)
+        : tableID{tableID}, direction{direction}, listsUpdatesStore{listsUpdatesStore},
           isInMemoryMode{isInMemoryMode} {}
 
     inline bool hasAdjColumn(table_id_t boundNodeTableID) {
@@ -64,6 +64,12 @@ public:
     }
     inline uint32_t getNumPropertyLists(table_id_t boundNodeTableID) {
         return propertyLists.at(boundNodeTableID).size();
+    }
+    inline list_offset_t getListOffset(nodeID_t nodeID, int64_t relID) {
+        return ((RelIDList*)(propertyLists
+                                 .at(nodeID.tableID)[RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX]
+                                 .get()))
+            ->getListOffset(nodeID.offset, relID);
     }
 
     void initializeData(RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal);
@@ -109,7 +115,7 @@ private:
     table_adj_lists_map_t adjLists;
     table_id_t tableID;
     RelDirection direction;
-    ListsUpdateStore* listsUpdateStore;
+    ListsUpdatesStore* listsUpdatesStore;
     bool isInMemoryMode;
 };
 
@@ -169,11 +175,14 @@ public:
         const vector<shared_ptr<ValueVector>>& relPropertyVectors);
     void deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
         const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector);
+    void updateRel(const shared_ptr<ValueVector>& srcNodeIDVector,
+        const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector,
+        const shared_ptr<ValueVector>& propertyVector, uint32_t propertyID);
     void initEmptyRelsForNewNode(nodeID_t& nodeID);
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
-    inline void clearListsUpdateStore() { listsUpdateStore->clear(); }
+    inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
         const std::function<void()>& opIfHasUpdates);
     vector<unique_ptr<ListsUpdateIterator>> getListsUpdateIterators(
@@ -184,7 +193,7 @@ private:
     table_id_t tableID;
     unique_ptr<DirectedRelTableData> fwdRelTableData;
     unique_ptr<DirectedRelTableData> bwdRelTableData;
-    unique_ptr<ListsUpdateStore> listsUpdateStore;
+    unique_ptr<ListsUpdatesStore> listsUpdatesStore;
     WAL* wal;
 };
 
