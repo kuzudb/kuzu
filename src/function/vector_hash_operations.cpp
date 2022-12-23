@@ -7,6 +7,7 @@ namespace kuzu {
 namespace function {
 
 void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result) {
+    result->state = operand->state;
     assert(result->dataType.typeID == INT64);
     switch (operand->dataType.typeID) {
     case NODE_ID: {
@@ -44,6 +45,8 @@ void VectorHashOperations::combineHash(ValueVector* left, ValueVector* right, Va
     assert(left->dataType.typeID == INT64);
     assert(left->dataType.typeID == right->dataType.typeID);
     assert(left->dataType.typeID == result->dataType.typeID);
+    // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
+    result->state = !right->state->isFlat() ? right->state : left->state;
     BinaryOperationExecutor::execute<hash_t, hash_t, hash_t, operation::CombineHash>(
         *left, *right, *result);
 }

@@ -10,7 +10,6 @@ struct NullOperationExecutor {
     template<typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(result.dataType.typeID == BOOL);
-        result.state = operand.state;
         auto resultValues = (uint8_t*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];

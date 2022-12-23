@@ -48,7 +48,6 @@ struct UnaryOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
-        result.state = operand.state;
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];

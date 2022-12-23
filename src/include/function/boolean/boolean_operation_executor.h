@@ -33,7 +33,6 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static inline void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
-        result.state = left.state;
         auto lPos = left.state->selVector->selectedPositions[0];
         auto rPos = right.state->selVector->selectedPositions[0];
         auto resPos = result.state->selVector->selectedPositions[0];
@@ -42,7 +41,6 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
-        result.state = right.state;
         auto lPos = left.state->selVector->selectedPositions[0];
         if (right.state->selVector->isUnfiltered()) {
             if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
@@ -71,7 +69,6 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
-        result.state = left.state;
         auto rPos = right.state->selVector->selectedPositions[0];
         if (left.state->selVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
@@ -101,7 +98,6 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static void executeBothUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         assert(left.state == right.state);
-        result.state = left.state;
         if (left.state->selVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < left.state->selVector->selectedSize; ++i) {
@@ -256,7 +252,6 @@ struct UnaryBooleanOperationExecutor {
     template<typename FUNC>
     static void executeSwitch(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
-        result.state = operand.state;
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
             executeOnValue<FUNC>(operand, pos, result);

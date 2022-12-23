@@ -21,13 +21,6 @@ static string getListFunctionIncompatibleChildrenTypeErrorMsg(
 void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(!parameters.empty() && result.dataType.typeID == LIST);
-    result.state = parameters[0]->state;
-    for (auto& parameter : parameters) {
-        if (!parameter->state->isFlat()) {
-            result.state = parameter->state;
-            break;
-        }
-    }
     result.resetOverflowBuffer();
     auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);

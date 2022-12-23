@@ -9,7 +9,6 @@ namespace function {
 struct UnaryHashOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
     static void execute(ValueVector& operand, ValueVector& result) {
-        result.state = operand.state;
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
