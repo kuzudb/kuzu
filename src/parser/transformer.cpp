@@ -146,8 +146,9 @@ unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetContext
     return setClause;
 }
 
-unique_ptr<SetItem> Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
-    return make_unique<SetItem>(
+pair<unique_ptr<ParsedExpression>, unique_ptr<ParsedExpression>> Transformer::transformSetItem(
+    CypherParser::OC_SetItemContext& ctx) {
+    return make_pair(
         transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
 }
 

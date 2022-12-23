@@ -108,38 +108,66 @@ unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& upda
     auto boundSetClause = make_unique<BoundSetClause>();
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
-        auto boundLhs = expressionBinder.bindExpression(*setItem->origin);
-        auto boundNodeOrRel = boundLhs->getChild(0);
-        if (boundNodeOrRel->dataType.typeID != NODE) {
-            throw BinderException("Set " + Types::dataTypeToString(boundNodeOrRel->dataType) +
+        auto nodeOrRel = expressionBinder.bindExpression(*setItem.first->getChild(0));
+        switch (nodeOrRel->dataType.typeID) {
+        case DataTypeID::NODE: {
+            auto node = static_pointer_cast<NodeExpression>(nodeOrRel);
+            boundSetClause->addSetNodeProperty(bindSetNodeProperty(node, setItem));
+        } break;
+        case DataTypeID::REL: {
+            auto rel = static_pointer_cast<RelExpression>(nodeOrRel);
+            boundSetClause->addSetRelProperty(bindSetRelProperty(rel, setItem));
+        } break;
+        default:
+            throw BinderException("Set " + expressionTypeToString(nodeOrRel->expressionType) +
                                   " property is supported.");
         }
-        auto boundNode = static_pointer_cast<NodeExpression>(boundNodeOrRel);
-        if (boundNode->isMultiLabeled()) {
-            throw BinderException("Set property of node " + boundNode->getRawName() +
-                                  " with multiple node labels is not supported.");
-        }
-        auto boundRhs = expressionBinder.bindExpression(*setItem->target);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        boundSetClause->addSetItem(make_pair(boundLhs, boundRhs));
     }
     return boundSetClause;
+}
+
+unique_ptr<BoundSetNodeProperty> Binder::bindSetNodeProperty(
+    shared_ptr<NodeExpression> node, pair<ParsedExpression*, ParsedExpression*> setItem) {
+    if (node->isMultiLabeled()) {
+        throw BinderException("Set property of node " + node->getRawName() +
+                              " with multiple node labels is not supported.");
+    }
+    return make_unique<BoundSetNodeProperty>(std::move(node), bindSetItem(setItem));
+}
+
+unique_ptr<BoundSetRelProperty> Binder::bindSetRelProperty(
+    shared_ptr<RelExpression> rel, pair<ParsedExpression*, ParsedExpression*> setItem) {
+    if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
+        throw BinderException("Set property of rel " + rel->getRawName() +
+                              " with multiple rel labels or bound by multiple node labels "
+                              "is not supported.");
+    }
+    return make_unique<BoundSetRelProperty>(std::move(rel), bindSetItem(setItem));
+}
+
+expression_pair Binder::bindSetItem(pair<ParsedExpression*, ParsedExpression*> setItem) {
+    auto boundLhs = expressionBinder.bindExpression(*setItem.first);
+    auto boundRhs = expressionBinder.bindExpression(*setItem.second);
+    boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+    return make_pair(std::move(boundLhs), std::move(boundRhs));
 }
 
 unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(const UpdatingClause& updatingClause) {
     auto& deleteClause = (DeleteClause&)updatingClause;
     auto boundDeleteClause = make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
-        auto boundExpression = expressionBinder.bindExpression(*deleteClause.getExpression(i));
-        if (boundExpression->dataType.typeID == NODE) {
-            auto deleteNode = bindDeleteNode(static_pointer_cast<NodeExpression>(boundExpression));
+        auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
+        switch (nodeOrRel->dataType.typeID) {
+        case DataTypeID::NODE: {
+            auto deleteNode = bindDeleteNode(static_pointer_cast<NodeExpression>(nodeOrRel));
             boundDeleteClause->addDeleteNode(std::move(deleteNode));
-        } else if (boundExpression->dataType.typeID == REL) {
-            auto deleteRel = bindDeleteRel(static_pointer_cast<RelExpression>(boundExpression));
+        } break;
+        case DataTypeID::REL: {
+            auto deleteRel = bindDeleteRel(static_pointer_cast<RelExpression>(nodeOrRel));
             boundDeleteClause->addDeleteRel(std::move(deleteRel));
-        } else {
-            throw BinderException("Delete " +
-                                  expressionTypeToString(boundExpression->expressionType) +
+        } break;
+        default:
+            throw BinderException("Delete " + expressionTypeToString(nodeOrRel->expressionType) +
                                   " is not supported.");
         }
     }

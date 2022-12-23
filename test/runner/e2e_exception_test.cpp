@@ -225,6 +225,7 @@ TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
         "Binder exception: Set property of node a with multiple node labels is not supported.");
     result = conn->query(
         "MATCH (a:person:organisation)-[e:knows]->(b:person) SET e.date=date('2022-12-12')");
-    ASSERT_STREQ(
-        result->getErrorMessage().c_str(), "Binder exception: Set REL property is supported.");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Set property of rel e with multiple rel labels or bound by multiple "
+        "node labels is not supported.");
 }

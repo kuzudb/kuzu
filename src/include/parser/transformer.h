@@ -43,7 +43,8 @@ private:
 
     unique_ptr<UpdatingClause> transformSet(CypherParser::OC_SetContext& ctx);
 
-    unique_ptr<SetItem> transformSetItem(CypherParser::OC_SetItemContext& ctx);
+    pair<unique_ptr<ParsedExpression>, unique_ptr<ParsedExpression>> transformSetItem(
+        CypherParser::OC_SetItemContext& ctx);
 
     unique_ptr<UpdatingClause> transformDelete(CypherParser::OC_DeleteContext& ctx);
 

@@ -57,7 +57,10 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalSetNodePropertyToPhysical(
+        LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalSetRelPropertyToPhysical(
+        LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDeleteNodeToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDeleteRelToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCreateNodeTableToPhysical(

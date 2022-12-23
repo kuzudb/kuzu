@@ -105,6 +105,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::SET_NODE_PROPERTY: {
         return "SET_NODE_PROPERTY";
     }
+    case PhysicalOperatorType::SET_REL_PROPERTY: {
+        return "SET_REL_PROPERTY";
+    }
     case PhysicalOperatorType::SKIP: {
         return "SKIP";
     }
@@ -170,15 +173,15 @@ void PhysicalOperator::initGlobalState(ExecutionContext* context) {
     initGlobalStateInternal(context);
 }
 
-void PhysicalOperator::initLocalState(ResultSet* _resultSet, ExecutionContext* context) {
+void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* context) {
     if (!children.empty()) {
         assert(children.size() == 1);
-        children[0]->initLocalState(_resultSet, context);
+        children[0]->initLocalState(resultSet_, context);
     }
     transaction = context->transaction;
-    resultSet = _resultSet;
+    resultSet = resultSet_;
     registerProfilingMetrics(context->profiler);
-    initLocalStateInternal(_resultSet, context);
+    initLocalStateInternal(resultSet_, context);
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {

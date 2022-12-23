@@ -91,6 +91,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::SET_NODE_PROPERTY: {
         return "SET_NODE_PROPERTY";
     }
+    case LogicalOperatorType::SET_REL_PROPERTY: {
+        return "SET_REL_PROPERTY";
+    }
     case LogicalOperatorType::SKIP: {
         return "SKIP";
     }

@@ -36,6 +36,7 @@ enum class LogicalOperatorType : uint8_t {
     SCAN_NODE_PROPERTY,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
+    SET_REL_PROPERTY,
     SKIP,
     UNION_ALL,
     UNWIND,

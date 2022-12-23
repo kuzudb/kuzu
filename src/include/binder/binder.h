@@ -3,7 +3,6 @@
 #include "binder/query/bound_regular_query.h"
 #include "common/csv_reader/csv_reader.h"
 #include "expression_binder.h"
-#include "parser/ddl/create_rel_clause.h"
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
 
@@ -15,7 +14,10 @@ namespace binder {
 
 class BoundCreateNode;
 class BoundCreateRel;
+class BoundSetNodeProperty;
+class BoundSetRelProperty;
 class BoundDeleteNode;
+class SetItem;
 
 class Binder {
     friend class ExpressionBinder;
@@ -76,6 +78,11 @@ private:
         shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
     unique_ptr<BoundCreateRel> bindCreateRel(
         shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
+    unique_ptr<BoundSetNodeProperty> bindSetNodeProperty(
+        shared_ptr<NodeExpression> node, pair<ParsedExpression*, ParsedExpression*> setItem);
+    unique_ptr<BoundSetRelProperty> bindSetRelProperty(
+        shared_ptr<RelExpression> rel, pair<ParsedExpression*, ParsedExpression*> setItem);
+    expression_pair bindSetItem(pair<ParsedExpression*, ParsedExpression*> setItem);
     unique_ptr<BoundDeleteNode> bindDeleteNode(shared_ptr<NodeExpression> node);
     shared_ptr<RelExpression> bindDeleteRel(shared_ptr<RelExpression> rel);
 

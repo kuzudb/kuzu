@@ -3,6 +3,7 @@
 #include "binder/bind/bound_drop_table.h"
 #include "binder/binder.h"
 #include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_table.h"
 
 namespace kuzu {

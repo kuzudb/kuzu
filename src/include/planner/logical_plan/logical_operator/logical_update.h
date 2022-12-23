@@ -6,38 +6,38 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCreateOrDeleteNode : public LogicalOperator {
+class LogicalUpdateNode : public LogicalOperator {
 public:
-    LogicalCreateOrDeleteNode(LogicalOperatorType operatorType,
-        vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeys,
+    LogicalUpdateNode(LogicalOperatorType operatorType, vector<shared_ptr<NodeExpression>> nodes,
         shared_ptr<LogicalOperator> child)
-        : LogicalOperator{operatorType, std::move(child)}, nodeAndPrimaryKeys{
-                                                               std::move(nodeAndPrimaryKeys)} {}
+        : LogicalOperator{operatorType, std::move(child)}, nodes{std::move(nodes)} {}
+    ~LogicalUpdateNode() override = default;
+
+    inline void computeSchema() override { copyChildSchema(0); }
 
     inline string getExpressionsForPrinting() const override {
         expression_vector expressions;
-        for (auto& [node, primaryKey] : nodeAndPrimaryKeys) {
+        for (auto& node : nodes) {
             expressions.push_back(node);
         }
         return ExpressionUtil::toString(expressions);
     }
 
-    inline vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>>
-    getNodeAndPrimaryKeys() const {
-        return nodeAndPrimaryKeys;
-    }
+    inline size_t getNumNodes() const { return nodes.size(); }
+    inline shared_ptr<NodeExpression> getNode(uint32_t idx) const { return nodes[idx]; }
 
     unique_ptr<LogicalOperator> copy() override = 0;
 
 protected:
-    vector<pair<shared_ptr<NodeExpression>, shared_ptr<Expression>>> nodeAndPrimaryKeys;
+    vector<shared_ptr<NodeExpression>> nodes;
 };
 
-class LogicalCreateOrDeleteRel : public LogicalOperator {
+class LogicalUpdateRel : public LogicalOperator {
 public:
-    LogicalCreateOrDeleteRel(LogicalOperatorType operatorType,
-        vector<shared_ptr<RelExpression>> rels, shared_ptr<LogicalOperator> child)
+    LogicalUpdateRel(LogicalOperatorType operatorType, vector<shared_ptr<RelExpression>> rels,
+        shared_ptr<LogicalOperator> child)
         : LogicalOperator{operatorType, std::move(child)}, rels{std::move(rels)} {}
+    ~LogicalUpdateRel() override = default;
 
     inline void computeSchema() override { copyChildSchema(0); }
 

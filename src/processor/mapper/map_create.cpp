@@ -15,7 +15,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     auto& nodesStore = storageManager.getNodesStore();
     auto catalogContent = catalog->getReadOnlyVersion();
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
-    for (auto& [node, primaryKey] : logicalCreateNode->getNodeAndPrimaryKeys()) {
+    for (auto i = 0u; i < logicalCreateNode->getNumNodes(); ++i) {
+        auto node = logicalCreateNode->getNode(i);
+        auto primaryKey = logicalCreateNode->getPrimaryKey(i);
         auto nodeTableID = node->getSingleTableID();
         auto table = nodesStore.getNodeTable(nodeTableID);
         auto primaryKeyEvaluator = expressionMapper.mapExpression(primaryKey, *inSchema);

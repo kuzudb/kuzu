@@ -1,35 +1,59 @@
 #pragma once
 
-#include "base_logical_operator.h"
-#include "binder/expression/expression.h"
+#include "logical_update.h"
 
 namespace kuzu {
 namespace planner {
 
-class LogicalSetNodeProperty : public LogicalOperator {
+class LogicalSetNodeProperty : public LogicalUpdateNode {
 public:
-    LogicalSetNodeProperty(vector<expression_pair> setItems, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SET_NODE_PROPERTY, std::move(child)},
+    LogicalSetNodeProperty(vector<shared_ptr<NodeExpression>> nodes,
+        vector<expression_pair> setItems, shared_ptr<LogicalOperator> child)
+        : LogicalUpdateNode{LogicalOperatorType::SET_NODE_PROPERTY, std::move(nodes),
+              std::move(child)},
           setItems{std::move(setItems)} {}
-
-    inline void computeSchema() override { copyChildSchema(0); }
 
     inline string getExpressionsForPrinting() const override {
         string result;
-        for (auto& [propertyExpression, expression] : setItems) {
-            result += propertyExpression->getRawName() + " = " + expression->getRawName() + ",";
+        for (auto& [lhs, rhs] : setItems) {
+            result += lhs->getRawName() + " = " + rhs->getRawName() + ",";
         }
         return result;
     }
 
-    inline vector<expression_pair> getSetItems() const { return setItems; }
+    inline expression_pair getSetItem(size_t idx) const { return setItems[idx]; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSetNodeProperty>(setItems, children[0]->copy());
+        return make_unique<LogicalSetNodeProperty>(nodes, setItems, children[0]->copy());
     }
 
 private:
-    // Property expression = target expression pair.
+    vector<expression_pair> setItems;
+};
+
+class LogicalSetRelProperty : public LogicalUpdateRel {
+public:
+    LogicalSetRelProperty(vector<shared_ptr<RelExpression>> rels, vector<expression_pair> setItems,
+        shared_ptr<LogicalOperator> child)
+        : LogicalUpdateRel{LogicalOperatorType::SET_REL_PROPERTY, std::move(rels),
+              std::move(child)},
+          setItems{std::move(setItems)} {}
+
+    inline string getExpressionsForPrinting() const override {
+        string result;
+        for (auto& [lhs, rhs] : setItems) {
+            result += lhs->getRawName() + " = " + rhs->getRawName() + ",";
+        }
+        return result;
+    }
+
+    inline expression_pair getSetItem(size_t idx) const { return setItems[idx]; }
+
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalSetRelProperty>(rels, setItems, children[0]->copy());
+    }
+
+private:
     vector<expression_pair> setItems;
 };
 

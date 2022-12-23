@@ -4,6 +4,7 @@ add_library(
         bound_create_clause.cpp
         bound_delete_clause.cpp
         bound_projection_body.cpp
+        bound_set_clause.cpp
         normalized_query_part.cpp
         normalized_single_query.cpp
         query_graph.cpp)

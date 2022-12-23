@@ -9,30 +9,53 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(LogicalOperator* logicalOperator) {
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysical(
+    LogicalOperator* logicalOperator) {
     auto& logicalSetNodeProperty = (LogicalSetNodeProperty&)*logicalOperator;
     auto inSchema = logicalSetNodeProperty.getChild(0)->getSchema();
-    auto setItems = logicalSetNodeProperty.getSetItems();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& nodeStore = storageManager.getNodesStore();
-    vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators;
-    for (auto& [_, target] : setItems) {
-        expressionEvaluators.push_back(expressionMapper.mapExpression(target, *inSchema));
-    }
-    vector<DataPos> nodeIDVectorPositions;
-    vector<Column*> propertyColumns;
-    for (auto& [expr, _] : setItems) {
-        auto property = static_pointer_cast<PropertyExpression>(expr);
-        auto node = static_pointer_cast<NodeExpression>(property->getChild(0));
+    vector<unique_ptr<SetNodePropertyInfo>> infos;
+    for (auto i = 0u; i < logicalSetNodeProperty.getNumNodes(); ++i) {
+        auto node = logicalSetNodeProperty.getNode(i);
+        auto [lhs, rhs] = logicalSetNodeProperty.getSetItem(i);
+        auto nodeIDPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
+        auto propertyExpression = static_pointer_cast<PropertyExpression>(lhs);
         auto nodeTableID = node->getSingleTableID();
-        nodeIDVectorPositions.emplace_back(
-            inSchema->getExpressionPos(*node->getInternalIDProperty()));
-        propertyColumns.push_back(
-            nodeStore.getNodePropertyColumn(nodeTableID, property->getPropertyID(nodeTableID)));
+        auto column = nodeStore.getNodePropertyColumn(
+            nodeTableID, propertyExpression->getPropertyID(nodeTableID));
+        auto evaluator = expressionMapper.mapExpression(rhs, *inSchema);
+        infos.push_back(make_unique<SetNodePropertyInfo>(column, nodeIDPos, std::move(evaluator)));
     }
-    return make_unique<SetNodeStructuredProperty>(std::move(nodeIDVectorPositions),
-        std::move(expressionEvaluators), std::move(propertyColumns), std::move(prevOperator),
-        getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
+    return make_unique<SetNodeProperty>(std::move(infos), std::move(prevOperator), getOperatorID(),
+        logicalSetNodeProperty.getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetRelPropertyToPhysical(
+    LogicalOperator* logicalOperator) {
+    auto& logicalSetRelProperty = (LogicalSetRelProperty&)*logicalOperator;
+    auto inSchema = logicalSetRelProperty.getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto& relStore = storageManager.getRelsStore();
+    vector<unique_ptr<SetRelPropertyInfo>> infos;
+    for (auto i = 0u; i < logicalSetRelProperty.getNumRels(); ++i) {
+        auto rel = logicalSetRelProperty.getRel(i);
+        auto [lhs, rhs] = logicalSetRelProperty.getSetItem(i);
+        auto srcNodePos =
+            DataPos(inSchema->getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
+        auto dstNodePos =
+            DataPos(inSchema->getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
+        auto relIDPos = DataPos(inSchema->getExpressionPos(*rel->getInternalIDProperty()));
+        auto relTableID = rel->getSingleTableID();
+        auto table = relStore.getRelTable(rel->getSingleTableID());
+        auto propertyExpression = static_pointer_cast<PropertyExpression>(lhs);
+        auto propertyId = propertyExpression->getPropertyID(relTableID);
+        auto evaluator = expressionMapper.mapExpression(rhs, *inSchema);
+        infos.push_back(make_unique<SetRelPropertyInfo>(
+            table, srcNodePos, dstNodePos, relIDPos, propertyId, std::move(evaluator)));
+    }
+    return make_unique<SetRelProperty>(std::move(infos), std::move(prevOperator), getOperatorID(),
+        logicalSetRelProperty.getExpressionsForPrinting());
 }
 
 } // namespace processor

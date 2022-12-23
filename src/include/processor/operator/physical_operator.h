@@ -41,6 +41,7 @@ enum class PhysicalOperatorType : uint8_t {
     SCAN_NODE_PROPERTY,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
+    SET_REL_PROPERTY,
     SKIP,
     ORDER_BY,
     ORDER_BY_MERGE,
@@ -118,7 +119,7 @@ public:
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* context) {}
-    virtual void initLocalStateInternal(ResultSet* _resultSet, ExecutionContext* context) {}
+    virtual void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal() = 0;
 

@@ -3,34 +3,61 @@
 namespace kuzu {
 namespace processor {
 
-void BaseSetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& pos : nodeIDPositions) {
-        auto nodeIDVector = resultSet->getValueVector(pos);
-        nodeIDVectors.push_back(std::move(nodeIDVector));
-    }
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        expressionEvaluator->init(*resultSet, context->memoryManager);
+void SetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& info : infos) {
+        auto nodeIDVector = resultSet->getValueVector(info->nodeIDPos);
+        nodeIDVectors.push_back(nodeIDVector);
+        info->evaluator->init(*resultSet, context->memoryManager);
     }
 }
 
-bool SetNodeStructuredProperty::getNextTuplesInternal() {
+bool SetNodeProperty::getNextTuplesInternal() {
     if (!children[0]->getNextTuple()) {
         return false;
     }
-    for (auto i = 0u; i < nodeIDVectors.size(); ++i) {
-        expressionEvaluators[i]->evaluate();
-        columns[i]->writeValues(nodeIDVectors[i], expressionEvaluators[i]->resultVector);
+    for (auto i = 0u; i < infos.size(); ++i) {
+        auto info = infos[i].get();
+        info->evaluator->evaluate();
+        info->column->writeValues(nodeIDVectors[i], info->evaluator->resultVector);
     }
     return true;
 }
 
-unique_ptr<PhysicalOperator> SetNodeStructuredProperty::clone() {
-    vector<unique_ptr<BaseExpressionEvaluator>> clonedExpressionEvaluators;
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        clonedExpressionEvaluators.push_back(expressionEvaluator->clone());
+unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
+    vector<unique_ptr<SetNodePropertyInfo>> clonedInfos;
+    for (auto& info : infos) {
+        clonedInfos.push_back(info->clone());
     }
-    return make_unique<SetNodeStructuredProperty>(nodeIDPositions,
-        std::move(clonedExpressionEvaluators), columns, children[0]->clone(), id, paramsString);
+    return make_unique<SetNodeProperty>(
+        std::move(clonedInfos), children[0]->clone(), id, paramsString);
+}
+
+void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& info : infos) {
+        auto srcNodeIDVector = resultSet->getValueVector(info->srcNodePos);
+        srcNodeVectors.push_back(srcNodeIDVector);
+        auto dstNodeIDVector = resultSet->getValueVector(info->dstNodePos);
+        dstNodeVectors.push_back(dstNodeIDVector);
+        auto relIDVector = resultSet->getValueVector(info->relIDPos);
+        relIDVectors.push_back(relIDVector);
+        info->evaluator->init(*resultSet, context->memoryManager);
+    }
+}
+
+bool SetRelProperty::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
+        return false;
+    }
+    throw NotImplementedException("Unimplemented SetRelProperty.");
+}
+
+unique_ptr<PhysicalOperator> SetRelProperty::clone() {
+    vector<unique_ptr<SetRelPropertyInfo>> clonedInfos;
+    for (auto& info : infos) {
+        clonedInfos.push_back(info->clone());
+    }
+    return make_unique<SetRelProperty>(
+        std::move(clonedInfos), children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor
