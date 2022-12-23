@@ -57,7 +57,7 @@ bool AdjAndPropertyCollection::scanLists(const shared_ptr<ValueVector>& inVector
     if (currentListIdx != UINT32_MAX) { // check current list
         auto currentAdjList = adjCollection->lists[currentListIdx];
         auto currentAdjListHandle = adjCollection->listHandles[currentListIdx].get();
-        if (currentAdjListHandle->listSyncState.hasMoreToRead()) {
+        if (currentAdjListHandle->listSyncState.hasMoreAndSwitchSourceIfNecessary()) {
             // scan current adjList
             currentAdjList->readValues(outNodeVector, *currentAdjListHandle);
             scanPropertyList(currentListIdx, outPropertyVectors, transaction);

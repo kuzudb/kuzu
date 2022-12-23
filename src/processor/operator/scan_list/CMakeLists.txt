@@ -1,6 +1,6 @@
 add_library(kuzu_processor_operator_scan_list
         OBJECT
-        adj_list_extend.cpp
+        scan_rel_table_lists.cpp
         )
 
 set(ALL_OBJECT_FILES

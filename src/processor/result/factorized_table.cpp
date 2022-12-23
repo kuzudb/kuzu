@@ -269,7 +269,7 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, uint32_t colIdx
 
 void FactorizedTable::copyToInMemList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead,
     uint8_t* data, NullMask* nullMask, uint64_t startElemPosInList,
-    DiskOverflowFile* overflowFileOfInMemList, DataType type,
+    DiskOverflowFile* overflowFileOfInMemList, const DataType& type,
     NodeIDCompressionScheme* nodeIDCompressionScheme) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
@@ -641,7 +641,7 @@ void FactorizedTable::readFlatColToUnflatVector(
 }
 
 void FactorizedTable::copyOverflowIfNecessary(
-    uint8_t* dst, uint8_t* src, DataType type, DiskOverflowFile* diskOverflowFile) {
+    uint8_t* dst, uint8_t* src, const DataType& type, DiskOverflowFile* diskOverflowFile) {
     switch (type.typeID) {
     case STRING: {
         ku_string_t* stringToWriteFrom = (ku_string_t*)src;

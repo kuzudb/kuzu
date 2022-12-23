@@ -15,7 +15,7 @@ namespace storage {
 // be containing information about the last portion of the last large list that was read).
 void Lists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     auto& listSyncState = listHandle.listSyncState;
-    if (listSyncState.getListSourceStore() == ListSourceStore::ListsUpdateStore) {
+    if (listSyncState.getListSourceStore() == ListSourceStore::UPDATE_STORE) {
         listsUpdateStore->readValues(
             storageStructureIDAndFName.storageStructureID.listFileID, listSyncState, valueVector);
     } else {
@@ -65,33 +65,28 @@ void Lists::initListReadingState(
     node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType) {
     auto& listSyncState = listHandle.listSyncState;
     listSyncState.reset();
-    listSyncState.setBoundNodeOffset(nodeOffset);
     auto isNewlyAddedNode = listsUpdateStore->isNewlyAddedNode(
         storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
-    if (transactionType == TransactionType::READ_ONLY || !isNewlyAddedNode) {
-        listSyncState.setListHeader(headers->getHeader(nodeOffset));
+    uint64_t numElementsInPersistentStore = 0, numElementsInUpdateStore = 0;
+    list_header_t listHeader;
+    if (transactionType == TransactionType::WRITE) {
+        numElementsInUpdateStore = listsUpdateStore->getNumInsertedRelsForNodeOffset(
+            storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
+        // ListHeader is UINT32_MAX in two cases: (i) ListSyncState is not initialized; or (ii)
+        // the list of a new node is being scanned so there is no header for the new node.
+        listHeader = isNewlyAddedNode ? UINT32_MAX : headers->getHeader(nodeOffset);
+        numElementsInPersistentStore =
+            isNewlyAddedNode ? 0 : getNumElementsFromListHeader(nodeOffset);
     } else {
-        // ListHeader is UINT32_MAX in two cases: (i) ListSyncState is not initialized; or (ii) the
-        // list of a new node is being scanned so there is no header for the new node.
-        listSyncState.setListHeader(UINT32_MAX);
+        listHeader = headers->getHeader(nodeOffset);
+        numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
     }
-    auto numElementsInPersistentStore =
-        getNumElementsInPersistentStore(transactionType, nodeOffset);
-    auto numElementsInUpdateStore =
-        transactionType == WRITE ?
-            listsUpdateStore->getNumInsertedRelsForNodeOffset(
-                storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset) :
-            0;
-    listSyncState.setNumValuesInList(numElementsInPersistentStore == 0 ?
-                                         numElementsInUpdateStore :
-                                         numElementsInPersistentStore);
-    listSyncState.setDataToReadFromUpdateStore(numElementsInUpdateStore != 0);
-    // If there's no element is persistentStore and the listsUpdateStore is non-empty,
-    // we can skip reading from persistentStore and start reading from listsUpdateStore directly.
-    listSyncState.setSourceStore(
-        ((numElementsInPersistentStore == 0 && numElementsInUpdateStore > 0) || isNewlyAddedNode) ?
-            ListSourceStore::ListsUpdateStore :
-            ListSourceStore::PersistentStore);
+    // If there's no element is persistentStore, we can skip reading from persistentStore and start
+    // reading from listsUpdateStore directly.
+    auto sourceStore = numElementsInPersistentStore == 0 ? ListSourceStore::UPDATE_STORE :
+                                                           ListSourceStore::PERSISTENT_STORE;
+    listSyncState.init(nodeOffset, listHeader, numElementsInUpdateStore,
+        numElementsInPersistentStore, sourceStore);
 }
 
 unique_ptr<InMemList> Lists::getInMemListWithDataFromUpdateStoreOnly(
@@ -203,20 +198,10 @@ void ListPropertyLists::readFromSmallList(
 void AdjLists::readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     auto& listSyncState = listHandle.listSyncState;
     valueVector->state->selVector->resetSelectorToUnselected();
-    if (listSyncState.getListSourceStore() == ListSourceStore::PersistentStore &&
-        listSyncState.getStartElemOffset() + listSyncState.getNumValuesToRead() ==
-            listSyncState.getNumValuesInList()) {
-        listSyncState.setSourceStore(ListSourceStore::ListsUpdateStore);
-    }
-    if (listSyncState.getListSourceStore() == ListSourceStore::ListsUpdateStore) {
+    if (listSyncState.getListSourceStore() == ListSourceStore::UPDATE_STORE) {
         readFromListsUpdateStore(listSyncState, valueVector);
     } else {
-        // If the startElemOffset is invalid, it means that we never read from the list. As a
-        // result, we need to reset the cursor and mapper.
-        if (listHandle.listSyncState.getStartElemOffset() == -1) {
-            listHandle.resetCursorMapper(metadata, numElementsPerPage);
-        }
-        readFromList(valueVector, listHandle);
+        readFromListsPersistentStore(listHandle, valueVector);
     }
 }
 
@@ -283,8 +268,7 @@ void AdjLists::readFromLargeList(
         min((uint32_t)(listSyncState.getNumValuesInList() - nextPartBeginElemOffset),
             numElementsPerPage - (uint32_t)(nextPartBeginElemOffset % numElementsPerPage));
     valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
-    listSyncState.setRangeToRead(
-        nextPartBeginElemOffset, valueVector->state->selVector->selectedSize);
+    listSyncState.setRangeToRead(nextPartBeginElemOffset, numValuesToCopy);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId =
         listHandle.cursorAndMapper.mapper(listHandle.cursorAndMapper.cursor.pageIdx);
@@ -319,25 +303,31 @@ void AdjLists::readFromSmallList(
 
 void AdjLists::readFromListsUpdateStore(
     ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector) {
-    if (listSyncState.getStartElemOffset() + listSyncState.getNumValuesToRead() ==
-            listSyncState.getNumValuesInList() ||
-        !listSyncState.hasValidRangeToRead()) {
+    assert(listSyncState.getListSourceStore() == ListSourceStore::UPDATE_STORE);
+    if (!listSyncState.hasValidRangeToRead()) {
         // We have read all values from persistent store or the persistent store is empty, we should
         // reset listSyncState to indicate ranges in listsUpdateStore and start
         // reading from it.
-        listSyncState.setNumValuesInList(listsUpdateStore->getNumInsertedRelsForNodeOffset(
-            storageStructureIDAndFName.storageStructureID.listFileID,
-            listSyncState.getBoundNodeOffset()));
         listSyncState.setRangeToRead(
-            0, min(DEFAULT_VECTOR_CAPACITY, listSyncState.getNumValuesInList()));
+            0, min(DEFAULT_VECTOR_CAPACITY, (uint64_t)listSyncState.getNumValuesInList()));
     } else {
         listSyncState.setRangeToRead(listSyncState.getEndElemOffset(),
             min(DEFAULT_VECTOR_CAPACITY,
-                listSyncState.getNumValuesInList() - listSyncState.getEndElemOffset()));
+                (uint64_t)listSyncState.getNumValuesInList() - listSyncState.getEndElemOffset()));
     }
     // Note that: we always store nbr node in the second column of factorizedTable.
     listsUpdateStore->readValues(
         storageStructureIDAndFName.storageStructureID.listFileID, listSyncState, valueVector);
+}
+
+void AdjLists::readFromListsPersistentStore(
+    ListHandle& listHandle, const shared_ptr<ValueVector>& valueVector) {
+    // If the startElemOffset is invalid, it means that we never read from the list. As a
+    // result, we need to reset the cursor and mapper.
+    if (!listHandle.listSyncState.hasValidRangeToRead()) {
+        listHandle.resetCursorMapper(metadata, numElementsPerPage);
+    }
+    readFromList(valueVector, listHandle);
 }
 
 // Note: this function will always be called right after scanRelID, so we have the
@@ -348,14 +338,14 @@ void RelIDList::setDeletedRelsIfNecessary(Transaction* transaction, ListSyncStat
     // persistent store in a write transaction and the current nodeOffset has deleted rels in
     // persistent store.
     if (!transaction->isReadOnly() &&
-        listSyncState.getListSourceStore() != ListSourceStore::ListsUpdateStore &&
+        listSyncState.getListSourceStore() != ListSourceStore::UPDATE_STORE &&
         listsUpdateStore->hasAnyDeletedRelsInPersistentStore(
             storageStructureIDAndFName.storageStructureID.listFileID,
             listSyncState.getBoundNodeOffset())) {
         relIDVector->state->selVector->resetSelectorToValuePosBuffer();
         auto& selVector = relIDVector->state->selVector;
         auto nextSelectedPos = 0u;
-        for (sel_t pos = 0; pos < relIDVector->state->originalSize; ++pos) {
+        for (auto pos = 0; pos < relIDVector->state->originalSize; ++pos) {
             if (!listsUpdateStore->isRelDeletedInPersistentStore(
                     storageStructureIDAndFName.storageStructureID.listFileID,
                     listSyncState.getBoundNodeOffset(), relIDVector->getValue<int64_t>(pos))) {

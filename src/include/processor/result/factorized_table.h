@@ -64,11 +64,13 @@ public:
     DataBlockCollection(uint32_t numBytesPerTuple, uint32_t numTuplesPerBlock)
         : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{numTuplesPerBlock} {}
 
-    inline void append(unique_ptr<DataBlock> otherBlock) { blocks.push_back(move(otherBlock)); }
+    inline void append(unique_ptr<DataBlock> otherBlock) {
+        blocks.push_back(std::move(otherBlock));
+    }
     inline void append(vector<unique_ptr<DataBlock>> otherBlocks) {
         move(begin(otherBlocks), end(otherBlocks), back_inserter(blocks));
     }
-    inline void append(unique_ptr<DataBlockCollection> other) { append(move(other->blocks)); }
+    inline void append(unique_ptr<DataBlockCollection> other) { append(std::move(other->blocks)); }
     inline bool isEmpty() { return blocks.empty(); }
     inline vector<unique_ptr<DataBlock>>& getBlocks() { return blocks; }
     inline DataBlock* getBlock(uint32_t blockIdx) { return blocks[blockIdx].get(); }
@@ -121,7 +123,7 @@ public:
     FactorizedTableSchema(const FactorizedTableSchema& other);
 
     explicit FactorizedTableSchema(vector<unique_ptr<ColumnSchema>> columns)
-        : columns{move(columns)} {}
+        : columns{std::move(columns)} {}
 
     void appendColumn(unique_ptr<ColumnSchema> column);
 
@@ -240,7 +242,7 @@ public:
     // inside overflowFileOfInMemList.
     void copyToInMemList(uint32_t colIdx, vector<uint64_t>& tupleIdxesToRead, uint8_t* data,
         NullMask* nullMask, uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
-        DataType type, NodeIDCompressionScheme* nodeIDCompressionScheme) const;
+        const DataType& type, NodeIDCompressionScheme* nodeIDCompressionScheme) const;
     void clear();
     int64_t findValueInFlatColumn(uint64_t colIdx, int64_t value) const;
 
@@ -292,7 +294,7 @@ private:
             readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
     static void copyOverflowIfNecessary(
-        uint8_t* dst, uint8_t* src, DataType type, DiskOverflowFile* diskOverflowFile);
+        uint8_t* dst, uint8_t* src, const DataType& type, DiskOverflowFile* diskOverflowFile);
 
 private:
     MemoryManager* memoryManager;

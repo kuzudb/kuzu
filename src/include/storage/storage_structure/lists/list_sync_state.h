@@ -11,8 +11,8 @@ namespace kuzu {
 namespace storage {
 
 enum class ListSourceStore : uint8_t {
-    PersistentStore = 0,
-    ListsUpdateStore = 1,
+    PERSISTENT_STORE = 0,
+    UPDATE_STORE = 1,
 };
 
 // ListSyncState holds the data that is required to synchronize reading from multiple Lists that
@@ -28,12 +28,16 @@ class ListSyncState {
 public:
     ListSyncState() { reset(); };
 
-    inline void setNumValuesInList(uint64_t numValuesInList_) {
-        this->numValuesInList = numValuesInList_;
-    }
-    inline void setBoundNodeOffset(node_offset_t boundNodeOffset_) {
+    inline void init(node_offset_t boundNodeOffset_, list_header_t listHeader_,
+        uint64_t numValuesInUpdateStore_, uint64_t numValuesInPersistentStore_,
+        ListSourceStore sourceStore_) {
         this->boundNodeOffset = boundNodeOffset_;
+        this->listHeader = listHeader_;
+        this->numValuesInUpdateStore = numValuesInUpdateStore_;
+        this->numValuesInPersistentStore = numValuesInPersistentStore_;
+        this->sourceStore = sourceStore_;
     }
+
     inline void setRangeToRead(uint32_t startIdx_, uint32_t numValuesToRead_) {
         this->startElemOffset = startIdx_;
         this->numValuesToRead = numValuesToRead_;
@@ -43,27 +47,33 @@ public:
     inline uint32_t getEndElemOffset() const { return startElemOffset + numValuesToRead; }
     inline bool hasValidRangeToRead() const { return UINT32_MAX != startElemOffset; }
     inline uint32_t getNumValuesToRead() const { return numValuesToRead; }
-    inline uint64_t getNumValuesInList() const { return numValuesInList; }
     inline ListSourceStore getListSourceStore() const { return sourceStore; }
-    inline void setSourceStore(ListSourceStore sourceStore) { this->sourceStore = sourceStore; }
-    inline void setDataToReadFromUpdateStore(bool dataToReadFromUpdateStore_) {
-        dataToReadFromUpdateStore = dataToReadFromUpdateStore_;
-    }
-    inline bool hasDataToReadFromUpdateStore() const { return dataToReadFromUpdateStore; }
     inline list_header_t getListHeader() const { return listHeader; }
-    inline void setListHeader(list_header_t listHeader_) { listHeader = listHeader_; }
+    inline uint32_t getNumValuesInList() {
+        return sourceStore == ListSourceStore::PERSISTENT_STORE ? numValuesInPersistentStore :
+                                                                  numValuesInUpdateStore;
+    }
 
-    bool hasMoreToRead();
+    bool hasMoreAndSwitchSourceIfNecessary();
     void reset();
+
+private:
+    inline bool hasMoreLeftInList() {
+        return (startElemOffset + numValuesToRead) < getNumValuesInList();
+    }
+    inline void switchToUpdateStore() {
+        sourceStore = ListSourceStore::UPDATE_STORE;
+        startElemOffset = UINT32_MAX;
+    }
 
 private:
     node_offset_t boundNodeOffset;
     list_header_t listHeader;
+    uint32_t numValuesInUpdateStore;
+    uint32_t numValuesInPersistentStore;
     uint32_t startElemOffset;
     uint32_t numValuesToRead;
-    uint64_t numValuesInList;
     ListSourceStore sourceStore;
-    bool dataToReadFromUpdateStore;
 };
 
 } // namespace storage

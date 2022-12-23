@@ -1,10 +1,9 @@
-#include "processor/operator/scan_list/adj_list_extend.h"
+#include "processor/operator/scan_list/scan_rel_table_lists.h"
 
 namespace kuzu {
 namespace processor {
 
-void ListExtendAndScanRelProperties::initLocalStateInternal(
-    ResultSet* resultSet, ExecutionContext* context) {
+void ScanRelTableLists::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseExtendAndScanRelProperties::initLocalStateInternal(resultSet, context);
     syncState = make_unique<ListSyncState>();
     adjListHandle = make_shared<ListHandle>(*syncState);
@@ -13,8 +12,8 @@ void ListExtendAndScanRelProperties::initLocalStateInternal(
     }
 }
 
-bool ListExtendAndScanRelProperties::getNextTuplesInternal() {
-    if (adjListHandle->listSyncState.hasMoreToRead()) {
+bool ScanRelTableLists::getNextTuplesInternal() {
+    if (adjListHandle->listSyncState.hasMoreAndSwitchSourceIfNecessary()) {
         adjList->readValues(outNodeIDVector, *adjListHandle);
     } else {
         do {
@@ -41,7 +40,7 @@ bool ListExtendAndScanRelProperties::getNextTuplesInternal() {
     return true;
 }
 
-void ListExtendAndScanRelProperties::scanPropertyLists() {
+void ScanRelTableLists::scanPropertyLists() {
     for (auto i = 0u; i < propertyLists.size(); ++i) {
         outPropertyVectors[i]->resetOverflowBuffer();
         propertyLists[i]->readValues(outPropertyVectors[i], *propertyListHandles[i]);

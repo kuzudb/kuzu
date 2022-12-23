@@ -3,11 +3,14 @@
 namespace kuzu {
 namespace storage {
 
-bool ListSyncState::hasMoreToRead() {
-    if (hasValidRangeToRead() && (startElemOffset + numValuesToRead != numValuesInList)) {
+bool ListSyncState::hasMoreAndSwitchSourceIfNecessary() {
+    if (hasValidRangeToRead() && hasMoreLeftInList()) {
+        // Has more in the current source store.
         return true;
     }
-    if (dataToReadFromUpdateStore && sourceStore == ListSourceStore::PersistentStore) {
+    if (sourceStore == ListSourceStore::PERSISTENT_STORE && numValuesInUpdateStore > 0) {
+        // Switch from PERSISTENT_STORE to UPDATE_STORE.
+        switchToUpdateStore();
         return true;
     }
     return false;
@@ -17,9 +20,9 @@ void ListSyncState::reset() {
     boundNodeOffset = UINT64_MAX;
     startElemOffset = UINT32_MAX;
     numValuesToRead = UINT32_MAX;
-    numValuesInList = UINT64_MAX;
-    sourceStore = ListSourceStore::PersistentStore;
-    dataToReadFromUpdateStore = false;
+    numValuesInUpdateStore = 0;
+    numValuesInPersistentStore = 0;
+    sourceStore = ListSourceStore::PERSISTENT_STORE;
 }
 
 } // namespace storage
