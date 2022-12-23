@@ -1,6 +1,6 @@
 #include "storage/in_mem_csv_copier/in_mem_structures_copier.h"
 
-//#include "spdlog/spdlog.h"
+// #include "spdlog/spdlog.h"
 
 #include "common/configs.h"
 #include "storage/storage_structure/lists/lists.h"
@@ -8,8 +8,8 @@
 namespace kuzu {
 namespace storage {
 
-InMemStructuresCopier::InMemStructuresCopier(CSVDescription& csvDescription,
-    string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
+InMemStructuresCopier::InMemStructuresCopier(CSVDescription& csvDescription, string outputDirectory,
+    TaskScheduler& taskScheduler, Catalog& catalog)
     : logger{LoggerUtils::getOrCreateLogger("loader")}, csvDescription{csvDescription},
       outputDirectory{move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog} {}
@@ -39,8 +39,7 @@ uint64_t InMemStructuresCopier::calculateNumRows(bool hasHeader) {
     return numRows;
 }
 
-void InMemStructuresCopier::countNumLinesPerBlockTask(
-    const string& fName, uint64_t blockId,
+void InMemStructuresCopier::countNumLinesPerBlockTask(const string& fName, uint64_t blockId,
     InMemStructuresCopier* copier) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
     CSVReader reader(fName, copier->csvDescription.csvReaderConfig, blockId);
@@ -52,8 +51,8 @@ void InMemStructuresCopier::countNumLinesPerBlockTask(
 }
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
-void InMemStructuresCopier::calculateListHeadersTask(node_offset_t numNodes,
-    uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
+void InMemStructuresCopier::calculateListHeadersTask(node_offset_t numNodes, uint32_t elementSize,
+    atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
@@ -80,10 +79,9 @@ void InMemStructuresCopier::calculateListHeadersTask(node_offset_t numNodes,
     logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
 }
 
-void InMemStructuresCopier::calculateListsMetadataAndAllocateInMemListPagesTask(
-    uint64_t numNodes, uint32_t elementSize, atomic_uint64_vec_t* listSizes,
-    ListHeadersBuilder* listHeadersBuilder, InMemLists* inMemList, bool hasNULLBytes,
-    const shared_ptr<spdlog::logger>& logger) {
+void InMemStructuresCopier::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
+    uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
+    InMemLists* inMemList, bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
