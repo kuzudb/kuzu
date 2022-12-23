@@ -17,97 +17,89 @@
 #include <parquet/exception.h>
 
 namespace kuzu {
-    namespace storage {
+namespace storage {
 
-        class InMemArrowNodeCopier : public InMemStructuresCopier {
+class InMemArrowNodeCopier : public InMemStructuresCopier {
 
-        public:
-            InMemArrowNodeCopier(CSVDescription &csvDescription, string outputDirectory,
-                                 TaskScheduler &taskScheduler, Catalog &catalog, table_id_t tableID,
-                                 NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs);
+public:
+    InMemArrowNodeCopier(CSVDescription& csvDescription, string outputDirectory,
+        TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs);
 
-            ~InMemArrowNodeCopier() override = default;
+    ~InMemArrowNodeCopier() override = default;
 
-            uint64_t copy();
+    uint64_t copy();
 
-            void saveToFile() override;
+    void saveToFile() override;
 
-            enum class FileTypes {
-                CSV,
-                ARROW,
-                PARQUET
-            };
+    enum class FileTypes { CSV, ARROW, PARQUET };
 
-            static std::string getFileTypeName(FileTypes fileTypes);
+    static std::string getFileTypeName(FileTypes fileTypes);
 
-            static std::string getFileTypeSuffix(FileTypes fileTypes);
+    static std::string getFileTypeSuffix(FileTypes fileTypes);
 
-        private:
-            void setFileType(std::string const &fileName);
+private:
+    void setFileType(std::string const& fileName);
 
-            void countNumLines(const std::string &filePath);
+    void countNumLines(const std::string& filePath);
 
-            arrow::Status countNumLinesCSV(std::string const &filePath);
+    arrow::Status countNumLinesCSV(std::string const& filePath);
 
-            arrow::Status countNumLinesArrow(std::string const &filePath);
+    arrow::Status countNumLinesArrow(std::string const& filePath);
 
-            arrow::Status countNumLinesParquet(std::string const &filePath);
+    arrow::Status countNumLinesParquet(std::string const& filePath);
 
-            void initializeColumnsAndList();
+    void initializeColumnsAndList();
 
-            template<typename T>
-            arrow::Status populateColumns();
+    template<typename T>
+    arrow::Status populateColumns();
 
-            template<typename T>
-            arrow::Status populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>> &pkIndex);
+    template<typename T>
+    arrow::Status populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
-            template<typename T>
-            arrow::Status populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>> &pkIndex);
+    template<typename T>
+    arrow::Status populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
-            template<typename T>
-            arrow::Status populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>> &pkIndex);
+    template<typename T>
+    arrow::Status populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
-            template<typename T>
-            static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>> &columns,
-                                                  vector<PageByteCursor> &overflowCursors,
-                                                  const std::vector<shared_ptr<T>> &arrow_columns,
-                                                  uint64_t nodeOffset, uint64_t bufferOffset, char delimiter);
+    template<typename T>
+    static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
+        vector<PageByteCursor>& overflowCursors, const std::vector<shared_ptr<T>>& arrow_columns,
+        uint64_t nodeOffset, uint64_t bufferOffset, char delimiter);
 
-            template<typename T>
-            static void populatePKIndex(InMemColumn *column, HashIndexBuilder<T> *pkIndex,
-                                        node_offset_t startOffset, uint64_t numValues);
+    template<typename T>
+    static void populatePKIndex(InMemColumn* column, HashIndexBuilder<T>* pkIndex,
+        node_offset_t startOffset, uint64_t numValues);
 
-            // Concurrent tasks.
-            // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
-            // Instead, it is the index in the structured columns that we expect it to appear.
+    // Concurrent tasks.
+    // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
+    // Instead, it is the index in the structured columns that we expect it to appear.
 
-            template<typename T1, typename T2>
-            static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
-                                                          uint64_t blockId, uint64_t offsetStart,
-                                                          HashIndexBuilder<T1> *pkIndex,
-                                                          InMemArrowNodeCopier *copier,
-                                                          const vector<shared_ptr<T2>> &batchColumns,
-                                                          char delimiter);
+    template<typename T1, typename T2>
+    static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
+        uint64_t offsetStart, HashIndexBuilder<T1>* pkIndex, InMemArrowNodeCopier* copier,
+        const vector<shared_ptr<T2>>& batchColumns, char delimiter);
 
-            arrow::Status initCSVReader(shared_ptr<arrow::csv::StreamingReader> &csv_streaming_reader,
-                                        const std::string &filePath);
+    arrow::Status initCSVReader(shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+        const std::string& filePath);
 
-            arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader> &ipc_reader,
-                                          const std::string &filePath);
+    arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
+        const std::string& filePath);
 
-            arrow::Status initParquetReader(std::unique_ptr<parquet::arrow::FileReader> &reader,
-                                            const std::string &filePath);
+    arrow::Status initParquetReader(std::unique_ptr<parquet::arrow::FileReader>& reader,
+        const std::string& filePath);
 
-            static Literal getArrowList(string &l, int64_t from, int64_t to, const DataType &dataType,
-                                        char delimiter);
+    static Literal getArrowList(string& l, int64_t from, int64_t to, const DataType& dataType,
+        char delimiter);
 
-        private:
-            NodeTableSchema *nodeTableSchema;
-            uint64_t numNodes;
-            vector<unique_ptr<InMemColumn>> structuredColumns;
-            NodesStatisticsAndDeletedIDs *nodesStatisticsAndDeletedIDs;
-            FileTypes inputFileType;
-        };
+private:
+    NodeTableSchema* nodeTableSchema;
+    uint64_t numNodes;
+    vector<unique_ptr<InMemColumn>> structuredColumns;
+    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    FileTypes inputFileType;
+};
 
-    } // namespace storage
+} // namespace storage
 } // namespace kuzu
