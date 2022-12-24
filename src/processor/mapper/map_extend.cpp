@@ -2,7 +2,7 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/generic_extend.h"
 #include "processor/operator/scan_column/adj_column_extend.h"
-#include "processor/operator/scan_list/adj_list_extend.h"
+#include "processor/operator/scan_list/scan_rel_table_lists.h"
 #include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
 #include "processor/operator/var_length_extend/var_length_column_extend.h"
 
@@ -133,10 +133,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
             } else {
                 auto propertyLists = populatePropertyLists(
                     boundNodeTableID, relTableID, direction, extend->getProperties(), relsStore);
-                return make_unique<ListExtendAndScanRelProperties>(inNodeIDVectorPos,
-                    outNodeIDVectorPos, std::move(outPropertyVectorsPos), adjList,
-                    std::move(propertyLists), std::move(prevOperator), getOperatorID(),
-                    extend->getExpressionsForPrinting());
+                return make_unique<ScanRelTableLists>(inNodeIDVectorPos, outNodeIDVectorPos,
+                    std::move(outPropertyVectorsPos), adjList, std::move(propertyLists),
+                    std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
             }
         }
     } else { // map to generic extend

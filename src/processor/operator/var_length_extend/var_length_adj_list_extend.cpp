@@ -91,7 +91,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
     shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
-    if (dfsLevel->listHandle->listSyncState.hasMoreToRead()) {
+    if (dfsLevel->listHandle->listSyncState.hasMoreAndSwitchSourceIfNecessary()) {
         ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listHandle);
         return true;
     }

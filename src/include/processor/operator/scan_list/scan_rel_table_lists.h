@@ -6,24 +6,23 @@
 namespace kuzu {
 namespace processor {
 
-class ListExtendAndScanRelProperties : public BaseExtendAndScanRelProperties {
+class ScanRelTableLists : public BaseExtendAndScanRelProperties {
 public:
-    ListExtendAndScanRelProperties(const DataPos& inNodeIDVectorPos,
-        const DataPos& outNodeIDVectorPos, vector<DataPos> outPropertyVectorsPos, Lists* adjList,
-        vector<Lists*> propertyLists, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+    ScanRelTableLists(const DataPos& inNodeIDVectorPos, const DataPos& outNodeIDVectorPos,
+        vector<DataPos> outPropertyVectorsPos, Lists* adjList, vector<Lists*> propertyLists,
+        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
         : BaseExtendAndScanRelProperties{PhysicalOperatorType::LIST_EXTEND, inNodeIDVectorPos,
               outNodeIDVectorPos, std::move(outPropertyVectorsPos), std::move(child), id,
               paramsString},
           adjList{adjList}, propertyLists{std::move(propertyLists)} {}
-    ~ListExtendAndScanRelProperties() override = default;
+    ~ScanRelTableLists() override = default;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ListExtendAndScanRelProperties>(inNodeIDVectorPos, outNodeIDVectorPos,
+        return make_unique<ScanRelTableLists>(inNodeIDVectorPos, outNodeIDVectorPos,
             outPropertyVectorsPos, adjList, propertyLists, children[0]->clone(), id, paramsString);
     }
 

@@ -88,10 +88,11 @@ public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
         bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
-        : Lists{storageStructureIDAndFName, dataType, elementSize, move(headers), bufferManager,
-              true /*hasNULLBytes*/, isInMemory, wal, listsUpdateStore} {};
+        : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
+              bufferManager, true /*hasNULLBytes*/, isInMemory, wal, listsUpdateStore} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() const { return headers; };
+    // TODO(Guodong): change the input to header.
     inline uint64_t getNumElementsFromListHeader(node_offset_t nodeOffset) const {
         auto header = headers->getHeader(nodeOffset);
         return ListHeaders::isALargeList(header) ?
@@ -150,7 +151,7 @@ protected:
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
               hasNULLBytes, isInMemory, wal},
           storageStructureIDAndFName{storageStructureIDAndFName},
-          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{move(headers)},
+          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{std::move(headers)},
           listsUpdateStore{listsUpdateStore} {};
 
 private:
@@ -171,7 +172,7 @@ public:
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
         bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
         : Lists{storageStructureIDAndFName, dataType, Types::getDataTypeSize(dataType),
-              move(headers), bufferManager, isInMemory, wal, listsUpdateStore},
+              std::move(headers), bufferManager, isInMemory, wal, listsUpdateStore},
           diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
 
 private:
@@ -253,6 +254,8 @@ private:
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
     void readFromListsUpdateStore(
         ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector);
+    void readFromListsPersistentStore(
+        ListHandle& listHandle, const shared_ptr<ValueVector>& valueVector);
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
@@ -264,8 +267,8 @@ public:
     RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
         BufferManager& bufferManager, bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
-        : Lists{storageStructureIDAndFName, dataType, elementSize, headers, bufferManager,
-              isInMemory, wal, listsUpdateStore} {}
+        : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
+              bufferManager, isInMemory, wal, listsUpdateStore} {}
     void setDeletedRelsIfNecessary(Transaction* transaction, ListSyncState& listSyncState,
         const shared_ptr<ValueVector>& relIDVector) override;
     unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(node_offset_t nodeOffset);
