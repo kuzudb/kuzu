@@ -50,7 +50,6 @@ private:
     void deleteNode(node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 private:
-    // TODO(Guodong): Consider moving statistics and deleted ids to catalog.
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
     // This is for properties.
     vector<unique_ptr<Column>> propertyColumns;

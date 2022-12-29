@@ -251,7 +251,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
 
 void AdjLists::readFromLargeList(
     const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
-    uint64_t nextPartBeginElemOffset =
+    uint32_t nextPartBeginElemOffset =
         listHandle.hasValidRangeToRead() ? listHandle.getEndElemOffset() : 0;
     auto pageCursor =
         PageUtils::getPageElementCursorForPos(nextPartBeginElemOffset, numElementsPerPage);
@@ -260,17 +260,16 @@ void AdjLists::readFromLargeList(
     // page that's being read (nextPartBeginElemOffset above should be set to the beginning of the
     // next page. Note that because of case (ii), this computation guarantees that what we read fits
     // into a single page. That's why we can call copyFromAPage.
-    auto numValuesToCopy =
-        min((uint32_t)(listHandle.getNumValuesInList() - nextPartBeginElemOffset),
-            numElementsPerPage - (uint32_t)(nextPartBeginElemOffset % numElementsPerPage));
+    auto numValuesToCopy = min(listHandle.getNumValuesInList() - nextPartBeginElemOffset,
+        (uint32_t)DEFAULT_VECTOR_CAPACITY);
     valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
     listHandle.setRangeToRead(nextPartBeginElemOffset, numValuesToCopy);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = listHandle.mapper(pageCursor.pageIdx);
     // See comments for AdjLists::readFromSmallList.
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    readNodeIDsFromAPageBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, 0, physicalPageId,
-        pageCursor.elemPosInPage, numValuesToCopy, nodeIDCompressionScheme, true /*isAdjLists*/);
+    readNodeIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor, listHandle.mapper,
+        nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
