@@ -5,7 +5,7 @@
 #include "common/types/node_id_t.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
-#include "storage/storage_structure/lists/list_sync_state.h"
+#include "storage/storage_structure/lists/list_handle.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

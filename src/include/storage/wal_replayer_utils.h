@@ -18,7 +18,7 @@ public:
         const string& directory, const map<table_id_t, node_offset_t>& maxNodeOffsetsPerTable);
 
     static void createEmptyDBFilesForNewNodeTable(
-        Catalog* catalog, table_id_t tableID, string directory);
+        Catalog* catalog, table_id_t tableID, const string& directory);
 
     static inline void replaceNodeFilesWithVersionFromWALIfExists(
         NodeTableSchema* nodeTableSchema, string directory) {
@@ -60,19 +60,19 @@ private:
         const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
         const string& directory, RelTableSchema* relTableSchema);
 
-    static void replaceOriginalColumnFilesWithWALVersionIfExists(string originalColFileName);
+    static void replaceOriginalColumnFilesWithWALVersionIfExists(const string& originalColFileName);
 
-    static void replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName);
+    static void replaceOriginalListFilesWithWALVersionIfExists(const string& originalListFileName);
 
-    static void removeListFilesIfExists(string fileName);
+    static void removeListFilesIfExists(const string& fileName);
 
-    static void removeColumnFilesIfExists(string fileName);
+    static void removeColumnFilesIfExists(const string& fileName);
 
-    static void fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, string directory,
+    static void fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, const string& directory,
         std::function<void(string fileName)> columnFileOperation,
         std::function<void(string fileName)> listFileOperation);
 
-    static void fileOperationOnRelFiles(RelTableSchema* relTableSchema, string directory,
+    static void fileOperationOnRelFiles(RelTableSchema* relTableSchema, const string& directory,
         const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
         std::function<void(string fileName)> listFileOperation);
 

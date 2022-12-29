@@ -1,6 +1,6 @@
 -NAME OneHopSimpleAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
---PARALLELISM 8
+-PARALLELISM 8
 -ENUMERATE
 ---- 1
 36|Alice|5

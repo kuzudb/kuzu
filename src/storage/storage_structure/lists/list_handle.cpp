@@ -1,4 +1,4 @@
-#include "storage/storage_structure/lists/list_sync_state.h"
+#include "storage/storage_structure/lists/list_handle.h"
 
 namespace kuzu {
 namespace storage {
@@ -16,8 +16,8 @@ bool ListSyncState::hasMoreAndSwitchSourceIfNecessary() {
     return false;
 }
 
-void ListSyncState::reset() {
-    boundNodeOffset = UINT64_MAX;
+void ListSyncState::resetState() {
+    boundNodeOffset = INVALID_NODE_OFFSET;
     startElemOffset = UINT32_MAX;
     numValuesToRead = UINT32_MAX;
     numValuesInUpdateStore = 0;

@@ -21,7 +21,7 @@ public:
 
 private:
     void initializeColumnsAndList();
-    void countLinesPerBlock(uint64_t numStructuredProperties);
+    void countLinesPerBlock(uint64_t numProperties);
     template<typename T>
     void populateColumns();
 
@@ -39,7 +39,7 @@ private:
 
     // Concurrent tasks.
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
-    // Instead, it is the index in the structured columns that we expect it to appear.
+    // Instead, it is the index in the columns that we expect it to appear.
     template<typename T>
     static void populateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
         uint64_t offsetStart, HashIndexBuilder<T>* pkIndex, InMemNodeCSVCopier* copier);
@@ -47,7 +47,7 @@ private:
 private:
     NodeTableSchema* nodeTableSchema;
     uint64_t numNodes;
-    vector<unique_ptr<InMemColumn>> structuredColumns;
+    vector<unique_ptr<InMemColumn>> columns;
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
 };
 

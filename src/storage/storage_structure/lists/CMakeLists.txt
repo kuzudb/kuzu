@@ -1,7 +1,7 @@
 add_library(kuzu_storage_lists
         OBJECT
         list_headers.cpp
-        list_sync_state.cpp
+        list_handle.cpp
         lists.cpp
         lists_metadata.cpp
         lists_update_iterator.cpp

@@ -132,7 +132,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         // If we are recovering we do not replay OVERFLOW_FILE_NEXT_BYTE_POS_RECORD because
         // this record is intended for rolling back a transaction to ensure that we can
-        // recover the overflow space allocated for the write trx by calling
+        // recover the overflow space allocated for the write transaction by calling
         // DiskOverflowFile::resetNextBytePosToWriteTo(...). However during recovery, storageManager
         // is null, so we cannot construct this value.
         if (isRecovering) {
@@ -220,7 +220,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // files have been changed during checkpoint. So the in memory
                 // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
                 // have likely changed they need to reconstruct their page locks).
-                storageManager->getNodesStore().getNodeTable(tableID)->loadColumnsAndListsFromDisk(
+                storageManager->getNodesStore().getNodeTable(tableID)->initializeData(
                     nodeTableSchema, *bufferManager, wal);
             } else {
                 auto catalogForCheckpointing = make_unique<catalog::Catalog>();
@@ -245,8 +245,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory(),
                     catalog);
                 // See comments for COPY_NODE_CSV_RECORD.
-                storageManager->getRelsStore().getRelTable(tableID)->loadColumnsAndListsFromDisk(
-                    *catalog, *bufferManager);
+                storageManager->getRelsStore().getRelTable(tableID)->initializeData(
+                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID), *bufferManager);
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
                     .setAdjListsAndColumns(&storageManager->getRelsStore());

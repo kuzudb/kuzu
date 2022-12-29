@@ -85,6 +85,11 @@ public:
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
           diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {}
 
+    inline void read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& resultVector) {
+        resultVector->resetOverflowBuffer();
+        Column::read(transaction, nodeIDVector, resultVector);
+    }
     inline DiskOverflowFile* getDiskOverflowFile() { return &diskOverflowFile; }
 
     inline VersionedFileHandle* getDiskOverflowFileHandle() {

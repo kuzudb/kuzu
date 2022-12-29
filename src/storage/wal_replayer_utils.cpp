@@ -22,9 +22,9 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_
 }
 
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
-    Catalog* catalog, table_id_t tableID, string directory) {
+    Catalog* catalog, table_id_t tableID, const string& directory) {
     auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    for (auto& property : nodeTableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
         InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
@@ -77,7 +77,7 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id
     const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const string& directory, RelTableSchema* relTableSchema) {
     for (auto boundTableID : boundTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == UINT64_MAX ?
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
                             0 :
                             maxNodeOffsetsPerTable.at(boundTableID) + 1;
         make_unique<InMemAdjColumn>(
@@ -96,7 +96,7 @@ void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t
     const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const string& directory, RelTableSchema* relTableSchema) {
     for (auto boundTableID : boundTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == UINT64_MAX ?
+        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
                             0 :
                             maxNodeOffsetsPerTable.at(boundTableID) + 1;
         auto adjLists = make_unique<InMemAdjLists>(
@@ -112,7 +112,7 @@ void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t
 }
 
 void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
-    string originalColFileName) {
+    const string& originalColFileName) {
     auto walColFileName = StorageUtils::appendWALFileSuffix(originalColFileName);
     FileUtils::renameFileIfExists(walColFileName, originalColFileName);
     // We also check if there is a WAL version of the overflow file for the column and if so
@@ -121,7 +121,8 @@ void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
         StorageUtils::getOverflowFileName(originalColFileName));
 }
 
-void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(string originalListFileName) {
+void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(
+    const string& originalListFileName) {
     auto walListFileName = StorageUtils::appendWALFileSuffix(originalListFileName);
     FileUtils::renameFileIfExists(walListFileName, originalListFileName);
     FileUtils::renameFileIfExists(StorageUtils::getListMetadataFName(walListFileName),
@@ -134,22 +135,22 @@ void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(string ori
         StorageUtils::getListHeadersFName(originalListFileName));
 }
 
-void WALReplayerUtils::removeColumnFilesIfExists(string fileName) {
+void WALReplayerUtils::removeColumnFilesIfExists(const string& fileName) {
     FileUtils::removeFileIfExists(fileName);
     FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
 }
 
-void WALReplayerUtils::removeListFilesIfExists(string fileName) {
+void WALReplayerUtils::removeListFilesIfExists(const string& fileName) {
     FileUtils::removeFileIfExists(fileName);
     FileUtils::removeFileIfExists(StorageUtils::getListMetadataFName(fileName));
     FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
     FileUtils::removeFileIfExists(StorageUtils::getListHeadersFName(fileName));
 }
 
-void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema, string directory,
-    std::function<void(string fileName)> columnFileOperation,
+void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
+    const string& directory, std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    for (auto& property : nodeTableSchema->properties) {
         columnFileOperation(StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
     }
@@ -157,8 +158,9 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }
 
-void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema, string directory,
-    const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
+void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
+    const string& directory, const Catalog* catalog,
+    std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
     for (auto relDirection : REL_DIRECTIONS) {
         auto boundTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(

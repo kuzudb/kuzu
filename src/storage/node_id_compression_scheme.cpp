@@ -4,7 +4,7 @@ namespace kuzu {
 namespace common {
 
 void NodeIDCompressionScheme::readNodeID(uint8_t* data, nodeID_t* nodeID) const {
-    if (commonTableID == UINT64_MAX) {
+    if (commonTableID == INVALID_TABLE_ID) {
         memcpy(&*nodeID, data, sizeof(nodeID_t));
     } else {
         nodeID->tableID = commonTableID;
@@ -13,7 +13,7 @@ void NodeIDCompressionScheme::readNodeID(uint8_t* data, nodeID_t* nodeID) const 
 }
 
 void NodeIDCompressionScheme::writeNodeID(uint8_t* data, const nodeID_t& nodeID) const {
-    if (commonTableID == UINT64_MAX) {
+    if (commonTableID == INVALID_TABLE_ID) {
         memcpy(data, &nodeID, sizeof(nodeID_t));
     } else {
         memcpy(data, &nodeID.offset, sizeof(node_offset_t));

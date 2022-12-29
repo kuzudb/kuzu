@@ -40,11 +40,11 @@ public:
     /**
      * Node and Rel table functions.
      */
-    table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-        vector<PropertyNameDataType> structuredPropertyDefinitions);
+    table_id_t addNodeTableSchema(
+        string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions,
+        const vector<PropertyNameDataType>& propertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     virtual inline string getNodeTableName(table_id_t tableID) const {
@@ -172,7 +172,7 @@ public:
     }
 
     inline void writeCatalogForWALRecord(string directory) {
-        catalogContentForWriteTrx->saveToFile(move(directory), DBFileType::WAL_VERSION);
+        catalogContentForWriteTrx->saveToFile(std::move(directory), DBFileType::WAL_VERSION);
     }
 
     static inline void saveInitialCatalogToFile(const string& directory) {
@@ -181,11 +181,11 @@ public:
 
     ExpressionType getFunctionType(const string& name) const;
 
-    table_id_t addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
-        vector<PropertyNameDataType> structuredPropertyDefinitions);
+    table_id_t addNodeTableSchema(
+        string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> structuredPropertyDefinitions,
+        vector<PropertyNameDataType> propertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     inline void removeTableSchema(TableSchema* tableSchema) {

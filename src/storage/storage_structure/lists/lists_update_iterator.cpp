@@ -88,11 +88,8 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
             list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, listLen);
             if (newHeader != oldHeader) {
                 InMemList inMemList{listLen, lists->elementSize, lists->mayContainNulls()};
-                CursorAndMapper cursorAndMapper;
-                cursorAndMapper.reset(lists->getListsMetadata(), lists->numElementsPerPage,
-                    lists->getHeaders()->getHeader(nodeOffsetToSlide), nodeOffsetToSlide);
                 const unordered_set<uint64_t> deletedRelOffsetsInList;
-                lists->fillInMemListsFromPersistentStore(cursorAndMapper,
+                lists->fillInMemListsFromPersistentStore(nodeOffsetToSlide,
                     lists->getNumElementsFromListHeader(nodeOffsetToSlide), inMemList,
                     deletedRelOffsetsInList);
                 updateSmallListAndCurCSROffset(oldHeader, inMemList);

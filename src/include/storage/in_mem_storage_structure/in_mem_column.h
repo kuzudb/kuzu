@@ -9,7 +9,7 @@ namespace storage {
 class InMemColumn {
 
 public:
-    // For structured property columns.
+    // For property columns.
     InMemColumn(string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements);
 
     virtual ~InMemColumn() = default;

@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstdint>
+
 namespace kuzu {
 namespace common {
 
 typedef uint64_t table_id_t;
 typedef uint64_t node_offset_t;
+constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr node_offset_t INVALID_NODE_OFFSET = UINT64_MAX;
 
 // System representation for nodeID.

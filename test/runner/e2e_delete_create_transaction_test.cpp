@@ -750,16 +750,16 @@ TEST_F(CreateRelTrxTest, ViolateManyOneMultiplicityError) {
     validateExceptionMessage(
         "MATCH (p1:person), (p2:person) WHERE p1.ID = 10 AND p2.ID = 10 CREATE "
         "(p1)-[:teaches]->(p2);",
-        "Runtime exception: RelTable 5 is a MANY_ONE table, but node(nodeOffset: 10, tableID: 1) "
-        "has more than one neighbour in the forward direction.");
+        "Runtime exception: Node(nodeOffset: 10, tableID: 1) in RelTable 5 cannot have more than "
+        "one neighbour in the forward direction.");
 }
 
 TEST_F(CreateRelTrxTest, ViolateOneOneMultiplicityError) {
     conn->beginWriteTransaction();
     validateExceptionMessage("MATCH (a:animal), (p:person) WHERE a.ID = 10 AND p.ID = 10 CREATE "
                              "(a)-[:hasOwner]->(p);",
-        "Runtime exception: RelTable 4 is a ONE_ONE table, but node(nodeOffset: 10, tableID: 0) "
-        "has more than one neighbour in the forward direction.");
+        "Runtime exception: Node(nodeOffset: 10, tableID: 0) in RelTable 4 cannot have more than "
+        "one neighbour in the forward direction.");
 }
 
 TEST_F(CreateRelTrxTest, CreateRelToEmptyRelTable) {

@@ -3,16 +3,8 @@
 #include "common/types/literal.h"
 #include "lists_update_store.h"
 #include "storage/storage_structure/disk_overflow_file.h"
-#include "storage/storage_structure/lists/list_headers.h"
-#include "storage/storage_structure/lists/list_sync_state.h"
-#include "storage/storage_structure/lists/lists_metadata.h"
+#include "storage/storage_structure/lists/list_handle.h"
 #include "storage/storage_structure/storage_structure.h"
-
-namespace kuzu {
-namespace testing {
-class CopyCSVEmptyListsTest;
-} // namespace testing
-} // namespace kuzu
 
 namespace kuzu {
 namespace storage {
@@ -35,38 +27,6 @@ struct InMemList {
     unique_ptr<NullMask> nullMask;
 };
 
-struct CursorAndMapper {
-    void reset(ListsMetadata& listMetadata, uint64_t numElementsPerPage, list_header_t listHeader,
-        node_offset_t nodeOffset) {
-        if (ListHeaders::isALargeList(listHeader)) {
-            cursor = PageUtils::getPageElementCursorForPos(0, numElementsPerPage);
-            mapper =
-                listMetadata.getPageMapperForLargeListIdx(ListHeaders::getLargeListIdx(listHeader));
-        } else {
-            cursor = PageUtils::getPageElementCursorForPos(
-                ListHeaders::getSmallListCSROffset(listHeader), numElementsPerPage);
-            mapper =
-                listMetadata.getPageMapperForChunkIdx(StorageUtils::getListChunkIdx(nodeOffset));
-        }
-    }
-
-    std::function<uint32_t(uint32_t)> mapper;
-    PageElementCursor cursor;
-};
-
-struct ListHandle {
-    explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
-
-    inline void resetCursorMapper(ListsMetadata& listMetadata, uint64_t numElementsPerPage) {
-        cursorAndMapper.reset(listMetadata, numElementsPerPage, listSyncState.getListHeader(),
-            listSyncState.getBoundNodeOffset());
-    }
-    inline void reset() { listSyncState.reset(); }
-
-    ListSyncState& listSyncState;
-    CursorAndMapper cursorAndMapper;
-};
-
 /**
  * A lists data structure holds a list of homogeneous values for each offset in it. Lists are used
  * for storing Adjacency List, Rel Property Lists.
@@ -80,7 +40,6 @@ struct ListHandle {
  * actual physical location in the Lists file on disk.
  * */
 class Lists : public BaseColumnOrList {
-    friend class kuzu::testing::CopyCSVEmptyListsTest;
     friend class ListsUpdateIterator;
     friend class ListsUpdateIteratorFactory;
 
@@ -118,8 +77,10 @@ public:
     }
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
-    virtual inline void setDeletedRelsIfNecessary(Transaction* transaction,
-        ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector) {}
+    virtual inline void setDeletedRelsIfNecessary(Transaction* transaction, ListHandle& listHandle,
+        const shared_ptr<ValueVector>& valueVector) {
+        // DO NOTHING.
+    }
     virtual void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     virtual void readFromSmallList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
@@ -130,15 +91,15 @@ public:
         TransactionType transactionType, node_offset_t nodeOffset);
     void initListReadingState(
         node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
-    unique_ptr<InMemList> getInMemListWithDataFromUpdateStoreOnly(
+    unique_ptr<InMemList> createInMemListWithDataFromUpdateStoreOnly(
         node_offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT);
     // This function writes the persistent store data (skipping over the deleted rels) and update
     // store data to the inMemList.
     unique_ptr<InMemList> writeToInMemList(node_offset_t nodeOffset,
         const vector<uint64_t>& insertedRelTupleIdxesInFT,
         const unordered_set<uint64_t>& deletedRelOffsetsForList);
-    void fillInMemListsFromPersistentStore(CursorAndMapper& cursorAndMapper,
-        uint64_t numElfementsInPersistentStore, InMemList& inMemList,
+    void fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
+        uint64_t numElementsInPersistentStore, InMemList& inMemList,
         const unordered_set<uint64_t>& deletedRelOffsetsInList);
 
 protected:
@@ -228,7 +189,7 @@ public:
 
     inline bool mayContainNulls() const override { return false; }
 
-    void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listSyncState) override;
+    void readValues(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
 
     // Currently, used only in copyCSV tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
@@ -253,7 +214,7 @@ private:
     void readFromSmallList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
     void readFromListsUpdateStore(
-        ListSyncState& listSyncState, const shared_ptr<ValueVector>& valueVector);
+        ListHandle& listHandle, const shared_ptr<ValueVector>& valueVector);
     void readFromListsPersistentStore(
         ListHandle& listHandle, const shared_ptr<ValueVector>& valueVector);
 
@@ -269,7 +230,7 @@ public:
         BufferManager& bufferManager, bool isInMemory, WAL* wal, ListsUpdateStore* listsUpdateStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
               bufferManager, isInMemory, wal, listsUpdateStore} {}
-    void setDeletedRelsIfNecessary(Transaction* transaction, ListSyncState& listSyncState,
+    void setDeletedRelsIfNecessary(Transaction* transaction, ListHandle& listHandle,
         const shared_ptr<ValueVector>& relIDVector) override;
     unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(node_offset_t nodeOffset);
 };
