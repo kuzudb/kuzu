@@ -1,0 +1,4 @@
+CREATE NODE TABLE person (ID INT64, PRIMARY KEY(ID))
+CREATE REL TABLE knows (FROM person TO person, MANY_ONE)
+CREATE REL TABLE teaches (FROM person TO person, ONE_MANY)
+CREATE REL TABLE matches (FROM person TO person, ONE_ONE)

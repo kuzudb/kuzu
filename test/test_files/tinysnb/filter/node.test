@@ -1,0 +1,136 @@
+-NAME PersonNodesAgeFilteredTest1
+-QUERY MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
+---- 1
+3
+
+-NAME PersonNodesAgeFilteredTest2
+-QUERY MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
+---- 1
+2
+
+-NAME PersonNodesAgeFilteredTest3
+-QUERY MATCH (a:person) WHERE a.age >= 25 RETURN COUNT(*)
+---- 1
+6
+
+-NAME PersonNodesAgeFilteredTest4
+-QUERY MATCH (a:person) WHERE a.age > 25 RETURN COUNT(*)
+---- 1
+5
+
+-NAME PersonNodesAgeFilteredTest5
+-QUERY MATCH (a:person {age:25}) RETURN COUNT(*)
+---- 1
+1
+
+-NAME PersonNodesAgeFilteredTest6
+-QUERY MATCH (a:person) WHERE a.age <> 25 RETURN COUNT(*)
+---- 1
+7
+
+-NAME PersonNodesAgeFilteredTest7
+-QUERY MATCH (a:person) WHERE a.age IS NULL RETURN COUNT(*)
+---- 1
+0
+
+-NAME PersonNodesAgeFilteredTest8
+-QUERY MATCH (a:person) WHERE a.age IS NOT NULL RETURN COUNT(*)
+---- 1
+8
+
+-NAME SingletonKnowsFilteredTest
+-QUERY MATCH (a:person) WHERE a.gender * 2.1 = 2.1 * a.gender RETURN COUNT(*)
+---- 1
+8
+
+-NAME PersonNodesIsStudentFilteredTest
+-QUERY MATCH (a:person) WHERE a.isStudent RETURN COUNT(*)
+---- 1
+3
+
+-NAME PersonNodesIsWorkerFilteredTest
+-QUERY MATCH (a:person {isWorker:true}) RETURN COUNT(*)
+---- 1
+4
+
+-NAME PersonNodesIsWorkerFilteredTest1
+-QUERY MATCH (a:person) WHERE a.isWorker AND a.isStudent RETURN COUNT(*)
+---- 1
+0
+
+-NAME PersonNodesIsWorkerFilteredTest2
+-QUERY MATCH (a:person) WHERE a.isWorker OR a.isStudent RETURN COUNT(*)
+---- 1
+7
+
+-NAME PersonNodesIsWorkerFilteredTest3
+-QUERY MATCH (a:person) WHERE a.isWorker XOR a.isStudent RETURN COUNT(*)
+---- 1
+7
+
+-NAME PersonNodesIsWorkerFilteredTest4
+-QUERY MATCH (a:person) WHERE NOT a.isWorker RETURN COUNT(*)
+---- 1
+4
+
+-NAME OrganisationNodesMarkFilteredTest
+-QUERY MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
+---- 1
+3
+
+-NAME PersonNodesGenderFilteredTest1
+-QUERY MATCH (a:person) WHERE (a.gender/2 <= 0.5) RETURN COUNT(*)
+---- 1
+3
+
+-NAME PersonNodesGenderFilteredTest2
+-QUERY MATCH (a:person) WHERE (a.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 1
+5
+
+-NAME PersonNodesFNameFilteredTest1
+-QUERY MATCH (a:person) WHERE a.fName = 'Farooq' RETURN COUNT(*)
+---- 1
+1
+
+-NAME PersonNodesFNameFilteredTest2
+-QUERY MATCH (a:person) WHERE a.fName <> 'Farooq' RETURN COUNT(*)
+---- 1
+7
+
+-NAME PersonNodesFNameFilteredTest3
+-QUERY MATCH (a:person) WHERE a.fName < 'Carom' RETURN COUNT(*)
+---- 1
+3
+
+-NAME PersonNodesFNameFilteredTest4
+-QUERY MATCH (a:person) WHERE a.fName >= 'Eliz' RETURN COUNT(*)
+---- 1
+4
+
+-NAME FilterNullTest1
+-QUERY MATCH (a:person) WHERE a.age <= null RETURN COUNT(*)
+---- 1
+0
+
+-NAME FilterNullTest2
+-QUERY MATCH (a:person) WHERE a.age + null <= 200 RETURN COUNT(*)
+---- 1
+0
+
+-NAME FilterNullTest3
+-QUERY MATCH (a:person) WHERE a.isStudent OR null RETURN COUNT(*)
+---- 1
+3
+
+-NAME nodeCrossProduct
+-QUERY MATCH (a:person), (b:person {ID:a.ID}) WHERE a.ID < 4 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-NAME nodeCrossProduct
+-QUERY MATCH (a:person {ID:1000}), (b:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+0

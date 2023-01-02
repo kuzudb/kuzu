@@ -1,25 +1,24 @@
-#include "include/expression_binder.h"
+#include "binder/expression_binder.h"
 
-#include "src/binder/expression/include/existential_subquery_expression.h"
-#include "src/binder/expression/include/function_expression.h"
-#include "src/binder/expression/include/literal_expression.h"
-#include "src/binder/expression/include/parameter_expression.h"
-#include "src/binder/expression/include/rel_expression.h"
-#include "src/binder/include/binder.h"
-#include "src/common/include/type_utils.h"
-#include "src/function/boolean/include/vector_boolean_operations.h"
-#include "src/function/cast/include/vector_cast_operations.h"
-#include "src/function/null/include/vector_null_operations.h"
-#include "src/parser/expression/include/parsed_function_expression.h"
-#include "src/parser/expression/include/parsed_literal_expression.h"
-#include "src/parser/expression/include/parsed_parameter_expression.h"
-#include "src/parser/expression/include/parsed_property_expression.h"
-#include "src/parser/expression/include/parsed_subquery_expression.h"
-#include "src/parser/expression/include/parsed_variable_expression.h"
+#include "binder/binder.h"
+#include "binder/expression/existential_subquery_expression.h"
+#include "binder/expression/function_expression.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "common/type_utils.h"
+#include "function/boolean/vector_boolean_operations.h"
+#include "function/null/vector_null_operations.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
+#include "parser/expression/parsed_parameter_expression.h"
+#include "parser/expression/parsed_property_expression.h"
+#include "parser/expression/parsed_subquery_expression.h"
+#include "parser/expression/parsed_variable_expression.h"
 
-using namespace graphflow::function;
+using namespace kuzu::function;
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
@@ -43,8 +42,9 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindVariableExpression(parsedExpression);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
         expression = bindExistentialSubqueryExpression(parsedExpression);
-    } else if (!expression) {
-        assert(false);
+    } else {
+        throw NotImplementedException(
+            "bindExpression(" + expressionTypeToString(expressionType) + ").");
     }
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
@@ -60,32 +60,45 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = bindExpression(*parsedExpression.getChild(i));
-        // Boolean functions are non-overload functions. We cast input to BOOL.
-        child = implicitCastIfNecessary(child, BOOL);
-        children.push_back(move(child));
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
-    auto expressionType = parsedExpression.getExpressionType();
+    return bindBooleanExpression(parsedExpression.getExpressionType(), children);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
+    ExpressionType expressionType, const expression_vector& children) {
+    expression_vector childrenAfterCast;
+    for (auto& child : children) {
+        childrenAfterCast.push_back(implicitCastIfNecessary(child, BOOL));
+    }
     auto functionName = expressionTypeToString(expressionType);
-    auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, children);
-    auto selectFunc = VectorBooleanOperations::bindSelectFunction(expressionType, children);
-    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
-        move(execFunc), move(selectFunc), uniqueExpressionName);
+    auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, childrenAfterCast);
+    auto selectFunc =
+        VectorBooleanOperations::bindSelectFunction(expressionType, childrenAfterCast);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL),
+        move(childrenAfterCast), move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
-    vector<DataType> childrenTypes;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        childrenTypes.push_back(child->dataType);
         children.push_back(move(child));
     }
+    return bindComparisonExpression(parsedExpression.getExpressionType(), std::move(children));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
+    ExpressionType expressionType, const expression_vector& children) {
     auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
-    auto expressionType = parsedExpression.getExpressionType();
-    auto functionName = expressionTypeToString(parsedExpression.getExpressionType());
+    auto functionName = expressionTypeToString(expressionType);
+    vector<DataType> childrenTypes;
+    for (auto& child : children) {
+        childrenTypes.push_back(child->dataType);
+    }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
@@ -117,43 +130,103 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     auto propertyName = propertyExpression.getPropertyName();
+    if (TableSchema::isReservedPropertyName(propertyName)) {
+        // Note we don't expose direct access to internal properties in case user tries to modify
+        // them. However, we can expose indirect read-only access through function e.g. ID().
+        throw BinderException(
+            propertyName + " is reserved for system usage. External access is not allowed.");
+    }
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(child, propertyName);
-    } else if (REL == child->dataType.typeID) {
+    } else {
+        assert(REL == child->dataType.typeID);
         return bindRelPropertyExpression(child, propertyName);
     }
-    assert(false);
+}
+
+// E.g. MATCH (a:person:org) RETURN a.dummy
+static void validatePropertyExistence(
+    const vector<Property>& properties, const string& propertyName, const string& variableName) {
+    if (properties.empty()) {
+        throw BinderException(
+            "Cannot find property " + propertyName + " for " + variableName + ".");
+    }
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     shared_ptr<Expression> node, const string& propertyName) {
     auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto nodeExpression = static_pointer_cast<NodeExpression>(node);
-    if (catalogContent->containNodeProperty(nodeExpression->getTableID(), propertyName)) {
-        auto& property =
-            catalogContent->getNodeProperty(nodeExpression->getTableID(), propertyName);
-        return make_shared<PropertyExpression>(
-            property.dataType, propertyName, property.propertyID, move(node));
-    } else {
-        throw BinderException("Node " + nodeExpression->getRawName() + " does not have property " +
-                              propertyName + ".");
+    vector<Property> properties;
+    for (auto tableID : nodeExpression->getTableIDs()) {
+        if (!catalogContent->containNodeProperty(tableID, propertyName)) {
+            continue;
+        }
+        properties.push_back(catalogContent->getNodeProperty(tableID, propertyName));
     }
+    validatePropertyExistence(properties, propertyName, nodeExpression->getRawName());
+    return bindNodePropertyExpression(node, properties);
+}
+
+static void validatePropertiesWithSameDataType(const vector<Property>& properties,
+    const DataType& dataType, const string& propertyName, const string& variableName) {
+    for (auto& property : properties) {
+        if (property.dataType != dataType) {
+            throw BinderException(
+                "Cannot resolve data type of " + propertyName + " for " + variableName + ".");
+        }
+    }
+}
+
+static unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
+    const vector<Property>& properties) {
+    unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    for (auto& property : properties) {
+        propertyIDPerTable.insert({property.tableID, property.propertyID});
+    }
+    return propertyIDPerTable;
+}
+
+shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
+    shared_ptr<Expression> node, const vector<Property>& properties) {
+    assert(!properties.empty());
+    auto anchorProperty = properties[0];
+    validatePropertiesWithSameDataType(
+        properties, anchorProperty.dataType, anchorProperty.name, node->getRawName());
+    return make_shared<PropertyExpression>(anchorProperty.dataType, anchorProperty.name,
+        populatePropertyIDPerTable(properties), std::move(node));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     shared_ptr<Expression> rel, const string& propertyName) {
     auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto relExpression = static_pointer_cast<RelExpression>(rel);
-    if (catalogContent->containRelProperty(relExpression->getTableID(), propertyName)) {
-        auto& property = catalogContent->getRelProperty(relExpression->getTableID(), propertyName);
-        return make_shared<PropertyExpression>(
-            property.dataType, propertyName, property.propertyID, move(rel));
-    } else {
-        throw BinderException(
-            "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
+    vector<Property> properties;
+    for (auto tableID : relExpression->getTableIDs()) {
+        if (!catalogContent->containRelProperty(tableID, propertyName)) {
+            continue;
+        }
+        properties.push_back(catalogContent->getRelProperty(tableID, propertyName));
     }
+    validatePropertyExistence(properties, propertyName, relExpression->getRawName());
+    return bindRelPropertyExpression(rel, properties);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
+    shared_ptr<Expression> rel, const vector<Property>& properties) {
+    auto relExpression = static_pointer_cast<RelExpression>(rel);
+    if (relExpression->isVariableLength()) {
+        throw BinderException(
+            "Cannot read property of variable length rel " + rel->getRawName() + ".");
+    }
+    assert(!properties.empty());
+    auto anchorProperty = properties[0];
+    validatePropertiesWithSameDataType(
+        properties, anchorProperty.dataType, anchorProperty.name, rel->getRawName());
+    return make_shared<PropertyExpression>(anchorProperty.dataType, anchorProperty.name,
+        populatePropertyIDPerTable(properties), std::move(rel));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
@@ -211,15 +284,9 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
         // rewrite aggregate on node or rel as aggregate on their internal IDs.
-        if (child->dataType.typeID == NODE) {
-            auto node = static_pointer_cast<NodeExpression>(child);
-            child = node->getNodeIDPropertyExpression();
-        } else if (child->dataType.typeID == REL) {
-            auto rel = static_pointer_cast<RelExpression>(child);
-            auto idProperty = binder->catalog.getReadOnlyVersion()->getRelProperty(
-                rel->getTableID(), INTERNAL_ID_SUFFIX);
-            child = make_shared<PropertyExpression>(
-                idProperty.dataType, INTERNAL_ID_SUFFIX, idProperty.propertyID, std::move(child));
+        // e.g. COUNT(a) -> COUNT(a._id)
+        if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
+            child = bindInternalIDExpression(child);
         }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
@@ -227,6 +294,9 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
     auto uniqueExpressionName =
         AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
+    if (children.empty()) {
+        uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
+    }
     return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
         move(children), function->aggregateFunction->clone(), uniqueExpressionName);
 }
@@ -245,17 +315,47 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
-    } else if (functionName == ID_FUNC_NAME) {
-        return bindIDFunctionExpression(parsedExpression);
+    } else {
+        assert(functionName == ID_FUNC_NAME);
+        return bindInternalIDExpression(parsedExpression);
     }
-    assert(false);
 }
 
-shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
+shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, NODE);
-    return ((NodeExpression&)*child).getNodeIDPropertyExpression();
+    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
+    return bindInternalIDExpression(child);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
+    shared_ptr<Expression> nodeOrRel) {
+    if (nodeOrRel->dataType.typeID == NODE) {
+        return bindInternalNodeIDExpression(nodeOrRel);
+    } else {
+        assert(nodeOrRel->dataType.typeID == REL);
+        return bindInternalRelIDExpression(nodeOrRel);
+    }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalNodeIDExpression(shared_ptr<Expression> node) {
+    auto nodeExpression = (NodeExpression*)node.get();
+    unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    for (auto tableID : nodeExpression->getTableIDs()) {
+        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+    }
+    return make_unique<PropertyExpression>(
+        DataType(NODE_ID), INTERNAL_ID_SUFFIX, std::move(propertyIDPerTable), node);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindInternalRelIDExpression(shared_ptr<Expression> rel) {
+    auto relExpression = (RelExpression*)rel.get();
+    vector<Property> properties;
+    for (auto tableID : relExpression->getTableIDs()) {
+        auto relTableSchema = binder->catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        properties.push_back(relTableSchema->getRelIDDefinition());
+    }
+    return bindRelPropertyExpression(rel, properties);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
@@ -275,6 +375,10 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
     auto literal = literalExpression.getLiteral();
+    if (literal->isNull()) {
+        return LiteralExpression::createNullLiteralExpression(
+            binder->getUniqueExpressionName("NULL"));
+    }
     return make_shared<LiteralExpression>(literal->dataType, make_unique<Literal>(*literal));
 }
 
@@ -293,7 +397,6 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();
     auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpression.getPatternElements());
-    Binder::validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
     auto boundSubqueryExpression =
         make_shared<ExistentialSubqueryExpression>(std::move(queryGraph), std::move(name));
@@ -306,90 +409,50 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const shared_ptr<Expression>& expression, DataType targetType) {
+    if (targetType.typeID == ANY || expression->dataType == targetType) {
+        return expression;
+    }
+    if (expression->dataType.typeID == ANY) {
+        resolveAnyDataType(*expression, targetType);
+        return expression;
+    }
+    return implicitCast(expression, targetType);
+}
+
+shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
-    if (expression->dataType.typeID == targetTypeID || targetTypeID == ANY) {
+    if (targetTypeID == ANY || expression->dataType.typeID == targetTypeID) {
         return expression;
     }
-    if (expression->dataType.typeID == ANY) { // resolve type for parameter expression
-        auto isParameterExpression = expression->expressionType == PARAMETER;
-        auto isNullLiteralExpression =
-            expression->expressionType == LITERAL && ((LiteralExpression&)*expression).isNull();
-        assert(isParameterExpression || isNullLiteralExpression);
-        static_pointer_cast<ParameterExpression>(expression)->setDataType(DataType(targetTypeID));
+    if (expression->dataType.typeID == ANY) {
+        if (targetTypeID == LIST) {
+            // e.g. len($1) we cannot infer the child type for $1.
+            throw BinderException("Cannot resolve recursive data type for expression " +
+                                  expression->getRawName() + ".");
+        }
+        resolveAnyDataType(*expression, DataType(targetTypeID));
         return expression;
     }
-    switch (targetTypeID) {
-    case BOOL: {
-        return implicitCastToBool(expression);
-    }
-    case INT64: {
-        return implicitCastToInt64(expression);
-    }
-    case STRING: {
-        return implicitCastToString(expression);
-    }
-    case TIMESTAMP: {
-        return implicitCastToTimestamp(expression);
-    }
-    case UNSTRUCTURED: {
-        return implicitCastToUnstructured(expression);
-    }
-    default:
-        throw NotImplementedException("Expression " + expression->getRawName() + " has data type " +
-                                      Types::dataTypeToString(expression->dataType) +
-                                      " but expect " + Types::dataTypeToString(targetTypeID) +
-                                      ". Implicit cast is not supported.");
+    assert(targetTypeID != LIST);
+    return implicitCast(expression, DataType(targetTypeID));
+}
+
+void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targetType) {
+    if (expression.expressionType == PARAMETER) { // expression is parameter
+        ((ParameterExpression&)expression).setDataType(targetType);
+    } else { // expression is null literal
+        assert(expression.expressionType == LITERAL);
+        ((LiteralExpression&)expression).setDataType(targetType);
     }
 }
 
-shared_ptr<Expression> ExpressionBinder::implicitCastToBool(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToBool(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_BOOL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(BOOL), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToInt64(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToInt64(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_INT_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(INT64), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToString(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToString(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_STRING_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(STRING), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToTimestamp(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToTimestamp(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(TIMESTAMP), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToUnstructured(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(UNSTRUCTURED), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
+shared_ptr<Expression> ExpressionBinder::implicitCast(
+    const shared_ptr<Expression>& expression, DataType targetType) {
+    throw BinderException("Expression " + expression->getRawName() + " has data type " +
+                          Types::dataTypeToString(expression->dataType) + " but expect " +
+                          Types::dataTypeToString(targetType) +
+                          ". Implicit cast is not supported.");
 }
 
 void ExpressionBinder::validateExpectedDataType(
@@ -414,4 +477,4 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

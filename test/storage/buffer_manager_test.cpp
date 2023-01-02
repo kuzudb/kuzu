@@ -1,25 +1,25 @@
-#include "test/test_utility/include/test_helper.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "test_helper/test_helper.h"
 
-#include "src/storage/buffer_manager/include/buffer_manager.h"
-
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 class BufferManagerTests : public Test {
 
 protected:
-    void SetUp() override { FileUtils::createDir(TestHelper::TEMP_TEST_DIR); }
+    void SetUp() override { FileUtils::createDir(TestHelper::getTmpTestDir()); }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
-    FileHandle fileHandle(string(TestHelper::TEMP_TEST_DIR) + "bm_test.bin",
-        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+    FileHandle fileHandle(string(TestHelper::getTmpTestDir()) + "bm_test.bin",
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     uint64_t numPagesToAdd = 1000;
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         fileHandle.addNewPage();
     }
-    BufferManager* bufferManager = new BufferManager();
+    BufferManager* bufferManager =
+        new BufferManager(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     // Pin and unpin some pages
     bufferManager->pinWithoutReadingFromFile(fileHandle, 10);
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);

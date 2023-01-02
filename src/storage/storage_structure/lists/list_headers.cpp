@@ -1,20 +1,19 @@
-#include "src/storage/storage_structure/include/lists/list_headers.h"
+#include "storage/storage_structure/lists/list_headers.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
 
-#include "src/common/include/utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 BaseListHeaders::BaseListHeaders() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("storage");
 }
 
 ListHeadersBuilder::ListHeadersBuilder(const string& baseListFName, uint64_t numElements)
     : BaseListHeaders() {
     fileHandle = make_unique<FileHandle>(StorageUtils::getListHeadersFName(baseListFName),
-        FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     // DiskArray assumes that its header page already exists. To ensure that we need to add a page
     // to the fileHandle. Currently, the header page is at page 0, so we add one page here.
     fileHandle->addNewPage();
@@ -33,7 +32,7 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName storageStructureIDAndF
     storageStructureIDAndFName.fName =
         StorageUtils::getListHeadersFName(storageStructureIDAndFNameForBaseList.fName);
     versionedFileHandle = make_unique<VersionedFileHandle>(
-        storageStructureIDAndFName, FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName = versionedFileHandle->getFileInfo()->path;
     headersDiskArray = make_unique<InMemDiskArray<list_header_t>>(
@@ -42,4 +41,4 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName storageStructureIDAndF
 };
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

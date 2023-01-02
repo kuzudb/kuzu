@@ -1,4 +1,6 @@
-#include "include/main_test_helper.h"
+#include "main_test_helper/main_test_helper.h"
+
+using namespace kuzu::testing;
 
 TEST_F(ApiTest, MultiParamsPrepare) {
     auto preparedStatement = conn->prepare(
@@ -111,4 +113,15 @@ TEST_F(ApiTest, ParamTypeError) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_STREQ(
         "Parameter n has data type INT64 but expect STRING.", result->getErrorMessage().c_str());
+}
+
+TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN a.ID, a.fName");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
+    auto groundTruth = vector<string>{"0|Alice"};
+    ASSERT_EQ(groundTruth, TestHelper::convertResultToString(*result));
+    result = conn->execute(preparedStatement.get(), make_pair(string("n"), "B"));
+    groundTruth = vector<string>{"2|Bob"};
+    ASSERT_EQ(groundTruth, TestHelper::convertResultToString(*result));
 }

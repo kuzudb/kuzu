@@ -1,8 +1,9 @@
-#include "test/test_utility/include/test_helper.h"
+#include "processor/mapper/plan_mapper.h"
+#include "test_helper/test_helper.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 class PrimaryKeyTest : public EmptyDBTest {
@@ -16,15 +17,21 @@ public:
 
 class IntPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override { return "dataset/primary-key-tests/int-pk-tests/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/");
+    }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query("COPY Person FROM \"dataset/primary-key-tests/int-pk-tests/vPerson.csv\"");
-        conn->query("COPY Knows FROM \"dataset/primary-key-tests/int-pk-tests/eKnows.csv\"");
+        conn->query(
+            "COPY Person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/vPerson.csv\""));
+        conn->query(
+            "COPY Knows FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/eKnows.csv\""));
         auto tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 0"
                                  "RETURN COUNT(*)")
                          ->getNext();
@@ -50,15 +57,21 @@ public:
 
 class StringPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override { return "dataset/primary-key-tests/string-pk-tests/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/string-pk-tests/");
+    }
 
     void testPrimaryKey(string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
         conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query("COPY Person FROM \"dataset/primary-key-tests/string-pk-tests/vPerson.csv\"");
-        conn->query("COPY Knows FROM \"dataset/primary-key-tests/string-pk-tests/eKnows.csv\"");
+        conn->query(
+            "COPY Person FROM \"" + TestHelper::appendKuzuRootPath(
+                                        "dataset/primary-key-tests/string-pk-tests/vPerson.csv\""));
+        conn->query(
+            "COPY Knows FROM \"" + TestHelper::appendKuzuRootPath(
+                                       "dataset/primary-key-tests/string-pk-tests/eKnows.csv\""));
         auto tuple =
             conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Alice\" "
                         "RETURN COUNT(*)")
@@ -88,66 +101,125 @@ class TinySnbDDLTest : public DBTest {
 public:
     void SetUp() override {
         DBTest::SetUp();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*database);
         profiler = make_unique<Profiler>();
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         executionContext = make_unique<ExecutionContext>(
-            1, profiler.get(), nullptr /* memoryManager */, nullptr /* bufferManager */);
+            1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
     }
 
     void initWithoutLoadingGraph() {
         createDBAndConn();
-        catalog = conn->database->getCatalog();
+        catalog = getCatalog(*database);
     }
 
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
     void createNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        executeDDLWithoutCommit(
+        executeQueryWithoutCommit(
             "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
-                          ->getNodesStore()
-                          .getNodesStatisticsAndDeletedIDs()
-                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                2);
-            initWithoutLoadingGraph();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
+            ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
+            initWithoutLoadingGraph();
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
+            ASSERT_EQ(getStorageManager(*database)
+                          ->getNodesStore()
+                          .getNodesStatisticsAndDeletedIDs()
+                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
+                4);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(database->getStorageManager()
+            ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                3);
+                4);
         }
     }
 
     void createRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        executeDDLWithoutCommit(
+        executeQueryWithoutCommit(
             "CREATE REL TABLE likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 5);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
         } else {
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(database->getStorageManager()->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
+        }
+    }
+
+    void validateBelongsRelTable() {
+        // Valid relations in belongs table: person->organisation, organisation->country.
+        auto result = conn->query("MATCH (:person)-[:belongs]->(:organisation) RETURN count(*)");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"2"});
+        result = conn->query("MATCH (a:person)-[e:belongs]->(b:country) RETURN count(*)");
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (:organisation)-[:belongs]->(:country) RETURN count(*)");
+        ASSERT_TRUE(result->isSuccess());
+        ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"1"});
+        result = conn->query("MATCH (a:organisation)-[e:belongs]->(b:person) RETURN count(*)");
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:person) RETURN count(*)");
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+        result = conn->query("MATCH (a:country)-[e:belongs]->(b:organisation) RETURN count(*)");
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_EQ(result->getErrorMessage(),
+            "Binder exception: Nodes a and b are not connected through rel e.");
+    }
+
+    void createRelMixedRelationCommitAndRecoveryTest(TransactionTestType transactionTestType) {
+        conn->query("CREATE NODE TABLE country(id INT64, PRIMARY KEY(id));");
+        conn->query("CREATE (c:country{id: 0});");
+        executeQueryWithoutCommit(
+            "CREATE REL TABLE belongs(FROM person TO organisation, FROM organisation TO country);");
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            initWithoutLoadingGraph();
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+        } else {
+            conn->commit();
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+        }
+        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(
+            catalog->getReadOnlyVersion()->getRelTableIDFromName("belongs"));
+        validateRelColumnAndListFilesExistence(
+            relTableSchema, DBFileType::ORIGINAL, true /* existence */);
+        executeQueryWithoutCommit("COPY belongs FROM \"" +
+                                  TestHelper::appendKuzuRootPath("dataset/tinysnb/eBelongs.csv\""));
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            initWithoutLoadingGraph();
+            validateBelongsRelTable();
+        } else {
+            conn->commit();
+            validateBelongsRelTable();
         }
     }
 
@@ -156,22 +228,19 @@ public:
         auto nodeTableSchema =
             make_unique<NodeTableSchema>(*catalog->getReadOnlyVersion()->getNodeTableSchema(
                 catalog->getReadOnlyVersion()->getNodeTableIDFromName("university")));
-        executeDDLWithoutCommit("DROP TABLE university");
-        validateNodeColumnAndListFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+        executeQueryWithoutCommit("DROP TABLE university");
+        validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
             initWithoutLoadingGraph();
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         } else {
             conn->commit();
-            validateNodeColumnAndListFilesExistence(
-                nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         }
     }
@@ -180,11 +249,11 @@ public:
         auto relTableSchema =
             make_unique<RelTableSchema>(*catalog->getReadOnlyVersion()->getRelTableSchema(
                 catalog->getReadOnlyVersion()->getRelTableIDFromName("knows")));
-        executeDDLWithoutCommit("DROP TABLE knows");
+        executeQueryWithoutCommit("DROP TABLE knows");
         validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            commitButSkipCheckpointingForTestingRecovery(*conn);
             validateRelColumnAndListFilesExistence(
                 relTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
@@ -210,19 +279,23 @@ public:
             "previous transaction and issue a ddl query without opening a transaction.");
     }
 
-    void executeDDLWithoutCommit(string query) {
-        auto preparedStatement = conn->prepareNoLock(query);
-        conn->beginTransactionNoLock(WRITE);
-        database->queryProcessor->execute(
-            preparedStatement->physicalPlan.get(), executionContext.get());
+    void executeQueryWithoutCommit(string query) {
+        auto preparedStatement = conn->prepare(query);
+        conn->beginWriteTransaction();
+        auto mapper = PlanMapper(
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
     Catalog* catalog;
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<Profiler> profiler;
 };
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu
 
 TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
     testPrimaryKey("firstStrCol");
@@ -306,6 +379,11 @@ TEST_F(TinySnbDDLTest, MultipleCreateRelTables) {
     ASSERT_EQ(result->getNumTuples(), 0);
     result = conn->query("MATCH (o:organisation)-[l:employees]->(p1:person) return l.ID");
     ASSERT_FALSE(result->isSuccess());
+    result = conn->query("CREATE (p:person {ID:100})-[:likes]->(p1:person {ID:101})");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query("MATCH (p:person)-[l:likes]->(p1:person) return l");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNumTuples(), 1);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {
@@ -329,6 +407,9 @@ TEST_F(TinySnbDDLTest, MultipleDropTables) {
     result = conn->query("DROP TABLE organisation");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
+    result = conn->query("DROP TABLE movies");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("movies"));
     result = conn->query(
         "create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score "
         "INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID));");
@@ -361,4 +442,27 @@ TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, DDLOutputMsg) {
+    auto result = conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID));");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"NodeTable: university has been created."});
+    result = conn->query("CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY);");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"RelTable: nearTo has been created."});
+    result = conn->query("DROP TABLE nearTo;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"RelTable: nearTo has been dropped."});
+    result = conn->query("DROP TABLE university;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"NodeTable: university has been dropped."});
+}
+
+TEST_F(TinySnbDDLTest, CreateMixedRelationTableNormalExecution) {
+    createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, CreateMixedRelationTableRecovery) {
+    createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }

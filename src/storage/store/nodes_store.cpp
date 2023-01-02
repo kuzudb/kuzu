@@ -1,6 +1,6 @@
-#include "src/storage/store/include/nodes_store.h"
+#include "storage/store/nodes_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 NodesStore::NodesStore(
@@ -13,4 +13,4 @@ NodesStore::NodesStore(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

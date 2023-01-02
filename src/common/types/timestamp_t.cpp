@@ -1,8 +1,8 @@
-#include "include/timestamp_t.h"
+#include "common/types/timestamp_t.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 timestamp_t timestamp_t::operator+(const interval_t& interval) const {
@@ -64,9 +64,7 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
     }
 
     if (!Date::TryConvertDate(str, dateStrLen, pos, date)) {
-        throw ConversionException("Error occurred during parsing time Given: \"" +
-                                  string(str, len) +
-                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS][+/-HH:MM])");
+        throw ConversionException(getTimestampConversionExceptionMsg(str, len));
     }
     if (pos == len) {
         // no time: only a date
@@ -79,9 +77,7 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
     }
     uint64_t time_pos = 0;
     if (!Time::TryConvertTime(str + pos, len - pos, time_pos, time)) {
-        throw ConversionException("Error occurred during parsing time Given: \"" +
-                                  string(str, len) +
-                                  "\"Expected Format: (YYYY-MM-DD HH:MM:SS[.MS][+/-HH:MM])");
+        throw ConversionException(getTimestampConversionExceptionMsg(str, len));
     }
     pos += time_pos;
     result = FromDatetime(date, time);
@@ -100,7 +96,7 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
             pos++;
         }
         if (pos < len) {
-            throw ConversionException(string(str, len));
+            throw ConversionException(getTimestampConversionExceptionMsg(str, len));
         }
     }
     return result;
@@ -244,4 +240,4 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

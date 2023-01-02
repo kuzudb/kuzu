@@ -1,6 +1,6 @@
-#include "include/union_all_scan.h"
+#include "processor/operator/table_scan/union_all_scan.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 uint64_t UnionAllScanSharedState::getMaxMorselSize() const {
@@ -27,4 +27,4 @@ unique_ptr<FTableScanMorsel> UnionAllScanSharedState::getMorsel(uint64_t maxMors
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

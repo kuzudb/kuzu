@@ -1,13 +1,12 @@
-#include "include/catalog.h"
+#include "catalog/catalog.h"
 
 #include "spdlog/spdlog.h"
-
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
 using namespace std;
-using namespace graphflow::catalog;
+using namespace kuzu::catalog;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 /**
@@ -131,7 +130,6 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
@@ -143,7 +141,6 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.structuredProperties, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.unstructuredProperties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -156,10 +153,8 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    return SerDeser::serializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::serializeVector<pair<table_id_t, table_id_t>>(
+        value.srcDstTableIDs, fileInfo, offset);
 }
 
 template<>
@@ -169,24 +164,22 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    offset = SerDeser::deserializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.srcTableIDs, fileInfo, offset);
-    return SerDeser::deserializeUnorderedSet<table_id_t>(
-        value.srcDstTableIDs.dstTableIDs, fileInfo, offset);
+    return SerDeser::deserializeVector<pair<table_id_t, table_id_t>>(
+        value.srcDstTableIDs, fileInfo, offset);
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+CatalogContent::CatalogContent() : nextTableID{0} {
+    logger = LoggerUtils::getOrCreateLogger("catalog");
 }
 
 CatalogContent::CatalogContent(const string& directory) {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("catalog");
     logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
     logger->info("Initializing catalog done.");
@@ -203,11 +196,12 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     }
     nodeTableNameToIDMap = other.nodeTableNameToIDMap;
     relTableNameToIDMap = other.relTableNameToIDMap;
+    nextTableID = other.nextTableID;
 }
 
 table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
     vector<PropertyNameDataType> structuredPropertyDefinitions) {
-    table_id_t tableID = getNumNodeTables();
+    table_id_t tableID = assignNextTableID();
     vector<Property> structuredProperties;
     for (auto i = 0u; i < structuredPropertyDefinitions.size(); ++i) {
         auto& propertyDefinition = structuredPropertyDefinitions[i];
@@ -222,23 +216,22 @@ table_id_t CatalogContent::addNodeTableSchema(string tableName, uint32_t primary
 }
 
 table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
-    table_id_t tableID = relTableSchemas.size();
-    for (auto& srcTableID : srcDstTableIDs.srcTableIDs) {
+    vector<PropertyNameDataType> structuredPropertyDefinitions,
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs) {
+    table_id_t tableID = assignNextTableID();
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
         nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
-    }
-    for (auto& dstTableID : srcDstTableIDs.dstTableIDs) {
         nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     }
     vector<Property> structuredProperties;
     auto propertyID = 0;
+    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
+    structuredProperties.push_back(
+        Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
     for (auto& propertyDefinition : structuredPropertyDefinitions) {
         structuredProperties.push_back(
             Property::constructRelProperty(propertyDefinition, propertyID++, tableID));
     }
-    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
-    structuredProperties.push_back(
-        Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
     auto relTableSchema = make_unique<RelTableSchema>(move(tableName), tableID, relMultiplicity,
         move(structuredProperties), move(srcDstTableIDs));
     relTableNameToIDMap[relTableSchema->tableName] = tableID;
@@ -252,7 +245,7 @@ bool CatalogContent::containNodeProperty(table_id_t tableID, const string& prope
             return true;
         }
     }
-    return nodeTableSchemas.at(tableID)->unstrPropertiesNameToIdMap.contains(propertyName);
+    return false;
 }
 
 bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
@@ -271,8 +264,7 @@ const Property& CatalogContent::getNodeProperty(
             return property;
         }
     }
-    auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(tableID).at(propertyName);
-    return getUnstructuredNodeProperties(tableID)[unstrPropertyIdx];
+    throw CatalogException("Cannot find node property " + propertyName + ".");
 }
 
 const Property& CatalogContent::getRelProperty(
@@ -282,35 +274,11 @@ const Property& CatalogContent::getRelProperty(
             return property;
         }
     }
-    assert(false);
-}
-
-const Property& CatalogContent::getNodePrimaryKeyProperty(table_id_t tableID) const {
-    auto primaryKeyId = nodeTableSchemas.at(tableID)->primaryKeyPropertyIdx;
-    return nodeTableSchemas.at(tableID)->structuredProperties[primaryKeyId];
+    throw CatalogException("Cannot find rel property " + propertyName + ".");
 }
 
 vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
     return nodeTableSchemas.at(tableID)->getAllNodeProperties();
-}
-
-const unordered_set<table_id_t>& CatalogContent::getRelTableIDsForNodeTableDirection(
-    table_id_t tableID, RelDirection direction) const {
-    if (tableID >= nodeTableSchemas.size()) {
-        throw CatalogException("Node table " + to_string(tableID) + " is out of bounds.");
-    }
-    if (FWD == direction) {
-        return nodeTableSchemas.at(tableID)->fwdRelTableIDSet;
-    }
-    return nodeTableSchemas.at(tableID)->bwdRelTableIDSet;
-}
-
-const unordered_set<table_id_t>& CatalogContent::getNodeTableIDsForRelTableDirection(
-    table_id_t tableID, RelDirection direction) const {
-    if (FWD == direction) {
-        return relTableSchemas.at(tableID)->srcDstTableIDs.srcTableIDs;
-    }
-    return relTableSchemas.at(tableID)->srcDstTableIDs.dstTableIDs;
 }
 
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
@@ -329,7 +297,7 @@ void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) 
         offset = SerDeser::serializeValue<RelTableSchema>(
             *relTableSchema.second, fileInfo.get(), offset);
     }
-    FileUtils::closeFile(fileInfo->fd);
+    SerDeser::serializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
 }
 
 void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType) {
@@ -353,21 +321,14 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
         offset = SerDeser::deserializeValue<RelTableSchema>(
             *relTableSchemas[tableID], fileInfo.get(), offset);
     }
-    // construct the tableNameToIdMap and table's unstrPropertiesNameToIdMap
+    // Construct the tableNameToIdMap.
     for (auto& nodeTableSchema : nodeTableSchemas) {
         nodeTableNameToIDMap[nodeTableSchema.second->tableName] = nodeTableSchema.second->tableID;
-        for (auto i = 0u; i < nodeTableSchema.second->unstructuredProperties.size(); i++) {
-            auto& property = nodeTableSchema.second->unstructuredProperties[i];
-            if (property.dataType.typeID == UNSTRUCTURED) {
-                nodeTableSchema.second->unstrPropertiesNameToIdMap[property.name] =
-                    property.propertyID;
-            }
-        }
     }
     for (auto& relTableSchema : relTableSchemas) {
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
-    FileUtils::closeFile(fileInfo->fd);
+    SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
 }
 
 void CatalogContent::removeTableSchema(TableSchema* tableSchema) {
@@ -420,7 +381,8 @@ table_id_t Catalog::addNodeTableSchema(string tableName, uint32_t primaryKeyIdx,
 }
 
 table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> structuredPropertyDefinitions, SrcDstTableIDs srcDstTableIDs) {
+    vector<PropertyNameDataType> structuredPropertyDefinitions,
+    vector<pair<table_id_t, table_id_t>> srcDstTableIDs) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(move(tableName), relMultiplicity,
         move(structuredPropertyDefinitions), move(srcDstTableIDs));
@@ -429,4 +391,4 @@ table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMulti
 }
 
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

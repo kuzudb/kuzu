@@ -1,16 +1,17 @@
-#include "include/database.h"
+#include "main/database.h"
 
+#include "common/configs.h"
+#include "common/logging_level_utils.h"
 #include "spdlog/spdlog.h"
+#include "storage/wal_replayer.h"
 
-#include "src/common/include/configs.h"
-#include "src/storage/include/wal_replayer.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig)
     : databaseConfig{databaseConfig},
-      systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateSpdLogger("database")} {
+      systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateLogger("database")} {
+    initLoggers();
     initDBDirAndCoreFilesIfNecessary();
     bufferManager = make_unique<BufferManager>(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
@@ -24,7 +25,7 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     transactionManager = make_unique<transaction::TransactionManager>(*wal);
 }
 
-void Database::initDBDirAndCoreFilesIfNecessary() {
+void Database::initDBDirAndCoreFilesIfNecessary() const {
     if (!FileUtils::fileOrPathExists(databaseConfig.databasePath)) {
         FileUtils::createDir(databaseConfig.databasePath);
     }
@@ -43,13 +44,103 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
     }
 }
 
+void Database::initLoggers() {
+    // To avoid multi-threading issue in creating logger, we create all loggers together with
+    // database instance. All system components should get logger instead of creating.
+    LoggerUtils::getOrCreateLogger("csv_reader");
+    LoggerUtils::getOrCreateLogger("loader");
+    LoggerUtils::getOrCreateLogger("processor");
+    LoggerUtils::getOrCreateLogger("buffer_manager");
+    LoggerUtils::getOrCreateLogger("catalog");
+    LoggerUtils::getOrCreateLogger("storage");
+    LoggerUtils::getOrCreateLogger("transaction_manager");
+    LoggerUtils::getOrCreateLogger("wal");
+    spdlog::set_level(spdlog::level::err);
+}
+
+void Database::setLoggingLevel(spdlog::level::level_enum loggingLevel) {
+    if (loggingLevel != spdlog::level::level_enum::debug &&
+        loggingLevel != spdlog::level::level_enum::info &&
+        loggingLevel != spdlog::level::level_enum::err) {
+        printf("Unsupported logging level: %s.",
+            LoggingLevelUtils::convertLevelEnumToStr(loggingLevel).c_str());
+        return;
+    }
+    spdlog::set_level(loggingLevel);
+}
+
 void Database::resizeBufferManager(uint64_t newSize) {
-    // Currently we are resizing both buffer pools to the same size. If needed we can
-    // extend this functionality.
     systemConfig.defaultPageBufferPoolSize = newSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO;
     systemConfig.largePageBufferPoolSize = newSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
     bufferManager->resize(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
+}
+
+void Database::commitAndCheckpointOrRollback(
+    Transaction* writeTransaction, bool isCommit, bool skipCheckpointForTestingRecovery) {
+    // Irrespective of whether we are checkpointing or rolling back we add a
+    // nodesStatisticsAndDeletedIDs/relStatistics record if there has been updates to
+    // nodesStatisticsAndDeletedIDs/relStatistics. This is because we need to commit or rollback
+    // the in-memory state of NodesStatisticsAndDeletedIDs/relStatistics, which is done during
+    // wal replaying and committing/rolling back each record, so a TABLE_STATISTICS_RECORD needs
+    // to appear in the log.
+    bool nodeTableHasUpdates =
+        storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().hasUpdates();
+    bool relTableHasUpdates = storageManager->getRelsStore().getRelsStatistics().hasUpdates();
+    if (nodeTableHasUpdates || relTableHasUpdates) {
+        wal->logTableStatisticsRecord(nodeTableHasUpdates /* isNodeTable */);
+        // If we are committing, we also need to write the WAL file for
+        // NodesStatisticsAndDeletedIDs/relStatistics.
+        if (isCommit) {
+            if (nodeTableHasUpdates) {
+                storageManager->getNodesStore()
+                    .getNodesStatisticsAndDeletedIDs()
+                    .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+            } else {
+                storageManager->getRelsStore()
+                    .getRelsStatistics()
+                    .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+            }
+        }
+    }
+    if (catalog->hasUpdates()) {
+        wal->logCatalogRecord();
+        // If we are committing, we also need to write the WAL file for catalog.
+        if (isCommit) {
+            catalog->writeCatalogForWALRecord(databaseConfig.databasePath);
+        }
+    }
+    storageManager->prepareCommitOrRollbackIfNecessary(isCommit);
+
+    if (isCommit) {
+        // Note: It is enough to stop and wait transactions to leave the system instead of
+        // for example checking on the query processor's task scheduler. This is because the
+        // first and last steps that a connection performs when executing a query is to
+        // start and commit/rollback transaction. The query processor also ensures that it
+        // will only return results or error after all threads working on the tasks of a
+        // query stop working on the tasks of the query and these tasks are removed from the
+        // query.
+        transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
+        // Note: committing and stopping new transactions can be done in any order. This
+        // order allows us to throw exceptions if we have to wait a lot to stop.
+        transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
+        wal->flushAllPages();
+        if (skipCheckpointForTestingRecovery) {
+            transactionManager->allowReceivingNewTransactions();
+            return;
+        }
+        checkpointAndClearWAL();
+    } else {
+        if (skipCheckpointForTestingRecovery) {
+            wal->flushAllPages();
+            return;
+        }
+        rollbackAndClearWAL();
+    }
+    transactionManager->manuallyClearActiveWriteTransaction(writeTransaction);
+    if (isCommit) {
+        transactionManager->allowReceivingNewTransactions();
+    }
 }
 
 void Database::recoverIfNecessary() {
@@ -85,4 +176,4 @@ void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpo
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

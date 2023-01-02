@@ -1,6 +1,6 @@
-#include "include/simple_aggregate.h"
+#include "processor/operator/aggregate/simple_aggregate.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 SimpleAggregateSharedState::SimpleAggregateSharedState(
@@ -38,27 +38,17 @@ pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
     return make_pair(startOffset, currentOffset);
 }
 
-SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
-    vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-    unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
-    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id,
-          paramsString},
-      sharedState{move(sharedState)} {}
-
-shared_ptr<ResultSet> SimpleAggregate::init(ExecutionContext* context) {
-    auto resultSet = BaseAggregate::init(context);
+void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseAggregate::initLocalStateInternal(resultSet, context);
     for (auto& aggregateFunction : this->aggregateFunctions) {
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
         *context->memoryManager, vector<DataType>{}, this->aggregateFunctions);
-    return resultSet;
 }
 
-void SimpleAggregate::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
-    while (children[0]->getNextTuples()) {
+void SimpleAggregate::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
             auto aggVector = aggregateVectors[i];
@@ -67,18 +57,20 @@ void SimpleAggregate::execute(ExecutionContext* context) {
                 assert(distinctHT != nullptr);
                 if (distinctHT->isAggregateValueDistinctForGroupByKeys(
                         vector<ValueVector*>{}, aggVector)) {
-                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                    if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
-                            aggVector, resultSet->multiplicity,
-                            aggVector->state->getPositionOfCurrIdx());
+                            aggVector, 1 /* Distinct aggregate should ignore
+                                          multiplicity since they are known to be non-distinct. */
+                            ,
+                            aggVector->state->selVector->selectedPositions[0]);
                     }
                 }
             } else {
                 if (aggVector && aggVector->state->isFlat()) {
-                    if (!aggVector->isNull(aggVector->state->getPositionOfCurrIdx())) {
+                    if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, resultSet->multiplicity,
-                            aggVector->state->getPositionOfCurrIdx());
+                            aggVector->state->selVector->selectedPositions[0]);
                     }
                 } else {
                     aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),
@@ -88,7 +80,6 @@ void SimpleAggregate::execute(ExecutionContext* context) {
         }
     }
     sharedState->combineAggregateStates(localAggregateStates);
-    metrics->executionTime.stop();
 }
 
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
@@ -96,9 +87,10 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<SimpleAggregate>(sharedState, aggregateVectorsPos,
-        move(clonedAggregateFunctions), children[0]->clone(), id, paramsString);
+    return make_unique<SimpleAggregate>(resultSetDescriptor->copy(), sharedState,
+        aggregateVectorsPos, std::move(clonedAggregateFunctions), children[0]->clone(), id,
+        paramsString);
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

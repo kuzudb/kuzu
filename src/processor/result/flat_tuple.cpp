@@ -1,13 +1,17 @@
-#include "include/flat_tuple.h"
+#include "processor/result/flat_tuple.h"
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "src/common/include/type_utils.h"
-#include "src/common/include/utils.h"
+#include "common/type_utils.h"
+#include "common/utils.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
 
-namespace graphflow {
+using namespace kuzu::utf8proc;
+
+namespace kuzu {
 namespace processor {
 
 void ResultValue::set(const uint8_t* value, DataType& valueType) {
@@ -22,10 +26,7 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
         val.doubleVal = *((double*)value);
     } break;
     case STRING: {
-        stringVal = ((gf_string_t*)value)->getAsString();
-    } break;
-    case UNSTRUCTURED: {
-        setFromUnstructuredValue(*(Value*)value);
+        stringVal = ((ku_string_t*)value)->getAsString();
     } break;
     case DATE: {
         val.dateVal = *((date_t*)value);
@@ -37,14 +38,15 @@ void ResultValue::set(const uint8_t* value, DataType& valueType) {
         val.intervalVal = *((interval_t*)value);
     } break;
     case LIST: {
-        listVal = convertGFListToVector(*(gf_list_t*)value);
+        listVal = convertKUListToVector(*(ku_list_t*)value);
     } break;
     default:
-        assert(false);
+        throw RuntimeException("Data type " + Types::dataTypeToString(valueType.typeID) +
+                               " is not supported for ResultValue::set.");
     }
 }
 
-string ResultValue::to_string() const {
+string ResultValue::toString() const {
     if (isNull) {
         return "";
     }
@@ -66,61 +68,27 @@ string ResultValue::to_string() const {
     case LIST: {
         string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
-            result += listVal[i].to_string();
+            result += listVal[i].toString();
             result += (i == listVal.size() - 1 ? "]" : ",");
         }
         return result;
     }
     default:
-        assert(false);
+        throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
+                               " is not supported for ResultValue::toString.");
     }
 }
 
-vector<ResultValue> ResultValue::convertGFListToVector(gf_list_t& list) const {
+vector<ResultValue> ResultValue::convertKUListToVector(ku_list_t& list) const {
     vector<ResultValue> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
     for (auto i = 0; i < list.size; i++) {
         ResultValue childResultValue{*dataType.childType};
         childResultValue.set(reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement),
             *dataType.childType);
-        listResultValue.emplace_back(move(childResultValue));
+        listResultValue.emplace_back(std::move(childResultValue));
     }
     return listResultValue;
-}
-
-void ResultValue::setFromUnstructuredValue(Value& value) {
-    dataType = value.dataType;
-    switch (value.dataType.typeID) {
-    case INT64: {
-        set((uint8_t*)&value.val.int64Val, value.dataType);
-    } break;
-    case BOOL: {
-        set((uint8_t*)&value.val.booleanVal, value.dataType);
-    } break;
-    case DOUBLE: {
-        set((uint8_t*)&value.val.doubleVal, value.dataType);
-    } break;
-    case STRING: {
-        set((uint8_t*)&value.val.strVal, value.dataType);
-    } break;
-    case NODE_ID: {
-        set((uint8_t*)&value.val.nodeID, value.dataType);
-    } break;
-    case DATE: {
-        set((uint8_t*)&value.val.dateVal, value.dataType);
-    } break;
-    case TIMESTAMP: {
-        set((uint8_t*)&value.val.timestampVal, value.dataType);
-    } break;
-    case INTERVAL: {
-        set((uint8_t*)&value.val.intervalVal, value.dataType);
-    } break;
-    case LIST: {
-        set((uint8_t*)&value.val.listVal, value.dataType);
-    } break;
-    default:
-        assert(false);
-    }
 }
 
 ResultValue* FlatTuple::getResultValue(uint32_t valIdx) {
@@ -132,14 +100,29 @@ ResultValue* FlatTuple::getResultValue(uint32_t valIdx) {
     return resultValues[valIdx].get();
 }
 
-string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& delimiter) {
+string FlatTuple::toString(
+    const vector<uint32_t>& colsWidth, const string& delimiter, const uint32_t maxWidth) {
     ostringstream result;
     for (auto i = 0ul; i < resultValues.size(); i++) {
-        string value = resultValues[i]->to_string();
+        string value = resultValues[i]->toString();
+        if (value.length() > maxWidth) {
+            value = value.substr(0, maxWidth - 3) + "...";
+        }
         if (colsWidth[i] != 0) {
             value = " " + value + " ";
         }
-        result << left << setw((int)colsWidth[i]) << setfill(' ') << value;
+        uint32_t fieldLen = 0;
+        uint32_t chrIter = 0;
+        while (chrIter < value.length()) {
+            fieldLen += Utf8Proc::renderWidth(value.c_str(), chrIter);
+            chrIter = utf8proc_next_grapheme(value.c_str(), value.length(), chrIter);
+        }
+        fieldLen = min(fieldLen, maxWidth + 2);
+        if (colsWidth[i] != 0) {
+            result << value << string(colsWidth[i] - fieldLen, ' ');
+        } else {
+            result << value;
+        }
         if (i != resultValues.size() - 1) {
             result << delimiter;
         }
@@ -148,4 +131,4 @@ string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& deli
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

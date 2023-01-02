@@ -1,22 +1,22 @@
-#include "src/storage/storage_structure/include/lists/lists_metadata.h"
+#include "storage/storage_structure/lists/lists_metadata.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
+#include "storage/storage_structure/storage_structure_utils.h"
+#include "storage/storage_utils.h"
 
-#include "src/common/include/utils.h"
-#include "src/storage/include/storage_utils.h"
-#include "src/storage/storage_structure/include/storage_structure_utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-ListsMetadata::ListsMetadata(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+ListsMetadata::ListsMetadata(
+    const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
     BufferManager* bufferManager, WAL* wal)
     : BaseListsMetadata(), storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
     storageStructureIDAndFName.fName =
         StorageUtils::getListMetadataFName(storageStructureIDAndFNameForBaseList.fName);
     metadataVersionedFileHandle = make_unique<VersionedFileHandle>(
-        storageStructureIDAndFName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate);
+        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
     chunkToPageListHeadIdxMap = make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
         CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
     largeListIdxToPageListHeadIdxMap =
@@ -40,7 +40,7 @@ uint64_t BaseListsMetadata::getPageIdxFromAPageList(
 ListsMetadataBuilder::ListsMetadataBuilder(const string& listBaseFName) : BaseListsMetadata() {
     metadataFileHandleForBuilding =
         make_unique<FileHandle>(StorageUtils::getListMetadataFName(listBaseFName),
-            FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
+            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     // When building list metadata during loading, we need to make space for the header of each
     // disk array in listsMetadata (so that these header pages are pre-allocated and not used
     // for another purpose)
@@ -111,7 +111,7 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     auto pageListTailIdx =
         pageListHeadIdx +
         ((ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);
-    pageListsBuilder->setNewNumElementsAndIncreaseCapacityIfNeeded(pageListTailIdx);
+    pageListsBuilder->resize(pageListTailIdx, false /* setToZero */);
     for (auto i = 0u; i < numPageListGroups; i++) {
         auto numPagesInThisGroup = min(ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, numPages);
         for (auto j = 0u; j < numPagesInThisGroup; j++) {
@@ -131,4 +131,4 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     }
 }
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

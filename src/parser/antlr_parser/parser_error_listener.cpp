@@ -1,11 +1,11 @@
-#include "src/parser/antlr_parser/include/parser_error_listener.h"
+#include "parser/antlr_parser/parser_error_listener.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 void ParserErrorListener::syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
@@ -32,4 +32,4 @@ string ParserErrorListener::formatUnderLineError(
 }
 
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

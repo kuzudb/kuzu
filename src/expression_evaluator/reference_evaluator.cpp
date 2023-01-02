@@ -1,11 +1,11 @@
-#include "include/reference_evaluator.h"
+#include "expression_evaluator/reference_evaluator.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace evaluator {
 
 inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     assert(vector.dataType.typeID == BOOL);
-    return !vector.isNull(pos) && ((bool*)vector.values)[pos];
+    return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 
 void ReferenceExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
@@ -16,27 +16,22 @@ void ReferenceExpressionEvaluator::init(const ResultSet& resultSet, MemoryManage
 
 bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
     uint64_t numSelectedValues = 0;
-    if (resultVector->state->isFlat()) {
-        auto pos = resultVector->state->getPositionOfCurrIdx();
-        numSelectedValues += isTrue(*resultVector, pos);
-    } else {
-        auto selectedBuffer = resultVector->state->selVector->getSelectedPositionsBuffer();
-        if (resultVector->state->selVector->isUnfiltered()) {
-            for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-                selectedBuffer[numSelectedValues] = i;
-                numSelectedValues += isTrue(*resultVector, i);
-            }
-        } else {
-            for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-                auto pos = resultVector->state->selVector->selectedPositions[i];
-                selectedBuffer[numSelectedValues] = pos;
-                numSelectedValues += isTrue(*resultVector, pos);
-            }
+    auto selectedBuffer = resultVector->state->selVector->getSelectedPositionsBuffer();
+    if (resultVector->state->selVector->isUnfiltered()) {
+        for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
+            selectedBuffer[numSelectedValues] = i;
+            numSelectedValues += isTrue(*resultVector, i);
         }
-        selVector.selectedSize = numSelectedValues;
+    } else {
+        for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
+            auto pos = resultVector->state->selVector->selectedPositions[i];
+            selectedBuffer[numSelectedValues] = pos;
+            numSelectedValues += isTrue(*resultVector, pos);
+        }
     }
+    selVector.selectedSize = numSelectedValues;
     return numSelectedValues > 0;
 }
 
 } // namespace evaluator
-} // namespace graphflow
+} // namespace kuzu

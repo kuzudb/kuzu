@@ -1,8 +1,8 @@
-#include "include/var_length_adj_list_extend.h"
+#include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
 
-#include "src/common/types/include/types.h"
+#include "common/types/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionContext& context)
@@ -25,16 +25,15 @@ void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
     this->hasBeenOutput = false;
 }
 
-shared_ptr<ResultSet> VarLengthAdjListExtend::init(ExecutionContext* context) {
-    resultSet = VarLengthExtend::init(context);
+void VarLengthAdjListExtend::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
         dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
     }
-    return resultSet;
 }
 
-bool VarLengthAdjListExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool VarLengthAdjListExtend::getNextTuplesInternal() {
     while (true) {
         while (!dfsStack.empty()) {
             auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsStack.top());
@@ -42,13 +41,12 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 !dfsLevelInfo->hasBeenOutput) {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
-                memcpy(nbrNodeValueVector->values, dfsLevelInfo->children->values,
+                memcpy(nbrNodeValueVector->getData(), dfsLevelInfo->children->getData(),
                     dfsLevelInfo->children->state->selVector->selectedSize *
                         Types::getDataTypeSize(dfsLevelInfo->children->dataType));
                 nbrNodeValueVector->state->selVector->selectedSize =
                     dfsLevelInfo->children->state->selVector->selectedSize;
                 dfsLevelInfo->hasBeenOutput = true;
-                metrics->executionTime.stop();
                 return true;
             } else if (dfsLevelInfo->childrenIdx <
                            dfsLevelInfo->children->state->selVector->selectedSize &&
@@ -68,11 +66,10 @@ bool VarLengthAdjListExtend::getNextTuples() {
         }
         uint64_t curIdx;
         do {
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
+            if (!children[0]->getNextTuple()) {
                 return false;
             }
-            curIdx = boundNodeValueVector->state->getPositionOfCurrIdx();
+            curIdx = boundNodeValueVector->state->selVector->selectedPositions[0];
         } while (boundNodeValueVector->isNull(curIdx) ||
                  !addDFSLevelToStackIfParentExtends(
                      boundNodeValueVector->readNodeOffset(curIdx), 1 /* level */));
@@ -86,7 +83,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
         ->initListReadingState(parent, *dfsLevelInfo->listHandle, transaction->getType());
     ((AdjLists*)storage)->readValues(dfsLevelInfo->children, *dfsLevelInfo->listHandle);
     if (dfsLevelInfo->children->state->selVector->selectedSize != 0) {
-        dfsStack.emplace(move(dfsLevelInfo));
+        dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
     }
     return false;
@@ -102,4 +99,4 @@ bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -1,25 +1,25 @@
+#include "common/exception.h"
 #include "gtest/gtest.h"
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
+#include "transaction/transaction_manager.h"
 
-#include "src/common/include/exception.h"
-#include "src/transaction/include/transaction_manager.h"
-
-using namespace graphflow::common;
-using namespace graphflow::testing;
-using namespace graphflow::transaction;
+using namespace kuzu::common;
+using namespace kuzu::testing;
+using namespace kuzu::transaction;
 using ::testing::Test;
 
 class TransactionManagerTest : public Test {
 
 protected:
     void SetUp() override {
-        FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
-        bufferManager = make_unique<BufferManager>();
-        wal = make_unique<WAL>(TestHelper::TEMP_TEST_DIR, *bufferManager);
+        FileUtils::createDir(TestHelper::getTmpTestDir());
+        bufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
         transactionManager = make_unique<TransactionManager>(*wal);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {

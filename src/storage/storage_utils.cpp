@@ -1,6 +1,6 @@
-#include "src/storage/include/storage_utils.h"
+#include "storage/storage_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
@@ -14,9 +14,12 @@ unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
         fName = getListFName(directory, storageStructureID);
     } break;
     case NODE_INDEX: {
-        throw RuntimeException("There should not be any code path yet triggering getting "
-                               "NODE_INDEX file name from StorageStructureID.");
-    }
+        fName = getNodeIndexFName(
+            directory, storageStructureID.nodeIndexID.tableID, DBFileType::ORIGINAL);
+        if (storageStructureID.isOverflow) {
+            fName = getOverflowFileName(fName);
+        }
+    } break;
     default: {
         throw RuntimeException("Unsupported StorageStructureID in "
                                "StorageUtils::getFileInfoFromStorageStructureID.");
@@ -64,10 +67,6 @@ string StorageUtils::getListFName(const string& directory, StorageStructureID st
     string baseFName;
     ListFileID listFileID = storageStructureID.listFileID;
     switch (listFileID.listType) {
-    case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-        baseFName = getNodeUnstrPropertyListsFName(
-            directory, listFileID.unstructuredNodePropertyListsID.tableID, DBFileType::ORIGINAL);
-    } break;
     case ADJ_LISTS: {
         auto& relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
         baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,
@@ -122,4 +121,4 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

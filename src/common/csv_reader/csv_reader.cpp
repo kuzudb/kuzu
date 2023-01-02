@@ -1,12 +1,14 @@
-#include "src/common/include/csv_reader/csv_reader.h"
+#include "common/csv_reader/csv_reader.h"
 
+#include "common/configs.h"
+#include "common/type_utils.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
+#include "utf8proc_wrapper.h"
 
-#include "src/common/include/configs.h"
-#include "src/common/include/type_utils.h"
-#include "src/common/include/utils.h"
+using namespace kuzu::utf8proc;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
@@ -34,11 +36,11 @@ CSVReader::CSVReader(const string& fname, const CSVReaderConfig& config)
 
 CSVReader::CSVReader(
     char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
-    : fd{nullptr}, config{config}, nextLineIsNotProcessed{false}, isEndOfBlock{false},
+    : fd{nullptr}, config{config}, logger{LoggerUtils::getOrCreateLogger("csv_reader")},
+      nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
-      readingBlockEndOffset{UINT64_MAX},
-      nextTokenLen{UINT64_MAX}, logger{LoggerUtils::getOrCreateSpdLogger("csv_reader")} {}
+      readingBlockEndOffset{UINT64_MAX}, nextTokenLen{UINT64_MAX} {}
 
 CSVReader::~CSVReader() {
     // fd can be nullptr when the CSVReader is constructed by passing a char*, so it is reading over
@@ -59,7 +61,8 @@ bool CSVReader::hasNextLine() {
         return true;
     }
     // file cursor is past the block limit, end the block, return false.
-    if (ftell(fd) >= readingBlockEndOffset) {
+    auto curPos = ftell(fd);
+    if (curPos >= readingBlockEndOffset) {
         isEndOfBlock = true;
         return false;
     }
@@ -67,8 +70,19 @@ bool CSVReader::hasNextLine() {
     // update the lineCapacity accordingly if the length of the line exceeds the lineCapacity.
     // We keep curPos in case the very final line does not have a \n character in which case
     // we will seek back to where we were and read it without using getLine (inside the if).
-    auto curPos = ftell(fd);
     lineLen = getline(&line, &lineCapacity, fd);
+    if (lineLen == (ssize_t)-1) {
+        isEndOfBlock = true;
+        return false;
+    }
+    // Text files created on DOS/Windows machines have different line endings than files created on
+    // Unix/Linux. DOS uses carriage return and line feed ("\r\n") as a line ending, which Unix uses
+    // just line feed ("\n"). If the current line uses dos-style newline, we should replace the
+    // '\r\n' with the linux-style newline '\n'.
+    if (lineLen > 1 && line[lineLen - 1] == '\n' && line[lineLen - 2] == '\r') {
+        line[lineLen - 2] = '\n';
+        lineLen -= 1;
+    }
     if (feof(fd)) {
         // According to POSIX getline manual (https://man7.org/linux/man-pages/man3/getline.3.html)
         // the behavior of getline when in reaches an end of file is underdefined in terms of how
@@ -80,25 +94,24 @@ bool CSVReader::hasNextLine() {
         auto lastPos = ftell(fd);
         isEndOfBlock = true;
         auto sizeOfRemainder = lastPos - curPos;
-        if (sizeOfRemainder > 0) {
-            if (lineCapacity < sizeOfRemainder) {
-                // Note: We don't have tests testing this case because although according to
-                // getline's documentation, the behavior is undefined, the getline call above
-                // (before the feof check) seems to be increasing the lineCapacity for the
-                // last lines without newline character. So this is here for safety but is
-                // not tested.
-                free(line);
-                // We are adding + 1 for the additional \n character we will append.
-                line = (char*)malloc(sizeOfRemainder + 1);
-            }
-            fseek(fd, curPos, SEEK_SET);
-            fgets(line, sizeOfRemainder + 1, fd);
-            line[sizeOfRemainder] = '\n';
-            lineLen = sizeOfRemainder;
-            return true;
-        } else {
+        if (sizeOfRemainder <= 0) {
             return false;
         }
+
+        if (lineCapacity < sizeOfRemainder) {
+            // Note: We don't have tests testing this case because although according to
+            // getline's documentation, the behavior is undefined, the getline call above
+            // (before the feof check) seems to be increasing the lineCapacity for the
+            // last lines without newline character. So this is here for safety but is
+            // not tested.
+            free(line);
+            // We are adding + 1 for the additional \n character we will append.
+            line = (char*)malloc(sizeOfRemainder + 1);
+        }
+        fseek(fd, curPos, SEEK_SET);
+        fgets(line, (int)sizeOfRemainder + 1, fd);
+        line[sizeOfRemainder] = '\n';
+        lineLen = sizeOfRemainder;
     }
     // The line is empty
     if (lineLen < 2) {
@@ -192,6 +205,16 @@ bool CSVReader::hasNextToken() {
     return true;
 }
 
+bool CSVReader::hasNextTokenOrError() {
+    if (!hasNextToken()) {
+        throw CSVReaderException(
+            StringUtils::string_format("CSV Reader was expecting more tokens but the line does not "
+                                       "have any tokens left. Last token: %s",
+                line + linePtrStart));
+    }
+    return true;
+}
+
 int64_t CSVReader::getInt64() {
     setNextTokenIsProcessed();
     return TypeUtils::convertToInt64(line + linePtrStart);
@@ -215,7 +238,14 @@ char* CSVReader::getString() {
         // If the string is too long, truncate it.
         strVal[DEFAULT_PAGE_SIZE] = '\0';
     }
-    return strVal;
+    auto unicodeType = Utf8Proc::analyze(strVal, strlen(strVal));
+    if (unicodeType == UnicodeType::ASCII) {
+        return strVal;
+    } else if (unicodeType == UnicodeType::UNICODE) {
+        return Utf8Proc::normalize(strVal, strlen(strVal));
+    } else {
+        throw CSVReaderException("Invalid UTF-8 character encountered.");
+    }
 }
 
 date_t CSVReader::getDate() {
@@ -296,4 +326,4 @@ void CSVReader::openFile(const string& fName) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

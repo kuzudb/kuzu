@@ -1,10 +1,9 @@
+#include "common/exception.h"
 #include "gtest/gtest.h"
+#include "parser/parser.h"
 
-#include "src/common/include/exception.h"
-#include "src/parser/include/parser.h"
-
-using namespace graphflow::parser;
-using namespace graphflow::common;
+using namespace kuzu::parser;
+using namespace kuzu::common;
 using namespace ::testing;
 
 class SyntaxErrorTest : public Test {

@@ -1,8 +1,8 @@
-#include "src/storage/storage_structure/include/storage_structure.h"
+#include "storage/storage_structure/storage_structure.h"
 
-#include "src/common/include/utils.h"
+#include "common/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 // check if val is in range [start, end)
@@ -43,7 +43,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
     DataType dataType, const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes,
     bool isInMemory, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, isInMemory, wal),
-      dataType{move(dataType)}, elementSize{elementSize} {
+      dataType{std::move(dataType)}, elementSize{elementSize} {
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
 }
 
@@ -140,10 +140,9 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
     const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
     NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists) {
-    auto nodeValues = (nodeID_t*)vector->values;
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
+            fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     if (isAdjLists) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
@@ -151,19 +150,19 @@ void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transac
         readNullBitsFromAPage(
             vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     }
-    auto currentFrameHead = frame + pagePosOfFirstElement * elementSize;
+    auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
     for (auto i = 0u; i < numValuesToRead; i++) {
         nodeID_t nodeID{0, 0};
         nodeIDCompressionScheme.readNodeID(currentFrameHead, &nodeID);
         currentFrameHead += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
-        nodeValues[vectorStartPos + i] = nodeID;
+        vector->setValue(vectorStartPos + i, nodeID);
     }
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
 void BaseColumnOrList::readSingleNullBit(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) const {
-    auto inputNullEntries = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    auto inputNullEntries = (uint64_t*)getNullBufferInPage(frame);
     bool isNull = NullMask::isNull(inputNullEntries, elementPos);
     valueVector->setNull(offsetInVector, isNull);
 }
@@ -173,11 +172,11 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->isReadOnly());
-    auto vectorBytesOffset = vectorStartPos * elementSize;
-    auto frameBytesOffset = pagePosOfFirstElement * elementSize;
+            fileHandle, physicalPageIdx, *wal, transaction->getType());
+    auto vectorBytesOffset = getElemByteOffset(vectorStartPos);
+    auto frameBytesOffset = getElemByteOffset(pagePosOfFirstElement);
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    memcpy(vector->values + vectorBytesOffset, frame + frameBytesOffset,
+    memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
         numValuesToRead * elementSize);
     readNullBitsFromAPage(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
@@ -185,17 +184,16 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
 
 void BaseColumnOrList::readNullBitsFromAPage(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
-    auto hasNullInSrcNullMask =
-        NullMask::copyNullMask((uint64_t*)(frame + (numElementsPerPage * elementSize)), posInPage,
-            valueVector->getNullMaskData(), posInVector, numBitsToRead);
+    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
+        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
     if (hasNullInSrcNullMask) {
         valueVector->setMayContainNulls();
     }
 }
 
 void BaseColumnOrList::setNullBitOfAPosInFrame(
-    uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
-    auto nullMask = (uint64_t*)(frame + (numElementsPerPage * elementSize));
+    const uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
+    auto nullMask = (uint64_t*)getNullBufferInPage(frame);
     auto nullEntryPos = elementPosInPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
     auto bitOffsetInEntry =
         elementPosInPage - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
@@ -207,4 +205,4 @@ void BaseColumnOrList::setNullBitOfAPosInFrame(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

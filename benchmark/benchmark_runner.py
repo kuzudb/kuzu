@@ -10,20 +10,19 @@ import subprocess
 datasets = {'ldbc-sf10', 'ldbc-sf100'}
 
 datasets_path = {
-    'ldbc-sf10-gf': '/home/x74feng/CI/ldbc-sf10',
-    'ldbc-sf100-gf': '/home/x74feng/CI/ldbc-sf100'
+    'ldbc-sf10-ku': '/home/x74feng/CI/ldbc-sf10',
+    'ldbc-sf100-ku': '/home/x74feng/CI/ldbc-sf100'
 }
 
 serialized_graphs_path = {
-    'ldbc-sf10-gf': '/home/x74feng/CI/ldbc-sf10-serialized',
-    'ldbc-sf100-gf': '/home/x74feng/CI/ldbc-sf100-serialized'
+    'ldbc-sf10-ku': '/home/x74feng/CI/ldbc-sf10-serialized',
+    'ldbc-sf100-ku': '/home/x74feng/CI/ldbc-sf100-serialized'
 }
 
 benchmark_server_dir = '/home/x74feng/CI/server'
 benchmark_log_dir = benchmark_server_dir + '/data/logs'
 benchmark_files = os.getenv("GITHUB_WORKSPACE") + '/benchmark/queries'
-graphflowDB_benchmark_tool = os.getenv(
-    "GITHUB_WORKSPACE") + '/bazel-out/k8-fastbuild/bin/tools/benchmark/benchmark_tool'
+kuzu_benchmark_tool = os.getenv("GITHUB_WORKSPACE") + '/build/release/tools/benchmark/kuzu_benchmark'
 
 # benchmark configuration
 num_warmup = 1
@@ -43,11 +42,11 @@ class QueryBenchmark:
                     continue
                 key = line.split(':')[0]
                 value = line.split(':')[1][1:-1]
-                if (key == 'Status'):
+                if key == 'Status':
                     self.status.append(value)
-                elif (key == 'Compiling time'):
+                elif key == 'Compiling time':
                     self.compiling_time.append(float(value))
-                elif (key == 'Execution time'):
+                elif key == 'Execution time':
                     self.execution_time.append(float(value))
 
     def insert_db(self, run_num):
@@ -134,17 +133,16 @@ def get_run_num():
         return 1
 
 
-def run_graphflowdb(serialized_graph_path):
+def run_kuzu(serialized_graph_path):
     for group, _ in benchmark_group.group_to_benchmarks.items():
         benchmark_cmd = [
-            graphflowDB_benchmark_tool,
+            kuzu_benchmark_tool,
             '--dataset=' + serialized_graph_path,
             '--benchmark=' + benchmark_files + '/' + group,
             '--warmup=' + str(num_warmup),
             '--run=' + str(num_run),
             '--out=' + benchmark_log_dir + '/' + group,
-            '--default-bm=20480',
-            '--large-bm=20480',
+            '--bm-size=81920',
             '--profile'
         ]
         process = subprocess.Popen(tuple(benchmark_cmd), stdout=subprocess.PIPE)
@@ -203,13 +201,13 @@ if __name__ == '__main__':
     if not os.path.exists(benchmark_log_dir):
         os.mkdir(benchmark_log_dir)
     benchmark_files = benchmark_files + '/' + args.dataset
-    dataset_path = datasets_path[args.dataset + '-gf']
+    dataset_path = datasets_path[args.dataset + '-ku']
 
     # load benchmark
     benchmark_group = BenchmarkGroup(benchmark_files)
     benchmark_group.load()
 
-    run_graphflowdb(serialized_graphs_path[args.dataset + '-gf'])
+    run_kuzu(serialized_graphs_path[args.dataset + '-ku'])
 
     # upload benchmark result and logs
     upload_benchmark_result(run_num)

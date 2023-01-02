@@ -1,11 +1,10 @@
+#include "binder/binder.h"
 #include "gtest/gtest.h"
-#include "test/mock/mock_catalog.h"
+#include "mock_catalog/mock_catalog.h"
+#include "parser/parser.h"
 
-#include "src/binder/include/binder.h"
-#include "src/parser/include/parser.h"
-
-using namespace graphflow::parser;
-using namespace graphflow::binder;
+using namespace kuzu::parser;
+using namespace kuzu::binder;
 
 using ::testing::Test;
 
@@ -26,28 +25,9 @@ private:
     NiceMock<TinySnbCatalog> catalog;
 };
 
-TEST_F(BinderErrorTest, DisconnectedGraph1) {
-    string expectedException = "Binder exception: Disconnect query graph is not supported.";
-    auto input = "MATCH (a:person), (b:person) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, DisconnectedGraph2) {
-    string expectedException = "Binder exception: Disconnect query graph is not supported.";
-    auto input = "MATCH (a:person) WITH * MATCH (b:person) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, NodeTableNotExist) {
     string expectedException = "Binder exception: Node table PERSON does not exist.";
     auto input = "MATCH (a:PERSON) RETURN COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, NodeRelNotConnect) {
-    string expectedException =
-        "Binder exception: Node table person doesn't connect to rel table workAt.";
-    auto input = "MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -111,13 +91,13 @@ TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist) {
-    string expectedException = "Binder exception: Node a does not have property foo.";
+    string expectedException = "Binder exception: Cannot find property foo for a.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist2) {
-    string expectedException = "Binder exception: Node a does not have property foo.";
+    string expectedException = "Binder exception: Cannot find property foo for a.";
     auto input = "Create (a:person {foo:'x'});";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -127,10 +107,9 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
         "Binder exception: Cannot match a built-in function for given function +(NODE_ID,INT64). "
         "Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
-        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -140,10 +119,9 @@ TEST_F(BinderErrorTest, BindDateAddDate) {
         "Binder exception: Cannot match a built-in function for given function +(DATE,DATE). "
         "Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
-        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.birthdate + date('2031-02-01');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -153,10 +131,9 @@ TEST_F(BinderErrorTest, BindTimestampArithmetic) {
         "Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,INT64). "
         "Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
-        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -166,10 +143,9 @@ TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
         "Binder exception: Cannot match a built-in function for given function "
         "+(TIMESTAMP,TIMESTAMP). Supported "
         "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
-        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -251,22 +227,22 @@ TEST_F(BinderErrorTest, VarLenExtendZeroLowerBound) {
 }
 
 TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
-    string expectedException =
-        "Expression 'hh' has data type STRING but expect INT64. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 'hh' has data type STRING but expect "
+                               "INT64. Implicit cast is not supported.";
     auto input = "MATCH (a:person) SET a.age = 'hh'";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateNodeDataTypeMisMatch) {
-    string expectedException =
-        "Expression 'hh' has data type STRING but expect INT64. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 'hh' has data type STRING but expect "
+                               "INT64. Implicit cast is not supported.";
     auto input = "CREATE (a:person {age:'hh'})";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, CreateRelDataTypeMisMatch) {
-    string expectedException =
-        "Expression 12 has data type INT64 but expect STRING. Implicit cast is not supported.";
+    string expectedException = "Binder exception: Expression 12 has data type INT64 but expect "
+                               "STRING. Implicit cast is not supported.";
     auto input = "CREATE (a:person)-[:knows {description:12}]->(b:person)";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -278,10 +254,9 @@ TEST_F(BinderErrorTest, ReadAfterUpdate1) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, ReadAfterUpdate2) {
-    string expectedException = "Binder exception: Read after update is not supported.";
-    auto input = "MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) "
-                 "RETURN a.age";
+TEST_F(BinderErrorTest, ReadAfterUpdate3) {
+    string expectedException = "Binder exception: Return/With after update is not supported.";
+    auto input = "MATCH (a:person) SET a.age=3 RETURN a.name";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -305,16 +280,17 @@ TEST_F(BinderErrorTest, CreateNodeTablePKColNameNotExists) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, CreateNodeTableInvalidPKDataType) {
-    string expectedException = "Binder exception: Invalid primary key type: date.";
-    auto input =
-        "CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (birthdate))";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, CreateNodeTableInvalidDataType) {
     string expectedException = "Cannot parse dataTypeID: BIGINT";
     auto input = "CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateNodeTableDuplicatedColumnName) {
+    string expectedException =
+        "Binder exception: Duplicated column name: eyesight, column name must be unique.";
+    auto input =
+        "CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id));";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -351,7 +327,7 @@ TEST_F(BinderErrorTest, CreateRelTableInvalidNodeTableName) {
 }
 
 TEST_F(BinderErrorTest, CreateRelTableInvalidRelMultiplicity) {
-    string expectedException = "Catalog exception: Invalid relMultiplicity string \"MANY_LOT\"";
+    string expectedException = "Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.";
     auto input = "CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -362,8 +338,73 @@ TEST_F(BinderErrorTest, CreateRelTableInvalidDataType) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
+TEST_F(BinderErrorTest, CreateRelTableDuplicatedColumnName) {
+    string expectedException =
+        "Binder exception: Duplicated column name: date, column name must be unique.";
+    auto input = "CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, CreateRelTableReservedColumnName) {
+    string expectedException =
+        "Binder exception: PropertyName: _id is an internal reserved propertyName.";
+    auto input = "CREATE REL TABLE teaches (FROM person TO person, _id INT64);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
 TEST_F(BinderErrorTest, DropNotExistsTable) {
     string expectedException = "Binder exception: Node/Rel person1 does not exist.";
     auto input = "DROP TABLE person1;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, SelfLoopRel) {
+    string expectedException = "Binder exception: Self-loop rel e is not supported.";
+    auto input = "MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, InvalidLimitNumberType) {
+    string expectedException =
+        "Binder exception: The number of rows to skip/limit must be a non-negative integer.";
+    auto input = "MATCH (a:person) RETURN a.age LIMIT \"abc\";";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, NegativeLimitNumber) {
+    string expectedException =
+        "Binder exception: The number of rows to skip/limit must be a non-negative integer.";
+    auto input = "MATCH (a:person) RETURN a.age LIMIT -1;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, DuplicateVariableName) {
+    string expectedException = "Binder exception: Variable a already exists.";
+    auto input = "MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, MaxNodeID) {
+    string expectedException =
+        "Binder exception: Cannot match a built-in function for given function MIN(NODE_ID). "
+        "Supported inputs are\nDISTINCT (BOOL) -> BOOL\n(BOOL) -> BOOL\nDISTINCT (INT64) -> "
+        "INT64\n(INT64) -> INT64\nDISTINCT (DOUBLE) -> DOUBLE\n(DOUBLE) -> DOUBLE\nDISTINCT "
+        "(DATE) -> DATE\n(DATE) -> DATE\nDISTINCT (STRING) -> STRING\n(STRING) -> "
+        "STRING\n";
+    auto input = "MATCH (a:person) RETURN MIN(a);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, OrderByNodeID) {
+    string expectedException =
+        "Binder exception: Cannot order by x. Order by node or rel is not supported.";
+    auto input = "match (p:person) with p as x order by x skip 1 return x;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, ReturnInternalType) {
+    string expectedException =
+        "Binder exception: Cannot return expression ID(p) with internal type NODE_ID";
+    auto input = "match (p:person) return ID(p);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

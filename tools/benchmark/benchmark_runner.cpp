@@ -1,10 +1,10 @@
-#include "tools/benchmark/include/benchmark_runner.h"
+#include "benchmark_runner.h"
 
 #include <filesystem>
 
 #include "spdlog/spdlog.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 const string BENCHMARK_SUFFIX = ".benchmark";
@@ -12,7 +12,8 @@ const string BENCHMARK_SUFFIX = ".benchmark";
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
     : config{move(config)} {
     database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode),
-        SystemConfig(this->config->defaultBufferPoolSize, this->config->largeBufferPoolSize));
+        SystemConfig(this->config->bufferPoolSize));
+    spdlog::set_level(spdlog::level::debug);
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {
@@ -66,4 +67,4 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
 }
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

@@ -1,6 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 
 // Test manual transaction. Auto transaction is tested in update test.
 class BaseSetNodePropTransactionTest : public DBTest {
@@ -33,7 +33,7 @@ protected:
 
 class SetNodeStructuredPropTransactionTest : public BaseSetNodePropTransactionTest {
 public:
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void insertLongStrings1000TimesAndVerify(Connection* connection) {
         int numWriteQueries = 1000;
@@ -69,7 +69,7 @@ TEST_F(SetNodeStructuredPropTransactionTest,
     SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNullTest) {
     conn->beginWriteTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{"35"});
-    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = a.unstrNumericProp;");
+    conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = null;");
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "age", vector<string>{""});
 }
 
@@ -77,7 +77,7 @@ TEST_F(SetNodeStructuredPropTransactionTest,
     SingleTransactionReadWriteToStringStructuredNodePropertyNullTest) {
     conn->beginWriteTransaction();
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{"Alice"});
-    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = a.label3;");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.fName = null;");
     readAndAssertNodeProperty(conn.get(), 0 /* node offset */, "fName", vector<string>{""});
 }
 
@@ -135,7 +135,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, Concurrent1Write1ReadTransactionRol
 
 TEST_F(SetNodeStructuredPropTransactionTest,
     OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
-    database->getTransactionManager()->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+    getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
         10000 /* 10ms */);
     readConn->beginReadOnlyTransaction();
     conn->beginWriteTransaction();
@@ -181,231 +181,4 @@ TEST_F(SetNodeStructuredPropTransactionTest, SetManyNodeLongStringPropRollbackTe
     conn->rollback();
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
     ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "Alice");
-}
-
-class SetNodeUnstrPropTransactionTest : public BaseSetNodePropTransactionTest {
-public:
-    string getInputCSVDir() override {
-        return "dataset/unstructured-property-lists-updates-tests/";
-    }
-
-public:
-    string existingIntVal = "123456";
-    string existingStrVal = "abcdefghijklmn";
-    string intVal = "677121";
-    string sStrVal = "short";
-    string lStrVal = "new-long-string";
-};
-
-TEST_F(SetNodeUnstrPropTransactionTest, FixedLenPropertyShortStringInTrx) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us123='" + sStrVal + "'");
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{intVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{sStrVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, FixedLenPropertyShortStringCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us123='" + sStrVal + "'");
-    conn->commit();
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{intVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{sStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, FixedLenPropertyShortStringRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us123='" + sStrVal + "'");
-    conn->rollback();
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, FixedLenPropertyShortStringCommitRecovery) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us123='" + sStrVal + "'");
-    conn->commitButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{intVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{sStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, FixedLenPropertyShortStringRollbackRecovery) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us123='" + sStrVal + "'");
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, LongStringPropTestInTrx) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.us123='" + lStrVal + "'");
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{lStrVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, LongStringPropTestCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.us123='" + lStrVal + "'");
-    conn->commit();
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{lStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, LongStringPropTestRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.us123='" + lStrVal + "'");
-    conn->rollback();
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, LongStringPropTestCommitRecovery) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.us123='" + lStrVal + "'");
-    conn->commitButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{lStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, LongStringPropTestRollbackRecovery) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.us123='" + lStrVal + "'");
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertNonExistingProps) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui124=" + intVal + ",a.us125='" + lStrVal + "'");
-    readAndAssertNodeProperty(conn.get(), 123, "ui124", vector<string>{intVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us125", vector<string>{lStrVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "ui124", vector<string>{""});
-    readAndAssertNodeProperty(readConn.get(), 123, "us125", vector<string>{""});
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "ui124", vector<string>{""});
-    readAndAssertNodeProperty(conn.get(), 123, "us125", vector<string>{""});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, RemoveExistingProperties) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui123=null,a.us123=null");
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{""});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{""});
-    readAndAssertNodeProperty(readConn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us123", vector<string>{existingStrVal});
-    conn->commit();
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{""});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{""});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, RemoveNonExistingProperties) {
-    conn->beginWriteTransaction();
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui124=null,a.us125=null");
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us123", vector<string>{existingStrVal});
-    conn->rollback();
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, RemoveNewlyAddedProperties) {
-    conn->beginWriteTransaction();
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=123 SET a.ui123=" + intVal + ",a.us125='" + lStrVal + "'");
-    conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui123=null,a.us125=null");
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{""});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us125", vector<string>{""});
-    readAndAssertNodeProperty(readConn.get(), 123, "ui123", vector<string>{existingIntVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us123", vector<string>{existingStrVal});
-    readAndAssertNodeProperty(readConn.get(), 123, "us125", vector<string>{""});
-    conn->commitButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    readAndAssertNodeProperty(conn.get(), 123, "ui123", vector<string>{""});
-    readAndAssertNodeProperty(conn.get(), 123, "us123", vector<string>{existingStrVal});
-    readAndAssertNodeProperty(conn.get(), 123, "us125", vector<string>{""});
-}
-
-static void insertALargeNumberOfProperties(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        conn->query("MATCH (a:person) WHERE a.ID=123 SET a.ui" + to_string(i) + "=" + intParam +
-                    ",a.us" + to_string(i) + "='" + strParam + "'");
-    }
-}
-
-static void validateInsertALargeNumberOfPropertiesSucceeds(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-            conn, 123, "ui" + to_string(i), vector<string>{intParam});
-        BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-            conn, 123, "us" + to_string(i), vector<string>{strParam});
-    }
-}
-
-static void validateInsertALargeNumberOfPropertiesFails(
-    Connection* conn, const string& intParam, const string& strParam) {
-    for (auto i = 0u; i <= 200; ++i) {
-        if (i == 123) {
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "ui123", vector<string>{intParam});
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "us123", vector<string>{strParam});
-        } else {
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "ui" + to_string(i), vector<string>{""});
-            BaseSetNodePropTransactionTest::readAndAssertNodeProperty(
-                conn, 123, "us" + to_string(i), vector<string>{""});
-        }
-    }
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesInTrx) {
-    conn->beginWriteTransaction();
-    insertALargeNumberOfProperties(conn.get(), intVal, lStrVal);
-    validateInsertALargeNumberOfPropertiesSucceeds(conn.get(), intVal, lStrVal);
-    validateInsertALargeNumberOfPropertiesFails(readConn.get(), existingIntVal, existingStrVal);
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertALargeNumberOfProperties(conn.get(), intVal, lStrVal);
-    conn->commit();
-    validateInsertALargeNumberOfPropertiesSucceeds(conn.get(), intVal, lStrVal);
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    insertALargeNumberOfProperties(conn.get(), intVal, lStrVal);
-    conn->rollback();
-    validateInsertALargeNumberOfPropertiesFails(conn.get(), existingIntVal, existingStrVal);
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesCommitRecovery) {
-    conn->beginWriteTransaction();
-    insertALargeNumberOfProperties(conn.get(), intVal, lStrVal);
-    conn->commitButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    validateInsertALargeNumberOfPropertiesSucceeds(conn.get(), intVal, lStrVal);
-}
-
-TEST_F(SetNodeUnstrPropTransactionTest, InsertALargeNumberOfPropertiesRollbackRecovery) {
-    conn->beginWriteTransaction();
-    insertALargeNumberOfProperties(conn.get(), intVal, lStrVal);
-    conn->rollbackButSkipCheckpointingForTestingRecovery();
-    createDBAndConn(); // run recovery
-    validateInsertALargeNumberOfPropertiesFails(conn.get(), existingIntVal, existingStrVal);
 }

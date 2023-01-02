@@ -1,21 +1,20 @@
-#include "include/plan_mapper.h"
+#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_operator/logical_semi_masker.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/hash_join/hash_join_build.h"
+#include "processor/operator/hash_join/hash_join_probe.h"
+#include "processor/operator/scan_node_id.h"
+#include "processor/operator/semi_masker.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_semi_masker.h"
-#include "src/processor/operator/hash_join/include/hash_join_build.h"
-#include "src/processor/operator/hash_join/include/hash_join_probe.h"
-#include "src/processor/operator/include/scan_node_id.h"
-#include "src/processor/operator/include/semi_masker.h"
-#include "src/processor/operator/table_scan/include/factorized_table_scan.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
     auto op = logicalHashJoin->getChild(0); // check probe side
     while (op->getNumChildren() == 1) {     // check pipeline
-        if (op->getLogicalOperatorType() == LogicalOperatorType::LOGICAL_SEMI_MASKER) {
+        if (op->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
             return true;
         }
         op = op->getChild(0);
@@ -25,8 +24,7 @@ static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
 
 static bool containFTableScan(LogicalHashJoin* logicalHashJoin) {
     auto root = logicalHashJoin->getChild(1).get(); // check build side
-    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::LOGICAL_FTABLE_SCAN)
-                .empty();
+    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::FTABLE_SCAN).empty();
 }
 
 static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinProbe) {
@@ -56,13 +54,14 @@ static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
         }
     }
     assert(scanNodeIDCandidates.size() == 1);
-    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
     // set semi masker
     auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
     assert(tableScan->getChild(0)->getChild(0)->getOperatorType() ==
            PhysicalOperatorType::SEMI_MASKER);
     auto semiMasker = (SemiMasker*)tableScan->getChild(0)->getChild(0);
-    semiMasker->setSharedState(sharedState);
+    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
+    assert(sharedState->getNumTableStates() == 1);
+    semiMasker->setSharedState(sharedState->getTableState(0));
     constructAccPipeline(tableScan, hashJoinProbe);
 }
 
@@ -89,78 +88,71 @@ static void mapAccJoin(HashJoinProbe* hashJoinProbe) {
     constructAccPipeline(tableScan, hashJoinProbe);
 }
 
-BuildDataInfo PlanMapper::generateBuildDataInfo(MapperContext& mapperContext,
-    Schema* buildSideSchema, const vector<shared_ptr<NodeExpression>>& keys,
-    const expression_vector& payloads) {
-    auto buildSideMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*buildSideSchema));
-    vector<DataPos> buildKeysDataPos, buildPayloadsDataPos;
+BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
+    const vector<shared_ptr<NodeExpression>>& keys, const expression_vector& payloads) {
+    vector<pair<DataPos, DataType>> buildKeysPosAndType, buildPayloadsPosAndTypes;
     vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
-    vector<bool> isBuildDataChunkContainKeys(
-        buildSideMapperContext.getResultSetDescriptor()->getNumDataChunks(), false);
+    vector<bool> isBuildDataChunkContainKeys(buildSideSchema.getNumGroups(), false);
     unordered_set<string> joinNodeIDs;
     for (auto& key : keys) {
-        auto nodeID = key->getIDProperty();
-        auto buildSideKeyPos = buildSideMapperContext.getDataPos(nodeID);
+        auto nodeID = key->getInternalIDPropertyName();
+        auto buildSideKeyPos =
+            DataPos(buildSideSchema.getExpressionPos(*key->getInternalIDProperty()));
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysDataPos.push_back(buildSideMapperContext.getDataPos(nodeID));
+        buildKeysPosAndType.emplace_back(buildSideKeyPos, NODE_ID);
         joinNodeIDs.emplace(nodeID);
     }
     for (auto& payload : payloads) {
-        auto payloadUniqueName = payload->getUniqueName();
-        if (joinNodeIDs.find(payloadUniqueName) != joinNodeIDs.end()) {
+        if (joinNodeIDs.find(payload->getUniqueName()) != joinNodeIDs.end()) {
             continue;
         }
-        mapperContext.addComputedExpressions(payloadUniqueName);
-        auto payloadPos = buildSideMapperContext.getDataPos(payloadUniqueName);
-        buildPayloadsDataPos.push_back(payloadPos);
-        auto payloadGroup = buildSideSchema->getGroup(payloadPos.dataChunkPos);
-        isBuildPayloadsFlat.push_back(payloadGroup->getIsFlat());
+        auto payloadPos = DataPos(buildSideSchema.getExpressionPos(*payload));
+        buildPayloadsPosAndTypes.emplace_back(payloadPos, payload->dataType);
+        auto payloadGroup = buildSideSchema.getGroup(payloadPos.dataChunkPos);
+        isBuildPayloadsFlat.push_back(payloadGroup->isFlat());
         isBuildPayloadsInKeyChunk.push_back(isBuildDataChunkContainKeys[payloadPos.dataChunkPos]);
     }
-    return BuildDataInfo(
-        buildKeysDataPos, buildPayloadsDataPos, isBuildPayloadsFlat, isBuildPayloadsInKeyChunk);
+    return BuildDataInfo(buildKeysPosAndType, buildPayloadsPosAndTypes, isBuildPayloadsFlat,
+        isBuildPayloadsInKeyChunk);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto hashJoin = (LogicalHashJoin*)logicalOperator;
-    auto buildSideMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin->getBuildSideSchema()));
-    auto buildSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin->getChild(1), buildSideMapperContext);
-    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0), mapperContext);
+    auto outSchema = hashJoin->getSchema();
+    auto buildSchema = hashJoin->getBuildSideSchema();
+    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(1));
+    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0));
     // Populate build side and probe side vector positions
     auto paramsString = hashJoin->getExpressionsForPrinting();
-    auto buildSideSchema = hashJoin->getBuildSideSchema();
-    auto buildDataInfo = generateBuildDataInfo(mapperContext, buildSideSchema,
-        hashJoin->getJoinNodes(), hashJoin->getExpressionsToMaterialize());
-    vector<DataPos> probeKeysDataPos, probePayloadsDataPos;
-    vector<DataType> payloadsDataTypes;
+    auto buildDataInfo = generateBuildDataInfo(
+        *buildSchema, hashJoin->getJoinNodes(), hashJoin->getExpressionsToMaterialize());
+    vector<DataPos> probeKeysDataPos;
     for (auto& joinNode : hashJoin->getJoinNodes()) {
-        auto joinNodeID = joinNode->getIDProperty();
-        probeKeysDataPos.push_back(mapperContext.getDataPos(joinNodeID));
+        probeKeysDataPos.emplace_back(
+            outSchema->getExpressionPos(*joinNode->getInternalIDProperty()));
     }
-    for (auto& dataPos : buildDataInfo.payloadsDataPos) {
-        auto expression = buildSideSchema->getGroup(dataPos.dataChunkPos)
-                              ->getExpressions()[dataPos.valueVectorPos];
-        payloadsDataTypes.push_back(expression->getDataType());
-        probePayloadsDataPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+    vector<DataPos> probePayloadsOutPos;
+    for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
+        auto expression =
+            buildSchema->getGroup(dataPos.dataChunkPos)->getExpressions()[dataPos.valueVectorPos];
+        probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    auto sharedState = make_shared<HashJoinSharedState>(payloadsDataTypes);
+    auto sharedState = make_shared<HashJoinSharedState>();
     // create hashJoin build
-    auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
-        std::move(buildSidePrevOperator), getOperatorID(), paramsString);
+    auto hashJoinBuild =
+        make_unique<HashJoinBuild>(make_unique<ResultSetDescriptor>(*buildSchema), sharedState,
+            buildDataInfo, std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
-    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsDataPos);
+    ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
     if (hashJoin->getJoinType() == JoinType::MARK) {
         auto mark = hashJoin->getMark();
-        auto markOutputPos = mapperContext.getDataPos(mark->getUniqueName());
-        mapperContext.addComputedExpressions(mark->getUniqueName());
+        auto markOutputPos = DataPos(outSchema->getExpressionPos(*mark));
         probeDataInfo.markDataPos = markOutputPos;
     }
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
-        hashJoin->getFlatOutputGroupPositions(), probeDataInfo, std::move(probeSidePrevOperator),
-        std::move(hashJoinBuild), getOperatorID(), paramsString);
+        probeDataInfo, std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(),
+        paramsString);
     if (hashJoin->getIsProbeAcc()) {
         if (containASPOnPipeline(hashJoin)) {
             mapASPJoin(hashJoin->getJoinNodes()[0].get(), hashJoinProbe.get());
@@ -173,14 +165,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
+    auto inSchema = logicalSemiMasker->getChild(0)->getSchema();
     auto node = logicalSemiMasker->getNode();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto keyDataPos = mapperContext.getDataPos(node->getIDProperty());
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto keyDataPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
     return make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
         logicalSemiMasker->getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

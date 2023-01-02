@@ -1,10 +1,10 @@
 #pragma once
 
-#include "src/main/include/connection.h"
+#include "main/connection.h"
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 class JOConnection : public Connection {
@@ -16,4 +16,4 @@ public:
 };
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

@@ -1,12 +1,11 @@
-#include "include/jo_connection.h"
+#include "jo_connection.h"
 
-#include "src/binder/include/binder.h"
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/planner/logical_plan/include/logical_plan_util.h"
-#include "src/processor/mapper/include/plan_mapper.h"
+#include "binder/binder.h"
+#include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/planner.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 unique_ptr<QueryResult> JOConnection::query(const string& query, const string& encodedJoin) {
@@ -37,10 +36,7 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
             }
         }
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-        // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
-        preparedStatement->physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
+        preparedStatement->logicalPlan = std::move(logicalPlan);
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {
         string errMsg = exception.what();
@@ -49,4 +45,4 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

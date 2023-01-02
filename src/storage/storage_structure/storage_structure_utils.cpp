@@ -1,11 +1,13 @@
-#include "src/storage/storage_structure/include/storage_structure_utils.h"
+#include "storage/storage_structure/storage_structure_utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-    VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal, bool isReadTrx) {
-    if (isReadTrx || !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
+    VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+    transaction::TransactionType trxType) {
+    if (trxType == transaction::TransactionType::READ_ONLY ||
+        !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
         return make_pair((FileHandle*)&fileHandle, physicalPageIdx);
     } else {
         return make_pair(
@@ -15,7 +17,7 @@ pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPag
 
 void StorageStructureUtils::updatePage(VersionedFileHandle& fileHandle, page_idx_t originalPageIdx,
     bool isInsertingNewPage, BufferManager& bufferManager, WAL& wal,
-    std::function<void(uint8_t*)> updateOp) {
+    const std::function<void(uint8_t*)>& updateOp) {
     auto walPageIdxAndFrame = StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
         originalPageIdx, isInsertingNewPage, fileHandle, bufferManager, wal);
     updateOp(walPageIdxAndFrame.frame);
@@ -24,7 +26,7 @@ void StorageStructureUtils::updatePage(VersionedFileHandle& fileHandle, page_idx
 
 void StorageStructureUtils::readWALVersionOfPage(VersionedFileHandle& fileHandle,
     page_idx_t originalPageIdx, BufferManager& bufferManager, WAL& wal,
-    std::function<void(uint8_t*)> readOp) {
+    const std::function<void(uint8_t*)>& readOp) {
     page_idx_t pageIdxInWAL = fileHandle.getWALPageVersionNoPageLock(originalPageIdx);
     auto frame = bufferManager.pinWithoutAcquiringPageLock(
         *wal.fileHandle, pageIdxInWAL, false /* read from file */);
@@ -76,4 +78,4 @@ void StorageStructureUtils::unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx
     fileHandle.releasePageLock(originalPageIdx);
 }
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

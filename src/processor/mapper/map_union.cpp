@@ -1,47 +1,43 @@
-#include "include/plan_mapper.h"
+#include "planner/logical_plan/logical_operator/logical_union.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/table_scan/union_all_scan.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_union.h"
-#include "src/processor/operator/table_scan/include/union_all_scan.h"
+using namespace kuzu::planner;
 
-using namespace graphflow::planner;
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalUnionAll = (LogicalUnion&)*logicalOperator;
+    auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child
     vector<unique_ptr<PhysicalOperator>> prevOperators;
     vector<shared_ptr<FTableSharedState>> resultCollectorSharedStates;
     for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
         auto child = logicalOperator->getChild(i);
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
-        auto childMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*childSchema));
-        auto prevOperator = mapLogicalOperatorToPhysical(child, childMapperContext);
-        auto resultCollector = appendResultCollector(childSchema->getExpressionsInScope(),
-            *childSchema, move(prevOperator), childMapperContext);
+        auto prevOperator = mapLogicalOperatorToPhysical(child);
+        auto resultCollector = appendResultCollector(
+            childSchema->getExpressionsInScope(), *childSchema, std::move(prevOperator));
         resultCollectorSharedStates.push_back(resultCollector->getSharedState());
-        prevOperators.push_back(move(resultCollector));
+        prevOperators.push_back(std::move(resultCollector));
     }
     // append union all
-    vector<DataType> outVecDataTypes;
     vector<DataPos> outDataPoses;
     vector<uint32_t> colIndicesToScan;
     auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
     for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
         auto expression = expressionsToUnion[i];
-        outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outVecDataTypes.push_back(expression->getDataType());
+        outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
     auto unionSharedState =
         make_shared<UnionAllScanSharedState>(std::move(resultCollectorSharedStates));
-    return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
-        std::move(outDataPoses), std::move(outVecDataTypes), std::move(colIndicesToScan),
+    return make_unique<UnionAllScan>(std::move(outDataPoses), std::move(colIndicesToScan),
         unionSharedState, std::move(prevOperators), getOperatorID(),
         logicalUnionAll.getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

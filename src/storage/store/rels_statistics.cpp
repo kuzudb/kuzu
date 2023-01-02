@@ -1,14 +1,13 @@
-#include "src/storage/store/include/rels_statistics.h"
+#include "storage/store/rels_statistics.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-RelStatistics::RelStatistics(SrcDstTableIDs srcDstTableIDs) : TableStatistics{0} {
+RelStatistics::RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
+    : TableStatistics{0} {
     numRelsPerDirectionBoundTable.resize(2);
-    for (auto srcTableID : srcDstTableIDs.srcTableIDs) {
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
         numRelsPerDirectionBoundTable[RelDirection::FWD].emplace(srcTableID, 0);
-    }
-    for (auto dstTableID : srcDstTableIDs.dstTableIDs) {
         numRelsPerDirectionBoundTable[RelDirection::BWD].emplace(dstTableID, 0);
     }
 }
@@ -18,34 +17,82 @@ RelsStatistics::RelsStatistics(
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& relStatistic : relStatisticPerTable_) {
-        (*tableStatisticPerTableForReadOnlyTrx)[relStatistic.first] =
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[relStatistic.first] =
             make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
-        (*tableStatisticPerTableForWriteTrx)[relStatistic.first] =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relStatistic.first] =
             make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
     }
 }
 
-void RelsStatistics::setNumRelsPerDirectionBoundTableID(
-    table_id_t tableID, vector<unique_ptr<atomic_uint64_vec_t>>& directionNumRelsPerTable) {
+// We should only call this function after we call setNumRelsPerDirectionBoundTableID.
+void RelsStatistics::setNumRelsForTable(table_id_t relTableID, uint64_t numRels) {
     lock_t lck{mtx};
     initTableStatisticPerTableForWriteTrxIfNecessary();
-    assert(tableID < tableStatisticPerTableForWriteTrx->size());
+    assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
+    auto relStatistics =
+        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+            .get();
+    tablesStatisticsContentForWriteTrx->nextRelID += (numRels - relStatistics->getNumTuples());
+    relStatistics->setNumTuples(numRels);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRels);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRels);
+}
+
+void RelsStatistics::assertNumRelsIsSound(
+    unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
+    uint64_t sum = 0;
+    for (auto tableIDNumRels : relsPerBoundTable) {
+        sum += tableIDNumRels.second;
+    }
+    assert(sum == numRels);
+}
+
+void RelsStatistics::updateNumRelsByValue(
+    table_id_t relTableID, table_id_t srcTableID, table_id_t dstTableID, int64_t value) {
+    lock_t lck{mtx};
+    initTableStatisticPerTableForWriteTrxIfNecessary();
+    auto relStatistics =
+        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+            .get();
+    auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
+    relStatistics->setNumTuples(numRelsAfterUpdate);
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto boundTableID = 0u; boundTableID < directionNumRelsPerTable[relDirection]->size();
-             boundTableID++) {
-            ((RelStatistics*)((*tableStatisticPerTableForWriteTrx)[tableID].get()))
-                ->setNumRelsForDirectionBoundTable(relDirection, boundTableID,
-                    directionNumRelsPerTable[relDirection]->operator[](boundTableID).load());
+        auto relStatistics =
+            (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable
+                .at(relTableID)
+                .get();
+        relStatistics->numRelsPerDirectionBoundTable[relDirection].at(
+            relDirection == FWD ? srcTableID : dstTableID) += value;
+    }
+    // Update the nextRelID only when we are inserting rels.
+    if (value > 0) {
+        tablesStatisticsContentForWriteTrx->nextRelID += value;
+    }
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRelsAfterUpdate);
+    assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRelsAfterUpdate);
+}
+
+void RelsStatistics::setNumRelsPerDirectionBoundTableID(
+    table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable) {
+    lock_t lck{mtx};
+    initTableStatisticPerTableForWriteTrxIfNecessary();
+    for (auto relDirection : REL_DIRECTIONS) {
+        for (auto const& tableIDNumRelPair : directionNumRelsPerTable[relDirection]) {
+            ((RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID]
+                    .get())
+                ->setNumRelsForDirectionBoundTable(
+                    relDirection, tableIDNumRelPair.first, tableIDNumRelPair.second.load());
         }
     }
 }
 
-uint64_t RelsStatistics::getNextRelID() {
-    auto nextRelID = 0ull;
-    for (auto& tableStatistic : *tableStatisticPerTableForReadOnlyTrx) {
-        nextRelID += ((RelStatistics*)tableStatistic.second.get())->getNumTuples();
-    }
-    return nextRelID;
+uint64_t RelsStatistics::getNextRelID(Transaction* transaction) {
+    lock_t lck{mtx};
+    auto& tableStatisticContent =
+        (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
+            tablesStatisticsContentForReadOnlyTrx :
+            tablesStatisticsContentForWriteTrx;
+    return tableStatisticContent->nextRelID;
 }
 
 unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
@@ -66,4 +113,4 @@ void RelsStatistics::serializeTableStatistics(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

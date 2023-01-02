@@ -1,25 +1,21 @@
-#include "include/filter.h"
+#include "processor/operator/filter.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Filter::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
-    return resultSet;
 }
 
-bool Filter::getNextTuples() {
-    metrics->executionTime.start();
+bool Filter::getNextTuplesInternal() {
     bool hasAtLeastOneSelectedValue;
     do {
-        restoreSelVector(dataChunkToSelect->state->selVector.get());
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        restoreSelVector(dataChunkToSelect->state->selVector);
+        if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(dataChunkToSelect->state->selVector.get());
+        saveSelVector(dataChunkToSelect->state->selVector);
         hasAtLeastOneSelectedValue =
             expressionEvaluator->select(*dataChunkToSelect->state->selVector);
         if (!dataChunkToSelect->state->isFlat() &&
@@ -27,10 +23,9 @@ bool Filter::getNextTuples() {
             dataChunkToSelect->state->selVector->resetSelectorToValuePosBuffer();
         }
     } while (!hasAtLeastOneSelectedValue);
-    metrics->executionTime.stop();
     metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

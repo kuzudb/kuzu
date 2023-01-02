@@ -1,13 +1,12 @@
-#include "include/date_t.h"
+#include "common/types/date_t.h"
 
-#include "include/cast_helpers.h"
-#include "include/timestamp_t.h"
+#include "common/assert.h"
+#include "common/exception.h"
+#include "common/types/cast_helpers.h"
+#include "common/types/timestamp_t.h"
+#include "common/utils.h"
 
-#include "src/common/include/assert.h"
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 date_t date_t::operator+(const interval_t& interval) const {
@@ -147,10 +146,10 @@ void Date::ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset) {
     // offset until we find our year
     while (n < Date::CUMULATIVE_YEAR_DAYS[year_offset]) {
         year_offset--;
-        GF_ASSERT(year_offset >= 0);
+        KU_ASSERT(year_offset >= 0);
     }
     year += year_offset;
-    GF_ASSERT(n >= Date::CUMULATIVE_YEAR_DAYS[year_offset]);
+    KU_ASSERT(n >= Date::CUMULATIVE_YEAR_DAYS[year_offset]);
 }
 
 void Date::Convert(date_t d, int32_t& year, int32_t& month, int32_t& day) {
@@ -159,7 +158,7 @@ void Date::Convert(date_t d, int32_t& year, int32_t& month, int32_t& day) {
     Date::ExtractYearOffset(n, year, year_offset);
 
     day = n - Date::CUMULATIVE_YEAR_DAYS[year_offset];
-    GF_ASSERT(day >= 0 && day <= 365);
+    KU_ASSERT(day >= 0 && day <= 365);
 
     bool is_leap_year = (Date::CUMULATIVE_YEAR_DAYS[year_offset + 1] -
                             Date::CUMULATIVE_YEAR_DAYS[year_offset]) == 366;
@@ -171,15 +170,15 @@ void Date::Convert(date_t d, int32_t& year, int32_t& month, int32_t& day) {
         day -= Date::CUMULATIVE_DAYS[month - 1];
     }
     day++;
-    GF_ASSERT(day > 0 && day <= (is_leap_year ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month]));
-    GF_ASSERT(month > 0 && month <= 12);
+    KU_ASSERT(day > 0 && day <= (is_leap_year ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month]));
+    KU_ASSERT(month > 0 && month <= 12);
 }
 
 date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!Date::IsValid(year, month, day)) {
         throw ConversionException(
-            StringUtils::string_format("Date out of range: %d-%d-%d", year, month, day));
+            StringUtils::string_format("Date out of range: %d-%d-%d.", year, month, day));
     }
     while (year < 1970) {
         year += Date::YEAR_INTERVAL;
@@ -295,8 +294,8 @@ date_t Date::FromCString(const char* buf, uint64_t len) {
     date_t result;
     uint64_t pos;
     if (!TryConvertDate(buf, len, pos, result)) {
-        throw ConversionException(
-            "date string " + string(buf, len) + " is not in expected format of (YYYY-MM-DD)");
+        throw ConversionException("Error occurred during parsing date. Given: \"" +
+                                  string(buf, len) + "\". Expected format: (YYYY-MM-DD)");
     }
     return result;
 }
@@ -331,7 +330,7 @@ bool Date::IsValid(int32_t year, int32_t month, int32_t day) {
 }
 
 int32_t Date::MonthDays(int32_t year, int32_t month) {
-    GF_ASSERT(month >= 1 && month <= 12);
+    KU_ASSERT(month >= 1 && month <= 12);
     return Date::IsLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
 }
 
@@ -420,4 +419,4 @@ date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

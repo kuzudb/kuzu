@@ -1,11 +1,11 @@
-#include "src/common/include/file_utils.h"
+#include "common/file_utils.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 unique_ptr<FileInfo> FileUtils::openFile(const string& path, int flags) {
@@ -117,4 +117,4 @@ void FileUtils::truncateFileToEmpty(FileInfo* fileInfo) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

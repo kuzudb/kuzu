@@ -1,14 +1,14 @@
-#include "src/storage/store/include/rels_store.h"
+#include "storage/store/rels_store.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
-RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& maxNodeOffsetsPerTable,
-    BufferManager& bufferManager, MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
+RelsStore::RelsStore(const Catalog& catalog, BufferManager& bufferManager,
+    MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
     : relsStatistics{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        relTables[tableIDSchema.first] = make_unique<RelTable>(catalog, maxNodeOffsetsPerTable,
-            tableIDSchema.first, bufferManager, memoryManager, isInMemoryMode, wal);
+        relTables[tableIDSchema.first] = make_unique<RelTable>(
+            catalog, tableIDSchema.first, bufferManager, memoryManager, isInMemoryMode, wal);
     }
 }
 
@@ -29,4 +29,4 @@ pair<vector<AdjLists*>, vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

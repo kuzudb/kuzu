@@ -1,6 +1,8 @@
 #include <thread>
 
-#include "include/main_test_helper.h"
+#include "main_test_helper/main_test_helper.h"
+
+using namespace kuzu::testing;
 
 TEST_F(ApiTest, BasicConnect) {
     ApiTest::assertMatchPersonCountStar(conn.get());
@@ -41,59 +43,59 @@ TEST_F(ApiTest, ParallelConnect) {
 
 TEST_F(ApiTest, TransactionModes) {
     // Test initially connections are in AUTO_COMMIT mode.
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, getTransactionMode(*conn));
     // Test beginning a transaction (first in read only mode) sets mode to MANUAL automatically.
     conn->beginReadOnlyTransaction();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, getTransactionMode(*conn));
     // Test commit automatically switches the mode to AUTO_COMMIT read transaction
     conn->commit();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, getTransactionMode(*conn));
 
     conn->beginReadOnlyTransaction();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, getTransactionMode(*conn));
     // Test rollback automatically switches the mode to AUTO_COMMIT for read transaction
     conn->rollback();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, getTransactionMode(*conn));
 
     // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
     conn->beginWriteTransaction();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, getTransactionMode(*conn));
     // Test commit automatically switches the mode to AUTO_COMMIT for write transaction
     conn->commit();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, getTransactionMode(*conn));
 
     // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
     conn->beginWriteTransaction();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, getTransactionMode(*conn));
     // Test rollback automatically switches the mode to AUTO_COMMIT write transaction
     conn->rollback();
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, getTransactionMode(*conn));
 }
 
 TEST_F(ApiTest, MultipleCallsFromSameTransaction) {
     conn->beginReadOnlyTransaction();
-    auto activeTransactionID = conn->getActiveTransactionID();
+    auto activeTransactionID = getActiveTransactionID(*conn);
     conn->query("MATCH (a:person) RETURN COUNT(*)");
-    ASSERT_EQ(activeTransactionID, conn->getActiveTransactionID());
+    ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
     conn->query("MATCH (a:person) RETURN COUNT(*)");
-    ASSERT_EQ(activeTransactionID, conn->getActiveTransactionID());
+    ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)");
     conn->execute(preparedStatement.get(), make_pair(string("1"), true));
-    ASSERT_EQ(activeTransactionID, conn->getActiveTransactionID());
+    ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
     conn->commit();
-    ASSERT_FALSE(conn->hasActiveTransaction());
+    ASSERT_FALSE(hasActiveTransaction(*conn));
 }
 
 TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
     conn->beginWriteTransaction();
-    ASSERT_TRUE(conn->hasActiveTransaction());
+    ASSERT_TRUE(hasActiveTransaction(*conn));
     conn->rollback();
-    ASSERT_FALSE(conn->hasActiveTransaction());
+    ASSERT_FALSE(hasActiveTransaction(*conn));
     conn->beginReadOnlyTransaction();
-    ASSERT_TRUE(conn->hasActiveTransaction());
+    ASSERT_TRUE(hasActiveTransaction(*conn));
     conn->commit();
-    ASSERT_FALSE(conn->hasActiveTransaction());
+    ASSERT_FALSE(hasActiveTransaction(*conn));
 }
 
 TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
@@ -118,4 +120,19 @@ TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
         conn->beginReadOnlyTransaction();
         FAIL();
     } catch (ConnectionException& e) {}
+}
+
+// These two tests are designed to make sure that the explain and profile statements don't create a
+// segmentation fault.
+TEST_F(ApiTest, Explain) {
+    auto result = conn->query("EXPLAIN MATCH (a:person)-[:knows]->(b:person), "
+                              "(b)-[:knows]->(a) RETURN a.fName, b.fName ORDER BY a.ID");
+    ASSERT_TRUE(result->isSuccess());
+}
+
+TEST_F(ApiTest, Profile) {
+    auto result =
+        conn->query("EXPLAIN MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE "
+                    "b.fName='Farooq' } RETURN a.ID, min(a.age)");
+    ASSERT_TRUE(result->isSuccess());
 }

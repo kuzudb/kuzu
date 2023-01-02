@@ -1,8 +1,8 @@
-#include "include/var_length_column_extend.h"
+#include "processor/operator/var_length_extend/var_length_column_extend.h"
 
-#include "src/common/types/include/types.h"
+#include "common/types/types.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 void ColumnExtendDFSLevelInfo::reset() {
@@ -10,8 +10,9 @@ void ColumnExtendDFSLevelInfo::reset() {
     this->hasBeenOutput = false;
 }
 
-shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
-    VarLengthExtend::init(context);
+void VarLengthColumnExtend::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
         auto dfsLevelInfo = make_shared<ColumnExtendDFSLevelInfo>(i + 1, *context);
         // Since we use boundNodeValueVector as the input valueVector and dfsLevelInfo->children as
@@ -21,13 +22,11 @@ shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
         // We can't add the dfsLevelInfo->children to the boundNodeValueVector's dataChunk in the
         // constructor, because the boundNodeValueVector hasn't been initialized in the constructor.
         dfsLevelInfo->children->state = boundNodeValueVector->state;
-        dfsLevelInfos[i] = move(dfsLevelInfo);
+        dfsLevelInfos[i] = std::move(dfsLevelInfo);
     }
-    return resultSet;
 }
 
-bool VarLengthColumnExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool VarLengthColumnExtend::getNextTuplesInternal() {
     // This general loop structure and how we fetch more data from the child operator after the
     // while(true) loop block is almost the same as that in VarLengthAdjListExtend but there are
     // several differences (e.g., we have one less else if branch here), so we are not refactoring.
@@ -39,13 +38,13 @@ bool VarLengthColumnExtend::getNextTuples() {
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
                 auto elementSize = Types::getDataTypeSize(dfsLevelInfo->children->dataType);
-                memcpy(nbrNodeValueVector->values +
-                           elementSize * nbrNodeValueVector->state->getPositionOfCurrIdx(),
-                    dfsLevelInfo->children->values +
-                        elementSize * dfsLevelInfo->children->state->getPositionOfCurrIdx(),
+                memcpy(nbrNodeValueVector->getData() +
+                           elementSize * nbrNodeValueVector->state->selVector->selectedPositions[0],
+                    dfsLevelInfo->children->getData() +
+                        elementSize *
+                            dfsLevelInfo->children->state->selVector->selectedPositions[0],
                     elementSize);
                 dfsLevelInfo->hasBeenOutput = true;
-                metrics->executionTime.stop();
                 return true;
             } else if (!dfsLevelInfo->hasBeenExtended && dfsLevelInfo->level != upperBound) {
                 addDFSLevelToStackIfParentExtends(dfsLevelInfo->children, dfsLevelInfo->level + 1);
@@ -55,13 +54,12 @@ bool VarLengthColumnExtend::getNextTuples() {
             }
         }
         do {
-            if (!children[0]->getNextTuples()) {
-                metrics->executionTime.stop();
+            if (!children[0]->getNextTuple()) {
                 return false;
             }
-        } while (
-            boundNodeValueVector->isNull(boundNodeValueVector->state->getPositionOfCurrIdx()) ||
-            !addDFSLevelToStackIfParentExtends(boundNodeValueVector, 1 /* level */));
+        } while (boundNodeValueVector->isNull(
+                     boundNodeValueVector->state->selVector->selectedPositions[0]) ||
+                 !addDFSLevelToStackIfParentExtends(boundNodeValueVector, 1 /* level */));
     }
 }
 
@@ -70,12 +68,13 @@ bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
     auto dfsLevelInfo = static_pointer_cast<ColumnExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset();
     ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children);
-    if (!dfsLevelInfo->children->isNull(parentValueVector->state->getPositionOfCurrIdx())) {
-        dfsStack.emplace(move(dfsLevelInfo));
+    if (!dfsLevelInfo->children->isNull(
+            parentValueVector->state->selVector->selectedPositions[0])) {
+        dfsStack.emplace(std::move(dfsLevelInfo));
         return true;
     }
     return false;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

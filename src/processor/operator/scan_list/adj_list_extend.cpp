@@ -1,45 +1,53 @@
-#include "include/adj_list_extend.h"
+#include "processor/operator/scan_list/adj_list_extend.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
-    resultSet = ScanList::init(context);
-    outValueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
-    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
-    resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
-    listHandle = make_shared<ListHandle>(*resultSet->getListSyncState(outDataPos.dataChunkPos));
-    return resultSet;
+void ListExtendAndScanRelProperties::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* context) {
+    BaseExtendAndScanRelProperties::initLocalStateInternal(resultSet, context);
+    syncState = make_unique<ListSyncState>();
+    adjListHandle = make_shared<ListHandle>(*syncState);
+    for (auto& _ : propertyLists) {
+        propertyListHandles.push_back(make_shared<ListHandle>(*syncState));
+    }
 }
 
-bool AdjListExtend::getNextTuples() {
-    metrics->executionTime.start();
-    if (listHandle->listSyncState.hasMoreToRead()) {
-        listsWithAdjAndPropertyListsUpdateStore->readValues(outValueVector, *listHandle);
-        metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
-        return true;
+bool ListExtendAndScanRelProperties::getNextTuplesInternal() {
+    if (adjListHandle->listSyncState.hasMoreToRead()) {
+        adjList->readValues(outNodeIDVector, *adjListHandle);
+    } else {
+        do {
+            if (!children[0]->getNextTuple()) {
+                return false;
+            }
+            auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
+            if (inNodeIDVector->isNull(currentIdx)) {
+                outNodeIDVector->state->selVector->selectedSize = 0;
+                continue;
+            }
+            auto currentNodeOffset = inNodeIDVector->readNodeOffset(currentIdx);
+            ((AdjLists*)adjList)
+                ->initListReadingState(currentNodeOffset, *adjListHandle, transaction->getType());
+            adjList->readValues(outNodeIDVector, *adjListHandle);
+        } while (outNodeIDVector->state->selVector->selectedSize == 0);
     }
-    do {
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
-            return false;
-        }
-        auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
-        if (inValueVector->isNull(currentIdx)) {
-            outValueVector->state->selVector->selectedSize = 0;
-            continue;
-        }
-        ((AdjLists*)listsWithAdjAndPropertyListsUpdateStore)
-            ->initListReadingState(
-                inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx()),
-                *listHandle, transaction->getType());
-        listsWithAdjAndPropertyListsUpdateStore->readValues(outValueVector, *listHandle);
-    } while (outDataChunk->state->selVector->selectedSize == 0);
-    metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
+    // TODO(Ziyi/Guodong): this is a hidden bug found in this refactor but also exists in master.
+    // Our protocol is that an operator cannot output empty result. This is violated when
+    // introducing setDeletedRelsIfNecessary() which might set selectedSize = 0. Let me know if my
+    // understanding is correct about this.
+    scanPropertyLists();
+    metrics->numOutputTuple.increase(outNodeIDVector->state->selVector->selectedSize);
     return true;
 }
 
+void ListExtendAndScanRelProperties::scanPropertyLists() {
+    for (auto i = 0u; i < propertyLists.size(); ++i) {
+        outPropertyVectors[i]->resetOverflowBuffer();
+        propertyLists[i]->readValues(outPropertyVectors[i], *propertyListHandles[i]);
+        propertyLists[i]->setDeletedRelsIfNecessary(transaction, *syncState, outPropertyVectors[i]);
+    }
+}
+
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

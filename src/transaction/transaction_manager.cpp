@@ -1,10 +1,10 @@
-#include "include/transaction_manager.h"
+#include "transaction/transaction_manager.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace transaction {
 
 unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
@@ -81,8 +81,8 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave() {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
     mtxForStartingNewTransactions.lock();
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
     uint64_t numTimesWaited = 0;
     while (true) {
         if (!activeReadOnlyTransactionIDs.empty()) {
@@ -102,4 +102,4 @@ void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
 }
 
 } // namespace transaction
-} // namespace graphflow
+} // namespace kuzu

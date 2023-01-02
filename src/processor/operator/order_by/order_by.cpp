@@ -1,84 +1,78 @@
-#include "include/order_by.h"
+#include "processor/operator/order_by/order_by.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-
-    // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
-    // here because they need the data type information, which is contained in the value vectors.
-    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
-    vector<DataType> dataTypes;
-    // Loop through all columns to initialize the factorizedTable.
-    // We need to store all columns(including keys and payload) in the factorizedTable.
-    for (auto i = 0u; i < orderByDataInfo.allDataPoses.size(); ++i) {
-        auto dataChunkPos = orderByDataInfo.allDataPoses[i].dataChunkPos;
-        auto dataChunk = this->resultSet->dataChunks[dataChunkPos];
-        auto vectorPos = orderByDataInfo.allDataPoses[i].valueVectorPos;
-        auto vector = dataChunk->valueVectors[vectorPos];
-        bool flattenAllColumnsInFactorizedTable = false;
-        // The orderByKeyEncoder requires that the orderByKey columns are flat in the
-        // factorizedTable. If there is only one unflat dataChunk, we need to flatten the payload
-        // columns in factorizedTable because the payload and key columns are in the same
-        // dataChunk.
-        if (resultSet->dataChunks.size() == 1) {
-            flattenAllColumnsInFactorizedTable = true;
-        }
-        bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
-        tableSchema->appendColumn(make_unique<ColumnSchema>(isUnflat, dataChunkPos,
-            isUnflat ? (uint32_t)sizeof(overflow_value_t) : vector->getNumBytesPerValue()));
-        dataTypes.push_back(vector->dataType);
+void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
+        auto vector = resultSet->getValueVector(dataPos);
         vectorsToAppend.push_back(vector);
     }
-
-    // Create a factorizedTable and append it to sharedState.
-    localFactorizedTable = make_shared<FactorizedTable>(context->memoryManager, move(tableSchema));
+    // TODO(Ziyi): this is implemented differently from other sink operators. Normally we append
+    // local table to global at the end of the execution. But here your encoder seem to need encode
+    // tableIdx which closely associated with the execution order of thread. We prefer a unified
+    // design pattern for sink operators.
+    localFactorizedTable =
+        make_shared<FactorizedTable>(context->memoryManager, populateTableSchema());
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
-    sharedState->setDataTypes(dataTypes);
-    // Loop through all key columns and calculate the offsets for string and unstructured columns.
-    auto encodedKeyBlockColOffset = 0ul;
-    for (auto i = 0u; i < orderByDataInfo.keyDataPoses.size(); i++) {
-        auto keyDataPos = orderByDataInfo.keyDataPoses[i];
-        auto dataChunkPos = keyDataPos.dataChunkPos;
-        auto dataChunk = resultSet->dataChunks[dataChunkPos];
-        auto vectorPos = keyDataPos.valueVectorPos;
-        auto vector = dataChunk->valueVectors[vectorPos];
+    for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
+        auto vector = resultSet->getValueVector(dataPos);
         keyVectors.emplace_back(vector);
-        if (STRING == vector->dataType.typeID || UNSTRUCTURED == vector->dataType.typeID) {
-            // If this is a string or unstructured column, we need to find the
-            // factorizedTable offset for this column.
+    }
+    orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
+        context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock(),
+        sharedState->numBytesPerTuple);
+    radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
+        *orderByKeyEncoder, sharedState->strKeyColsInfo);
+}
+
+unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
+    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
+    // The orderByKeyEncoder requires that the orderByKey columns are flat in the
+    // factorizedTable. If there is only one unflat dataChunk, we need to flatten the payload
+    // columns in factorizedTable because the payload and key columns are in the same
+    // dataChunk.
+    for (auto i = 0u; i < orderByDataInfo.payloadsPosAndType.size(); ++i) {
+        auto [dataPos, dataType] = orderByDataInfo.payloadsPosAndType[i];
+        bool isUnflat = !orderByDataInfo.isPayloadFlat[i] && !orderByDataInfo.mayContainUnflatKey;
+        tableSchema->appendColumn(make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
+            isUnflat ? (uint32_t)sizeof(overflow_value_t) : Types::getDataTypeSize(dataType)));
+    }
+    return tableSchema;
+}
+
+void OrderBy::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    vector<StrKeyColInfo> strKeyColInfo;
+    auto encodedKeyBlockColOffset = 0ul;
+    auto tableSchema = populateTableSchema();
+    for (auto i = 0u; i < orderByDataInfo.keysPosAndType.size(); ++i) {
+        auto [dataPos, dataType] = orderByDataInfo.keysPosAndType[i];
+        if (STRING == dataType.typeID) {
+            // If this is a string column, we need to find the factorizedTable offset for this
+            // column.
             auto factorizedTableColIdx = 0ul;
-            for (auto j = 0u; j < orderByDataInfo.allDataPoses.size(); j++) {
-                if (orderByDataInfo.allDataPoses[j] == keyDataPos) {
+            for (auto j = 0u; j < orderByDataInfo.payloadsPosAndType.size(); j++) {
+                auto [payloadDataPos, _] = orderByDataInfo.payloadsPosAndType[j];
+                if (payloadDataPos == dataPos) {
                     factorizedTableColIdx = j;
                 }
             }
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                localFactorizedTable->getTableSchema()->getColOffset(factorizedTableColIdx),
-                encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i],
-                STRING == vector->dataType.typeID));
+            strKeyColInfo.emplace_back(
+                StrKeyColInfo(tableSchema->getColOffset(factorizedTableColIdx),
+                    encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i]));
         }
-        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(vector->dataType);
+        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(dataType);
     }
-
-    // Prepare the orderByEncoder, and radix sorter
-    orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
-        context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock());
-    radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
-        *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
-
-    sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
-    sharedState->setNumBytesPerTuple(orderByKeyEncoder->getNumBytesPerTuple());
-    return resultSet;
+    sharedState->setStrKeyColInfo(strKeyColInfo);
+    // TODO(Ziyi): comment about +8
+    auto numBytesPerTuple = encodedKeyBlockColOffset + 8;
+    sharedState->setNumBytesPerTuple(numBytesPerTuple);
 }
 
-void OrderBy::execute(ExecutionContext* context) {
-    init(context);
-    metrics->executionTime.start();
+void OrderBy::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples.
-    while (children[0]->getNextTuples()) {
+    while (children[0]->getNextTuple()) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
             orderByKeyEncoder->encodeKeys();
             // The orderByKeyEncoder requires that the orderByKey columns are flat in the
@@ -91,7 +85,6 @@ void OrderBy::execute(ExecutionContext* context) {
             localFactorizedTable->append(vectorsToAppend);
         }
     }
-
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
         if (keyBlock->numTuples > 0) {
             radixSorter->sortSingleKeyBlock(*keyBlock);
@@ -99,8 +92,7 @@ void OrderBy::execute(ExecutionContext* context) {
                 make_shared<MergedKeyBlocks>(orderByKeyEncoder->getNumBytesPerTuple(), keyBlock));
         }
     }
-    metrics->executionTime.stop();
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

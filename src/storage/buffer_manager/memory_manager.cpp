@@ -1,8 +1,8 @@
-#include "src/storage/buffer_manager/include/memory_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 #include <cstring>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
@@ -32,4 +32,4 @@ void MemoryManager::freeBlock(page_idx_t pageIdx) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

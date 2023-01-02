@@ -1,12 +1,11 @@
-#include "include/dtime_t.h"
+#include "common/types/dtime_t.h"
 
-#include "include/cast_helpers.h"
-#include "include/date_t.h"
+#include "common/exception.h"
+#include "common/types/cast_helpers.h"
+#include "common/types/date_t.h"
+#include "common/utils.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 static_assert(sizeof(dtime_t) == sizeof(int64_t), "dtime_t was padded");
@@ -91,10 +90,9 @@ dtime_t Time::FromCString(const char* buf, uint64_t len) {
     dtime_t result;
     uint64_t pos;
     if (!Time::TryConvertTime(buf, len, pos, result)) {
-        throw ConversionException(
-            StringUtils::string_format("time field value out of range: \"%s\", "
-                                       "expected format is ([YYY-MM-DD ]HH:MM:SS[.MS])",
-                buf));
+        throw ConversionException(StringUtils::string_format(
+            "Error occurred during parsing time. Given: \"" + string(buf, len) +
+            "\". Expected format: (hh:mm:ss[.zzzzzz])."));
     }
     return result;
 }
@@ -121,7 +119,7 @@ bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microse
 dtime_t Time::FromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     if (!Time::IsValid(hour, minute, second, microseconds)) {
         throw ConversionException(StringUtils::string_format(
-            "time field value out of range: %d:%d:%d[.%d]", hour, minute, second, microseconds));
+            "Time field value out of range: %d:%d:%d[.%d].", hour, minute, second, microseconds));
     }
     int64_t result;
     result = hour;                                             // hours
@@ -143,4 +141,4 @@ void Time::Convert(dtime_t dtime, int32_t& hour, int32_t& min, int32_t& sec, int
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

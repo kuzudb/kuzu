@@ -1,10 +1,9 @@
-#include "src/storage/storage_structure/include/in_mem_page.h"
+#include "storage/storage_structure/in_mem_page.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
@@ -32,9 +31,9 @@ void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
     nullEntriesInPage[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
 }
 
-uint8_t* InMemPage::write(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
+uint8_t* InMemPage::writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
     const NodeIDCompressionScheme& nodeIDCompressionScheme) {
-    nodeIDCompressionScheme.writeNodeID(data + byteOffsetInPage, nodeID);
+    nodeIDCompressionScheme.writeNodeID(data + byteOffsetInPage, *nodeID);
     if (nullMask) {
         nullMask[elemPosInPage] = false;
     }
@@ -62,4 +61,4 @@ void InMemPage::encodeNullBits() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

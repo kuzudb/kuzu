@@ -1,9 +1,0 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
-
-cc_library(
-    name = "antlr4_cpp",
-    srcs = glob(["runtime/Cpp/runtime/src/**/*.cpp"]),
-    hdrs = glob(["runtime/Cpp/runtime/src/**/*.h"]),
-    includes = ["runtime/Cpp/runtime/src"],
-    visibility = ["//visibility:public"],
-)

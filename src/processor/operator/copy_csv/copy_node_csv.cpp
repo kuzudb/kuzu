@@ -1,19 +1,21 @@
-#include "include/copy_node_csv.h"
+#include "processor/operator/copy_csv/copy_node_csv.h"
 
-#include "src/storage/in_mem_csv_copier/include/in_mem_node_csv_copier.h"
+#include "storage/in_mem_csv_copier/in_mem_arrow_node_copier.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-void CopyNodeCSV::execute(TaskScheduler& taskScheduler, ExecutionContext* executionContext) {
+string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     auto nodeCSVCopier =
-        make_unique<InMemNodeCSVCopier>(csvDescription, wal->getDirectory(), taskScheduler,
+        make_unique<InMemArrowNodeCopier>(csvDescription, wal->getDirectory(), *taskScheduler,
             *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
-    // Note: This copy function will update the unstructured properties of the nodeTable and the
-    // maxNodeOffset in nodesStatisticsAndDeletedIDs.
-    nodeCSVCopier->copy();
+    errorIfTableIsNonEmpty(&nodesStore->getNodesStatisticsAndDeletedIDs());
+    // Note: This copy function will update the maxNodeOffset in nodesStatisticsAndDeletedIDs.
+    auto numNodesCopied = nodeCSVCopier->copy();
     wal->logCopyNodeCSVRecord(tableSchema.tableID);
+    return StringUtils::string_format("%d number of nodes has been copied to nodeTable: %s.",
+        numNodesCopied, tableSchema.tableName.c_str());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

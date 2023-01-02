@@ -1,8 +1,8 @@
-#include "src/common/include/profiler.h"
+#include "common/profiler.h"
 
 #include <cassert>
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 TimeMetric* Profiler::registerTimeMetric(const string& key) {
@@ -50,4 +50,4 @@ void Profiler::addMetric(const string& key, unique_ptr<Metric> metric) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

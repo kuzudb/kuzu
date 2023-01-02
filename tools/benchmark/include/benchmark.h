@@ -1,13 +1,12 @@
 #pragma once
 
-#include "tools/benchmark/include/benchmark_config.h"
-#include "tools/join_order_pick/include/jo_connection.h"
+#include "benchmark_config.h"
+#include "jo_connection.h"
+#include "main/kuzu.h"
 
-#include "src/main/include/graphflowdb.h"
+using namespace kuzu::main;
 
-using namespace graphflow::main;
-
-namespace graphflow {
+namespace kuzu {
 namespace benchmark {
 
 /**
@@ -36,4 +35,4 @@ public:
 };
 
 } // namespace benchmark
-} // namespace graphflow
+} // namespace kuzu

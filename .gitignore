@@ -5,9 +5,11 @@ bazel-*
 .bazelrc
 
 test_temp/
+build/
 
 ### Python
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+cmake-build-debug/

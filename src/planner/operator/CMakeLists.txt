@@ -1,0 +1,28 @@
+add_library(kuzu_planner_operator
+        OBJECT
+        base_logical_operator.cpp
+        logical_accumulate.cpp
+        logical_aggregate.cpp
+        logical_create.cpp
+        logical_cross_product.cpp
+        logical_distinct.cpp
+        logical_expressions_scan.cpp
+        logical_extend.cpp
+        logical_flatten.cpp
+        logical_ftable_scan.cpp
+        logical_hash_join.cpp
+        logical_intersect.cpp
+        logical_order_by.cpp
+        logical_plan.cpp
+        logical_plan_util.cpp
+        logical_projection.cpp
+        logical_scan_node.cpp
+        logical_scan_node_property.cpp
+        logical_union.cpp
+        logical_unwind.cpp
+        schema.cpp
+        sink_util.cpp)
+
+set(ALL_OBJECT_FILES
+        ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_planner_operator>
+        PARENT_SCOPE)

@@ -1,46 +1,33 @@
-#include "include/hash_join_probe.h"
+#include "processor/operator/hash_join/hash_join_probe.h"
 
-#include "src/function/hash/include/vector_hash_operations.h"
-#include "src/function/hash/operations/include/hash_operations.h"
+#include "function/hash/hash_operations.h"
+#include "function/hash/vector_hash_operations.h"
 
-using namespace graphflow::function::operation;
+using namespace kuzu::function::operation;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     probeState = make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
-        auto keyVector =
-            resultSet->dataChunks[keyDataPos.dataChunkPos]->valueVectors[keyDataPos.valueVectorPos];
+        auto keyVector = resultSet->getValueVector(keyDataPos);
         keyVectors.push_back(keyVector);
-        keySelVectors.push_back(keyVector->state->selVector.get());
     }
     if (joinType == JoinType::MARK) {
-        markVector = make_shared<ValueVector>(BOOL);
-        resultSet->dataChunks[probeDataInfo.markDataPos.dataChunkPos]->insert(
-            probeDataInfo.markDataPos.valueVectorPos, markVector);
+        markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
     }
-    for (auto pos : flatDataChunkPositions) {
-        auto dataChunk = resultSet->dataChunks[pos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-    }
-    for (auto i = 0u; i < probeDataInfo.payloadsOutputDataPos.size(); ++i) {
-        auto probePayloadVector =
-            make_shared<ValueVector>(sharedState->getPayloadDataTypes()[i], context->memoryManager);
-        auto [dataChunkPos, valueVectorPos] = probeDataInfo.payloadsOutputDataPos[i];
-        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probePayloadVector);
+    for (auto& dataPos : probeDataInfo.payloadsOutPos) {
+        auto probePayloadVector = resultSet->getValueVector(dataPos);
         vectorsToReadInto.push_back(probePayloadVector);
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.
-    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.payloadsOutputDataPos.size() + 1 ==
+    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 1 ==
            sharedState->getHashTable()->getTableSchema()->getNumColumns());
-    columnIdxsToReadFrom.resize(probeDataInfo.payloadsOutputDataPos.size());
+    columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    return resultSet;
 }
 
 bool HashJoinProbe::hasMoreLeft() {
@@ -55,15 +42,16 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         return true;
     }
     if (!hasMoreLeft()) {
-        restoreSelVectors(keySelVectors);
-        if (!children[0]->getNextTuples()) {
+        restoreSelVector(keyVectors[0]->state->selVector);
+        if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVectors(keySelVectors);
+        saveSelVector(keyVectors[0]->state->selVector);
         sharedState->getHashTable()->probe(keyVectors, probeState->probedTuples.get());
     }
     auto numMatchedTuples = 0;
-    if (keyVectors[0]->state->isFlat()) {
+    auto keyState = keyVectors[0]->state.get();
+    if (keyState->isFlat()) {
         // probe side is flat.
         while (probeState->probedTuples[0]) {
             if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY) {
@@ -73,9 +61,8 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->matchedTuples[numMatchedTuples] = currentTuple;
             bool isKeysEqual = true;
             for (auto i = 0u; i < keyVectors.size(); i++) {
-                auto keyValues = (nodeID_t*)keyVectors[i]->values;
-                if (((nodeID_t*)currentTuple)[i] !=
-                    keyValues[keyVectors[i]->state->getPositionOfCurrIdx()]) {
+                auto pos = keyVectors[i]->state->selVector->selectedPositions[0];
+                if (((nodeID_t*)currentTuple)[i] != keyVectors[i]->getValue<nodeID_t>(pos)) {
                     isKeysEqual = false;
                     break;
                 }
@@ -85,15 +72,15 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
         }
     } else {
         assert(keyVectors.size() == 1);
-        auto keyValues = (nodeID_t*)keyVectors[0]->values;
-        for (auto i = 0u; i < keyVectors[0]->state->selVector->selectedSize; i++) {
-            auto pos = keyVectors[0]->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < keyState->selVector->selectedSize; i++) {
+            auto pos = keyState->selVector->selectedPositions[i];
             while (probeState->probedTuples[i]) {
                 assert(numMatchedTuples <= DEFAULT_VECTOR_CAPACITY);
                 auto currentTuple = probeState->probedTuples[i];
                 probeState->matchedTuples[numMatchedTuples] = currentTuple;
                 probeState->matchedSelVector->selectedPositions[numMatchedTuples] = pos;
-                numMatchedTuples += *(nodeID_t*)currentTuple == keyValues[pos];
+                numMatchedTuples +=
+                    *(nodeID_t*)currentTuple == keyVectors[0]->getValue<nodeID_t>(pos);
                 probeState->probedTuples[i] =
                     *sharedState->getHashTable()->getPrevTuple(currentTuple);
             }
@@ -104,10 +91,10 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples() {
     return true;
 }
 
-void HashJoinProbe::setVectorsToNull(vector<shared_ptr<ValueVector>>& vectors) {
+void HashJoinProbe::setVectorsToNull() {
     for (auto& vector : vectorsToReadInto) {
         if (vector->state->isFlat()) {
-            vector->setNull(vector->state->getPositionOfCurrIdx(), true);
+            vector->setNull(vector->state->selVector->selectedPositions[0], true);
         } else {
             assert(vector->state != keyVectors[0]->state);
             auto pos = vector->state->selVector->selectedPositions[0];
@@ -142,15 +129,15 @@ uint64_t HashJoinProbe::getNextInnerJoinResult() {
 
 uint64_t HashJoinProbe::getNextLeftJoinResult() {
     if (getNextInnerJoinResult() == 0) {
-        setVectorsToNull(vectorsToReadInto);
+        setVectorsToNull();
     }
     return 1;
 }
 
 uint64_t HashJoinProbe::getNextMarkJoinResult() {
-    auto markValues = (bool*)markVector->values;
+    auto markValues = (bool*)markVector->getData();
     if (markVector->state->isFlat()) {
-        markValues[markVector->state->getPositionOfCurrIdx()] =
+        markValues[markVector->state->selVector->selectedPositions[0]] =
             probeState->matchedSelVector->selectedSize != 0;
     } else {
         fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
@@ -184,20 +171,17 @@ uint64_t HashJoinProbe::getNextJoinResult() {
 // 2) populate values from matched tuples into resultKeyDataChunk , buildSideFlatResultDataChunk
 // (all flat data chunks from the build side are merged into one) and buildSideVectorPtrs (each
 // VectorPtr corresponds to one unFlat build side data chunk that is appended to the resultSet).
-bool HashJoinProbe::getNextTuples() {
-    metrics->executionTime.start();
+bool HashJoinProbe::getNextTuplesInternal() {
     uint64_t numPopulatedTuples;
     do {
         if (!getNextBatchOfMatchedTuples()) {
-            metrics->executionTime.stop();
             return false;
         }
         numPopulatedTuples = getNextJoinResult();
     } while (numPopulatedTuples == 0);
     metrics->numOutputTuple.increase(numPopulatedTuples);
-    metrics->executionTime.stop();
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

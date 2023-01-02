@@ -18,7 +18,21 @@
 ---- 0
 
 -NAME EdgeID
--QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN r._id
+-QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
 -ENUMERATE
 ---- 1
 10000
+
+-NAME CrossProduct1
+-QUERY MATCH (a:person), (b:person) RETURN COUNT(*)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+36000000
+
+-NAME CrossProduct
+-QUERY MATCH (a:person) WITH AVG(a.ID) AS s MATCH (b:person) WHERE s > b.ID RETURN COUNT(*)
+-PARALLELISM 8
+-ENUMERATE
+---- 1
+3000

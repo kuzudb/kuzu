@@ -1,6 +1,6 @@
-#include "src/common/include/null_mask.h"
+#include "common/null_mask.h"
 
-namespace graphflow {
+namespace kuzu {
 
 namespace common {
 
@@ -79,4 +79,4 @@ bool NullMask::copyNullMask(uint64_t* srcNullEntries, uint64_t srcOffset, uint64
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

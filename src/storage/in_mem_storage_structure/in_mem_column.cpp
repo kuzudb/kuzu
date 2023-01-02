@@ -1,12 +1,11 @@
-#include "include/in_mem_column.h"
+#include "storage/in_mem_storage_structure/in_mem_column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 InMemColumn::InMemColumn(
     std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements)
     : fName{move(fName)}, dataType{move(dataType)}, numBytesForElement{numBytesForElement} {
-    assert(this->dataType.typeID != UNSTRUCTURED);
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
     auto numPages = ceil((double)numElements / (double)numElementsInAPage);
     inMemFile =
@@ -41,7 +40,7 @@ void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->getPage(cursor.pageIdx)
-        ->write(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
+        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
             nodeIDCompressionScheme);
 }
 
@@ -66,4 +65,4 @@ unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

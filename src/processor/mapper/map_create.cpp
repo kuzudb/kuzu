@@ -1,38 +1,54 @@
-#include "include/plan_mapper.h"
+#include "binder/expression/node_expression.h"
+#include "planner/logical_plan/logical_operator/logical_create.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/update/create.h"
 
-#include "src/binder/expression/include/node_expression.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_create.h"
-#include "src/processor/operator/update/include/create.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto outSchema = logicalCreateNode->getSchema();
+    auto inSchema = logicalCreateNode->getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& nodesStore = storageManager.getNodesStore();
+    auto catalogContent = catalog->getReadOnlyVersion();
     vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
-    for (auto& node : logicalCreateNode->getNodes()) {
-        auto table = nodesStore.getNodeTable(node->getTableID());
-        auto outDataPos = mapperContext.getDataPos(node->getIDProperty());
-        createNodeInfos.push_back(make_unique<CreateNodeInfo>(table, outDataPos));
+    for (auto& [node, primaryKey] : logicalCreateNode->getNodeAndPrimaryKeys()) {
+        auto nodeTableID = node->getSingleTableID();
+        auto table = nodesStore.getNodeTable(nodeTableID);
+        auto primaryKeyEvaluator = expressionMapper.mapExpression(primaryKey, *inSchema);
+        vector<RelTable*> relTablesToInit;
+        for (auto& [relTableID, relTableSchema] : catalogContent->getRelTableSchemas()) {
+            if (relTableSchema->edgeContainsNodeTable(nodeTableID)) {
+                relTablesToInit.push_back(storageManager.getRelsStore().getRelTable(relTableID));
+            }
+        }
+        auto outDataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
+        createNodeInfos.push_back(make_unique<CreateNodeInfo>(
+            table, std::move(primaryKeyEvaluator), relTablesToInit, outDataPos));
     }
     return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto inSchema = logicalCreateRel->getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& relStore = storageManager.getRelsStore();
     vector<unique_ptr<CreateRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
         auto rel = logicalCreateRel->getRel(i);
-        auto table = relStore.getRelTable(rel->getTableID());
-        auto srcNodePos = mapperContext.getDataPos(rel->getSrcNode()->getIDProperty());
-        auto dstNodePos = mapperContext.getDataPos(rel->getDstNode()->getIDProperty());
+        auto table = relStore.getRelTable(rel->getSingleTableID());
+        auto srcNodePos =
+            DataPos(inSchema->getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
+        auto srcNodeTableID = rel->getSrcNode()->getSingleTableID();
+        auto dstNodePos =
+            DataPos(inSchema->getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
+        auto dstNodeTableID = rel->getDstNode()->getSingleTableID();
         vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
         uint32_t relIDEvaluatorIdx = UINT32_MAX;
         auto setItems = logicalCreateRel->getSetItems(i);
@@ -42,15 +58,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
             if (propertyExpression->isInternalID()) {
                 relIDEvaluatorIdx = j;
             }
-            evaluators.push_back(expressionMapper.mapExpression(rhs, mapperContext));
+            evaluators.push_back(expressionMapper.mapExpression(rhs, *inSchema));
         }
         assert(relIDEvaluatorIdx != UINT32_MAX);
-        createRelInfos.push_back(make_unique<CreateRelInfo>(
-            table, srcNodePos, dstNodePos, std::move(evaluators), relIDEvaluatorIdx));
+        createRelInfos.push_back(make_unique<CreateRelInfo>(table, srcNodePos, srcNodeTableID,
+            dstNodePos, dstNodeTableID, std::move(evaluators), relIDEvaluatorIdx));
     }
     return make_unique<CreateRel>(relStore.getRelsStatistics(), std::move(createRelInfos),
         std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

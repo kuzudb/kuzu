@@ -1,6 +1,6 @@
-#include "include/parsed_expression.h"
+#include "parser/expression/parsed_expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace parser {
 
 ParsedExpression::ParsedExpression(
@@ -16,17 +16,5 @@ ParsedExpression::ParsedExpression(ExpressionType type, unique_ptr<ParsedExpress
     children.push_back(move(right));
 }
 
-bool ParsedExpression::equals(const ParsedExpression& other) const {
-    if (type != other.type || alias != other.alias || children.size() != other.children.size()) {
-        return false;
-    }
-    for (auto i = 0u; i < children.size(); ++i) {
-        if (*children[i] != *other.children[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 } // namespace parser
-} // namespace graphflow
+} // namespace kuzu

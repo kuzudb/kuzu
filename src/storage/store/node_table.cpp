@@ -1,6 +1,6 @@
-#include "src/storage/store/include/node_table.h"
+#include "storage/store/node_table.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
@@ -15,42 +15,59 @@ void NodeTable::loadColumnsAndListsFromDisk(
     propertyColumns.resize(nodeTableSchema->getAllNodeProperties().size());
     for (auto i = 0u; i < nodeTableSchema->getAllNodeProperties().size(); i++) {
         auto property = nodeTableSchema->getAllNodeProperties()[i];
-        if (property.dataType.typeID != UNSTRUCTURED) {
-            propertyColumns[i] = ColumnFactory::getColumn(
-                StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
-                    wal->getDirectory(), property),
-                property.dataType, bufferManager, isInMemory, wal);
-        }
+        propertyColumns[i] = ColumnFactory::getColumn(
+            StorageUtils::getStructuredNodePropertyColumnStructureIDAndFName(
+                wal->getDirectory(), property),
+            property.dataType, bufferManager, isInMemory, wal);
     }
-    unstrPropertyLists = make_unique<UnstructuredPropertyLists>(
-        StorageUtils::getUnstructuredNodePropertyListsStructureIDAndFName(
-            wal->getDirectory(), tableID),
-        bufferManager, isInMemory, wal);
-    IDIndex =
-        make_unique<HashIndex>(StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
-            nodeTableSchema->getPrimaryKey().dataType, bufferManager, isInMemory);
+    pkIndex = make_unique<PrimaryKeyIndex>(
+        StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
+        nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
+}
+
+node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
+    auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+    assert(primaryKeyVector->state->isFlat());
+    if (primaryKeyVector->isNull(primaryKeyVector->state->selVector->selectedPositions[0])) {
+        throw RuntimeException("Null is not allowed as a primary key value.");
+    }
+    if (!pkIndex->insert(primaryKeyVector, primaryKeyVector->state->selVector->selectedPositions[0],
+            nodeOffset)) {
+        auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
+        string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
+                           to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
+                           primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
+        throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
+    }
+    for (auto& column : propertyColumns) {
+        column->setNodeOffsetToNull(nodeOffset);
+    }
+    return nodeOffset;
 }
 
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
            primaryKeyVector->hasNoNullsGuarantee());
     if (nodeIDVector->state->isFlat()) {
-        auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        deleteNode(nodeIDVector, primaryKeyVector, pos);
+        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+        deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
     } else {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            deleteNode(nodeIDVector, primaryKeyVector, pos);
+            deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
         }
     }
 }
 
 void NodeTable::deleteNode(
-    ValueVector* nodeIDVector, ValueVector* primaryKeyVector, uint32_t pos) const {
-    auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+    node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
-    // TODO(Guodong): delete primary key index
+    pkIndex->deleteKey(primaryKeyVector, pos);
+}
+
+void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "tools/shell/include/linenoise.h"
+#include "linenoise.h"
+#include "main/kuzu.h"
 
-#include "src/main/include/graphflowdb.h"
-
-using namespace graphflow::main;
+namespace kuzu {
+namespace main {
 
 /**
  * Embedded shell simulate a session that directly connects to the system.
@@ -19,7 +19,7 @@ public:
 private:
     void setNumThreads(const string& numThreadsString);
 
-    void setBufferMangerSize(const string& bufferManagerSizeString);
+    void setBufferManagerSize(const string& bufferManagerSizeString);
 
     void printNodeSchema(const string& tableName);
     void printRelSchema(const string& tableName);
@@ -30,7 +30,12 @@ private:
 
     void updateTableNames();
 
+    void setLoggingLevel(const string& loggingLevel);
+
 private:
     unique_ptr<Database> database;
     unique_ptr<Connection> conn;
 };
+
+} // namespace main
+} // namespace kuzu

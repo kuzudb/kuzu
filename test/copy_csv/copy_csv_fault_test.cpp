@@ -1,8 +1,7 @@
-#include "test/test_utility/include/test_helper.h"
+#include "common/exception.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/exception.h"
-
-using namespace graphflow::testing;
+using namespace kuzu::testing;
 using namespace std;
 
 class CopyCSVFaultTest : public EmptyDBTest {
@@ -13,28 +12,36 @@ public:
         createDBAndConn();
     }
 
-    string getCopyCSVException() {
-        try {
-            initGraph();
-        } catch (Exception& e) { return e.what(); }
+    void validateCopyCSVException(string copyCSVQuery, string expectedException) {
+        initGraph();
+        auto result = conn->query(copyCSVQuery);
+        ASSERT_FALSE(result->isSuccess());
+        ASSERT_STREQ(result->getErrorMessage().c_str(), expectedException.c_str());
     }
 };
 
 class CopyCSVDuplicateIDTest : public CopyCSVFaultTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/duplicate-ids/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-fault-tests/duplicate-ids/");
+    }
 };
 
-class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
-};
+class CopyNodeCSVUnmatchedColumnTypeTest : public CopyCSVFaultTest {};
 
 class CopyCSVWrongHeaderTest : public CopyCSVFaultTest {};
 
+class CopyCSVRelTableMultiplicityViolationTest : public CopyCSVFaultTest {
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath(
+            "dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/");
+    }
+};
+
 TEST_F(CopyCSVDuplicateIDTest, DuplicateIDsError) {
-    ASSERT_EQ(getCopyCSVException(),
-        "Failed to execute statement: COPY person FROM "
-        "\"dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\".\nError: CopyCSV exception: ID "
-        "value 10 violates the uniqueness constraint for the ID property.");
+    validateCopyCSVException(
+        "COPY person FROM \"" + TestHelper::appendKuzuRootPath(
+                                    "dataset/copy-csv-fault-tests/duplicate-ids/vPerson.csv\""),
+        "CopyCSV exception: " + Exception::getExistedPKExceptionMsg("10"));
 }
 
 TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
@@ -45,7 +52,9 @@ TEST_F(CopyNodeCSVUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY "
         "KEY (fName))");
-    auto result = conn->query("COPY person FROM \"dataset/tinysnb/vPerson.csv\" (HEADER=true)");
+    auto result =
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)"));
     ASSERT_EQ(result->getErrorMessage(),
         "Cannot convert string Alice to INT64.. Invalid input. No characters consumed.");
 }
@@ -54,37 +63,78 @@ TEST_F(CopyCSVWrongHeaderTest, CSVHeaderError) {
     conn->query("create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));");
     conn->query(
         "create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);");
-    auto result = conn->query(
-        "COPY person FROM \"dataset/copy-csv-fault-tests/wrong-header/vPersonWrongColumnName.csv\" "
-        "(HEADER=true)");
-    ASSERT_EQ(result->getErrorMessage(),
-        "Binder exception: The name of column 1 does not match the column in schema. Expecting "
-        "\"fName\", the column name in csv is \"name\".");
+    auto result =
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath(
+                        "dataset/copy-csv-fault-tests/wrong-header/vPersonWrongColumnName.csv\" "
+                        "(HEADER=true)"));
+    // We assert that CSV headers are ignored, so any mistakes there won't cause an error
+    ASSERT_TRUE(result->isSuccess());
+    result =
+        conn->query("COPY knows FROM \"" +
+                    TestHelper::appendKuzuRootPath(
+                        "dataset/copy-csv-fault-tests/wrong-header/eKnowsWrongColumnName.csv\" "
+                        "(HEADER=true)"));
+    ASSERT_TRUE(result->isSuccess());
+}
 
-    result = conn->query(
-        "COPY person FROM \"dataset/copy-csv-fault-tests/wrong-header/vPersonMissingColumn.csv\" "
-        "(HEADER=true)");
-    ASSERT_EQ(result->getErrorMessage(), "Binder exception: The csv file does not have sufficient "
-                                         "property columns. Expecting at least 2 "
-                                         "columns. The file has 1 property column.");
+TEST_F(CopyCSVWrongHeaderTest, CopyCSVToNonEmptyTableErrors) {
+    conn->query("create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));");
+    auto result =
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath(
+                        "dataset/copy-csv-fault-tests/wrong-header/vPersonWrongColumnName.csv\""
+                        "(HEADER=true)"));
+    ASSERT_TRUE(result->isSuccess());
+    result =
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath(
+                        "dataset/copy-csv-fault-tests/wrong-header/vPersonWrongColumnName.csv\" "
+                        "(HEADER=true)"));
+    ASSERT_FALSE(result->isSuccess());
+}
 
-    result = conn->query(
-        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsNoColumnMatch.csv\" "
-        "(HEADER=true)");
-    ASSERT_EQ(result->getErrorMessage(),
-        "Binder exception: The first property column \"prop1\" is not found in the csv.");
+TEST_F(CopyCSVWrongHeaderTest, MissingColumnErrors) {
+    conn->query("create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));");
+    conn->query(
+        "create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);");
+    // We first copy nodes to the node table correctly, then check if missing columns will trigger
+    // errors when copying rels.
+    auto result =
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath(
+                        "dataset/copy-csv-fault-tests/wrong-header/vPerson.csv\" (HEADER=true)"));
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query("COPY knows FROM \"" +
+                         TestHelper::appendKuzuRootPath(
+                             "dataset/copy-csv-fault-tests/wrong-header/eKnowsMissingColumn.csv\""
+                             "(HEADER=true)"));
+    ASSERT_FALSE(result->isSuccess());
+}
 
-    result = conn->query(
-        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsMissingColumn.csv\" "
-        "(HEADER=true)");
-    ASSERT_EQ(result->getErrorMessage(),
-        "Binder exception: The csv file does not have sufficient property columns. Expecting at "
-        "least 2 columns. The file has 1 property column.");
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, ManyOneMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY knows FROM \"" +
+            TestHelper::appendKuzuRootPath(
+                "dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eKnows.csv\""),
+        "CopyCSV exception: RelTable knows is a MANY_ONE table, but node(nodeOffset: 0, tableName: "
+        "person) has more than one neighbour in the forward direction.");
+}
 
-    result = conn->query(
-        "COPY knows FROM \"dataset/copy-csv-fault-tests/wrong-header/eKnowsWrongColumnName.csv\" "
-        "(HEADER=true)");
-    ASSERT_EQ(result->getErrorMessage(),
-        "Binder exception: The name of column 1 does not match the column in schema. Expecting "
-        "\"prop2\", the column name in csv is \"p2\".");
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, OneManyMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY teaches FROM \"" +
+            TestHelper::appendKuzuRootPath(
+                "dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eTeaches.csv\""),
+        "CopyCSV exception: RelTable teaches is a ONE_MANY table, but node(nodeOffset: 2, "
+        "tableName: person) has more than one neighbour in the backward direction.");
+}
+
+TEST_F(CopyCSVRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) {
+    validateCopyCSVException(
+        "COPY matches FROM \"" +
+            TestHelper::appendKuzuRootPath(
+                "dataset/copy-csv-fault-tests/rel-table-multiplicity-violation/eMatches.csv\""),
+        "CopyCSV exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1, "
+        "tableName: person) has more than one neighbour in the forward direction.");
 }

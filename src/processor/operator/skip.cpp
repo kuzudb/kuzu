@@ -1,25 +1,26 @@
-#include "include/skip.h"
+#include "processor/operator/skip.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-bool Skip::getNextTuples() {
-    metrics->executionTime.start();
-    auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
+void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
+}
+
+bool Skip::getNextTuplesInternal() {
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
-        restoreSelVector(dataChunkToSelect->state->selVector.get());
+        restoreSelVector(dataChunkToSelect->state->selVector);
         // end of execution due to no more input
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(dataChunkToSelect->state->selVector.get());
+        saveSelVector(dataChunkToSelect->state->selVector);
         numTuplesAvailable = resultSet->getNumTuples(dataChunksPosInScope);
         numTupleSkippedBefore = counter->fetch_add(numTuplesAvailable);
     } while (numTupleSkippedBefore + numTuplesAvailable <= skipNumber);
-    int64_t numTupleToSkipInCurrentResultSet = skipNumber - numTupleSkippedBefore;
+    auto numTupleToSkipInCurrentResultSet = (int64_t)(skipNumber - numTupleSkippedBefore);
     if (numTupleToSkipInCurrentResultSet <= 0) {
         // Other thread has finished skipping. Process everything in current result set.
         metrics->numOutputTuple.increase(numTuplesAvailable);
@@ -44,9 +45,8 @@ bool Skip::getNextTuples() {
             dataChunkToSelect->state->selVector->selectedSize - numTupleToSkipInCurrentResultSet;
         metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
     }
-    metrics->executionTime.stop();
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

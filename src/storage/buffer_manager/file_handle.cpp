@@ -1,28 +1,21 @@
-#include "src/storage/buffer_manager/include/file_handle.h"
+#include "storage/buffer_manager/file_handle.h"
 
+#include "common/file_utils.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
 
-#include "src/common/include/file_utils.h"
-#include "src/common/include/utils.h"
+using namespace kuzu::common;
 
-using namespace graphflow::common;
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 FileHandle::FileHandle(const string& path, uint8_t flags)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, flags(flags) {
+    : logger{LoggerUtils::getOrCreateLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path);
     } else {
         constructNewFileHandle(path);
-    }
-}
-
-FileHandle::~FileHandle() {
-    if (!isNewTmpFile()) {
-        FileUtils::closeFile(fileInfo->fd);
     }
 }
 
@@ -108,4 +101,4 @@ void FileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(page_idx_t pageI
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

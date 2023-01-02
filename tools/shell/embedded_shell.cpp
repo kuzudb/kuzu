@@ -1,13 +1,22 @@
-#include "tools/shell/include/embedded_shell.h"
+#include "embedded_shell.h"
 
 #include <algorithm>
 #include <cctype>
 #include <regex>
 
-#include "src/common/include/type_utils.h"
+#include "common/logging_level_utils.h"
+#include "common/type_utils.h"
+#include "utf8proc.h"
+#include "utf8proc_wrapper.h"
+
+using namespace kuzu::utf8proc;
+
+namespace kuzu {
+namespace main {
 
 // prompt for user input
-const char* PROMPT = "graphflowdb> ";
+const char* PROMPT = "kuzu> ";
+const char* ALTPROMPT = "..> ";
 // file to read/write shell history
 const char* HISTORY_PATH = "history.txt";
 
@@ -18,14 +27,13 @@ struct ShellCommand {
     const string QUIT = ":quit";
     const string THREAD = ":thread";
     const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
-    const string BUFFER_MANAGER_DEBUG_INFO = ":bm_debug_info";
-    const string BUILT_IN_FUNCTIONS = ":functions";
     const string LIST_NODES = ":list_nodes";
     const string LIST_RELS = ":list_rels";
     const string SHOW_NODE = ":show_node";
     const string SHOW_REL = ":show_rel";
-    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        BUFFER_MANAGER_DEBUG_INFO, BUILT_IN_FUNCTIONS, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL};
+    const string LOGGING_LEVEL = ":logging_level";
+    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE, LIST_NODES,
+        LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -48,18 +56,21 @@ const regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 vector<string> nodeTableNames;
 vector<string> relTableNames;
 
+bool continueLine = false;
+string currLine;
+
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getNodeTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
         nodeTableNames.push_back(tableSchema.second->tableName);
     }
-    for (auto& tableSchema : database->getCatalog()->getReadOnlyVersion()->getRelTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
         relTableNames.push_back(tableSchema.second->tableName);
     }
 }
 
-void addTableCompletion(string buf, string tableName, linenoiseCompletions* lc) {
+void addTableCompletion(string buf, const string& tableName, linenoiseCompletions* lc) {
     string prefix, suffix;
     auto prefixPos = buf.rfind(':') + 1;
     prefix = buf.substr(0, prefixPos);
@@ -82,9 +93,8 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         return;
     }
 
-    // Node table name completion. Matches patterns that
-    // include an open bracket `(` with no closing bracket
-    // `)`, and a colon `:` sometime after the open bracket.
+    // Node table name completion. Match patterns that include an open bracket `(` with no closing
+    // bracket `)`, and a colon `:` sometime after the open bracket.
     if (regex_search(buf, regex("^[^]*\\([^\\)]*:[^\\)]*$"))) {
         for (auto& node : nodeTableNames) {
             addTableCompletion(buf, node, lc);
@@ -125,13 +135,35 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
 
 void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
     string buf(buffer);
+    auto bufLen = buf.length();
     ostringstream highlightBuffer;
     string word;
     vector<string> tokenList;
     if (cursorPos > maxLen) {
-        buf = buf.substr(cursorPos - maxLen, maxLen);
+        uint32_t counter = 0;
+        uint32_t thisChar = 0;
+        uint32_t lineLen = 0;
+        while (counter < cursorPos) {
+            counter += Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
+        }
+        lineLen = thisChar;
+        while (counter > cursorPos - maxLen + 1) {
+            counter -= Utf8Proc::renderWidth(buffer, thisChar);
+            thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
+        }
+        lineLen -= thisChar;
+        buf = buf.substr(thisChar, lineLen);
+        bufLen = buf.length();
     } else if (buf.length() > maxLen) {
-        buf = buf.substr(0, maxLen);
+        uint32_t counter = 0;
+        uint32_t lineLen = 0;
+        while (counter < maxLen) {
+            counter += Utf8Proc::renderWidth(buffer, lineLen);
+            lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
+        }
+        buf = buf.substr(0, lineLen);
+        bufLen = buf.length();
     }
     for (auto i = 0u; i < buf.length(); i++) {
         if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
@@ -144,7 +176,7 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     tokenList.emplace_back(word);
     for (string& token : tokenList) {
         if (token.find(' ') == std::string::npos) {
-            for (string keyword : keywordList) {
+            for (const string& keyword : keywordList) {
                 if (regex_search(token, regex("^" + keyword + "$", regex_constants::icase)) ||
                     regex_search(token, regex("^" + keyword + "\\(", regex_constants::icase))) {
                     token =
@@ -171,8 +203,15 @@ EmbeddedShell::EmbeddedShell(
 
 void EmbeddedShell::run() {
     char* line;
-    while ((line = linenoise(PROMPT)) != nullptr) {
+    string query;
+    stringstream ss;
+    while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = string(line);
+        if (continueLine) {
+            lineStr = currLine + lineStr;
+            currLine = "";
+            continueLine = false;
+        }
         if (line == shellCommand.HELP) {
             printHelp();
         } else if (line == shellCommand.CLEAR) {
@@ -183,12 +222,7 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
-            setBufferMangerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
-        } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
-            printf("Buffer Manager Debug Info: \n %s \n",
-                database->getBufferManager()->debugInfo()->dump(4).c_str());
-        } else if (lineStr.rfind(shellCommand.BUILT_IN_FUNCTIONS) == 0) {
-            printf("%s", conn->getBuiltInFunctionNames().c_str());
+            setBufferManagerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
@@ -197,12 +231,23 @@ void EmbeddedShell::run() {
             printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
         } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
             printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
+        } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
+            setLoggingLevel(lineStr.substr(shellCommand.LOGGING_LEVEL.length()));
         } else if (!lineStr.empty()) {
-            auto queryResult = conn->query(lineStr);
-            if (queryResult->isSuccess()) {
-                printExecutionResult(*queryResult);
-            } else {
-                printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+            ss.clear();
+            ss.str(lineStr);
+            while (getline(ss, query, ';')) {
+                if (ss.eof() && ss.peek() == -1) {
+                    continueLine = true;
+                    currLine += query + " ";
+                } else {
+                    auto queryResult = conn->query(query);
+                    if (queryResult->isSuccess()) {
+                        printExecutionResult(*queryResult);
+                    } else {
+                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    }
+                }
             }
         }
         updateTableNames();
@@ -227,7 +272,7 @@ void EmbeddedShell::setNumThreads(const string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
-void EmbeddedShell::setBufferMangerSize(const string& bufferManagerSizeString) {
+void EmbeddedShell::setBufferManagerSize(const string& bufferManagerSizeString) {
     auto newPageSize = 0;
     try {
         newPageSize = stoull(bufferManagerSizeString);
@@ -236,7 +281,7 @@ void EmbeddedShell::setBufferMangerSize(const string& bufferManagerSizeString) {
     }
     try {
         database->resizeBufferManager(newPageSize);
-    } catch (Exception& e) { printf("%s", e.what()); }
+    } catch (Exception& e) { printf("%s\n", e.what()); }
 }
 
 static inline string ltrim(const string& input) {
@@ -263,13 +308,13 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP.c_str(), TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR.c_str(), TAB);
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
-    printf("%s%s [num_threads] %sset number of threads for execution\n", TAB,
+    printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
         shellCommand.THREAD.c_str(), TAB);
-    printf("%s%s [buffer_manager_size] %sset buffer manager size\n", TAB,
+    printf("%s%s [bm_size_in_bytes] %sset buffer manager size in bytes\n", TAB,
         shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
-    printf("%s%s %sdebug information about the buffer manager\n", TAB,
-        shellCommand.BUFFER_MANAGER_DEBUG_INFO.c_str(), TAB);
-    printf("%s%s %slist built-in functions\n", TAB, shellCommand.BUILT_IN_FUNCTIONS.c_str(), TAB);
+    printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
+           "err\n",
+        TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
     printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
     printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
     printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
@@ -279,14 +324,15 @@ void EmbeddedShell::printHelp() {
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->getIsExplain()) {
-        querySummary->printPlanToStdOut();
+        auto& oss = querySummary->getPlanAsOstream();
+        printf("%s", oss.str().c_str());
     } else {
-        auto numTuples = queryResult.getNumTuples();
-        // print query result (numFlatTuples & tuples)
-        printf(">> Number of output tuples: %lu\n", numTuples);
-        printf(">> Compiling time: %.2fms\n", querySummary->getCompilingTime());
-        printf(">> Executing time: %.2fms\n", querySummary->getExecutionTime());
+        const uint32_t maxWidth = 80;
+        uint64_t numTuples = queryResult.getNumTuples();
         vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
+        }
         uint32_t lineSeparatorLen = 1u + colsWidth.size();
         string lineSeparator;
         while (queryResult.hasNext()) {
@@ -295,8 +341,17 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 if (tuple->getResultValue(i)->isNullVal()) {
                     continue;
                 }
-                uint32_t fieldLen = tuple->getResultValue(i)->to_string().length() + 2;
-                colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
+                string tupleString = tuple->getResultValue(i)->toString();
+                uint32_t fieldLen = 0;
+                uint32_t chrIter = 0;
+                while (chrIter < tupleString.length()) {
+                    fieldLen += Utf8Proc::renderWidth(tupleString.c_str(), chrIter);
+                    chrIter =
+                        utf8proc_next_grapheme(tupleString.c_str(), tupleString.length(), chrIter);
+                }
+                // An extra 2 spaces are added for an extra space on either
+                // side of the string.
+                colsWidth[i] = max(colsWidth[i], min(fieldLen, maxWidth) + 2);
             }
         }
         for (auto width : colsWidth) {
@@ -305,12 +360,32 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         lineSeparator = string(lineSeparatorLen, '-');
         printf("%s\n", lineSeparator.c_str());
 
+        if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                printf("| %s", queryResult.getColumnNames()[i].c_str());
+                printf(
+                    "%s", string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ')
+                              .c_str());
+            }
+            printf("|\n");
+            printf("%s\n", lineSeparator.c_str());
+        }
+
         queryResult.resetIterator();
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
-            printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
+            printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
             printf("%s\n", lineSeparator.c_str());
         }
+
+        // print query result (numFlatTuples & tuples)
+        if (numTuples == 1) {
+            printf("(1 tuple)\n");
+        } else {
+            printf("(%llu tuples)\n", numTuples);
+        }
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
 
         if (querySummary->getIsProfile()) {
             // print plan with profiling metrics
@@ -318,7 +393,19 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printf("=============== Profiler Summary =============\n");
             printf("==============================================\n");
             printf(">> plan\n");
-            querySummary->printPlanToStdOut();
+            printf("%s", querySummary->getPlanAsOstream().str().c_str());
         }
     }
 }
+
+void EmbeddedShell::setLoggingLevel(const string& loggingLevel) {
+    auto level = ltrim(loggingLevel);
+    try {
+        auto logLevelEnum = LoggingLevelUtils::convertStrToLevelEnum(level);
+        database->setLoggingLevel(logLevelEnum);
+        printf("logging level has been set to: %s.\n", level.c_str());
+    } catch (ConversionException& e) { printf("%s", e.what()); }
+}
+
+} // namespace main
+} // namespace kuzu

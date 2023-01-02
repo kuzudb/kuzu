@@ -1,34 +1,55 @@
-#include "include/delete.h"
+#include "processor/operator/update/delete.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> DeleteNodeStructuredProperty::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    for (auto& vectorPos : nodeIDVectorPositions) {
-        auto dataChunk = resultSet->dataChunks[vectorPos.dataChunkPos];
-        nodeIDVectors.push_back(dataChunk->valueVectors[vectorPos.valueVectorPos].get());
+void DeleteNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& deleteNodeInfo : deleteNodeInfos) {
+        auto nodeIDVector = resultSet->getValueVector(deleteNodeInfo->nodeIDPos);
+        nodeIDVectors.push_back(nodeIDVector.get());
+        auto pkVector = resultSet->getValueVector(deleteNodeInfo->primaryKeyPos);
+        primaryKeyVectors.push_back(pkVector.get());
     }
-    for (auto& vectorPos : primaryKeyVectorPositions) {
-        auto dataChunk = resultSet->dataChunks[vectorPos.dataChunkPos];
-        primaryKeyVectors.push_back(dataChunk->valueVectors[vectorPos.valueVectorPos].get());
-    }
-    return resultSet;
 }
 
-bool DeleteNodeStructuredProperty::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool DeleteNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
-    for (auto i = 0u; i < nodeTables.size(); ++i) {
-        auto nodeTable = nodeTables[i];
+    for (auto i = 0u; i < deleteNodeInfos.size(); ++i) {
+        auto nodeTable = deleteNodeInfos[i]->table;
         nodeTable->deleteNodes(nodeIDVectors[i], primaryKeyVectors[i]);
     }
-    metrics->executionTime.stop();
+    return true;
+}
+
+void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& deleteRelInfo : deleteRelInfos) {
+        auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
+        srcNodeVectors.push_back(srcNodeIDVector);
+        auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
+        dstNodeVectors.push_back(dstNodeIDVector);
+        auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
+        relIDVectors.push_back(relIDVector);
+    }
+}
+
+bool DeleteRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
+        return false;
+    }
+    for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
+        auto createRelInfo = deleteRelInfos[i].get();
+        auto srcNodeVector = srcNodeVectors[i];
+        auto dstNodeVector = dstNodeVectors[i];
+        auto relIDVector = relIDVectors[i];
+        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
+    }
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

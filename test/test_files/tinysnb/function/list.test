@@ -1,0 +1,713 @@
+-NAME NodeLISTStructuredPropertiesTest
+-QUERY MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
+---- 8
+[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
+[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]
+[10,5]|[Aida]|[[10,8],[6,7,8]]
+[12,8]|[Bobby]|[[8,9],[9,10]]
+[1]|[Grad]|[[10]]
+[2]|[Ein]|[[6],[7],[8]]
+[3,4,5,6,7]|[Fesdwe]|[[8]]
+[4,5]|[Carmen,Fred]|[[8,10]]
+
+-NAME RelLISTPropertyTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
+---- 14
+[rnme,m8sihsdnf2990nfiwf]
+[njnojppo9u0jkmf,fjiojioh9h9h89hph]
+[ioji232,jifhe8w99u43434]
+[2huh9y89fsfw23,23nsihufhw723]
+[fwehu9h9832wewew,23u9h989sdfsss]
+[fwh9y81232uisuiehuf,ewnuihxy8dyf232]
+[fnioh8323aeweae34d,osd89e2ejshuih12]
+[fwh983-sdjisdfji,ioh89y32r2huir]
+[psh989823oaaioe,nuiuah1nosndfisf]
+[fwewe]
+[fewh9182912e3,h9y8y89soidfsf,nuhudf78w78efw,hioshe0f9023sdsd]
+[23h9sdslnfowhu2932,shuhf98922323sf]
+[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
+[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
+
+-NAME ListCreate1
+-QUERY MATCH (a:person) RETURN [a.age + 1, a.age * 2], [a.eyeSight], [a.isStudent AND a.isWorker], [a.birthdate], [a.registerTime], [a.lastJobDuration]
+---- 8
+[21,40]|[4.700000]|[False]|[1980-10-26]|[1976-12-23 11:21:42]|[48:24:11]
+[21,40]|[4.800000]|[False]|[1950-07-23]|[2031-11-30 12:25:30]|[10 years 5 months 13:00:00.000024]
+[26,50]|[4.500000]|[False]|[1980-10-26]|[1972-07-31 13:22:30.678559]|[00:18:00.024]
+[31,60]|[5.100000]|[False]|[1900-01-01]|[2008-11-03 15:25:30.000526]|[10 years 5 months 13:00:00.000024]
+[36,70]|[5.000000]|[False]|[1900-01-01]|[2011-08-20 11:25:30]|[3 years 2 days 13:02:00]
+[41,80]|[4.900000]|[False]|[1980-10-26]|[1976-12-23 04:41:42]|[10 years 5 months 13:00:00.000024]
+[46,90]|[5.000000]|[False]|[1940-06-22]|[1911-08-20 02:32:21]|[48:24:11]
+[84,166]|[4.900000]|[False]|[1990-11-27]|[2023-02-21 13:25:30]|[3 years 2 days 13:02:00]
+
+
+
+-NAME ListExtractStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_extract(a.workedHours, 1)
+---- 8
+10
+12
+4
+1
+2
+3
+1
+10
+
+-NAME ListExtractStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_extract(a.usedNames, 1)
+---- 8
+Aida
+Bobby
+Carmen
+Wolfeschlegelstein
+Ein
+Fesdwe
+Grad
+Ad
+
+-NAME ListExtractLiteralListOfBools
+-QUERY MATCH (a:person) RETURN list_extract([true, false, true, false], a.gender)
+---- 8
+True
+False
+True
+False
+True
+False
+False
+False
+
+-NAME ListExtractLiteralListOfDoubles
+-QUERY MATCH (a:person) RETURN list_extract([4.351, 6.13, 94.2, 3.1], a.gender)
+---- 8
+4.351000
+6.130000
+4.351000
+6.130000
+4.351000
+6.130000
+6.130000
+6.130000
+
+-NAME ListExtractLiteralListOfDate
+-QUERY MATCH (a:person) RETURN list_extract([date('1992-05-03'), a.birthdate], a.gender)
+---- 8
+1992-05-03
+1900-01-01
+1992-05-03
+1950-07-23
+1992-05-03
+1980-10-26
+1980-10-26
+1990-11-27
+
+-NAME ListExtractLiteralListOfTimestamp
+-QUERY MATCH (a:person) RETURN list_extract([timestamp('1992-05-03 11:13:25'), a.registerTime], a.gender)
+---- 8
+1992-05-03 11:13:25
+2008-11-03 15:25:30.000526
+1992-05-03 11:13:25
+2031-11-30 12:25:30
+1992-05-03 11:13:25
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+2023-02-21 13:25:30
+
+-NAME ListExtractLiteralListOfInterval
+-QUERY MATCH (a:person) RETURN list_extract([interval('2 hours 3 days 20 minutes'), a.lastJobDuration], a.gender)
+---- 8
+3 days 02:20:00
+10 years 5 months 13:00:00.000024
+3 days 02:20:00
+10 years 5 months 13:00:00.000024
+3 days 02:20:00
+00:18:00.024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+
+-NAME ListExtractStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_element(a.courseScoresPerTerm, 1)
+---- 8
+[10,8]
+[8,9]
+[8,10]
+[7,4]
+[6]
+[8]
+[10]
+[7]
+
+-NAME ListExtractStructuredList
+-QUERY MATCH (a:person) RETURN a.usedNames[1]
+---- 8
+Aida
+Bobby
+Carmen
+Wolfeschlegelstein
+Ein
+Fesdwe
+Grad
+Ad
+
+-NAME ListExtractDoubleExtract
+-QUERY MATCH (a:person) RETURN a.courseScoresPerTerm[1][1]
+---- 8
+10
+8
+8
+7
+6
+8
+10
+7
+
+-NAME ListExtractSliceListOfStrings
+-QUERY MATCH (a:person) RETURN a.usedNames[1][3:7]
+---- 8
+da
+bby
+rmen
+lfesc
+n
+sdwe
+ad
+
+
+
+-NAME ListLenStructuredListOfInts
+-QUERY MATCH (a:person) RETURN len(a.workedHours)
+---- 8
+2
+2
+2
+2
+1
+5
+1
+8
+
+-NAME ListConcatStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
+---- 8
+[10,5,35,1]
+[12,8,30,2]
+[4,5,45,1]
+[1,9,20,2]
+[2,20,1]
+[3,4,5,6,7,25,2]
+[1,40,2]
+[10,11,12,3,4,5,6,7,83,2]
+
+-NAME ListConcatIntLiteral
+-QUERY MATCH (a:person) RETURN list_cat(a.workedHours, [3])
+---- 8
+[10,5,3]
+[12,8,3]
+[4,5,3]
+[1,9,3]
+[2,3]
+[3,4,5,6,7,3]
+[1,3]
+[10,11,12,3,4,5,6,7,3]
+
+-NAME ListConcatStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN array_concat(a.usedNames, [a.fName])
+---- 8
+[Aida,Alice]
+[Bobby,Bob]
+[Carmen,Fred,Carol]
+[Wolfeschlegelstein,Daniel,Dan]
+[Ein,Elizabeth]
+[Fesdwe,Farooq]
+[Grad,Greg]
+[Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME ListConcatStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_cat(a.courseScoresPerTerm, [[a.age, a.age], [a.gender]])
+---- 8
+[[10,8],[6,7,8],[35,35],[1]]
+[[8,9],[9,10],[30,30],[2]]
+[[8,10],[45,45],[1]]
+[[7,4],[8,8],[9],[20,20],[2]]
+[[6],[7],[8],[20,20],[1]]
+[[8],[25,25],[2]]
+[[10],[40,40],[2]]
+[[7],[10],[6,7],[83,83],[2]]
+
+-NAME ListAppendStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_append(a.workedHours, a.age)
+---- 8
+[10,5,35]
+[12,8,30]
+[4,5,45]
+[1,9,20]
+[2,20]
+[3,4,5,6,7,25]
+[1,40]
+[10,11,12,3,4,5,6,7,83]
+
+-NAME ListAppendStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN array_append(a.usedNames, a.fName)
+---- 8
+[Aida,Alice]
+[Bobby,Bob]
+[Carmen,Fred,Carol]
+[Wolfeschlegelstein,Daniel,Dan]
+[Ein,Elizabeth]
+[Fesdwe,Farooq]
+[Grad,Greg]
+[Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME ListAppendStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_push_back(a.courseScoresPerTerm, [a.age, a.age])
+---- 8
+[[10,8],[6,7,8],[35,35]]
+[[8,9],[9,10],[30,30]]
+[[8,10],[45,45]]
+[[7,4],[8,8],[9],[20,20]]
+[[6],[7],[8],[20,20]]
+[[8],[25,25]]
+[[10],[40,40]]
+[[7],[10],[6,7],[83,83]]
+
+-NAME ListAppendStructuredListOfBools
+-QUERY MATCH (a:person) RETURN list_append([a.isStudent, a.isWorker], a.isStudent)
+---- 8
+[True,False,True]
+[True,False,True]
+[False,True,False]
+[False,True,False]
+[False,True,False]
+[True,False,True]
+[False,False,False]
+[False,True,False]
+
+-NAME ListAppendStructuredListOfDoubles
+-QUERY MATCH (a:person) RETURN list_append([a.eyeSight], a.eyeSight)
+---- 8
+[5.000000,5.000000]
+[5.100000,5.100000]
+[5.000000,5.000000]
+[4.800000,4.800000]
+[4.700000,4.700000]
+[4.500000,4.500000]
+[4.900000,4.900000]
+[4.900000,4.900000]
+
+-NAME ListAppendStructuredListOfDates
+-QUERY MATCH (a:person) RETURN list_append([a.birthdate], a.birthdate)
+---- 8
+[1900-01-01,1900-01-01]
+[1900-01-01,1900-01-01]
+[1940-06-22,1940-06-22]
+[1950-07-23,1950-07-23]
+[1980-10-26,1980-10-26]
+[1980-10-26,1980-10-26]
+[1980-10-26,1980-10-26]
+[1990-11-27,1990-11-27]
+
+-NAME ListAppendStructuredListOfTimestamps
+-QUERY MATCH (a:person) RETURN list_append([a.registerTime], a.registerTime)
+---- 8
+[2011-08-20 11:25:30,2011-08-20 11:25:30]
+[2008-11-03 15:25:30.000526,2008-11-03 15:25:30.000526]
+[1911-08-20 02:32:21,1911-08-20 02:32:21]
+[2031-11-30 12:25:30,2031-11-30 12:25:30]
+[1976-12-23 11:21:42,1976-12-23 11:21:42]
+[1972-07-31 13:22:30.678559,1972-07-31 13:22:30.678559]
+[1976-12-23 04:41:42,1976-12-23 04:41:42]
+[2023-02-21 13:25:30,2023-02-21 13:25:30]
+
+-NAME ListAppendStructuredListOfIntervals
+-QUERY MATCH (a:person) RETURN list_append([a.lastJobDuration], a.lastJobDuration)
+---- 8
+[3 years 2 days 13:02:00,3 years 2 days 13:02:00]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[48:24:11,48:24:11]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[48:24:11,48:24:11]
+[00:18:00.024,00:18:00.024]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[3 years 2 days 13:02:00,3 years 2 days 13:02:00]
+
+-NAME ListPrependStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
+---- 8
+[35,10,5]
+[30,12,8]
+[45,4,5]
+[20,1,9]
+[20,2]
+[25,3,4,5,6,7]
+[40,1]
+[83,10,11,12,3,4,5,6,7]
+
+-NAME ListPrependStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN array_prepend(a.fName, a.usedNames)
+---- 8
+[Alice,Aida]
+[Bob,Bobby]
+[Carol,Carmen,Fred]
+[Dan,Wolfeschlegelstein,Daniel]
+[Elizabeth,Ein]
+[Farooq,Fesdwe]
+[Greg,Grad]
+[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,Ad,De,Hi,Kye,Orlan]
+
+-NAME ListPrependStructuredListOfBools
+-QUERY MATCH (a:person) RETURN list_prepend(a.isStudent, [a.isStudent, a.isWorker])
+---- 8
+[True,True,False]
+[True,True,False]
+[False,False,True]
+[False,False,True]
+[False,False,True]
+[True,True,False]
+[False,False,False]
+[False,False,True]
+
+-NAME ListPrependStructuredListOfDoubles
+-QUERY MATCH (a:person) RETURN list_prepend(a.eyeSight, [a.eyeSight])
+---- 8
+[5.000000,5.000000]
+[5.100000,5.100000]
+[5.000000,5.000000]
+[4.800000,4.800000]
+[4.700000,4.700000]
+[4.500000,4.500000]
+[4.900000,4.900000]
+[4.900000,4.900000]
+
+-NAME ListPrependStructuredListOfDates
+-QUERY MATCH (a:person) RETURN list_prepend(a.birthdate, [a.birthdate])
+---- 8
+[1900-01-01,1900-01-01]
+[1900-01-01,1900-01-01]
+[1940-06-22,1940-06-22]
+[1950-07-23,1950-07-23]
+[1980-10-26,1980-10-26]
+[1980-10-26,1980-10-26]
+[1980-10-26,1980-10-26]
+[1990-11-27,1990-11-27]
+
+-NAME ListPrependStructuredListOfTimestamps
+-QUERY MATCH (a:person) RETURN list_prepend(a.registerTime, [a.registerTime])
+---- 8
+[2011-08-20 11:25:30,2011-08-20 11:25:30]
+[2008-11-03 15:25:30.000526,2008-11-03 15:25:30.000526]
+[1911-08-20 02:32:21,1911-08-20 02:32:21]
+[2031-11-30 12:25:30,2031-11-30 12:25:30]
+[1976-12-23 11:21:42,1976-12-23 11:21:42]
+[1972-07-31 13:22:30.678559,1972-07-31 13:22:30.678559]
+[1976-12-23 04:41:42,1976-12-23 04:41:42]
+[2023-02-21 13:25:30,2023-02-21 13:25:30]
+
+-NAME ListPrependStructuredListOfIntervals
+-QUERY MATCH (a:person) RETURN list_prepend(a.lastJobDuration, [a.lastJobDuration])
+---- 8
+[3 years 2 days 13:02:00,3 years 2 days 13:02:00]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[48:24:11,48:24:11]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[48:24:11,48:24:11]
+[00:18:00.024,00:18:00.024]
+[10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
+[3 years 2 days 13:02:00,3 years 2 days 13:02:00]
+
+-NAME ListPrependStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_push_front([a.age, a.age], a.courseScoresPerTerm)
+---- 8
+[[35,35],[10,8],[6,7,8]]
+[[30,30],[8,9],[9,10]]
+[[45,45],[8,10]]
+[[20,20],[7,4],[8,8],[9]]
+[[20,20],[6],[7],[8]]
+[[25,25],[8]]
+[[40,40],[10]]
+[[83,83],[7],[10],[6,7]]
+
+-NAME ListPositionStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_position(a.workedHours, 5)
+---- 8
+2
+0
+2
+0
+0
+3
+0
+6
+
+-NAME ListPositionStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN array_position(a.usedNames, "Grad")
+---- 8
+0
+0
+0
+0
+0
+0
+1
+0
+
+-NAME ListPositionLiteralListOfInts
+-QUERY MATCH (o:organisation) RETURN list_indexof([7, 4, 100, 6, 1, 10], o.ID)
+---- 3
+5
+2
+4
+
+-NAME ListPositionStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_indexof(a.courseScoresPerTerm, [8])
+---- 8
+0
+0
+0
+0
+3
+1
+0
+0
+
+-NAME ListPositionLiteralListOfListOfBools
+-QUERY MATCH (a:person) RETURN array_indexof([[true, false], [false, true], [false, false]], [a.isStudent, a.isWorker])
+---- 8
+1
+1
+2
+2
+2
+1
+3
+2
+
+-NAME ListPositionLiteralListOfListOfDoubles
+-QUERY MATCH (a:person) RETURN array_indexof([[5.0], [4.9], [4.8]], [a.eyeSight])
+---- 8
+1
+0
+1
+3
+0
+0
+2
+2
+
+-NAME ListPositionLiteralListOfListOfStrings
+-QUERY MATCH (a:person) RETURN array_indexof([['Aida'], ['Wolfeschlegelstein', 'Daniel'], ['Grad']], a.usedNames)
+---- 8
+1
+0
+0
+2
+0
+0
+3
+0
+
+-NAME ListPositionLiteralListOfListOfDates
+-QUERY MATCH (a:person) RETURN array_indexof([[date('1900-01-01')], [date('1900-01-01'), date('1900-05-01')], [date('1980-10-26')]], [a.birthdate])
+---- 8
+1
+1
+0
+0
+3
+3
+3
+0
+
+-NAME ListPositionLiteralListOfListOfTimestamps
+-QUERY MATCH (a:person) RETURN array_indexof([[timestamp('2011-08-20 11:25:30')], [timestamp('1976-12-23 11:21:42'), timestamp('1972-07-31 13:22:30.678559')], [timestamp('2023-02-21 13:25:30')]], [a.registerTime])
+---- 8
+1
+0
+0
+0
+0
+0
+0
+3
+
+-NAME ListPositionLiteralListOfListOfIntervals
+-QUERY MATCH (a:person) RETURN array_indexof([[interval('3 years 2 days 13 hours 2 minutes')], [interval('18 minutes 24 milliseconds')], [interval('10 years 5 months 13 hours 24 us')]], [a.lastJobDuration])
+---- 8
+1
+3
+0
+3
+0
+2
+3
+1
+
+-NAME ListPositionLiteralListOfListOfListOfIntervals
+-QUERY MATCH (a:person) RETURN array_indexof([[[7,4],[8,8],[9]]], a.courseScoresPerTerm)
+---- 8
+0
+0
+0
+1
+0
+0
+0
+0
+
+-NAME ListPositionUnmatchedDataType
+-QUERY MATCH (a:person) RETURN array_indexof(a.workedHours, a.registerTime)
+---- 8
+0
+0
+0
+0
+0
+0
+0
+0
+
+-NAME ListContainsStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_contains(a.workedHours, 5)
+---- 8
+True
+False
+True
+False
+False
+True
+False
+True
+
+-NAME ListContainsStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_has(a.usedNames, "Grad")
+---- 8
+False
+False
+False
+False
+False
+False
+True
+False
+
+-NAME ListContainsStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_contains(a.courseScoresPerTerm, [8])
+---- 8
+False
+False
+False
+False
+True
+True
+False
+False
+
+-NAME ListContainsLiteralListOfInts
+-QUERY MATCH (o:organisation) RETURN array_has([7,6,1], o.ID)
+---- 3
+True
+False
+True
+
+-NAME ListSliceLiteralListOfInts
+-QUERY MATCH (o:organisation) RETURN array_slice([1,4,7,9,10,20,15,192,-5,21,3], 3, o.ID + 3)
+---- 3
+[7]
+[7,9,10,20]
+[7,9,10,20,15,192]
+
+-NAME ListSliceStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_slice(a.workedHours, 1, 2)
+---- 8
+[10]
+[12]
+[4]
+[1]
+[2]
+[3]
+[1]
+[10]
+
+-NAME ListSliceStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN array_slice(a.usedNames, 1, 2)
+---- 8
+[Aida]
+[Bobby]
+[Carmen]
+[Wolfeschlegelstein]
+[Ein]
+[Fesdwe]
+[Grad]
+[Ad]
+
+-NAME ListSliceStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 2)
+---- 8
+[[10,8]]
+[[8,9]]
+[[8,10]]
+[[7,4]]
+[[6]]
+[[8]]
+[[10]]
+[[7]]
+
+-NAME ListSliceStructuredString
+-QUERY MATCH (o:organisation) RETURN o.name[1:4]
+---- 3
+ABFs
+CsWo
+DEsW
+
+-NAME ListSliceStructuredStringRight
+-QUERY MATCH (a:person) RETURN a.fName[4:]
+---- 8
+ce
+
+ol
+
+zabeth
+ooq
+g
+ert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME ListSliceStructuredStringLeft
+-QUERY MATCH (a:person) RETURN a.fName[:5]
+---- 8
+Alice
+Bob
+Carol
+Dan
+Eliza
+Faroo
+Greg
+Huber
+
+-NAME ListSliceStructuredStringNull
+-QUERY MATCH (o:organisation) RETURN o.name[:]
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-NAME ListSliceStructuredStringDoubleSlice
+-QUERY MATCH (a:person) RETURN a.fName[3:][2:4]
+---- 8
+ce
+
+ol
+
+zab
+ooq
+g
+ert
+
+-NAME ListCreateFromLiteral1
+-QUERY RETURN [[100,200],[200,300],[300,400]]
+---- 1
+[[100,200],[200,300],[300,400]]
+
+-NAME ListCreateFromLiteral2
+-QUERY RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
+---- 1
+True

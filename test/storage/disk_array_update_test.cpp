@@ -1,9 +1,11 @@
-#include "test/test_utility/include/test_helper.h"
+#include "common/in_mem_overflow_buffer_utils.h"
+#include "test_helper/test_helper.h"
 
-#include "src/common/include/in_mem_overflow_buffer_utils.h"
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+// TODO(Guodong): the current disk array update test relies on unstructured property which
+// has been removed in the recent PRs.
 
 // Tests the core update functionality of DiskArray and InMemDiskArray. Specifically tests that
 // updates to DiskArrays happen transactionally. The tests use ListHeaders, which consists of a
@@ -22,9 +24,8 @@ public:
     void initWithoutLoadingGraph() {
         createDBAndConn();
         auto personTableID =
-            database->getCatalog()->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        personNodeTable =
-            database->getStorageManager()->getNodesStore().getNodeTable(personTableID);
+            getCatalog(*database)->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        personNodeTable = getStorageManager(*database)->getNodesStore().getNodeTable(personTableID);
         conn->beginWriteTransaction();
     }
 
@@ -46,7 +47,7 @@ public:
     // then the WALReplayer will call checkpoint/rollbackInMemory on this UnstructuredPropertyLists;
     // finally UnstructuredPropertyLists will call headerDA->checkpoint/rollbackInMemoryIfNecessary.
     void setNodeOffset0ToEmptyListToTriggerCheckpointOrRecoveryMechanism() {
-        personNodeTable->getUnstrPropertyLists()->setPropertyListEmpty(0);
+        personNodeTable->getUnstrPropertyLists()->initEmptyPropertyLists(0);
     }
 
     void testBasicUpdate(bool isCommit, TransactionTestType transactionTestType) {

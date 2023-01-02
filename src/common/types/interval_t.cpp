@@ -1,12 +1,11 @@
-#include "include/interval_t.h"
+#include "common/types/interval_t.h"
 
-#include "include/cast_helpers.h"
-#include "include/timestamp_t.h"
+#include "common/exception.h"
+#include "common/types/cast_helpers.h"
+#include "common/types/timestamp_t.h"
+#include "common/utils.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 bool interval_t::operator>(const interval_t& rhs) const {
@@ -68,7 +67,7 @@ void Interval::addition(interval_t& result, uint64_t number, string specifierStr
                specifierStr == "us") {
         result.micros += number;
     } else {
-        throw ConversionException("Unrecognized interval specifier string: " + specifierStr);
+        throw ConversionException("Unrecognized interval specifier string: " + specifierStr + ".");
     }
 }
 
@@ -83,7 +82,7 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
         pos++;
     }
     if (pos == len) {
-        throw ConversionException(buf + " is not in a correct format");
+        throw ConversionException("Error occurred during parsing interval. Field name is missing.");
     }
     // Parse intervalPartSpecifier (eg. hours, dates, minutes)
     uint64_t spacePos = string(buf).find(' ', pos);
@@ -95,8 +94,8 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
     addition(result, number, specifierStr);
 }
 
-interval_t Interval::FromCString(const char* gf_str, uint64_t len) {
-    string str = string(gf_str, len);
+interval_t Interval::FromCString(const char* ku_str, uint64_t len) {
+    string str = string(ku_str, len);
     interval_t result;
     uint64_t pos = 0;
     result.days = 0;
@@ -111,7 +110,8 @@ interval_t Interval::FromCString(const char* gf_str, uint64_t len) {
         if (isdigit(str[pos])) {
             parseIntervalField(str, pos, len, result);
         } else if (!isspace(str[pos])) {
-            throw ConversionException(str + " is not in a correct format");
+            throw ConversionException(
+                "Error occurred during parsing interval. Given: \"" + str + "\".");
         }
         pos++;
     }
@@ -225,4 +225,4 @@ int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& inter
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

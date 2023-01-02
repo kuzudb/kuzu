@@ -1,20 +1,18 @@
-#include "include/connection.h"
+#include "main/connection.h"
 
-#include "include/database.h"
-#include "include/plan_printer.h"
+#include "main/database.h"
+#include "main/plan_printer.h"
+#include "parser/parser.h"
+#include "planner/planner.h"
+#include "processor/mapper/plan_mapper.h"
 
-#include "src/parser/include/parser.h"
-#include "src/planner/include/planner.h"
-#include "src/processor/mapper/include/plan_mapper.h"
+using namespace kuzu::parser;
+using namespace kuzu::binder;
+using namespace kuzu::planner;
+using namespace kuzu::processor;
+using namespace kuzu::transaction;
 
-using namespace std;
-using namespace graphflow::parser;
-using namespace graphflow::binder;
-using namespace graphflow::planner;
-using namespace graphflow::processor;
-using namespace graphflow::transaction;
-
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 Connection::Connection(Database* database) {
@@ -34,10 +32,7 @@ unique_ptr<QueryResult> Connection::query(const string& query) {
     lock_t lck{mtx};
     unique_ptr<PreparedStatement> preparedStatement;
     preparedStatement = prepareNoLock(query);
-    if (preparedStatement->success) {
-        return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
-    }
-    return queryResultWithError(preparedStatement->errMsg);
+    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
 unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
@@ -47,13 +42,13 @@ unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
     return queryResult;
 }
 
-void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binder& binder,
-    QuerySummary* querySummary, PreparedStatement* preparedStatement) {
+void Connection::setQuerySummaryAndPreparedStatement(
+    Statement* statement, Binder& binder, PreparedStatement* preparedStatement) {
     switch (statement->getStatementType()) {
     case StatementType::QUERY: {
         auto parsedQuery = (RegularQuery*)statement;
-        querySummary->isExplain = parsedQuery->isEnableExplain();
-        querySummary->isProfile = parsedQuery->isEnableProfile();
+        preparedStatement->preparedSummary.isExplain = parsedQuery->isEnableExplain();
+        preparedStatement->preparedSummary.isProfile = parsedQuery->isEnableProfile();
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->allowActiveTransaction = true;
     } break;
@@ -71,55 +66,37 @@ void Connection::setQuerySummaryAndPreparedStatement(Statement* statement, Binde
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
-        throw Exception("Input query is empty.");
+        preparedStatement->success = false;
+        preparedStatement->errMsg = "Connection Exception: Query is empty.";
+        return preparedStatement;
     }
-    auto querySummary = preparedStatement->querySummary.get();
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
     unique_ptr<ExecutionContext> executionContext;
-    unique_ptr<PhysicalPlan> physicalPlan;
+    unique_ptr<LogicalPlan> logicalPlan;
     try {
         auto statement = Parser::parseQuery(query);
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
-        setQuerySummaryAndPreparedStatement(
-            statement.get(), binder, querySummary, preparedStatement.get());
+        setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
         // planning
-        auto logicalPlan = Planner::getBestPlan(*database->catalog,
+        logicalPlan = Planner::getBestPlan(*database->catalog,
             database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
             database->storageManager->getRelsStore().getRelsStatistics(), *boundStatement);
-        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-        // mapping
-        auto mapper = PlanMapper(
-            *database->storageManager, database->getMemoryManager(), database->catalog.get());
-        physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
-    } catch (Exception& exception) {
+        if (logicalPlan->isDDLOrCopyCSV()) {
+            preparedStatement->createResultHeader(
+                expression_vector{make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg")});
+        } else {
+            preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+        }
+    } catch (exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
     compilingTimer.stop();
-    querySummary->compilingTime = compilingTimer.getElapsedTimeMS();
-    preparedStatement->physicalPlan = move(physicalPlan);
+    preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
+    preparedStatement->logicalPlan = std::move(logicalPlan);
     return preparedStatement;
-}
-
-string Connection::getBuiltInScalarFunctionNames() {
-    lock_t lck{mtx};
-    string result = "Built-in scalar functions: \n";
-    for (auto& functionName : database->catalog->getBuiltInScalarFunctions()->getFunctionNames()) {
-        result += functionName + "\n";
-    }
-    return result;
-}
-
-string Connection::getBuiltInAggregateFunctionNames() {
-    lock_t lck{mtx};
-    string result = "Built-in aggregate functions: \n";
-    for (auto& functionName :
-        database->catalog->getBuiltInAggregateFunction()->getFunctionNames()) {
-        result += functionName + "\n";
-    }
-    return result;
 }
 
 string Connection::getNodeTableNames() {
@@ -176,6 +153,9 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     }
     result += relTableName + " properties: \n";
     for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
+        if (TableSchema::isReservedPropertyName(property.name)) {
+            continue;
+        }
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
     }
     return result;
@@ -203,10 +183,7 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     lock_t lck{mtx};
     auto preparedStatement = make_unique<PreparedStatement>();
     preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    auto mapper =
-        PlanMapper(*database->storageManager, database->getMemoryManager(), database->getCatalog());
-    auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
-    preparedStatement->physicalPlan = move(physicalPlan);
+    preparedStatement->logicalPlan = std::move(logicalPlan);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
@@ -244,62 +221,52 @@ void Connection::bindParametersNoLock(
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
-    auto queryResult = make_unique<QueryResult>();
-    auto querySummary = preparedStatement->querySummary.get();
+    auto mapper = PlanMapper(
+        *database->storageManager, database->memoryManager.get(), database->catalog.get());
+    unique_ptr<PhysicalPlan> physicalPlan;
+    if (preparedStatement->isSuccess()) {
+        try {
+            physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        } catch (exception& exception) {
+            preparedStatement->success = false;
+            preparedStatement->errMsg = exception.what();
+        }
+    }
+    if (!preparedStatement->isSuccess()) {
+        rollbackIfNecessaryNoLock();
+        return queryResultWithError(preparedStatement->errMsg);
+    }
+    auto queryResult = make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
         profiler.get(), database->memoryManager.get(), database->bufferManager.get());
-    // executing if not EXPLAIN
-    if (!querySummary->isExplain) {
-        profiler->enabled = querySummary->isProfile;
+    // Execute query if EXPLAIN is not enabled.
+    if (!preparedStatement->preparedSummary.isExplain) {
+        profiler->enabled = preparedStatement->preparedSummary.isProfile;
         auto executingTimer = TimeMetric(true /* enable */);
         executingTimer.start();
-        shared_ptr<FactorizedTable> table;
+        shared_ptr<FactorizedTable> resultFT;
         try {
-            if (!preparedStatement->allowActiveTransaction && activeTransaction) {
-                throw ConnectionException(
-                    "DDL and CopyCSV statements are automatically wrapped in a "
-                    "transaction and committed. As such, they cannot be part of an "
-                    "active transaction, please commit or rollback your previous transaction and "
-                    "issue a ddl query without opening a transaction.");
-            }
-            if (AUTO_COMMIT == transactionMode) {
-                assert(!activeTransaction);
-                // If the caller didn't explicitly start a transaction, we do so now and commit or
-                // rollback here if necessary, i.e., if the given prepared statement has write
-                // operations.
-                beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
-            }
-            if (!activeTransaction) {
-                assert(MANUAL == transactionMode);
-                throw ConnectionException(
-                    "Transaction mode is manual but there is no active transaction. Please begin a "
-                    "transaction or set the transaction mode of the connection to AUTO_COMMIT");
-            }
+            beginTransactionIfAutoCommit(preparedStatement);
             executionContext->transaction = activeTransaction.get();
-            table = database->queryProcessor->execute(
-                preparedStatement->physicalPlan.get(), executionContext.get());
+            resultFT =
+                database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
         } catch (Exception& exception) {
-            rollbackNoLock();
+            rollbackIfNecessaryNoLock();
             string errMsg = exception.what();
             return queryResultWithError(errMsg);
         }
         executingTimer.stop();
-        querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->setResultHeaderAndTable(move(preparedStatement->resultHeader), move(table));
-        preparedStatement->createPlanPrinter(move(profiler));
-        queryResult->querySummary = move(preparedStatement->querySummary);
-        return queryResult;
+        queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
+        queryResult->setResultHeaderAndTable(
+            preparedStatement->resultHeader->copy(), std::move(resultFT));
     }
-    // NOTE: If EXPLAIN is enabled, we still need to init physical plan to register profiler because
-    // our plan printer will try to read from profiler metrics regardless whether it's enabled or
-    // not. A better solution could be that we don't print any metric during EXPLAIN.
-    preparedStatement->physicalPlan->lastOperator->init(executionContext.get());
-    preparedStatement->createPlanPrinter(move(profiler));
-    queryResult->querySummary = move(preparedStatement->querySummary);
+    auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
+    queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
+    queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;
 }
 
@@ -330,5 +297,31 @@ void Connection::commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTes
     }
 }
 
+void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStatement) {
+    if (!preparedStatement->isReadOnly() && activeTransaction && activeTransaction->isReadOnly()) {
+        throw ConnectionException("Can't execute a write query inside a read-only transaction.");
+    }
+    if (!preparedStatement->allowActiveTransaction && activeTransaction) {
+        throw ConnectionException(
+            "DDL and CopyCSV statements are automatically wrapped in a "
+            "transaction and committed. As such, they cannot be part of an "
+            "active transaction, please commit or rollback your previous transaction and "
+            "issue a ddl query without opening a transaction.");
+    }
+    if (AUTO_COMMIT == transactionMode) {
+        assert(!activeTransaction);
+        // If the caller didn't explicitly start a transaction, we do so now and commit or
+        // rollback here if necessary, i.e., if the given prepared statement has write
+        // operations.
+        beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
+    }
+    if (!activeTransaction) {
+        assert(MANUAL == transactionMode);
+        throw ConnectionException(
+            "Transaction mode is manual but there is no active transaction. Please begin a "
+            "transaction or set the transaction mode of the connection to AUTO_COMMIT");
+    }
+}
+
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

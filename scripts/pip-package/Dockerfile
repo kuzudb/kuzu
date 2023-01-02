@@ -7,7 +7,7 @@ RUN curl https://copr.fedorainfracloud.org/coprs/vbatts/bazel/repo/epel-7/vbatts
 
 # Install dependencies
 RUN yum --disablerepo=epel -y upgrade curl ca-certificates
-RUN yum update
+RUN yum update -y
 RUN yum install -y java-11-openjdk-devel
 RUN yum install -y bazel4
 RUN yum install -y nodejs

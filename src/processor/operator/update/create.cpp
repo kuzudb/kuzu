@@ -1,90 +1,77 @@
-#include "include/create.h"
+#include "processor/operator/update/create.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> CreateNode::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void CreateNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createNodeInfo : createNodeInfos) {
-        auto pos = createNodeInfo->outNodeIDVectorPos;
-        auto valueVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
+        createNodeInfo->primaryKeyEvaluator->init(*resultSet, context->memoryManager);
+        auto valueVector = resultSet->getValueVector(createNodeInfo->outNodeIDVectorPos);
         outValueVectors.push_back(valueVector.get());
-        auto dataChunk = resultSet->dataChunks[pos.dataChunkPos];
-        dataChunk->state = DataChunkState::getSingleValueDataChunkState();
-        dataChunk->insert(pos.valueVectorPos, valueVector);
     }
-    return resultSet;
 }
 
-bool CreateNode::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateNode::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
-        auto nodeTable = createNodeInfos[i]->table;
-        auto nodeOffset =
-            nodeTable->getNodeStatisticsAndDeletedIDs()->addNode(nodeTable->getTableID());
-        // TODO(Ziyi/Xiyang): we should also set emptyList for relTables connected to this node.
-        nodeTable->getUnstrPropertyLists()->setPropertyListEmpty(nodeOffset);
+        auto createNodeInfo = createNodeInfos[i].get();
+        auto nodeTable = createNodeInfo->table;
+        createNodeInfo->primaryKeyEvaluator->evaluate();
+        auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
+        auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
         auto vector = outValueVectors[i];
-        auto& nodeIDValue = ((nodeID_t*)vector->values)[vector->state->getPositionOfCurrIdx()];
-        nodeIDValue.tableID = nodeTable->getTableID();
-        nodeIDValue.offset = nodeOffset;
+        nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
+        vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);
+        for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
+            relTable->initEmptyRelsForNewNode(nodeID);
+        }
     }
-    metrics->executionTime.stop();
     return true;
 }
 
-shared_ptr<ResultSet> CreateRel::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createRelInfo : createRelInfos) {
-        vector<shared_ptr<ValueVector>> vectorsToInsert;
-        auto srcNodePos = createRelInfo->srcNodePos;
-        auto srcNodeVector =
-            resultSet->dataChunks[srcNodePos.dataChunkPos]->valueVectors[srcNodePos.valueVectorPos];
-        vectorsToInsert.push_back(srcNodeVector);
-        auto dstNodePos = createRelInfo->dstNodePos;
-        auto dstNodeVector =
-            resultSet->dataChunks[dstNodePos.dataChunkPos]->valueVectors[dstNodePos.valueVectorPos];
-        vectorsToInsert.push_back(dstNodeVector);
+        auto createRelVectors = make_unique<CreateRelVectors>();
+        createRelVectors->srcNodeIDVector = resultSet->getValueVector(createRelInfo->srcNodePos);
+        createRelVectors->dstNodeIDVector = resultSet->getValueVector(createRelInfo->dstNodePos);
         for (auto& evaluator : createRelInfo->evaluators) {
             evaluator->init(*resultSet, context->memoryManager);
-            vectorsToInsert.push_back(evaluator->resultVector);
+            createRelVectors->propertyVectors.push_back(evaluator->resultVector);
         }
-        vectorsToInsertPerRel.push_back(vectorsToInsert);
+        createRelVectorsPerRel.push_back(std::move(createRelVectors));
     }
-    return resultSet;
 }
 
-bool CreateRel::getNextTuples() {
-    metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
-        metrics->executionTime.stop();
+bool CreateRel::getNextTuplesInternal() {
+    if (!children[0]->getNextTuple()) {
         return false;
     }
     for (auto i = 0u; i < createRelInfos.size(); ++i) {
         auto createRelInfo = createRelInfos[i].get();
+        auto createRelVectors = createRelVectorsPerRel[i].get();
         for (auto j = 0u; j < createRelInfo->evaluators.size(); ++j) {
             auto evaluator = createRelInfo->evaluators[j].get();
             // Rel ID is our interval property, so we overwrite relID=$expr with system ID.
             if (j == createRelInfo->relIDEvaluatorIdx) {
                 auto relIDVector = evaluator->resultVector;
                 assert(relIDVector->dataType.typeID == INT64 &&
-                       relIDVector->state->getPositionOfCurrIdx() == 0);
-                // TODO(Ziyi): check this getNextRelID() not returning correct value.
-                ((int64_t*)relIDVector->values)[0] = (int64_t)relsStatistics.getNextRelID();
+                       relIDVector->state->selVector->selectedPositions[0] == 0);
+                relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
                 relIDVector->setNull(0, false);
             } else {
-                createRelInfo->evaluators[i]->evaluate();
+                createRelInfo->evaluators[j]->evaluate();
             }
         }
-        createRelInfo->table->insertRels(vectorsToInsertPerRel[i]);
+        createRelInfo->table->insertRel(createRelVectors->srcNodeIDVector,
+            createRelVectors->dstNodeIDVector, createRelVectors->propertyVectors);
+        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
+            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+            1 /* increment numRelsPerDirectionBoundTable by 1 */);
     }
-    metrics->executionTime.stop();
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

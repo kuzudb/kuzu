@@ -1,98 +1,61 @@
-#include "test/test_utility/include/test_helper.h"
-
-#include "src/common/include/csv_reader/csv_reader.h"
-#include "src/storage/storage_structure/include/lists/unstructured_property_lists.h"
+#include "common/csv_reader/csv_reader.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::catalog;
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::catalog;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
-namespace graphflow {
+namespace kuzu {
 namespace testing {
 
 class CopyNodeCSVPropertyTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/copy-csv-node-property-test/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-node-property-test/");
+    }
 };
 
 class CopyCSVSpecialCharTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/copy-csv-special-char-test/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-special-char-test/");
+    }
 };
 
 class CopyCSVReadLists2BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/2-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists3BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/3-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/3-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists4BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/4-bytes-per-edge/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
+    }
 };
 
 class CopyCSVReadLists5BytesPerEdgeTest : public InMemoryDBTest {
 public:
-    string getInputCSVDir() override { return "dataset/read-list-tests/5-bytes-per-edge/"; }
-};
-
-class CopyCSVEmptyListsTest : public InMemoryDBTest {
-public:
-    string getInputCSVDir() override { return "dataset/copy-csv-empty-lists-test/"; }
-    // The test is here because accessing protected/private members of Lists and ListsMetadata
-    // requires the code to be inside CopyCSVEmptyListsTest class, which is a friend class to
-    // Lists and ListsMetadata.
-    void testCopyCSVEmptyListsTest() {
-        auto& catalog = *database->getCatalog();
-        table_id_t pTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-        auto unstrPropLists =
-            database->getStorageManager()->getNodesStore().getNodeUnstrPropertyLists(pTableID);
-        // The vPerson table has 4 chunks (2000/512) and only nodeOffset=1030, which is in chunk
-        // idx 2 has a non-empty list. So chunk ids 0, 1, and 3's chunkToPageListHeadIdxMap need to
-        // point to UINT32_MAX (representing null), while chunk 2 should point to 0.
-        uint64_t numChunks = 4;
-        EXPECT_EQ(
-            numChunks, unstrPropLists->metadata.chunkToPageListHeadIdxMap->header.numElements);
-        for (int chunkIdx = 0; chunkIdx < numChunks; chunkIdx++) {
-            EXPECT_EQ(chunkIdx == 2 ? 0 : UINT32_MAX,
-                (*unstrPropLists->metadata.chunkToPageListHeadIdxMap)[chunkIdx]);
-        }
-        // Check chunk idx 2's pageLists.
-        EXPECT_EQ(storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE,
-            unstrPropLists->metadata.pageLists->header.numElements);
-        for (int chunkPageListIdx = 0;
-             chunkPageListIdx < storage::ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE;
-             ++chunkPageListIdx) {
-            if (chunkPageListIdx == 0) {
-                EXPECT_NE(PAGE_IDX_MAX, (*unstrPropLists->metadata.pageLists)[chunkPageListIdx]);
-            } else {
-                EXPECT_EQ(PAGE_IDX_MAX, (*unstrPropLists->metadata.pageLists)[chunkPageListIdx]);
-            }
-        }
-        // There are no large lists so largeListIdxToPageListHeadIdxMap should have 0 elements.
-        EXPECT_EQ(0, unstrPropLists->metadata.largeListIdxToPageListHeadIdxMap->header.numElements);
-        uint64_t maxPersonOffset = database->getStorageManager()
-                                       ->getNodesStore()
-                                       .getNodesStatisticsAndDeletedIDs()
-                                       .getNodeStatisticsAndDeletedIDs(pTableID)
-                                       ->getMaxNodeOffset();
-        EXPECT_EQ(1999, maxPersonOffset);
-        for (node_offset_t nodeOffset = 0; nodeOffset < maxPersonOffset; ++nodeOffset) {
-            auto unstructuredProperties =
-                unstrPropLists->readUnstructuredPropertiesOfNode(nodeOffset);
-            EXPECT_EQ((1030 == nodeOffset) ? 1 : 0, unstructuredProperties->size());
-        }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/5-bytes-per-edge/");
     }
 };
 
 class CopyCSVLongStringTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/copy-csv-fault-tests/long-string/"; }
+    string getInputCSVDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-csv-fault-tests/long-string/");
+    }
 };
 
 struct KnowsTablePTablePKnowsLists {
@@ -131,69 +94,35 @@ ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* s
     return retVal;
 }
 } // namespace testing
-} // namespace graphflow
+} // namespace kuzu
 
 TEST_F(CopyNodeCSVPropertyTest, NodeStructuredStringPropertyTest) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto graph = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
-    string fName = "dataset/copy-csv-node-property-test/vPerson.csv";
+    string fName =
+        TestHelper::appendKuzuRootPath("dataset/copy-csv-node-property-test/vPerson.csv");
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
     int lineIdx = 0;
     uint64_t count = 0;
+    auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     while (csvReader.hasNextLine()) {
         csvReader.hasNextToken();
         csvReader.skipToken();
         csvReader.hasNextToken();
         if ((count % 100) == 0) {
-            ASSERT_TRUE(column->isNull(count /* nodeOffset */));
+            ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
-            ASSERT_FALSE(column->isNull(count /* nodeOffset */));
+            ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
             EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
         }
         lineIdx++;
         csvReader.skipLine();
         count++;
-    }
-}
-
-TEST_F(CopyNodeCSVPropertyTest, NodeUnstructuredPropertyTest) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
-        graph->getNodesStore().getNodeUnstrPropertyLists(tableID));
-    auto& propertyNameToIdMap =
-        catalog.getReadOnlyVersion()->getUnstrPropertiesNameToIdMap(tableID);
-    for (int i = 0; i < 1000; ++i) {
-        auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
-        if (i == 300 || i == 400 || i == 500) {
-            EXPECT_EQ(i * 4, propertiesMap->size());
-            for (int j = 0; j < i; ++j) {
-                EXPECT_EQ("strPropVal" + to_string(j),
-                    propertiesMap->at(propertyNameToIdMap.at("strPropKey" + to_string(j))).strVal);
-                EXPECT_EQ(
-                    j, propertiesMap->at(propertyNameToIdMap.at("int64PropKey" + to_string(j)))
-                           .val.int64Val);
-                EXPECT_EQ(j * 1.0,
-                    propertiesMap->at(propertyNameToIdMap.at("doublePropKey" + to_string(j)))
-                        .val.doubleVal);
-                EXPECT_FALSE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey" + to_string(j)))
-                                 .val.booleanVal);
-            }
-        } else {
-            EXPECT_EQ(4, propertiesMap->size());
-            EXPECT_EQ(
-                "strPropVal1", propertiesMap->at(propertyNameToIdMap.at("strPropKey1")).strVal);
-            EXPECT_EQ(1, propertiesMap->at(propertyNameToIdMap.at("int64PropKey1")).val.int64Val);
-            EXPECT_EQ(
-                1.0, propertiesMap->at(propertyNameToIdMap.at("doublePropKey1")).val.doubleVal);
-            EXPECT_TRUE(propertiesMap->at(propertyNameToIdMap.at("boolPropKey1")).val.booleanVal);
-        }
     }
 }
 
@@ -271,39 +200,39 @@ void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsList
 
 TEST_F(CopyCSVReadLists2BytesPerEdgeTest, ReadLists2BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists3BytesPerEdgeTest, ReadLists3BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
+        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
 }
 
 TEST_F(CopyCSVReadLists4BytesPerEdgeTest, ReadLists4BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
     auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*database->getCatalog(), database->getStorageManager());
+        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
     verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *database->getCatalog(), database->getStorageManager());
+        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
     verifyP6001ToP65999(knowsTablePTablePKnowsLists);
 }
 
 TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
-    auto storageManager = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
@@ -312,26 +241,22 @@ TEST_F(CopyCSVSpecialCharTest, CopySpecialCharsCsv) {
     EXPECT_EQ("the - should be escaped", col->readValue(2).strVal);
     EXPECT_EQ("this -is #a mixed test", col->readValue(3).strVal);
     EXPECT_EQ("only one # should be recognized", col->readValue(4).strVal);
-    EXPECT_EQ("this is a ##plain## #string", col->readValue(5).strVal);
-    EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6).strVal);
+    EXPECT_EQ("this is a #plain# string", col->readValue(5).strVal);
+    EXPECT_EQ("this is another #plain# string with \\", col->readValue(6).strVal);
 
-    tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("organisation");
-    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "name");
+    tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
+    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);
 }
 
-TEST_F(CopyCSVEmptyListsTest, CopyCSVEmptyLists) {
-    testCopyCSVEmptyListsTest();
-}
-
 TEST_F(CopyCSVLongStringTest, LongStringError) {
-    auto storageManager = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "fName");
+    auto storageManager = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "fName");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
@@ -345,7 +270,7 @@ TEST_F(CopyCSVLongStringTest, LongStringError) {
     EXPECT_EQ(os.str().substr(0, 4096), col->readValue(0).strVal);
     EXPECT_EQ("Bob", col->readValue(1).strVal);
 
-    propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "gender");
+    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "gender");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(1, col->readValue(0).val.int64Val);
     EXPECT_EQ(2, col->readValue(1).val.int64Val);

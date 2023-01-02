@@ -1,12 +1,11 @@
-#include "src/storage/include/wal_replayer.h"
+#include "storage/wal_replayer.h"
 
 #include "spdlog/spdlog.h"
+#include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
+#include "storage/wal_replayer_utils.h"
 
-#include "src/storage/include/storage_manager.h"
-#include "src/storage/include/storage_utils.h"
-#include "src/storage/include/wal_replayer_utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal{wal} {
@@ -21,10 +20,11 @@ WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager
 }
 
 void WALReplayer::init() {
-    logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    logger = LoggerUtils::getOrCreateLogger("storage");
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
     pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
+
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     switch (walRecord.recordType) {
     case PAGE_UPDATE_OR_INSERT_RECORD: {
@@ -98,7 +98,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             if (!isRecovering) {
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
                 // then we need to create the NodeTable object for the newly created node table.
-                // Therefore, this effectively fixe the in-memory data structures (i.e., performs
+                // Therefore, this effectively fixes the in-memory data structures (i.e., performs
                 // the in-memory checkpointing).
                 storageManager->getNodesStore().createNodeTable(walRecord.nodeTableRecord.tableID,
                     bufferManager, wal, catalogForCheckpointing.get());
@@ -123,8 +123,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             if (!isRecovering) {
                 // See comments for NODE_TABLE_RECORD.
                 storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.tableID,
-                    maxNodeOffsetPerTable, bufferManager, wal, catalogForCheckPointing.get(),
-                    memoryManager);
+                    bufferManager, wal, catalogForCheckPointing.get(), memoryManager);
             }
         } else {
             // See comments for NODE_TABLE_RECORD.
@@ -169,12 +168,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         } break;
         case LISTS: {
             switch (storageStructureID.listFileID.listType) {
-            case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-                UnstructuredPropertyLists* unstructuredPropertyLists =
-                    storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                        storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
-                diskOverflowFile = &unstructuredPropertyLists->diskOverflowFile;
-            } break;
             case REL_PROPERTY_LISTS: {
                 auto& relNodeTableAndDir =
                     storageStructureID.listFileID.relPropertyListID.relNodeTableAndDir;
@@ -190,6 +183,11 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     "AdjLists shouldn't have OVERFLOW_FILE_NEXT_BYTE_POS_RECORD.");
                 assert(storageStructureID.listFileID.listFileType == BASE_LISTS);
             }
+        } break;
+        case NODE_INDEX: {
+            auto index =
+                storageManager->getNodesStore().getPKIndex(storageStructureID.nodeIndexID.tableID);
+            diskOverflowFile = index->getDiskOverflowFile();
         } break;
         default:
             throw RuntimeException("Unsupported storageStructureType " +
@@ -248,11 +246,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalog);
                 // See comments for COPY_NODE_CSV_RECORD.
                 storageManager->getRelsStore().getRelTable(tableID)->loadColumnsAndListsFromDisk(
-                    *catalog,
-                    storageManager->getNodesStore()
-                        .getNodesStatisticsAndDeletedIDs()
-                        .getMaxNodeOffsetPerTable(),
-                    *bufferManager);
+                    *catalog, *bufferManager);
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
                     .setAdjListsAndColumns(&storageManager->getRelsStore());
@@ -387,31 +381,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     }
     case LISTS: {
         switch (storageStructureID.listFileID.listType) {
-        case UNSTRUCTURED_NODE_PROPERTY_LISTS: {
-            UnstructuredPropertyLists* unstructuredPropertyLists =
-                storageManager->getNodesStore().getNodeUnstrPropertyLists(
-                    storageStructureID.listFileID.unstructuredNodePropertyListsID.tableID);
-            switch (storageStructureID.listFileID.listFileType) {
-            case BASE_LISTS: {
-                return storageStructureID.isOverflow ?
-                           unstructuredPropertyLists->diskOverflowFile.getFileHandle() :
-                           unstructuredPropertyLists->getFileHandle();
-            }
-            default:
-                // Note: We do not clear the WAL version of updated pages (nor do we need to
-                // update the Buffer Manager versions of these pages) for METADATA and
-                // HEADERS. The reason is METADATA and HEADERs are stored in
-                // InMemoryDiskArrays, which bypass the BufferManager and during
-                // checkpointing Lists, those InMemDiskArray rely on the WAL version of
-                // these pages existing to update their own in-memory versions manually. If
-                // we clear the WAL versions in WALReplayer
-                // InMeMDiskArray::checkpointOrRollbackInMemoryIfNecessaryNoLock will omit
-                // refreshing their in memory copies of these updated pages. If we make the
-                // InMemDiskArrays also store their pages through the BufferManager, we
-                // should return the VersionedFileHandle's for METADATA and HEADERs as well.
-                return nullptr;
-            }
-        }
         case ADJ_LISTS: {
             auto& relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
             auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
@@ -421,7 +390,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                 return adjLists->getFileHandle();
             }
             default:
-                // See comments for unstructured_node_property_lists.
                 return nullptr;
             }
         }
@@ -439,7 +407,6 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                                                        relPropLists->getFileHandle();
             }
             default:
-                // See comments for unstructured_node_property_lists.
                 return nullptr;
             }
         }
@@ -447,6 +414,12 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
             assert(false);
         }
         }
+    }
+    case NODE_INDEX: {
+        auto index =
+            storageManager->getNodesStore().getPKIndex(storageStructureID.nodeIndexID.tableID);
+        return storageStructureID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
+                                               index->getFileHandle();
     }
     default:
         assert(false);
@@ -474,18 +447,17 @@ void WALReplayer::replay() {
         replayWALRecord(walRecord);
     }
 
-    // We next perform an in-memory checkpointing or rolling back of unstructuredPropertyLists.
-    for (auto& nodeTableID : wal->updatedUnstructuredPropertyLists) {
-        auto unstructuredPropertyLists =
-            storageManager->getNodesStore().getNodeUnstrPropertyLists(nodeTableID);
+    // We next perform an in-memory checkpointing or rolling back of nodeTables.
+    for (auto nodeTableID : wal->updatedNodeTables) {
+        auto nodeTable = storageManager->getNodesStore().getNodeTable(nodeTableID);
         if (isCheckpoint) {
-            unstructuredPropertyLists->checkpointInMemoryIfNecessary();
+            nodeTable->checkpointInMemoryIfNecessary();
         } else {
-            unstructuredPropertyLists->rollbackInMemoryIfNecessary();
+            nodeTable->rollbackInMemoryIfNecessary();
         }
     }
     // Then we perform an in-memory checkpointing or rolling back of relTables.
-    for (auto& relTableID : wal->updatedRelTables) {
+    for (auto relTableID : wal->updatedRelTables) {
         auto relTable = storageManager->getRelsStore().getRelTable(relTableID);
         if (isCheckpoint) {
             relTable->checkpointInMemoryIfNecessary();
@@ -496,4 +468,4 @@ void WALReplayer::replay() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

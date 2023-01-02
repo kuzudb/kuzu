@@ -1,0 +1,2 @@
+add_kuzu_test(transaction_manager_test transaction_manager_test.cpp)
+add_kuzu_test(transaction_test transaction_test.cpp)

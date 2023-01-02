@@ -1,0 +1,10 @@
+-NAME node1
+-QUERY MATCH (a:person) RETURN COUNT(*)
+---- 1
+8
+
+-NAME node2
+-QUERY MATCH (a:organisation) RETURN COUNT(*)
+---- 1
+3
+

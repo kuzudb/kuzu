@@ -1,15 +1,14 @@
-#include "include/plan_mapper.h"
+#include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/skip.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
-#include "src/processor/operator/include/skip.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator), getOperatorID(),
@@ -17,4 +16,4 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

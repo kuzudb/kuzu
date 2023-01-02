@@ -1,29 +1,32 @@
-#include "include/flatten.h"
+#include "processor/operator/flatten.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
+void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
-    return resultSet;
+    currentSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
 }
 
-bool Flatten::getNextTuples() {
-    metrics->executionTime.start();
-    // currentIdx == -1 is the check for initial case
-    if (dataChunkToFlatten->state->currIdx == -1 || dataChunkToFlatten->state->isCurrIdxLast()) {
+bool Flatten::getNextTuplesInternal() {
+    if (isCurrIdxInitialOrLast()) {
         dataChunkToFlatten->state->currIdx = -1;
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        restoreSelVector(dataChunkToFlatten->state->selVector);
+        if (!children[0]->getNextTuple()) {
             return false;
         }
+        saveSelVector(dataChunkToFlatten->state->selVector);
     }
     dataChunkToFlatten->state->currIdx++;
-    metrics->executionTime.stop();
+    currentSelVector->selectedPositions[0] =
+        prevSelVector->selectedPositions[dataChunkToFlatten->state->currIdx];
     metrics->numOutputTuple.incrementByOne();
     return true;
 }
 
+void Flatten::resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) {
+    selVector = currentSelVector;
+}
+
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

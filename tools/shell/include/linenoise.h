@@ -73,6 +73,7 @@ void linenoiseSetMultiLine(int ml);
 void linenoisePrintKeyCodes(void);
 void linenoiseMaskModeEnable(void);
 void linenoiseMaskModeDisable(void);
+uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len);
 
 #ifdef __cplusplus
 }

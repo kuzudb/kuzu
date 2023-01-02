@@ -1,13 +1,13 @@
-#include "src/common/include/type_utils.h"
+#include "common/type_utils.h"
 
 #include <cerrno>
 #include <climits>
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-#include "src/common/types/include/value.h"
+#include "common/exception.h"
+#include "common/types/value.h"
+#include "common/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 int64_t TypeUtils::convertToInt64(const char* data) {
@@ -72,15 +72,16 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
     case INTERVAL:
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
     case STRING:
-        return TypeUtils::toString(((gf_string_t*)overflowPtr)[pos]);
+        return TypeUtils::toString(((ku_string_t*)overflowPtr)[pos]);
     case LIST:
-        return TypeUtils::toString(((gf_list_t*)overflowPtr)[pos], dataType);
+        return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(dataType) +
+                               " for TypeUtils::elementToString.");
     }
 }
 
-string TypeUtils::toString(const gf_list_t& val, const DataType& dataType) {
+string TypeUtils::toString(const ku_list_t& val, const DataType& dataType) {
     string result = "[";
     for (auto i = 0u; i < val.size - 1; ++i) {
         result +=
@@ -127,32 +128,8 @@ string TypeUtils::toString(const Literal& literal) {
         return result;
     }
     default:
-        assert(false);
-    }
-}
-
-string TypeUtils::toString(const Value& val) {
-    switch (val.dataType.typeID) {
-    case BOOL:
-        return TypeUtils::toString(val.val.booleanVal);
-    case INT64:
-        return TypeUtils::toString(val.val.int64Val);
-    case DOUBLE:
-        return TypeUtils::toString(val.val.doubleVal);
-    case STRING:
-        return TypeUtils::toString(val.val.strVal);
-    case NODE_ID:
-        return TypeUtils::toString(val.val.nodeID);
-    case DATE:
-        return TypeUtils::toString(val.val.dateVal);
-    case TIMESTAMP:
-        return TypeUtils::toString(val.val.timestampVal);
-    case INTERVAL:
-        return TypeUtils::toString(val.val.intervalVal);
-    case LIST:
-        return TypeUtils::toString(val.val.listVal, val.dataType);
-    default:
-        assert(false);
+        throw RuntimeException("Invalid data type " + Types::dataTypeToString(literal.dataType) +
+                               " for TypeUtils::toString.");
     }
 }
 
@@ -180,4 +157,4 @@ void TypeUtils::throwConversionExceptionOutOfRange(const char* data, DataTypeID 
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

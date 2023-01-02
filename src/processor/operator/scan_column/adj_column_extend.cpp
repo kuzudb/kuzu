@@ -1,33 +1,30 @@
-#include "include/adj_column_extend.h"
+#include "processor/operator/scan_column/adj_column_extend.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
-    resultSet = BaseScanColumn::init(context);
-    outputVector = make_shared<ValueVector>(NODE_ID, context->memoryManager);
-    inputNodeIDDataChunk->insert(outputVectorPos.valueVectorPos, outputVector);
-    return resultSet;
-}
-
-bool AdjColumnExtend::getNextTuples() {
-    metrics->executionTime.start();
+bool ColumnExtendAndScanRelProperties::getNextTuplesInternal() {
     bool hasAtLeastOneNonNullValue;
+    // join with adjColumn
     do {
-        restoreSelVector(inputNodeIDDataChunk->state->selVector.get());
-        if (!children[0]->getNextTuples()) {
-            metrics->executionTime.stop();
+        restoreSelVector(inNodeIDVector->state->selVector);
+        if (!children[0]->getNextTuple()) {
             return false;
         }
-        saveSelVector(inputNodeIDDataChunk->state->selVector.get());
-        outputVector->setAllNull();
-        nodeIDColumn->read(transaction, inputNodeIDVector, outputVector);
-        hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outputVector);
+        saveSelVector(inNodeIDVector->state->selVector);
+        outNodeIDVector->setAllNull();
+        adjColumn->read(transaction, inNodeIDVector, outNodeIDVector);
+        hasAtLeastOneNonNullValue = NodeIDVector::discardNull(*outNodeIDVector);
     } while (!hasAtLeastOneNonNullValue);
-    metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selVector->selectedSize);
+    // scan column properties
+    for (auto i = 0u; i < propertyColumns.size(); ++i) {
+        auto vector = outPropertyVectors[i];
+        vector->resetOverflowBuffer();
+        propertyColumns[i]->read(transaction, inNodeIDVector, vector);
+    }
+    metrics->numOutputTuple.increase(inNodeIDVector->state->selVector->selectedSize);
     return true;
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

@@ -1,18 +1,17 @@
-#include "src/storage/buffer_manager/include/buffer_manager.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
+#include "common/configs.h"
+#include "common/exception.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
 
-#include "src/common/include/configs.h"
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+using namespace kuzu::common;
 
-using namespace graphflow::common;
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")},
+    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")},
       bufferPoolDefaultPages(make_unique<BufferPool>(DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
       bufferPoolLargePages(make_unique<BufferPool>(LARGE_PAGE_SIZE, maxSizeForLargePagePool)) {
     logger->info("Done Initializing Buffer Manager.");
@@ -91,33 +90,5 @@ void BufferManager::removePageFromFrameIfNecessary(FileHandle& fileHandle, page_
         bufferPoolDefaultPages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx);
 }
 
-unique_ptr<nlohmann::json> BufferManager::debugInfo() {
-    return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
-        {
-            {"BufferPoolDefaultPages-numFrames", bufferPoolDefaultPages->numFrames},
-            {"BufferPoolDefaultPages-numCacheHits", bufferPoolDefaultPages->bmMetrics.numCacheHit},
-            {"BufferPoolDefaultPages-numCacheMisses",
-                bufferPoolDefaultPages->bmMetrics.numCacheMiss},
-            {"BufferPoolDefaultPages-numPins", bufferPoolDefaultPages->bmMetrics.numPins},
-            {"BufferPoolDefaultPages-numEvicts", bufferPoolDefaultPages->bmMetrics.numEvicts},
-            {"BufferPoolDefaultPages-numEvictFails",
-                bufferPoolDefaultPages->bmMetrics.numEvictFails},
-            {"BufferPoolDefaultPages-numRecentlyAccessedWalkover",
-                bufferPoolDefaultPages->bmMetrics.numRecentlyAccessedWalkover},
-            {"BufferPoolDefaultPages-numDirtyPageWriteIO",
-                bufferPoolDefaultPages->bmMetrics.numDirtyPageWriteIO},
-            {"BufferPoolLargePages-numFrames", bufferPoolLargePages->numFrames},
-            {"BufferPoolLargePages-numPins", bufferPoolLargePages->bmMetrics.numPins},
-            {"BufferPoolLargePages-numEvicts", bufferPoolLargePages->bmMetrics.numEvicts},
-            {"BufferPoolLargePages-numEvictFails", bufferPoolLargePages->bmMetrics.numEvictFails},
-            {"BufferPoolLargePages-numCacheHits", bufferPoolLargePages->bmMetrics.numCacheHit},
-            {"BufferPoolLargePages-numCacheMisses", bufferPoolLargePages->bmMetrics.numCacheMiss},
-            {"BufferPoolLargePages-numRecentlyAccessedWalkover",
-                bufferPoolLargePages->bmMetrics.numRecentlyAccessedWalkover},
-            {"BufferPoolLargePages-numDirtyPageWriteIO",
-                bufferPoolLargePages->bmMetrics.numDirtyPageWriteIO},
-        }}});
-}
-
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

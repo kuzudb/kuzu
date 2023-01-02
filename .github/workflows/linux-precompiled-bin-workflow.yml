@@ -1,0 +1,33 @@
+name: Build-Linux-Precompiled-Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      packageVersion:
+        description: "Version of output package"
+        required: true
+        default: "0.0.1"
+
+env:
+  PACKAGE_VERSION: ${{ github.event.inputs.packageVersion }}
+
+jobs:
+  build-precompiled-bin:
+    runs-on: self-hosted-linux-building
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: build-x86_64
+        run: /opt/python/cp310-cp310/bin/python pre_compile.py
+        working-directory: ./scripts/pre-compiled-bins/
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-${{ github.event.inputs.packageVersion }}-linux-x86_64
+          path: |
+            ./scripts/pre-compiled-bins/kuzu
+            ./scripts/pre-compiled-bins/include
+            ./scripts/pre-compiled-bins/libkuzu.so
+
+      - name: cleanup
+        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libkuzu.so

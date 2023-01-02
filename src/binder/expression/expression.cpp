@@ -1,6 +1,6 @@
-#include "include/expression.h"
+#include "binder/expression/expression.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace binder {
 
 unordered_set<string> Expression::getDependentVariableNames() {
@@ -95,12 +95,12 @@ string ExpressionUtil::toString(const expression_vector& expressions) {
     if (expressions.empty()) {
         return string{};
     }
-    auto result = expressions[0]->getUniqueName();
+    auto result = expressions[0]->getRawName();
     for (auto i = 1u; i < expressions.size(); ++i) {
-        result += "," + expressions[i]->getUniqueName();
+        result += "," + expressions[i]->getRawName();
     }
     return result;
 }
 
 } // namespace binder
-} // namespace graphflow
+} // namespace kuzu

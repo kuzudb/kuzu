@@ -1,14 +1,19 @@
-#include "include/scan_column.h"
+#include "processor/operator/scan_column/scan_column.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
-shared_ptr<ResultSet> BaseScanColumn::init(ExecutionContext* context) {
-    resultSet = PhysicalOperator::init(context);
-    inputNodeIDDataChunk = resultSet->dataChunks[inputNodeIDVectorPos.dataChunkPos];
-    inputNodeIDVector = inputNodeIDDataChunk->valueVectors[inputNodeIDVectorPos.valueVectorPos];
-    return resultSet;
+void BaseScanColumn::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos);
+}
+
+void ScanMultipleColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseScanColumn::initLocalStateInternal(resultSet, context);
+    for (auto& dataPos : outPropertyVectorsPos) {
+        auto vector = resultSet->getValueVector(dataPos);
+        outPropertyVectors.push_back(vector);
+    }
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

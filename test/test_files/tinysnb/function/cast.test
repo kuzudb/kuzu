@@ -1,0 +1,107 @@
+-NAME CastStructuredBoolToString
+-QUERY MATCH (p:person) RETURN string(p.isStudent)
+---- 8
+True
+True
+False
+False
+False
+True
+False
+False
+
+-NAME CastStructuredInt64ToString
+-QUERY MATCH (p:person) RETURN string(p.age)
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-NAME CastStructuredDoubleToString
+-QUERY MATCH (p:person) RETURN string(p.eyeSight)
+---- 8
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+
+-NAME CastStructuredDateToString
+-QUERY MATCH (p:person) RETURN string(p.birthdate)
+---- 8
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-NAME CastStructuredTimestampToString
+-QUERY MATCH (p:person) RETURN string(p.registerTime)
+---- 8
+2011-08-20 11:25:30
+2008-11-03 15:25:30.000526
+1911-08-20 02:32:21
+2031-11-30 12:25:30
+1976-12-23 11:21:42
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+2023-02-21 13:25:30
+
+-NAME CastStructuredIntervalToString
+-QUERY MATCH (p:person) RETURN string(p.lastJobDuration)
+---- 8
+3 years 2 days 13:02:00
+10 years 5 months 13:00:00.000024
+48:24:11
+10 years 5 months 13:00:00.000024
+48:24:11
+00:18:00.024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+
+-NAME CastStructuredStringToString
+-QUERY MATCH (p:person) RETURN string(p.fName)
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME CastStructuredListOfIntsToString
+-QUERY MATCH (p:person) RETURN string(p.workedHours)
+---- 8
+[10,5]
+[12,8]
+[4,5]
+[1,9]
+[2]
+[3,4,5,6,7]
+[1]
+[10,11,12,3,4,5,6,7]
+
+-NAME CastStructuredListOfListOfIntsToString
+-QUERY MATCH (p:person) RETURN string(p.courseScoresPerTerm)
+---- 8
+[[10,8],[6,7,8]]
+[[8,9],[9,10]]
+[[8,10]]
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[8]]
+[[10]]
+[[7],[10],[6,7]]

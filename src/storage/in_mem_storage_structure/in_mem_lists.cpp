@@ -1,6 +1,6 @@
-#include "include/in_mem_lists.h"
+#include "storage/in_mem_storage_structure/in_mem_lists.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
@@ -33,8 +33,8 @@ InMemLists::InMemLists(
         numChunks++;
     }
     listsMetadataBuilder->initChunkPageLists(numChunks);
-    inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement,
-        this->dataType.typeID != NODE_ID && this->dataType.typeID != UNSTRUCTURED);
+    inMemFile =
+        make_unique<InMemFile>(this->fName, numBytesForElement, this->dataType.typeID != NODE_ID);
 }
 
 void InMemLists::saveToFile() {
@@ -56,7 +56,7 @@ void InMemAdjLists::setElement(
         nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
-        ->write(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
+        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
             nodeIDCompressionScheme);
 }
 
@@ -67,8 +67,7 @@ void InMemAdjLists::saveToFile() {
 
 InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes)
     : InMemLists{move(fName), move(dataType), Types::getDataTypeSize(dataType), numNodes} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST ||
-           this->dataType.typeID == UNSTRUCTURED);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
 }
@@ -76,60 +75,6 @@ InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, 
 void InMemListsWithOverflow::saveToFile() {
     InMemLists::saveToFile();
     overflowInMemFile->flush();
-}
-
-void InMemUnstructuredLists::setUnstructuredElement(PageByteCursor& cursor, uint32_t propertyKey,
-    DataTypeID dataTypeID, const uint8_t* val, PageByteCursor* overflowCursor) {
-    PageByteCursor localCursor{cursor};
-    setComponentOfUnstrProperty(localCursor, StorageConfig::UNSTR_PROP_KEY_IDX_LEN,
-        reinterpret_cast<uint8_t*>(&propertyKey));
-    setComponentOfUnstrProperty(localCursor, StorageConfig::UNSTR_PROP_DATATYPE_LEN,
-        reinterpret_cast<uint8_t*>(&dataTypeID));
-    switch (dataTypeID) {
-    case INT64:
-    case DOUBLE:
-    case BOOL:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL: {
-        setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
-    } break;
-    case STRING: {
-        auto gfString = overflowInMemFile->copyString((const char*)val, *overflowCursor);
-        val = (uint8_t*)(&gfString);
-        setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
-    } break;
-    case LIST: {
-        auto gfList = overflowInMemFile->copyList(*(Literal*)val, *overflowCursor);
-        val = (uint8_t*)(&gfList);
-        setComponentOfUnstrProperty(localCursor, Types::getDataTypeSize(dataTypeID), val);
-    } break;
-    default:
-        throw CopyCSVException("Unsupported data type for unstructured list.");
-    }
-}
-
-void InMemUnstructuredLists::setComponentOfUnstrProperty(
-    PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
-    if (DEFAULT_PAGE_SIZE - localCursor.offsetInPage >= len) {
-        memcpy(inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage, val, len);
-        localCursor.offsetInPage += len;
-    } else {
-        auto diff = DEFAULT_PAGE_SIZE - localCursor.offsetInPage;
-        auto writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
-        memcpy(writeOffset, val, diff);
-        auto left = len - diff;
-        localCursor.pageIdx++;
-        localCursor.offsetInPage = 0;
-        writeOffset = inMemFile->getPage(localCursor.pageIdx)->data + localCursor.offsetInPage;
-        memcpy(writeOffset, val + diff, left);
-        localCursor.offsetInPage = left;
-    }
-}
-
-void InMemUnstructuredLists::saveToFile() {
-    listHeadersBuilder->saveToDisk();
-    InMemListsWithOverflow::saveToFile();
 }
 
 unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
@@ -146,12 +91,10 @@ unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
         return make_unique<InMemStringLists>(fName, numNodes);
     case LIST:
         return make_unique<InMemListLists>(fName, dataType, numNodes);
-    case UNSTRUCTURED:
-        return make_unique<InMemUnstructuredLists>(fName, numNodes);
     default:
         throw CopyCSVException("Invalid type for property list creation.");
     }
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

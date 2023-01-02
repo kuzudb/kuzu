@@ -1,11 +1,11 @@
-#include "src/common/include/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/data_chunk_state.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
-    auto state = make_shared<DataChunkState>(1);
-    state->selVector->selectedSize = 1;
+std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
+    auto state = std::make_shared<DataChunkState>(1);
+    state->initOriginalAndSelectedSize(1);
     state->currIdx = 0;
     return state;
 }
@@ -130,4 +130,4 @@ const sel_t SelectionVector::INCREMENTAL_SELECTED_POS[] = {0, 1, 2, 3, 4, 5, 6, 
     2040, 2041, 2042, 2043, 2044, 2045, 2046, 2047};
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

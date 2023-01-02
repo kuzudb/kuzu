@@ -1,13 +1,12 @@
-#include "include/types.h"
+#include "common/types/types.h"
 
 #include <stdexcept>
 
-#include "include/types_include.h"
-#include "include/value.h"
+#include "common/exception.h"
+#include "common/types/types_include.h"
+#include "common/types/value.h"
 
-#include "src/common/include/exception.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 DataType::DataType(const DataType& other) : typeID{other.typeID} {
@@ -88,7 +87,6 @@ string Types::dataTypeToString(const DataType& dataType) {
 }
 
 string Types::dataTypeToString(DataTypeID dataTypeID) {
-    assert(dataTypeID != LIST);
     switch (dataTypeID) {
     case ANY:
         return "ANY";
@@ -112,8 +110,6 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "INTERVAL";
     case STRING:
         return "STRING";
-    case UNSTRUCTURED:
-        return "UNSTRUCTURED";
     case LIST:
         return "LIST";
     default:
@@ -141,7 +137,7 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
     return result;
 }
 
-const uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
+uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case NODE_ID:
         return sizeof(nodeID_t);
@@ -158,11 +154,9 @@ const uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     case INTERVAL:
         return sizeof(interval_t);
     case STRING:
-        return sizeof(gf_string_t);
-    case UNSTRUCTURED:
-        return sizeof(Value);
+        return sizeof(ku_string_t);
     case LIST:
-        return sizeof(gf_list_t);
+        return sizeof(ku_list_t);
     default:
         throw Exception(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
@@ -173,5 +167,9 @@ RelDirection operator!(RelDirection& direction) {
     return (FWD == direction) ? BWD : FWD;
 }
 
+string getRelDirectionAsString(RelDirection direction) {
+    return (FWD == direction) ? "forward" : "backward";
+}
+
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

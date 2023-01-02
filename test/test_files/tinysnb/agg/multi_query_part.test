@@ -1,0 +1,40 @@
+-NAME SimpleAvgWithFilterMultiQueryTest
+-QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
+---- 1
+True
+
+-NAME SimpleCountMultiQueryTest2
+-QUERY MATCH (p:person) WITH p AS f RETURN COUNT(f);
+---- 1
+8
+
+-NAME SimpleCountMultiQueryTest3
+-QUERY MATCH (a:person) WITH COUNT(*) AS s MATCH (c:person) WHERE c.ID > s RETURN c.ID
+---- 2
+10
+9
+
+-NAME SimpleCountMultiQueryTest4
+-QUERY MATCH (a:person) WITH COUNT(*) AS s MATCH (b:person) WHERE b.ID < s RETURN COUNT(*)
+---- 1
+5
+
+-NAME GroupByMultiQueryTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) WITH a.gender AS k, SUM(b.age) AS s MATCH (d:person)-[:workAt]->(c:organisation) WHERE c.orgCode > s RETURN d.ID, c.orgCode, s
+-ENUMERATE
+---- 6
+3|934|210
+3|934|245
+5|824|210
+5|824|245
+7|824|210
+7|824|245
+
+-NAME GroupByMultiQueryTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, c.ID, s
+---- 5
+0|5|3
+2|5|3
+3|5|3
+7|8|2
+7|9|2

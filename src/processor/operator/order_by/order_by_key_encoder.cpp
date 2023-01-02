@@ -1,4 +1,4 @@
-#include "include/order_by_key_encoder.h"
+#include "processor/operator/order_by/order_by_key_encoder.h"
 
 #include <string.h>
 
@@ -6,26 +6,23 @@
 #include <cstdint>
 
 using namespace std;
-using namespace graphflow::common;
+using namespace kuzu::common;
 
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
     vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
-    uint32_t numTuplesPerBlockInFT)
+    uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
-      ftIdx{ftIdx}, numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
+      numBytesPerTuple{numBytesPerTuple}, ftIdx{ftIdx},
+      numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
     if (numTuplesPerBlockInFT > MAX_FT_BLOCK_OFFSET) {
         throw RuntimeException(
             "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
     }
     keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
-    numBytesPerTuple = 0;
-    for (auto& orderByVector : orderByVectors) {
-        numBytesPerTuple += getEncodingSize(orderByVector->dataType);
-    }
-    numBytesPerTuple += 8;
+    assert(this->numBytesPerTuple == getNumBytesPerTuple(orderByVectors));
     maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
@@ -39,8 +36,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
 }
 
 void OrderByKeyEncoder::encodeKeys() {
-    uint32_t numEntries =
-        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selVector->selectedSize;
+    uint32_t numEntries = orderByVectors[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -61,15 +57,21 @@ void OrderByKeyEncoder::encodeKeys() {
     }
 }
 
+uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const vector<shared_ptr<ValueVector>>& keyVectors) {
+    uint32_t result = 0u;
+    for (auto& vector : keyVectors) {
+        result += getEncodingSize(vector->dataType);
+    }
+    result += 8;
+    return result;
+}
+
 uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
     // Add one more byte for null flag.
     switch (dataType.typeID) {
-    case UNSTRUCTURED:
-        // 1 byte for null flag + 1 byte for unstr data
-        return 2;
     case STRING:
         // 1 byte for null flag + 1 byte to indicate long/short string + 12 bytes for string prefix
-        return 2 + gf_string_t::SHORT_STR_LENGTH;
+        return 2 + ku_string_t::SHORT_STR_LENGTH;
     default:
         return 1 + Types::getDataTypeSize(dataType);
     }
@@ -97,22 +99,22 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
 
 void OrderByKeyEncoder::encodeFlatVector(
     shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
-    if (vector->isNull(vector->state->getPositionOfCurrIdx())) {
+    auto pos = vector->state->selVector->selectedPositions[0];
+    if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
             *(tuplePtr + j) = UINT8_MAX;
         }
     } else {
         *tuplePtr = 0;
         encodeFunctions[keyColIdx](
-            vector->values + vector->state->getPositionOfCurrIdx() * vector->getNumBytesPerValue(),
-            tuplePtr + 1, swapBytes);
+            vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1, swapBytes);
     }
 }
 
 void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->selVector->isUnfiltered()) {
-        auto value = vector->values + encodedTuples * vector->getNumBytesPerValue();
+        auto value = vector->getData() + encodedTuples * vector->getNumBytesPerValue();
         if (vector->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
@@ -139,7 +141,7 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
                 encodeFunctions[keyColIdx](
-                    vector->values +
+                    vector->getData() +
                         vector->state->selVector->selectedPositions[i + encodedTuples] *
                             vector->getNumBytesPerValue(),
                     tuplePtr + 1, swapBytes);
@@ -154,8 +156,9 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
                     }
                 } else {
                     *tuplePtr = 0;
-                    encodeFunctions[keyColIdx](vector->values + pos * vector->getNumBytesPerValue(),
-                        tuplePtr + 1, swapBytes);
+                    encodeFunctions[keyColIdx](
+                        vector->getData() + pos * vector->getNumBytesPerValue(), tuplePtr + 1,
+                        swapBytes);
                 }
                 tuplePtr += numBytesPerTuple;
             }
@@ -211,7 +214,7 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
         return encodeTemplate<double>;
     }
     case STRING: {
-        return encodeTemplate<gf_string_t>;
+        return encodeTemplate<ku_string_t>;
     }
     case DATE: {
         return encodeTemplate<date_t>;
@@ -221,9 +224,6 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     }
     case INTERVAL: {
         return encodeTemplate<interval_t>;
-    }
-    case UNSTRUCTURED: {
-        return encodeTemplate<Value>;
     }
     default: {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
@@ -291,23 +291,16 @@ void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swa
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(gf_string_t data, uint8_t* resultPtr, bool swapBytes) {
-    // Only encode the prefix of gf_string.
+void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
+    // Only encode the prefix of ku_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
-        min((uint32_t)gf_string_t::SHORT_STR_LENGTH, data.len));
-    if (gf_string_t::isShortString(data.len)) {
-        memset(resultPtr + data.len, '\0', gf_string_t::SHORT_STR_LENGTH + 1 - data.len);
+        min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));
+    if (ku_string_t::isShortString(data.len)) {
+        memset(resultPtr + data.len, '\0', ku_string_t::SHORT_STR_LENGTH + 1 - data.len);
     } else {
         resultPtr[12] = UINT8_MAX;
     }
 }
 
-template<>
-void OrderByKeyEncoder::encodeData(Value data, uint8_t* resultPtr, bool swapBytes) {
-    // Encode all unstr data as 0, meaning that there is a tie for the entire column
-    uint8_t encodeVal = 0;
-    memcpy(resultPtr, &encodeVal, sizeof(encodeVal));
-}
-
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

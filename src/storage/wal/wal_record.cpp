@@ -1,6 +1,6 @@
-#include "src/storage/wal/include/wal_record.h"
+#include "storage/wal/wal_record.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
@@ -15,17 +15,9 @@ StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
 
 StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
     StorageStructureID retVal;
+    retVal.isOverflow = false;
     retVal.storageStructureType = NODE_INDEX;
     retVal.nodeIndexID = NodeIndexID(tableID);
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newUnstructuredNodePropertyListsID(
-    table_id_t tableID, ListFileType listFileType) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.storageStructureType = LISTS;
-    retVal.listFileID = ListFileID(listFileType, UnstructuredNodePropertyListsID(tableID));
     return retVal;
 }
 
@@ -165,4 +157,4 @@ void WALRecord::writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

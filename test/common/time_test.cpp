@@ -1,11 +1,10 @@
 #include <string>
 
+#include "common/exception.h"
+#include "common/types/types_include.h"
 #include "include/gtest/gtest.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/types/include/types_include.h"
-
-using namespace graphflow::common;
+using namespace kuzu::common;
 using namespace std;
 
 TEST(TimeTests, FromTime) {
@@ -14,6 +13,7 @@ TEST(TimeTests, FromTime) {
         Time::FromTime(25, 24, 32, 231321);
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 25:24:32[.231321].");
     } catch (exception& e) { FAIL(); }
 
     // Minute out of range
@@ -21,6 +21,7 @@ TEST(TimeTests, FromTime) {
         Time::FromTime(21, 60, 22, 212322);
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 21:60:22[.212322].");
     } catch (exception& e) { FAIL(); }
 
     // Second out of range
@@ -28,6 +29,7 @@ TEST(TimeTests, FromTime) {
         Time::FromTime(14, 22, 61);
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 14:22:61[.0].");
     } catch (exception& e) { FAIL(); }
 
     // Microsecond out of range
@@ -35,6 +37,7 @@ TEST(TimeTests, FromTime) {
         Time::FromTime(14, 22, 42, 1000001);
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Time field value out of range: 14:22:42[.1000001].");
     } catch (exception& e) { FAIL(); }
 
     EXPECT_EQ(80052000000, Time::FromTime(22, 14, 12).micros);
@@ -47,6 +50,8 @@ TEST(TimeTests, FromCString) {
         Time::FromCString("25:12:00", strlen("25:12:00"));
         FAIL();
     } catch (ConversionException& e) {
+        ASSERT_STREQ(e.what(), "Error occurred during parsing time. Given: \"25:12:00\". Expected "
+                               "format: (hh:mm:ss[.zzzzzz]).");
     } catch (exception& e) { FAIL(); }
     EXPECT_EQ(83531000000, Time::FromCString("23:12:11", strlen("23:12:11")).micros);
     EXPECT_EQ(46792122311, Time::FromCString("12:59:52.122311", strlen("12:59:52.122311")).micros);

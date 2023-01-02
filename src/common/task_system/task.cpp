@@ -1,6 +1,6 @@
-#include "src/common/include/task_system/task.h"
+#include "common/task_system/task.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
@@ -23,4 +23,4 @@ void Task::deRegisterThreadAndFinalizeTaskIfNecessary() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

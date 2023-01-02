@@ -1,6 +1,6 @@
-#include "src/storage/storage_structure/include/lists/list_sync_state.h"
+#include "storage/storage_structure/lists/list_sync_state.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 bool ListSyncState::hasMoreToRead() {
@@ -23,4 +23,4 @@ void ListSyncState::reset() {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

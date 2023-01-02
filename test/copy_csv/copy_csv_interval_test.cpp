@@ -1,24 +1,24 @@
 #include <string>
 
-#include "test/test_utility/include/test_helper.h"
+#include "test_helper/test_helper.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 class TinySnbCopyCSVIntervalTest : public InMemoryDBTest {
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbCopyCSVIntervalTest, NodePropertyColumnWithInterval) {
-    auto graph = database->getStorageManager();
-    auto& catalog = *database->getCatalog();
-    auto tableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
+    auto graph = getStorageManager(*database);
+    auto catalog = getCatalog(*database);
+    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),

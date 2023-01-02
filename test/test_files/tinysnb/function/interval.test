@@ -1,0 +1,415 @@
+-NAME IntervalFunctionOnCol
+-QUERY MATCH (o:organisation) RETURN interval(o.history) + interval('31 months 20 days 10 hours 100us')
+---- 3
+13 years 20 days 23:00:00.000124
+4 years 7 months 20 days 14:34:00.000122
+4 years 7 months 24 days 20:00:00.0001
+
+-NAME IntervalFunctionEqualityComparison
+-QUERY MATCH (a:person) WHERE a.lastJobDuration = interval('3 years 2 days 13 hours 2 minutes') RETURN COUNT(*)
+---- 1
+2
+
+-NAME StructuredIntervalAdd
+-QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('47 hours 30 minutes 30 seconds')
+---- 8
+10 years 5 months 60:30:30.000024
+10 years 5 months 60:30:30.000024
+10 years 5 months 60:30:30.000024
+3 years 2 days 60:32:30
+3 years 2 days 60:32:30
+47:48:30.024
+95:54:41
+95:54:41
+
+-NAME StructuredIntervalAddStructuredDate
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN interval('47 hours 60 minutes') + a.birthdate
+---- 6
+1940-06-24
+1950-07-25
+1980-10-28
+1980-10-28
+1980-10-28
+1990-11-29
+
+-NAME StructuredIntervalAddStructuredTimestamp
+-QUERY MATCH (a:person) RETURN interval('2 years 3 days 34 h 28 minutes 300 milliseconds 20 us') + a.registerTime
+---- 8
+1913-08-24 13:00:21.30002
+1974-08-04 23:50:30.978579
+1978-12-27 15:09:42.30002
+1978-12-27 21:49:42.30002
+2010-11-08 01:53:30.300546
+2013-08-24 21:53:30.30002
+2025-02-25 23:53:30.30002
+2033-12-04 22:53:30.30002
+
+-NAME StructuredIntervalSubtract
+-QUERY MATCH (a:person) RETURN a.lastJobDuration - interval('52 days 42 hours 31 seconds 22 milliseconds')
+---- 8
+-52 days -41:42:30.998
+-52 days 06:23:39.978
+-52 days 06:23:39.978
+10 years 5 months -52 days -29:00:31.021976
+10 years 5 months -52 days -29:00:31.021976
+10 years 5 months -52 days -29:00:31.021976
+3 years -50 days -28:58:31.022
+3 years -50 days -28:58:31.022
+
+-NAME StructuredIntervalMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') + interval('5 years 100 microseconds')
+---- 8
+15 years 5 months -188 days -31:55:19.999876
+15 years 5 months -188 days -31:55:19.999876
+15 years 5 months -188 days -31:55:19.999876
+5 years -188 days -44:37:19.9759
+5 years -188 days 03:28:51.0001
+5 years -188 days 03:28:51.0001
+8 years -186 days -31:53:19.9999
+8 years -186 days -31:53:19.9999
+
+-NAME StructuredIntervalConcatenateString
+-QUERY MATCH (o:organisation) RETURN concat(concat('The license is valid until ', string(o.licenseValidInterval)), ' test')
+---- 3
+The license is valid until 26 years 52 days 48:00:00 test
+The license is valid until 3 years 5 days test
+The license is valid until 82:00:00.1 test
+
+-NAME StructuredIntervalDivideInt
+-QUERY MATCH (p:person) RETURN p.lastJobDuration / 3
+---- 8
+00:06:00.008
+1 year 20:20:40
+1 year 20:20:40
+16:08:03.666666
+16:08:03.666666
+3 years 5 months 20 days 04:20:00.000008
+3 years 5 months 20 days 04:20:00.000008
+3 years 5 months 20 days 04:20:00.000008
+
+-NAME StructuredIntervalDivideTwoInts
+-QUERY MATCH (p:person) RETURN p.lastJobDuration / 3 / 6
+---- 8
+00:01:00.001333
+02:41:20.611111
+02:41:20.611111
+2 months 03:23:26.666666
+2 months 03:23:26.666666
+6 months 28 days 08:43:20.000001
+6 months 28 days 08:43:20.000001
+6 months 28 days 08:43:20.000001
+
+-NAME EdgeIntervalDivideInt
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN e1.validInterval / 5
+---- 14
+00:00:00.000096
+00:00:00.06
+00:04:36
+00:04:36
+00:05:36.006
+00:09:35.6
+00:09:35.6
+09:36:00.0104
+2 days
+2 years 1 month 02:36:00.000004
+2 years 1 month 02:36:00.000004
+4 years 6 days 09:36:00
+4 years 6 days 09:36:00
+8 days 06:00:00
+
+-NAME StructuredIntervalExtractYearFuncTest
+-QUERY MATCH (p:person) RETURN date_part("yeAr", p.lastJobDuration)
+---- 8
+3
+10
+0
+10
+0
+0
+10
+3
+
+-NAME StructuredIntervalExtractMonthFuncTest
+-QUERY MATCH (p:person) RETURN date_part("month", p.lastJobDuration)
+---- 8
+0
+5
+0
+5
+0
+0
+5
+0
+
+-NAME StructuredIntervalExtractDayFuncTest
+-QUERY MATCH (p:person) RETURN date_part("day", p.lastJobDuration)
+---- 8
+2
+0
+0
+0
+0
+0
+0
+2
+
+-NAME StructuredIntervalExtractDecadeFuncTest
+-QUERY MATCH (p:person) RETURN date_part("Decade", p.lastJobDuration)
+---- 8
+0
+1
+0
+1
+0
+0
+1
+0
+
+-NAME StructuredIntervalExtractCenturyFuncTest
+-QUERY MATCH (p:person) RETURN date_part("century", p.lastJobDuration)
+---- 8
+0
+0
+0
+0
+0
+0
+0
+0
+
+-NAME StructuredIntervalExtractMillenniumFuncTest
+-QUERY MATCH (p:person) RETURN date_part("MILLENNIUM", p.lastJobDuration)
+---- 8
+0
+0
+0
+0
+0
+0
+0
+0
+
+-NAME StructuredIntervalExtractQuarterFuncTest
+-QUERY MATCH (p:person) RETURN date_part("QUARTER", p.lastJobDuration)
+---- 8
+1
+2
+1
+2
+1
+1
+2
+1
+
+-NAME StructuredIntervalExtractMicrosecondFuncTest
+-QUERY MATCH (p:person) RETURN date_part("MICROSECOND", p.lastJobDuration)
+---- 8
+0
+24
+11000000
+24
+11000000
+24000
+24
+0
+
+-NAME StructuredIntervalExtractMillisecondFuncTest
+-QUERY MATCH (p:person) RETURN date_part("MILLISECOND", p.lastJobDuration)
+---- 8
+0
+0
+11000
+0
+11000
+24
+0
+0
+
+-NAME StructuredIntervalExtractSecondFuncTest
+-QUERY MATCH (p:person) RETURN date_part("second", p.lastJobDuration)
+---- 8
+0
+0
+11
+0
+11
+0
+0
+0
+
+
+-NAME StructuredIntervalExtractMinuteFuncTest
+-QUERY MATCH (p:person) RETURN date_part("minutes", p.lastJobDuration)
+---- 8
+2
+0
+24
+0
+24
+18
+0
+2
+
+-NAME StructuredIntervalExtractHourFuncTest
+-QUERY MATCH (p:person) RETURN date_part("hours", p.lastJobDuration)
+---- 8
+13
+13
+48
+13
+48
+0
+13
+13
+
+-NAME StructuredInt64ToYearFuncTest
+-QUERY MATCH (p:person) RETURN to_years(p.age)
+---- 8
+35 years
+30 years
+45 years
+20 years
+20 years
+25 years
+40 years
+83 years
+
+-NAME StructuredInt64ToMonthsFuncTest
+-QUERY MATCH (p:person) RETURN to_months(p.age)
+---- 8
+2 years 11 months
+2 years 6 months
+3 years 9 months
+1 year 8 months
+1 year 8 months
+2 years 1 month
+3 years 4 months
+6 years 11 months
+
+-NAME StructuredInt64ToDaysFuncTest
+-QUERY MATCH (p:person) RETURN to_days(p.age)
+---- 8
+35 days
+30 days
+45 days
+20 days
+20 days
+25 days
+40 days
+83 days
+
+-NAME StructuredInt64ToHoursFuncTest
+-QUERY MATCH (p:person) RETURN to_hours(p.age)
+---- 8
+35:00:00
+30:00:00
+45:00:00
+20:00:00
+20:00:00
+25:00:00
+40:00:00
+83:00:00
+
+-NAME StructuredInt64ToMinutesFuncTest
+-QUERY MATCH (p:person) RETURN to_minutes(p.age)
+---- 8
+00:35:00
+00:30:00
+00:45:00
+00:20:00
+00:20:00
+00:25:00
+00:40:00
+01:23:00
+
+-NAME StructuredInt64ToSecondsFuncTest
+-QUERY MATCH (p:person) RETURN to_seconds(p.age)
+---- 8
+00:00:35
+00:00:30
+00:00:45
+00:00:20
+00:00:20
+00:00:25
+00:00:40
+00:01:23
+
+-NAME StructuredInt64ToMillisecondsFuncTest
+-QUERY MATCH (p:person) RETURN to_milliseconds(p.age)
+---- 8
+00:00:00.035
+00:00:00.03
+00:00:00.045
+00:00:00.02
+00:00:00.02
+00:00:00.025
+00:00:00.04
+00:00:00.083
+
+-NAME StructuredInt64ToMicrosecondsFuncTest
+-QUERY MATCH (p:person) RETURN to_microseconds(p.age)
+---- 8
+00:00:00.000035
+00:00:00.00003
+00:00:00.000045
+00:00:00.00002
+00:00:00.00002
+00:00:00.000025
+00:00:00.00004
+00:00:00.000083
+
+-NAME StructuredIntervalComparisonAcrossNodesNonEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <> b.lastJobDuration RETURN COUNT(*)
+---- 1
+12
+
+-NAME StructuredIntervalComparisonAcrossNodesLessThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration < b.lastJobDuration RETURN COUNT(*)
+---- 1
+6
+
+-NAME StructuredIntervalComparisonAcrossNodesLessThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <= b.lastJobDuration RETURN COUNT(*)
+---- 1
+8
+
+-NAME StructuredIntervalComparisonAcrossNodesGreaterThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > b.lastJobDuration RETURN COUNT(*)
+---- 1
+6
+
+-NAME IntervalGreaterThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE b.lastJobDuration > interval('2 years 18 months 3 days') RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-NAME IntervalLessThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval < interval('3 years 5 months') RETURN COUNT(*)
+-ENUMERATE
+---- 1
+10
+
+-NAME StructuredIntervalComparisonAcrossNodesEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration = b.lastJobDuration RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
+
+-NAME StructuredIntervalComparisonAcrossNodesGreaterThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration >= b.lastJobDuration RETURN COUNT(*)
+-ENUMERATE
+---- 1
+8
+
+-NAME StructuredIntervalComparisonAcrossEdges
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.validInterval = e2.validInterval AND id(a) <> id(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
+
+-NAME StructuredIntervalComparisonAcrossEdgeAndNode
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > e1.validInterval  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+9

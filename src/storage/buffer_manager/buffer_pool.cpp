@@ -1,14 +1,12 @@
-
+#include "common/configs.h"
+#include "common/exception.h"
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
-#include "src/common/include/configs.h"
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
-#include "src/storage/buffer_manager/include/buffer_manager.h"
+using namespace kuzu::common;
 
-using namespace graphflow::common;
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 Frame::Frame(uint64_t pageSize) : frameLock{ATOMIC_FLAG_INIT} {
@@ -42,7 +40,7 @@ bool Frame::acquireFrameLock(bool block) {
 }
 
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
+    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
     for (auto i = 0u; i < numFrames; ++i) {
@@ -56,7 +54,7 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
 
 void BufferPool::resize(uint64_t newSize) {
     if ((numFrames * pageSize) > newSize) {
-        throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported!");
+        throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported.");
     }
     auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
     assert(newNumFrames < UINT32_MAX);
@@ -284,4 +282,4 @@ void BufferPool::unpinWithoutAcquiringPageLock(FileHandle& fileHandle, page_idx_
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

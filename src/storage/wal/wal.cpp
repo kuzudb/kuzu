@@ -1,15 +1,14 @@
-#include "src/storage/wal/include/wal.h"
+#include "storage/wal/wal.h"
 
+#include "common/utils.h"
 #include "spdlog/spdlog.h"
+#include "storage/storage_utils.h"
 
-#include "src/common/include/utils.h"
-#include "src/storage/include/storage_utils.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 WAL::WAL(const string& directory, BufferManager& bufferManager)
-    : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, directory{directory},
+    : logger{LoggerUtils::getOrCreateLogger("wal")}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = WAL::createWALFileHandle(directory);
     initCurrentPage();
@@ -96,7 +95,7 @@ void WAL::clearWAL() {
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
     StorageUtils::removeAllWALFiles(directory);
-    updatedUnstructuredPropertyLists.clear();
+    updatedNodeTables.clear();
     updatedRelTables.clear();
 }
 
@@ -184,4 +183,4 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

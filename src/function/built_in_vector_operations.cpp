@@ -1,15 +1,15 @@
-#include "include/built_in_vector_operations.h"
+#include "function/built_in_vector_operations.h"
 
-#include "arithmetic/include/vector_arithmetic_operations.h"
-#include "cast/include/vector_cast_operations.h"
-#include "comparison/include/vector_comparison_operations.h"
-#include "date/include/vector_date_operations.h"
-#include "interval/include/vector_interval_operations.h"
-#include "list/include/vector_list_operations.h"
-#include "string/include/vector_string_operations.h"
-#include "timestamp/include/vector_timestamp_operations.h"
+#include "function/arithmetic/vector_arithmetic_operations.h"
+#include "function/cast/vector_cast_operations.h"
+#include "function/comparison/vector_comparison_operations.h"
+#include "function/date/vector_date_operations.h"
+#include "function/interval/vector_interval_operations.h"
+#include "function/list/vector_list_operations.h"
+#include "function/string/vector_string_operations.h"
+#include "function/timestamp/vector_timestamp_operations.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace function {
 
 void BuiltInVectorOperations::registerVectorOperations() {
@@ -109,12 +109,9 @@ uint32_t BuiltInVectorOperations::matchParameters(
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
-    auto containUnstructuredTypes = any_of(inputTypes.begin(), inputTypes.end(),
-        [](const DataType& type) { return type.typeID == UNSTRUCTURED; });
     auto cost = 0u;
     for (auto i = 0u; i < inputTypes.size(); ++i) {
-        auto castCost = castRules(
-            inputTypes[i].typeID, targetTypeIDs[i], containUnstructuredTypes, !isOverload);
+        auto castCost = castRules(inputTypes[i].typeID, targetTypeIDs[i]);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
@@ -125,12 +122,9 @@ uint32_t BuiltInVectorOperations::matchParameters(
 
 uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     const vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
-    auto containUnstructuredTypes = any_of(inputTypes.begin(), inputTypes.end(),
-        [](const DataType& type) { return type.typeID == UNSTRUCTURED; });
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
-        auto castCost =
-            castRules(inputType.typeID, targetTypeID, containUnstructuredTypes, !isOverload);
+        auto castCost = castRules(inputType.typeID, targetTypeID);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
@@ -139,8 +133,7 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     return cost;
 }
 
-uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID,
-    bool allowCastToUnstructured, bool allowCastToStructured) {
+uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID) {
     if (inputTypeID == ANY) {
         // ANY type can be any type
         return 0;
@@ -148,22 +141,6 @@ uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID t
     if (targetTypeID == ANY) {
         // Any inputTypeID can match to type ANY
         return 0;
-    }
-    if (inputTypeID != UNSTRUCTURED && targetTypeID == UNSTRUCTURED) {
-        if (allowCastToUnstructured) {
-            // A structured input type can be implicitly cast to UNSTRUCTURED
-            return 1;
-        } else {
-            return UINT32_MAX;
-        }
-    }
-    if (inputTypeID == UNSTRUCTURED && targetTypeID != UNSTRUCTURED) {
-        if (allowCastToStructured) {
-            // UNSTRUCTURED input type can be implicitly cast to a structured type
-            return 1;
-        } else {
-            return UINT32_MAX;
-        }
     }
     if (inputTypeID != targetTypeID) {
         // Unable to cast
@@ -205,49 +182,55 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({MODULO_FUNC_NAME, ModuloVectorOperation::getDefinitions()});
     vectorOperations.insert({POWER_FUNC_NAME, PowerVectorOperation::getDefinitions()});
 
-    vectorOperations.insert({NEGATE_FUNC_NAME, NegateVectorOperation::getDefinitions()});
     vectorOperations.insert({ABS_FUNC_NAME, AbsVectorOperation::getDefinitions()});
-    vectorOperations.insert({FLOOR_FUNC_NAME, FloorVectorOperation::getDefinitions()});
+    vectorOperations.insert({ACOS_FUNC_NAME, AcosVectorOperation::getDefinitions()});
+    vectorOperations.insert({ASIN_FUNC_NAME, AsinVectorOperation::getDefinitions()});
+    vectorOperations.insert({ATAN_FUNC_NAME, AtanVectorOperation::getDefinitions()});
+    vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_AND_FUNC_NAME, BitwiseAndVectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_OR_FUNC_NAME, BitwiseOrVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {BITSHIFT_LEFT_FUNC_NAME, BitShiftLeftVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {BITSHIFT_RIGHT_FUNC_NAME, BitShiftRightVectorOperation::getDefinitions()});
+    vectorOperations.insert({CBRT_FUNC_NAME, CbrtVectorOperation::getDefinitions()});
     vectorOperations.insert({CEIL_FUNC_NAME, CeilVectorOperation::getDefinitions()});
     vectorOperations.insert({CEILING_FUNC_NAME, CeilVectorOperation::getDefinitions()});
-
-    vectorOperations.insert({SIN_FUNC_NAME, SinVectorOperation::getDefinitions()});
     vectorOperations.insert({COS_FUNC_NAME, CosVectorOperation::getDefinitions()});
-    vectorOperations.insert({TAN_FUNC_NAME, TanVectorOperation::getDefinitions()});
     vectorOperations.insert({COT_FUNC_NAME, CotVectorOperation::getDefinitions()});
-    vectorOperations.insert({ASIN_FUNC_NAME, AsinVectorOperation::getDefinitions()});
-    vectorOperations.insert({ACOS_FUNC_NAME, AcosVectorOperation::getDefinitions()});
-    vectorOperations.insert({ATAN_FUNC_NAME, AtanVectorOperation::getDefinitions()});
-
+    vectorOperations.insert({DEGREES_FUNC_NAME, DegreesVectorOperation::getDefinitions()});
+    vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
     vectorOperations.insert({FACTORIAL_FUNC_NAME, FactorialVectorOperation::getDefinitions()});
-    vectorOperations.insert({SQRT_FUNC_NAME, SqrtVectorOperation::getDefinitions()});
-    vectorOperations.insert({CBRT_FUNC_NAME, CbrtVectorOperation::getDefinitions()});
+    vectorOperations.insert({FLOOR_FUNC_NAME, FloorVectorOperation::getDefinitions()});
     vectorOperations.insert({GAMMA_FUNC_NAME, GammaVectorOperation::getDefinitions()});
     vectorOperations.insert({LGAMMA_FUNC_NAME, LgammaVectorOperation::getDefinitions()});
     vectorOperations.insert({LN_FUNC_NAME, LnVectorOperation::getDefinitions()});
     vectorOperations.insert({LOG_FUNC_NAME, LogVectorOperation::getDefinitions()});
     vectorOperations.insert({LOG2_FUNC_NAME, Log2VectorOperation::getDefinitions()});
-    vectorOperations.insert({DEGREES_FUNC_NAME, DegreesVectorOperation::getDefinitions()});
-    vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
-    vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
-    vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
-    vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
-    vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
-    vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOG10_FUNC_NAME, LogVectorOperation::getDefinitions()});
+    vectorOperations.insert({NEGATE_FUNC_NAME, NegateVectorOperation::getDefinitions()});
     vectorOperations.insert({PI_FUNC_NAME, PiVectorOperation::getDefinitions()});
+    vectorOperations.insert({POW_FUNC_NAME, PowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
+    vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
+    vectorOperations.insert({SIN_FUNC_NAME, SinVectorOperation::getDefinitions()});
+    vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
+    vectorOperations.insert({SQRT_FUNC_NAME, SqrtVectorOperation::getDefinitions()});
+    vectorOperations.insert({TAN_FUNC_NAME, TanVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerDateOperations() {
-    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
-    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
-    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
+    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
     vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
+    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerTimestampOperations() {
@@ -270,28 +253,30 @@ void BuiltInVectorOperations::registerIntervalOperations() {
 }
 
 void BuiltInVectorOperations::registerStringOperations() {
-    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
-    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
-    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
-    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
-    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-    vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
-    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
-    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
-    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
-    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
-    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
-    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({LCASE_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
+    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
     vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
+    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
+    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
+    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
@@ -343,11 +328,12 @@ void BuiltInVectorOperations::registerListOperations() {
 
 void BuiltInVectorOperations::registerInternalIDOperation() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
-    auto definition = make_unique<VectorOperationDefinition>(
-        ID_FUNC_NAME, vector<DataTypeID>{NODE}, NODE_ID, nullptr);
-    definitions.push_back(move(definition));
+    definitions.push_back(make_unique<VectorOperationDefinition>(
+        ID_FUNC_NAME, vector<DataTypeID>{NODE}, NODE_ID, nullptr));
+    definitions.push_back(make_unique<VectorOperationDefinition>(
+        ID_FUNC_NAME, vector<DataTypeID>{REL}, INT64, nullptr));
     vectorOperations.insert({ID_FUNC_NAME, move(definitions)});
 }
 
 } // namespace function
-} // namespace graphflow
+} // namespace kuzu

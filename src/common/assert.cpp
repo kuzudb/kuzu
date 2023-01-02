@@ -1,12 +1,12 @@
-#include "src/common/include/assert.h"
+#include "common/assert.h"
 
-#include "src/common/include/exception.h"
-#include "src/common/include/utils.h"
+#include "common/exception.h"
+#include "common/utils.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
-void gfAssertInternal(bool condition, const char* condition_name, const char* file, int linenr) {
+void kuAssertInternal(bool condition, const char* condition_name, const char* file, int linenr) {
     if (condition) {
         return;
     }
@@ -15,4 +15,4 @@ void gfAssertInternal(bool condition, const char* condition_name, const char* fi
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

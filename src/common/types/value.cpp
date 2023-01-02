@@ -1,10 +1,10 @@
-#include "include/value.h"
+#include "common/types/value.h"
 
 #include <cassert>
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 Value& Value::operator=(const Value& other) {
@@ -38,4 +38,4 @@ Value& Value::operator=(const Value& other) {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

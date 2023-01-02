@@ -1,16 +1,15 @@
-#include "src/common/include/task_system/task_scheduler.h"
+#include "common/task_system/task_scheduler.h"
 
+#include "common/configs.h"
 #include "spdlog/spdlog.h"
 
-#include "src/common/include/configs.h"
+using namespace kuzu::common;
 
-using namespace graphflow::common;
-
-namespace graphflow {
+namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : logger{LoggerUtils::getOrCreateSpdLogger("taskscheduler")}, nextScheduledTaskID{0} {
+    : logger{LoggerUtils::getOrCreateLogger("processor")}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }
@@ -30,35 +29,38 @@ shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const shared_ptr<Task>& ta
     return scheduledTask;
 }
 
+void TaskScheduler::errorIfThereIsAnException() {
+    lock_t lck{mtx};
+    errorIfThereIsAnExceptionNoLock();
+    lck.unlock();
+}
+
+void TaskScheduler::errorIfThereIsAnExceptionNoLock() {
+    for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
+        auto task = (*it)->task;
+        if (task->hasException()) {
+            taskQueue.erase(it);
+            std::rethrow_exception(task->getExceptionPtr());
+        }
+        // TODO(Semih): We can optimize to stop after finding a registrable task. This is
+        // because tasks after the first registrable task in the queue cannot have any thread
+        // yet registered to them, so they cannot have errored.
+    }
+}
+
 void TaskScheduler::waitAllTasksToCompleteOrError() {
-    logger->debug("Thread {} called waitAllTasksToCompleteOrError. Beginning to wait.",
-        ThreadUtils::getThreadIDString());
     while (true) {
         lock_t lck{mtx};
         if (taskQueue.empty()) {
-            logger->debug("Thread {} successfully waited all tasks to be complete. Returning from "
-                          "waitAllTasksToCompleteOrError.",
-                ThreadUtils::getThreadIDString());
             return;
         }
-        for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
-            auto task = (*it)->task;
-            if (task->hasException()) {
-                taskQueue.erase(it);
-                std::rethrow_exception(task->getExceptionPtr());
-            }
-            // TODO(Semih): We can optimize to stop after finding a registrable task. This is
-            // because tasks after the first registrable task in the queue cannot have any thread
-            // yet registered to them, so they cannot have errored.
-        }
+        errorIfThereIsAnExceptionNoLock();
         lck.unlock();
         this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
-    logger->debug("Thread {} called scheduleTaskAndWaitOrError. Scheduling task.",
-        ThreadUtils::getThreadIDString());
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency);
     }
@@ -67,13 +69,16 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
         this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
     if (task->hasException()) {
-        logger->debug("Thread {} found a task with exception. Will call removeErroringTask.",
-            ThreadUtils::getThreadIDString());
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
-    logger->debug("Thread {} exiting scheduleTaskAndWaitOrError (task was successfully complete)",
-        ThreadUtils::getThreadIDString());
+}
+
+void TaskScheduler::waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore) {
+    while (getNumTasks() > minimumNumTasksToScheduleMore) {
+        errorIfThereIsAnException();
+        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+    }
 }
 
 shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
@@ -92,15 +97,11 @@ shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
             // queue. For (ii) and (iii) we keep the task in queue. Recall erroring tasks need to be
             // manually removed.
             if (task->isCompletedSuccessfully()) { // option (i)
-                logger->debug("Thread {} is removing completed schedule task {} from queue.",
-                    ThreadUtils::getThreadIDString(), (*it)->ID);
                 it = taskQueue.erase(it);
             } else { // option (ii) or (iii): keep the task in the queue.
                 ++it;
             }
         } else {
-            logger->debug("Registered thread {} to schedule task {}.",
-                ThreadUtils::getThreadIDString(), (*it)->ID);
             return *it;
         }
     }
@@ -109,19 +110,12 @@ shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
 
 void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
     lock_t lck{mtx};
-    logger->debug("RemovErroringTask is called.Thread {}", ThreadUtils::getThreadIDString());
     for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
         if (scheduledTaskID == (*it)->ID) {
-            logger->debug(
-                "Inside removeErroringTask.Thread {} is removing an erroring task {} from queue.",
-                ThreadUtils::getThreadIDString(), (*it)->ID);
             taskQueue.erase(it);
             return;
         }
     }
-    logger->debug(
-        "Inside removeErroringTask. Thread {} could not find the task to remove from queue.",
-        ThreadUtils::getThreadIDString());
 }
 
 void TaskScheduler::runWorkerThread() {
@@ -137,11 +131,7 @@ void TaskScheduler::runWorkerThread() {
         try {
             scheduledTask->task->run();
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
-            logger->debug(
-                "Thread {} completed task successfully.", ThreadUtils::getThreadIDString());
         } catch (exception& e) {
-            logger->info("Thread {} caught an exception {}. Setting the exception of the task.",
-                e.what(), ThreadUtils::getThreadIDString());
             scheduledTask->task->setException(current_exception());
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
             continue;
@@ -150,4 +140,4 @@ void TaskScheduler::runWorkerThread() {
 }
 
 } // namespace common
-} // namespace graphflow
+} // namespace kuzu

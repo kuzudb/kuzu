@@ -1,18 +1,21 @@
-#include "src/storage/store/include/nodes_statistics_and_deleted_ids.h"
+#include "storage/store/nodes_statistics_and_deleted_ids.h"
 
+#include "common/configs.h"
 #include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
 
 using namespace std;
 
-namespace graphflow {
+namespace kuzu {
 namespace storage {
 
 NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
     node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets)
     : tableID{tableID} {
-    setMaxNodeOffset(maxNodeOffset);
+    auto numTuples = geNumTuplesFromMaxNodeOffset(maxNodeOffset);
+    TableStatistics::setNumTuples(numTuples);
+    if (numTuples > 0) {
+        hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
+    }
     for (node_offset_t deletedNodeOffset : deletedNodeOffsets) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);
@@ -27,7 +30,7 @@ NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
 
 node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerMorsel.empty()) {
-        setMaxNodeOffset(getNumTuples() == UINT64_MAX ? 0 : getMaxNodeOffset() + 1);
+        setNumTuples(getNumTuples() + 1);
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find
@@ -38,8 +41,8 @@ node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     node_offset_t retVal = *nodeOffsetIter;
     iter->second.erase(nodeOffsetIter);
     if (iter->second.empty()) {
-        deletedNodeOffsetsPerMorsel.erase(iter);
         hasDeletedNodesPerMorsel[iter->first] = false;
+        deletedNodeOffsetsPerMorsel.erase(iter);
     }
     return retVal;
 }
@@ -70,11 +73,12 @@ void NodeStatisticsAndDeletedIDs::deleteNode(node_offset_t nodeOffset) {
     hasDeletedNodesPerMorsel[morselIdxAndOffset.first] = true;
 }
 
+// Note: this function will always be called right after scanNodeID, so we have the guarantee
+// that the nodeOffsetVector is always unselected.
 void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     const shared_ptr<ValueVector>& nodeOffsetVector) {
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
         nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
-
     if (hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
         auto deletedNodeOffsets = deletedNodeOffsetsPerMorsel[morselIdxAndOffset.first];
         uint64_t morselBeginOffset = morselIdxAndOffset.first * DEFAULT_VECTOR_CAPACITY;
@@ -101,10 +105,10 @@ void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     }
 }
 
-void NodeStatisticsAndDeletedIDs::setMaxNodeOffset(node_offset_t maxNodeOffset) {
-    setNumTuples(maxNodeOffset == UINT64_MAX ? UINT64_MAX : maxNodeOffset + 1);
-    if (maxNodeOffset != UINT64_MAX) {
-        hasDeletedNodesPerMorsel.resize((maxNodeOffset / DEFAULT_VECTOR_CAPACITY) + 1, false);
+void NodeStatisticsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
+    TableStatistics::setNumTuples(numTuples);
+    if (numTuples > 0) {
+        hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
 }
 
@@ -131,7 +135,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) 
         }
     }
     for (AdjColumn* adjColumn : adjListsAndColumns.second) {
-        if (!adjColumn->isNull(nodeOffset)) {
+        if (!adjColumn->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table %d nodeOffset "
                 "%d  has a 1-1 edge for edge file: %s.",
@@ -154,27 +158,27 @@ NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
-        (*tableStatisticPerTableForReadOnlyTrx)[nodeStatistics.first] =
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[nodeStatistics.first] =
             make_unique<NodeStatisticsAndDeletedIDs>(
                 *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
-        (*tableStatisticPerTableForWriteTrx)[nodeStatistics.first] =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[nodeStatistics.first] =
             make_unique<NodeStatisticsAndDeletedIDs>(
                 *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
     }
 }
 
 void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
-    for (auto tableID = 0u; tableID < tableStatisticPerTableForReadOnlyTrx->size(); ++tableID) {
-        getNodeStatisticsAndDeletedIDs(tableID)->setAdjListsAndColumns(
-            relsStore->getAdjListsAndColumns(tableID));
+    for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
+        getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)
+            ->setAdjListsAndColumns(relsStore->getAdjListsAndColumns(tableIDStatistics.first));
     }
 }
 
-vector<node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
-    vector<node_offset_t> retVal;
-    for (table_id_t tableID = 0u; tableID < tableStatisticPerTableForReadOnlyTrx->size();
-         ++tableID) {
-        retVal.push_back(getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset());
+map<table_id_t, node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
+    map<table_id_t, node_offset_t> retVal;
+    for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
+        retVal[tableIDStatistics.first] =
+            getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)->getMaxNodeOffset();
     }
     return retVal;
 }
@@ -182,24 +186,26 @@ vector<node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() c
 void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     Transaction* transaction, const shared_ptr<ValueVector>& nodeOffsetVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
-    // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which is
-    // during checkpointing, this function, which is called during scans, cannot be called. 2) In a
-    // read-only transaction, the same morsel cannot be scanned concurrently. 3) A write transaction
-    // cannot have two concurrent pipelines where one is writing and the other is reading
-    // nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a query where
-    // scans/reads happen in a write transaction cannot run concurrently with the pipeline that
-    // performs an add/delete node.
+    // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
+    // is during checkpointing, this function, which is called during scans, cannot be called.
+    // 2) In a read-only transaction, the same morsel cannot be scanned concurrently. 3) A
+    // write transaction cannot have two concurrent pipelines where one is writing and the
+    // other is reading nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a
+    // query where scans/reads happen in a write transaction cannot run concurrently with the
+    // pipeline that performs an add/delete node.
     lock_t lck{mtx};
-    (transaction->isReadOnly() || !tableStatisticPerTableForWriteTrx) ?
+    (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
         getNodeStatisticsAndDeletedIDs(tableID)->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
-        ((NodeStatisticsAndDeletedIDs*)(*tableStatisticPerTableForWriteTrx)[tableID].get())
+        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                ->tableStatisticPerTable[tableID]
+                .get())
             ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
 }
 
 void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(NodeTableSchema* tableSchema) {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
-    (*tableStatisticPerTableForWriteTrx)[tableSchema->tableID] =
+    tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         make_unique<NodeStatisticsAndDeletedIDs>(
             tableSchema->tableID, UINT64_MAX /* maxNodeOffset */);
 }
@@ -220,4 +226,4 @@ void NodesStatisticsAndDeletedIDs::serializeTableStatistics(
 }
 
 } // namespace storage
-} // namespace graphflow
+} // namespace kuzu

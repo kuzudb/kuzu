@@ -1,11 +1,12 @@
-from tools.python_api import _graphflowdb as gdb
+import sys
+sys.path.append('../build/')
+import kuzu
 
-
-databaseDir = "path_to_serialized_database"
-db = gdb.database(databaseDir)
-conn = gdb.connection(db)
+databaseDir = "path to database file"
+db = kuzu.Database(databaseDir)
+conn = kuzu.Connection(db)
 query = "MATCH (a:person) RETURN *;"
-result = conn.query(query)
-while result.hasNext():
-    print(result.getNext())
+result = conn.execute(query)
+while result.has_next():
+    print(result.get_next())
 result.close()

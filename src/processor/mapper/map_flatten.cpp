@@ -1,20 +1,19 @@
-#include "include/plan_mapper.h"
+#include "planner/logical_plan/logical_operator/logical_flatten.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/flatten.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
-#include "src/processor/operator/include/flatten.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto flatten = (LogicalFlatten*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
-    auto dataChunkPos =
-        mapperContext.getDataPos(flatten->getExpression()->getUniqueName()).dataChunkPos;
+    auto inSchema = flatten->getChild(0)->getSchema();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto dataChunkPos = inSchema->getExpressionPos(*flatten->getExpression()).first;
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), getOperatorID(), flatten->getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

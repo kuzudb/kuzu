@@ -1,8 +1,8 @@
-#include "include/catalog_structs.h"
+#include "catalog/catalog_structs.h"
 
-#include "src/common/include/exception.h"
+#include "common/exception.h"
 
-namespace graphflow {
+namespace kuzu {
 namespace catalog {
 
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString) {
@@ -15,32 +15,65 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     } else if ("MANY_MANY" == relMultiplicityString) {
         return MANY_MANY;
     }
-    throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
+    throw CatalogException("Invalid relMultiplicity string '" + relMultiplicityString + "'.");
 }
 
-void NodeTableSchema::addUnstructuredProperties(vector<string>& unstructuredPropertyNames) {
-    for (auto& unstrPropertyName : unstructuredPropertyNames) {
-        auto unstrPropertyId = unstructuredProperties.size();
-        unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
-        Property property = Property::constructUnstructuredNodeProperty(
-            unstrPropertyName, unstrPropertyId, tableID);
-        unstructuredProperties.emplace_back(property);
+string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
+    switch (relMultiplicity) {
+    case MANY_MANY: {
+        return "MANY_MANY";
     }
-}
-
-vector<Property> NodeTableSchema::getAllNodeProperties() const {
-    auto allProperties = structuredProperties;
-    allProperties.insert(
-        allProperties.end(), unstructuredProperties.begin(), unstructuredProperties.end());
-    return allProperties;
+    case MANY_ONE: {
+        return "MANY_ONE";
+    }
+    case ONE_ONE: {
+        return "ONE_ONE";
+    }
+    case ONE_MANY: {
+        return "ONE_MANY";
+    }
+    default:
+        throw CatalogException("Cannot convert rel multiplicity to string.");
+    }
 }
 
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
     unordered_set<table_id_t> allNodeTableIDs;
-    allNodeTableIDs.insert(srcDstTableIDs.srcTableIDs.begin(), srcDstTableIDs.srcTableIDs.end());
-    allNodeTableIDs.insert(srcDstTableIDs.dstTableIDs.begin(), srcDstTableIDs.dstTableIDs.end());
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
+        allNodeTableIDs.insert(srcTableID);
+        allNodeTableIDs.insert(dstTableID);
+    }
     return allNodeTableIDs;
 }
 
+unordered_set<table_id_t> RelTableSchema::getUniqueSrcTableIDs() const {
+    unordered_set<table_id_t> srcTableIDs;
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
+        srcTableIDs.insert(srcTableID);
+    }
+    return srcTableIDs;
+}
+
+unordered_set<table_id_t> RelTableSchema::getUniqueDstTableIDs() const {
+    unordered_set<table_id_t> dstTableIDs;
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
+        dstTableIDs.insert(dstTableID);
+    }
+    return dstTableIDs;
+}
+
+unordered_set<table_id_t> RelTableSchema::getUniqueNbrTableIDsForBoundTableIDDirection(
+    RelDirection direction, table_id_t boundTableID) const {
+    unordered_set<table_id_t> nbrTableIDs;
+    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
+        if (direction == FWD && srcTableID == boundTableID) {
+            nbrTableIDs.insert(dstTableID);
+        } else if (direction == BWD && dstTableID == boundTableID) {
+            nbrTableIDs.insert(srcTableID);
+        }
+    }
+    return nbrTableIDs;
+}
+
 } // namespace catalog
-} // namespace graphflow
+} // namespace kuzu

@@ -1,18 +1,17 @@
-#include "test/test_utility/include/test_helper.h"
+#include "storage/wal_replayer.h"
+#include "test_helper/test_helper.h"
 
-#include "src/storage/include/wal_replayer.h"
-
-using namespace graphflow::storage;
-using namespace graphflow::testing;
+using namespace kuzu::storage;
+using namespace kuzu::testing;
 
 class WALReplayerTests : public DBTest {
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {
-    auto walIterator = database->getWAL()->getIterator();
-    WALReplayer walReplayer(database->getWAL(), database->getStorageManager(),
-        database->getBufferManager(), database->getMemoryManager(), database->getCatalog(),
+    auto walIterator = getWAL(*database)->getIterator();
+    WALReplayer walReplayer(getWAL(*database), getStorageManager(*database),
+        getBufferManager(*database), getMemoryManager(*database), getCatalog(*database),
         true /* is checkpointWAL */);
     try {
         walReplayer.replay();

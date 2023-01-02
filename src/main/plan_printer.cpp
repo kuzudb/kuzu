@@ -1,8 +1,8 @@
-#include "src/main/include/plan_printer.h"
+#include "main/plan_printer.h"
 
 #include <sstream>
 
-namespace graphflow {
+namespace kuzu {
 namespace main {
 
 OpProfileBox::OpProfileBox(string opName, string paramsName, vector<string> attributes)
@@ -75,15 +75,15 @@ void printSpaceIfNecessary(uint32_t idx, ostringstream& oss) {
     }
 }
 
-void OpProfileTree::prettyPrintToShell() const {
-    prettyPrintPlanTitle();
+ostringstream OpProfileTree::printPlanToOstream() const {
     ostringstream oss;
+    prettyPrintPlanTitle(oss);
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
         printOpProfileBoxUpperFrame(i, oss);
         printOpProfileBoxes(i, oss);
         printOpProfileBoxLowerFrame(i, oss);
     }
-    printf("%s", oss.str().c_str());
+    return oss;
 }
 
 void OpProfileTree::calculateNumRowsAndColsForOp(
@@ -106,7 +106,7 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
 uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
     uint32_t& maxFieldWidth, Profiler& profiler) {
     auto opProfileBox = make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
-        PlanPrinter::getOperatorParams(op), op->getAttributes(profiler));
+        PlanPrinter::getOperatorParams(op), op->getProfilerAttributes(profiler));
     maxFieldWidth = max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, move(opProfileBox));
     if (!op->getNumChildren()) {
@@ -233,19 +233,17 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& 
     oss << endl;
 }
 
-void OpProfileTree::prettyPrintPlanTitle() const {
-    ostringstream title;
+void OpProfileTree::prettyPrintPlanTitle(ostringstream& oss) const {
     const string physicalPlan = "Physical Plan";
-    title << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << endl;
-    title << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << endl;
+    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << endl;
+    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << endl;
     auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
         opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
-    title << "││" << string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
-          << string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << endl;
-    title << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << endl;
-    title << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << endl;
-    printf("%s", title.str().c_str());
+    oss << "││" << string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
+        << string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << endl;
+    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << endl;
+    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << endl;
 }
 
 string OpProfileTree::genHorizLine(uint32_t len) {
@@ -292,18 +290,17 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
 
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
     auto json = nlohmann::json();
-    json["name"] = getOperatorName(physicalOperator);
-    if (physicalOperator->getNumChildren()) {
-        json["prev"] = toJson(physicalOperator->getChild(0), profiler);
-    }
-    if (physicalOperator->getNumChildren() > 1) {
-        json["right"] = toJson(physicalOperator->getChild(1), profiler);
-    }
+    json["Name"] = getOperatorName(physicalOperator);
     if (profiler.enabled) {
-        physicalOperator->printMetricsToJson(json, profiler);
+        for (auto& [key, val] : physicalOperator->getProfilerKeyValAttributes(profiler)) {
+            json[key] = val;
+        }
+    }
+    for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
+        json["Child"] = toJson(physicalOperator->getChild(i), profiler);
     }
     return json;
 }
 
 } // namespace main
-} // namespace graphflow
+} // namespace kuzu

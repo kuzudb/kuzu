@@ -1,20 +1,19 @@
-#include "include/plan_mapper.h"
+#include "planner/logical_plan/logical_operator/logical_limit.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/limit.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
-#include "src/processor/operator/include/limit.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
+    LogicalOperator* logicalOperator) {
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
-        dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator),
+        dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), std::move(prevOperator),
         getOperatorID(), logicalLimit.getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu

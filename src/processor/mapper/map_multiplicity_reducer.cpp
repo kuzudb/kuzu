@@ -1,16 +1,15 @@
-#include "include/plan_mapper.h"
+#include "processor/mapper/plan_mapper.h"
+#include "processor/operator/multiplicity_reducer.h"
 
-#include "src/processor/operator/include/multiplicity_reducer.h"
-
-namespace graphflow {
+namespace kuzu {
 namespace processor {
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
+    LogicalOperator* logicalOperator) {
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     return make_unique<MultiplicityReducer>(
-        move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
+        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }
 
 } // namespace processor
-} // namespace graphflow
+} // namespace kuzu
