@@ -7,10 +7,10 @@ NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
     BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{nodeTableSchema->tableID},
       isInMemory{isInMemory} {
-    loadColumnsAndListsFromDisk(nodeTableSchema, bufferManager, wal);
+    initializeData(nodeTableSchema, bufferManager, wal);
 }
 
-void NodeTable::loadColumnsAndListsFromDisk(
+void NodeTable::initializeData(
     NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal) {
     propertyColumns.resize(nodeTableSchema->getAllNodeProperties().size());
     for (auto i = 0u; i < nodeTableSchema->getAllNodeProperties().size(); i++) {
@@ -25,15 +25,26 @@ void NodeTable::loadColumnsAndListsFromDisk(
         nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
+void NodeTable::scan(Transaction* transaction, const shared_ptr<ValueVector>& inputIDVector,
+    const vector<uint32_t>& columnIds, vector<shared_ptr<ValueVector>> outputVectors) {
+    assert(columnIds.size() == outputVectors.size());
+    for (auto i = 0u; i < columnIds.size(); i++) {
+        if (columnIds[i] == UINT32_MAX) {
+            outputVectors[i]->setAllNull();
+        } else {
+            propertyColumns[columnIds[i]]->read(transaction, inputIDVector, outputVectors[i]);
+        }
+    }
+}
+
 node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
-    assert(primaryKeyVector->state->isFlat());
-    if (primaryKeyVector->isNull(primaryKeyVector->state->selVector->selectedPositions[0])) {
+    assert(primaryKeyVector->state->selVector->selectedSize == 1);
+    auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
+    if (primaryKeyVector->isNull(pkValPos)) {
         throw RuntimeException("Null is not allowed as a primary key value.");
     }
-    if (!pkIndex->insert(primaryKeyVector, primaryKeyVector->state->selVector->selectedPositions[0],
-            nodeOffset)) {
-        auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
+    if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
         string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
                            to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
                            primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
@@ -48,7 +59,7 @@ node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector
 void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
            primaryKeyVector->hasNoNullsGuarantee());
-    if (nodeIDVector->state->isFlat()) {
+    if (nodeIDVector->state->selVector->selectedSize == 1) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
     } else {

@@ -4,7 +4,6 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "processor/data_pos.h"
-#include "storage/storage_structure/lists/list_sync_state.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

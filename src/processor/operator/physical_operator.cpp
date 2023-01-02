@@ -15,9 +15,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::AGGREGATE_SCAN: {
         return "AGGREGATE_SCAN";
     }
-    case PhysicalOperatorType::COLUMN_EXTEND: {
-        return "COLUMN_EXTEND";
-    }
     case PhysicalOperatorType::COPY_NODE_CSV: {
         return "COPY_NODE_CSV";
     }
@@ -57,8 +54,14 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case PhysicalOperatorType::GENERIC_EXTEND: {
-        return "GENERIC_EXTEND";
+    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
+        return "SCAN_REL_TABLE_COLUMNS";
+    }
+    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
+        return "SCAN_REL_TABLE_LISTS";
+    }
+    case PhysicalOperatorType::GENERIC_SCAN_REL_TABLES: {
+        return "GENERIC_SCAN_REL_TABLES";
     }
     case PhysicalOperatorType::HASH_JOIN_BUILD: {
         return "HASH_JOIN_BUILD";
@@ -77,9 +80,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::LIMIT: {
         return "LIMIT";
-    }
-    case PhysicalOperatorType::LIST_EXTEND: {
-        return "LIST_EXTEND";
     }
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";

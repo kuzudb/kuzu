@@ -187,30 +187,30 @@ private:
     void setSrcNodeTableToRelTables() {
         unordered_set<table_id_t> personToRelTableIDs = {KNOWS_TABLE_ID, WORKAT_TABLE_ID};
         unordered_set<table_id_t> organisationToRelTableIDs = {};
-        srcNodeIDToRelIDs.push_back(move(personToRelTableIDs));
-        srcNodeIDToRelIDs.push_back(move(organisationToRelTableIDs));
+        srcNodeIDToRelIDs.push_back(std::move(personToRelTableIDs));
+        srcNodeIDToRelIDs.push_back(std::move(organisationToRelTableIDs));
     }
 
     void setDstNodeTableToRelTables() {
         unordered_set<table_id_t> personToRelTableIDs = {KNOWS_TABLE_ID};
         unordered_set<table_id_t> organisationToRelTableIDs = {WORKAT_TABLE_ID};
-        dstNodeIDToRelIDs.push_back(move(personToRelTableIDs));
-        dstNodeIDToRelIDs.push_back(move(organisationToRelTableIDs));
+        dstNodeIDToRelIDs.push_back(std::move(personToRelTableIDs));
+        dstNodeIDToRelIDs.push_back(std::move(organisationToRelTableIDs));
     }
 
     void setProperties() {
         PropertyNameDataType agePropertyDefinition(AGE_PROPERTY_KEY_STR, INT64);
-        ageProperty = Property::constructStructuredNodeProperty(
+        ageProperty = Property::constructNodeProperty(
             agePropertyDefinition, AGE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
         PropertyNameDataType namePropertyDefinition(NAME_PROPERTY_KEY_STR, STRING);
-        nameProperty = Property::constructStructuredNodeProperty(
+        nameProperty = Property::constructNodeProperty(
             namePropertyDefinition, NAME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
         PropertyNameDataType birthDatePropertyDefinition(BIRTHDATE_PROPERTY_KEY_STR, DATE);
-        birthDateProperty = Property::constructStructuredNodeProperty(
+        birthDateProperty = Property::constructNodeProperty(
             birthDatePropertyDefinition, BIRTHDATE_PROPERTY_KEY_ID, PERSON_TABLE_ID);
         PropertyNameDataType registerTimePropertyDefinition(
             REGISTERTIME_PROPERTY_KEY_STR, TIMESTAMP);
-        registerTimeProperty = Property::constructStructuredNodeProperty(
+        registerTimeProperty = Property::constructNodeProperty(
             registerTimePropertyDefinition, REGISTERTIME_PROPERTY_KEY_ID, PERSON_TABLE_ID);
         PropertyNameDataType descriptionPropertyDefinition(DESCRIPTION_PROPERTY_KEY_STR, STRING);
         descriptionProperty = Property::constructRelProperty(
@@ -245,6 +245,6 @@ public:
     void setUp() {
         auto catalogContent = make_unique<NiceMock<TinySnbCatalogContent>>();
         catalogContent->setUp();
-        catalogContentForReadOnlyTrx = move(catalogContent);
+        catalogContentForReadOnlyTrx = std::move(catalogContent);
     }
 };

@@ -12,8 +12,8 @@ AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionCon
     // DataChunkState to write how many nodes it has read, we create a new DataChunkState and assign
     // it to children.
     children->state = make_shared<DataChunkState>();
-    listSyncState = make_shared<ListSyncState>();
-    listHandle = make_shared<ListHandle>(*listSyncState);
+    listSyncState = make_unique<ListSyncState>();
+    listHandle = make_unique<ListHandle>(*listSyncState);
 }
 
 void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
@@ -91,7 +91,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
     shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
-    if (dfsLevel->listHandle->listSyncState.hasMoreAndSwitchSourceIfNecessary()) {
+    if (dfsLevel->listHandle->hasMoreAndSwitchSourceIfNecessary()) {
         ((AdjLists*)storage)->readValues(dfsLevel->children, *dfsLevel->listHandle);
         return true;
     }

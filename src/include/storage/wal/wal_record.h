@@ -99,6 +99,7 @@ struct ListFileID {
     }
 };
 
+// TODO(Guodong): Rename to NodePropertyColumnID
 struct StructuredNodePropertyColumnID {
     table_id_t tableID;
     uint32_t propertyID;
@@ -133,7 +134,7 @@ struct RelPropertyColumnID {
     RelPropertyColumnID() = default;
 
     RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, uint32_t propertyID)
-        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{move(propertyID)} {}
+        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{std::move(propertyID)} {}
 
     inline bool operator==(const RelPropertyColumnID& rhs) const {
         return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
@@ -151,11 +152,11 @@ struct ColumnFileID {
     ColumnFileID() = default;
 
     explicit ColumnFileID(StructuredNodePropertyColumnID structuredNodePropertyColumnID)
-        : columnType{STRUCTURED_NODE_PROPERTY_COLUMN}, structuredNodePropertyColumnID{
-                                                           move(structuredNodePropertyColumnID)} {}
+        : columnType{STRUCTURED_NODE_PROPERTY_COLUMN}, structuredNodePropertyColumnID{std::move(
+                                                           structuredNodePropertyColumnID)} {}
 
     explicit ColumnFileID(AdjColumnID adjColumnID)
-        : columnType{ADJ_COLUMN}, adjColumnID{move(adjColumnID)} {}
+        : columnType{ADJ_COLUMN}, adjColumnID{std::move(adjColumnID)} {}
 
     explicit ColumnFileID(RelPropertyColumnID relPropertyColumnID)
         : columnType{REL_PROPERTY_COLUMN}, relPropertyColumnID{relPropertyColumnID} {}

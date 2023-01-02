@@ -19,12 +19,6 @@ ListsUpdateStore::ListsUpdateStore(MemoryManager& memoryManager, RelTableSchema&
         factorizedTableSchema->appendColumn(make_unique<ColumnSchema>(false /* isUnflat */,
             0 /* dataChunkPos */, Types::getDataTypeSize(relProperty.dataType)));
     }
-    nodeDataChunk = make_shared<DataChunk>(2);
-    nodeDataChunk->state->currIdx = 0;
-    srcNodeVector = make_shared<ValueVector>(NODE_ID, &memoryManager);
-    nodeDataChunk->insert(0 /* pos */, srcNodeVector);
-    dstNodeVector = make_shared<ValueVector>(NODE_ID, &memoryManager);
-    nodeDataChunk->insert(1 /* pos */, dstNodeVector);
     factorizedTable =
         make_unique<FactorizedTable>(&memoryManager, std::move(factorizedTableSchema));
     initListUpdatesPerTablePerDirection();
@@ -52,7 +46,7 @@ bool ListsUpdateStore::isNewlyAddedNode(ListFileID& listFileID, node_offset_t no
         !listUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
         return false;
     }
-    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).newlyAddedNode;
+    return listUpdatesPerChunk.at(chunkIdx).at(nodeOffset).isNewlyAddedNode;
 }
 
 bool ListsUpdateStore::isRelDeletedInPersistentStore(
@@ -168,10 +162,10 @@ uint64_t ListsUpdateStore::getNumInsertedRelsForNodeOffset(
     return listUpdatesPerTable.at(chunkIdx).at(nodeOffset).insertedRelsTupleIdxInFT.size();
 }
 
-void ListsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSyncState,
-    shared_ptr<ValueVector> valueVector) const {
-    auto numTuplesToRead = listSyncState.getNumValuesToRead();
-    auto nodeOffset = listSyncState.getBoundNodeOffset();
+void ListsUpdateStore::readValues(
+    ListFileID& listFileID, ListHandle& listHandle, shared_ptr<ValueVector> valueVector) const {
+    auto numTuplesToRead = listHandle.getNumValuesToRead();
+    auto nodeOffset = listHandle.getBoundNodeOffset();
     if (numTuplesToRead == 0) {
         valueVector->state->initOriginalAndSelectedSize(0);
         return;
@@ -184,7 +178,7 @@ void ListsUpdateStore::readValues(ListFileID& listFileID, ListSyncState& listSyn
                            .at(StorageUtils::getListChunkIdx(nodeOffset))
                            .at(nodeOffset);
     factorizedTable->lookup(vectorsToRead, columnsToRead, listUpdates.insertedRelsTupleIdxInFT,
-        listSyncState.getStartElemOffset(), numTuplesToRead);
+        listHandle.getStartElemOffset(), numTuplesToRead);
     valueVector->state->originalSize = numTuplesToRead;
 }
 

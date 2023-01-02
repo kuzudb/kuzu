@@ -10,7 +10,7 @@ namespace storage {
 InMemNodeCSVCopier::InMemNodeCSVCopier(CSVDescription& csvDescription, string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
-    : InMemStructuresCSVCopier{csvDescription, move(outputDirectory), taskScheduler, catalog},
+    : InMemStructuresCSVCopier{csvDescription, std::move(outputDirectory), taskScheduler, catalog},
       numNodes{UINT64_MAX}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
     nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
 }
@@ -22,7 +22,7 @@ uint64_t InMemNodeCSVCopier::copy() {
     countLinesPerBlock(nodeTableSchema->getNumStructuredProperties());
     numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndList();
-    // Populate structured columns with the ID hash index.
+    // Populate columns with the ID hash index.
     switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
     case INT64: {
         populateColumns<int64_t>();
@@ -44,15 +44,15 @@ uint64_t InMemNodeCSVCopier::copy() {
 }
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {
-    logger->info("Initializing in memory structured columns.");
-    structuredColumns.resize(nodeTableSchema->getNumStructuredProperties());
-    for (auto& property : nodeTableSchema->structuredProperties) {
+    logger->info("Initializing in memory columns.");
+    columns.resize(nodeTableSchema->getNumStructuredProperties());
+    for (auto& property : nodeTableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
             nodeTableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
-        structuredColumns[property.propertyID] =
+        columns[property.propertyID] =
             InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes);
     }
-    logger->info("Done initializing in memory structured columns.");
+    logger->info("Done initializing in memory columns.");
 }
 
 void InMemNodeCSVCopier::countLinesPerBlock(uint64_t numStructuredProperties) {
@@ -68,7 +68,7 @@ void InMemNodeCSVCopier::countLinesPerBlock(uint64_t numStructuredProperties) {
 
 template<typename T>
 void InMemNodeCSVCopier::populateColumns() {
-    logger->info("Populating structured properties.");
+    logger->info("Populating properties.");
     auto pkIndex =
         make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
                                              nodeTableSchema->tableID, DBFileType::WAL_VERSION),
@@ -83,7 +83,7 @@ void InMemNodeCSVCopier::populateColumns() {
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->info("Flush the pk index to disk.");
     pkIndex->flush();
-    logger->info("Done populating structured properties, constructing the pk index.");
+    logger->info("Done populating properties, constructing the pk index.");
 }
 
 template<typename T>
@@ -129,23 +129,21 @@ void InMemNodeCSVCopier::populateColumnsTask(uint64_t primaryKeyPropertyIdx, uin
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        putPropsOfLineIntoColumns(copier->structuredColumns,
-            copier->nodeTableSchema->structuredProperties, overflowCursors, reader,
-            offsetStart + bufferOffset);
+        putPropsOfLineIntoColumns(copier->columns, copier->nodeTableSchema->properties,
+            overflowCursors, reader, offsetStart + bufferOffset);
         bufferOffset++;
     }
-    populatePKIndex(copier->structuredColumns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
+    populatePKIndex(copier->columns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
         copier->numLinesPerBlock[blockId]);
     copier->logger->trace("End: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
 }
 
-void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
-    vector<unique_ptr<InMemColumn>>& structuredColumns,
-    const vector<Property>& structuredProperties, vector<PageByteCursor>& overflowCursors,
-    CSVReader& reader, uint64_t nodeOffset) {
-    for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
+void InMemNodeCSVCopier::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
+    const vector<Property>& properties, vector<PageByteCursor>& overflowCursors, CSVReader& reader,
+    uint64_t nodeOffset) {
+    for (auto columnIdx = 0u; columnIdx < columns.size(); columnIdx++) {
         reader.hasNextTokenOrError();
-        auto column = structuredColumns[columnIdx].get();
+        auto column = columns[columnIdx].get();
         switch (column->getDataType().typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
@@ -208,14 +206,14 @@ void InMemNodeCSVCopier::putPropsOfLineIntoColumns(
 }
 
 void InMemNodeCSVCopier::saveToFile() {
-    logger->debug("Writing node structured columns to disk.");
-    assert(!structuredColumns.empty());
-    for (auto& column : structuredColumns) {
+    logger->debug("Writing node columns to disk.");
+    assert(!columns.empty());
+    for (auto& column : columns) {
         taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
             [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Done writing node structured columns to disk.");
+    logger->debug("Done writing node columns to disk.");
 }
 
 } // namespace storage

@@ -86,8 +86,8 @@ public:
         conn->beginWriteTransaction();
         // We delete all person->person rels whose dst nodeID offset is between 100-200 (inclusive);
         for (auto i = 100; i <= 200; i++) {
-            ASSERT_TRUE(conn->query(getDeleteKnowsRelQuery("person", "person", 0 /* srcID */, i))
-                            ->isSuccess());
+            auto result = conn->query(getDeleteKnowsRelQuery("person", "person", 0 /* srcID */, i));
+            ASSERT_TRUE(result->isSuccess());
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (p1:person)-[e:knows]->(p2:person) return e.length");
@@ -447,13 +447,13 @@ TEST_F(DeleteRelTest, MixedDeleteAndCreateRels) {
     ASSERT_EQ(
         TestHelper::convertResultToString(*conn->query(knowsRelQuery), true /* checkOutputOrder */),
         expectedResult);
-    ASSERT_TRUE(
-        conn->query(getInsertKnowsRelQuery("animal", "person", 7 /* srcID */, 0 /* dstID */))
-            ->isSuccess());
+    auto result =
+        conn->query(getInsertKnowsRelQuery("animal", "person", 7 /* srcID */, 0 /* dstID */));
+    ASSERT_TRUE(result->isSuccess());
     expectedResult = {"0", "1", "2", "3", "4", "5", "6", "7", "9", "10"};
+    result = conn->query(knowsRelQuery);
     ASSERT_EQ(
-        TestHelper::convertResultToString(*conn->query(knowsRelQuery), true /* checkOutputOrder */),
-        expectedResult);
+        TestHelper::convertResultToString(*result, true /* checkOutputOrder */), expectedResult);
     ASSERT_TRUE(
         conn->query(getDeleteKnowsRelQuery("animal", "person", 7 /* srcID */, 0 /* dstID */))
             ->isSuccess());

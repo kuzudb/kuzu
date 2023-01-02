@@ -3,18 +3,11 @@
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/storage_structure.h"
 
-using namespace std;
 using namespace kuzu::common;
 
 namespace spdlog {
 class logger;
 }
-
-namespace kuzu {
-namespace testing {
-class CopyCSVEmptyListsTest;
-} // namespace testing
-} // namespace kuzu
 
 namespace kuzu {
 namespace storage {
@@ -41,7 +34,6 @@ protected:
 };
 
 class ListsMetadata : public BaseListsMetadata {
-    friend class kuzu::testing::CopyCSVEmptyListsTest;
     friend class ListsUpdateIterator;
 
 public:

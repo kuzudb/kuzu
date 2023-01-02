@@ -7,7 +7,7 @@
 #include "common/types/node_id_t.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
-#include "storage/storage_structure/lists/list_sync_state.h"
+#include "storage/storage_structure/lists/list_handle.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -18,14 +18,14 @@ using namespace catalog;
 
 struct ListUpdates {
 public:
-    ListUpdates() : newlyAddedNode{false} {}
+    ListUpdates() : isNewlyAddedNode{false} {}
 
     inline bool hasUpdates() const {
-        return newlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty();
+        return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty();
     }
 
 public:
-    bool newlyAddedNode;
+    bool isNewlyAddedNode;
     vector<uint64_t> insertedRelsTupleIdxInFT;
     unordered_set<int64_t> deletedRelIDs;
 };
@@ -45,13 +45,9 @@ public:
         factorizedTable->clear();
         initListUpdatesPerTablePerDirection();
     }
-    inline ListUpdatesPerChunk& getListUpdatesPerChunk(ListFileID& listFileID) {
-        auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-        return listUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
-            relNodeTableAndDir.srcNodeTableID);
-    }
-    inline vector<map<table_id_t, ListUpdatesPerChunk>>& getListUpdatesPerTablePerDirection() {
-        return listUpdatesPerTablePerDirection;
+    inline map<table_id_t, ListUpdatesPerChunk>& getListUpdatesPerBoundNodeTableOfDirection(
+        RelDirection relDirection) {
+        return listUpdatesPerTablePerDirection[relDirection];
     }
 
     uint64_t getNumDeletedRels(ListFileID& listFileID, node_offset_t nodeOffset) const;
@@ -80,8 +76,8 @@ public:
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, node_offset_t nodeOffset) const;
 
-    void readValues(ListFileID& listFileID, ListSyncState& listSyncState,
-        shared_ptr<ValueVector> valueVector) const;
+    void readValues(
+        ListFileID& listFileID, ListHandle& listHandle, shared_ptr<ValueVector> valueVector) const;
 
     void initNewlyAddedNodes(nodeID_t& nodeID) {
         for (auto direction : REL_DIRECTIONS) {
@@ -89,7 +85,7 @@ public:
                 listUpdatesPerTablePerDirection[direction][nodeID.tableID]
                                                [StorageUtils::getListChunkIdx(nodeID.offset)]
                                                [nodeID.offset]
-                                                   .newlyAddedNode = true;
+                                                   .isNewlyAddedNode = true;
             }
         }
     }
@@ -120,9 +116,6 @@ private:
     static constexpr uint64_t DST_TABLE_ID_IDX_IN_FT = 1;
     static constexpr uint64_t INTERNAL_REL_ID_IDX_IN_FT = 2;
     unique_ptr<FactorizedTable> factorizedTable;
-    shared_ptr<ValueVector> srcNodeVector;
-    shared_ptr<ValueVector> dstNodeVector;
-    shared_ptr<DataChunk> nodeDataChunk;
     vector<map<table_id_t, ListUpdatesPerChunk>> listUpdatesPerTablePerDirection;
     unordered_map<uint32_t, uint32_t> propertyIDToColIdxMap;
     RelTableSchema relTableSchema;
