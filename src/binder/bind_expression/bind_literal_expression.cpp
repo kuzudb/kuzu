@@ -11,12 +11,17 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
     auto value = literalExpression.getValue();
     if (value->isNull()) {
-        return bindNullLiteralExpression();
+        return createNullLiteralExpression();
     }
-    return make_shared<LiteralExpression>(value->copy());
+    return createLiteralExpression(value->copy());
 }
 
-shared_ptr<Expression> ExpressionBinder::bindNullLiteralExpression() {
+shared_ptr<Expression> ExpressionBinder::createLiteralExpression(unique_ptr<common::Value> value) {
+    auto uniqueName = binder->getUniqueExpressionName(value->toString());
+    return make_unique<LiteralExpression>(std::move(value), uniqueName);
+}
+
+shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression() {
     return make_shared<LiteralExpression>(
         make_unique<Value>(Value::createNullValue()), binder->getUniqueExpressionName("NULL"));
 }

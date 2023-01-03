@@ -10,9 +10,8 @@ void LogicalScanNode::computeSchema() {
 }
 
 void LogicalIndexScanNode::computeSchema() {
-    createEmptySchema();
-    auto groupPos = schema->createGroup();
-    schema->setGroupAsSingleState(groupPos);
+    copyChildSchema(0);
+    auto groupPos = schema->getGroupPos(*indexExpression);
     schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
 }
 

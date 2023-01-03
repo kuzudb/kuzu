@@ -156,6 +156,13 @@ TEST_F(TinySnbUpdateTest, SetTwoHopNullTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
+TEST_F(TinySnbUpdateTest, SetIndexNestedLoopJoinTest) {
+    conn->query("MATCH (a:person), (b:person) WHERE a.ID = b.ID SET a.age=b.gender");
+    auto result = conn->query("MATCH (a:person) RETURN a.ID, a.age");
+    auto groundTruth = vector<string>{"0|1", "10|2", "2|2", "3|1", "5|2", "7|1", "8|2", "9|2"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
 // Create clause test
 
 TEST_F(TinySnbUpdateTest, InsertNodeWithBoolIntDoubleTest) {

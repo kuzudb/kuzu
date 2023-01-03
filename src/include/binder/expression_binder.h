@@ -40,7 +40,7 @@ private:
     shared_ptr<Expression> bindRelPropertyExpression(
         const Expression& expression, const string& propertyName);
     unique_ptr<Expression> createPropertyExpression(
-        const Expression& nodeOrRel, const vector<Property>& propertyName);
+        const Expression& nodeOrRel, const vector<Property>& propertyName, bool isPrimaryKey);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindScalarFunctionExpression(
@@ -60,7 +60,8 @@ private:
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindNullLiteralExpression();
+    shared_ptr<Expression> createLiteralExpression(unique_ptr<Value> value);
+    shared_ptr<Expression> createNullLiteralExpression();
 
     shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
 

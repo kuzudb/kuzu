@@ -17,7 +17,9 @@ public:
 
     inline void computeSchema() override { copyChildSchema(0); }
 
-    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    inline string getExpressionsForPrinting() const override { return expression->getRawName(); }
+
+    inline shared_ptr<Expression> getPredicate() const { return expression; }
 
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalFilter>(expression, groupPosToSelect, children[0]->copy());

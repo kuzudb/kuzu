@@ -70,6 +70,9 @@ public:
     // Used for operators with more than two children e.g. Union
     inline void addChild(shared_ptr<LogicalOperator> op) { children.push_back(std::move(op)); }
     inline shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
+    inline void setChild(uint64_t idx, shared_ptr<LogicalOperator> child) {
+        children[idx] = std::move(child);
+    }
 
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
 

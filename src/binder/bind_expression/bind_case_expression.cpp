@@ -17,7 +17,7 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
     if (parsedCaseExpression.hasElseExpression()) {
         elseExpression = bindExpression(*parsedCaseExpression.getElseExpression());
     } else {
-        elseExpression = bindNullLiteralExpression();
+        elseExpression = createNullLiteralExpression();
     }
     elseExpression = implicitCastIfNecessary(elseExpression, outDataType);
     auto boundCaseExpression =

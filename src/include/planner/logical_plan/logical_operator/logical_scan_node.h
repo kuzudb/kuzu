@@ -28,9 +28,10 @@ private:
 
 class LogicalIndexScanNode : public LogicalOperator {
 public:
-    LogicalIndexScanNode(shared_ptr<NodeExpression> node, shared_ptr<Expression> indexExpression)
-        : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE}, node{std::move(node)},
-          indexExpression{std::move(indexExpression)} {}
+    LogicalIndexScanNode(shared_ptr<NodeExpression> node, shared_ptr<Expression> indexExpression,
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE, std::move(child)},
+          node{std::move(node)}, indexExpression{std::move(indexExpression)} {}
 
     void computeSchema() override;
 
@@ -40,7 +41,7 @@ public:
     inline shared_ptr<Expression> getIndexExpression() const { return indexExpression; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalIndexScanNode>(node, indexExpression);
+        return make_unique<LogicalIndexScanNode>(node, indexExpression, children[0]->copy());
     }
 
 private:

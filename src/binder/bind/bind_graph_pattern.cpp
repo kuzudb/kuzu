@@ -137,8 +137,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     if (!queryRel->isVariableLength()) {
         for (auto& [propertyName, propertySchemas] :
             getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-            auto propertyExpression =
-                expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
+            auto propertyExpression = expressionBinder.createPropertyExpression(
+                *queryRel, propertySchemas, false /* isPrimaryKey */);
             queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
         }
     }
@@ -211,10 +211,13 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     for (auto tableID : tableIDs) {
         nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
+    auto isSingleTable = nodeTableSchemas.size() == 1;
     for (auto& [propertyName, propertySchemas] :
         getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
+        auto isPrimaryKey = isSingleTable && nodeTableSchemas[0]->getPrimaryKey().propertyID ==
+                                                 propertySchemas[0].propertyID;
         auto propertyExpression =
-            expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
+            expressionBinder.createPropertyExpression(*queryNode, propertySchemas, isPrimaryKey);
         queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
     }
     if (!parsedName.empty()) {

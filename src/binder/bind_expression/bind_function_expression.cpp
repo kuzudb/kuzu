@@ -90,17 +90,16 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
     const ParsedExpression& parsedExpression, const expression_vector& children) {
     assert(children[0]->expressionType == common::LITERAL);
     auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<string>();
+    unique_ptr<Value> value;
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        return make_shared<LiteralExpression>(
-            make_unique<Value>(Date::FromCString(strVal.c_str(), strVal.length())));
+        value = make_unique<Value>(Date::FromCString(strVal.c_str(), strVal.length()));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        return make_shared<LiteralExpression>(
-            make_unique<Value>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
+        value = make_unique<Value>(Timestamp::FromCString(strVal.c_str(), strVal.length()));
     } else {
         assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
-        return make_shared<LiteralExpression>(
-            make_unique<Value>(Interval::FromCString(strVal.c_str(), strVal.length())));
+        value = make_unique<Value>(Interval::FromCString(strVal.c_str(), strVal.length()));
     }
+    return createLiteralExpression(std::move(value));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
@@ -127,8 +126,8 @@ unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
     for (auto tableID : node.getTableIDs()) {
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
-    auto result = make_unique<PropertyExpression>(
-        DataType(INTERNAL_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
+    auto result = make_unique<PropertyExpression>(DataType(INTERNAL_ID), INTERNAL_ID_SUFFIX, node,
+        std::move(propertyIDPerTable), false /* isPrimaryKey */);
     return result;
 }
 
@@ -145,7 +144,8 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     auto& node = (NodeExpression&)expression;
     if (!node.isMultiLabeled()) {
         auto labelName = catalogContent->getTableName(node.getSingleTableID());
-        return make_shared<LiteralExpression>(make_unique<Value>(labelName));
+        auto value = make_unique<Value>(labelName);
+        return createLiteralExpression(std::move(value));
     }
     // bind string node labels as list literal
     auto nodeTableIDs = catalogContent->getNodeTableIDs();
@@ -163,8 +163,8 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     auto literalDataType = DataType(LIST, make_unique<DataType>(STRING));
     expression_vector children;
     children.push_back(node.getInternalIDProperty());
-    children.push_back(
-        make_shared<LiteralExpression>(make_unique<Value>(literalDataType, std::move(nodeLabels))));
+    auto value = make_unique<Value>(literalDataType, std::move(nodeLabels));
+    children.push_back(createLiteralExpression(std::move(value)));
     auto execFunc = NodeLabelVectorOperation::execFunction;
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(
