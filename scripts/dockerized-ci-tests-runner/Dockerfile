@@ -11,6 +11,12 @@ RUN apt-get install -y clang-format
 RUN apt-get install -y clang-13
 RUN apt-get install -y nodejs
 RUN apt-get install -y jq
+RUN apt-get install -y ca-certificates lsb-release wget
+RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+RUN apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+RUN rm ./apache-arrow*
+RUN apt-get update
+RUN apt-get install -y libarrow-dev libparquet-dev
 
 # Install GitHub action runner
 RUN mkdir /actions-runner

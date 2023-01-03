@@ -17,7 +17,7 @@ Kùzu is an in-process property graph database management system (GDBMS) built f
 Kùzu is being actively developed at University of Waterloo as a feature-rich and usable GDBMS. Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
 ## Build
-To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`.  
+To build from source code, Kùzu requires Cmake(>=3.11), Python 3, [Apache Arrow](https://arrow.apache.org/), [xsimd](https://xsimd.readthedocs.io/en/latest/), and a compiler that supports `C++20`.
 - Perform a full clean build
   - `make clean && make`
 - Run tests (optional)
