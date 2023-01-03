@@ -23,9 +23,6 @@ class logger;
 
 namespace kuzu {
 namespace catalog {
-
-typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
-
 class CatalogContent {
 public:
     // This constructor is only used for mock catalog testing only.
@@ -40,8 +37,8 @@ public:
     /**
      * Node and Rel table functions.
      */
-    table_id_t addNodeTableSchema(
-        string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions);
+    table_id_t addNodeTableSchema(string tableName, property_id_t primaryKeyId,
+        vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
         const vector<PropertyNameDataType>& propertyDefinitions,
@@ -115,7 +112,7 @@ public:
     inline unordered_map<table_id_t, unique_ptr<RelTableSchema>>& getRelTableSchemas() {
         return relTableSchemas;
     }
-    inline const unordered_set<table_id_t> getNodeTableIDsForRelTableDirection(
+    inline unordered_set<table_id_t> getNodeTableIDsForRelTableDirection(
         table_id_t relTableID, RelDirection direction) const {
         auto relTableSchema = getRelTableSchema(relTableID);
         return direction == FWD ? relTableSchema->getUniqueSrcTableIDs() :
@@ -171,8 +168,8 @@ public:
         }
     }
 
-    inline void writeCatalogForWALRecord(string directory) {
-        catalogContentForWriteTrx->saveToFile(std::move(directory), DBFileType::WAL_VERSION);
+    inline void writeCatalogForWALRecord(const string& directory) {
+        catalogContentForWriteTrx->saveToFile(directory, DBFileType::WAL_VERSION);
     }
 
     static inline void saveInitialCatalogToFile(const string& directory) {
@@ -181,11 +178,11 @@ public:
 
     ExpressionType getFunctionType(const string& name) const;
 
-    table_id_t addNodeTableSchema(
-        string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions);
+    table_id_t addNodeTableSchema(string tableName, property_id_t primaryKeyId,
+        vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        vector<PropertyNameDataType> propertyDefinitions,
+        const vector<PropertyNameDataType>& propertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     inline void removeTableSchema(TableSchema* tableSchema) {

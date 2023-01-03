@@ -76,12 +76,12 @@ public:
 struct NodeTableSchema : TableSchema {
     NodeTableSchema()
         : NodeTableSchema{"", INVALID_TABLE_ID, INVALID_PROPERTY_ID, vector<Property>{}} {}
-    NodeTableSchema(string tableName, table_id_t tableID, uint64_t primaryPropertyId,
+    NodeTableSchema(string tableName, table_id_t tableID, property_id_t primaryPropertyId,
         vector<Property> properties)
         : TableSchema{std::move(tableName), tableID, true /* isNodeTable */},
           primaryKeyPropertyIdx{primaryPropertyId}, properties{std::move(properties)} {}
 
-    inline uint64_t getNumStructuredProperties() const { return properties.size(); }
+    inline property_id_t getNumProperties() const { return properties.size(); }
 
     inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
@@ -94,7 +94,7 @@ struct NodeTableSchema : TableSchema {
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
-    uint64_t primaryKeyPropertyIdx;
+    property_id_t primaryKeyPropertyIdx;
     vector<Property> properties;
     unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
     unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel

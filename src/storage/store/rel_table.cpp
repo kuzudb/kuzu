@@ -8,18 +8,20 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace storage {
 
-Column* DirectedRelTableData::getPropertyColumn(table_id_t boundNodeTableID, uint64_t propertyIdx) {
+Column* DirectedRelTableData::getPropertyColumn(
+    table_id_t boundNodeTableID, property_id_t propertyId) {
     if (propertyColumns.contains(boundNodeTableID) &&
-        propertyIdx < propertyColumns[boundNodeTableID].size()) {
-        return propertyColumns[boundNodeTableID][propertyIdx].get();
+        propertyId < propertyColumns[boundNodeTableID].size()) {
+        return propertyColumns[boundNodeTableID][propertyId].get();
     }
     return nullptr;
 }
 
-Lists* DirectedRelTableData::getPropertyLists(table_id_t boundNodeTableID, uint64_t propertyIdx) {
+Lists* DirectedRelTableData::getPropertyLists(
+    table_id_t boundNodeTableID, property_id_t propertyId) {
     if (propertyLists.contains(boundNodeTableID) &&
-        propertyIdx < propertyLists[boundNodeTableID].size()) {
-        return propertyLists[boundNodeTableID][propertyIdx].get();
+        propertyId < propertyLists[boundNodeTableID].size()) {
+        return propertyLists[boundNodeTableID][propertyId].get();
     }
     return nullptr;
 }

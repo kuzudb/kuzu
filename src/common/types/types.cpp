@@ -4,7 +4,6 @@
 
 #include "common/exception.h"
 #include "common/types/types_include.h"
-#include "common/types/value.h"
 
 namespace kuzu {
 namespace common {

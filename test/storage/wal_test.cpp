@@ -22,7 +22,7 @@ protected:
             uint32_t propertyID = 89;
             uint64_t pageIdxInOriginalFile = 1455304;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
+                StorageStructureID::newNodePropertyColumnID(tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
@@ -31,9 +31,9 @@ protected:
     void readAndVerifyStructuredNodePropertyMainFilePageRecords(WALIterator* walIterator,
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
-            WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnID(4, 89), 1455304,
-                assignedPageIndices[startOff + i]);
+            WALRecord expectedRecord =
+                WALRecord::newPageUpdateRecord(StorageStructureID::newNodePropertyColumnID(4, 89),
+                    1455304, assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;
             walIterator->getNextRecord(retVal);
@@ -48,7 +48,7 @@ protected:
             uint32_t propertyID = 2463;
             uint64_t pageIdxInOriginalFile = 44436;
             uint64_t pageIdxInWAL = wal->logPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnID(tableID, propertyID),
+                StorageStructureID::newNodePropertyColumnID(tableID, propertyID),
                 pageIdxInOriginalFile);
             assignedPageIndices.push_back(pageIdxInWAL);
         }
@@ -57,9 +57,9 @@ protected:
     void readAndVerifyStructuredNodePropertyOveflowFilePageRecord(WALIterator* walIterator,
         vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
-            WALRecord expectedRecord = WALRecord::newPageUpdateRecord(
-                StorageStructureID::newStructuredNodePropertyColumnID(0, 2463), 44436,
-                assignedPageIndices[startOff + i]);
+            WALRecord expectedRecord =
+                WALRecord::newPageUpdateRecord(StorageStructureID::newNodePropertyColumnID(0, 2463),
+                    44436, assignedPageIndices[startOff + i]);
             ASSERT_TRUE(walIterator->hasNextRecord());
             WALRecord retVal;
             walIterator->getNextRecord(retVal);

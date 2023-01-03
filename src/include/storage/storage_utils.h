@@ -78,12 +78,12 @@ public:
             FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX), dbFileType);
     }
 
-    static inline StorageStructureIDAndFName getStructuredNodePropertyColumnStructureIDAndFName(
+    static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(
         const string& directory, const catalog::Property& property) {
         auto fName = getNodePropertyColumnFName(
             directory, property.tableID, property.propertyID, DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(StorageStructureID::newStructuredNodePropertyColumnID(
-                                              property.tableID, property.propertyID),
+        return StorageStructureIDAndFName(
+            StorageStructureID::newNodePropertyColumnID(property.tableID, property.propertyID),
             fName);
     }
 

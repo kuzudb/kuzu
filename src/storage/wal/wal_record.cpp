@@ -20,13 +20,13 @@ string storageStructureTypeToString(StorageStructureType storageStructureType) {
     }
 }
 
-StorageStructureID StorageStructureID::newStructuredNodePropertyColumnID(
-    table_id_t tableID, uint32_t propertyID) {
+StorageStructureID StorageStructureID::newNodePropertyColumnID(
+    table_id_t tableID, property_id_t propertyID) {
     StorageStructureID retVal;
     retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.isOverflow = false;
-    retVal.columnFileID = ColumnFileID(
-        StructuredNodePropertyColumnID(StructuredNodePropertyColumnID(tableID, propertyID)));
+    retVal.columnFileID =
+        ColumnFileID(NodePropertyColumnID(NodePropertyColumnID(tableID, propertyID)));
     return retVal;
 }
 
@@ -49,7 +49,7 @@ StorageStructureID StorageStructureID::newAdjListsID(
 }
 
 StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTableID,
-    table_id_t relTableID, RelDirection dir, uint32_t propertyID, ListFileType listFileType) {
+    table_id_t relTableID, RelDirection dir, property_id_t propertyID, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::LISTS;
@@ -59,7 +59,7 @@ StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTabl
 }
 
 StorageStructureID StorageStructureID::newRelPropertyColumnID(
-    table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, uint32_t propertyID) {
+    table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, property_id_t propertyID) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::COLUMN;

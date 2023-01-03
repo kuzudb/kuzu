@@ -1,6 +1,5 @@
 #include "storage/in_mem_csv_copier/in_mem_node_csv_copier.h"
 
-#include "spdlog/spdlog.h"
 #include "storage/in_mem_csv_copier/copy_csv_task.h"
 #include "storage/storage_structure/in_mem_file.h"
 
@@ -19,7 +18,7 @@ uint64_t InMemNodeCSVCopier::copy() {
     logger->info(
         "Copying node {} with table {}.", nodeTableSchema->tableName, nodeTableSchema->tableID);
     calculateNumBlocks(csvDescription.filePath, nodeTableSchema->tableName);
-    countLinesPerBlock(nodeTableSchema->getNumStructuredProperties());
+    countLinesPerBlock();
     numNodes = calculateNumRows(csvDescription.csvReaderConfig.hasHeader);
     initializeColumnsAndList();
     // Populate columns with the ID hash index.
@@ -45,7 +44,7 @@ uint64_t InMemNodeCSVCopier::copy() {
 
 void InMemNodeCSVCopier::initializeColumnsAndList() {
     logger->info("Initializing in memory columns.");
-    columns.resize(nodeTableSchema->getNumStructuredProperties());
+    columns.resize(nodeTableSchema->getNumProperties());
     for (auto& property : nodeTableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
             nodeTableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
@@ -55,7 +54,7 @@ void InMemNodeCSVCopier::initializeColumnsAndList() {
     logger->info("Done initializing in memory columns.");
 }
 
-void InMemNodeCSVCopier::countLinesPerBlock(uint64_t numStructuredProperties) {
+void InMemNodeCSVCopier::countLinesPerBlock() {
     logger->info("Counting number of lines in each block.");
     numLinesPerBlock.resize(numBlocks);
     for (uint64_t blockId = 0; blockId < numBlocks; blockId++) {
@@ -123,7 +122,7 @@ template<typename T>
 void InMemNodeCSVCopier::populateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
     uint64_t offsetStart, HashIndexBuilder<T>* pkIndex, InMemNodeCSVCopier* copier) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->csvDescription.filePath, blockId);
-    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumStructuredProperties());
+    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
     CSVReader reader(
         copier->csvDescription.filePath, copier->csvDescription.csvReaderConfig, blockId);
     skipFirstRowIfNecessary(blockId, copier->csvDescription, reader);

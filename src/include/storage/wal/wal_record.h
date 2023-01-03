@@ -20,7 +20,7 @@ enum class ListFileType : uint8_t {
 };
 
 enum class ColumnType : uint8_t {
-    STRUCTURED_NODE_PROPERTY_COLUMN = 0,
+    NODE_PROPERTY_COLUMN = 0,
     ADJ_COLUMN = 1,
     REL_PROPERTY_COLUMN = 2,
 };
@@ -56,11 +56,11 @@ struct AdjListsID {
 
 struct RelPropertyListID {
     RelNodeTableAndDir relNodeTableAndDir;
-    uint32_t propertyID;
+    property_id_t propertyID;
 
     RelPropertyListID() = default;
 
-    RelPropertyListID(RelNodeTableAndDir relNodeTableAndDir, uint32_t propertyID)
+    RelPropertyListID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
         : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
     inline bool operator==(const RelPropertyListID& rhs) const {
@@ -100,17 +100,16 @@ struct ListFileID {
     }
 };
 
-// TODO(Guodong): Rename to NodePropertyColumnID
-struct StructuredNodePropertyColumnID {
+struct NodePropertyColumnID {
     table_id_t tableID;
-    uint32_t propertyID;
+    property_id_t propertyID;
 
-    StructuredNodePropertyColumnID() = default;
+    NodePropertyColumnID() = default;
 
-    StructuredNodePropertyColumnID(table_id_t tableID, uint32_t propertyID)
+    NodePropertyColumnID(table_id_t tableID, property_id_t propertyID)
         : tableID{tableID}, propertyID{propertyID} {}
 
-    inline bool operator==(const StructuredNodePropertyColumnID& rhs) const {
+    inline bool operator==(const NodePropertyColumnID& rhs) const {
         return tableID == rhs.tableID && propertyID == rhs.propertyID;
     }
 };
@@ -130,12 +129,12 @@ struct AdjColumnID {
 
 struct RelPropertyColumnID {
     RelNodeTableAndDir relNodeTableAndDir;
-    uint32_t propertyID;
+    property_id_t propertyID;
 
     RelPropertyColumnID() = default;
 
-    RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, uint32_t propertyID)
-        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{std::move(propertyID)} {}
+    RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
+        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
     inline bool operator==(const RelPropertyColumnID& rhs) const {
         return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
@@ -145,19 +144,19 @@ struct RelPropertyColumnID {
 struct ColumnFileID {
     ColumnType columnType;
     union {
-        StructuredNodePropertyColumnID structuredNodePropertyColumnID;
+        NodePropertyColumnID nodePropertyColumnID;
         AdjColumnID adjColumnID;
         RelPropertyColumnID relPropertyColumnID;
     };
 
     ColumnFileID() = default;
 
-    explicit ColumnFileID(StructuredNodePropertyColumnID structuredNodePropertyColumnID)
-        : columnType{ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN},
-          structuredNodePropertyColumnID{std::move(structuredNodePropertyColumnID)} {}
+    explicit ColumnFileID(NodePropertyColumnID nodePropertyColumnID)
+        : columnType{ColumnType::NODE_PROPERTY_COLUMN}, nodePropertyColumnID{nodePropertyColumnID} {
+    }
 
     explicit ColumnFileID(AdjColumnID adjColumnID)
-        : columnType{ColumnType::ADJ_COLUMN}, adjColumnID{std::move(adjColumnID)} {}
+        : columnType{ColumnType::ADJ_COLUMN}, adjColumnID{adjColumnID} {}
 
     explicit ColumnFileID(RelPropertyColumnID relPropertyColumnID)
         : columnType{ColumnType::REL_PROPERTY_COLUMN}, relPropertyColumnID{relPropertyColumnID} {}
@@ -167,8 +166,8 @@ struct ColumnFileID {
             return false;
         }
         switch (columnType) {
-        case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
-            return structuredNodePropertyColumnID == rhs.structuredNodePropertyColumnID;
+        case ColumnType::NODE_PROPERTY_COLUMN: {
+            return nodePropertyColumnID == rhs.nodePropertyColumnID;
         }
         case ColumnType::ADJ_COLUMN: {
             return adjColumnID == rhs.adjColumnID;
@@ -233,11 +232,10 @@ struct StorageStructureID {
         }
     }
 
-    static StorageStructureID newStructuredNodePropertyColumnID(
-        table_id_t tableID, uint32_t propertyIDs);
+    static StorageStructureID newNodePropertyColumnID(table_id_t tableID, property_id_t propertyID);
 
     static StorageStructureID newRelPropertyColumnID(
-        table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, uint32_t propertyID);
+        table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, property_id_t propertyID);
 
     static StorageStructureID newAdjColumnID(
         table_id_t nodeTableID, table_id_t relTableID, RelDirection dir);
@@ -248,7 +246,7 @@ struct StorageStructureID {
         table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType);
 
     static StorageStructureID newRelPropertyListsID(table_id_t nodeTableID, table_id_t relTableID,
-        RelDirection dir, uint32_t propertyID, ListFileType listFileType);
+        RelDirection dir, property_id_t propertyID, ListFileType listFileType);
 };
 
 enum WALRecordType : uint8_t {

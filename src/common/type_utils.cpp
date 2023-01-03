@@ -4,7 +4,6 @@
 #include <climits>
 
 #include "common/exception.h"
-#include "common/types/value.h"
 #include "common/utils.h"
 
 namespace kuzu {

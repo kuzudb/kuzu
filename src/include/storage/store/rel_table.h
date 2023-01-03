@@ -22,7 +22,7 @@ enum class RelTableDataType : uint8_t {
 
 struct RelTableScanState {
 public:
-    explicit RelTableScanState(table_id_t boundNodeTableID, vector<uint32_t> propertyIds,
+    explicit RelTableScanState(table_id_t boundNodeTableID, vector<property_id_t> propertyIds,
         RelTableDataType relTableDataType)
         : relTableDataType{relTableDataType}, boundNodeTableID{boundNodeTableID},
           propertyIds{std::move(propertyIds)} {
@@ -43,7 +43,7 @@ public:
 
     RelTableDataType relTableDataType;
     table_id_t boundNodeTableID;
-    vector<uint32_t> propertyIds;
+    vector<property_id_t> propertyIds;
     // sync state between adj and property lists
     unique_ptr<ListSyncState> syncState;
     vector<unique_ptr<ListHandle>> listHandles;
@@ -78,8 +78,8 @@ public:
         BufferManager& bufferManager, WAL* wal);
     void initializeListsForBoundNodeTabl(RelTableSchema* tableSchema, table_id_t boundNodeTableID,
         NodeIDCompressionScheme& nodeIDCompressionScheme, BufferManager& bufferManager, WAL* wal);
-    Column* getPropertyColumn(table_id_t boundNodeTableID, uint64_t propertyIdx);
-    Lists* getPropertyLists(table_id_t boundNodeTableID, uint64_t propertyIdx);
+    Column* getPropertyColumn(table_id_t boundNodeTableID, property_id_t propertyId);
+    Lists* getPropertyLists(table_id_t boundNodeTableID, property_id_t propertyId);
     AdjColumn* getAdjColumn(table_id_t boundNodeTableID);
     AdjLists* getAdjLists(table_id_t boundNodeTableID);
 
@@ -127,16 +127,16 @@ public:
     void initializeData(RelTableSchema* tableSchema, BufferManager& bufferManager);
 
     inline Column* getPropertyColumn(
-        RelDirection relDirection, table_id_t boundNodeTableID, uint64_t propertyIdx) {
+        RelDirection relDirection, table_id_t boundNodeTableID, property_id_t propertyId) {
         return relDirection == FWD ?
-                   fwdRelTableData->getPropertyColumn(boundNodeTableID, propertyIdx) :
-                   bwdRelTableData->getPropertyColumn(boundNodeTableID, propertyIdx);
+                   fwdRelTableData->getPropertyColumn(boundNodeTableID, propertyId) :
+                   bwdRelTableData->getPropertyColumn(boundNodeTableID, propertyId);
     }
     inline Lists* getPropertyLists(
-        RelDirection relDirection, table_id_t boundNodeTableID, uint64_t propertyIdx) {
+        RelDirection relDirection, table_id_t boundNodeTableID, property_id_t propertyId) {
         return relDirection == FWD ?
-                   fwdRelTableData->getPropertyLists(boundNodeTableID, propertyIdx) :
-                   bwdRelTableData->getPropertyLists(boundNodeTableID, propertyIdx);
+                   fwdRelTableData->getPropertyLists(boundNodeTableID, propertyId) :
+                   bwdRelTableData->getPropertyLists(boundNodeTableID, propertyId);
     }
     inline uint32_t getNumPropertyLists(RelDirection relDirection, table_id_t boundNodeTableID) {
         return relDirection == FWD ? fwdRelTableData->getNumPropertyLists(boundNodeTableID) :
