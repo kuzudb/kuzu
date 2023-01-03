@@ -41,7 +41,7 @@ static void constructAccPipeline(FactorizedTableScan* tableScan, HashJoinProbe* 
     hashJoinProbe->addChild(std::move(resultCollector));
 }
 
-static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
+static void mapASPJoin(Expression* joinNodeID, HashJoinProbe* hashJoinProbe) {
     // fetch scan node ID on build side
     auto hashJoinBuild = hashJoinProbe->getChild(1);
     assert(hashJoinBuild->getOperatorType() == PhysicalOperatorType::HASH_JOIN_BUILD);
@@ -49,7 +49,7 @@ static void mapASPJoin(NodeExpression* joinNode, HashJoinProbe* hashJoinProbe) {
     for (auto& op :
         PhysicalPlanUtil::collectOperators(hashJoinBuild, PhysicalOperatorType::SCAN_NODE_ID)) {
         auto scanNodeID = (ScanNodeID*)op;
-        if (scanNodeID->getNodeName() == joinNode->getUniqueName()) {
+        if (scanNodeID->getNodeID() == joinNodeID->getUniqueName()) {
             scanNodeIDCandidates.push_back(scanNodeID);
         }
     }
@@ -89,21 +89,19 @@ static void mapAccJoin(HashJoinProbe* hashJoinProbe) {
 }
 
 BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
-    const vector<shared_ptr<NodeExpression>>& keys, const expression_vector& payloads) {
+    const expression_vector& keys, const expression_vector& payloads) {
     vector<pair<DataPos, DataType>> buildKeysPosAndType, buildPayloadsPosAndTypes;
     vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
     vector<bool> isBuildDataChunkContainKeys(buildSideSchema.getNumGroups(), false);
-    unordered_set<string> joinNodeIDs;
+    unordered_set<string> joinKeyNames;
     for (auto& key : keys) {
-        auto nodeID = key->getInternalIDPropertyName();
-        auto buildSideKeyPos =
-            DataPos(buildSideSchema.getExpressionPos(*key->getInternalIDProperty()));
+        auto buildSideKeyPos = DataPos(buildSideSchema.getExpressionPos(*key));
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
         buildKeysPosAndType.emplace_back(buildSideKeyPos, NODE_ID);
-        joinNodeIDs.emplace(nodeID);
+        joinKeyNames.insert(key->getUniqueName());
     }
     for (auto& payload : payloads) {
-        if (joinNodeIDs.find(payload->getUniqueName()) != joinNodeIDs.end()) {
+        if (joinKeyNames.find(payload->getUniqueName()) != joinKeyNames.end()) {
             continue;
         }
         auto payloadPos = DataPos(buildSideSchema.getExpressionPos(*payload));
@@ -126,11 +124,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     // Populate build side and probe side vector positions
     auto paramsString = hashJoin->getExpressionsForPrinting();
     auto buildDataInfo = generateBuildDataInfo(
-        *buildSchema, hashJoin->getJoinNodes(), hashJoin->getExpressionsToMaterialize());
+        *buildSchema, hashJoin->getJoinNodeIDs(), hashJoin->getExpressionsToMaterialize());
     vector<DataPos> probeKeysDataPos;
-    for (auto& joinNode : hashJoin->getJoinNodes()) {
-        probeKeysDataPos.emplace_back(
-            outSchema->getExpressionPos(*joinNode->getInternalIDProperty()));
+    for (auto& joinNodeID : hashJoin->getJoinNodeIDs()) {
+        probeKeysDataPos.emplace_back(outSchema->getExpressionPos(*joinNodeID));
     }
     vector<DataPos> probePayloadsOutPos;
     for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
@@ -155,7 +152,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         paramsString);
     if (hashJoin->getIsProbeAcc()) {
         if (containASPOnPipeline(hashJoin)) {
-            mapASPJoin(hashJoin->getJoinNodes()[0].get(), hashJoinProbe.get());
+            mapASPJoin(hashJoin->getJoinNodeIDs()[0].get(), hashJoinProbe.get());
         } else {
             assert(containFTableScan(hashJoin));
             mapAccJoin(hashJoinProbe.get());

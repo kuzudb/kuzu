@@ -118,15 +118,14 @@ private:
 
 class ScanNodeID : public PhysicalOperator {
 public:
-    ScanNodeID(string nodeName, const DataPos& outDataPos,
+    ScanNodeID(string nodeID, const DataPos& outDataPos,
         shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_ID, id, paramsString},
-          nodeName{std::move(nodeName)}, outDataPos{outDataPos}, sharedState{
-                                                                     std::move(sharedState)} {}
+          nodeID{std::move(nodeID)}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 
-    inline string getNodeName() const { return nodeName; }
+    inline string getNodeID() const { return nodeID; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -134,7 +133,7 @@ public:
     bool getNextTuplesInternal() override;
 
     inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(nodeName, outDataPos, sharedState, id, paramsString);
+        return make_unique<ScanNodeID>(nodeID, outDataPos, sharedState, id, paramsString);
     }
 
 private:
@@ -144,7 +143,7 @@ private:
         ScanTableNodeIDSharedState* tableState, node_offset_t startOffset, node_offset_t endOffset);
 
 private:
-    string nodeName;
+    string nodeID;
     DataPos outDataPos;
     shared_ptr<ScanNodeIDSharedState> sharedState;
 

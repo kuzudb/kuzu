@@ -91,7 +91,7 @@ void LogicalPlanUtil::encodeCrossProduct(LogicalOperator* logicalOperator, strin
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, string& encodeString) {
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
-    encodeString += "I(" + logicalIntersect->getIntersectNode()->getRawName() + ")";
+    encodeString += "I(" + logicalIntersect->getIntersectNodeID()->getRawName() + ")";
 }
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, string& encodeString) {

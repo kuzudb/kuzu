@@ -8,7 +8,7 @@ namespace planner {
 void LogicalAccumulate::computeSchema() {
     auto childSchema = children[0]->getSchema();
     createEmptySchema();
-    SinkOperatorUtil::recomputeSchema(*childSchema, *schema);
+    SinkOperatorUtil::recomputeSchema(*childSchema, expressions, *schema);
 }
 
 } // namespace planner

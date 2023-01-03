@@ -19,8 +19,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
         auto nodeTable = nodesStore.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
     }
-    return make_unique<ScanNodeID>(node->getUniqueName(), dataPos, sharedState, getOperatorID(),
-        logicalScan->getExpressionsForPrinting());
+    return make_unique<ScanNodeID>(node->getInternalIDPropertyName(), dataPos, sharedState,
+        getOperatorID(), logicalScan->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(

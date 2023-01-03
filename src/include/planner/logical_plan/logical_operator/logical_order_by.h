@@ -15,7 +15,9 @@ public:
 
     void computeSchema() override;
 
-    string getExpressionsForPrinting() const override;
+    inline string getExpressionsForPrinting() const override {
+        return ExpressionUtil::toString(expressionsToOrderBy);
+    }
 
     inline expression_vector getExpressionsToOrderBy() const { return expressionsToOrderBy; }
     inline vector<bool> getIsAscOrders() const { return isAscOrders; }

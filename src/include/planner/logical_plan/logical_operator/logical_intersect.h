@@ -8,24 +8,24 @@ namespace kuzu {
 namespace planner {
 
 struct LogicalIntersectBuildInfo {
-    LogicalIntersectBuildInfo(shared_ptr<NodeExpression> key, expression_vector expressions)
-        : key{std::move(key)}, expressionsToMaterialize{std::move(expressions)} {}
+    LogicalIntersectBuildInfo(shared_ptr<Expression> keyNodeID, expression_vector expressions)
+        : keyNodeID{std::move(keyNodeID)}, expressionsToMaterialize{std::move(expressions)} {}
 
     inline unique_ptr<LogicalIntersectBuildInfo> copy() {
-        return make_unique<LogicalIntersectBuildInfo>(key, expressionsToMaterialize);
+        return make_unique<LogicalIntersectBuildInfo>(keyNodeID, expressionsToMaterialize);
     }
 
-    shared_ptr<NodeExpression> key;
+    shared_ptr<Expression> keyNodeID;
     expression_vector expressionsToMaterialize;
 };
 
 class LogicalIntersect : public LogicalOperator {
 public:
-    LogicalIntersect(shared_ptr<NodeExpression> intersectNode,
-        shared_ptr<LogicalOperator> probeChild, vector<shared_ptr<LogicalOperator>> buildChildren,
+    LogicalIntersect(shared_ptr<Expression> intersectNodeID, shared_ptr<LogicalOperator> probeChild,
+        vector<shared_ptr<LogicalOperator>> buildChildren,
         vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos)
         : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
-          intersectNode{std::move(intersectNode)}, buildInfos{std::move(buildInfos)} {
+          intersectNodeID{std::move(intersectNodeID)}, buildInfos{std::move(buildInfos)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
@@ -33,9 +33,9 @@ public:
 
     void computeSchema() override;
 
-    string getExpressionsForPrinting() const override { return intersectNode->getRawName(); }
+    string getExpressionsForPrinting() const override { return intersectNodeID->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getIntersectNode() const { return intersectNode; }
+    inline shared_ptr<Expression> getIntersectNodeID() const { return intersectNodeID; }
     inline LogicalIntersectBuildInfo* getBuildInfo(uint32_t idx) const {
         return buildInfos[idx].get();
     }
@@ -44,7 +44,7 @@ public:
     unique_ptr<LogicalOperator> copy() override;
 
 private:
-    shared_ptr<NodeExpression> intersectNode;
+    shared_ptr<Expression> intersectNodeID;
     vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
 };
 
