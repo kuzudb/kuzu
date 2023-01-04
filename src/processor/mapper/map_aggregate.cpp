@@ -66,9 +66,8 @@ unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
             auto& propertyExpression = (const PropertyExpression&)(*expressionToGroupBy);
             if (propertyExpression.isInternalID()) {
                 groupByHashExpressions.push_back(expressionToGroupBy);
-                HashPrimaryKeysNodeId.insert(propertyExpression.getChild(0)->getUniqueName());
-            } else if (HashPrimaryKeysNodeId.contains(
-                           propertyExpression.getChild(0)->getUniqueName())) {
+                HashPrimaryKeysNodeId.insert(propertyExpression.getVariableName());
+            } else if (HashPrimaryKeysNodeId.contains(propertyExpression.getVariableName())) {
                 groupByNonHashExpressions.push_back(expressionToGroupBy);
             } else {
                 groupByHashExpressions.push_back(expressionToGroupBy);

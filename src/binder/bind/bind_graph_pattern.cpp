@@ -60,6 +60,49 @@ static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpres
                           " are not connected through rel " + rel.getRawName() + ".");
 }
 
+static vector<std::pair<std::string, vector<Property>>> getPropertyNameAndSchemasPairs(
+    vector<std::string> propertyNames,
+    unordered_map<std::string, vector<Property>> propertyNamesToSchemas) {
+    vector<std::pair<std::string, vector<Property>>> propertyNameAndSchemasPairs;
+    for (auto& propertyName : propertyNames) {
+        auto propertySchemas = propertyNamesToSchemas.at(propertyName);
+        propertyNameAndSchemasPairs.emplace_back(propertyName, std::move(propertySchemas));
+    }
+    return propertyNameAndSchemasPairs;
+}
+
+static vector<std::pair<std::string, vector<Property>>> getRelPropertyNameAndPropertiesPairs(
+    const vector<RelTableSchema*>& relTableSchemas) {
+    vector<std::string> propertyNames; // preserve order as specified in catalog.
+    unordered_map<std::string, vector<Property>> propertyNamesToSchemas;
+    for (auto& relTableSchema : relTableSchemas) {
+        for (auto& property : relTableSchema->properties) {
+            if (!propertyNamesToSchemas.contains(property.name)) {
+                propertyNames.push_back(property.name);
+                propertyNamesToSchemas.insert({property.name, vector<Property>{}});
+            }
+            propertyNamesToSchemas.at(property.name).push_back(property);
+        }
+    }
+    return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
+}
+
+static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPropertiesPairs(
+    const vector<NodeTableSchema*>& nodeTableSchemas) {
+    vector<std::string> propertyNames; // preserve order as specified in catalog.
+    unordered_map<std::string, vector<Property>> propertyNamesToSchemas;
+    for (auto& nodeTableSchema : nodeTableSchemas) {
+        for (auto& property : nodeTableSchema->properties) {
+            if (!propertyNamesToSchemas.contains(property.name)) {
+                propertyNames.push_back(property.name);
+                propertyNamesToSchemas.insert({property.name, vector<Property>{}});
+            }
+            propertyNamesToSchemas.at(property.name).push_back(property);
+        }
+    }
+    return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
+}
+
 void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
     const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
@@ -79,6 +122,41 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
     // bind variable length
+    auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
+    auto queryRel = make_shared<RelExpression>(
+        getUniqueExpressionName(parsedName), tableIDs, srcNode, dstNode, lowerBound, upperBound);
+    queryRel->setAlias(parsedName);
+    queryRel->setRawName(parsedName);
+    validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
+    // resolve properties associate with rel table
+    vector<RelTableSchema*> relTableSchemas;
+    for (auto tableID : tableIDs) {
+        relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
+    }
+    // we don't support reading property for variable length rel yet.
+    if (!queryRel->isVariableLength()) {
+        for (auto& [propertyName, propertySchemas] :
+            getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
+            auto propertyExpression =
+                expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
+            queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+        }
+    }
+    if (!parsedName.empty()) {
+        variablesInScope.insert({parsedName, queryRel});
+    }
+    for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
+        auto [propertyName, rhs] = relPattern.getProperty(i);
+        auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
+        auto boundRhs = expressionBinder.bindExpression(*rhs);
+        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+        collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
+    }
+    queryGraph.addQueryRel(queryRel);
+}
+
+pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
+    const kuzu::parser::RelPattern& relPattern) {
     auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
     auto upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
@@ -87,27 +165,10 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         throw BinderException("Lower and upper bound of a rel must be greater than 0.");
     }
     if (lowerBound > upperBound) {
-        throw BinderException("Lower bound of rel " + parsedName + " is greater than upperBound.");
+        throw BinderException(
+            "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
     }
-    auto queryRel = make_shared<RelExpression>(
-        getUniqueExpressionName(parsedName), tableIDs, srcNode, dstNode, lowerBound, upperBound);
-    if (!queryRel->isVariableLength()) {
-        queryRel->setInternalIDProperty(expressionBinder.bindInternalIDExpression(queryRel));
-    }
-    queryRel->setAlias(parsedName);
-    queryRel->setRawName(parsedName);
-    validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
-    if (!parsedName.empty()) {
-        variablesInScope.insert({parsedName, queryRel});
-    }
-    for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
-        auto [propertyName, rhs] = relPattern.getProperty(i);
-        auto boundLhs = expressionBinder.bindRelPropertyExpression(queryRel, propertyName);
-        auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
-    }
-    queryGraph.addQueryRel(queryRel);
+    return make_pair(lowerBound, upperBound);
 }
 
 shared_ptr<NodeExpression> Binder::bindQueryNode(
@@ -129,7 +190,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
     }
     for (auto i = 0u; i < nodePattern.getNumPropertyKeyValPairs(); ++i) {
         auto [propertyName, rhs] = nodePattern.getProperty(i);
-        auto boundLhs = expressionBinder.bindNodePropertyExpression(queryNode, propertyName);
+        auto boundLhs = expressionBinder.bindNodePropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
@@ -142,9 +203,20 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     auto parsedName = nodePattern.getVariableName();
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
-    queryNode->setInternalIDProperty(expressionBinder.bindInternalIDExpression(queryNode));
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
+    queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
+    // resolve properties associate with node table
+    vector<NodeTableSchema*> nodeTableSchemas;
+    for (auto tableID : tableIDs) {
+        nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
+    }
+    for (auto& [propertyName, propertySchemas] :
+        getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
+        auto propertyExpression =
+            expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
+        queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
+    }
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryNode});
     }

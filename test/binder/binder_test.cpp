@@ -1,21 +1,11 @@
-#include "binder/binder.h"
-#include "common/configs.h"
-#include "gtest/gtest.h"
-#include "mock_catalog/mock_catalog.h"
-#include "parser/parser.h"
-
-using namespace kuzu::parser;
-using namespace kuzu::binder;
+#include "test_helper/test_helper.h"
 
 using ::testing::Test;
+using namespace kuzu::testing;
 
-class BinderTest : public Test {
-
+class BinderTest : public DBTest {
 public:
-    void SetUp() override { catalog.setUp(); }
-
-protected:
-    NiceMock<TinySnbCatalog> catalog;
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(BinderTest, VarLenExtendMaxDepthTest) {
@@ -23,7 +13,8 @@ TEST_F(BinderTest, VarLenExtendMaxDepthTest) {
     // upper bound will be set to VAR_LENGTH_EXTEND_MAX_DEPTH.
     auto input = "MATCH (a:person)-[:knows*2..32]->(b:person) return count(*)";
     auto boundRegularQuery =
-        Binder(catalog).bind(*reinterpret_cast<RegularQuery*>(Parser::parseQuery(input).get()));
+        Binder(*getCatalog(*database))
+            .bind(*reinterpret_cast<RegularQuery*>(Parser::parseQuery(input).get()));
     auto normalizedQueryPart =
         ((BoundRegularQuery*)boundRegularQuery.get())->getSingleQuery(0)->getQueryPart(0);
     for (auto i = 0u; i < normalizedQueryPart->getNumReadingClause(); i++) {

@@ -9,7 +9,7 @@ public:
 };
 
 TEST_F(TinySnbExceptionTest, ReadVarlengthRelPropertyTest1) {
-    auto result = conn->query("MATCH (a:person)-[e:knows*1..3]->(b:person) RETURN e;");
+    auto result = conn->query("MATCH (a:person)-[e:knows*1..3]->(b:person) RETURN e.age;");
     ASSERT_STREQ("Binder exception: Cannot read property of variable length rel e.",
         result->getErrorMessage().c_str());
 }

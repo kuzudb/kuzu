@@ -1,28 +1,16 @@
-#include "binder/binder.h"
-#include "gtest/gtest.h"
-#include "mock_catalog/mock_catalog.h"
-#include "parser/parser.h"
-
-using namespace kuzu::parser;
-using namespace kuzu::binder;
+#include "test_helper/test_helper.h"
 
 using ::testing::Test;
+using namespace kuzu::testing;
 
-class BinderErrorTest : public Test {
-
+class BinderErrorTest : public DBTest {
 public:
-    void SetUp() override { catalog.setUp(); }
+    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     string getBindingError(const string& input) {
-        try {
-            auto parsedQuery = Parser::parseQuery(input);
-            Binder(catalog).bind(*parsedQuery);
-        } catch (const Exception& exception) { return exception.what(); }
-        return string();
+        auto result = conn->query(input);
+        return result->getErrorMessage();
     }
-
-private:
-    NiceMock<TinySnbCatalog> catalog;
 };
 
 TEST_F(BinderErrorTest, NodeTableNotExist) {
@@ -201,14 +189,14 @@ TEST_F(BinderErrorTest, OrderByWithoutSkipLimitInWithClause) {
 TEST_F(BinderErrorTest, UnionAllUnmatchedNumberOfExpressions) {
     string expectedException =
         "Binder exception: The number of columns to union/union all must be the same.";
-    auto input = "MATCH (p:person) RETURN p.age,p.name UNION ALL MATCH (p1:person) RETURN p1.age";
+    auto input = "MATCH (p:person) RETURN p.age,p.fName UNION ALL MATCH (p1:person) RETURN p1.age";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, UnionAllUnmatchedDataTypesOfExpressions) {
     string expectedException =
         "Binder exception: p1.age has data type INT64. (STRING) was expected.";
-    auto input = "MATCH (p:person) RETURN p.name UNION ALL MATCH (p1:person) RETURN p1.age";
+    auto input = "MATCH (p:person) RETURN p.fName UNION ALL MATCH (p1:person) RETURN p1.age";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -242,8 +230,8 @@ TEST_F(BinderErrorTest, CreateNodeDataTypeMisMatch) {
 
 TEST_F(BinderErrorTest, CreateRelDataTypeMisMatch) {
     string expectedException = "Binder exception: Expression 12 has data type INT64 but expect "
-                               "STRING. Implicit cast is not supported.";
-    auto input = "CREATE (a:person)-[:knows {description:12}]->(b:person)";
+                               "DATE. Implicit cast is not supported.";
+    auto input = "CREATE (a:person)-[:knows {date:12}]->(b:person)";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
@@ -256,7 +244,7 @@ TEST_F(BinderErrorTest, ReadAfterUpdate1) {
 
 TEST_F(BinderErrorTest, ReadAfterUpdate3) {
     string expectedException = "Binder exception: Return/With after update is not supported.";
-    auto input = "MATCH (a:person) SET a.age=3 RETURN a.name";
+    auto input = "MATCH (a:person) SET a.age=3 RETURN a.fName";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "common/exception.h"
 #include "common/expression_type.h"
 #include "common/types/types_include.h"
 
@@ -83,6 +84,10 @@ public:
     expression_vector getTopLevelSubSubqueryExpressions();
 
     expression_vector splitOnAND();
+
+    virtual unique_ptr<Expression> copy() const {
+        throw InternalException("Unimplemented expression copy().");
+    }
 
 protected:
     bool hasSubExpressionOfType(

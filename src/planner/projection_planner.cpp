@@ -262,8 +262,11 @@ expression_vector ProjectionPlanner::rewriteVariableAsAllPropertiesInScope(
     const Expression& variable, const Schema& schema) {
     expression_vector result;
     for (auto& expression : schema.getExpressionsInScope()) {
-        if (expression->expressionType == PROPERTY &&
-            expression->getChild(0)->getUniqueName() == variable.getUniqueName()) {
+        if (expression->expressionType != common::PROPERTY) {
+            continue;
+        }
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        if (propertyExpression->getVariableName() == variable.getUniqueName()) {
             result.push_back(expression);
         }
     }

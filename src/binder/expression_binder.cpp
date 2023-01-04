@@ -143,35 +143,21 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
     if (NODE == child->dataType.typeID) {
-        return bindNodePropertyExpression(child, propertyName);
+        return bindNodePropertyExpression(*child, propertyName);
     } else {
         assert(REL == child->dataType.typeID);
-        return bindRelPropertyExpression(child, propertyName);
-    }
-}
-
-// E.g. MATCH (a:person:org) RETURN a.dummy
-static void validatePropertyExistence(
-    const vector<Property>& properties, const string& propertyName, const string& variableName) {
-    if (properties.empty()) {
-        throw BinderException(
-            "Cannot find property " + propertyName + " for " + variableName + ".");
+        return bindRelPropertyExpression(*child, propertyName);
     }
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
-    shared_ptr<Expression> node, const string& propertyName) {
-    auto catalogContent = binder->catalog.getReadOnlyVersion();
-    auto nodeExpression = static_pointer_cast<NodeExpression>(node);
-    vector<Property> properties;
-    for (auto tableID : nodeExpression->getTableIDs()) {
-        if (!catalogContent->containNodeProperty(tableID, propertyName)) {
-            continue;
-        }
-        properties.push_back(catalogContent->getNodeProperty(tableID, propertyName));
+    const Expression& expression, const string& propertyName) {
+    auto& nodeOrRel = (NodeOrRelExpression&)expression;
+    if (!nodeOrRel.hasPropertyExpression(propertyName)) {
+        throw BinderException(
+            "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
     }
-    validatePropertyExistence(properties, propertyName, nodeExpression->getRawName());
-    return bindNodePropertyExpression(node, properties);
+    return nodeOrRel.getPropertyExpression(propertyName);
 }
 
 static void validatePropertiesWithSameDataType(const vector<Property>& properties,
@@ -193,44 +179,28 @@ static unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
     return propertyIDPerTable;
 }
 
-shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
-    shared_ptr<Expression> node, const vector<Property>& properties) {
-    assert(!properties.empty());
-    auto anchorProperty = properties[0];
-    validatePropertiesWithSameDataType(
-        properties, anchorProperty.dataType, anchorProperty.name, node->getRawName());
-    return make_shared<PropertyExpression>(anchorProperty.dataType, anchorProperty.name,
-        populatePropertyIDPerTable(properties), std::move(node));
-}
-
 shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
-    shared_ptr<Expression> rel, const string& propertyName) {
-    auto catalogContent = binder->catalog.getReadOnlyVersion();
-    auto relExpression = static_pointer_cast<RelExpression>(rel);
-    vector<Property> properties;
-    for (auto tableID : relExpression->getTableIDs()) {
-        if (!catalogContent->containRelProperty(tableID, propertyName)) {
-            continue;
-        }
-        properties.push_back(catalogContent->getRelProperty(tableID, propertyName));
-    }
-    validatePropertyExistence(properties, propertyName, relExpression->getRawName());
-    return bindRelPropertyExpression(rel, properties);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
-    shared_ptr<Expression> rel, const vector<Property>& properties) {
-    auto relExpression = static_pointer_cast<RelExpression>(rel);
-    if (relExpression->isVariableLength()) {
+    const Expression& expression, const string& propertyName) {
+    auto& rel = (RelExpression&)expression;
+    if (rel.isVariableLength()) {
         throw BinderException(
-            "Cannot read property of variable length rel " + rel->getRawName() + ".");
+            "Cannot read property of variable length rel " + rel.getRawName() + ".");
     }
+    if (!rel.hasPropertyExpression(propertyName)) {
+        throw BinderException(
+            "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
+    }
+    return rel.getPropertyExpression(propertyName);
+}
+
+unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
+    const Expression& nodeOrRel, const vector<Property>& properties) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
     validatePropertiesWithSameDataType(
-        properties, anchorProperty.dataType, anchorProperty.name, rel->getRawName());
-    return make_shared<PropertyExpression>(anchorProperty.dataType, anchorProperty.name,
-        populatePropertyIDPerTable(properties), std::move(rel));
+        properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
+    return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,
+        populatePropertyIDPerTable(properties));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
@@ -290,7 +260,7 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         // rewrite aggregate on node or rel as aggregate on their internal IDs.
         // e.g. COUNT(a) -> COUNT(a._id)
         if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
-            child = bindInternalIDExpression(child);
+            child = bindInternalIDExpression(*child);
         }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
@@ -329,37 +299,29 @@ shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
-    return bindInternalIDExpression(child);
+    return bindInternalIDExpression(*child);
 }
 
-shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
-    shared_ptr<Expression> nodeOrRel) {
-    if (nodeOrRel->dataType.typeID == NODE) {
-        return bindInternalNodeIDExpression(nodeOrRel);
+shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(const Expression& expression) {
+    if (expression.dataType.typeID == NODE) {
+        auto& node = (NodeExpression&)expression;
+        return node.getInternalIDProperty();
     } else {
-        assert(nodeOrRel->dataType.typeID == REL);
-        return bindInternalRelIDExpression(nodeOrRel);
+        assert(expression.dataType.typeID == REL);
+        return bindRelPropertyExpression(expression, INTERNAL_ID_SUFFIX);
     }
 }
 
-shared_ptr<Expression> ExpressionBinder::bindInternalNodeIDExpression(shared_ptr<Expression> node) {
-    auto nodeExpression = (NodeExpression*)node.get();
+unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
+    const Expression& expression) {
+    auto& node = (NodeExpression&)expression;
     unordered_map<table_id_t, property_id_t> propertyIDPerTable;
-    for (auto tableID : nodeExpression->getTableIDs()) {
+    for (auto tableID : node.getTableIDs()) {
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
-    return make_unique<PropertyExpression>(
-        DataType(NODE_ID), INTERNAL_ID_SUFFIX, std::move(propertyIDPerTable), node);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindInternalRelIDExpression(shared_ptr<Expression> rel) {
-    auto relExpression = (RelExpression*)rel.get();
-    vector<Property> properties;
-    for (auto tableID : relExpression->getTableIDs()) {
-        auto relTableSchema = binder->catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-        properties.push_back(relTableSchema->getRelIDDefinition());
-    }
-    return bindRelPropertyExpression(rel, properties);
+    auto result = make_unique<PropertyExpression>(
+        DataType(NODE_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
+    return result;
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(

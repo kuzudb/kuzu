@@ -166,15 +166,14 @@ static expression_vector getCorrelatedExpressions(
     return result;
 }
 
-static vector<shared_ptr<NodeExpression>> getJoinNodes(expression_vector& expressions) {
-    vector<shared_ptr<NodeExpression>> joinNodes;
+static expression_vector getJoinNodeIDs(expression_vector& expressions) {
+    expression_vector joinNodeIDs;
     for (auto& expression : expressions) {
         if (expression->dataType.typeID == NODE_ID) {
-            auto node = static_pointer_cast<NodeExpression>(expression->getChild(0));
-            joinNodes.push_back(std::move(node));
+            joinNodeIDs.push_back(expression);
         }
     }
-    return joinNodes;
+    return joinNodeIDs;
 }
 
 void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
@@ -185,19 +184,19 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         throw NotImplementedException("Optional match is disconnected with previous MATCH clause.");
     }
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
-        auto joinNodes = getJoinNodes(correlatedExpressions);
+        auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
         // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
         // scan only scans node ID and does not scan from storage (i.e. no property scan).
         auto prevContext = joinOrderEnumerator.enterSubquery(
-            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
+            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
         auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        for (auto& joinNode : joinNodes) {
-            appendFlattenIfNecessary(joinNode->getInternalIDProperty(), outerPlan);
+        for (auto& joinNodeID : joinNodeIDs) {
+            appendFlattenIfNecessary(joinNodeID, outerPlan);
         }
-        JoinOrderEnumerator::planLeftHashJoin(joinNodes, outerPlan, *bestInnerPlan);
+        JoinOrderEnumerator::planLeftHashJoin(joinNodeIDs, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
     }
@@ -207,7 +206,7 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     expression_vector& predicates, LogicalPlan& prevPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraphCollection, predicates, prevPlan.getSchema());
-    auto joinNodes = getJoinNodes(correlatedExpressions);
+    auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
@@ -222,14 +221,14 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     // from outer (i.e. can always be un-nest). So we plan multi-part query in the same way as
     // planning an un-nest subquery.
     auto prevContext = joinOrderEnumerator.enterSubquery(
-        &prevPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
+        &prevPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
     auto plans = joinOrderEnumerator.enumerate(queryGraphCollection, predicatesToPushDown);
     joinOrderEnumerator.exitSubquery(std::move(prevContext));
     auto bestPlan = getBestPlan(std::move(plans));
-    if (joinNodes.empty()) {
+    if (joinNodeIDs.empty()) {
         JoinOrderEnumerator::planCrossProduct(prevPlan, *bestPlan);
     } else {
-        JoinOrderEnumerator::planInnerHashJoin(joinNodes, prevPlan, *bestPlan);
+        JoinOrderEnumerator::planInnerHashJoin(joinNodeIDs, prevPlan, *bestPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
         appendFilter(predicate, prevPlan);
@@ -244,17 +243,17 @@ void QueryPlanner::planExistsSubquery(shared_ptr<Expression>& expression, Logica
         throw NotImplementedException("Subquery is disconnected with outer query.");
     }
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
-        auto joinNodes = getJoinNodes(correlatedExpressions);
+        auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(
-            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodes);
+            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
         auto predicates = subquery->hasWhereExpression() ?
                               subquery->getWhereExpression()->splitOnAND() :
                               expression_vector{};
         auto bestInnerPlan = getBestPlan(
             joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        JoinOrderEnumerator::planMarkJoin(joinNodes, expression, outerPlan, *bestInnerPlan);
+        JoinOrderEnumerator::planMarkJoin(joinNodeIDs, expression, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated exists subquery is not supported.");
     }
@@ -420,10 +419,10 @@ vector<unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
 
 expression_vector QueryPlanner::getPropertiesForNode(NodeExpression& node) {
     expression_vector result;
-    for (auto& property : propertiesToScan) {
-        if (property->getChild(0)->getUniqueName() == node.getUniqueName()) {
-            assert(property->getChild(0)->dataType.typeID == NODE);
-            result.push_back(property);
+    for (auto& expression : propertiesToScan) {
+        auto property = (PropertyExpression*)expression.get();
+        if (property->getVariableName() == node.getUniqueName()) {
+            result.push_back(expression);
         }
     }
     return result;
@@ -431,10 +430,10 @@ expression_vector QueryPlanner::getPropertiesForNode(NodeExpression& node) {
 
 expression_vector QueryPlanner::getPropertiesForRel(RelExpression& rel) {
     expression_vector result;
-    for (auto& property : propertiesToScan) {
-        if (property->getChild(0)->getUniqueName() == rel.getUniqueName()) {
-            assert(property->getChild(0)->dataType.typeID == REL);
-            result.push_back(property);
+    for (auto& expression : propertiesToScan) {
+        auto property = (PropertyExpression*)expression.get();
+        if (property->getVariableName() == rel.getUniqueName()) {
+            result.push_back(expression);
         }
     }
     return result;

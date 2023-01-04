@@ -153,7 +153,7 @@ public:
         // scans the backward list of the knows table. If this test fails (eg. we have updated the
         // planner), we should consider changing to a new query which scans the BWD list with
         // the new planner.
-        validateQueryBestPlanJoinOrder(query, "HJ(a){E(a)S(b)}{S(a)}");
+        validateQueryBestPlanJoinOrder(query, "HJ(a._id){E(a)S(b)}{S(a)}");
         auto numRelsToInsert = 100;
         insertRelsToKnowsTable(PERSON_TABLE_ID, ANIMAL_TABLE_ID, numRelsToInsert);
         conn->beginWriteTransaction();
@@ -479,8 +479,8 @@ public:
                                         (afterRollback ? 0 : numInsertedRels));
         // We want to make sure that this query scans the BWD list of person. If the planner
         // changes, we should consider making another query that scans the BWD list.
-        validateQueryBestPlanJoinOrder(
-            "MATCH (p1:person)-[:teaches]->(p2:person) return p1.ID", "HJ(p2){E(p2)S(p1)}{S(p2)}");
+        validateQueryBestPlanJoinOrder("MATCH (p1:person)-[:teaches]->(p2:person) return p1.ID",
+            "HJ(p2._id){E(p2)S(p1)}{S(p2)}");
     }
 
     void insertNodesToPersonAndQueryRels(bool isCommit, TransactionTestType transactionTestType) {

@@ -40,7 +40,9 @@ public:
 
     void computeSchema() override;
 
-    string getExpressionsForPrinting() const override;
+    inline string getExpressionsForPrinting() const override {
+        return ExpressionUtil::toString(joinNodeIDs);
+    }
 
     inline expression_vector getExpressionsToMaterialize() const {
         return expressionsToMaterialize;

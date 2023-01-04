@@ -9,22 +9,22 @@ using namespace kuzu::binder;
 
 class LogicalSemiMasker : public LogicalOperator {
 public:
-    LogicalSemiMasker(shared_ptr<NodeExpression> node, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, node{std::move(
-                                                                                   node)} {}
+    LogicalSemiMasker(shared_ptr<Expression> nodeID, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, nodeID{std::move(
+                                                                                   nodeID)} {}
 
     inline void computeSchema() override { copyChildSchema(0); }
 
-    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
+    inline string getExpressionsForPrinting() const override { return nodeID->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getNode() const { return node; }
+    inline shared_ptr<Expression> getNodeID() const { return nodeID; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSemiMasker>(node, children[0]->copy());
+        return make_unique<LogicalSemiMasker>(nodeID, children[0]->copy());
     }
 
 private:
-    shared_ptr<NodeExpression> node;
+    shared_ptr<Expression> nodeID;
 };
 
 } // namespace planner

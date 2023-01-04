@@ -95,8 +95,6 @@ private:
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
     // For RETURN clause, we write variable "v" as all properties of "v"
     expression_vector rewriteProjectionExpressions(const expression_vector& expressions);
-    expression_vector rewriteAsAllProperties(
-        const shared_ptr<Expression>& expression, DataTypeID nodeOrRelType);
 
     void bindOrderBySkipLimitIfNecessary(
         BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);
@@ -117,6 +115,7 @@ private:
     void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
         const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
+    pair<uint64_t, uint64_t> bindVariableLengthRelBound(const RelPattern& relPattern);
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);

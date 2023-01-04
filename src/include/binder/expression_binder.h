@@ -34,15 +34,15 @@ private:
 
     shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
 
+    // bind to an existing property expression.
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
+    // bind to an existing property expression of given node table.
     shared_ptr<Expression> bindNodePropertyExpression(
-        shared_ptr<Expression> node, const string& propertyName);
-    shared_ptr<Expression> bindNodePropertyExpression(
-        shared_ptr<Expression> node, const vector<Property>& properties);
+        const Expression& expression, const string& propertyName);
     shared_ptr<Expression> bindRelPropertyExpression(
-        shared_ptr<Expression> rel, const string& propertyName);
-    shared_ptr<Expression> bindRelPropertyExpression(
-        shared_ptr<Expression> rel, const vector<Property>& property);
+        const Expression& expression, const string& propertyName);
+    unique_ptr<Expression> createPropertyExpression(
+        const Expression& nodeOrRel, const vector<Property>& propertyName);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindScalarFunctionExpression(
@@ -54,9 +54,8 @@ private:
         const ParsedExpression& parsedExpression, const expression_vector& children);
 
     shared_ptr<Expression> bindInternalIDExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindInternalIDExpression(shared_ptr<Expression> nodeOrRel);
-    shared_ptr<Expression> bindInternalNodeIDExpression(shared_ptr<Expression> node);
-    shared_ptr<Expression> bindInternalRelIDExpression(shared_ptr<Expression> rel);
+    shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
+    unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
 
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 

@@ -165,9 +165,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
     auto inSchema = logicalSemiMasker->getChild(0)->getSchema();
-    auto node = logicalSemiMasker->getNode();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto keyDataPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
+    auto keyDataPos = DataPos(inSchema->getExpressionPos(*logicalSemiMasker->getNodeID()));
     return make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
         logicalSemiMasker->getExpressionsForPrinting());
 }

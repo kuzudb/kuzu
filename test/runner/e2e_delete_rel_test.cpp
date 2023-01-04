@@ -160,7 +160,7 @@ public:
         // scans the backward list of the knows table. If this test fails (eg. we have updated the
         // planner), we should consider changing to a new query which scans the BWD list with
         // the new planner.
-        validateQueryBestPlanJoinOrder(query, "HJ(a){E(a)S(b)}{S(a)}");
+        validateQueryBestPlanJoinOrder(query, "HJ(a._id){E(a)S(b)}{S(a)}");
         conn->beginWriteTransaction();
         // We insert 10 rels: person[0..10]->animal0.
         for (auto i = 0u; i < 10; i++) {
