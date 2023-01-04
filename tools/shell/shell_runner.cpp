@@ -28,7 +28,12 @@ int main(int argc, char* argv[]) {
     cout << "Enter \":help\" for usage hints." << endl;
     SystemConfig systemConfig(bpSizeInMB << 20);
     DatabaseConfig databaseConfig(databasePath, inMemoryFlag);
-    auto shell = EmbeddedShell(databaseConfig, systemConfig);
-    shell.run();
+    try {
+        auto shell = EmbeddedShell(databaseConfig, systemConfig);
+        shell.run();
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        return 1;
+    }
     return 0;
 }

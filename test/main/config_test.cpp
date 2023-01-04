@@ -19,3 +19,13 @@ TEST_F(ApiTest, ClientConfig) {
     ASSERT_NO_THROW(conn->setMaxNumThreadForExec(2));
     ASSERT_EQ(conn->getMaxNumThreadForExec(), 2);
 }
+
+TEST_F(ApiTest, DatabasePathIncorrect) {
+    spdlog::set_level(spdlog::level::debug);
+    try {
+        make_unique<Database>(DatabaseConfig("/\\0:* /? \" < > |"));
+        FAIL();
+    } catch (Exception& e) {
+        ASSERT_TRUE(string(e.what()).find("Failed to create directory") != string::npos);
+    }
+}
