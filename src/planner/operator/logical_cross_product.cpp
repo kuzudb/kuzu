@@ -9,7 +9,7 @@ void LogicalCrossProduct::computeSchema() {
     auto probeSchema = children[0]->getSchema();
     auto buildSchema = children[1]->getSchema();
     schema = probeSchema->copy();
-    SinkOperatorUtil::mergeSchema(*buildSchema, *schema);
+    SinkOperatorUtil::mergeSchema(*buildSchema, buildSchema->getExpressionsInScope(), *schema);
 }
 
 } // namespace planner

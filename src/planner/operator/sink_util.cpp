@@ -4,102 +4,56 @@ namespace kuzu {
 namespace planner {
 
 void SinkOperatorUtil::mergeSchema(
-    const Schema& inputSchema, Schema& result, const vector<string>& keys) {
-    unordered_map<uint32_t, vector<string>> keyGroupPosToKeysMap;
-    for (auto& key : keys) {
-        auto groupPos = inputSchema.getGroupPos(key);
-        keyGroupPosToKeysMap[groupPos].push_back(key);
-    }
-    for (auto& [keyGroupPos, keysInGroup] : keyGroupPosToKeysMap) {
-        mergeKeyGroup(inputSchema, result, keyGroupPos, keysInGroup);
-    }
-    if (getGroupsPosIgnoringKeyGroups(inputSchema, keys).empty()) { // nothing else to merge
-        return;
-    }
-    auto flatPayloads = getFlatPayloadsIgnoringKeyGroup(inputSchema, keys);
-    if (!flatPayloads.empty()) {
-        auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
-        result.setGroupAsSingleState(flatPayloadsOutputGroupPos);
-    }
-    for (auto& payloadGroupPos : getGroupsPosIgnoringKeyGroups(inputSchema, keys)) {
-        auto payloadGroup = inputSchema.getGroup(payloadGroupPos);
-        if (!payloadGroup->isFlat()) {
-            auto payloads = inputSchema.getExpressionsInScope(payloadGroupPos);
-            auto outputGroupPos = appendPayloadsToNewGroup(result, payloads);
-            result.getGroup(outputGroupPos)->setMultiplier(payloadGroup->getMultiplier());
-        }
-    }
-}
-
-void SinkOperatorUtil::mergeSchema(const Schema& inputSchema, Schema& result) {
-    auto flatPayloads = getFlatPayloads(inputSchema);
-    if (!hasUnFlatPayload(inputSchema)) {
-        appendPayloadsToNewGroup(result, flatPayloads);
+    const Schema& inputSchema, const expression_vector& expressionsToMerge, Schema& resultSchema) {
+    auto flatPayloads = getFlatPayloads(inputSchema, expressionsToMerge);
+    auto unFlatPayloadsPerGroup = getUnFlatPayloadsPerGroup(inputSchema, expressionsToMerge);
+    if (unFlatPayloadsPerGroup.empty()) {
+        appendPayloadsToNewGroup(resultSchema, flatPayloads);
     } else {
         if (!flatPayloads.empty()) {
-            auto flatPayloadsOutputGroupPos = appendPayloadsToNewGroup(result, flatPayloads);
-            result.setGroupAsSingleState(flatPayloadsOutputGroupPos);
+            auto groupPos = appendPayloadsToNewGroup(resultSchema, flatPayloads);
+            resultSchema.setGroupAsSingleState(groupPos);
         }
-        for (auto& payloadGroupPos : inputSchema.getGroupsPosInScope()) {
-            auto payloadGroup = inputSchema.getGroup(payloadGroupPos);
-            if (!payloadGroup->isFlat()) {
-                auto payloads = inputSchema.getExpressionsInScope(payloadGroupPos);
-                auto outputGroupPos = appendPayloadsToNewGroup(result, payloads);
-                result.getGroup(outputGroupPos)->setMultiplier(payloadGroup->getMultiplier());
-            }
+        for (auto& [inputGroupPos, payloads] : unFlatPayloadsPerGroup) {
+            auto resultGroupPos = appendPayloadsToNewGroup(resultSchema, payloads);
+            resultSchema.getGroup(resultGroupPos)
+                ->setMultiplier(inputSchema.getGroup(inputGroupPos)->getMultiplier());
         }
     }
 }
 
-void SinkOperatorUtil::recomputeSchema(const Schema& inputSchema, Schema& result) {
-    assert(!inputSchema.getExpressionsInScope().empty());
-    result.clear();
-    mergeSchema(inputSchema, result);
+void SinkOperatorUtil::recomputeSchema(
+    const Schema& inputSchema, const expression_vector& expressionsToMerge, Schema& resultSchema) {
+    assert(!expressionsToMerge.empty());
+    resultSchema.clear();
+    mergeSchema(inputSchema, expressionsToMerge, resultSchema);
 }
 
-unordered_set<uint32_t> SinkOperatorUtil::getGroupsPosIgnoringKeyGroups(
-    const Schema& schema, const vector<string>& keys) {
-    auto payloadGroupsPos = schema.getGroupsPosInScope();
-    for (auto& key : keys) {
-        auto keyGroupPos = schema.getGroupPos(key);
-        payloadGroupsPos.erase(keyGroupPos);
-    }
-    return payloadGroupsPos;
-}
-
-void SinkOperatorUtil::mergeKeyGroup(const Schema& inputSchema, Schema& resultSchema,
-    uint32_t keyGroupPos, const vector<string>& keysInGroup) {
-    auto resultKeyGroupPos = resultSchema.getGroupPos(keysInGroup[0]);
-    for (auto& expression : inputSchema.getExpressionsInScope(keyGroupPos)) {
-        if (find(keysInGroup.begin(), keysInGroup.end(), expression->getUniqueName()) !=
-            keysInGroup.end()) {
+unordered_map<f_group_pos, expression_vector> SinkOperatorUtil::getUnFlatPayloadsPerGroup(
+    const Schema& schema, const expression_vector& payloads) {
+    unordered_map<f_group_pos, expression_vector> result;
+    for (auto& payload : payloads) {
+        auto groupPos = schema.getGroupPos(*payload);
+        if (schema.getGroup(groupPos)->isFlat()) {
             continue;
         }
-        resultSchema.insertToGroupAndScope(expression, resultKeyGroupPos);
-    }
-}
-
-expression_vector SinkOperatorUtil::getFlatPayloads(
-    const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
-    expression_vector result;
-    for (auto& payloadGroupPos : payloadGroupsPos) {
-        if (schema.getGroup(payloadGroupPos)->isFlat()) {
-            for (auto& payload : schema.getExpressionsInScope(payloadGroupPos)) {
-                result.push_back(payload);
-            }
+        if (!result.contains(groupPos)) {
+            result.insert({groupPos, expression_vector{}});
         }
+        result.at(groupPos).push_back(payload);
     }
     return result;
 }
 
-bool SinkOperatorUtil::hasUnFlatPayload(
-    const Schema& schema, const unordered_set<uint32_t>& payloadGroupsPos) {
-    for (auto& payloadGroupPos : payloadGroupsPos) {
-        if (!schema.getGroup(payloadGroupPos)->isFlat()) {
-            return true;
+expression_vector SinkOperatorUtil::getFlatPayloads(
+    const Schema& schema, const expression_vector& payloads) {
+    expression_vector result;
+    for (auto& payload : payloads) {
+        if (schema.getGroup(payload)->isFlat()) {
+            result.push_back(payload);
         }
     }
-    return false;
+    return result;
 }
 
 uint32_t SinkOperatorUtil::appendPayloadsToNewGroup(Schema& schema, expression_vector& payloads) {

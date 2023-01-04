@@ -10,6 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
+typedef uint32_t f_group_pos;
+
 class FactorizationGroup {
     friend class Schema;
 
@@ -56,7 +58,7 @@ private:
 
 class Schema {
 public:
-    inline uint32_t getNumGroups() const { return groups.size(); }
+    inline f_group_pos getNumGroups() const { return groups.size(); }
 
     inline FactorizationGroup* getGroup(shared_ptr<Expression> expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));
@@ -68,7 +70,7 @@ public:
 
     inline FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
 
-    uint32_t createGroup();
+    f_group_pos createGroup();
 
     void insertToScope(const shared_ptr<Expression>& expression, uint32_t groupPos);
 
@@ -76,28 +78,28 @@ public:
 
     void insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos);
 
-    inline uint32_t getGroupPos(const Expression& expression) const {
+    inline f_group_pos getGroupPos(const Expression& expression) const {
         return getGroupPos(expression.getUniqueName());
     }
 
-    inline uint32_t getGroupPos(const string& expressionName) const {
+    inline f_group_pos getGroupPos(const string& expressionName) const {
         assert(expressionNameToGroupPos.contains(expressionName));
         return expressionNameToGroupPos.at(expressionName);
     }
 
-    inline pair<uint32_t, uint32_t> getExpressionPos(const Expression& expression) const {
+    inline pair<f_group_pos, uint32_t> getExpressionPos(const Expression& expression) const {
         auto groupPos = getGroupPos(expression);
         return make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }
 
-    inline void flattenGroup(uint32_t pos) { groups[pos]->setFlat(); }
-    inline void setGroupAsSingleState(uint32_t pos) { groups[pos]->setSingleState(); }
+    inline void flattenGroup(f_group_pos pos) { groups[pos]->setFlat(); }
+    inline void setGroupAsSingleState(f_group_pos pos) { groups[pos]->setSingleState(); }
 
     bool isExpressionInScope(const Expression& expression) const;
 
     inline expression_vector getExpressionsInScope() const { return expressionsInScope; }
 
-    expression_vector getExpressionsInScope(uint32_t pos) const;
+    expression_vector getExpressionsInScope(f_group_pos pos) const;
 
     expression_vector getSubExpressionsInScope(const shared_ptr<Expression>& expression);
 
@@ -109,7 +111,7 @@ public:
     }
 
     // Get the group positions containing at least one expression in scope.
-    unordered_set<uint32_t> getGroupsPosInScope() const;
+    unordered_set<f_group_pos> getGroupsPosInScope() const;
 
     unique_ptr<Schema> copy() const;
 
@@ -121,6 +123,12 @@ private:
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
     expression_vector expressionsInScope;
+};
+
+class SchemaUtils {
+public:
+    static vector<expression_vector> getExpressionsPerGroup(
+        const expression_vector& expressions, const Schema& schema);
 };
 
 } // namespace planner

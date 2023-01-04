@@ -3,26 +3,26 @@
 namespace kuzu {
 namespace planner {
 
-uint32_t Schema::createGroup() {
+f_group_pos Schema::createGroup() {
     auto pos = groups.size();
     groups.push_back(make_unique<FactorizationGroup>());
     return pos;
 }
 
-void Schema::insertToScope(const shared_ptr<Expression>& expression, uint32_t groupPos) {
+void Schema::insertToScope(const shared_ptr<Expression>& expression, f_group_pos groupPos) {
     assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     expressionsInScope.push_back(expression);
 }
 
-void Schema::insertToGroupAndScope(const shared_ptr<Expression>& expression, uint32_t groupPos) {
+void Schema::insertToGroupAndScope(const shared_ptr<Expression>& expression, f_group_pos groupPos) {
     assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);
     expressionsInScope.push_back(expression);
 }
 
-void Schema::insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos) {
+void Schema::insertToGroupAndScope(const expression_vector& expressions, f_group_pos groupPos) {
     for (auto& expression : expressions) {
         insertToGroupAndScope(expression, groupPos);
     }
@@ -37,7 +37,7 @@ bool Schema::isExpressionInScope(const Expression& expression) const {
     return false;
 }
 
-expression_vector Schema::getExpressionsInScope(uint32_t pos) const {
+expression_vector Schema::getExpressionsInScope(f_group_pos pos) const {
     expression_vector result;
     for (auto& expression : expressionsInScope) {
         if (getGroupPos(expression->getUniqueName()) == pos) {
@@ -61,16 +61,16 @@ expression_vector Schema::getSubExpressionsInScope(const shared_ptr<Expression>&
     return results;
 }
 
-unordered_set<uint32_t> Schema::getDependentGroupsPos(const shared_ptr<Expression>& expression) {
-    unordered_set<uint32_t> result;
+unordered_set<f_group_pos> Schema::getDependentGroupsPos(const shared_ptr<Expression>& expression) {
+    unordered_set<f_group_pos> result;
     for (auto& subExpression : getSubExpressionsInScope(expression)) {
         result.insert(getGroupPos(subExpression->getUniqueName()));
     }
     return result;
 }
 
-unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
-    unordered_set<uint32_t> result;
+unordered_set<f_group_pos> Schema::getGroupsPosInScope() const {
+    unordered_set<f_group_pos> result;
     for (auto& expressionInScope : expressionsInScope) {
         result.insert(getGroupPos(expressionInScope->getUniqueName()));
     }
@@ -90,6 +90,17 @@ unique_ptr<Schema> Schema::copy() const {
 void Schema::clear() {
     groups.clear();
     clearExpressionsInScope();
+}
+
+vector<expression_vector> SchemaUtils::getExpressionsPerGroup(
+    const binder::expression_vector& expressions, const Schema& schema) {
+    vector<expression_vector> result;
+    result.resize(schema.getNumGroups());
+    for (auto& expression : expressions) {
+        auto groupPos = schema.getGroupPos(*expression);
+        result[groupPos].push_back(expression);
+    }
+    return result;
 }
 
 } // namespace planner

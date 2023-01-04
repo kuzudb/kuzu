@@ -7,11 +7,9 @@ namespace planner {
 
 class LogicalUnion : public LogicalOperator {
 public:
-    LogicalUnion(expression_vector expressions, vector<unique_ptr<Schema>> schemasBeforeUnion,
-        vector<shared_ptr<LogicalOperator>> children)
+    LogicalUnion(expression_vector expressions, vector<shared_ptr<LogicalOperator>> children)
         : LogicalOperator{LogicalOperatorType::UNION_ALL, std::move(children)},
-          expressionsToUnion{std::move(expressions)}, schemasBeforeUnion{
-                                                          std::move(schemasBeforeUnion)} {}
+          expressionsToUnion{std::move(expressions)} {}
 
     void computeSchema() override;
 
@@ -19,13 +17,12 @@ public:
 
     inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
 
-    inline Schema* getSchemaBeforeUnion(uint32_t idx) { return schemasBeforeUnion[idx].get(); }
+    inline Schema* getSchemaBeforeUnion(uint32_t idx) { return children[idx]->getSchema(); }
 
     unique_ptr<LogicalOperator> copy() override;
 
 private:
     expression_vector expressionsToUnion;
-    vector<unique_ptr<Schema>> schemasBeforeUnion;
 };
 
 } // namespace planner

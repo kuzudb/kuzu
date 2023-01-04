@@ -397,16 +397,13 @@ unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     }
     // we compute the schema based on first child
     auto plan = make_unique<LogicalPlan>();
-    vector<unique_ptr<Schema>> schemaBeforeUnion;
     vector<shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {
         plan->increaseCost(childPlan->getCost());
-        schemaBeforeUnion.push_back(childPlan->getSchema()->copy());
         children.push_back(childPlan->getLastOperator());
     }
-    auto logicalUnion =
-        make_shared<LogicalUnion>(childrenPlans[0]->getSchema()->getExpressionsInScope(),
-            std::move(schemaBeforeUnion), std::move(children));
+    auto logicalUnion = make_shared<LogicalUnion>(
+        childrenPlans[0]->getSchema()->getExpressionsInScope(), std::move(children));
     logicalUnion->computeSchema();
     plan->setLastOperator(logicalUnion);
     if (!isUnionAll) {

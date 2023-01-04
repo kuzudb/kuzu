@@ -88,7 +88,7 @@ private:
         const Schema& outSchema, vector<bool>& isInputGroupByHashKeyVectorFlat);
 
     static BuildDataInfo generateBuildDataInfo(const Schema& buildSideSchema,
-        const vector<shared_ptr<NodeExpression>>& keys, const expression_vector& payloads);
+        const expression_vector& keys, const expression_vector& payloads);
 
 public:
     StorageManager& storageManager;
