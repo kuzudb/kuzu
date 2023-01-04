@@ -70,12 +70,18 @@ void FileUtils::readFromFile(
 }
 
 void FileUtils::createDir(const string& dir) {
-    if (filesystem::exists(dir)) {
-        throw Exception(StringUtils::string_format("Directory %s already exists.", dir.c_str()));
-    }
-    if (!filesystem::create_directory(dir)) {
+    try {
+        if (filesystem::exists(dir)) {
+            throw Exception(
+                StringUtils::string_format("Directory %s already exists.", dir.c_str()));
+        }
+        if (!filesystem::create_directory(dir)) {
+            throw Exception(StringUtils::string_format(
+                "Directory %s cannot be created. Check if it exists and remove it.", dir.c_str()));
+        }
+    } catch (exception& e) {
         throw Exception(StringUtils::string_format(
-            "Directory %s cannot be created. Check if it exists and remove it.", dir.c_str()));
+            "Failed to create directory %s due to: %s", dir.c_str(), e.what()));
     }
 }
 
