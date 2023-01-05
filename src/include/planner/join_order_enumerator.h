@@ -34,20 +34,28 @@ public:
     inline void resetState() { context->resetState(); }
 
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
-        expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice);
+        expression_vector expressionsToScan, expression_vector nodeIDsToScanFromInnerAndOuter);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
-    static inline void planMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+    static inline void planMarkJoin(const expression_vector& joinNodeIDs,
         shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-        planJoin(joinNodes, JoinType::MARK, mark, probePlan, buildPlan);
+        planJoin(joinNodeIDs, JoinType::MARK, mark, probePlan, buildPlan);
     }
     static inline void planInnerHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
         LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-        planJoin(joinNodes, JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);
+        expression_vector joinNodeIDs;
+        for (auto& joinNode : joinNodes) {
+            joinNodeIDs.push_back(joinNode->getInternalIDProperty());
+        }
+        planJoin(joinNodeIDs, JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);
     }
-    static inline void planLeftHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-        planJoin(joinNodes, JoinType::LEFT, nullptr /* mark */, probePlan, buildPlan);
+    static inline void planInnerHashJoin(
+        const expression_vector& joinNodeIDs, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        planJoin(joinNodeIDs, JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);
+    }
+    static inline void planLeftHashJoin(
+        const expression_vector& joinNodeIDs, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+        planJoin(joinNodeIDs, JoinType::LEFT, nullptr /* mark */, probePlan, buildPlan);
     }
     static inline void planCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
         appendCrossProduct(probePlan, buildPlan);
@@ -107,11 +115,11 @@ private:
         shared_ptr<RelExpression> rel, RelDirection direction, const expression_vector& properties,
         LogicalPlan& plan);
 
-    static void planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes, JoinType joinType,
+    static void planJoin(const expression_vector& joinNodeIDs, JoinType joinType,
         shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
-    static void appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-        JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
-    static void appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+    static void appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+        bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    static void appendMarkJoin(const expression_vector& joinNodeIDs,
         const shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
     static void appendIntersect(const shared_ptr<NodeExpression>& intersectNode,

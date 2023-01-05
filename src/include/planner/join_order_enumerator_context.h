@@ -34,9 +34,9 @@ public:
 
     inline QueryGraph* getQueryGraph() { return queryGraph; }
 
-    inline bool nodeNeedScanTwice(NodeExpression* node) {
-        for (auto& nodeToScanTwice : nodesToScanTwice) {
-            if (nodeToScanTwice->getUniqueName() == node->getUniqueName()) {
+    inline bool nodeToScanFromInnerAndOuter(NodeExpression* node) {
+        for (auto& nodeID : nodeIDsToScanFromInnerAndOuter) {
+            if (nodeID->getUniqueName() == node->getInternalIDPropertyName()) {
                 return true;
             }
         }
@@ -56,7 +56,7 @@ private:
 
     LogicalPlan* outerPlan;
     expression_vector expressionsToScanFromOuter;
-    vector<shared_ptr<NodeExpression>> nodesToScanTwice;
+    expression_vector nodeIDsToScanFromInnerAndOuter;
 };
 
 } // namespace planner

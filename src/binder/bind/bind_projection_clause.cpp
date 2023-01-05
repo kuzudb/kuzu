@@ -57,68 +57,19 @@ expression_vector Binder::bindProjectionExpressions(
 expression_vector Binder::rewriteProjectionExpressions(const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
-        if (expression->dataType.typeID == NODE) {
-            for (auto& property : rewriteAsAllProperties(expression, NODE)) {
-                result.push_back(property);
-            }
-        } else if (expression->dataType.typeID == REL) {
-            for (auto& property : rewriteAsAllProperties(expression, REL)) {
-                result.push_back(property);
+        if (expression->dataType.typeID == common::NODE ||
+            expression->dataType.typeID == common::REL) {
+            auto nodeOrRel = (NodeOrRelExpression*)expression.get();
+            for (auto& property : nodeOrRel->getPropertyExpressions()) {
+                auto propertyExpression = (PropertyExpression*)property.get();
+                if (TableSchema::isReservedPropertyName(propertyExpression->getPropertyName())) {
+                    continue;
+                }
+                result.push_back(property->copy());
             }
         } else {
             result.push_back(expression);
         }
-    }
-    return result;
-}
-
-expression_vector Binder::rewriteAsAllProperties(
-    const shared_ptr<Expression>& expression, DataTypeID nodeOrRelType) {
-    vector<Property> properties;
-    switch (nodeOrRelType) {
-    case NODE: {
-        auto& node = (NodeExpression&)*expression;
-        for (auto tableID : node.getTableIDs()) {
-            for (auto& property : catalog.getReadOnlyVersion()->getAllNodeProperties(tableID)) {
-                properties.push_back(property);
-            }
-        }
-    } break;
-    case REL: {
-        auto& rel = (RelExpression&)*expression;
-        for (auto tableID : rel.getTableIDs()) {
-            for (auto& property : catalog.getReadOnlyVersion()->getRelProperties(tableID)) {
-                properties.push_back(property);
-            }
-        }
-    } break;
-    default:
-        throw NotImplementedException(
-            "Cannot rewrite type " + Types::dataTypeToString(nodeOrRelType));
-    }
-    // Make sure columns are in the same order as specified in catalog.
-    vector<string> columnNames;
-    unordered_set<string> existingColumnNames;
-    for (auto& property : properties) {
-        if (TableSchema::isReservedPropertyName(property.name)) {
-            continue;
-        }
-        if (!existingColumnNames.contains(property.name)) {
-            columnNames.push_back(property.name);
-            existingColumnNames.insert(property.name);
-        }
-    }
-    expression_vector result;
-    for (auto& columnName : columnNames) {
-        shared_ptr<Expression> propertyExpression;
-        if (nodeOrRelType == NODE) {
-            propertyExpression =
-                expressionBinder.bindNodePropertyExpression(expression, columnName);
-        } else {
-            propertyExpression = expressionBinder.bindRelPropertyExpression(expression, columnName);
-        }
-        propertyExpression->setRawName(expression->getRawName() + "." + columnName);
-        result.emplace_back(propertyExpression);
     }
     return result;
 }

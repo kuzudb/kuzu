@@ -93,7 +93,7 @@ unique_ptr<BoundCreateRel> Binder::bindCreateRel(
             setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
         } else {
             auto propertyExpression =
-                expressionBinder.bindRelPropertyExpression(rel, property.name);
+                expressionBinder.bindRelPropertyExpression(*rel, property.name);
             auto nullExpression = expressionBinder.bindNullLiteralExpression();
             nullExpression = ExpressionBinder::implicitCastIfNecessary(
                 nullExpression, propertyExpression->dataType);
@@ -181,9 +181,8 @@ unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(shared_ptr<NodeExpression> no
     }
     auto nodeTableID = node->getSingleTableID();
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
-    auto primaryKey = nodeTableSchema->getPrimaryKey();
     auto primaryKeyExpression =
-        expressionBinder.bindNodePropertyExpression(node, vector<Property>{primaryKey});
+        expressionBinder.bindNodePropertyExpression(*node, nodeTableSchema->getPrimaryKey().name);
     return make_unique<BoundDeleteNode>(node, primaryKeyExpression);
 }
 

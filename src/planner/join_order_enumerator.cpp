@@ -83,12 +83,12 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
 }
 
 unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(LogicalPlan* outerPlan,
-    expression_vector expressionsToScan, vector<shared_ptr<NodeExpression>> nodesToScanTwice) {
+    expression_vector expressionsToScan, expression_vector nodeIDsToScanFromInnerAndOuter) {
     auto prevContext = std::move(context);
     context = make_unique<JoinOrderEnumeratorContext>();
     context->outerPlan = outerPlan;
     context->expressionsToScanFromOuter = std::move(expressionsToScan);
-    context->nodesToScanTwice = std::move(nodesToScanTwice);
+    context->nodeIDsToScanFromInnerAndOuter = std::move(nodeIDsToScanFromInnerAndOuter);
     return prevContext;
 }
 
@@ -197,7 +197,7 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     // ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer query (a). To avoid
     // scanning storage twice, we keep track of node table "a" and make sure when planning inner
     // query, we only scan internal ID of "a".
-    if (!context->nodeNeedScanTwice(node.get())) {
+    if (!context->nodeToScanFromInnerAndOuter(node.get())) {
         shared_ptr<Expression> indexExpression = nullptr;
         expression_vector predicatesToApply = predicates;
         if (!node->isMultiLabeled()) { // check for index scan
@@ -568,24 +568,23 @@ void JoinOrderEnumerator::appendExtend(shared_ptr<NodeExpression> boundNode,
     plan.increaseCost(plan.getCardinality());
 }
 
-void JoinOrderEnumerator::planJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-    JoinType joinType, shared_ptr<Expression> mark, LogicalPlan& probePlan,
-    LogicalPlan& buildPlan) {
+void JoinOrderEnumerator::planJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto isProbeAcc = false;
     // TODO(Guodong): Fix asp for multiple join nodes.
-    if (ASPOptimizer::canApplyASP(joinNodes, isProbeAcc, probePlan, buildPlan)) {
-        ASPOptimizer::applyASP(joinNodes[0], probePlan, buildPlan);
+    if (ASPOptimizer::canApplyASP(joinNodeIDs, isProbeAcc, probePlan, buildPlan)) {
+        ASPOptimizer::applyASP(joinNodeIDs[0], probePlan, buildPlan);
         isProbeAcc = true;
     }
     switch (joinType) {
     case JoinType::INNER:
     case JoinType::LEFT: {
         assert(mark == nullptr);
-        appendHashJoin(joinNodes, joinType, isProbeAcc, probePlan, buildPlan);
+        appendHashJoin(joinNodeIDs, joinType, isProbeAcc, probePlan, buildPlan);
     } break;
     case JoinType::MARK: {
         assert(mark != nullptr);
-        appendMarkJoin(joinNodes, mark, isProbeAcc, probePlan, buildPlan);
+        appendMarkJoin(joinNodeIDs, mark, isProbeAcc, probePlan, buildPlan);
     } break;
     default:
         assert(false);
@@ -620,12 +619,8 @@ static bool isJoinKeyUniqueOnBuildSide(const Expression& joinNodeID, LogicalPlan
     return true;
 }
 
-void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
-    JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    expression_vector joinNodeIDs;
-    for (auto& joinNode : joinNodes) {
-        joinNodeIDs.push_back(joinNode->getInternalIDProperty());
-    }
+void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     // Flat probe side key group in either of the following two cases:
     // 1. there are multiple join nodes;
@@ -661,13 +656,9 @@ void JoinOrderEnumerator::appendHashJoin(const vector<shared_ptr<NodeExpression>
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void JoinOrderEnumerator::appendMarkJoin(const vector<shared_ptr<NodeExpression>>& joinNodes,
+void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     const shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
     LogicalPlan& buildPlan) {
-    expression_vector joinNodeIDs;
-    for (auto& joinNode : joinNodes) {
-        joinNodeIDs.push_back(joinNode->getInternalIDProperty());
-    }
     // Apply flattening all but one on join nodes of both probe and build side.
     unordered_set<uint32_t> joinNodeGroupsPosInProbeSide, joinNodeGroupsPosInBuildSide;
     for (auto& joinNodeID : joinNodeIDs) {
@@ -720,15 +711,16 @@ expression_vector JoinOrderEnumerator::getPropertiesForVariable(
     Expression& expression, Expression& variable) {
     expression_vector result;
     unordered_set<string> matchedPropertyNames; // remove duplication
-    for (auto& propertyExpression : expression.getSubPropertyExpressions()) {
-        if (propertyExpression->getChild(0)->getUniqueName() != variable.getUniqueName()) {
+    for (auto& expr : expression.getSubPropertyExpressions()) {
+        auto propertyExpression = (PropertyExpression*)expr.get();
+        if (propertyExpression->getVariableName() != variable.getUniqueName()) {
             continue;
         }
         if (matchedPropertyNames.contains(propertyExpression->getUniqueName())) {
             continue;
         }
         matchedPropertyNames.insert(propertyExpression->getUniqueName());
-        result.push_back(propertyExpression);
+        result.push_back(expr);
     }
     return result;
 }

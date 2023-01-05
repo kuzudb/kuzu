@@ -27,16 +27,9 @@ public:
     inline uint64_t getUpperBound() const { return upperBound; }
     inline bool isVariableLength() const { return !(lowerBound == 1 && upperBound == 1); }
 
-    inline void setInternalIDProperty(shared_ptr<Expression> expression) {
-        internalIDExpression = std::move(expression);
-    }
-    inline bool hasInternalIDProperty() const { return internalIDExpression != nullptr; }
+    inline bool hasInternalIDProperty() const { return hasPropertyExpression(INTERNAL_ID_SUFFIX); }
     inline shared_ptr<Expression> getInternalIDProperty() const {
-        if (!hasInternalIDProperty()) {
-            throw NotImplementedException(
-                "Cannot read internal ID property for variable length rel " + getRawName());
-        }
-        return internalIDExpression;
+        return getPropertyExpression(INTERNAL_ID_SUFFIX);
     }
 
 private:
@@ -44,7 +37,6 @@ private:
     shared_ptr<NodeExpression> dstNode;
     uint64_t lowerBound;
     uint64_t upperBound;
-    shared_ptr<Expression> internalIDExpression;
 };
 
 } // namespace binder

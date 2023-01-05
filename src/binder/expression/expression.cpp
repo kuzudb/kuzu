@@ -1,5 +1,7 @@
 #include "binder/expression/expression.h"
 
+#include "binder/expression/property_expression.h"
+
 namespace kuzu {
 namespace binder {
 
@@ -8,6 +10,9 @@ unordered_set<string> Expression::getDependentVariableNames() {
     if (expressionType == VARIABLE) {
         result.insert(getUniqueName());
         return result;
+    }
+    if (expressionType == common::PROPERTY) {
+        result.insert(((PropertyExpression*)this)->getVariableName());
     }
     for (auto& child : getChildren()) {
         for (auto& variableName : child->getDependentVariableNames()) {

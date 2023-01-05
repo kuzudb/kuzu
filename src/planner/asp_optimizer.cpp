@@ -8,11 +8,11 @@
 namespace kuzu {
 namespace planner {
 
-bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNodes, bool isLeftAcc,
+bool ASPOptimizer::canApplyASP(const expression_vector& joinNodeIDs, bool isLeftAcc,
     const LogicalPlan& leftPlan, const LogicalPlan& rightPlan) {
     // Avoid ASP if there are multiple join nodes, or the left side is already accumulated, which is
     // due to simplicity on the mapper side.
-    if (joinNodes.size() > 1 || isLeftAcc) {
+    if (joinNodeIDs.size() > 1 || isLeftAcc) {
         return false;
     }
     auto isLeftPlanFiltered =
@@ -33,20 +33,21 @@ bool ASPOptimizer::canApplyASP(const vector<shared_ptr<NodeExpression>>& joinNod
         return false;
     }
     // Semi mask can only be pushed to ScanNodeIDs.
-    if (joinNodes[0]->getUniqueName() != rightScanNodeID->getNode()->getUniqueName()) {
+    if (joinNodeIDs[0]->getUniqueName() !=
+        rightScanNodeID->getNode()->getInternalIDPropertyName()) {
         return false;
     }
     return true;
 }
 
 void ASPOptimizer::applyASP(
-    const shared_ptr<NodeExpression>& joinNode, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
-    appendSemiMasker(joinNode, leftPlan);
+    const shared_ptr<Expression>& joinNodeID, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
+    appendSemiMasker(joinNodeID, leftPlan);
     QueryPlanner::appendAccumulate(leftPlan);
 }
 
-void ASPOptimizer::appendSemiMasker(const shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
-    auto semiMasker = make_shared<LogicalSemiMasker>(node, plan.getLastOperator());
+void ASPOptimizer::appendSemiMasker(const shared_ptr<Expression>& nodeID, LogicalPlan& plan) {
+    auto semiMasker = make_shared<LogicalSemiMasker>(nodeID, plan.getLastOperator());
     semiMasker->computeSchema();
     plan.setLastOperator(std::move(semiMasker));
 }

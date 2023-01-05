@@ -48,13 +48,5 @@ void LogicalHashJoin::computeSchema() {
     }
 }
 
-string LogicalHashJoin::getExpressionsForPrinting() const {
-    expression_vector joinNodes;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinNodes.push_back(joinNodeID->getChild(0));
-    }
-    return ExpressionUtil::toString(joinNodes);
-}
-
 } // namespace planner
 } // namespace kuzu

@@ -11,19 +11,19 @@ public:
     NodeExpression(const string& uniqueName, vector<table_id_t> tableIDs)
         : NodeOrRelExpression{NODE, uniqueName, std::move(tableIDs)} {}
 
-    inline void setInternalIDProperty(shared_ptr<Expression> expression) {
+    inline void setInternalIDProperty(unique_ptr<Expression> expression) {
         internalIDExpression = std::move(expression);
     }
     inline shared_ptr<Expression> getInternalIDProperty() const {
         assert(internalIDExpression != nullptr);
-        return internalIDExpression;
+        return internalIDExpression->copy();
     }
     inline string getInternalIDPropertyName() const {
         return internalIDExpression->getUniqueName();
     }
 
 private:
-    shared_ptr<Expression> internalIDExpression;
+    unique_ptr<Expression> internalIDExpression;
 };
 
 } // namespace binder
