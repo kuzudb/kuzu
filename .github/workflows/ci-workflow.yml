@@ -49,14 +49,13 @@ jobs:
 
   benchmark:
     name: benchmark
-    runs-on: self-hosted-himrod
+    runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt install -y python3-pip && sudo apt install -y sqlite3
-      - run: pip3 install -r tools/python_api/requirements_dev.txt
+      - run: pip3 install --user -r tools/python_api/requirements_dev.txt
 
       - name: build
-        run: CC=gcc-9 make release NUM_THREADS=32
+        run: make release NUM_THREADS=30
 
       - name: benchmark
-        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100
+        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 1
