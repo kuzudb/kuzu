@@ -7,13 +7,13 @@ unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     const string& directory, StorageStructureID storageStructureID) {
     string fName;
     switch (storageStructureID.storageStructureType) {
-    case COLUMN: {
+    case StorageStructureType::COLUMN: {
         fName = getColumnFName(directory, storageStructureID);
     } break;
-    case LISTS: {
+    case StorageStructureType::LISTS: {
         fName = getListFName(directory, storageStructureID);
     } break;
-    case NODE_INDEX: {
+    case StorageStructureType::NODE_INDEX: {
         fName = getNodeIndexFName(
             directory, storageStructureID.nodeIndexID.tableID, DBFileType::ORIGINAL);
         if (storageStructureID.isOverflow) {
@@ -33,7 +33,7 @@ string StorageUtils::getColumnFName(
     string fName;
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
-    case STRUCTURED_NODE_PROPERTY_COLUMN: {
+    case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
         fName = getNodePropertyColumnFName(directory,
             storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
             storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID,
@@ -42,12 +42,12 @@ string StorageUtils::getColumnFName(
             fName = getOverflowFileName(fName);
         }
     } break;
-    case ADJ_COLUMN: {
+    case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;
         fName = getAdjColumnFName(directory, relNodeTableAndDir.relTableID,
             relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
     } break;
-    case REL_PROPERTY_COLUMN: {
+    case ColumnType::REL_PROPERTY_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.relPropertyColumnID.relNodeTableAndDir;
         fName = getRelPropertyColumnFName(directory, relNodeTableAndDir.relTableID,
             relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
@@ -67,12 +67,12 @@ string StorageUtils::getListFName(const string& directory, StorageStructureID st
     string baseFName;
     ListFileID listFileID = storageStructureID.listFileID;
     switch (listFileID.listType) {
-    case ADJ_LISTS: {
+    case ListType::ADJ_LISTS: {
         auto& relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
         baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,
             relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
     } break;
-    case REL_PROPERTY_LISTS: {
+    case ListType::REL_PROPERTY_LISTS: {
         auto& relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
         baseFName = getRelPropertyListsFName(directory, relNodeTableAndDir.relTableID,
             relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
@@ -83,16 +83,16 @@ string StorageUtils::getListFName(const string& directory, StorageStructureID st
     }
 
     switch (listFileID.listFileType) {
-    case BASE_LISTS:
+    case ListFileType::BASE_LISTS:
         if (storageStructureID.isOverflow) {
             return StorageUtils::getOverflowFileName(baseFName);
         } else {
             return baseFName;
         }
-    case HEADERS: {
+    case ListFileType::HEADERS: {
         return getListHeadersFName(baseFName);
     }
-    case METADATA: {
+    case ListFileType::METADATA: {
         return getListMetadataFName(baseFName);
     }
     default:

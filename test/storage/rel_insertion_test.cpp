@@ -419,7 +419,7 @@ public:
 
     // For many-to-one rel tables, the FWD is a list and the bwd is a column. For the FWD, we need
     // to write the inserted rels to the WAL version of the pages of the column. For the BWD, we
-    // need to write the inserted rels to listsUpdateStore. This test is designed
+    // need to write the inserted rels to listsUpdatesStore. This test is designed
     // to test updates to a relTable which has a mixed of columns and lists.
     void insertRelsToManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
         auto query = "match (:person)-[t:teaches]->(:person) return t.length";

@@ -7,18 +7,19 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
-enum ListType : uint8_t {
+
+enum class ListType : uint8_t {
     ADJ_LISTS = 0,
     REL_PROPERTY_LISTS = 1,
 };
 
-enum ListFileType : uint8_t {
+enum class ListFileType : uint8_t {
     BASE_LISTS = 0,
     HEADERS = 1,
     METADATA = 2,
 };
 
-enum ColumnType : uint8_t {
+enum class ColumnType : uint8_t {
     STRUCTURED_NODE_PROPERTY_COLUMN = 0,
     ADJ_COLUMN = 1,
     REL_PROPERTY_COLUMN = 2,
@@ -78,21 +79,21 @@ struct ListFileID {
     ListFileID() = default;
 
     ListFileID(ListFileType listFileType, AdjListsID adjListsID)
-        : listType{ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
+        : listType{ListType::ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
 
     ListFileID(ListFileType listFileType, RelPropertyListID relPropertyListID)
-        : listType{REL_PROPERTY_LISTS}, listFileType{listFileType}, relPropertyListID{
-                                                                        relPropertyListID} {}
+        : listType{ListType::REL_PROPERTY_LISTS}, listFileType{listFileType},
+          relPropertyListID{relPropertyListID} {}
 
     inline bool operator==(const ListFileID& rhs) const {
         if (listType != rhs.listType || listFileType != rhs.listFileType) {
             return false;
         }
         switch (listType) {
-        case ADJ_LISTS: {
+        case ListType::ADJ_LISTS: {
             return adjListsID == rhs.adjListsID;
         }
-        case REL_PROPERTY_LISTS: {
+        case ListType::REL_PROPERTY_LISTS: {
             return relPropertyListID == rhs.relPropertyListID;
         }
         }
@@ -152,27 +153,27 @@ struct ColumnFileID {
     ColumnFileID() = default;
 
     explicit ColumnFileID(StructuredNodePropertyColumnID structuredNodePropertyColumnID)
-        : columnType{STRUCTURED_NODE_PROPERTY_COLUMN}, structuredNodePropertyColumnID{std::move(
-                                                           structuredNodePropertyColumnID)} {}
+        : columnType{ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN},
+          structuredNodePropertyColumnID{std::move(structuredNodePropertyColumnID)} {}
 
     explicit ColumnFileID(AdjColumnID adjColumnID)
-        : columnType{ADJ_COLUMN}, adjColumnID{std::move(adjColumnID)} {}
+        : columnType{ColumnType::ADJ_COLUMN}, adjColumnID{std::move(adjColumnID)} {}
 
     explicit ColumnFileID(RelPropertyColumnID relPropertyColumnID)
-        : columnType{REL_PROPERTY_COLUMN}, relPropertyColumnID{relPropertyColumnID} {}
+        : columnType{ColumnType::REL_PROPERTY_COLUMN}, relPropertyColumnID{relPropertyColumnID} {}
 
     inline bool operator==(const ColumnFileID& rhs) const {
         if (columnType != rhs.columnType) {
             return false;
         }
         switch (columnType) {
-        case STRUCTURED_NODE_PROPERTY_COLUMN: {
+        case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
             return structuredNodePropertyColumnID == rhs.structuredNodePropertyColumnID;
         }
-        case ADJ_COLUMN: {
+        case ColumnType::ADJ_COLUMN: {
             return adjColumnID == rhs.adjColumnID;
         }
-        case REL_PROPERTY_COLUMN: {
+        case ColumnType::REL_PROPERTY_COLUMN: {
             return relPropertyColumnID == rhs.relPropertyColumnID;
         }
         default: {
@@ -192,11 +193,13 @@ struct NodeIndexID {
     inline bool operator==(const NodeIndexID& rhs) const { return tableID == rhs.tableID; }
 };
 
-enum StorageStructureType : uint8_t {
+enum class StorageStructureType : uint8_t {
     COLUMN = 0,
     LISTS = 1,
     NODE_INDEX = 2,
 };
+
+string storageStructureTypeToString(StorageStructureType storageStructureType);
 
 // StorageStructureIDs start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
@@ -215,13 +218,13 @@ struct StorageStructureID {
             return false;
         }
         switch (storageStructureType) {
-        case COLUMN: {
+        case StorageStructureType::COLUMN: {
             return columnFileID == rhs.columnFileID;
         }
-        case LISTS: {
+        case StorageStructureType::LISTS: {
             return listFileID == rhs.listFileID;
         }
-        case NODE_INDEX: {
+        case StorageStructureType::NODE_INDEX: {
             return nodeIndexID == rhs.nodeIndexID;
         }
         default: {
