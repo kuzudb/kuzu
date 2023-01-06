@@ -144,10 +144,10 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         switch (storageStructureID.storageStructureType) {
         case StorageStructureType::COLUMN: {
             switch (storageStructureID.columnFileID.columnType) {
-            case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
+            case ColumnType::NODE_PROPERTY_COLUMN: {
                 Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-                    storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
-                    storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID);
+                    storageStructureID.columnFileID.nodePropertyColumnID.tableID,
+                    storageStructureID.columnFileID.nodePropertyColumnID.propertyID);
                 diskOverflowFile =
                     reinterpret_cast<PropertyColumnWithOverflow*>(column)->getDiskOverflowFile();
             } break;
@@ -347,10 +347,10 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     switch (storageStructureID.storageStructureType) {
     case StorageStructureType::COLUMN: {
         switch (storageStructureID.columnFileID.columnType) {
-        case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
+        case ColumnType::NODE_PROPERTY_COLUMN: {
             Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-                storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
-                storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID);
+                storageStructureID.columnFileID.nodePropertyColumnID.tableID,
+                storageStructureID.columnFileID.nodePropertyColumnID.propertyID);
             return storageStructureID.isOverflow ?
                        reinterpret_cast<PropertyColumnWithOverflow*>(column)
                            ->getDiskOverflowFileHandle() :

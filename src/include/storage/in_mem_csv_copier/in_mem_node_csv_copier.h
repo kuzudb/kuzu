@@ -21,7 +21,7 @@ public:
 
 private:
     void initializeColumnsAndList();
-    void countLinesPerBlock(uint64_t numProperties);
+    void countLinesPerBlock();
     template<typename T>
     void populateColumns();
 

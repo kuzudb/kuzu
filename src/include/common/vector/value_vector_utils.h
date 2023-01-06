@@ -8,7 +8,7 @@ namespace common {
 class ValueVectorUtils {
 
 public:
-    static void addLiteralToStructuredVector(
+    static void addLiteralToValueVector(
         ValueVector& resultVector, uint64_t pos, const Literal& literal);
 
     // These two functions assume that the given uint8_t* srcData/dstData are pointing to a data

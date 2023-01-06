@@ -33,11 +33,10 @@ string StorageUtils::getColumnFName(
     string fName;
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
-    case ColumnType::STRUCTURED_NODE_PROPERTY_COLUMN: {
+    case ColumnType::NODE_PROPERTY_COLUMN: {
         fName = getNodePropertyColumnFName(directory,
-            storageStructureID.columnFileID.structuredNodePropertyColumnID.tableID,
-            storageStructureID.columnFileID.structuredNodePropertyColumnID.propertyID,
-            DBFileType::ORIGINAL);
+            storageStructureID.columnFileID.nodePropertyColumnID.tableID,
+            storageStructureID.columnFileID.nodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
         if (storageStructureID.isOverflow) {
             fName = getOverflowFileName(fName);
         }

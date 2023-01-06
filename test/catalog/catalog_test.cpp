@@ -35,8 +35,7 @@ public:
         personProperties.emplace_back("courseScoresPerTerm",
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         PERSON_TABLE_ID = catalog->getReadOnlyVersion()->addNodeTableSchema(
-            "person", 0 /* primaryKeyIdx */, move(personProperties));
-        auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(PERSON_TABLE_ID);
+            "person", 0 /* primaryKeyIdx */, std::move(personProperties));
 
         vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_TABLE", STRING);

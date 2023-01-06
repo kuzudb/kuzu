@@ -5,7 +5,7 @@
 using namespace kuzu;
 using namespace common;
 
-void ValueVectorUtils::addLiteralToStructuredVector(
+void ValueVectorUtils::addLiteralToValueVector(
     ValueVector& resultVector, uint64_t pos, const Literal& literal) {
     if (literal.isNull()) {
         resultVector.setNull(pos, true);

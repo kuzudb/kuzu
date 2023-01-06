@@ -61,7 +61,7 @@ uint64_t SerDeser::serializeValue<Property>(
     const Property& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::serializeValue<uint32_t>(value.propertyID, fileInfo, offset);
+    offset = SerDeser::serializeValue<property_id_t>(value.propertyID, fileInfo, offset);
     return SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
@@ -70,7 +70,7 @@ uint64_t SerDeser::deserializeValue<Property>(
     Property& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::deserializeValue<uint32_t>(value.propertyID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<property_id_t>(value.propertyID, fileInfo, offset);
     return SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
@@ -128,7 +128,7 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
+    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -139,7 +139,8 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<uint64_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
+    offset =
+        SerDeser::deserializeValue<property_id_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
@@ -199,8 +200,8 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     nextTableID = other.nextTableID;
 }
 
-table_id_t CatalogContent::addNodeTableSchema(
-    string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions) {
+table_id_t CatalogContent::addNodeTableSchema(string tableName, property_id_t primaryKeyId,
+    vector<PropertyNameDataType> propertyDefinitions) {
     table_id_t tableID = assignNextTableID();
     vector<Property> properties;
     for (auto i = 0u; i < propertyDefinitions.size(); ++i) {
@@ -208,7 +209,7 @@ table_id_t CatalogContent::addNodeTableSchema(
         properties.push_back(Property::constructNodeProperty(propertyDefinition, i, tableID));
     }
     auto nodeTableSchema = make_unique<NodeTableSchema>(
-        std::move(tableName), tableID, primaryKeyIdx, std::move(properties));
+        std::move(tableName), tableID, primaryKeyId, std::move(properties));
     nodeTableNameToIDMap[nodeTableSchema->tableName] = tableID;
     nodeTableSchemas[tableID] = std::move(nodeTableSchema);
     return tableID;
@@ -341,7 +342,7 @@ void CatalogContent::removeTableSchema(TableSchema* tableSchema) {
     }
 }
 
-Catalog::Catalog() {
+Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = make_unique<CatalogContent>();
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
     builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
@@ -370,21 +371,21 @@ ExpressionType Catalog::getFunctionType(const string& name) const {
     }
 }
 
-table_id_t Catalog::addNodeTableSchema(
-    string tableName, uint32_t primaryKeyIdx, vector<PropertyNameDataType> propertyDefinitions) {
+table_id_t Catalog::addNodeTableSchema(string tableName, property_id_t primaryKeyId,
+    vector<PropertyNameDataType> propertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
-        std::move(tableName), primaryKeyIdx, std::move(propertyDefinitions));
+        std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
     wal->logNodeTableRecord(tableID);
     return tableID;
 }
 
 table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-    vector<PropertyNameDataType> propertyDefinitions,
+    const vector<PropertyNameDataType>& propertyDefinitions,
     vector<pair<table_id_t, table_id_t>> srcDstTableIDs) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addRelTableSchema(std::move(tableName),
-        relMultiplicity, std::move(propertyDefinitions), std::move(srcDstTableIDs));
+    auto tableID = catalogContentForWriteTrx->addRelTableSchema(
+        std::move(tableName), relMultiplicity, propertyDefinitions, std::move(srcDstTableIDs));
     wal->logRelTableRecord(tableID);
     return tableID;
 }
