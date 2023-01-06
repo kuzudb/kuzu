@@ -1,11 +1,11 @@
 #include "planner/planner.h"
 
-#include "binder/copy_csv/bound_copy_csv.h"
+#include "binder/copy/bound_copy.h"
 #include "binder/ddl/bound_create_node_clause.h"
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
-#include "planner/logical_plan/logical_operator/logical_copy_csv.h"
+#include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
@@ -34,7 +34,7 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         return planDropProperty(statement);
     }
     case StatementType::COPY_CSV: {
-        return planCopyCSV(statement);
+        return planCopy(statement);
     }
     default:
         assert(false);
@@ -95,10 +95,10 @@ unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statemen
     return plan;
 }
 
-unique_ptr<LogicalPlan> Planner::planCopyCSV(const BoundStatement& statement) {
-    auto& copyCSVClause = (BoundCopyCSV&)statement;
+unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
+    auto& copyCSVClause = (BoundCopy&)statement;
     auto plan = make_unique<LogicalPlan>();
-    auto copyCSV = make_shared<LogicalCopyCSV>(copyCSVClause.getCSVDescription(),
+    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
         copyCSVClause.getTableID(), copyCSVClause.getTableName());
     copyCSV->computeSchema();
     plan->setLastOperator(std::move(copyCSV));

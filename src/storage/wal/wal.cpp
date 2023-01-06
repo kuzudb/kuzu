@@ -72,15 +72,15 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyNodeCSVRecord(table_id_t tableID) {
+void WAL::logCopyNodeRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyNodeCSVRecord(tableID);
+    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyRelCSVRecord(table_id_t tableID) {
+void WAL::logCopyRelRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyRelCSVRecord(tableID);
+    WALRecord walRecord = WALRecord::newCopyRelRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

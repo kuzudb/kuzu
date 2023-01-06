@@ -259,8 +259,8 @@ enum class WALRecordType : uint8_t {
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
     OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 6,
-    COPY_NODE_CSV_RECORD = 7,
-    COPY_REL_CSV_RECORD = 8,
+    COPY_NODE_RECORD = 7,
+    COPY_REL_RECORD = 8,
     DROP_TABLE_RECORD = 9,
     DROP_PROPERTY_RECORD = 10,
 };
@@ -336,24 +336,24 @@ struct DiskOverflowFileNextBytePosRecord {
     }
 };
 
-struct CopyNodeCSVRecord {
+struct CopyNodeRecord {
     table_id_t tableID;
 
-    CopyNodeCSVRecord() = default;
+    CopyNodeRecord() = default;
 
-    explicit CopyNodeCSVRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyNodeRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyNodeCSVRecord& rhs) const { return tableID == rhs.tableID; }
+    inline bool operator==(const CopyNodeRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
-struct CopyRelCSVRecord {
+struct CopyRelRecord {
     table_id_t tableID;
 
-    CopyRelCSVRecord() = default;
+    CopyRelRecord() = default;
 
-    explicit CopyRelCSVRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyRelRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const CopyRelCSVRecord& rhs) const { return tableID == rhs.tableID; }
+    inline bool operator==(const CopyRelRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct TableStatisticsRecord {
@@ -400,8 +400,8 @@ struct WALRecord {
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
-        CopyNodeCSVRecord copyNodeCsvRecord;
-        CopyRelCSVRecord copyRelCsvRecord;
+        CopyNodeRecord copyNodeRecord;
+        CopyRelRecord copyRelRecord;
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
         DropPropertyRecord dropPropertyRecord;
@@ -434,11 +434,11 @@ struct WALRecord {
         case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
         }
-        case WALRecordType::COPY_NODE_CSV_RECORD: {
-            return copyNodeCsvRecord == rhs.copyNodeCsvRecord;
+        case WALRecordType::COPY_NODE_RECORD: {
+            return copyNodeRecord == rhs.copyNodeRecord;
         }
-        case WALRecordType::COPY_REL_CSV_RECORD: {
-            return copyRelCsvRecord == rhs.copyRelCsvRecord;
+        case WALRecordType::COPY_REL_RECORD: {
+            return copyRelRecord == rhs.copyRelRecord;
         }
         case WALRecordType::DROP_TABLE_RECORD: {
             return dropTableRecord == rhs.dropTableRecord;
@@ -464,8 +464,8 @@ struct WALRecord {
     static WALRecord newRelTableRecord(table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeCSVRecord(table_id_t tableID);
-    static WALRecord newCopyRelCSVRecord(table_id_t tableID);
+    static WALRecord newCopyNodeRecord(table_id_t tableID);
+    static WALRecord newCopyRelRecord(table_id_t tableID);
     static WALRecord newDropTableRecord(table_id_t tableID);
     static WALRecord newDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);

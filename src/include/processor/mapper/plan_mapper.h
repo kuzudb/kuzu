@@ -69,7 +69,7 @@ private:
         LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
         LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCopyCSVToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(LogicalOperator* logicalOperator);
 

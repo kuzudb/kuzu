@@ -1,7 +1,7 @@
 add_library(
         kuzu_binder_bind
         OBJECT
-        bind_copy_csv.cpp
+        bind_copy.cpp
         bind_ddl.cpp
         bind_graph_pattern.cpp
         bind_projection_clause.cpp

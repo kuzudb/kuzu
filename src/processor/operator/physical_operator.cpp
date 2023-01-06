@@ -15,11 +15,11 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::AGGREGATE_SCAN: {
         return "AGGREGATE_SCAN";
     }
-    case PhysicalOperatorType::COPY_NODE_CSV: {
-        return "COPY_NODE_CSV";
+    case PhysicalOperatorType::COPY_NODE: {
+        return "COPY_NODE";
     }
-    case PhysicalOperatorType::COPY_REL_CSV: {
-        return "COPY_REL_CSV";
+    case PhysicalOperatorType::COPY_REL: {
+        return "COPY_REL";
     }
     case PhysicalOperatorType::CREATE_NODE: {
         return "CREATE_NODE";

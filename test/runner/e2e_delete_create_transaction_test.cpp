@@ -87,7 +87,7 @@ public:
 
 class CreateDeleteInt64NodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/");
     }
 
@@ -184,7 +184,7 @@ public:
 
 class CreateDeleteStringNodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/string-pk/");
     }
 
@@ -444,7 +444,7 @@ TEST_F(CreateDeleteStringNodeTrxTest, MixedInsertDeleteRollbackRecovery) {
 // TODO(Guodong/Xiyang): refactor these tests to follow the above convention.
 class CreateRelTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
 

@@ -116,7 +116,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get());
     } break;
     case LogicalOperatorType::COPY_CSV: {
-        physicalOperator = mapLogicalCopyCSVToPhysical(logicalOperator.get());
+        physicalOperator = mapLogicalCopyToPhysical(logicalOperator.get());
     } break;
     case LogicalOperatorType::DROP_PROPERTY: {
         physicalOperator = mapLogicalDropPropertyToPhysical(logicalOperator.get());

@@ -1,1 +1,0 @@
-COPY person FROM "dataset/copy-csv-fault-tests/long-string/vPerson.csv"

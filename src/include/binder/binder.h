@@ -52,7 +52,7 @@ private:
     property_id_t bindPropertyName(TableSchema* tableSchema, const string& propertyName);
 
     /*** bind copy csv ***/
-    unique_ptr<BoundStatement> bindCopyCSV(const Statement& statement);
+    unique_ptr<BoundStatement> bindCopy(const Statement& statement);
 
     CSVReaderConfig bindParsingOptions(
         const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions);

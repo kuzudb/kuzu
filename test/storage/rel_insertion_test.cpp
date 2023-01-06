@@ -58,7 +58,7 @@ public:
         return result;
     }
 
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
 

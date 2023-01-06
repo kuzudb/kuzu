@@ -24,7 +24,7 @@ private:
 
     static unique_ptr<LogicalPlan> planDropProperty(const BoundStatement& statement);
 
-    static unique_ptr<LogicalPlan> planCopyCSV(const BoundStatement& statement);
+    static unique_ptr<LogicalPlan> planCopy(const BoundStatement& statement);
 };
 
 } // namespace planner

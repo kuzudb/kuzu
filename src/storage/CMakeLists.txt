@@ -1,5 +1,5 @@
 add_subdirectory(buffer_manager)
-add_subdirectory(in_mem_csv_copier)
+add_subdirectory(copy_arrow)
 add_subdirectory(in_mem_storage_structure)
 add_subdirectory(index)
 add_subdirectory(storage_structure)

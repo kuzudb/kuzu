@@ -101,11 +101,11 @@ string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
     }
-    case WALRecordType::COPY_NODE_CSV_RECORD: {
-        return "COPY_NODE_CSV_RECORD";
+    case WALRecordType::COPY_NODE_RECORD: {
+        return "COPY_NODE_RECORD";
     }
-    case WALRecordType::COPY_REL_CSV_RECORD: {
-        return "COPY_REL_CSV_RECORD";
+    case WALRecordType::COPY_REL_RECORD: {
+        return "COPY_REL_RECORD";
     }
     case WALRecordType::DROP_TABLE_RECORD: {
         return "DROP_TABLE_RECORD";
@@ -183,17 +183,17 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newCopyNodeCSVRecord(table_id_t tableID) {
+WALRecord WALRecord::newCopyNodeRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::COPY_NODE_CSV_RECORD;
-    retVal.copyNodeCsvRecord = CopyNodeCSVRecord(tableID);
+    retVal.recordType = WALRecordType::COPY_NODE_RECORD;
+    retVal.copyNodeRecord = CopyNodeRecord(tableID);
     return retVal;
 }
 
-WALRecord WALRecord::newCopyRelCSVRecord(table_id_t tableID) {
+WALRecord WALRecord::newCopyRelRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::COPY_REL_CSV_RECORD;
-    retVal.copyRelCsvRecord = CopyRelCSVRecord(tableID);
+    retVal.recordType = WALRecordType::COPY_REL_RECORD;
+    retVal.copyRelRecord = CopyRelRecord(tableID);
     return retVal;
 }
 

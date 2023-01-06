@@ -92,7 +92,7 @@ unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     case LIST:
         return make_unique<InMemListLists>(fName, dataType, numNodes);
     default:
-        throw CopyCSVException("Invalid type for property list creation.");
+        throw CopyException("Invalid type for property list creation.");
     }
 }
 

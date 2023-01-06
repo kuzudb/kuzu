@@ -10,7 +10,7 @@ public:
         initWithoutLoadingGraph();
     }
 
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void initWithoutLoadingGraph() {
         systemConfig->largePageBufferPoolSize = (1ull << 22);

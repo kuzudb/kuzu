@@ -60,7 +60,7 @@ unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
     case LIST:
         return make_unique<InMemListColumn>(fName, dataType, numElements);
     default:
-        throw CopyCSVException("Invalid type for property column creation.");
+        throw CopyException("Invalid type for property column creation.");
     }
 }
 

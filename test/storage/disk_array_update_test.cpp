@@ -157,13 +157,13 @@ public:
 class DiskArrayUpdateTests : public BaseDiskArrayUpdateTests {
 
 public:
-    string getInputCSVDir() override { return "dataset/non-empty-disk-array-db/"; }
+    string getInputDir() override { return "dataset/non-empty-disk-array-db/"; }
 };
 
 class DiskArrayUpdateEmptyDBTests : public BaseDiskArrayUpdateTests {
 
 public:
-    string getInputCSVDir() override { return "dataset/empty-db/"; }
+    string getInputDir() override { return "dataset/empty-db/"; }
 };
 
 TEST_F(DiskArrayUpdateTests, BasicUpdateTestCommitNormalExecution) {

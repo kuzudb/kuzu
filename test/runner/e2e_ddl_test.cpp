@@ -17,7 +17,7 @@ public:
 
 class IntPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/");
     }
 
@@ -57,7 +57,7 @@ public:
 
 class StringPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/string-pk-tests/");
     }
 
@@ -118,7 +118,7 @@ public:
         catalog = getCatalog(*database);
     }
 
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void validateDatabaseStateAfterCommitCreateNodeTable() {
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
