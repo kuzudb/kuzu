@@ -325,14 +325,15 @@ private:
 
 class FlatTupleIterator {
 public:
-    explicit FlatTupleIterator(
-        FactorizedTable& factorizedTable, const vector<DataType>& columnDataTypes);
+    explicit FlatTupleIterator(FactorizedTable& factorizedTable, vector<Value*> values);
 
     inline bool hasNextFlatTuple() {
         return nextTupleIdx < factorizedTable.getNumTuples() || nextFlatTupleIdx < numFlatTuples;
     }
 
-    shared_ptr<FlatTuple> getNextFlatTuple();
+    void getNextFlatTuple();
+
+    void resetState();
 
 private:
     // The dataChunkPos may be not consecutive, which means some entries in the
@@ -341,9 +342,8 @@ private:
     inline bool isValidDataChunkPos(uint32_t dataChunkPos) const {
         return flatTuplePositionsInDataChunk[dataChunkPos].first != UINT64_MAX;
     }
-    inline void readValueBufferToFlatTuple(uint64_t flatTupleValIdx, const uint8_t* valueBuffer) {
-        iteratorFlatTuple->getResultValue(flatTupleValIdx)
-            ->set(valueBuffer, columnDataTypes[flatTupleValIdx]);
+    inline void readValueBufferToValue(uint64_t colIdx, const uint8_t* valueBuffer) {
+        values[colIdx]->set(valueBuffer);
     }
 
     void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
@@ -376,8 +376,7 @@ private:
     // This field stores the (nextIdxToReadInDataChunk, numElementsInDataChunk) of each dataChunk.
     vector<pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
 
-    vector<DataType> columnDataTypes;
-    shared_ptr<FlatTuple> iteratorFlatTuple;
+    vector<Value*> values;
 };
 
 } // namespace processor

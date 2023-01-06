@@ -1,15 +1,15 @@
 #pragma once
 
-#include "plan_printer.h"
-#include "query_result.h"
 #include "query_summary.h"
 
-namespace kuzu {
-namespace transaction {
+namespace kuzu::testing {
+class TestHelper;
+}
+
+namespace kuzu::transaction {
 class TinySnbDDLTest;
 class TinySnbCopyCSVTransactionTest;
-} // namespace transaction
-} // namespace kuzu
+} // namespace kuzu::transaction
 
 namespace kuzu {
 namespace main {
@@ -17,27 +17,30 @@ namespace main {
 class PreparedStatement {
     friend class Connection;
     friend class JOConnection;
+    friend class kuzu::testing::TestHelper;
     friend class kuzu::transaction::TinySnbDDLTest;
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
+    inline bool isReadOnly() const { return readOnly; }
+    inline bool isDDLOrCopyCSV() const { return StatementTypeUtils::isDDLOrCopyCSV(statementType); }
 
-private:
-    inline void createResultHeader(expression_vector expressions) {
-        resultHeader = make_unique<QueryResultHeader>(std::move(expressions));
+    inline expression_vector getExpressionsToCollect() {
+        return isDDLOrCopyCSV() ? expression_vector{} : statementResult->getExpressionsToCollect();
     }
-    inline bool isReadOnly() { return logicalPlan->isReadOnly(); }
 
 private:
-    bool allowActiveTransaction;
+    StatementType statementType;
+    bool allowActiveTransaction = false;
     bool success = true;
+    bool readOnly = false;
     string errMsg;
     PreparedSummary preparedSummary;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
-    unique_ptr<QueryResultHeader> resultHeader;
-    unique_ptr<LogicalPlan> logicalPlan;
+    unique_ptr<BoundStatementResult> statementResult;
+    vector<unique_ptr<LogicalPlan>> logicalPlans;
 };
 
 } // namespace main

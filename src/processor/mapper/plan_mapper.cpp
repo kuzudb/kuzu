@@ -10,11 +10,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan) {
+unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
+    LogicalPlan* logicalPlan, const expression_vector& expressionsToCollect, bool isDDLOrCopyCSV) {
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
     auto lastOperator = appendResultCollector(
-        logicalPlan->getExpressionsToCollect(), *logicalPlan->getSchema(), move(prevOperator));
-    return make_unique<PhysicalPlan>(move(lastOperator), logicalPlan->isReadOnly());
+        expressionsToCollect, *logicalPlan->getSchema(), std::move(prevOperator));
+    return make_unique<PhysicalPlan>(std::move(lastOperator), isDDLOrCopyCSV);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(

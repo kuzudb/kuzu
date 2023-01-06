@@ -23,7 +23,8 @@ public:
         : storageManager{storageManager}, memoryManager{memoryManager},
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
-    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(LogicalPlan* logicalPlan);
+    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
+        const expression_vector& expressionsToCollect, bool isDDLOrCopyCSV);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(

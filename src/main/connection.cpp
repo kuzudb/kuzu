@@ -63,7 +63,8 @@ void Connection::setQuerySummaryAndPreparedStatement(
     }
 }
 
-std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query) {
+std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
+    const string& query, bool enumerateAllPlans) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
         preparedStatement->success = false;
@@ -75,19 +76,25 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<LogicalPlan> logicalPlan;
     try {
+        // parsing
         auto statement = Parser::parseQuery(query);
+        // binding
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
         setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
+        preparedStatement->statementType = boundStatement->getStatementType();
+        preparedStatement->readOnly = boundStatement->isReadOnly();
+        preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
-        logicalPlan = Planner::getBestPlan(*database->catalog,
-            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            database->storageManager->getRelsStore().getRelsStatistics(), *boundStatement);
-        if (logicalPlan->isDDLOrCopyCSV()) {
-            preparedStatement->createResultHeader(
-                expression_vector{make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg")});
+        auto& nodeStatistics =
+            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
+        auto& relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        if (enumerateAllPlans) {
+            preparedStatement->logicalPlans = Planner::getAllPlans(
+                *database->catalog, nodeStatistics, relStatistics, *boundStatement);
         } else {
-            preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
+            preparedStatement->logicalPlans.push_back(Planner::getBestPlan(
+                *database->catalog, nodeStatistics, relStatistics, *boundStatement));
         }
     } catch (exception& exception) {
         preparedStatement->success = false;
@@ -95,7 +102,6 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const string& query
     }
     compilingTimer.stop();
     preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
-    preparedStatement->logicalPlan = std::move(logicalPlan);
     return preparedStatement;
 }
 
@@ -161,32 +167,6 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     return result;
 }
 
-vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
-    lock_t lck{mtx};
-    auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
-    return Planner::getAllPlans(*database->catalog,
-        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
-}
-
-unique_ptr<planner::LogicalPlan> Connection::getBestPlan(const std::string& query) {
-    lock_t lck{mtx};
-    auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
-    return Planner::getBestPlan(*database->catalog,
-        database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        database->storageManager->getRelsStore().getRelsStatistics(), *boundQuery);
-}
-
-unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
-    lock_t lck{mtx};
-    auto preparedStatement = make_unique<PreparedStatement>();
-    preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-    preparedStatement->logicalPlan = std::move(logicalPlan);
-    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
-}
-
 std::unique_ptr<QueryResult> Connection::executeWithParams(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
     lock_t lck{mtx};
@@ -220,13 +200,15 @@ void Connection::bindParametersNoLock(
 }
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
-    PreparedStatement* preparedStatement) {
+    PreparedStatement* preparedStatement, uint32_t planIdx) {
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get());
     unique_ptr<PhysicalPlan> physicalPlan;
     if (preparedStatement->isSuccess()) {
         try {
-            physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+            physicalPlan = mapper.mapLogicalPlanToPhysical(
+                preparedStatement->logicalPlans[planIdx].get(),
+                preparedStatement->getExpressionsToCollect(), preparedStatement->isDDLOrCopyCSV());
         } catch (exception& exception) {
             preparedStatement->success = false;
             preparedStatement->errMsg = exception.what();
@@ -261,8 +243,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         }
         executingTimer.stop();
         queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->setResultHeaderAndTable(
-            preparedStatement->resultHeader->copy(), std::move(resultFT));
+        queryResult->initResultTableAndIterator(std::move(resultFT),
+            preparedStatement->statementResult->getColumns(),
+            preparedStatement->statementResult->getExpressionsToCollectPerColumn());
     }
     auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
     queryResult->querySummary->planInJson = planPrinter->printPlanToJson();

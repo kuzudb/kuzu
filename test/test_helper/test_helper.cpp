@@ -95,17 +95,14 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
 
 bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     initializeConnection(config, conn);
-    vector<unique_ptr<LogicalPlan>> plans;
-    if (config->enumerate) {
-        plans = conn.enumeratePlans(config->query);
-    } else {
-        plans.push_back(conn.getBestPlan(config->query));
-    }
-    assert(!plans.empty());
+    auto preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
+    assert(!preparedStatement->logicalPlans.empty());
+    auto numPlans = preparedStatement->logicalPlans.size();
     auto numPassedPlans = 0u;
-    for (auto i = 0u; i < plans.size(); ++i) {
-        auto planStr = plans[i]->toString();
-        auto result = conn.executePlan(std::move(plans[i]));
+    for (auto i = 0u; i < numPlans; ++i) {
+        auto plan = preparedStatement->logicalPlans[i].get();
+        auto planStr = preparedStatement->logicalPlans[i]->toString();
+        auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
         assert(result->isSuccess());
         vector<string> resultTuples = convertResultToString(*result, config->checkOutputOrder);
         if (resultTuples.size() == result->getNumTuples() &&
@@ -122,8 +119,8 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
             }
         }
     }
-    spdlog::info("{}/{} plans passed.", numPassedPlans, plans.size());
-    return numPassedPlans == plans.size();
+    spdlog::info("{}/{} plans passed.", numPassedPlans, numPlans);
+    return numPassedPlans == numPlans;
 }
 
 void BaseGraphTest::validateColumnFilesExistence(

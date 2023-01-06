@@ -16,19 +16,19 @@ class QuerySummary {
     friend class PreparedStatement;
 
 public:
-    double getCompilingTime() const { return preparedSummary.compilingTime; }
+    inline double getCompilingTime() const { return preparedSummary.compilingTime; }
 
-    double getExecutionTime() const { return executionTime; }
+    inline double getExecutionTime() const { return executionTime; }
 
-    bool getIsExplain() const { return preparedSummary.isExplain; }
+    inline bool getIsExplain() const { return preparedSummary.isExplain; }
 
-    bool getIsProfile() const { return preparedSummary.isProfile; }
+    inline bool getIsProfile() const { return preparedSummary.isProfile; }
 
-    std::ostringstream& getPlanAsOstream() { return planInOstream; }
-    nlohmann::json& printPlanToJson() { return planInJson; }
+    inline std::ostringstream& getPlanAsOstream() { return planInOstream; }
+    inline nlohmann::json& printPlanToJson() { return planInJson; }
 
-    void setPreparedSummary(PreparedSummary preparedSummary) {
-        this->preparedSummary = preparedSummary;
+    inline void setPreparedSummary(PreparedSummary preparedSummary_) {
+        preparedSummary = preparedSummary_;
     }
 
 private:

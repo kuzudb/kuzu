@@ -16,8 +16,9 @@ namespace binder {
 class BoundCopyCSV : public BoundStatement {
 public:
     BoundCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
-        : BoundStatement{StatementType::COPY_CSV}, csvDescription{move(csvDescription)},
-          tableSchema{move(tableSchema)} {}
+        : BoundStatement{StatementType::COPY_CSV,
+              BoundStatementResult::createSingleStringColumnResult()},
+          csvDescription{std::move(csvDescription)}, tableSchema{std::move(tableSchema)} {}
 
     inline CSVDescription getCSVDescription() const { return csvDescription; }
 

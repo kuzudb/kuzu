@@ -56,7 +56,7 @@ void PyQueryResult::close() {
     queryResult.reset();
 }
 
-py::object PyQueryResult::convertValueToPyObject(const ResultValue& value) {
+py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     if (value.isNullVal()) {
         return py::none();
     }
@@ -99,10 +99,10 @@ py::object PyQueryResult::convertValueToPyObject(const ResultValue& value) {
                                             py::arg("microseconds") = intervalVal.micros));
     }
     case LIST: {
-        auto listVal = value.getListVal();
+        auto& listVal = value.getListVal();
         py::list list;
         for (auto i = 0u; i < listVal.size(); ++i) {
-            list.append(convertValueToPyObject(listVal[i]));
+            list.append(convertValueToPyObject(*listVal[i]));
         }
         return move(list);
     }

@@ -75,8 +75,6 @@ public:
 
     virtual string getExpressionsForPrinting() const = 0;
 
-    bool descendantsContainType(const unordered_set<LogicalOperatorType>& types) const;
-
     // Print the sub-plan rooted at this operator.
     virtual string toString(uint64_t depth = 0) const;
 

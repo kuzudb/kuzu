@@ -7,31 +7,41 @@ namespace binder {
 unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
     auto boundProjectionExpressions = bindProjectionExpressions(
-        projectionBody->getProjectionExpressions(), projectionBody->getContainsStar());
+        projectionBody->getProjectionExpressions(), projectionBody->containsStar());
     validateProjectionColumnsInWithClauseAreAliased(boundProjectionExpressions);
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
-        projectionBody->getIsDistinct(), move(boundProjectionExpressions));
+        projectionBody->getIsDistinct(), std::move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     variablesInScope.clear();
     addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
-    auto boundWithClause = make_unique<BoundWithClause>(move(boundProjectionBody));
+    auto boundWithClause = make_unique<BoundWithClause>(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
         boundWithClause->setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
     }
     return boundWithClause;
 }
 
-unique_ptr<BoundReturnClause> Binder::bindReturnClause(
-    const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery) {
+unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
-    auto boundProjectionExpressions = rewriteProjectionExpressions(bindProjectionExpressions(
-        projectionBody->getProjectionExpressions(), projectionBody->getContainsStar()));
+    auto boundProjectionExpressions = bindProjectionExpressions(
+        projectionBody->getProjectionExpressions(), projectionBody->containsStar());
     validateProjectionColumnHasNoInternalType(boundProjectionExpressions);
+    // expand node/rel to all of its properties.
+    auto statementResult = make_unique<BoundStatementResult>();
+    for (auto& expression : boundProjectionExpressions) {
+        auto dataType = expression->getDataType();
+        if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
+            statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
+        } else {
+            statementResult->addColumn(expression, expression_vector{expression});
+        }
+    }
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
-        projectionBody->getIsDistinct(), move(boundProjectionExpressions));
+        projectionBody->getIsDistinct(), statementResult->getExpressionsToCollect());
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
-    return make_unique<BoundReturnClause>(move(boundProjectionBody));
+    return make_unique<BoundReturnClause>(
+        std::move(boundProjectionBody), std::move(statementResult));
 }
 
 expression_vector Binder::bindProjectionExpressions(
@@ -54,22 +64,11 @@ expression_vector Binder::bindProjectionExpressions(
     return boundProjectionExpressions;
 }
 
-expression_vector Binder::rewriteProjectionExpressions(const expression_vector& expressions) {
+expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
     expression_vector result;
-    for (auto& expression : expressions) {
-        if (expression->dataType.typeID == common::NODE ||
-            expression->dataType.typeID == common::REL) {
-            auto nodeOrRel = (NodeOrRelExpression*)expression.get();
-            for (auto& property : nodeOrRel->getPropertyExpressions()) {
-                auto propertyExpression = (PropertyExpression*)property.get();
-                if (TableSchema::isReservedPropertyName(propertyExpression->getPropertyName())) {
-                    continue;
-                }
-                result.push_back(property->copy());
-            }
-        } else {
-            result.push_back(expression);
-        }
+    auto& nodeOrRel = (NodeOrRelExpression&)expression;
+    for (auto& property : nodeOrRel.getPropertyExpressions()) {
+        result.push_back(property->copy());
     }
     return result;
 }

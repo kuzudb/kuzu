@@ -12,8 +12,9 @@ class BoundCreateTable : public BoundStatement {
 public:
     explicit BoundCreateTable(StatementType statementType, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes)
-        : BoundStatement{statementType}, tableName{move(tableName)}, propertyNameDataTypes{move(
-                                                                         propertyNameDataTypes)} {}
+        : BoundStatement{statementType, BoundStatementResult::createSingleStringColumnResult()},
+          tableName{std::move(tableName)}, propertyNameDataTypes{std::move(propertyNameDataTypes)} {
+    }
 
     inline string getTableName() const { return tableName; }
     inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {

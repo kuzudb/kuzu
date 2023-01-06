@@ -8,7 +8,9 @@ def test_to_df(establish_connection):
     conn, db = establish_connection
 
     def _test_to_df(conn):
-        query = "MATCH (p:person) return * ORDER BY p.ID"
+        query = "MATCH (p:person) return " \
+                "p.ID, p.fName, p.gender, p.isStudent, p.eyeSight, p.birthdate, p.registerTime, " \
+                "p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm ORDER BY p.ID"
         pd = conn.execute(query).get_as_df()
         assert pd['p.ID'].tolist() == [0, 2, 3, 5, 7, 8, 9, 10]
         assert str(pd['p.ID'].dtype) == "int64"

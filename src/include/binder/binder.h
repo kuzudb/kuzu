@@ -88,13 +88,12 @@ private:
 
     /*** bind projection clause ***/
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
-    unique_ptr<BoundReturnClause> bindReturnClause(
-        const ReturnClause& returnClause, unique_ptr<BoundSingleQuery>& boundSingleQuery);
+    unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);
 
     expression_vector bindProjectionExpressions(
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
-    // For RETURN clause, we write variable "v" as all properties of "v"
-    expression_vector rewriteProjectionExpressions(const expression_vector& expressions);
+    // Rewrite variable "v" as all properties of "v"
+    expression_vector rewriteNodeOrRelExpression(const Expression& expression);
 
     void bindOrderBySkipLimitIfNecessary(
         BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);

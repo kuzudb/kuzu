@@ -35,8 +35,8 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
                 throw ConnectionException("Cannot find a plan matching " + encodedJoin);
             }
         }
-        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
-        preparedStatement->logicalPlan = std::move(logicalPlan);
+        preparedStatement->statementResult = boundQuery->getStatementResult()->copy();
+        preparedStatement->logicalPlans.push_back(std::move(logicalPlan));
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {
         string errMsg = exception.what();

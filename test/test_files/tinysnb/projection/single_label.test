@@ -38,9 +38,9 @@ False||
 -NAME OrgNodesReturnStarTest
 -QUERY MATCH (a:organisation) RETURN *
 ---- 3
-1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000
-4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000
-6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000
+({ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000})
+({ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000})
+({ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000})
 
 -NAME PersonNodesTestNull
 -QUERY MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
@@ -331,18 +331,18 @@ Dan|Carol
 -NAME QueryOneToOneRelTable
 -QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
-[toronto]|
-|long long long string
-[vancouver]|short str
+({_id:37, usedAddress:[toronto], note:})
+({_id:38, usedAddress:, note:long long long string})
+({_id:39, usedAddress:[vancouver], note:short str})
 
 -NAME OneHopMixedTest
 -QUERY MATCH (a:person)-[e:mixed]->(b:person) RETURN a.ID, e, b.ID, b.fName
 -ENUMERATE
 ---- 7
-0|1930|2|Bob
-2|1945|5|Dan
-3|2088|7|Elizabeth
-7|2066|3|Carol
-8|2120|3|Carol
-9|2022|3|Carol
-10|2020|2|Bob
+0|({_id:27, year:1930})|2|Bob
+10|({_id:33, year:2020})|2|Bob
+2|({_id:28, year:1945})|5|Dan
+3|({_id:29, year:2088})|7|Elizabeth
+7|({_id:30, year:2066})|3|Carol
+8|({_id:31, year:2120})|3|Carol
+9|({_id:32, year:2022})|3|Carol

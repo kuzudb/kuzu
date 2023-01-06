@@ -284,7 +284,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->getExpressionsToCollect(), preparedStatement->isDDLOrCopyCSV());
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
@@ -342,7 +344,7 @@ TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
         conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
     ASSERT_TRUE(result->isSuccess());
     result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
-    auto groundTruth = vector<string>{"WATERLOO|WATERLOO.CA"};
+    auto groundTruth = vector<string>{"({NAME:WATERLOO, WEBSITE:WATERLOO.CA})"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
