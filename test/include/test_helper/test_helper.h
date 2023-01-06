@@ -74,6 +74,9 @@ public:
     void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
     inline void createDBAndConn() {
+        if (database != nullptr) {
+            database.reset();
+        }
         database = make_unique<Database>(*databaseConfig, *systemConfig);
         conn = make_unique<Connection>(database.get());
         spdlog::set_level(spdlog::level::info);

@@ -155,7 +155,7 @@ void WAL::setIsLastRecordCommit() {
     }
 }
 
-WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)
+WALIterator::WALIterator(const shared_ptr<FileHandle>& fileHandle, mutex& mtx)
     : BaseWALAndWALIterator(fileHandle), mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (fileHandle->getNumPages() > 0) {

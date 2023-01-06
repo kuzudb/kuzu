@@ -5,11 +5,11 @@
 namespace kuzu {
 namespace testing {
 
-class ApiTest : public EmptyDBTest {
+class ApiTest : public BaseGraphTest {
 
 public:
     void SetUp() override {
-        EmptyDBTest::SetUp();
+        BaseGraphTest::SetUp();
         systemConfig->defaultPageBufferPoolSize = (1ull << 26);
         systemConfig->largePageBufferPoolSize = (1ull << 26);
         createDBAndConn();
