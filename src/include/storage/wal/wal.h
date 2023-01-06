@@ -175,7 +175,7 @@ private:
 
 class WALIterator : public BaseWALAndWALIterator {
 public:
-    explicit WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx);
+    explicit WALIterator(const shared_ptr<FileHandle>& fileHandle, mutex& mtx);
 
     inline bool hasNextRecord() {
         lock_t lck{mtx};
