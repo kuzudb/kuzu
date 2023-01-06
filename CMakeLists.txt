@@ -4,6 +4,10 @@ project(Kuzu VERSION 0.0.1.1 LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
 
+set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS TRUE)
+find_package(Arrow REQUIRED)
+find_package(Parquet REQUIRED)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -62,6 +66,8 @@ endfunction()
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 
+set(ARROW_INSTALL ${PROJECT_SOURCE_DIR}/external/build/arrow/install)
+include_directories(${ARROW_INSTALL}/include)
 include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)
 include_directories(third_party/antlr4_runtime/src)
@@ -69,6 +75,8 @@ include_directories(third_party/spdlog)
 include_directories(third_party/nlohmann_json)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/pybind11/include)
+include_directories(${ARROW_INCLUDE_DIR})
+include_directories(${PARQUET_INCLUDE_DIR})
 
 add_subdirectory(third_party)
 add_subdirectory(src)

@@ -12,3 +12,4 @@ build/
 __pycache__/
 *.py[cod]
 *$py.class
+cmake-build-debug/
