@@ -18,10 +18,8 @@ public:
     RelsStore(const Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager,
         bool isInMemoryMode, WAL* wal);
 
-    // TODO(Ziyi): other getters requires (direction, nodeID, relID) but this one is requiring
-    // (direction, relID, nodeID).
-    inline Column* getRelPropertyColumn(RelDirection relDirection, table_id_t relTableID,
-        table_id_t boundNodeTableID, uint64_t propertyIdx) const {
+    inline Column* getRelPropertyColumn(RelDirection relDirection, table_id_t boundNodeTableID,
+        table_id_t relTableID, uint64_t propertyIdx) const {
         return relTables.at(relTableID)
             ->getPropertyColumn(relDirection, boundNodeTableID, propertyIdx);
     }

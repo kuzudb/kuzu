@@ -69,7 +69,7 @@ TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
         catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
     auto& property = catalog->getReadOnlyVersion()->getRelProperty(tableID, "places");
     auto col = graph->getRelsStore().getRelPropertyColumn(
-        RelDirection::FWD, tableID, nodeTablesForAdjColumnAndProperties, property.propertyID);
+        RelDirection::FWD, nodeTablesForAdjColumnAndProperties, tableID, property.propertyID);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValue(5)));
