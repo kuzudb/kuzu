@@ -11,6 +11,7 @@ on:
 jobs:
   gcc-build-test:
     name: gcc build & test
+    needs: [clang-formatting-check]
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v2
@@ -24,6 +25,7 @@ jobs:
 
   clang-build-test:
     name: clang build & test
+    needs: [clang-formatting-check]
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v2
@@ -49,6 +51,7 @@ jobs:
 
   benchmark:
     name: benchmark
+    needs: [gcc-build-test, clang-build-test]
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v2
