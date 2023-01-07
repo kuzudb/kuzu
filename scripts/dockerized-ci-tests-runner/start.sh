@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /actions-runner
+cd /home/runner/actions-runner
 
 # Get registration token
 REG_TOKEN=$(curl \

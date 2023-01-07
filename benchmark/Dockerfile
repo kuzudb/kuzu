@@ -4,11 +4,7 @@ ENV CSV_DIR /csv
 ENV SERIALIZED_DIR /serialized
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-RUN apt-get update && apt-get install -y lsb-release wget
-RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
-RUN apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
-RUN rm ./apache-arrow*
-RUN apt-get update &&  apt-get -y install python3-dev python3-pip python-is-python3 cmake nodejs jq curl apt-transport-https gnupg sudo git libarrow-dev libparquet-dev
+RUN apt-get update && apt-get -y install python3-dev python3-pip python-is-python3 cmake nodejs jq curl apt-transport-https gnupg sudo git
 RUN pip3 install requests psutil
 
 RUN mkdir -p $CSV_DIR $SERIALIZED_DIR 
