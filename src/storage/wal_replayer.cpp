@@ -156,7 +156,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     storageStructureID.columnFileID.relPropertyColumnID.relNodeTableAndDir;
                 Column* column =
                     storageManager->getRelsStore().getRelPropertyColumn(relNodeTableAndDir.dir,
-                        relNodeTableAndDir.relTableID, relNodeTableAndDir.srcNodeTableID,
+                        relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID,
                         storageStructureID.columnFileID.relPropertyColumnID.propertyID);
                 diskOverflowFile =
                     reinterpret_cast<PropertyColumnWithOverflow*>(column)->getDiskOverflowFile();
@@ -368,7 +368,7 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
                 storageStructureID.columnFileID.relPropertyColumnID.relNodeTableAndDir;
             Column* column =
                 storageManager->getRelsStore().getRelPropertyColumn(relNodeTableAndDir.dir,
-                    relNodeTableAndDir.relTableID, relNodeTableAndDir.srcNodeTableID,
+                    relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.relTableID,
                     storageStructureID.columnFileID.relPropertyColumnID.propertyID);
             return storageStructureID.isOverflow ?
                        reinterpret_cast<PropertyColumnWithOverflow*>(column)
