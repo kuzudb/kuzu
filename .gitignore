@@ -13,3 +13,4 @@ __pycache__/
 *.py[cod]
 *$py.class
 cmake-build-debug/
+test/unittest_temp/
