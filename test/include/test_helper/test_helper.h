@@ -167,16 +167,10 @@ protected:
     void validateRelColumnAndListFilesExistence(
         RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence);
 
-    void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
-        auto catalog = getCatalog(*database);
-        auto statement = Parser::parseQuery(query);
-        auto parsedQuery = (RegularQuery*)statement.get();
-        auto boundQuery = Binder(*catalog).bind(*parsedQuery);
-        auto plan = Planner::getBestPlan(*catalog,
-            getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-            getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
-        ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
-    }
+    void validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder);
+
+    void commitOrRollbackConnectionAndInitDBIfNecessary(
+        bool isCommit, TransactionTestType transactionTestType);
 
 private:
     static inline bool containsOverflowFile(DataTypeID typeID) {

@@ -106,13 +106,14 @@ unique_ptr<InMemList> Lists::createInMemListWithDataFromUpdateStoreOnly(
 
 unique_ptr<InMemList> Lists::writeToInMemList(node_offset_t nodeOffset,
     const vector<uint64_t>& insertedRelTupleIdxesInFT,
-    const unordered_set<uint64_t>& deletedRelOffsetsForList) {
+    const unordered_set<uint64_t>& deletedRelOffsetsForList,
+    UpdatedPersistentListOffsets* updatedPersistentListOffsets) {
     auto inMemList =
         make_unique<InMemList>(getTotalNumElementsInList(TransactionType::WRITE, nodeOffset),
             elementSize, mayContainNulls());
     auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
-    fillInMemListsFromPersistentStore(
-        nodeOffset, numElementsInPersistentStore, *inMemList, deletedRelOffsetsForList);
+    fillInMemListsFromPersistentStore(nodeOffset, numElementsInPersistentStore, *inMemList,
+        deletedRelOffsetsForList, updatedPersistentListOffsets);
     listsUpdatesStore->readInsertedRelsToList(
         storageStructureIDAndFName.storageStructureID.listFileID, insertedRelTupleIdxesInFT,
         *inMemList, numElementsInPersistentStore - deletedRelOffsetsForList.size(),
@@ -122,7 +123,8 @@ unique_ptr<InMemList> Lists::writeToInMemList(node_offset_t nodeOffset,
 
 void Lists::fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
     uint64_t numElementsInPersistentStore, InMemList& inMemList,
-    const unordered_set<uint64_t>& deletedRelOffsetsInList) {
+    const unordered_set<list_offset_t>& deletedRelOffsetsInList,
+    UpdatedPersistentListOffsets* updatedPersistentListOffsets) {
     auto listHeader = headers->getHeader(nodeOffset);
     auto pageMapper = ListHandle::getPageMapper(metadata, listHeader, nodeOffset);
     auto pageCursor = ListHandle::getPageCursor(listHeader, numElementsPerPage);
@@ -136,7 +138,7 @@ void Lists::fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
         fillInMemListsFromFrame(inMemList, frame, pageCursor.elemPosInPage,
             numElementsToReadInCurPage, deletedRelOffsetsInList, numElementsRead,
-            nextPosToWriteToInMemList);
+            nextPosToWriteToInMemList, updatedPersistentListOffsets);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
@@ -146,33 +148,67 @@ void Lists::fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
 void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
     uint64_t elemPosInPage, uint64_t numElementsToReadInCurPage,
     const unordered_set<uint64_t>& deletedRelOffsetsInList, uint64_t numElementsRead,
-    uint64_t& nextPosToWriteToInMemList) {
+    uint64_t& nextPosToWriteToInMemList,
+    UpdatedPersistentListOffsets* updatedPersistentListOffsets) {
     auto nullBufferInPage = (uint64_t*)getNullBufferInPage(frame);
     auto frameData = frame + getElemByteOffset(elemPosInPage);
     auto listData = inMemList.getListData() + getElemByteOffset(nextPosToWriteToInMemList);
-    // If we don't have any deleted rels, we can simply do sequential copy from frame to inMemList.
+    // If we don't have any deleted rels, we can do a sequential copy of the entire list from frame
+    // to inMemList, and then check whether there are updates to any of the copied rels.
     if (deletedRelOffsetsInList.empty()) {
         memcpy(listData, frameData, numElementsToReadInCurPage * elementSize);
         if (inMemList.hasNullBuffer()) {
             NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
                 nextPosToWriteToInMemList, numElementsToReadInCurPage);
         }
+        readPropertyUpdatesToInMemListIfExists(inMemList, updatedPersistentListOffsets,
+            numElementsRead, numElementsToReadInCurPage, nextPosToWriteToInMemList);
         nextPosToWriteToInMemList += numElementsToReadInCurPage;
     } else {
-        // If we have some deleted rels, we should check whether each rel has been deleted
-        // or not before copying to inMemList.
+        // If we have some deleted rels, we should check whether each rel has been deleted or not
+        // before copying to inMemList. If not, then we also check whether the rel has been updated.
         for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
             auto relOffsetInList = numElementsRead + i;
             if (!deletedRelOffsetsInList.contains(relOffsetInList)) {
-                memcpy(listData, frameData, elementSize);
-                if (inMemList.hasNullBuffer()) {
-                    NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
-                        nextPosToWriteToInMemList, 1 /* numBitsToCopy */);
+                if (updatedPersistentListOffsets != nullptr &&
+                    updatedPersistentListOffsets->listOffsetFTIdxMap.contains(relOffsetInList)) {
+                    // If the current rel has updates, we should read from the updateStore.
+                    listsUpdatesStore->readPropertyUpdateToInMemList(
+                        storageStructureIDAndFName.storageStructureID.listFileID,
+                        updatedPersistentListOffsets->listOffsetFTIdxMap.at(relOffsetInList),
+                        inMemList, nextPosToWriteToInMemList, dataType,
+                        getDiskOverflowFileIfExists());
+                } else {
+                    // Otherwise, we can directly read from persistentStore.
+                    memcpy(listData, frameData, elementSize);
+                    if (inMemList.hasNullBuffer()) {
+                        NullMask::copyNullMask(nullBufferInPage, elemPosInPage,
+                            inMemList.getNullMask(), nextPosToWriteToInMemList,
+                            1 /* numBitsToCopy */);
+                    }
                 }
                 listData += elementSize;
                 nextPosToWriteToInMemList++;
             }
             frameData += elementSize;
+        }
+    }
+}
+
+void Lists::readPropertyUpdatesToInMemListIfExists(InMemList& inMemList,
+    UpdatedPersistentListOffsets* updatedPersistentListOffsets, uint64_t numElementsRead,
+    uint64_t numElementsToReadInCurPage, uint64_t nextPosToWriteToInMemList) {
+    if (updatedPersistentListOffsets != nullptr) {
+        for (auto& [listOffset, ftTupleIdx] : updatedPersistentListOffsets->listOffsetFTIdxMap) {
+            if (listOffset < numElementsRead) {
+                continue;
+            } else if (numElementsRead + numElementsToReadInCurPage <= listOffset) {
+                break;
+            }
+            listsUpdatesStore->readPropertyUpdateToInMemList(
+                storageStructureIDAndFName.storageStructureID.listFileID, ftTupleIdx, inMemList,
+                nextPosToWriteToInMemList + listOffset - numElementsRead, dataType,
+                getDiskOverflowFileIfExists());
         }
     }
 }

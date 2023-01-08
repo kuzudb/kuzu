@@ -33,7 +33,12 @@ struct ListsUpdatesForNodeOffset {
 public:
     explicit ListsUpdatesForNodeOffset(const RelTableSchema& relTableSchema);
 
-    bool hasUpdates() const;
+    inline bool hasUpdates() const {
+        return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty() ||
+               hasAnyUpdatedPersistentListOffsets();
+    }
+
+    bool hasAnyUpdatedPersistentListOffsets() const;
 
 public:
     bool isNewlyAddedNode;
@@ -71,6 +76,7 @@ public:
 
     inline void clear() {
         ftOfInsertedRels->clear();
+        listsUpdates.clear();
         initListsUpdatesPerTablePerDirection();
     }
     inline map<table_id_t, ListsUpdatesPerChunk>& getListsUpdatesPerBoundNodeTableOfDirection(
@@ -117,6 +123,10 @@ public:
 
     void readUpdatesToPropertyVectorIfExists(ListFileID& listFileID, node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& valueVector, list_offset_t startListOffset);
+
+    void readPropertyUpdateToInMemList(ListFileID& listFileID, ft_tuple_idx_t ftTupleIdx,
+        InMemList& inMemList, uint64_t posToWriteToInMemList, const DataType& dataType,
+        DiskOverflowFile* overflowFileOfInMemList);
 
     void initNewlyAddedNodes(nodeID_t& nodeID);
 

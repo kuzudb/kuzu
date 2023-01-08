@@ -48,14 +48,6 @@ public:
             vector<shared_ptr<ValueVector>>{relIDPropertyVector, lengthPropertyVector};
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(
-        bool isCommit, TransactionTestType transactionTestType) {
-        commitOrRollbackConnection(isCommit, transactionTestType);
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            createDBAndConn();
-        }
-    }
-
     string getStringValToValidate(uint64_t val) {
         string result = to_string(val);
         if (val % 2 == 0) {

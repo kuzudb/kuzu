@@ -29,15 +29,6 @@ public:
         conn->beginWriteTransaction();
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(
-        bool isCommit, TransactionTestType transactionTestType) {
-        commitOrRollbackConnection(isCommit, transactionTestType);
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            // This creates a new database/conn/readConn and should run the recovery algorithm
-            initWithoutLoadingGraph();
-        }
-    }
-
     // This function is necessary to call to trigger the checkpoint/rollback mechanism of the
     // database: since we are using list_headers as a wrapper around the headerDA DiskArray, which
     // we use as our DiskArray in these tests, a call to set the property list of nodeOffset to
