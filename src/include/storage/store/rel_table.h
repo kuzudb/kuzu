@@ -91,11 +91,14 @@ public:
     inline uint32_t getNumPropertyLists(table_id_t boundNodeTableID) {
         return propertyLists.at(boundNodeTableID).size();
     }
+    // Returns the list offset of the given relID if the relID stored as list in the current
+    // direction, otherwise it returns UINT64_MAX.
     inline list_offset_t getListOffset(nodeID_t nodeID, int64_t relID) {
-        return ((RelIDList*)(propertyLists
-                                 .at(nodeID.tableID)[RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX]
-                                 .get()))
-            ->getListOffset(nodeID.offset, relID);
+        return propertyLists.contains(nodeID.tableID) ?
+                   ((RelIDList*)getPropertyLists(
+                        nodeID.tableID, RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX))
+                       ->getListOffset(nodeID.offset, relID) :
+                   UINT64_MAX;
     }
 
     void initializeData(RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal);
@@ -119,10 +122,12 @@ public:
         }
     }
 
-    void insertRel(table_id_t boundTableID, const shared_ptr<ValueVector>& boundVector,
+    void insertRel(const shared_ptr<ValueVector>& boundVector,
         const shared_ptr<ValueVector>& nbrVector,
         const vector<shared_ptr<ValueVector>>& relPropertyVectors);
-    void deleteRel(table_id_t boundTableID, const shared_ptr<ValueVector>& boundVector);
+    void deleteRel(const shared_ptr<ValueVector>& boundVector);
+    void updateRel(const shared_ptr<ValueVector>& boundVector, property_id_t propertyID,
+        const shared_ptr<ValueVector>& propertyVector);
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates);
     unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
         table_id_t boundNodeTableID);

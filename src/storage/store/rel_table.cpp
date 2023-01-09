@@ -154,9 +154,12 @@ void DirectedRelTableData::scanLists(Transaction* transaction, RelTableScanState
     }
 }
 
-void DirectedRelTableData::insertRel(table_id_t boundTableID,
-    const shared_ptr<ValueVector>& boundVector, const shared_ptr<ValueVector>& nbrVector,
+void DirectedRelTableData::insertRel(const shared_ptr<ValueVector>& boundVector,
+    const shared_ptr<ValueVector>& nbrVector,
     const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+    auto boundTableID =
+        boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0])
+            .tableID;
     if (!adjColumns.contains(boundTableID)) {
         return;
     }
@@ -177,18 +180,29 @@ void DirectedRelTableData::insertRel(table_id_t boundTableID,
     }
 }
 
-void DirectedRelTableData::deleteRel(
-    table_id_t boundTableID, const shared_ptr<ValueVector>& boundVector) {
-    if (!adjColumns.contains(boundTableID)) {
+void DirectedRelTableData::deleteRel(const shared_ptr<ValueVector>& boundVector) {
+    auto boundNode =
+        boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
+    if (!adjColumns.contains(boundNode.tableID)) {
         return;
     }
-    auto adjColumn = adjColumns.at(boundTableID).get();
+    auto adjColumn = adjColumns.at(boundNode.tableID).get();
     auto nodeOffset =
         boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
     adjColumn->setNodeOffsetToNull(nodeOffset);
-    for (auto& [_, propertyColumn] : propertyColumns.at(boundTableID)) {
+    for (auto& [_, propertyColumn] : propertyColumns.at(boundNode.tableID)) {
         propertyColumn->setNodeOffsetToNull(nodeOffset);
     }
+}
+
+void DirectedRelTableData::updateRel(const shared_ptr<ValueVector>& boundVector,
+    property_id_t propertyID, const shared_ptr<ValueVector>& propertyVector) {
+    auto boundNode =
+        boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
+    if (!adjColumns.contains(boundNode.tableID)) {
+        return;
+    }
+    propertyColumns.at(boundNode.tableID).at(propertyID)->writeValues(boundVector, propertyVector);
 }
 
 void DirectedRelTableData::performOpOnListsWithUpdates(
@@ -284,14 +298,8 @@ void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector,
     const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat());
-    auto srcTableID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
-            .tableID;
-    auto dstTableID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
-            .tableID;
-    fwdRelTableData->insertRel(srcTableID, srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
-    bwdRelTableData->insertRel(dstTableID, dstNodeIDVector, srcNodeIDVector, relPropertyVectors);
+    fwdRelTableData->insertRel(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
+    bwdRelTableData->insertRel(dstNodeIDVector, srcNodeIDVector, relPropertyVectors);
     listsUpdatesStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
 }
 
@@ -299,14 +307,8 @@ void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
-    auto srcTableID =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
-            .tableID;
-    auto dstTableID =
-        dstNodeIDVector->getValue<nodeID_t>(dstNodeIDVector->state->selVector->selectedPositions[0])
-            .tableID;
-    fwdRelTableData->deleteRel(srcTableID, srcNodeIDVector);
-    bwdRelTableData->deleteRel(dstTableID, dstNodeIDVector);
+    fwdRelTableData->deleteRel(srcNodeIDVector);
+    bwdRelTableData->deleteRel(dstNodeIDVector);
     listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
@@ -319,6 +321,8 @@ void RelTable::updateRel(const shared_ptr<ValueVector>& srcNodeIDVector,
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNode = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
+    fwdRelTableData->updateRel(srcNodeIDVector, propertyID, propertyVector);
+    bwdRelTableData->updateRel(dstNodeIDVector, propertyID, propertyVector);
     auto relID =
         relIDVector->getValue<int64_t>(relIDVector->state->selVector->selectedPositions[0]);
     ListsUpdateInfo listsUpdateInfo = ListsUpdateInfo{propertyVector, propertyID, relID,
