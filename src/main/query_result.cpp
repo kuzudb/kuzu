@@ -1,6 +1,9 @@
-#include "../include/main/query_result.h"
+#include "main/query_result.h"
 
 #include <fstream>
+
+#include "binder/expression/node_rel_expression.h"
+#include "binder/expression/property_expression.h"
 
 using namespace std;
 using namespace kuzu::processor;
@@ -8,12 +11,34 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-QueryResultHeader::QueryResultHeader(expression_vector expressions) {
-    for (auto& expression : expressions) {
-        columnDataTypes.push_back(expression->getDataType());
-        columnNames.push_back(
-            expression->hasAlias() ? expression->getAlias() : expression->getRawName());
+void QueryResult::initResultTableAndIterator(
+    std::shared_ptr<processor::FactorizedTable> factorizedTable_, const expression_vector& columns,
+    const vector<expression_vector>& expressionToCollectPerColumn) {
+    factorizedTable = std::move(factorizedTable_);
+    tuple = make_shared<FlatTuple>();
+    vector<Value*> valuesToCollect;
+    for (auto i = 0u; i < columns.size(); ++i) {
+        auto column = columns[i].get();
+        auto columnType = column->getDataType();
+        auto columnName = column->hasAlias() ? column->getAlias() : column->getRawName();
+        columnDataTypes.push_back(columnType);
+        columnNames.push_back(columnName);
+        auto value = make_unique<Value>(columnType);
+        if (columnType.typeID == common::NODE || columnType.typeID == common::REL) {
+            for (auto& expression : expressionToCollectPerColumn[i]) {
+                assert(expression->expressionType == common::PROPERTY);
+                auto property = (PropertyExpression*)expression.get();
+                auto propertyValue = make_unique<Value>(property->getDataType());
+                valuesToCollect.push_back(propertyValue.get());
+                value->addNodeOrRelProperty(property->getPropertyName(), std::move(propertyValue));
+            }
+        } else {
+            assert(expressionToCollectPerColumn[i].size() == 1);
+            valuesToCollect.push_back(value.get());
+        }
+        tuple->addValue(std::move(value));
     }
+    iterator = make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
 }
 
 bool QueryResult::hasNext() {
@@ -28,10 +53,12 @@ shared_ptr<FlatTuple> QueryResult::getNext() {
             "No more tuples in QueryResult, Please check hasNext() before calling getNext().");
     }
     validateQuerySucceed();
-    return iterator->getNextFlatTuple();
+    iterator->getNextFlatTuple();
+    return tuple;
 }
 
-void QueryResult::writeToCSV(string fileName, char delimiter, char escapeCharacter, char newline) {
+void QueryResult::writeToCSV(
+    const string& fileName, char delimiter, char escapeCharacter, char newline) {
     ofstream file;
     file.open(fileName);
     shared_ptr<FlatTuple> nextTuple;

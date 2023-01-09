@@ -136,19 +136,6 @@ void LogicalOperator::computeSchemaRecursive() {
     computeSchema();
 }
 
-bool LogicalOperator::descendantsContainType(
-    const unordered_set<LogicalOperatorType>& types) const {
-    if (types.contains(operatorType)) {
-        return true;
-    }
-    for (auto& child : children) {
-        if (child->descendantsContainType(types)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 string LogicalOperator::toString(uint64_t depth) const {
     auto padding = string(depth * 4, ' ');
     string result = padding;

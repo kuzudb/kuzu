@@ -157,12 +157,6 @@ protected:
         }
     }
 
-    // Used in test helper. Note: for our testing framework, we should not catch exception and
-    // instead let IDE catch these exceptions.
-    std::vector<unique_ptr<planner::LogicalPlan>> enumeratePlans(const std::string& query);
-    unique_ptr<planner::LogicalPlan> getBestPlan(const std::string& query);
-    std::unique_ptr<QueryResult> executePlan(unique_ptr<planner::LogicalPlan> logicalPlan);
-
     void beginTransactionNoLock(TransactionType type);
 
     void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
@@ -172,7 +166,8 @@ protected:
     void setQuerySummaryAndPreparedStatement(
         Statement* statement, Binder& binder, PreparedStatement* preparedStatement);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query);
+    std::unique_ptr<PreparedStatement> prepareNoLock(
+        const std::string& query, bool enumerateAllPlans = false);
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -188,7 +183,7 @@ protected:
         unordered_map<string, shared_ptr<Literal>>& inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
-        PreparedStatement* preparedStatement);
+        PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
     void beginTransactionIfAutoCommit(PreparedStatement* preparedStatement);
 

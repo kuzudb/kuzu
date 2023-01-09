@@ -78,7 +78,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->getExpressionsToCollect(), preparedStatement->isDDLOrCopyCSV());
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
         validateDatabaseStateBeforeCheckPointCopyNodeCSV(tableID);
@@ -160,7 +162,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->getExpressionsToCollect(), preparedStatement->isDDLOrCopyCSV());
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
         validateDatabaseStateBeforeCheckPointCopyRelCSV(tableID);

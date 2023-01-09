@@ -77,7 +77,7 @@ void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& exp
 }
 
 void Binder::validateProjectionColumnHasNoInternalType(const expression_vector& expressions) {
-    auto internalTypes = unordered_set<DataTypeID>{NODE, REL, NODE_ID};
+    auto internalTypes = unordered_set<DataTypeID>{NODE_ID};
     for (auto& expression : expressions) {
         if (internalTypes.contains(expression->dataType.typeID)) {
             throw BinderException("Cannot return expression " + expression->getRawName() +
@@ -108,9 +108,9 @@ void Binder::validateUnionColumnsOfTheSameType(
     if (boundSingleQueries.size() <= 1) {
         return;
     }
-    auto expressionsToProject = boundSingleQueries[0]->getExpressionsToReturn();
+    auto expressionsToProject = boundSingleQueries[0]->getExpressionsToCollect();
     for (auto i = 1u; i < boundSingleQueries.size(); i++) {
-        auto expressionsToProjectToCheck = boundSingleQueries[i]->getExpressionsToReturn();
+        auto expressionsToProjectToCheck = boundSingleQueries[i]->getExpressionsToCollect();
         if (expressionsToProject.size() != expressionsToProjectToCheck.size()) {
             throw BinderException("The number of columns to union/union all must be the same.");
         }

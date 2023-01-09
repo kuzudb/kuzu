@@ -8,29 +8,13 @@ namespace kuzu {
 namespace processor {
 
 class PhysicalPlan {
-
 public:
-    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator, bool readOnly)
-        : lastOperator{move(lastOperator)}, readOnly{readOnly} {}
-
-    inline bool isReadOnly() const { return readOnly; }
-
-    inline bool isCopyCSV() const {
-        return lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_REL_CSV ||
-               lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_NODE_CSV;
-    }
-
-    inline bool isDDL() const {
-        return lastOperator->getChild(0)->getOperatorType() ==
-                   PhysicalOperatorType::CREATE_NODE_TABLE ||
-               lastOperator->getChild(0)->getOperatorType() ==
-                   PhysicalOperatorType::CREATE_REL_TABLE ||
-               lastOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::DROP_TABLE;
-    }
+    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator, bool isDDLOrCopyCSV)
+        : lastOperator{std::move(lastOperator)}, isDDLOrCopyCSV{isDDLOrCopyCSV} {}
 
 public:
     unique_ptr<PhysicalOperator> lastOperator;
-    bool readOnly;
+    bool isDDLOrCopyCSV;
 };
 
 class PhysicalPlanUtil {

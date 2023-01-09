@@ -31,9 +31,6 @@ vector<unique_ptr<LogicalPlan>> QueryPlanner::getAllPlans(const BoundStatement& 
             resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
         }
     }
-    for (auto& plan : resultPlans) {
-        plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
-    }
     return resultPlans;
 }
 

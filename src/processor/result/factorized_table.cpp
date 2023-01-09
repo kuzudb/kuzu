@@ -671,22 +671,14 @@ void FactorizedTable::copyOverflowIfNecessary(
     }
 }
 
-FlatTupleIterator::FlatTupleIterator(
-    FactorizedTable& factorizedTable, const vector<DataType>& columnDataTypes)
-    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0}, nextTupleIdx{1},
-      columnDataTypes{columnDataTypes} {
-    if (factorizedTable.getNumTuples()) {
-        currentTupleBuffer = factorizedTable.getTuple(0);
-        numFlatTuples = factorizedTable.getNumFlatTuples(0);
-        updateNumElementsInDataChunk();
-        updateInvalidEntriesInFlatTuplePositionsInDataChunk();
-    }
-    // Note: there is difference between column data types and value types in iteratorFlatTuple.
-    iteratorFlatTuple = make_shared<FlatTuple>(columnDataTypes);
-    assert(columnDataTypes.size() == factorizedTable.tableSchema->getNumColumns());
+FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, vector<Value*> values)
+    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0},
+      nextTupleIdx{1}, values{std::move(values)} {
+    resetState();
+    assert(this->values.size() == factorizedTable.tableSchema->getNumColumns());
 }
 
-shared_ptr<FlatTuple> FlatTupleIterator::getNextFlatTuple() {
+void FlatTupleIterator::getNextFlatTuple() {
     // Go to the next tuple if we have iterated all the flat tuples of the current tuple.
     if (nextFlatTupleIdx >= numFlatTuples) {
         currentTupleBuffer = factorizedTable.getTuple(nextTupleIdx);
@@ -705,31 +697,44 @@ shared_ptr<FlatTuple> FlatTupleIterator::getNextFlatTuple() {
     }
     updateFlatTuplePositionsInDataChunk();
     nextFlatTupleIdx++;
-    return iteratorFlatTuple;
+}
+
+void FlatTupleIterator::resetState() {
+    numFlatTuples = 0;
+    nextFlatTupleIdx = 0;
+    nextTupleIdx = 1;
+    if (factorizedTable.getNumTuples()) {
+        currentTupleBuffer = factorizedTable.getTuple(0);
+        numFlatTuples = factorizedTable.getNumFlatTuples(0);
+        updateNumElementsInDataChunk();
+        updateInvalidEntriesInFlatTuplePositionsInDataChunk();
+    }
 }
 
 void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer) {
     auto overflowValue =
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto columnInFactorizedTable = factorizedTable.getTableSchema()->getColumn(colIdx);
-    auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(columnDataTypes[colIdx]);
+    auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(values[colIdx]->getDataType());
     valueBuffer =
         overflowValue->value +
         tupleSizeInOverflowBuffer *
             flatTuplePositionsInDataChunk[columnInFactorizedTable->getDataChunkPos()].first;
-    iteratorFlatTuple->getResultValue(colIdx)->setNull(factorizedTable.isOverflowColNull(
+    auto isNull = factorizedTable.isOverflowColNull(
         overflowValue->value + tupleSizeInOverflowBuffer * overflowValue->numElements,
-        flatTuplePositionsInDataChunk[columnInFactorizedTable->getDataChunkPos()].first, colIdx));
-    if (!iteratorFlatTuple->getResultValue(colIdx)->isNullVal()) {
-        readValueBufferToFlatTuple(colIdx, valueBuffer);
+        flatTuplePositionsInDataChunk[columnInFactorizedTable->getDataChunkPos()].first, colIdx);
+    values[colIdx]->setNull(isNull);
+    if (!isNull) {
+        readValueBufferToValue(colIdx, valueBuffer);
     }
 }
 
 void FlatTupleIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer) {
-    iteratorFlatTuple->getResultValue(colIdx)->setNull(factorizedTable.isNonOverflowColNull(
-        valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx));
-    if (!iteratorFlatTuple->getResultValue(colIdx)->isNullVal()) {
-        readValueBufferToFlatTuple(
+    auto isNull = factorizedTable.isNonOverflowColNull(
+        valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx);
+    values[colIdx]->setNull(isNull);
+    if (!isNull) {
+        readValueBufferToValue(
             colIdx, valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     }
 }

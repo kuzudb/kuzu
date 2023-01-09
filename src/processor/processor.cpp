@@ -18,13 +18,9 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isCopyCSV()) {
+    if (physicalPlan->isDDLOrCopyCSV) {
         auto copyCSV = (CopyCSV*)physicalPlan->lastOperator->getChild(0);
         auto outputMsg = copyCSV->execute(taskScheduler.get(), context);
-        return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
-    } else if (physicalPlan->isDDL()) {
-        auto ddl = (DDL*)physicalPlan->lastOperator->getChild(0);
-        auto outputMsg = ddl->execute();
         return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();

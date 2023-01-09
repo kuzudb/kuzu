@@ -142,7 +142,7 @@ public:
                 ASSERT_EQ(tuple->getResultValue(1)->getStringVal(),
                     (containLongString ? "long long string prefix " : "") + to_string(i));
             }
-            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
                 (containLongString ? "long long string prefix " : "") + to_string(i));
         }
     }
@@ -216,7 +216,7 @@ public:
             ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
             auto strVal = getStringValToValidate(1000 - i);
             ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
-            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(), strVal);
+            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(), strVal);
             if (!isCommit) {
                 continue;
             }
@@ -233,7 +233,7 @@ public:
                     ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 3);
                     ASSERT_EQ(
                         tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 5));
-                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
+                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
                         to_string(dstNodeOffset - 5));
                 }
             } else {
@@ -243,7 +243,7 @@ public:
                     ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 2);
                     ASSERT_EQ(
                         tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 25));
-                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0].getStringVal(),
+                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
                         to_string(dstNodeOffset - 25));
                 }
             }

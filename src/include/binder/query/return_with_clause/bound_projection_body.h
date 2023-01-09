@@ -6,7 +6,6 @@ namespace kuzu {
 namespace binder {
 
 class BoundProjectionBody {
-
 public:
     explicit BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
         : isDistinct{isDistinct}, projectionExpressions{move(projectionExpressions)},

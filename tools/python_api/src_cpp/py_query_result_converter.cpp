@@ -10,7 +10,7 @@ NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
     mask = py::array(py::dtype("bool"), numFlatTuple);
 }
 
-void NPArrayWrapper::appendElement(ResultValue* value) {
+void NPArrayWrapper::appendElement(Value* value) {
     ((uint8_t*)mask.mutable_data())[numElements] = value->isNullVal();
     if (!value->isNullVal()) {
         switch (type.typeID) {

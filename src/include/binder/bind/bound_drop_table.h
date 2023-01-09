@@ -8,7 +8,9 @@ namespace binder {
 class BoundDropTable : public BoundStatement {
 public:
     explicit BoundDropTable(TableSchema* tableSchema)
-        : BoundStatement{StatementType::DROP_TABLE}, tableSchema{tableSchema} {}
+        : BoundStatement{StatementType::DROP_TABLE,
+              BoundStatementResult::createSingleStringColumnResult()},
+          tableSchema{tableSchema} {}
 
     inline TableSchema* getTableSchema() const { return tableSchema; }
 

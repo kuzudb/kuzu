@@ -22,7 +22,7 @@ public:
 
     void close();
 
-    static py::object convertValueToPyObject(const ResultValue& value);
+    static py::object convertValueToPyObject(const Value& value);
 
     py::object getAsDF();
 
