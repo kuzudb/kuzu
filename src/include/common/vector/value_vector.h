@@ -49,6 +49,8 @@ public:
     template<typename T>
     void setValue(uint32_t pos, T val);
 
+    void setLiteral(uint32_t pos, const Literal& literal);
+
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
     inline node_offset_t readNodeOffset(uint32_t pos) const {
@@ -72,6 +74,8 @@ private:
     }
 
     void addString(uint32_t pos, char* value, uint64_t len) const;
+
+    void copyLiteral(uint8_t* dest, const Literal& literal);
 
 public:
     DataType dataType;

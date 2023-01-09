@@ -161,7 +161,9 @@ const string TO_SECONDS_FUNC_NAME = "TO_SECONDS";
 const string TO_MILLISECONDS_FUNC_NAME = "TO_MILLISECONDS";
 const string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 
+// Node/Rel functions.
 const string ID_FUNC_NAME = "ID";
+const string LABEL_FUNC_NAME = "LABEL";
 
 enum ExpressionType : uint8_t {
 

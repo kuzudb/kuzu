@@ -4,7 +4,6 @@
 #include <cstdlib>
 
 #include "common/type_utils.h"
-#include "function/string/operations/concat_operation.h"
 
 using namespace kuzu::common;
 

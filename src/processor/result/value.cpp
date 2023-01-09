@@ -16,9 +16,6 @@ void Value::set(const uint8_t* value) {
     case DOUBLE: {
         val.doubleVal = *((double*)value);
     } break;
-    case STRING: {
-        stringVal = ((ku_string_t*)value)->getAsString();
-    } break;
     case DATE: {
         val.dateVal = *((date_t*)value);
     } break;
@@ -27,6 +24,12 @@ void Value::set(const uint8_t* value) {
     } break;
     case INTERVAL: {
         val.intervalVal = *((interval_t*)value);
+    } break;
+    case NODE_ID: {
+        val.nodeIDVal = *((nodeID_t*)value);
+    } break;
+    case STRING: {
+        stringVal = ((ku_string_t*)value)->getAsString();
     } break;
     case LIST: {
         listVal = convertKUListToVector(*(ku_list_t*)value);
@@ -48,14 +51,16 @@ string Value::toString() const {
         return TypeUtils::toString(val.int64Val);
     case DOUBLE:
         return TypeUtils::toString(val.doubleVal);
-    case STRING:
-        return stringVal;
     case DATE:
         return TypeUtils::toString(val.dateVal);
     case TIMESTAMP:
         return TypeUtils::toString(val.timestampVal);
     case INTERVAL:
         return TypeUtils::toString(val.intervalVal);
+    case NODE_ID:
+        return TypeUtils::toString(val.nodeIDVal);
+    case STRING:
+        return stringVal;
     case LIST: {
         string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
@@ -64,16 +69,11 @@ string Value::toString() const {
         }
         return result;
     }
-    case NODE:
+    case NODE: {
+        return nodeVal->toString();
+    }
     case REL: {
-        std::string result = "({";
-        for (auto i = 0u; i < nodeOrRelVal.size(); ++i) {
-            auto& [name, value] = nodeOrRelVal[i];
-            result += name + ":" + value->toString();
-            result += (i == nodeOrRelVal.size() - 1 ? "" : ", ");
-        }
-        result += "})";
-        return result;
+        return relVal->toString();
     }
     default:
         throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
@@ -100,6 +100,34 @@ vector<unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
         listResultValue.emplace_back(std::move(childResultValue));
     }
     return listResultValue;
+}
+
+string NodeOrRelVal::propertiesToString() const {
+    std::string result = "{";
+    for (auto i = 0u; i < properties.size(); ++i) {
+        auto& [name, value] = properties[i];
+        result += name + ":" + value->toString();
+        result += (i == properties.size() - 1 ? "" : ", ");
+    }
+    result += "}";
+    return result;
+}
+
+string NodeVal::toString() const {
+    std::string result = "(";
+    result += idVal->toString();
+    result += ":" + labelVal->toString() + " ";
+    result += propertiesToString();
+    result += ")";
+    return result;
+}
+
+string RelVal::toString() const {
+    std::string result;
+    result += "(" + srcNodeIDVal->toString() + ")";
+    result += "-[" + propertiesToString() + "]->";
+    result += "(" + dstNodeIDVal->toString() + ")";
+    return result;
 }
 
 } // namespace processor

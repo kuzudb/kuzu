@@ -65,9 +65,31 @@ expression_vector Binder::bindProjectionExpressions(
 }
 
 expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
+    if (expression.dataType.typeID == common::NODE) {
+        return rewriteNodeExpression(expression);
+    } else {
+        assert(expression.dataType.typeID == common::REL);
+        return rewriteRelExpression(expression);
+    }
+}
+
+expression_vector Binder::rewriteNodeExpression(const kuzu::binder::Expression& expression) {
     expression_vector result;
-    auto& nodeOrRel = (NodeOrRelExpression&)expression;
-    for (auto& property : nodeOrRel.getPropertyExpressions()) {
+    auto& node = (NodeExpression&)expression;
+    result.push_back(node.getInternalIDProperty());
+    result.push_back(expressionBinder.bindNodeLabelFunction(node));
+    for (auto& property : node.getPropertyExpressions()) {
+        result.push_back(property->copy());
+    }
+    return result;
+}
+
+expression_vector Binder::rewriteRelExpression(const Expression& expression) {
+    expression_vector result;
+    auto& rel = (RelExpression&)expression;
+    result.push_back(rel.getSrcNode()->getInternalIDProperty());
+    result.push_back(rel.getDstNode()->getInternalIDProperty());
+    for (auto& property : rel.getPropertyExpressions()) {
         result.push_back(property->copy());
     }
     return result;

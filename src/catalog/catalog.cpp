@@ -239,24 +239,6 @@ table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity r
     return tableID;
 }
 
-bool CatalogContent::containNodeProperty(table_id_t tableID, const string& propertyName) const {
-    for (auto& property : nodeTableSchemas.at(tableID)->properties) {
-        if (propertyName == property.name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool CatalogContent::containRelProperty(table_id_t tableID, const string& propertyName) const {
-    for (auto& property : relTableSchemas.at(tableID)->properties) {
-        if (propertyName == property.name) {
-            return true;
-        }
-    }
-    return false;
-}
-
 const Property& CatalogContent::getNodeProperty(
     table_id_t tableID, const string& propertyName) const {
     for (auto& property : nodeTableSchemas.at(tableID)->properties) {
