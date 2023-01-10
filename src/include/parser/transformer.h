@@ -208,6 +208,8 @@ private:
 
     unique_ptr<Statement> transformDropTable(CypherParser::KU_DropTableContext& ctx);
 
+    unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
+
     string transformDataType(CypherParser::KU_DataTypeContext& ctx);
 
     string transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx);

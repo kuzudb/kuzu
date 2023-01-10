@@ -12,10 +12,8 @@ NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
 
 void NodeTable::initializeData(
     NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal) {
-    propertyColumns.resize(nodeTableSchema->getAllNodeProperties().size());
-    for (auto i = 0u; i < nodeTableSchema->getAllNodeProperties().size(); i++) {
-        auto property = nodeTableSchema->getAllNodeProperties()[i];
-        propertyColumns[i] = ColumnFactory::getColumn(
+    for (auto& property : nodeTableSchema->getAllNodeProperties()) {
+        propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
             property.dataType, bufferManager, isInMemory, wal);
     }
@@ -31,7 +29,7 @@ void NodeTable::scan(Transaction* transaction, const shared_ptr<ValueVector>& in
         if (columnIds[i] == UINT32_MAX) {
             outputVectors[i]->setAllNull();
         } else {
-            propertyColumns[columnIds[i]]->read(transaction, inputIDVector, outputVectors[i]);
+            propertyColumns.at(columnIds[i])->read(transaction, inputIDVector, outputVectors[i]);
         }
     }
 }
@@ -49,7 +47,7 @@ node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector
                            primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
     }
-    for (auto& column : propertyColumns) {
+    for (auto& [_, column] : propertyColumns) {
         column->setNodeOffsetToNull(nodeOffset);
     }
     return nodeOffset;
@@ -69,14 +67,14 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
     }
 }
 
+void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
+}
+
 void NodeTable::deleteNode(
     node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     pkIndex->deleteKey(primaryKeyVector, pos);
-}
-
-void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
 }
 
 } // namespace storage

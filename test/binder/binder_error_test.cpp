@@ -396,3 +396,15 @@ TEST_F(BinderErrorTest, ReturnInternalType) {
     auto input = "match (p:person) return ID(p);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, DeleteColumnFromNonExistTable) {
+    string expectedException = "Binder exception: Node/Rel person1 does not exist.";
+    auto input = "alter table person1 drop k";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, DeleteNonExistColumn) {
+    string expectedException = "Binder exception: person table doesn't have property: random.";
+    auto input = "alter table person drop random";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

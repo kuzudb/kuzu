@@ -341,7 +341,7 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto& node = (NodeExpression&)expression;
     if (!node.isMultiLabeled()) {
-        auto labelName = catalogContent->getNodeTableSchema(node.getSingleTableID())->tableName;
+        auto labelName = catalogContent->getTableName(node.getSingleTableID());
         return make_shared<LiteralExpression>(STRING, make_unique<Literal>(labelName));
     }
     // bind string node labels as list literal
@@ -351,8 +351,7 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     nodeLabels.resize(maxNodeTableID + 1);
     for (auto i = 0; i < nodeLabels.size(); ++i) {
         if (catalogContent->containNodeTable(i)) {
-            auto tableSchema = catalogContent->getNodeTableSchema(i);
-            nodeLabels[i] = Literal(tableSchema->tableName);
+            nodeLabels[i] = Literal(catalogContent->getTableName(i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
             nodeLabels[i] = Literal(string(""));

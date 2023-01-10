@@ -12,8 +12,10 @@ namespace storage {
 // TODO(Guodong): remove the distinction between AdjColumn and Column, also AdjLists and Lists.
 using table_adj_columns_map_t = unordered_map<table_id_t, unique_ptr<AdjColumn>>;
 using table_adj_lists_map_t = unordered_map<table_id_t, unique_ptr<AdjLists>>;
-using table_property_columns_map_t = unordered_map<table_id_t, vector<unique_ptr<Column>>>;
-using table_property_lists_map_t = unordered_map<table_id_t, vector<unique_ptr<Lists>>>;
+using table_property_columns_map_t =
+    unordered_map<table_id_t, unordered_map<property_id_t, unique_ptr<Column>>>;
+using table_property_lists_map_t =
+    unordered_map<table_id_t, unordered_map<property_id_t, unique_ptr<Lists>>>;
 
 enum class RelTableDataType : uint8_t {
     COLUMNS = 0,
@@ -78,8 +80,8 @@ public:
         BufferManager& bufferManager, WAL* wal);
     void initializeListsForBoundNodeTabl(RelTableSchema* tableSchema, table_id_t boundNodeTableID,
         NodeIDCompressionScheme& nodeIDCompressionScheme, BufferManager& bufferManager, WAL* wal);
-    Column* getPropertyColumn(table_id_t boundNodeTableID, property_id_t propertyId);
-    Lists* getPropertyLists(table_id_t boundNodeTableID, property_id_t propertyId);
+    Column* getPropertyColumn(table_id_t boundNodeTableID, property_id_t propertyID);
+    Lists* getPropertyLists(table_id_t boundNodeTableID, property_id_t propertyID);
     AdjColumn* getAdjColumn(table_id_t boundNodeTableID);
     AdjLists* getAdjLists(table_id_t boundNodeTableID);
 

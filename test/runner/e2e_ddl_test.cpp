@@ -108,6 +108,8 @@ public:
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         executionContext = make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
+        personNodeTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        knowsRelTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
     }
 
     void initWithoutLoadingGraph() {
@@ -207,7 +209,7 @@ public:
             conn->commit();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
         }
-        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(
+        auto relTableSchema = (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
             catalog->getReadOnlyVersion()->getRelTableIDFromName("belongs"));
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
@@ -225,8 +227,8 @@ public:
 
     void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
-        auto nodeTableSchema =
-            make_unique<NodeTableSchema>(*catalog->getReadOnlyVersion()->getNodeTableSchema(
+        auto nodeTableSchema = make_unique<NodeTableSchema>(
+            *(NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
                 catalog->getReadOnlyVersion()->getNodeTableIDFromName("university")));
         executeQueryWithoutCommit("DROP TABLE university");
         validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
@@ -246,8 +248,8 @@ public:
     }
 
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        auto relTableSchema =
-            make_unique<RelTableSchema>(*catalog->getReadOnlyVersion()->getRelTableSchema(
+        auto relTableSchema = make_unique<RelTableSchema>(
+            *(RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
                 catalog->getReadOnlyVersion()->getRelTableIDFromName("knows")));
         executeQueryWithoutCommit("DROP TABLE knows");
         validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, true);
@@ -295,6 +297,8 @@ public:
     unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<Profiler> profiler;
+    table_id_t personNodeTableID;
+    table_id_t knowsRelTableID;
 };
 } // namespace transaction
 } // namespace kuzu
@@ -353,6 +357,7 @@ TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
         "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
         "STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))");
     ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
+    ddlStatementsInsideActiveTransactionErrorTest("ALTER TABLE person DROP gender");
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
@@ -467,4 +472,50 @@ TEST_F(TinySnbDDLTest, CreateMixedRelationTableNormalExecution) {
 
 TEST_F(TinySnbDDLTest, CreateMixedRelationTableRecovery) {
     createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, DeleteNodeTableColumnTest) {
+    ASSERT_TRUE(catalog->getReadOnlyVersion()
+                    ->getTableSchema(personNodeTableID)
+                    ->containProperty("gender"));
+    ASSERT_TRUE(conn->query("ALTER TABLE person DROP gender")->isSuccess());
+    auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
+                       "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
+                       "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
+                       "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})"});
+    ASSERT_FALSE(catalog->getReadOnlyVersion()
+                     ->getTableSchema(personNodeTableID)
+                     ->containProperty("gender"));
+
+    ASSERT_TRUE(catalog->getReadOnlyVersion()
+                    ->getTableSchema(personNodeTableID)
+                    ->containProperty("courseScoresPerTerm"));
+    ASSERT_TRUE(conn->query("ALTER TABLE person DROP courseScoresPerTerm")->isSuccess());
+    result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
+    ASSERT_EQ(TestHelper::convertResultToString(*result),
+        vector<string>{"(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
+                       "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
+                       "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
+                       "usedNames:[Aida]})"});
+    ASSERT_FALSE(catalog->getReadOnlyVersion()
+                     ->getTableSchema(personNodeTableID)
+                     ->containProperty("courseScoresPerTerm"));
+}
+
+TEST_F(TinySnbDDLTest, DeleteRelTableColumnTest) {
+    ASSERT_TRUE(
+        catalog->getReadOnlyVersion()->getTableSchema(knowsRelTableID)->containProperty("date"));
+    ASSERT_TRUE(conn->query("ALTER TABLE knows DROP date")->isSuccess());
+    ASSERT_FALSE(
+        catalog->getReadOnlyVersion()->getTableSchema(knowsRelTableID)->containProperty("date"));
+
+    ASSERT_TRUE(catalog->getReadOnlyVersion()
+                    ->getTableSchema(knowsRelTableID)
+                    ->containProperty("comments"));
+    ASSERT_TRUE(conn->query("ALTER TABLE knows DROP comments")->isSuccess());
+    ASSERT_FALSE(catalog->getReadOnlyVersion()
+                     ->getTableSchema(knowsRelTableID)
+                     ->containProperty("comments"));
 }

@@ -37,7 +37,8 @@ public:
     }
 
     void validateDatabaseStateBeforeCheckPointCopyNodeCSV(table_id_t tableID) {
-        auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+        auto nodeTableSchema =
+            (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         // Before checkPointing, we should have two versions of node column and list files. The
         // updates to maxNodeOffset should be invisible to read-only transactions.
         validateNodeColumnFilesExistence(
@@ -56,7 +57,8 @@ public:
     }
 
     void validateDatabaseStateAfterCheckPointCopyNodeCSV(table_id_t tableID) {
-        auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+        auto nodeTableSchema =
+            (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         // After checkPointing, we should only have one version of node column and list
         // files(original version). The updates to maxNodeOffset should be visible to read-only
         // transaction;
@@ -121,7 +123,8 @@ public:
     }
 
     void validateDatabaseStateBeforeCheckPointCopyRelCSV(table_id_t tableID) {
-        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
+        auto relTableSchema =
+            (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         // Before checkPointing, we should have two versions of rel column and list files.
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::WAL_VERSION, true /* existence */);
@@ -134,7 +137,8 @@ public:
     }
 
     void validateDatabaseStateAfterCheckPointCopyRelCSV(table_id_t knowsTableID) {
-        auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(knowsTableID);
+        auto relTableSchema =
+            (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(knowsTableID);
         // After checkPointing, we should only have one version of rel column and list
         // files(original version).
         validateRelColumnAndListFilesExistence(

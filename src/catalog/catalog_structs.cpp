@@ -1,6 +1,7 @@
 #include "catalog/catalog_structs.h"
 
 #include "common/exception.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace catalog {
@@ -35,6 +36,16 @@ string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
     default:
         throw CatalogException("Cannot convert rel multiplicity to string.");
     }
+}
+
+string TableSchema::getPropertyName(property_id_t propertyID) const {
+    for (auto& property : properties) {
+        if (property.propertyID == propertyID) {
+            return property.name;
+        }
+    }
+    throw RuntimeException(StringUtils::string_format(
+        "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
 }
 
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {

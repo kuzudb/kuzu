@@ -55,6 +55,7 @@ void Connection::setQuerySummaryAndPreparedStatement(
     case StatementType::COPY_CSV:
     case StatementType::CREATE_REL_CLAUSE:
     case StatementType::CREATE_NODE_CLAUSE:
+    case StatementType::DROP_PROPERTY:
     case StatementType::DROP_TABLE: {
         preparedStatement->allowActiveTransaction = false;
     } break;
@@ -150,12 +151,12 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     string result = relTableName + " src nodes: \n";
     for (auto& nodeTableID :
         catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, FWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getNodeTableName(nodeTableID) + "\n";
+        result += "\t" + catalog->getReadOnlyVersion()->getTableName(nodeTableID) + "\n";
     }
     result += relTableName + " dst nodes: \n";
     for (auto& nodeTableID :
         catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, BWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getNodeTableName(nodeTableID) + "\n";
+        result += "\t" + catalog->getReadOnlyVersion()->getTableName(nodeTableID) + "\n";
     }
     result += relTableName + " properties: \n";
     for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {

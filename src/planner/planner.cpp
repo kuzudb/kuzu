@@ -1,12 +1,14 @@
 #include "planner/planner.h"
 
-#include "binder/bind/bound_copy_csv.h"
-#include "binder/bind/bound_create_node_clause.h"
-#include "binder/bind/bound_create_rel_clause.h"
-#include "binder/bind/bound_drop_table.h"
+#include "binder/copy_csv/bound_copy_csv.h"
+#include "binder/ddl/bound_create_node_clause.h"
+#include "binder/ddl/bound_create_rel_clause.h"
+#include "binder/ddl/bound_drop_property.h"
+#include "binder/ddl/bound_drop_table.h"
 #include "planner/logical_plan/logical_operator/logical_copy_csv.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
+#include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
 
 namespace kuzu {
@@ -27,6 +29,9 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     }
     case StatementType::DROP_TABLE: {
         return planDropTable(statement);
+    }
+    case StatementType::DROP_PROPERTY: {
+        return planDropProperty(statement);
     }
     case StatementType::COPY_CSV: {
         return planCopyCSV(statement);
@@ -69,17 +74,28 @@ unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statem
 unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
     auto& dropTableClause = (BoundDropTable&)statement;
     auto plan = make_unique<LogicalPlan>();
-    auto dropTable = make_shared<LogicalDropTable>(dropTableClause.getTableSchema());
+    auto dropTable =
+        make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName());
     dropTable->computeSchema();
     plan->setLastOperator(std::move(dropTable));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statement) {
+    auto& dropPropertyClause = (BoundDropProperty&)statement;
+    auto plan = make_unique<LogicalPlan>();
+    auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
+        dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName());
+    dropProperty->computeSchema();
+    plan->setLastOperator(std::move(dropProperty));
     return plan;
 }
 
 unique_ptr<LogicalPlan> Planner::planCopyCSV(const BoundStatement& statement) {
     auto& copyCSVClause = (BoundCopyCSV&)statement;
     auto plan = make_unique<LogicalPlan>();
-    auto copyCSV = make_shared<LogicalCopyCSV>(
-        copyCSVClause.getCSVDescription(), copyCSVClause.getTableSchema());
+    auto copyCSV = make_shared<LogicalCopyCSV>(copyCSVClause.getCSVDescription(),
+        copyCSVClause.getTableID(), copyCSVClause.getTableName());
     copyCSV->computeSchema();
     plan->setLastOperator(std::move(copyCSV));
     return plan;

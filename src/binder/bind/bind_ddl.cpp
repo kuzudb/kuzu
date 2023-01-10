@@ -1,9 +1,11 @@
-#include "binder/bind/bound_create_node_clause.h"
-#include "binder/bind/bound_create_rel_clause.h"
-#include "binder/bind/bound_drop_table.h"
 #include "binder/binder.h"
+#include "binder/ddl/bound_create_node_clause.h"
+#include "binder/ddl/bound_create_rel_clause.h"
+#include "binder/ddl/bound_drop_property.h"
+#include "binder/ddl/bound_drop_table.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
+#include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
 
 namespace kuzu {
@@ -52,9 +54,20 @@ unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     if (isNodeTable) {
         validateNodeTableHasNoEdge(catalog, tableID);
     }
-    return make_unique<BoundDropTable>(
-        isNodeTable ? (TableSchema*)catalogContent->getNodeTableSchema(tableID) :
-                      (TableSchema*)catalogContent->getRelTableSchema(tableID));
+    return make_unique<BoundDropTable>(tableID, tableName);
+}
+
+unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
+    auto& dropProperty = (DropProperty&)statement;
+    auto tableName = dropProperty.getTableName();
+    validateTableExist(catalog, tableName);
+    auto catalogContent = catalog.getReadOnlyVersion();
+    auto isNodeTable = catalogContent->containNodeTable(tableName);
+    auto tableID = isNodeTable ? catalogContent->getNodeTableIDFromName(tableName) :
+                                 catalogContent->getRelTableIDFromName(tableName);
+    return make_unique<BoundDropProperty>(tableID,
+        bindPropertyName(catalogContent->getTableSchema(tableID), dropProperty.getPropertyName()),
+        tableName);
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
@@ -98,6 +111,16 @@ uint32_t Binder::bindPrimaryKey(
         throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
     }
     return primaryKeyIdx;
+}
+
+property_id_t Binder::bindPropertyName(TableSchema* tableSchema, string propertyName) {
+    for (auto& property : tableSchema->properties) {
+        if (property.name == propertyName) {
+            return property.propertyID;
+        }
+    }
+    throw BinderException(
+        tableSchema->tableName + " table doesn't have property: " + propertyName + ".");
 }
 
 } // namespace binder

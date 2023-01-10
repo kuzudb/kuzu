@@ -5,6 +5,7 @@
 #include "parser/copy_csv/copy_csv.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
+#include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -876,8 +877,10 @@ unique_ptr<Statement> Transformer::transformDDL() {
         return transformCreateNodeClause(*root.kU_DDL()->kU_CreateNode());
     } else if (root.kU_DDL()->kU_CreateRel()) {
         return transformCreateRelClause(*root.kU_DDL()->kU_CreateRel());
-    } else {
+    } else if (root.kU_DDL()->kU_DropTable()) {
         return transformDropTable(*root.kU_DDL()->kU_DropTable());
+    } else {
+        return transformAlterTable(*root.kU_DDL()->kU_AlterTable());
     }
 }
 
@@ -906,6 +909,11 @@ unique_ptr<Statement> Transformer::transformCreateRelClause(
 
 unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
     return make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
+}
+
+unique_ptr<Statement> Transformer::transformAlterTable(CypherParser::KU_AlterTableContext& ctx) {
+    return make_unique<DropProperty>(transformSchemaName(*ctx.oC_SchemaName()),
+        transformPropertyKeyName(*ctx.oC_PropertyKeyName()));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(

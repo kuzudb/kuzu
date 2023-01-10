@@ -29,31 +29,29 @@ public:
     void scan(Transaction* transaction, const shared_ptr<ValueVector>& inputIDVector,
         const vector<uint32_t>& columnIdxes, vector<shared_ptr<ValueVector>> outputVectors);
 
-    inline Column* getPropertyColumn(uint64_t propertyIdx) {
-        return propertyColumns[propertyIdx].get();
+    inline Column* getPropertyColumn(property_id_t propertyIdx) {
+        assert(propertyColumns.contains(propertyIdx));
+        return propertyColumns.at(propertyIdx).get();
     }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
     }
     inline table_id_t getTableID() const { return tableID; }
+    inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
+    inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
 
     node_offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
-    inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
-    inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
-
 private:
     void deleteNode(node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
-    // This is for properties.
-    vector<unique_ptr<Column>> propertyColumns;
-    // The index for ID property.
+    unordered_map<property_id_t, unique_ptr<Column>> propertyColumns;
     unique_ptr<PrimaryKeyIndex> pkIndex;
     table_id_t tableID;
     bool isInMemory;

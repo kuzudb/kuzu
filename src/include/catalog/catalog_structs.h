@@ -58,8 +58,9 @@ public:
 
 struct TableSchema {
 public:
-    TableSchema(string tableName, table_id_t tableID, bool isNodeTable)
-        : tableName{std::move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable} {}
+    TableSchema(string tableName, table_id_t tableID, bool isNodeTable, vector<Property> properties)
+        : tableName{std::move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable},
+          properties{std::move(properties)} {}
 
     virtual ~TableSchema() = default;
 
@@ -67,10 +68,28 @@ public:
         return propertyName == INTERNAL_ID_SUFFIX;
     }
 
+    inline uint32_t getNumProperties() const { return properties.size(); }
+
+    inline void removeProperty(property_id_t propertyID) {
+        properties.erase(std::remove_if(properties.begin(), properties.end(),
+                             [propertyID](const Property& property) {
+                                 return property.propertyID == propertyID;
+                             }),
+            properties.end());
+    }
+
+    inline bool containProperty(string propertyName) const {
+        return any_of(properties.begin(), properties.end(),
+            [&propertyName](const Property& property) { return property.name == propertyName; });
+    }
+
+    string getPropertyName(property_id_t propertyID) const;
+
 public:
     string tableName;
     table_id_t tableID;
     bool isNodeTable;
+    vector<Property> properties;
 };
 
 struct NodeTableSchema : TableSchema {
@@ -78,10 +97,8 @@ struct NodeTableSchema : TableSchema {
         : NodeTableSchema{"", INVALID_TABLE_ID, INVALID_PROPERTY_ID, vector<Property>{}} {}
     NodeTableSchema(string tableName, table_id_t tableID, property_id_t primaryPropertyId,
         vector<Property> properties)
-        : TableSchema{std::move(tableName), tableID, true /* isNodeTable */},
-          primaryKeyPropertyIdx{primaryPropertyId}, properties{std::move(properties)} {}
-
-    inline property_id_t getNumProperties() const { return properties.size(); }
+        : TableSchema{std::move(tableName), tableID, true /* isNodeTable */, std::move(properties)},
+          primaryKeyPropertyIdx{primaryPropertyId} {}
 
     inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
@@ -95,7 +112,6 @@ struct NodeTableSchema : TableSchema {
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
     property_id_t primaryKeyPropertyIdx;
-    vector<Property> properties;
     unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
     unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel
 };
@@ -105,12 +121,13 @@ public:
     static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_IDX = 0;
 
     RelTableSchema()
-        : TableSchema{"", INVALID_TABLE_ID, false /* isNodeTable */}, relMultiplicity{MANY_MANY} {}
+        : TableSchema{"", INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
+          relMultiplicity{MANY_MANY} {}
     RelTableSchema(string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
         vector<Property> properties, vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
-        : TableSchema{std::move(tableName), tableID, false /* isNodeTable */},
-          relMultiplicity{relMultiplicity}, properties{std::move(properties)},
-          srcDstTableIDs{std::move(srcDstTableIDs)} {}
+        : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
+              std::move(properties)},
+          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)} {}
 
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
@@ -127,8 +144,6 @@ public:
     }
 
     inline vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
-
-    inline uint32_t getNumProperties() const { return properties.size(); }
 
     inline uint32_t getNumUserDefinedProperties() const {
         // Note: the first column stores the relID property.
@@ -157,7 +172,6 @@ public:
         RelDirection direction, table_id_t boundTableID) const;
 
     RelMultiplicity relMultiplicity;
-    vector<Property> properties;
     vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
 };
 

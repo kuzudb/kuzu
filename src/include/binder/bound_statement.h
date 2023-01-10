@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "bound_statement_result.h"
 #include "common/statement_type.h"
 

@@ -15,18 +15,22 @@ namespace binder {
 
 class BoundCopyCSV : public BoundStatement {
 public:
-    BoundCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
+    BoundCopyCSV(CSVDescription csvDescription, table_id_t tableID, string tableName)
         : BoundStatement{StatementType::COPY_CSV,
               BoundStatementResult::createSingleStringColumnResult()},
-          csvDescription{std::move(csvDescription)}, tableSchema{std::move(tableSchema)} {}
+          csvDescription{std::move(csvDescription)}, tableID{tableID}, tableName{
+                                                                           std::move(tableName)} {}
 
     inline CSVDescription getCSVDescription() const { return csvDescription; }
 
-    inline TableSchema getTableSchema() const { return tableSchema; }
+    inline table_id_t getTableID() const { return tableID; }
+
+    inline string getTableName() const { return tableName; }
 
 private:
     CSVDescription csvDescription;
-    TableSchema tableSchema;
+    table_id_t tableID;
+    string tableName;
 };
 
 } // namespace binder

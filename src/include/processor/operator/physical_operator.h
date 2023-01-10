@@ -20,6 +20,7 @@ enum class PhysicalOperatorType : uint8_t {
     CROSS_PRODUCT,
     DELETE_NODE,
     DELETE_REL,
+    DROP_PROPERTY,
     DROP_TABLE,
     FACTORIZED_TABLE_SCAN,
     FILTER,
