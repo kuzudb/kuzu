@@ -14,9 +14,7 @@ grammar Cypher;
 }
 
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF
-        | SP ? kU_DDL ( SP? ';' )? SP? EOF
-        | SP ? kU_CopyCSV ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
 
 kU_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP StringLiteral ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;

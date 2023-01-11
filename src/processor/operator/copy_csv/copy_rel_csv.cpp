@@ -5,17 +5,18 @@
 namespace kuzu {
 namespace processor {
 
-string CopyRelCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
+uint64_t CopyRelCSV::executeInternal(
+    kuzu::common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     auto relCSVCopier = make_unique<InMemRelCSVCopier>(csvDescription, wal->getDirectory(),
-        *taskScheduler, *catalog, nodesStatisticsAndDeletedIDs->getMaxNodeOffsetPerTable(),
+        *taskScheduler, *catalog, nodesStatistics->getMaxNodeOffsetPerTable(),
         executionContext->bufferManager, tableID, relsStatistics);
-    errorIfTableIsNonEmpty(relsStatistics);
-    // Note: This copy function will update the numRelsPerDirectionBoundTable and numRels
-    // information in relsStatistics for this relTable.
     auto numRelsCopied = relCSVCopier->copy();
     wal->logCopyRelCSVRecord(tableID);
-    return StringUtils::string_format("%d number of rels has been copied to relTable: %s.",
-        numRelsCopied, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
+    return numRelsCopied;
+}
+
+uint64_t CopyRelCSV::getNumTuplesInTable() {
+    return relsStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
 }
 
 } // namespace processor

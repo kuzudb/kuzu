@@ -225,10 +225,10 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCSVOutputMsg) {
     conn->query(createKnowsTableCMD);
     auto result = conn->query(copyPersonTableCMD);
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"8 number of nodes has been copied to nodeTable: person."});
+        vector<string>{"8 number of tuples has been copied to table: person."});
     result = conn->query(copyKnowsTableCMD);
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"14 number of rels has been copied to relTable: knows."});
+        vector<string>{"14 number of tuples has been copied to table: knows."});
 }
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionErrorTest) {

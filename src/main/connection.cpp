@@ -42,28 +42,6 @@ unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
     return queryResult;
 }
 
-void Connection::setQuerySummaryAndPreparedStatement(
-    Statement* statement, Binder& binder, PreparedStatement* preparedStatement) {
-    switch (statement->getStatementType()) {
-    case StatementType::QUERY: {
-        auto parsedQuery = (RegularQuery*)statement;
-        preparedStatement->preparedSummary.isExplain = parsedQuery->isEnableExplain();
-        preparedStatement->preparedSummary.isProfile = parsedQuery->isEnableProfile();
-        preparedStatement->parameterMap = binder.getParameterMap();
-        preparedStatement->allowActiveTransaction = true;
-    } break;
-    case StatementType::COPY_CSV:
-    case StatementType::CREATE_REL_CLAUSE:
-    case StatementType::CREATE_NODE_CLAUSE:
-    case StatementType::DROP_PROPERTY:
-    case StatementType::DROP_TABLE: {
-        preparedStatement->allowActiveTransaction = false;
-    } break;
-    default:
-        assert(false);
-    }
-}
-
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     const string& query, bool enumerateAllPlans) {
     auto preparedStatement = make_unique<PreparedStatement>();
@@ -79,12 +57,14 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
+        preparedStatement->preparedSummary.isExplain = statement->isExplain();
+        preparedStatement->preparedSummary.isProfile = statement->isProfile();
         // binding
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
-        setQuerySummaryAndPreparedStatement(statement.get(), binder, preparedStatement.get());
         preparedStatement->statementType = boundStatement->getStatementType();
         preparedStatement->readOnly = boundStatement->isReadOnly();
+        preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
         auto& nodeStatistics =
@@ -285,7 +265,7 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
     if (!preparedStatement->isReadOnly() && activeTransaction && activeTransaction->isReadOnly()) {
         throw ConnectionException("Can't execute a write query inside a read-only transaction.");
     }
-    if (!preparedStatement->allowActiveTransaction && activeTransaction) {
+    if (!preparedStatement->allowActiveTransaction() && activeTransaction) {
         throw ConnectionException(
             "DDL and CopyCSV statements are automatically wrapped in a "
             "transaction and committed. As such, they cannot be part of an "

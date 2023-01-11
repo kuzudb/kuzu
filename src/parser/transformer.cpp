@@ -25,23 +25,24 @@ namespace kuzu {
 namespace parser {
 
 unique_ptr<Statement> Transformer::transform() {
+    unique_ptr<Statement> statement;
     if (root.oC_Statement()) {
-        return transformQuery();
+        statement = transformQuery(*root.oC_Statement()->oC_Query());
     } else if (root.kU_DDL()) {
-        return transformDDL();
+        statement = transformDDL(*root.kU_DDL());
     } else {
-        return transformCopyCSV();
+        statement = transformCopyCSV(*root.kU_CopyCSV());
     }
-}
-
-unique_ptr<RegularQuery> Transformer::transformQuery() {
-    auto regularQuery = transformQuery(*root.oC_Statement()->oC_Query());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
-        regularQuery->setEnableExplain(cypherOption->oC_Explain() != nullptr);
-        regularQuery->setEnableProfile(cypherOption->oC_Profile() != nullptr);
+        if (cypherOption->oC_Explain()) {
+            statement->enableExplain();
+        }
+        if (cypherOption->oC_Profile()) {
+            statement->enableProfile();
+        }
     }
-    return regularQuery;
+    return statement;
 }
 
 unique_ptr<RegularQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
@@ -872,9 +873,9 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
     }
 }
 
-unique_ptr<Statement> Transformer::transformDDL() {
-    if (root.kU_DDL()->kU_CreateNode()) {
-        return transformCreateNodeClause(*root.kU_DDL()->kU_CreateNode());
+unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext& ctx) {
+    if (ctx.kU_CreateNode()) {
+        return transformCreateNodeClause(*ctx.kU_CreateNode());
     } else if (root.kU_DDL()->kU_CreateRel()) {
         return transformCreateRelClause(*root.kU_DDL()->kU_CreateRel());
     } else if (root.kU_DDL()->kU_DropTable()) {
@@ -972,8 +973,7 @@ vector<string> Transformer::transformNodeLabels(CypherParser::KU_NodeLabelsConte
     return nodeLabels;
 }
 
-unique_ptr<Statement> Transformer::transformCopyCSV() {
-    auto& ctx = *root.kU_CopyCSV();
+unique_ptr<Statement> Transformer::transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx) {
     auto csvFileName = transformStringLiteral(*ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = ctx.kU_ParsingOptions() ?

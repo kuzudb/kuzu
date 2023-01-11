@@ -1,5 +1,5 @@
 
-// Generated from src/antlr4/Cypher.g4 by ANTLR 4.9
+// Generated from /Users/xiyangfeng/kuzu/kuzu/src/antlr4/Cypher.g4 by ANTLR 4.9
 
 #pragma once
 
@@ -198,13 +198,13 @@ public:
   public:
     OC_CypherContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OC_StatementContext *oC_Statement();
     antlr4::tree::TerminalNode *EOF();
+    OC_StatementContext *oC_Statement();
+    KU_DDLContext *kU_DDL();
+    KU_CopyCSVContext *kU_CopyCSV();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_AnyCypherOptionContext *oC_AnyCypherOption();
-    KU_DDLContext *kU_DDL();
-    KU_CopyCSVContext *kU_CopyCSV();
 
    
   };

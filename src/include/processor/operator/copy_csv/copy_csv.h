@@ -19,24 +19,21 @@ public:
 
     inline bool isSource() const override { return true; }
 
-    virtual string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
+    string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext);
 
     bool getNextTuplesInternal() override {
         throw InternalException("getNextTupleInternal() should not be called on CopyCSV operator.");
     }
 
 protected:
-    void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {
-        auto numTuples = tablesStatistics->getReadOnlyVersion()
-                             ->tableStatisticPerTable.at(tableID)
-                             ->getNumTuples();
-        if (numTuples > 0) {
-            auto tableName = catalog->getReadOnlyVersion()->getTableSchema(tableID)->tableName;
-            throw CopyCSVException(
-                "COPY CSV commands can be executed only on completely empty tables. Table: " +
-                tableName + " has " + to_string(numTuples) + " many tuples.");
-        }
-    }
+    void errorIfTableIsNonEmpty();
+
+    std::string getOutputMsg(uint64_t numTuplesCopied);
+
+    virtual uint64_t executeInternal(
+        TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
+
+    virtual uint64_t getNumTuplesInTable() = 0;
 
 protected:
     Catalog* catalog;

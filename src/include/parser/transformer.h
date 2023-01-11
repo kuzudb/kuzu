@@ -16,8 +16,6 @@ class Transformer {
 public:
     explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
 
-    unique_ptr<RegularQuery> transformQuery();
-
     unique_ptr<Statement> transform();
 
 private:
@@ -200,7 +198,7 @@ private:
 
     string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
 
-    unique_ptr<Statement> transformDDL();
+    unique_ptr<Statement> transformDDL(CypherParser::KU_DDLContext& ctx);
 
     unique_ptr<Statement> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
 
@@ -224,7 +222,7 @@ private:
 
     vector<string> transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx);
 
-    unique_ptr<Statement> transformCopyCSV();
+    unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
 
     unordered_map<string, unique_ptr<ParsedExpression>> transformParsingOptions(
         CypherParser::KU_ParsingOptionsContext& ctx);

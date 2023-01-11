@@ -5,15 +5,19 @@
 namespace kuzu {
 namespace processor {
 
-string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
-    auto nodeCSVCopier = make_unique<InMemArrowNodeCopier>(csvDescription, wal->getDirectory(),
-        *taskScheduler, *catalog, tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
-    errorIfTableIsNonEmpty(&nodesStore->getNodesStatisticsAndDeletedIDs());
-    // Note: This copy function will update the maxNodeOffset in nodesStatisticsAndDeletedIDs.
+uint64_t CopyNodeCSV::executeInternal(
+    common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
+    auto nodeCSVCopier = make_unique<InMemArrowNodeCopier>(
+        csvDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
     auto numNodesCopied = nodeCSVCopier->copy();
     wal->logCopyNodeCSVRecord(tableID);
-    return StringUtils::string_format("%d number of nodes has been copied to nodeTable: %s.",
-        numNodesCopied, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
+    return numNodesCopied;
+}
+
+uint64_t CopyNodeCSV::getNumTuplesInTable() {
+    // TODO(Ziyi): this chains looks weird. Fix when refactoring table statistics. Ditto in
+    // CopyRelCSV.
+    return nodesStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
 }
 
 } // namespace processor

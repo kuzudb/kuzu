@@ -44,16 +44,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
     LogicalOperator* logicalOperator) {
     auto copyCSV = (LogicalCopyCSV*)logicalOperator;
     auto tableName = catalog->getReadOnlyVersion()->getTableName(copyCSV->getTableID());
+    auto nodesStatistics = &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs();
+    auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
         return make_unique<CopyNodeCSV>(catalog, copyCSV->getCSVDescription(),
-            copyCSV->getTableID(), storageManager.getWAL(), getOperatorID(),
-            copyCSV->getExpressionsForPrinting(), &storageManager.getNodesStore());
+            copyCSV->getTableID(), storageManager.getWAL(), nodesStatistics, getOperatorID(),
+            copyCSV->getExpressionsForPrinting());
     } else {
         return make_unique<CopyRelCSV>(catalog, copyCSV->getCSVDescription(), copyCSV->getTableID(),
-            storageManager.getWAL(),
-            &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(), getOperatorID(),
-            copyCSV->getExpressionsForPrinting(),
-            &storageManager.getRelsStore().getRelsStatistics());
+            storageManager.getWAL(), nodesStatistics, relsStatistics, getOperatorID(),
+            copyCSV->getExpressionsForPrinting());
     }
 }
 
