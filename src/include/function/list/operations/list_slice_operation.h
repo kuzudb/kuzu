@@ -30,8 +30,12 @@ struct ListSlice {
 
     static inline void operation(ku_string_t& str, int64_t& begin, int64_t& end,
         ku_string_t& result, ValueVector& resultValueVector) {
-        int64_t startIdx = (begin == 0) ? 1 : begin;
-        int64_t endIdx = (end == 0) ? str.len : end;
+        int64_t startIdx = (begin == 0) ? 1 : ((begin < 0) ? (begin + str.len + 1) : begin);
+        int64_t endIdx = (end == 0) ? str.len : ((end < 0) ? (end + str.len + 1) : end);
+        if (endIdx < startIdx || startIdx < 0 || endIdx < 0) {
+            result.len = 0;
+            return;
+        }
         result.len = min(endIdx - startIdx + 1, str.len - startIdx + 1);
 
         if (!ku_string_t::isShortString(result.len)) {

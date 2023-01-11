@@ -26,10 +26,12 @@ public:
     template<typename T>
     static inline void operation(
         ku_list_t& list, int64_t pos, T& result, ValueVector& resultValueVector) {
-        auto uint64Pos = (uint64_t)pos;
-        if (list.size < uint64Pos) {
-            throw RuntimeException("list_extract(list, index): index=" + TypeUtils::toString(pos) +
-                                   " is out of range.");
+        if (pos == 0 || abs(pos) > list.size) {
+            return;
+        }
+        auto uint64Pos = (pos < 0) ? (pos + list.size + 1) : (uint64_t)pos;
+        if (uint64Pos == 0) {
+            uint64Pos = list.size;
         }
         auto values = reinterpret_cast<T*>(list.overflowPtr);
         result = values[uint64Pos - 1];
