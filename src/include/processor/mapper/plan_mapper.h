@@ -70,6 +70,7 @@ private:
         LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCopyCSVToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(LogicalOperator* logicalOperator);
 
     unique_ptr<ResultCollector> appendResultCollector(const expression_vector& expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator);

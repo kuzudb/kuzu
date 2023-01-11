@@ -1,5 +1,5 @@
-#include "binder/bind/bound_copy_csv.h"
 #include "binder/binder.h"
+#include "binder/copy_csv/bound_copy_csv.h"
 #include "binder/expression/literal_expression.h"
 #include "parser/copy_csv/copy_csv.h"
 
@@ -16,8 +16,7 @@ unique_ptr<BoundStatement> Binder::bindCopyCSV(const Statement& statement) {
                                  catalogContent->getRelTableIDFromName(tableName);
     auto filePath = copyCSV.getCSVFileName();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    return make_unique<BoundCopyCSV>(
-        CSVDescription(filePath, csvReaderConfig), TableSchema(tableName, tableID, isNodeTable));
+    return make_unique<BoundCopyCSV>(CSVDescription(filePath, csvReaderConfig), tableID, tableName);
 }
 
 CSVReaderConfig Binder::bindParsingOptions(

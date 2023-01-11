@@ -12,25 +12,27 @@ using namespace kuzu::catalog;
 class LogicalCopyCSV : public LogicalOperator {
 
 public:
-    LogicalCopyCSV(CSVDescription csvDescription, TableSchema tableSchema)
-        : LogicalOperator{LogicalOperatorType::COPY_CSV}, csvDescription{std::move(csvDescription)},
-          tableSchema{std::move(tableSchema)} {}
+    LogicalCopyCSV(CSVDescription csvDescription, table_id_t tableID, string tableName)
+        : LogicalOperator{LogicalOperatorType::COPY_CSV},
+          csvDescription{std::move(csvDescription)}, tableID{tableID}, tableName{tableName} {}
 
     inline void computeSchema() override { createEmptySchema(); }
 
-    inline string getExpressionsForPrinting() const override { return tableSchema.tableName; }
+    inline string getExpressionsForPrinting() const override { return tableName; }
 
     inline CSVDescription getCSVDescription() const { return csvDescription; }
 
-    inline TableSchema getTableSchema() const { return tableSchema; }
+    inline table_id_t getTableID() const { return tableID; }
 
     inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyCSV>(csvDescription, tableSchema);
+        return make_unique<LogicalCopyCSV>(csvDescription, tableID, tableName);
     }
 
 private:
     CSVDescription csvDescription;
-    TableSchema tableSchema;
+    table_id_t tableID;
+    // Used for printing only.
+    string tableName;
 };
 
 } // namespace planner

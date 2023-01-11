@@ -246,6 +246,7 @@ public:
         const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
         BufferManager& bufferManager, bool isInMemory, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore) {
+        assert(listsUpdatesStore != nullptr);
         // TODO(Ziyi): this is a super hacky design. Consider storing a relIDColumn/List in relTable
         // just like adjColumn/List and we can have Extend read from both relIDColumn/List and
         // adjColumn/List.

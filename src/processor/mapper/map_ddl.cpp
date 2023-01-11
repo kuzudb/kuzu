@@ -1,12 +1,14 @@
 #include "planner/logical_plan/logical_operator/logical_copy_csv.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
+#include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy_csv/copy_node_csv.h"
 #include "processor/operator/copy_csv/copy_rel_csv.h"
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rel_table.h"
+#include "processor/operator/ddl/drop_property.h"
 #include "processor/operator/ddl/drop_table.h"
 
 namespace kuzu {
@@ -34,13 +36,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
     LogicalOperator* logicalOperator) {
     auto copyCSV = (LogicalCopyCSV*)logicalOperator;
-    if (copyCSV->getTableSchema().isNodeTable) {
+    auto tableName = catalog->getReadOnlyVersion()->getTableName(copyCSV->getTableID());
+    if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
         return make_unique<CopyNodeCSV>(catalog, copyCSV->getCSVDescription(),
-            copyCSV->getTableSchema(), storageManager.getWAL(), getOperatorID(),
+            copyCSV->getTableID(), storageManager.getWAL(), getOperatorID(),
             copyCSV->getExpressionsForPrinting(), &storageManager.getNodesStore());
     } else {
-        return make_unique<CopyRelCSV>(catalog, copyCSV->getCSVDescription(),
-            copyCSV->getTableSchema(), storageManager.getWAL(),
+        return make_unique<CopyRelCSV>(catalog, copyCSV->getCSVDescription(), copyCSV->getTableID(),
+            storageManager.getWAL(),
             &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(), getOperatorID(),
             copyCSV->getExpressionsForPrinting(),
             &storageManager.getRelsStore().getRelsStatistics());
@@ -50,8 +53,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
     LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
-    return make_unique<DropTable>(catalog, dropTable->getTableSchema(), storageManager,
-        getOperatorID(), dropTable->getExpressionsForPrinting());
+    return make_unique<DropTable>(catalog, dropTable->getTableID(), storageManager, getOperatorID(),
+        dropTable->getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
+    LogicalOperator* logicalOperator) {
+    auto dropProperty = (LogicalDropProperty*)logicalOperator;
+    return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
+        dropProperty->getPropertyID(), storageManager, getOperatorID(),
+        dropProperty->getExpressionsForPrinting());
 }
 
 } // namespace processor

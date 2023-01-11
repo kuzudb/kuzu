@@ -72,7 +72,8 @@ TEST_F(CatalogTest, AddTablesTest) {
     // primary key of person table is a column name ID, which is at idx 0 in the predefined
     // properties
     ASSERT_EQ(0 /* pkPropertyIdx */,
-        catalog->getReadOnlyVersion()->getNodeTableSchema(PERSON_TABLE_ID)->primaryKeyPropertyIdx);
+        ((NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
+            ->primaryKeyPropertyIdx);
 
     ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeProperty(PERSON_TABLE_ID, "age").propertyID, 5);
     ASSERT_EQ(
@@ -137,9 +138,9 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     /* primary key of person table is a column name ID, which is at idx 0 in the predefined
      * properties */
-    ASSERT_EQ(0 /* pkPropertyIdx */, newCatalog->getReadOnlyVersion()
-                                         ->getNodeTableSchema(PERSON_TABLE_ID)
-                                         ->primaryKeyPropertyIdx);
+    ASSERT_EQ(0 /* pkPropertyIdx */,
+        ((NodeTableSchema*)newCatalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
+            ->primaryKeyPropertyIdx);
     // Test getting table id from string
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("person"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));

@@ -34,7 +34,8 @@ FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 kU_DDL
     : kU_CreateNode
         | kU_CreateRel
-        | kU_DropTable;
+        | kU_DropTable
+        | kU_AlterTable;
 
 kU_CreateNode
     : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
@@ -50,6 +51,11 @@ kU_DropTable
     : DROP SP TABLE SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
+
+kU_AlterTable
+    : ALTER SP TABLE SP oC_SchemaName SP DROP SP oC_PropertyKeyName ;
+
+ALTER: ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
 
 kU_RelConnections : kU_RelConnection ( SP? ',' SP? kU_RelConnection )* ;
 

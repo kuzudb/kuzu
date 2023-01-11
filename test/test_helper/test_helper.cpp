@@ -28,7 +28,7 @@ vector<unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
         if (line.starts_with("-NAME")) {
             auto config = make_unique<TestQueryConfig>();
             currentConfig = config.get();
-            result.push_back(move(config));
+            result.push_back(std::move(config));
             currentConfig->name = line.substr(6, line.length());
         } else if (line.starts_with("-QUERY")) {
             currentConfig->query = line.substr(7, line.length());
@@ -190,8 +190,7 @@ void BaseGraphTest::validateRelColumnAndListFilesExistence(
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
     table_id_t tableID, RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType,
     bool existence) {
-    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-        auto property = relTableSchema->properties[i];
+    for (auto& property : relTableSchema->properties) {
         auto hasOverflow = containsOverflowFile(property.dataType.typeID);
         if (isColumnProperty) {
             validateColumnFilesExistence(
@@ -200,10 +199,9 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
                     dbFileType),
                 existence, hasOverflow);
         } else {
-            validateListFilesExistence(
-                StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, tableID, relDirection,
-                    relTableSchema->properties[i].propertyID, dbFileType),
+            validateListFilesExistence(StorageUtils::getRelPropertyListsFName(
+                                           databaseConfig->databasePath, relTableSchema->tableID,
+                                           tableID, relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow, false /* hasHeader */);
         }
     }

@@ -17,6 +17,9 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::COPY_CSV: {
         return bindCopyCSV(statement);
     }
+    case StatementType::DROP_PROPERTY: {
+        return bindDropProperty(statement);
+    }
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);
     }
@@ -189,7 +192,7 @@ unordered_map<string, shared_ptr<Expression>> Binder::enterSubquery() {
 }
 
 void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
-    variablesInScope = move(prevVariablesInScope);
+    variablesInScope = std::move(prevVariablesInScope);
 }
 
 } // namespace binder

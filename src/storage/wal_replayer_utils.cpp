@@ -55,19 +55,17 @@ void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemList
 void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
     table_id_t tableID, const string& directory, RelDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {
-    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-        auto propertyID = relTableSchema->properties[i].propertyID;
-        auto propertyDataType = relTableSchema->properties[i].dataType;
+    for (auto& property : relTableSchema->properties) {
         if (isForRelPropertyColumn) {
             auto fName = StorageUtils::getRelPropertyColumnFName(directory, relTableSchema->tableID,
-                tableID, relDirection, propertyID, DBFileType::ORIGINAL);
-            InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes)
+                tableID, relDirection, property.propertyID, DBFileType::ORIGINAL);
+            InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes)
                 ->saveToFile();
         } else {
             auto fName = StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
-                tableID, relDirection, propertyID, DBFileType::ORIGINAL);
+                tableID, relDirection, property.propertyID, DBFileType::ORIGINAL);
             auto inMemPropertyList =
-                InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
+                InMemListsFactory::getInMemPropertyLists(fName, property.dataType, numNodes);
             initLargeListPageListsAndSaveToFile(inMemPropertyList.get());
         }
     }
@@ -185,15 +183,15 @@ void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSche
     table_id_t nodeTableID, const string& directory, RelDirection relDirection,
     bool isColumnProperty, std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
-    for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
-        auto property = tableSchema->properties[i];
-        auto propertyID = property.propertyID;
+    for (auto& property : tableSchema->properties) {
         if (isColumnProperty) {
-            columnFileOperation(StorageUtils::getRelPropertyColumnFName(directory,
-                tableSchema->tableID, nodeTableID, relDirection, propertyID, DBFileType::ORIGINAL));
+            columnFileOperation(
+                StorageUtils::getRelPropertyColumnFName(directory, tableSchema->tableID,
+                    nodeTableID, relDirection, property.propertyID, DBFileType::ORIGINAL));
         } else {
-            listFileOperation(StorageUtils::getRelPropertyListsFName(directory,
-                tableSchema->tableID, nodeTableID, relDirection, propertyID, DBFileType::ORIGINAL));
+            listFileOperation(
+                StorageUtils::getRelPropertyListsFName(directory, tableSchema->tableID, nodeTableID,
+                    relDirection, property.propertyID, DBFileType::ORIGINAL));
         }
     }
 }

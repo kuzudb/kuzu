@@ -13,11 +13,9 @@ namespace processor {
 class CopyCSV : public PhysicalOperator {
 public:
     CopyCSV(PhysicalOperatorType operatorType, Catalog* catalog, CSVDescription csvDescription,
-        TableSchema tableSchema, WAL* wal, uint32_t id, const string& paramsString)
+        table_id_t tableID, WAL* wal, uint32_t id, const string& paramsString)
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog},
-          csvDescription{std::move(csvDescription)}, tableSchema{std::move(tableSchema)}, wal{wal} {
-    }
-    virtual ~CopyCSV() override = default;
+          csvDescription{std::move(csvDescription)}, tableID{tableID}, wal{wal} {}
 
     inline bool isSource() const override { return true; }
 
@@ -30,19 +28,20 @@ public:
 protected:
     void errorIfTableIsNonEmpty(TablesStatistics* tablesStatistics) {
         auto numTuples = tablesStatistics->getReadOnlyVersion()
-                             ->tableStatisticPerTable.at(tableSchema.tableID)
+                             ->tableStatisticPerTable.at(tableID)
                              ->getNumTuples();
         if (numTuples > 0) {
+            auto tableName = catalog->getReadOnlyVersion()->getTableSchema(tableID)->tableName;
             throw CopyCSVException(
                 "COPY CSV commands can be executed only on completely empty tables. Table: " +
-                tableSchema.tableName + " has " + to_string(numTuples) + " many tuples.");
+                tableName + " has " + to_string(numTuples) + " many tuples.");
         }
     }
 
 protected:
     Catalog* catalog;
     CSVDescription csvDescription;
-    TableSchema tableSchema;
+    table_id_t tableID;
     WAL* wal;
 };
 

@@ -9,33 +9,33 @@ namespace kuzu {
 namespace storage {
 
 Column* DirectedRelTableData::getPropertyColumn(
-    table_id_t boundNodeTableID, property_id_t propertyId) {
+    table_id_t boundNodeTableID, property_id_t propertyID) {
     if (propertyColumns.contains(boundNodeTableID) &&
-        propertyId < propertyColumns[boundNodeTableID].size()) {
-        return propertyColumns[boundNodeTableID][propertyId].get();
+        propertyColumns.at(boundNodeTableID).contains(propertyID)) {
+        return propertyColumns.at(boundNodeTableID).at(propertyID).get();
     }
     return nullptr;
 }
 
 Lists* DirectedRelTableData::getPropertyLists(
-    table_id_t boundNodeTableID, property_id_t propertyId) {
+    table_id_t boundNodeTableID, property_id_t propertyID) {
     if (propertyLists.contains(boundNodeTableID) &&
-        propertyId < propertyLists[boundNodeTableID].size()) {
-        return propertyLists[boundNodeTableID][propertyId].get();
+        propertyLists.at(boundNodeTableID).contains(propertyID)) {
+        return propertyLists.at(boundNodeTableID).at(propertyID).get();
     }
     return nullptr;
 }
 
 AdjColumn* DirectedRelTableData::getAdjColumn(table_id_t boundNodeTableID) {
     if (adjColumns.contains(boundNodeTableID)) {
-        return adjColumns[boundNodeTableID].get();
+        return adjColumns.at(boundNodeTableID).get();
     }
     return nullptr;
 }
 
 AdjLists* DirectedRelTableData::getAdjLists(table_id_t boundNodeTableID) {
     if (adjLists.contains(boundNodeTableID)) {
-        return adjLists[boundNodeTableID].get();
+        return adjLists.at(boundNodeTableID).get();
     }
     return nullptr;
 }
@@ -63,9 +63,8 @@ void DirectedRelTableData::initializeColumnsForBoundNodeTable(RelTableSchema* ta
         make_unique<AdjColumn>(StorageUtils::getAdjColumnStructureIDAndFName(wal->getDirectory(),
                                    tableSchema->tableID, boundNodeTableID, direction),
             bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
-    propertyColumns[boundNodeTableID].resize(tableSchema->getNumProperties());
     for (auto& property : tableSchema->properties) {
-        propertyColumns.at(boundNodeTableID)[property.propertyID] = ColumnFactory::getColumn(
+        propertyColumns[boundNodeTableID][property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
                 tableSchema->tableID, boundNodeTableID, direction, property.propertyID),
             property.dataType, bufferManager, isInMemoryMode, wal);
@@ -79,9 +78,8 @@ void DirectedRelTableData::initializeListsForBoundNodeTabl(RelTableSchema* table
         make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(wal->getDirectory(),
                                   tableSchema->tableID, boundNodeTableID, direction),
             bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal, listsUpdatesStore);
-    propertyLists[boundNodeTableID].resize(tableSchema->getNumProperties());
     for (auto& property : tableSchema->properties) {
-        propertyLists.at(boundNodeTableID)[property.propertyID] = ListsFactory::getLists(
+        propertyLists[boundNodeTableID][property.propertyID] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, boundNodeTableID, direction, property),
             property.dataType, adjLists[boundNodeTableID]->getHeaders(), bufferManager,
@@ -171,7 +169,7 @@ void DirectedRelTableData::deleteRel(
     auto nodeOffset =
         boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
     adjColumn->setNodeOffsetToNull(nodeOffset);
-    for (auto& propertyColumn : propertyColumns.at(boundTableID)) {
+    for (auto& [_, propertyColumn] : propertyColumns.at(boundTableID)) {
         propertyColumn->setNodeOffsetToNull(nodeOffset);
     }
 }
@@ -181,7 +179,7 @@ void DirectedRelTableData::performOpOnListsWithUpdates(
     for (auto& [boundNodeTableID, listsUpdatePerTable] :
         listsUpdatesStore->getListsUpdatesPerBoundNodeTableOfDirection(direction)) {
         opOnListsWithUpdates(adjLists.at(boundNodeTableID).get());
-        for (auto& propertyList : propertyLists.at(boundNodeTableID)) {
+        for (auto& [propertyID, propertyList] : propertyLists.at(boundNodeTableID)) {
             opOnListsWithUpdates(propertyList.get());
         }
     }
@@ -192,9 +190,9 @@ vector<unique_ptr<ListsUpdateIterator>> DirectedRelTableData::getListsUpdateIter
     vector<unique_ptr<ListsUpdateIterator>> listsUpdateIterators;
     listsUpdateIterators.push_back(
         ListsUpdateIteratorFactory::getListsUpdateIterator(adjLists.at(boundNodeTableID).get()));
-    for (auto& propList : propertyLists.at(boundNodeTableID)) {
-        listsUpdateIterators.push_back(
-            ListsUpdateIteratorFactory::getListsUpdateIterator(propList.get()));
+    for (auto i = 0u; i < propertyLists.at(boundNodeTableID).size(); i++) {
+        listsUpdateIterators.push_back(ListsUpdateIteratorFactory::getListsUpdateIterator(
+            propertyLists.at(boundNodeTableID).at(i).get()));
     }
     return listsUpdateIterators;
 }

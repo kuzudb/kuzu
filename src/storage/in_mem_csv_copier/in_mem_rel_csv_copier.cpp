@@ -107,7 +107,8 @@ void InMemRelCSVCopier::initializeColumns(RelDirection relDirection) {
             propertyColumns[i] =
                 InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes);
         }
-        directionTablePropertyColumns[relDirection].emplace(boundTableID, move(propertyColumns));
+        directionTablePropertyColumns[relDirection].emplace(
+            boundTableID, std::move(propertyColumns));
     }
 }
 
@@ -131,7 +132,7 @@ void InMemRelCSVCopier::initializeLists(RelDirection relDirection) {
             propertyLists[i] =
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
         }
-        directionTablePropertyLists[relDirection].emplace(boundTableID, move(propertyLists));
+        directionTablePropertyLists[relDirection].emplace(boundTableID, std::move(propertyLists));
     }
 }
 
@@ -211,7 +212,7 @@ void InMemRelCSVCopier::populateAdjColumnsAndCountRelsInAdjListsTask(
                         relTableSchema->tableName.c_str(),
                         getRelMultiplicityAsString(relTableSchema->relMultiplicity).c_str(),
                         nodeOffset,
-                        copier->catalog.getReadOnlyVersion()->getNodeTableName(tableID).c_str(),
+                        copier->catalog.getReadOnlyVersion()->getTableName(tableID).c_str(),
                         getRelDirectionAsString(relDirection).c_str()));
                 }
                 copier->directionTableAdjColumns[relDirection].at(tableID)->setElement(
@@ -695,18 +696,16 @@ void InMemRelCSVCopier::saveToFile() {
             adjColumn->saveToFile();
         }
         for (auto& [_, propertyColumns] : directionTablePropertyColumns[relDirection]) {
-            for (auto propertyIdx = 0u; propertyIdx < relTableSchema->getNumProperties();
-                 propertyIdx++) {
-                propertyColumns[propertyIdx]->saveToFile();
+            for (auto& property : relTableSchema->properties) {
+                propertyColumns[property.propertyID]->saveToFile();
             }
         }
         for (auto& [_, adjList] : directionTableAdjLists[relDirection]) {
             adjList->saveToFile();
         }
         for (auto& [_, propertyLists] : directionTablePropertyLists[relDirection]) {
-            for (auto propertyIdx = 0u; propertyIdx < relTableSchema->getNumProperties();
-                 propertyIdx++) {
-                propertyLists[propertyIdx]->saveToFile();
+            for (auto& property : relTableSchema->properties) {
+                propertyLists[property.propertyID]->saveToFile();
             }
         }
     }

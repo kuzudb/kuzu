@@ -42,6 +42,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::DELETE_REL: {
         return "DELETE_REL";
     }
+    case PhysicalOperatorType::DROP_PROPERTY: {
+        return "DROP_PROPERTY";
+    }
     case PhysicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
     }

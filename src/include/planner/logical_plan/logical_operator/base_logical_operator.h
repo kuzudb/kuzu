@@ -19,6 +19,7 @@ enum class LogicalOperatorType : uint8_t {
     DELETE_NODE,
     DELETE_REL,
     DISTINCT,
+    DROP_PROPERTY,
     DROP_TABLE,
     EXPRESSIONS_SCAN,
     EXTEND,

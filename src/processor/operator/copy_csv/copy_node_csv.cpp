@@ -6,15 +6,14 @@ namespace kuzu {
 namespace processor {
 
 string CopyNodeCSV::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
-    auto nodeCSVCopier =
-        make_unique<InMemArrowNodeCopier>(csvDescription, wal->getDirectory(), *taskScheduler,
-            *catalog, tableSchema.tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
+    auto nodeCSVCopier = make_unique<InMemArrowNodeCopier>(csvDescription, wal->getDirectory(),
+        *taskScheduler, *catalog, tableID, &nodesStore->getNodesStatisticsAndDeletedIDs());
     errorIfTableIsNonEmpty(&nodesStore->getNodesStatisticsAndDeletedIDs());
     // Note: This copy function will update the maxNodeOffset in nodesStatisticsAndDeletedIDs.
     auto numNodesCopied = nodeCSVCopier->copy();
-    wal->logCopyNodeCSVRecord(tableSchema.tableID);
+    wal->logCopyNodeCSVRecord(tableID);
     return StringUtils::string_format("%d number of nodes has been copied to nodeTable: %s.",
-        numNodesCopied, tableSchema.tableName.c_str());
+        numNodesCopied, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
 }
 
 } // namespace processor

@@ -22,6 +22,8 @@ private:
 
     static unique_ptr<LogicalPlan> planDropTable(const BoundStatement& statement);
 
+    static unique_ptr<LogicalPlan> planDropProperty(const BoundStatement& statement);
+
     static unique_ptr<LogicalPlan> planCopyCSV(const BoundStatement& statement);
 };
 

@@ -51,13 +51,8 @@ public:
         return relTableSchemas.contains(tableID);
     }
 
-    inline string getNodeTableName(table_id_t tableID) const {
-        assert(containNodeTable(tableID));
-        return nodeTableSchemas.at(tableID)->tableName;
-    }
-    inline string getRelTableName(table_id_t tableID) const {
-        assert(containRelTable(tableID));
-        return relTableSchemas.at(tableID)->tableName;
+    inline string getTableName(table_id_t tableID) const {
+        return getTableSchema(tableID)->tableName;
     }
 
     inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
@@ -67,6 +62,12 @@ public:
     inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
         assert(containRelTable(tableID));
         return relTableSchemas.at(tableID).get();
+    }
+    inline TableSchema* getTableSchema(table_id_t tableID) const {
+        assert(containRelTable(tableID) || containNodeTable(tableID));
+        return nodeTableSchemas.contains(tableID) ?
+                   (TableSchema*)nodeTableSchemas.at(tableID).get() :
+                   (TableSchema*)relTableSchemas.at(tableID).get();
     }
 
     inline bool containNodeTable(const string& tableName) const {

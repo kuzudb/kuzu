@@ -9,7 +9,7 @@ using namespace std;
 
 class DropTable : public DDL {
 public:
-    explicit DropTable(string tableName) : DDL{StatementType::DROP_TABLE, move(tableName)} {}
+    explicit DropTable(string tableName) : DDL{StatementType::DROP_TABLE, std::move(tableName)} {}
 };
 
 } // namespace parser
