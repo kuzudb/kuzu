@@ -54,7 +54,8 @@ unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& state
     auto& createNodeClause = (BoundCreateNodeClause&)statement;
     auto plan = make_unique<LogicalPlan>();
     auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
-        createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx());
+        createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
     createNodeTable->computeSchema();
     plan->setLastOperator(std::move(createNodeTable));
     return plan;
@@ -65,7 +66,8 @@ unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statem
     auto plan = make_unique<LogicalPlan>();
     auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
         createRelClause.getPropertyNameDataTypes(), createRelClause.getRelMultiplicity(),
-        createRelClause.getSrcDstTableIDs());
+        createRelClause.getSrcDstTableIDs(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
     createRelTable->computeSchema();
     plan->setLastOperator(std::move(createRelTable));
     return plan;
@@ -75,7 +77,8 @@ unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) 
     auto& dropTableClause = (BoundDropTable&)statement;
     auto plan = make_unique<LogicalPlan>();
     auto dropTable =
-        make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName());
+        make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName(),
+            statement.getStatementResult()->getSingleExpressionToCollect());
     dropTable->computeSchema();
     plan->setLastOperator(std::move(dropTable));
     return plan;
@@ -85,7 +88,8 @@ unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statemen
     auto& dropPropertyClause = (BoundDropProperty&)statement;
     auto plan = make_unique<LogicalPlan>();
     auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
-        dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName());
+        dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
     dropProperty->computeSchema();
     plan->setLastOperator(std::move(dropProperty));
     return plan;

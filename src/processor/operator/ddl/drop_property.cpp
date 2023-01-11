@@ -3,14 +3,14 @@
 namespace kuzu {
 namespace processor {
 
-string DropProperty::execute() {
+void DropProperty::executeDDLInternal() {
     catalog->initCatalogContentForWriteTrxIfNecessary();
     auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
-    auto tableName = tableSchema->tableName;
-    auto propertyName = tableSchema->getPropertyName(propertyID);
     tableSchema->removeProperty(propertyID);
-    return StringUtils::string_format(
-        "%s column of table %s has been dropped.", propertyName.c_str(), tableName.c_str());
+}
+
+std::string DropProperty::getOutputMsg() {
+    return {"Drop Succeed."};
 }
 
 } // namespace processor

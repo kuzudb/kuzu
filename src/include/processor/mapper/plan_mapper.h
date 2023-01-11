@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/expression/node_expression.h"
+#include "common/statement_type.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
@@ -24,7 +25,7 @@ public:
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
-        const expression_vector& expressionsToCollect, bool isDDLOrCopyCSV);
+        const expression_vector& expressionsToCollect, common::StatementType statementType);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(

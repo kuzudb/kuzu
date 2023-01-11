@@ -9,9 +9,10 @@ namespace planner {
 class LogicalCreateRelTable : public LogicalCreateTable {
 public:
     LogicalCreateRelTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
-        RelMultiplicity relMultiplicity, vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
+        RelMultiplicity relMultiplicity, vector<pair<table_id_t, table_id_t>> srcDstTableIDs,
+        shared_ptr<Expression> outputExpression)
         : LogicalCreateTable{LogicalOperatorType::CREATE_REL_TABLE, std::move(tableName),
-              std::move(propertyNameDataTypes)},
+              std::move(propertyNameDataTypes), std::move(outputExpression)},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)} {}
 
     inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
@@ -20,7 +21,7 @@ public:
 
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateRelTable>(
-            tableName, propertyNameDataTypes, relMultiplicity, srcDstTableIDs);
+            tableName, propertyNameDataTypes, relMultiplicity, srcDstTableIDs, outputExpression);
     }
 
 private:

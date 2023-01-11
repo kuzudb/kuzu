@@ -43,6 +43,12 @@ public:
         return result;
     }
 
+    inline shared_ptr<Expression> getSingleExpressionToCollect() {
+        auto expressionsToCollect = getExpressionsToCollect();
+        assert(expressionsToCollect.size() == 1);
+        return expressionsToCollect[0];
+    }
+
     inline unique_ptr<BoundStatementResult> copy() {
         return make_unique<BoundStatementResult>(columns, expressionsToCollectPerColumn);
     }

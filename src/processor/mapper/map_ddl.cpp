@@ -14,12 +14,19 @@
 namespace kuzu {
 namespace processor {
 
+static DataPos getOutputPos(LogicalDDL* logicalDDL) {
+    auto outSchema = logicalDDL->getSchema();
+    auto outputExpression = logicalDDL->getOutputExpression();
+    return DataPos(outSchema->getExpressionPos(*outputExpression));
+}
+
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
     LogicalOperator* logicalOperator) {
     auto createNodeTable = (LogicalCreateNodeTable*)logicalOperator;
     return make_unique<CreateNodeTable>(catalog, createNodeTable->getTableName(),
         createNodeTable->getPropertyNameDataTypes(), createNodeTable->getPrimaryKeyIdx(),
-        getOperatorID(), createNodeTable->getExpressionsForPrinting(),
+        getOutputPos(createNodeTable), getOperatorID(),
+        createNodeTable->getExpressionsForPrinting(),
         &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs());
 }
 
@@ -28,7 +35,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
     auto createRelTable = (LogicalCreateRelTable*)logicalOperator;
     return make_unique<CreateRelTable>(catalog, createRelTable->getTableName(),
         createRelTable->getPropertyNameDataTypes(), createRelTable->getRelMultiplicity(),
-        createRelTable->getSrcDstTableIDs(), getOperatorID(),
+        createRelTable->getSrcDstTableIDs(), getOutputPos(createRelTable), getOperatorID(),
         createRelTable->getExpressionsForPrinting(),
         &storageManager.getRelsStore().getRelsStatistics());
 }
@@ -53,15 +60,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
     LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
-    return make_unique<DropTable>(catalog, dropTable->getTableID(), storageManager, getOperatorID(),
-        dropTable->getExpressionsForPrinting());
+    return make_unique<DropTable>(catalog, dropTable->getTableID(), storageManager,
+        getOutputPos(dropTable), getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
     LogicalOperator* logicalOperator) {
     auto dropProperty = (LogicalDropProperty*)logicalOperator;
     return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
-        dropProperty->getPropertyID(), storageManager, getOperatorID(),
+        dropProperty->getPropertyID(), storageManager, getOutputPos(dropProperty), getOperatorID(),
         dropProperty->getExpressionsForPrinting());
 }
 

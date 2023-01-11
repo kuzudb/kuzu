@@ -12,21 +12,28 @@ namespace processor {
 
 class DDL : public PhysicalOperator {
 public:
-    DDL(PhysicalOperatorType operatorType, Catalog* catalog, uint32_t id,
+    DDL(PhysicalOperatorType operatorType, Catalog* catalog, const DataPos& outputPos, uint32_t id,
         const string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog} {}
+        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog}, outputPos{outputPos} {
+    }
     virtual ~DDL() override = default;
 
     inline bool isSource() const override { return true; }
 
-    virtual string execute() = 0;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override {
-        throw InternalException("getNextTupleInternal() should not be called on DDL operator.");
-    }
+    bool getNextTuplesInternal() override;
+
+protected:
+    virtual std::string getOutputMsg() = 0;
+    virtual void executeDDLInternal() = 0;
 
 protected:
     Catalog* catalog;
+    DataPos outputPos;
+    ValueVector* outputVector;
+
+    bool hasExecuted = false;
 };
 
 } // namespace processor

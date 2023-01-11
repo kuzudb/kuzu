@@ -18,15 +18,9 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isDDLOrCopyCSV) {
-        auto lastOP = physicalPlan->lastOperator->getChild(0);
-        string outputMsg;
-        if (lastOP->getOperatorType() == PhysicalOperatorType::COPY_NODE_CSV ||
-            lastOP->getOperatorType() == PhysicalOperatorType::COPY_REL_CSV) {
-            outputMsg = ((CopyCSV*)(lastOP))->execute(taskScheduler.get(), context);
-        } else {
-            outputMsg = ((DDL*)(lastOP))->execute();
-        }
+    if (physicalPlan->isCopyCSV()) {
+        auto copyCSV = (CopyCSV*)physicalPlan->lastOperator.get();
+        auto outputMsg = copyCSV->execute(taskScheduler.get(), context);
         return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
@@ -70,6 +64,13 @@ void QueryProcessor::decomposePlanIntoTasks(
         // Index lookup should happen exactly once. We don't need to lock if index look is executed
         // in single-thread mode.
     case PhysicalOperatorType::INDEX_SCAN: {
+        parentTask->setSingleThreadedTask();
+    } break;
+        // DDL should be executed exactly once.
+    case PhysicalOperatorType::CREATE_NODE_TABLE:
+    case PhysicalOperatorType::CREATE_REL_TABLE:
+    case PhysicalOperatorType::DROP_TABLE:
+    case PhysicalOperatorType::DROP_PROPERTY: {
         parentTask->setSingleThreadedTask();
     } break;
     default:

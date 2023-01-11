@@ -9,23 +9,25 @@ namespace processor {
 class CreateNodeTable : public CreateTable {
 public:
     CreateNodeTable(Catalog* catalog, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx, uint32_t id,
-        const string& paramsString, NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
+        vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx,
+        const DataPos& outputPos, uint32_t id, const string& paramsString,
+        NodesStatisticsAndDeletedIDs* nodesStatistics)
         : CreateTable{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, std::move(tableName),
-              std::move(propertyNameDataTypes), id, paramsString},
-          primaryKeyIdx{primaryKeyIdx}, nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
-    }
+              std::move(propertyNameDataTypes), outputPos, id, paramsString},
+          primaryKeyIdx{primaryKeyIdx}, nodesStatistics{nodesStatistics} {}
 
-    string execute() override;
+    void executeDDLInternal() override;
+
+    std::string getOutputMsg() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CreateNodeTable>(catalog, tableName, propertyNameDataTypes,
-            primaryKeyIdx, id, paramsString, nodesStatisticsAndDeletedIDs);
+            primaryKeyIdx, outputPos, id, paramsString, nodesStatistics);
     }
 
 private:
     uint32_t primaryKeyIdx;
-    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    NodesStatisticsAndDeletedIDs* nodesStatistics;
 };
 
 } // namespace processor
