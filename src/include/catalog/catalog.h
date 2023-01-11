@@ -44,49 +44,56 @@ public:
         const vector<PropertyNameDataType>& propertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
-    virtual inline string getNodeTableName(table_id_t tableID) const {
+    inline bool containNodeTable(table_id_t tableID) const {
+        return nodeTableSchemas.contains(tableID);
+    }
+    inline bool containRelTable(table_id_t tableID) const {
+        return relTableSchemas.contains(tableID);
+    }
+
+    inline string getNodeTableName(table_id_t tableID) const {
+        assert(containNodeTable(tableID));
         return nodeTableSchemas.at(tableID)->tableName;
     }
-    virtual inline string getRelTableName(table_id_t tableID) const {
+    inline string getRelTableName(table_id_t tableID) const {
+        assert(containRelTable(tableID));
         return relTableSchemas.at(tableID)->tableName;
     }
 
     inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
+        assert(containNodeTable(tableID));
         return nodeTableSchemas.at(tableID).get();
     }
-    virtual inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
+    inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
+        assert(containRelTable(tableID));
         return relTableSchemas.at(tableID).get();
     }
 
-    virtual inline bool containNodeTable(const string& tableName) const {
-        return end(nodeTableNameToIDMap) != nodeTableNameToIDMap.find(tableName);
+    inline bool containNodeTable(const string& tableName) const {
+        return nodeTableNameToIDMap.contains(tableName);
     }
-    virtual inline bool containRelTable(const string& tableName) const {
-        return end(relTableNameToIDMap) != relTableNameToIDMap.find(tableName);
+    inline bool containRelTable(const string& tableName) const {
+        return relTableNameToIDMap.contains(tableName);
     }
 
-    virtual inline table_id_t getNodeTableIDFromName(const string& tableName) const {
+    inline table_id_t getNodeTableIDFromName(const string& tableName) const {
         return nodeTableNameToIDMap.at(tableName);
     }
-    virtual inline table_id_t getRelTableIDFromName(const string& tableName) const {
+    inline table_id_t getRelTableIDFromName(const string& tableName) const {
         return relTableNameToIDMap.at(tableName);
     }
 
-    virtual inline bool isSingleMultiplicityInDirection(
-        table_id_t tableID, RelDirection direction) const {
+    inline bool isSingleMultiplicityInDirection(table_id_t tableID, RelDirection direction) const {
         return relTableSchemas.at(tableID)->isSingleMultiplicityInDirection(direction);
     }
 
     /**
      * Node and Rel property functions.
      */
-    virtual bool containNodeProperty(table_id_t tableID, const string& propertyName) const;
-    virtual bool containRelProperty(table_id_t tableID, const string& propertyName) const;
-
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    virtual const Property& getNodeProperty(table_id_t tableID, const string& propertyName) const;
-    virtual const Property& getRelProperty(table_id_t tableID, const string& propertyName) const;
+    const Property& getNodeProperty(table_id_t tableID, const string& propertyName) const;
+    const Property& getRelProperty(table_id_t tableID, const string& propertyName) const;
 
     vector<Property> getAllNodeProperties(table_id_t tableID) const;
     inline const vector<Property>& getRelProperties(table_id_t tableID) const {

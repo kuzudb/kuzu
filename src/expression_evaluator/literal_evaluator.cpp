@@ -15,7 +15,7 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 void LiteralExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
     resultVector = make_shared<ValueVector>(literal->dataType, memoryManager);
-    ValueVectorUtils::addLiteralToValueVector(*resultVector, 0, *literal);
+    resultVector->setLiteral(0, *literal);
     resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }
 

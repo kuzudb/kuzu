@@ -9,6 +9,7 @@
 #include "binder/expression/rel_expression.h"
 #include "common/type_utils.h"
 #include "function/boolean/vector_boolean_operations.h"
+#include "function/node/vector_node_operations.h"
 #include "function/null/vector_null_operations.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -208,6 +209,12 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     auto functionName = parsedFunctionExpression.getFunctionName();
     StringUtils::toUpper(functionName);
+    // check for special function binding
+    if (functionName == ID_FUNC_NAME) {
+        return bindInternalIDExpression(parsedExpression);
+    } else if (functionName == LABEL_FUNC_NAME) {
+        return bindLabelFunction(parsedExpression);
+    }
     auto functionType = binder->catalog.getFunctionType(functionName);
     if (functionType == FUNCTION) {
         return bindScalarFunctionExpression(parsedExpression, functionName);
@@ -285,13 +292,11 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(TIMESTAMP),
             make_unique<Literal>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
-    } else if (functionName == CAST_TO_INTERVAL_FUNC_NAME) {
+    } else {
+        assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
-    } else {
-        assert(functionName == ID_FUNC_NAME);
-        return bindInternalIDExpression(parsedExpression);
     }
 }
 
@@ -322,6 +327,46 @@ unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
     auto result = make_unique<PropertyExpression>(
         DataType(NODE_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
     return result;
+}
+
+shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
+    const ParsedExpression& parsedExpression) {
+    // bind child node
+    auto child = bindExpression(*parsedExpression.getChild(0));
+    assert(child->dataType.typeID == common::NODE);
+    return bindNodeLabelFunction(*child);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression& expression) {
+    auto catalogContent = binder->catalog.getReadOnlyVersion();
+    auto& node = (NodeExpression&)expression;
+    if (!node.isMultiLabeled()) {
+        auto labelName = catalogContent->getNodeTableSchema(node.getSingleTableID())->tableName;
+        return make_shared<LiteralExpression>(STRING, make_unique<Literal>(labelName));
+    }
+    // bind string node labels as list literal
+    auto nodeTableIDs = catalogContent->getNodeTableIDs();
+    table_id_t maxNodeTableID = *std::max_element(nodeTableIDs.begin(), nodeTableIDs.end());
+    vector<Literal> nodeLabels;
+    nodeLabels.resize(maxNodeTableID + 1);
+    for (auto i = 0; i < nodeLabels.size(); ++i) {
+        if (catalogContent->containNodeTable(i)) {
+            auto tableSchema = catalogContent->getNodeTableSchema(i);
+            nodeLabels[i] = Literal(tableSchema->tableName);
+        } else {
+            // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
+            nodeLabels[i] = Literal(string(""));
+        }
+    }
+    auto literalDataType = DataType(LIST, make_unique<DataType>(STRING));
+    expression_vector children;
+    children.push_back(node.getInternalIDProperty());
+    children.push_back(make_shared<LiteralExpression>(
+        literalDataType, make_unique<Literal>(nodeLabels, literalDataType)));
+    auto execFunc = NodeLabelVectorOperation::execFunction;
+    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(
+        FUNCTION, DataType(STRING), std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(

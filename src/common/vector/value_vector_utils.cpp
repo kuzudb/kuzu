@@ -5,39 +5,6 @@
 using namespace kuzu;
 using namespace common;
 
-void ValueVectorUtils::addLiteralToValueVector(
-    ValueVector& resultVector, uint64_t pos, const Literal& literal) {
-    if (literal.isNull()) {
-        resultVector.setNull(pos, true);
-        return;
-    }
-    switch (literal.dataType.typeID) {
-    case INT64: {
-        resultVector.setValue(pos, literal.val.int64Val);
-    } break;
-    case DOUBLE: {
-        resultVector.setValue(pos, literal.val.doubleVal);
-    } break;
-    case BOOL: {
-        resultVector.setValue(pos, literal.val.booleanVal);
-    } break;
-    case DATE: {
-        resultVector.setValue(pos, literal.val.dateVal);
-    } break;
-    case TIMESTAMP: {
-        resultVector.setValue(pos, literal.val.timestampVal);
-    } break;
-    case INTERVAL: {
-        resultVector.setValue(pos, literal.val.intervalVal);
-    } break;
-    case STRING: {
-        resultVector.setValue(pos, literal.strVal);
-    } break;
-    default:
-        assert(false);
-    }
-}
-
 void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
     copyNonNullDataWithSameType(resultVector.dataType, srcData,

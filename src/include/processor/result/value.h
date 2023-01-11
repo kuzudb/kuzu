@@ -7,6 +7,9 @@
 namespace kuzu {
 namespace processor {
 
+class NodeVal;
+class RelVal;
+
 class Value {
 public:
     explicit Value(common::DataType dataType) : dataType{std::move(dataType)}, isNull{false} {}
@@ -41,6 +44,11 @@ public:
         return val.intervalVal;
     }
 
+    inline common::nodeID_t getNodeIDVal() const {
+        validateType(common::NODE_ID);
+        return val.nodeIDVal;
+    }
+
     inline std::string getStringVal() const {
         validateType(common::STRING);
         return stringVal;
@@ -58,10 +66,8 @@ public:
     inline common::DataType getDataType() const { return dataType; }
 
     void set(const uint8_t* value);
-
-    inline void addNodeOrRelProperty(const std::string& key, unique_ptr<Value> value) {
-        nodeOrRelVal.emplace_back(key, std::move(value));
-    }
+    inline void setNodeVal(unique_ptr<NodeVal> nodeVal_) { nodeVal = std::move(nodeVal_); }
+    inline void setRelVal(unique_ptr<RelVal> relVal_) { relVal = std::move(relVal_); }
 
     string toString() const;
 
@@ -79,13 +85,57 @@ private:
         common::date_t dateVal;
         common::timestamp_t timestampVal;
         common::interval_t intervalVal;
+        common::nodeID_t nodeIDVal;
     } val;
     std::string stringVal;
     vector<unique_ptr<Value>> listVal;
-    vector<pair<std::string, unique_ptr<Value>>> nodeOrRelVal;
+    unique_ptr<NodeVal> nodeVal;
+    unique_ptr<RelVal> relVal;
 
     common::DataType dataType;
     bool isNull;
+};
+
+class NodeOrRelVal {
+public:
+    inline void addProperty(const std::string& key, unique_ptr<Value> value) {
+        properties.emplace_back(key, std::move(value));
+    }
+
+    virtual string toString() const = 0;
+
+protected:
+    string propertiesToString() const;
+
+protected:
+    vector<pair<std::string, unique_ptr<Value>>> properties;
+};
+
+class NodeVal : public NodeOrRelVal {
+public:
+    NodeVal(unique_ptr<Value> idVal, unique_ptr<Value> labelVal)
+        : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
+
+    inline common::nodeID_t getNodeID() const { return idVal->getNodeIDVal(); }
+    inline std::string getLabelName() const { return labelVal->getStringVal(); }
+
+    string toString() const override;
+
+private:
+    unique_ptr<Value> idVal;
+    unique_ptr<Value> labelVal;
+};
+
+class RelVal : public NodeOrRelVal {
+public:
+    RelVal(unique_ptr<Value> srcNodeIDVal, unique_ptr<Value> dstNodeIDVal)
+        : srcNodeIDVal{std::move(srcNodeIDVal)}, dstNodeIDVal{std::move(dstNodeIDVal)} {}
+
+    string toString() const override;
+
+private:
+    unique_ptr<Value> srcNodeIDVal;
+    unique_ptr<Value> dstNodeIDVal;
 };
 
 } // namespace processor

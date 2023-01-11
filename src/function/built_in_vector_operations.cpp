@@ -26,9 +26,6 @@ void BuiltInVectorOperations::registerVectorOperations() {
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
     const string& functionName, const expression_vector& children) {
-    if (functionName == ID_FUNC_NAME) {
-        return true; // bind as property
-    }
     if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
             functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
         children[0]->expressionType == LITERAL && children[0]->dataType.typeID == STRING) {

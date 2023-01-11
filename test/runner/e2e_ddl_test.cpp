@@ -344,7 +344,7 @@ TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
         conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
     ASSERT_TRUE(result->isSuccess());
     result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
-    auto groundTruth = vector<string>{"({NAME:WATERLOO, WEBSITE:WATERLOO.CA})"};
+    auto groundTruth = vector<string>{"(9:0:UNIVERSITY {NAME:WATERLOO, WEBSITE:WATERLOO.CA})"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 

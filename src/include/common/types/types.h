@@ -36,13 +36,15 @@ enum DataTypeID : uint8_t {
     //    - bind (static evaluate) functions work on node/rel table.
     //      E.g. ID(a "datatype:NODE") -> node ID property "datatype:NODE_ID"
 
-    // logical  types
+    // logical types
+
     ANY = 0,
     NODE = 10,
     REL = 11,
 
-    // physical fixed size types
-    NODE_ID = 21,
+    // physical types
+
+    // fixed size types
     BOOL = 22,
     INT64 = 23,
     DOUBLE = 24,
@@ -50,6 +52,9 @@ enum DataTypeID : uint8_t {
     TIMESTAMP = 26,
     INTERVAL = 27,
 
+    NODE_ID = 40,
+
+    // variable size types
     STRING = 50,
     LIST = 52,
 };

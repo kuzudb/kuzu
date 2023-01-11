@@ -36,7 +36,6 @@ public:
         reinterpret_cast<T*>(result.overflowPtr)[elementPos] = element;
     }
 
-private:
     static inline void allocateSpaceForList(
         ku_list_t& list, uint64_t numBytes, InMemOverflowBuffer& buffer) {
         list.overflowPtr = reinterpret_cast<uint64_t>(buffer.allocateSpace(numBytes));
