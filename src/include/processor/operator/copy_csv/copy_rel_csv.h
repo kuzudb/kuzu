@@ -9,22 +9,25 @@ namespace processor {
 class CopyRelCSV : public CopyCSV {
 public:
     CopyRelCSV(Catalog* catalog, CSVDescription csvDescription, table_id_t tableID, WAL* wal,
-        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, uint32_t id,
-        const string& paramsString, RelsStatistics* relsStatistics)
+        NodesStatisticsAndDeletedIDs* nodesStatistics, RelsStatistics* relsStatistics, uint32_t id,
+        const string& paramsString)
         : CopyCSV{PhysicalOperatorType::COPY_REL_CSV, catalog, std::move(csvDescription), tableID,
               wal, id, paramsString},
-          nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, relsStatistics{
-                                                                          relsStatistics} {}
-
-    string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
+          nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CopyRelCSV>(catalog, csvDescription, tableID, wal,
-            nodesStatisticsAndDeletedIDs, id, paramsString, relsStatistics);
+        return make_unique<CopyRelCSV>(catalog, csvDescription, tableID, wal, nodesStatistics,
+            relsStatistics, id, paramsString);
     }
 
+protected:
+    uint64_t executeInternal(
+        TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
+
+    uint64_t getNumTuplesInTable() override;
+
 private:
-    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    NodesStatisticsAndDeletedIDs* nodesStatistics;
     RelsStatistics* relsStatistics;
 };
 

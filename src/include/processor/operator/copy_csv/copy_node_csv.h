@@ -9,20 +9,24 @@ namespace processor {
 class CopyNodeCSV : public CopyCSV {
 public:
     CopyNodeCSV(Catalog* catalog, CSVDescription csvDescription, table_id_t tableID, WAL* wal,
-        uint32_t id, const string& paramsString, NodesStore* nodesStore)
+        NodesStatisticsAndDeletedIDs* nodesStatistics, uint32_t id, const string& paramsString)
         : CopyCSV{PhysicalOperatorType::COPY_NODE_CSV, catalog, std::move(csvDescription), tableID,
               wal, id, paramsString},
-          nodesStore{nodesStore} {}
-
-    string execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
+          nodesStatistics{nodesStatistics} {}
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CopyNodeCSV>(
-            catalog, csvDescription, tableID, wal, id, paramsString, nodesStore);
+            catalog, csvDescription, tableID, wal, nodesStatistics, id, paramsString);
     }
 
+protected:
+    uint64_t executeInternal(
+        common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
+
+    uint64_t getNumTuplesInTable() override;
+
 private:
-    NodesStore* nodesStore;
+    NodesStatisticsAndDeletedIDs* nodesStatistics;
 };
 
 } // namespace processor

@@ -22,16 +22,22 @@ class PreparedStatement {
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
+    inline bool allowActiveTransaction() const {
+        return !StatementTypeUtils::isDDLOrCopyCSV(statementType);
+    }
+
     inline bool isSuccess() const { return success; }
+
     inline string getErrorMessage() const { return errMsg; }
+
     inline bool isReadOnly() const { return readOnly; }
+
     inline expression_vector getExpressionsToCollect() {
         return statementResult->getExpressionsToCollect();
     }
 
 private:
     StatementType statementType;
-    bool allowActiveTransaction = false;
     bool success = true;
     bool readOnly = false;
     string errMsg;
