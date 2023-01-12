@@ -36,6 +36,7 @@ private:
         VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
     VersionedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
         const StorageStructureID& storageStructureID);
+    unique_ptr<catalog::Catalog> getCatalogForRecovery(DBFileType dbFileType);
 
 private:
     bool isRecovering;

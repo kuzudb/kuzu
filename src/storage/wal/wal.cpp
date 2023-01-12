@@ -84,9 +84,15 @@ void WAL::logCopyRelCSVRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropTableRecord(bool isNodeTable, table_id_t tableID) {
+void WAL::logDropTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newDropTableRecord(isNodeTable, tableID);
+    WALRecord walRecord = WALRecord::newDropTableRecord(tableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logDropPropertyRecord(table_id_t tableID, property_id_t propertyID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newDropPropertyRecord(tableID, propertyID);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -135,7 +141,7 @@ void WAL::addNewWALRecordNoLock(WALRecord& walRecord) {
     }
     incrementNumRecordsInCurrentHeaderPage();
     walRecord.writeWALRecordToBytes(currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
-    isLastLoggedRecordCommit_ = (COMMIT_RECORD == walRecord.recordType);
+    isLastLoggedRecordCommit_ = (WALRecordType::COMMIT_RECORD == walRecord.recordType);
 }
 
 void WAL::setIsLastRecordCommit() {
@@ -150,7 +156,7 @@ void WAL::setIsLastRecordCommit() {
     while (walIterator.hasNextRecord()) {
         walIterator.getNextRecord(walRecord);
     }
-    if (COMMIT_RECORD == walRecord.recordType) {
+    if (WALRecordType::COMMIT_RECORD == walRecord.recordType) {
         isLastLoggedRecordCommit_ = true;
     }
 }

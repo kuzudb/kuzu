@@ -70,7 +70,7 @@ public:
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
-    inline void removeProperty(property_id_t propertyID) {
+    inline void dropProperty(property_id_t propertyID) {
         properties.erase(std::remove_if(properties.begin(), properties.end(),
                              [propertyID](const Property& property) {
                                  return property.propertyID == propertyID;
@@ -98,12 +98,12 @@ struct NodeTableSchema : TableSchema {
     NodeTableSchema(string tableName, table_id_t tableID, property_id_t primaryPropertyId,
         vector<Property> properties)
         : TableSchema{std::move(tableName), tableID, true /* isNodeTable */, std::move(properties)},
-          primaryKeyPropertyIdx{primaryPropertyId} {}
+          primaryKeyPropertyID{primaryPropertyId} {}
 
     inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
-    inline Property getPrimaryKey() const { return properties[primaryKeyPropertyIdx]; }
+    inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
 
     inline vector<Property> getAllNodeProperties() const { return properties; }
 
@@ -111,7 +111,7 @@ struct NodeTableSchema : TableSchema {
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
-    property_id_t primaryKeyPropertyIdx;
+    property_id_t primaryKeyPropertyID;
     unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
     unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel
 };
@@ -160,6 +160,10 @@ public:
             [tableID](pair<table_id_t, table_id_t> srcDstTableID) {
                 return srcDstTableID.first == tableID || srcDstTableID.second == tableID;
             });
+    }
+
+    inline unordered_set<table_id_t> getUniqueBoundTableIDs(RelDirection relDirection) const {
+        return relDirection == FWD ? getUniqueSrcTableIDs() : getUniqueDstTableIDs();
     }
 
     unordered_set<table_id_t> getAllNodeTableIDs() const;

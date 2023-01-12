@@ -249,7 +249,7 @@ struct StorageStructureID {
         RelDirection dir, property_id_t propertyID, ListFileType listFileType);
 };
 
-enum WALRecordType : uint8_t {
+enum class WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 0,
     TABLE_STATISTICS_RECORD = 1,
     COMMIT_RECORD = 2,
@@ -262,7 +262,10 @@ enum WALRecordType : uint8_t {
     COPY_NODE_CSV_RECORD = 7,
     COPY_REL_CSV_RECORD = 8,
     DROP_TABLE_RECORD = 9,
+    DROP_PROPERTY_RECORD = 10,
 };
+
+string walRecordTypeToString(WALRecordType walRecordType);
 
 struct PageUpdateOrInsertRecord {
     StorageStructureID storageStructureID;
@@ -366,16 +369,26 @@ struct TableStatisticsRecord {
 };
 
 struct DropTableRecord {
-    bool isNodeTable;
     table_id_t tableID;
 
     DropTableRecord() = default;
 
-    DropTableRecord(bool isNodeTable, table_id_t tableID)
-        : isNodeTable{isNodeTable}, tableID{tableID} {}
+    DropTableRecord(table_id_t tableID) : tableID{tableID} {}
 
-    inline bool operator==(const DropTableRecord& rhs) const {
-        return isNodeTable == rhs.isNodeTable && tableID == rhs.tableID;
+    inline bool operator==(const DropTableRecord& rhs) const { return tableID == rhs.tableID; }
+};
+
+struct DropPropertyRecord {
+    table_id_t tableID;
+    property_id_t propertyID;
+
+    DropPropertyRecord() = default;
+
+    DropPropertyRecord(table_id_t tableID, property_id_t propertyID)
+        : tableID{tableID}, propertyID{propertyID} {}
+
+    inline bool operator==(const DropPropertyRecord& rhs) const {
+        return tableID == rhs.tableID && propertyID == rhs.propertyID;
     }
 };
 
@@ -391,6 +404,7 @@ struct WALRecord {
         CopyRelCSVRecord copyRelCsvRecord;
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
+        DropPropertyRecord dropPropertyRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -398,40 +412,43 @@ struct WALRecord {
             return false;
         }
         switch (recordType) {
-        case PAGE_UPDATE_OR_INSERT_RECORD: {
+        case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
             return pageInsertOrUpdateRecord == rhs.pageInsertOrUpdateRecord;
         }
-        case COMMIT_RECORD: {
+        case WALRecordType::COMMIT_RECORD: {
             return commitRecord == rhs.commitRecord;
         }
-        case TABLE_STATISTICS_RECORD: {
+        case WALRecordType::TABLE_STATISTICS_RECORD: {
             return tableStatisticsRecord == rhs.tableStatisticsRecord;
         }
-        case CATALOG_RECORD: {
+        case WALRecordType::CATALOG_RECORD: {
             // CatalogRecords are empty so are always equal
             return true;
         }
-        case NODE_TABLE_RECORD: {
+        case WALRecordType::NODE_TABLE_RECORD: {
             return nodeTableRecord == rhs.nodeTableRecord;
         }
-        case REL_TABLE_RECORD: {
+        case WALRecordType::REL_TABLE_RECORD: {
             return relTableRecord == rhs.relTableRecord;
         }
-        case OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
+        case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
         }
-        case COPY_NODE_CSV_RECORD: {
+        case WALRecordType::COPY_NODE_CSV_RECORD: {
             return copyNodeCsvRecord == rhs.copyNodeCsvRecord;
         }
-        case COPY_REL_CSV_RECORD: {
+        case WALRecordType::COPY_REL_CSV_RECORD: {
             return copyRelCsvRecord == rhs.copyRelCsvRecord;
         }
-        case DROP_TABLE_RECORD: {
+        case WALRecordType::DROP_TABLE_RECORD: {
             return dropTableRecord == rhs.dropTableRecord;
         }
+        case WALRecordType::DROP_PROPERTY_RECORD: {
+            return dropPropertyRecord == rhs.dropPropertyRecord;
+        }
         default: {
-            throw RuntimeException(
-                "Unrecognized WAL record type inside ==. recordType: " + to_string(recordType));
+            throw RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
+                                   walRecordTypeToString(recordType));
         }
         }
     }
@@ -449,7 +466,8 @@ struct WALRecord {
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeCSVRecord(table_id_t tableID);
     static WALRecord newCopyRelCSVRecord(table_id_t tableID);
-    static WALRecord newDropTableRecord(bool isNodeTable, table_id_t tableID);
+    static WALRecord newDropTableRecord(table_id_t tableID);
+    static WALRecord newDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

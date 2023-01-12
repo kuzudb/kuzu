@@ -126,6 +126,7 @@ public:
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates);
     unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
         table_id_t boundNodeTableID);
+    void removeProperty(property_id_t propertyID);
 
 private:
     void scanColumns(Transaction* transaction, RelTableScanState& scanState,
@@ -188,6 +189,10 @@ public:
     inline table_id_t getRelTableID() const { return tableID; }
     inline DirectedRelTableData* getDirectedTableData(RelDirection relDirection) {
         return relDirection == FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+    }
+    inline void removeProperty(property_id_t propertyID) {
+        fwdRelTableData->removeProperty(propertyID);
+        bwdRelTableData->removeProperty(propertyID);
     }
 
     vector<AdjLists*> getAdjListsForNodeTable(table_id_t tableID);

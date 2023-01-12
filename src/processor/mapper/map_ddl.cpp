@@ -60,15 +60,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
     LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
-    return make_unique<DropTable>(catalog, dropTable->getTableID(), storageManager,
-        getOutputPos(dropTable), getOperatorID(), dropTable->getExpressionsForPrinting());
+    return make_unique<DropTable>(catalog, dropTable->getTableID(), getOutputPos(dropTable),
+        getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
     LogicalOperator* logicalOperator) {
     auto dropProperty = (LogicalDropProperty*)logicalOperator;
     return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
-        dropProperty->getPropertyID(), storageManager, getOutputPos(dropProperty), getOperatorID(),
+        dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
         dropProperty->getExpressionsForPrinting());
 }
 

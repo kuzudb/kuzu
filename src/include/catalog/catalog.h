@@ -126,8 +126,11 @@ public:
         return direction == FWD ? relTableSchema->getUniqueSrcTableIDs() :
                                   relTableSchema->getUniqueDstTableIDs();
     }
+    inline void dropProperty(table_id_t tableID, property_id_t propertyID) {
+        getTableSchema(tableID)->dropProperty(propertyID);
+    }
 
-    void removeTableSchema(TableSchema* tableSchema);
+    void dropTableSchema(table_id_t tableID);
 
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
@@ -148,7 +151,6 @@ private:
 
 class Catalog {
 public:
-    // This constructor is only used for mock catalog testing only.
     Catalog();
 
     explicit Catalog(WAL* wal);
@@ -193,11 +195,9 @@ public:
         const vector<PropertyNameDataType>& propertyDefinitions,
         vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
-    inline void removeTableSchema(TableSchema* tableSchema) {
-        initCatalogContentForWriteTrxIfNecessary();
-        catalogContentForWriteTrx->removeTableSchema(tableSchema);
-        wal->logDropTableRecord(tableSchema->isNodeTable, tableSchema->tableID);
-    }
+    void dropTableSchema(table_id_t tableID);
+
+    void dropProperty(table_id_t tableID, property_id_t propertyID);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;

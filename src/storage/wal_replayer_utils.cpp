@@ -5,13 +5,29 @@
 namespace kuzu {
 namespace storage {
 
-void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
-    const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
-    auto relTableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
+void WALReplayerUtils::removeDBFilesForRelProperty(
+    const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto boundTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-            tableID, relDirection);
-        if (catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(tableID, relDirection)) {
+        auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
+        auto isStoredAsColumnProperty =
+            relTableSchema->isSingleMultiplicityInDirection(relDirection);
+        std::function<void(const string& directory, table_id_t relTableID, table_id_t boundTableID,
+            RelDirection relDirection, property_id_t propertyID, DBFileType dbFileType)>
+            removeFilesForPropertyIfExists =
+                isStoredAsColumnProperty ? removeColumnFilesForPropertyIfExists :
+                                           removeListFilesForPropertyIfExists;
+        for (auto boundTableID : boundTableIDs) {
+            removeFilesForPropertyIfExists(directory, relTableSchema->tableID, boundTableID,
+                relDirection, propertyID, DBFileType::ORIGINAL);
+        }
+    }
+}
+
+void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
+    const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
+    for (auto relDirection : REL_DIRECTIONS) {
+        auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
+        if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
             createEmptyDBFilesForColumns(
                 boundTableIDs, maxNodeOffsetsPerTable, relDirection, directory, relTableSchema);
         } else {
@@ -22,8 +38,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(Catalog* catalog, table_
 }
 
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
-    Catalog* catalog, table_id_t tableID, const string& directory) {
-    auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+    NodeTableSchema* nodeTableSchema, const string& directory) {
     for (auto& property : nodeTableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
@@ -157,24 +172,25 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
 }
 
 void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
-    const string& directory, const Catalog* catalog,
-    std::function<void(string fileName)> columnFileOperation,
+    const string& directory, std::function<void(string fileName)> columnFileOperation,
     std::function<void(string fileName)> listFileOperation) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto boundTableIDs = catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-            relTableSchema->tableID, relDirection);
-        for (auto boundTableID : boundTableIDs) {
-            auto isColumnProperty = catalog->getReadOnlyVersion()->isSingleMultiplicityInDirection(
-                relTableSchema->tableID, relDirection);
-            if (isColumnProperty) {
+        auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
+        auto isColumnProperty = relTableSchema->isSingleMultiplicityInDirection(relDirection);
+        if (isColumnProperty) {
+            for (auto boundTableID : boundTableIDs) {
                 columnFileOperation(StorageUtils::getAdjColumnFName(directory,
                     relTableSchema->tableID, boundTableID, relDirection, DBFileType::ORIGINAL));
-            } else {
+                fileOperationOnRelPropertyFiles(relTableSchema, boundTableID, directory,
+                    relDirection, isColumnProperty, columnFileOperation, listFileOperation);
+            }
+        } else {
+            for (auto boundTableID : boundTableIDs) {
                 listFileOperation(StorageUtils::getAdjListsFName(directory, relTableSchema->tableID,
                     boundTableID, relDirection, DBFileType::ORIGINAL));
+                fileOperationOnRelPropertyFiles(relTableSchema, boundTableID, directory,
+                    relDirection, isColumnProperty, columnFileOperation, listFileOperation);
             }
-            fileOperationOnRelPropertyFiles(relTableSchema, boundTableID, directory, relDirection,
-                isColumnProperty, columnFileOperation, listFileOperation);
         }
     }
 }

@@ -65,9 +65,14 @@ unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) 
     auto isNodeTable = catalogContent->containNodeTable(tableName);
     auto tableID = isNodeTable ? catalogContent->getNodeTableIDFromName(tableName) :
                                  catalogContent->getRelTableIDFromName(tableName);
-    return make_unique<BoundDropProperty>(tableID,
-        bindPropertyName(catalogContent->getTableSchema(tableID), dropProperty.getPropertyName()),
-        tableName);
+    auto propertyID =
+        bindPropertyName(catalogContent->getTableSchema(tableID), dropProperty.getPropertyName());
+    if (isNodeTable &&
+        ((NodeTableSchema*)catalogContent->getTableSchema(tableID))->primaryKeyPropertyID ==
+            propertyID) {
+        throw BinderException("Cannot drop primary key of a node table.");
+    }
+    return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
@@ -113,7 +118,7 @@ uint32_t Binder::bindPrimaryKey(
     return primaryKeyIdx;
 }
 
-property_id_t Binder::bindPropertyName(TableSchema* tableSchema, string propertyName) {
+property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const string& propertyName) {
     for (auto& property : tableSchema->properties) {
         if (property.name == propertyName) {
             return property.propertyID;

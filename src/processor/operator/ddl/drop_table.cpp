@@ -4,8 +4,7 @@ namespace kuzu {
 namespace processor {
 
 void DropTable::executeDDLInternal() {
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
-    catalog->removeTableSchema(tableSchema);
+    catalog->dropTableSchema(tableID);
 }
 
 std::string DropTable::getOutputMsg() {
