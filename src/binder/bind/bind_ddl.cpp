@@ -22,7 +22,7 @@ unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& stateme
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
     return make_unique<BoundCreateNodeClause>(
-        tableName, move(boundPropertyNameDataTypes), primaryKeyIdx);
+        tableName, std::move(boundPropertyNameDataTypes), primaryKeyIdx);
 }
 
 unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statement) {
@@ -40,7 +40,7 @@ unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statemen
         srcDstTableIDs.emplace_back(bindNodeTableID(srcTableName), bindNodeTableID(dstTableName));
     }
     return make_unique<BoundCreateRelClause>(
-        tableName, move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);
+        tableName, std::move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);
 }
 
 unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {

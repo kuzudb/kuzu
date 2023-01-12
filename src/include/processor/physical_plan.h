@@ -9,12 +9,16 @@ namespace processor {
 
 class PhysicalPlan {
 public:
-    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator, bool isDDLOrCopyCSV)
-        : lastOperator{std::move(lastOperator)}, isDDLOrCopyCSV{isDDLOrCopyCSV} {}
+    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator)
+        : lastOperator{std::move(lastOperator)} {}
+
+    inline bool isCopyCSV() const {
+        return lastOperator->getOperatorType() == PhysicalOperatorType::COPY_NODE_CSV ||
+               lastOperator->getOperatorType() == PhysicalOperatorType::COPY_REL_CSV;
+    }
 
 public:
     unique_ptr<PhysicalOperator> lastOperator;
-    bool isDDLOrCopyCSV;
 };
 
 class PhysicalPlanUtil {

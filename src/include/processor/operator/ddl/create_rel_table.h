@@ -10,18 +10,20 @@ class CreateRelTable : public CreateTable {
 public:
     CreateRelTable(Catalog* catalog, string tableName,
         vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs, uint32_t id,
+        vector<pair<table_id_t, table_id_t>> srcDstTableIDs, const DataPos& outputPos, uint32_t id,
         const string& paramsString, RelsStatistics* relsStatistics)
         : CreateTable{PhysicalOperatorType::CREATE_REL_TABLE, catalog, std::move(tableName),
-              std::move(propertyNameDataTypes), id, paramsString},
+              std::move(propertyNameDataTypes), outputPos, id, paramsString},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)},
           relsStatistics{relsStatistics} {}
 
-    string execute() override;
+    void executeDDLInternal() override;
+
+    std::string getOutputMsg() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CreateRelTable>(catalog, tableName, propertyNameDataTypes,
-            relMultiplicity, srcDstTableIDs, id, paramsString, relsStatistics);
+            relMultiplicity, srcDstTableIDs, outputPos, id, paramsString, relsStatistics);
     }
 
 private:

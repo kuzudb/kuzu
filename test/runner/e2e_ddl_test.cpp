@@ -288,7 +288,7 @@ public:
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
-                preparedStatement->getExpressionsToCollect(), preparedStatement->isDDLOrCopyCSV());
+                preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 

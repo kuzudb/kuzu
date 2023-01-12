@@ -25,10 +25,8 @@ public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
     inline bool isReadOnly() const { return readOnly; }
-    inline bool isDDLOrCopyCSV() const { return StatementTypeUtils::isDDLOrCopyCSV(statementType); }
-
     inline expression_vector getExpressionsToCollect() {
-        return isDDLOrCopyCSV() ? expression_vector{} : statementResult->getExpressionsToCollect();
+        return statementResult->getExpressionsToCollect();
     }
 
 private:
