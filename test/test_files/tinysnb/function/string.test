@@ -478,7 +478,7 @@ o
 ---- 3
 á
 m
-R
+
 
 -NAME ListExtractUTF8ZeroIdx
 -QUERY MATCH (m:movies) RETURN m.name[0]
@@ -498,3 +498,27 @@ True
 -QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
 ---- 1
 Carol
+
+-NAME StringExtractPositiveIndexOutOfRange
+-QUERY MATCH (a:person) RETURN a.fName[8]
+---- 8
+
+
+
+
+
+
+B
+t
+
+-NAME StringExtractNegativeIndexOutOfRange
+-QUERY MATCH (a:person) RETURN a.fName[-12]
+---- 8
+
+
+
+
+
+
+
+n

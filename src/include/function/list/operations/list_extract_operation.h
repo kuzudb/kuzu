@@ -30,16 +30,13 @@ public:
             return;
         }
         auto uint64Pos = (pos < 0) ? (pos + list.size + 1) : (uint64_t)pos;
-        if (uint64Pos == 0) {
-            uint64Pos = list.size;
-        }
         auto values = reinterpret_cast<T*>(list.overflowPtr);
         result = values[uint64Pos - 1];
         setValue(values[uint64Pos - 1], result, resultValueVector);
     }
 
     static inline void operation(ku_string_t& str, int64_t& idx, ku_string_t& result) {
-        if (str.len < idx) {
+        if (str.len < idx || abs(idx) > str.len) {
             result.set("", 0);
         } else {
             ArrayExtract::operation(str, idx, result);
