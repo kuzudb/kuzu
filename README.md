@@ -118,4 +118,4 @@ You can use the following BibTeX citation:
 ```
 
 ## Contact Us
-You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com).
+You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Slack workspace](https://join.slack.com/t/kuzudb/shared_invite/zt-1n67h736q-E3AFGSI4w~ljlFMYr3_Sjg).
