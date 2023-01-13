@@ -56,10 +56,10 @@ void Column::writeValues(
     }
 }
 
-Literal Column::readValue(node_offset_t offset) {
+Value Column::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
-    auto retVal = Literal(frame + mapElementPosToByteOffset(cursor.elemPosInPage), dataType);
+    auto retVal = Value(dataType, frame + mapElementPosToByteOffset(cursor.elemPosInPage));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
     return retVal;
 }
@@ -167,13 +167,13 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-Literal StringPropertyColumn::readValue(node_offset_t offset) {
+Value StringPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_string_t kuString;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_string_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
+    return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
@@ -193,14 +193,13 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-Literal ListPropertyColumn::readValue(node_offset_t offset) {
+Value ListPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_list_t kuList;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
     bufferManager.unpin(fileHandle, cursor.pageIdx);
-    return Literal(
-        diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType), dataType);
+    return Value(dataType, diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType));
 }
 
 } // namespace storage

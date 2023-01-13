@@ -2,7 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "catalog/catalog.h"
-#include "common/types/literal.h"
+#include "common/types/value.h"
 #include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::common;
@@ -94,7 +94,7 @@ private:
 
 private:
     Binder* binder;
-    unordered_map<string, shared_ptr<Literal>> parameterMap;
+    unordered_map<string, shared_ptr<Value>> parameterMap;
 };
 
 } // namespace binder

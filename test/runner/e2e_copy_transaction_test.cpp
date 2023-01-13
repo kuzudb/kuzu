@@ -31,7 +31,7 @@ public:
         auto queryResult = conn->query("match (p:person) return p.age");
         while (queryResult->hasNext()) {
             auto tuple = queryResult->getNext();
-            actualResult.insert(tuple->getResultValue(0)->getInt64Val());
+            actualResult.insert(tuple->getResultValue(0)->getValue<int64_t>());
         }
         ASSERT_EQ(expectedResult, actualResult);
     }
@@ -117,7 +117,7 @@ public:
         auto queryResult = conn->query("match (:person)-[e:knows]->(:person) return e.date");
         while (queryResult->hasNext()) {
             auto tuple = queryResult->getNext();
-            actualResult.insert(tuple->getResultValue(0)->getDateVal());
+            actualResult.insert(tuple->getResultValue(0)->getValue<date_t>());
         }
         ASSERT_EQ(expectedResult, actualResult);
     }

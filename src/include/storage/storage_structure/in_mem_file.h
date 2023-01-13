@@ -3,7 +3,7 @@
 #include <shared_mutex>
 
 #include "common/configs.h"
-#include "common/types/literal.h"
+#include "common/types/value.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 
@@ -67,7 +67,7 @@ public:
     // threads coordinate by that each thread takes the full control of a single page at a time.
     // When the page is not exhausted, each thread can write without an exclusive lock.
     ku_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
-    ku_list_t copyList(const Literal& listLiteral, PageByteCursor& overflowCursor);
+    ku_list_t copyList(const Value& listValue, PageByteCursor& overflowCursor);
 
     // Copy overflow data at srcOverflow into dstKUString.
     void copyStringOverflow(
@@ -82,9 +82,9 @@ private:
     page_idx_t addANewOverflowPage();
 
     void copyFixedSizedValuesInList(
-        const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
+        const Value& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
     template<DataTypeID DT>
-    void copyVarSizedValuesInList(ku_list_t& resultKUList, const Literal& listVal,
+    void copyVarSizedValuesInList(ku_list_t& resultKUList, const Value& listVal,
         PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
 
 private:

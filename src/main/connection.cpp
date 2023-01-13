@@ -149,7 +149,7 @@ string Connection::getRelPropertyNames(const string& relTableName) {
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(
-    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
+    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Value>>& inputParams) {
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
@@ -164,19 +164,19 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(
 }
 
 void Connection::bindParametersNoLock(
-    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
+    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Value>>& inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
-    for (auto& [name, literal] : inputParams) {
+    for (auto& [name, value] : inputParams) {
         if (!parameterMap.contains(name)) {
             throw Exception("Parameter " + name + " not found.");
         }
         auto expectParam = parameterMap.at(name);
-        if (expectParam->dataType.typeID != literal->dataType.typeID) {
+        if (expectParam->dataType != value->getDataType()) {
             throw Exception("Parameter " + name + " has data type " +
-                            Types::dataTypeToString(literal->dataType) + " but expect " +
+                            Types::dataTypeToString(value->getDataType()) + " but expect " +
                             Types::dataTypeToString(expectParam->dataType) + ".");
         }
-        parameterMap.at(name)->bind(*literal);
+        parameterMap.at(name)->copyValueFrom(*value);
     }
 }
 

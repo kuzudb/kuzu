@@ -4,7 +4,6 @@ add_library(kuzu_processor_result
         flat_tuple.cpp
         result_set.cpp
         result_set_descriptor.cpp
-        value.cpp
         )
 
 set(ALL_OBJECT_FILES

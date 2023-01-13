@@ -219,10 +219,9 @@ arrow::Status CopyStructuresArrow::initParquetReader(
     return arrow::Status::OK();
 }
 
-Literal CopyStructuresArrow::getArrowList(string& l, int64_t from, int64_t to,
+unique_ptr<Value> CopyStructuresArrow::getArrowList(string& l, int64_t from, int64_t to,
     const DataType& dataType, CopyDescription& copyDescription) {
     auto childDataType = *dataType.childType;
-    Literal result(DataType(LIST, make_unique<DataType>(childDataType)));
 
     char delimiter = copyDescription.csvReaderConfig->delimiter;
     vector<pair<int64_t, int64_t>> split;
@@ -242,54 +241,58 @@ Literal CopyStructuresArrow::getArrowList(string& l, int64_t from, int64_t to,
     }
     split.emplace_back(last, to - last + 1);
 
+    vector<unique_ptr<Value>> values;
     for (auto pair : split) {
         string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
             continue;
         }
+        unique_ptr<Value> value;
         switch (childDataType.typeID) {
         case INT64: {
-            result.listVal.emplace_back((int64_t)stoll(element));
+            value = make_unique<Value>((int64_t)stoll(element));
         } break;
         case DOUBLE: {
-            result.listVal.emplace_back(stod(element));
+            value = make_unique<Value>(stod(element));
         } break;
         case BOOL: {
             transform(element.begin(), element.end(), element.begin(), ::tolower);
             std::istringstream is(element);
             bool b;
             is >> std::boolalpha >> b;
-            result.listVal.emplace_back(b);
+            value = make_unique<Value>(b);
         } break;
         case STRING: {
-            result.listVal.emplace_back(element);
+            value = make_unique<Value>(element);
         } break;
         case DATE: {
-            result.listVal.emplace_back(Date::FromCString(element.c_str(), element.length()));
+            value = make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
         } break;
         case TIMESTAMP: {
-            result.listVal.emplace_back(Timestamp::FromCString(element.c_str(), element.length()));
+            value = make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
         } break;
         case INTERVAL: {
-            result.listVal.emplace_back(Interval::FromCString(element.c_str(), element.length()));
+            value = make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
         } break;
         case LIST: {
-            result.listVal.emplace_back(getArrowList(l, pair.first + 1,
-                pair.second + pair.first - 1, *dataType.childType, copyDescription));
+            value = getArrowList(l, pair.first + 1, pair.second + pair.first - 1,
+                *dataType.childType, copyDescription);
         } break;
         default:
             throw ReaderException("Unsupported data type " +
                                   Types::dataTypeToString(dataType.childType->typeID) +
                                   " inside LIST");
         }
+        values.push_back(std::move(value));
     }
-    auto numBytesOfOverflow = result.listVal.size() * Types::getDataTypeSize(dataType.typeID);
+    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(dataType.typeID);
     if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
             numBytesOfOverflow));
     }
-    return result;
+    return make_unique<Value>(
+        DataType(LIST, make_unique<DataType>(childDataType)), std::move(values));
 }
 
 void CopyStructuresArrow::throwCopyExceptionIfNotOK(const arrow::Status& status) {

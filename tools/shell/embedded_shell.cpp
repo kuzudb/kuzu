@@ -338,7 +338,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < colsWidth.size(); i++) {
-                if (tuple->getResultValue(i)->isNullVal()) {
+                if (tuple->getResultValue(i)->isNull()) {
                     continue;
                 }
                 string tupleString = tuple->getResultValue(i)->toString();

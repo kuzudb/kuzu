@@ -37,9 +37,8 @@ void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
 }
 
-unordered_map<string, shared_ptr<Literal>> PyConnection::transformPythonParameters(
-    py::list params) {
-    unordered_map<string, shared_ptr<Literal>> result;
+unordered_map<string, shared_ptr<Value>> PyConnection::transformPythonParameters(py::list params) {
+    unordered_map<string, shared_ptr<Value>> result;
     for (auto param : params) {
         if (!py::isinstance<py::tuple>(param)) {
             throw runtime_error("Each parameter must be in the form of <name, val>");
@@ -50,7 +49,7 @@ unordered_map<string, shared_ptr<Literal>> PyConnection::transformPythonParamete
     return result;
 }
 
-pair<string, shared_ptr<Literal>> PyConnection::transformPythonParameter(py::tuple param) {
+pair<string, shared_ptr<Value>> PyConnection::transformPythonParameter(py::tuple param) {
     if (py::len(param) != 2) {
         throw runtime_error("Each parameter must be in the form of <name, val>");
     }
@@ -59,22 +58,22 @@ pair<string, shared_ptr<Literal>> PyConnection::transformPythonParameter(py::tup
                             py::str(param[0].get_type()).cast<string>());
     }
     auto val = transformPythonValue(param[1]);
-    return make_pair(param[0].cast<string>(), make_shared<Literal>(val));
+    return make_pair(param[0].cast<string>(), make_shared<Value>(val));
 }
 
-Literal PyConnection::transformPythonValue(py::handle val) {
+Value PyConnection::transformPythonValue(py::handle val) {
     auto datetime_mod = py::module::import("datetime");
     auto datetime_datetime = datetime_mod.attr("datetime");
     auto datetime_time = datetime_mod.attr("time");
     auto datetime_date = datetime_mod.attr("date");
     if (py::isinstance<py::bool_>(val)) {
-        return Literal::createLiteral(val.cast<bool>());
+        return Value::createValue<bool>(val.cast<bool>());
     } else if (py::isinstance<py::int_>(val)) {
-        return Literal::createLiteral(val.cast<int64_t>());
+        return Value::createValue<int64_t>(val.cast<int64_t>());
     } else if (py::isinstance<py::float_>(val)) {
-        return Literal::createLiteral(val.cast<double_t>());
+        return Value::createValue<double_t>(val.cast<double_t>());
     } else if (py::isinstance<py::str>(val)) {
-        return Literal::createLiteral(val.cast<string>());
+        return Value::createValue<string>(val.cast<string>());
     } else if (py::isinstance(val, datetime_datetime)) {
         auto ptr = val.ptr();
         auto year = PyDateTime_GET_YEAR(ptr);
@@ -86,13 +85,13 @@ Literal PyConnection::transformPythonValue(py::handle val) {
         auto micros = PyDateTime_DATE_GET_MICROSECOND(ptr);
         auto date = Date::FromDate(year, month, day);
         auto time = Time::FromTime(hour, minute, second, micros);
-        return Literal::createLiteral(Timestamp::FromDatetime(date, time));
+        return Value::createValue<timestamp_t>(Timestamp::FromDatetime(date, time));
     } else if (py::isinstance(val, datetime_date)) {
         auto ptr = val.ptr();
         auto year = PyDateTime_GET_YEAR(ptr);
         auto month = PyDateTime_GET_MONTH(ptr);
         auto day = PyDateTime_GET_DAY(ptr);
-        return Literal::createLiteral(Date::FromDate(year, month, day));
+        return Value::createValue<date_t>(Date::FromDate(year, month, day));
     } else {
         throw runtime_error("Unknown parameter type " + py::str(val.get_type()).cast<string>());
     }

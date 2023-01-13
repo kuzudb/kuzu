@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/types/literal.h"
+#include "common/types/value.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_structure/storage_structure.h"
 
@@ -32,7 +32,7 @@ public:
         const shared_ptr<ValueVector>& vectorToWriteFrom);
 
     // Currently, used only in CopyCSV tests.
-    virtual Literal readValue(node_offset_t offset);
+    virtual Value readValue(node_offset_t offset);
     bool isNull(node_offset_t nodeOffset, Transaction* transaction);
     void setNodeOffsetToNull(node_offset_t nodeOffset);
 
@@ -112,7 +112,7 @@ public:
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
     // Currently, used only in CopyCSV tests.
-    Literal readValue(node_offset_t offset) override;
+    Value readValue(node_offset_t offset) override;
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
@@ -146,7 +146,7 @@ public:
     void writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    Literal readValue(node_offset_t offset) override;
+    Value readValue(node_offset_t offset) override;
 
 private:
     inline void lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,

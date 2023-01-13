@@ -266,51 +266,53 @@ interval_t CSVReader::getInterval() {
     return retVal;
 }
 
-Literal CSVReader::getList(const DataType& dataType) {
-    Literal result(DataType(LIST, make_unique<DataType>(dataType)));
+unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
+    vector<unique_ptr<Value>> listVal;
     // Move the linePtrStart one character forward, because hasNextToken() will first increment it.
     CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config);
     while (listCSVReader.hasNextToken()) {
         if (!listCSVReader.skipTokenIfNull()) {
+            unique_ptr<Value> val;
             switch (dataType.typeID) {
             case INT64: {
-                result.listVal.emplace_back(listCSVReader.getInt64());
+                val = make_unique<Value>(listCSVReader.getInt64());
             } break;
             case DOUBLE: {
-                result.listVal.emplace_back(listCSVReader.getDouble());
+                val = make_unique<Value>(listCSVReader.getDouble());
             } break;
             case BOOL: {
-                result.listVal.emplace_back((bool)listCSVReader.getBoolean());
+                val = make_unique<Value>((bool)listCSVReader.getBoolean());
             } break;
             case STRING: {
-                result.listVal.emplace_back(string(listCSVReader.getString()));
+                val = make_unique<Value>(string(listCSVReader.getString()));
             } break;
             case DATE: {
-                result.listVal.emplace_back(listCSVReader.getDate());
+                val = make_unique<Value>(listCSVReader.getDate());
             } break;
             case TIMESTAMP: {
-                result.listVal.emplace_back(listCSVReader.getTimestamp());
+                val = make_unique<Value>(listCSVReader.getTimestamp());
             } break;
             case INTERVAL: {
-                result.listVal.emplace_back(listCSVReader.getInterval());
+                val = make_unique<Value>(listCSVReader.getInterval());
             } break;
             case LIST: {
-                result.listVal.emplace_back(listCSVReader.getList(*dataType.childType));
+                val = listCSVReader.getList(*dataType.childType);
             } break;
             default:
                 throw ReaderException("Unsupported data type " +
                                       Types::dataTypeToString(dataType.childType->typeID) +
                                       " inside LIST");
             }
+            listVal.push_back(std::move(val));
         }
     }
-    auto numBytesOfOverflow = result.listVal.size() * Types::getDataTypeSize(dataType.typeID);
+    auto numBytesOfOverflow = listVal.size() * Types::getDataTypeSize(dataType.typeID);
     if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
             numBytesOfOverflow));
     }
-    return result;
+    return make_unique<Value>(DataType(LIST, make_unique<DataType>(dataType)), std::move(listVal));
 }
 
 void CSVReader::setNextTokenIsProcessed() {

@@ -22,51 +22,53 @@ public:
 TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.age");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getInt64Val(), 70);
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<int64_t>(), 70);
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeDoublePropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.eyeSight=1.0");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.eyeSight");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getDoubleVal(), 1.0);
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<double>(), 1.0);
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeBoolPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.isStudent=false");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.isStudent");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getBooleanVal(), false);
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<bool>(), false);
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeDatePropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.birthdate=date('2200-10-10')");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.birthdate");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getDateVal(), Date::FromDate(2200, 10, 10));
+    ASSERT_EQ(
+        result->getNext()->getResultValue(0)->getValue<date_t>(), Date::FromDate(2200, 10, 10));
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeTimestampPropTest) {
     conn->query(
         "MATCH (a:person) WHERE a.ID=0 SET a.registerTime=timestamp('2200-10-10 12:01:01')");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getTimestampVal(),
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<timestamp_t>(),
         Timestamp::FromDatetime(Date::FromDate(2200, 10, 10), Time::FromTime(12, 1, 1)));
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeEmptyStringPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=''");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "");
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<string>(), "");
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeShortStringPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdef'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "abcdef");
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<string>(), "abcdef");
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeLongStringPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getStringVal(), "abcdefghijklmnopqrstuvwxyz");
+    ASSERT_EQ(
+        result->getNext()->getResultValue(0)->getValue<string>(), "abcdefghijklmnopqrstuvwxyz");
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeListOfIntPropTest) {
@@ -109,7 +111,7 @@ TEST_F(TinySnbUpdateTest, SetNodeIntervalPropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.lastJobDuration=interval('1 years 1 days')");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration");
     string intervalStr = "1 years 1 days";
-    ASSERT_EQ(result->getNext()->getResultValue(0)->getIntervalVal(),
+    ASSERT_EQ(result->getNext()->getResultValue(0)->getValue<interval_t>(),
         Interval::FromCString(intervalStr.c_str(), intervalStr.length()));
 }
 
