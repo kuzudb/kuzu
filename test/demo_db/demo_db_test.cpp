@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 
 class DemoDBTest : public DBTest {
 public:
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/demo-db/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/demo-db/"); }
 };
 
 TEST_F(DemoDBTest, DemoDBTest) {

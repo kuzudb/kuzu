@@ -13,8 +13,8 @@ namespace common {
 
 CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
     : CSVReader{fName, config} {
-    readingBlockStartOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * blockId;
-    readingBlockEndOffset = CopyCSVConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
+    readingBlockStartOffset = CopyConfig::CSV_READING_BLOCK_SIZE * blockId;
+    readingBlockEndOffset = CopyConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;
     if (0 == readingBlockStartOffset) {
         isBeginningOfLine = true;
@@ -166,7 +166,7 @@ bool CSVReader::hasNextToken() {
     string lineStr;
     while (true) {
         if (isQuotedString) {
-            // ignore tokenSeparator and new line character here
+            // ignore delimiter and new line character here
             if (config.quoteChar == line[linePtrEnd]) {
                 break;
             } else if (config.escapeChar == line[linePtrEnd]) {
@@ -174,7 +174,7 @@ bool CSVReader::hasNextToken() {
                 linePtrEnd++;
             }
         } else if (isList) {
-            // ignore tokenSeparator and new line character here
+            // ignore delimiter and new line character here
             if (config.listBeginChar == line[linePtrEnd]) {
                 linePtrEnd++;
                 nestedListLevel++;
@@ -184,7 +184,7 @@ bool CSVReader::hasNextToken() {
             if (nestedListLevel == 0) {
                 break;
             }
-        } else if (config.tokenSeparator == line[linePtrEnd] || '\n' == line[linePtrEnd] ||
+        } else if (config.delimiter == line[linePtrEnd] || '\n' == line[linePtrEnd] ||
                    linePtrEnd == lineLen) {
             break;
         }
@@ -207,7 +207,7 @@ bool CSVReader::hasNextToken() {
 
 bool CSVReader::hasNextTokenOrError() {
     if (!hasNextToken()) {
-        throw CSVReaderException(
+        throw ReaderException(
             StringUtils::string_format("CSV Reader was expecting more tokens but the line does not "
                                        "have any tokens left. Last token: %s",
                 line + linePtrStart));
@@ -244,7 +244,7 @@ char* CSVReader::getString() {
     } else if (unicodeType == UnicodeType::UNICODE) {
         return Utf8Proc::normalize(strVal, strlen(strVal));
     } else {
-        throw CSVReaderException("Invalid UTF-8 character encountered.");
+        throw ReaderException("Invalid UTF-8 character encountered.");
     }
 }
 
@@ -298,15 +298,15 @@ Literal CSVReader::getList(const DataType& dataType) {
                 result.listVal.emplace_back(listCSVReader.getList(*dataType.childType));
             } break;
             default:
-                throw CSVReaderException("Unsupported data type " +
-                                         Types::dataTypeToString(dataType.childType->typeID) +
-                                         " inside LIST");
+                throw ReaderException("Unsupported data type " +
+                                      Types::dataTypeToString(dataType.childType->typeID) +
+                                      " inside LIST");
             }
         }
     }
     auto numBytesOfOverflow = result.listVal.size() * Types::getDataTypeSize(dataType.typeID);
     if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
-        throw CSVReaderException(StringUtils::string_format(
+        throw ReaderException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
             numBytesOfOverflow));
     }
@@ -321,8 +321,73 @@ void CSVReader::setNextTokenIsProcessed() {
 void CSVReader::openFile(const string& fName) {
     fd = fopen(fName.c_str(), "r");
     if (nullptr == fd) {
-        throw CSVReaderException("Cannot open file: " + fName);
+        throw ReaderException("Cannot open file: " + fName);
     }
+}
+
+CopyDescription::CopyDescription(const string& filePath, CSVReaderConfig csvReaderConfig)
+    : filePath{filePath}, csvReaderConfig{nullptr}, fileType{FileType::CSV} {
+    setFileType(filePath);
+    if (fileType == FileType::CSV) {
+        this->csvReaderConfig = make_unique<CSVReaderConfig>(csvReaderConfig);
+    }
+}
+
+CopyDescription::CopyDescription(const CopyDescription& copyDescription)
+    : filePath{copyDescription.filePath}, csvReaderConfig{nullptr}, fileType{
+                                                                        copyDescription.fileType} {
+    if (fileType == FileType::CSV) {
+        this->csvReaderConfig = make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);
+    }
+}
+
+string CopyDescription::getFileTypeName(FileType fileType) {
+    switch (fileType) {
+    case FileType::CSV:
+        return "csv";
+
+    case FileType::ARROW:
+        return "arrow";
+
+    case FileType::PARQUET:
+        return "parquet";
+    }
+}
+
+string CopyDescription::getFileTypeSuffix(FileType fileType) {
+    return "." + getFileTypeName(fileType);
+}
+
+void CopyDescription::setFileType(string const& fileName) {
+    auto csvSuffix = getFileTypeSuffix(FileType::CSV);
+    auto arrowSuffix = getFileTypeSuffix(FileType::ARROW);
+    auto parquetSuffix = getFileTypeSuffix(FileType::PARQUET);
+
+    if (fileName.length() >= csvSuffix.length()) {
+        if (!fileName.compare(
+                fileName.length() - csvSuffix.length(), csvSuffix.length(), csvSuffix)) {
+            fileType = FileType::CSV;
+            return;
+        }
+    }
+
+    if (fileName.length() >= arrowSuffix.length()) {
+        if (!fileName.compare(
+                fileName.length() - arrowSuffix.length(), arrowSuffix.length(), arrowSuffix)) {
+            fileType = FileType::ARROW;
+            return;
+        }
+    }
+
+    if (fileName.length() >= parquetSuffix.length()) {
+        if (!fileName.compare(fileName.length() - parquetSuffix.length(), parquetSuffix.length(),
+                parquetSuffix)) {
+            fileType = FileType::PARQUET;
+            return;
+        }
+    }
+
+    throw CopyException("Unsupported file type: " + fileName);
 }
 
 } // namespace common

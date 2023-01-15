@@ -256,8 +256,13 @@ void TestHelper::executeCypherScript(const string& cypherScript, Connection& con
 }
 
 void BaseGraphTest::initGraph() {
-    TestHelper::executeCypherScript(getInputCSVDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(getInputCSVDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
+    TestHelper::executeCypherScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeCypherScript(getInputDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
+}
+
+void BaseGraphTest::initGraphFromPath(const string& path) const {
+    TestHelper::executeCypherScript(path + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeCypherScript(path + TestHelper::COPY_CSV_FILE_NAME, *conn);
 }
 
 void BaseGraphTest::commitOrRollbackConnection(

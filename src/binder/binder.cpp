@@ -15,7 +15,7 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         return bindDropTable(statement);
     }
     case StatementType::COPY_CSV: {
-        return bindCopyCSV(statement);
+        return bindCopy(statement);
     }
     case StatementType::DROP_PROPERTY: {
         return bindDropProperty(statement);
@@ -165,8 +165,8 @@ void Binder::validateTableExist(const Catalog& _catalog, string& tableName) {
 }
 
 bool Binder::validateStringParsingOptionName(string& parsingOptionName) {
-    for (auto i = 0; i < size(CopyCSVConfig::STRING_CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyCSVConfig::STRING_CSV_PARSING_OPTIONS[i]) {
+    for (auto i = 0; i < size(CopyConfig::STRING_CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyConfig::STRING_CSV_PARSING_OPTIONS[i]) {
             return true;
         }
     }

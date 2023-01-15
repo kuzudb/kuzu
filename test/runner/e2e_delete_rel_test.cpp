@@ -4,7 +4,7 @@ using namespace kuzu::testing;
 
 class DeleteRelTest : public DBTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
     string getDeleteKnowsRelQuery(string srcTable, string dstTable, int64_t srcID, int64_t dstID) {

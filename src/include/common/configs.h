@@ -83,8 +83,8 @@ struct HashIndexConfig {
     static constexpr uint8_t SLOT_CAPACITY = (uint64_t)1 << SLOT_CAPACITY_LOG_2;
 };
 
-struct CopyCSVConfig {
-    // Size (in bytes) of the chunks to be read in InMemNode/RelCSVCopier
+struct CopyConfig {
+    // Size (in bytes) of the chunks to be read in Node/Rel Copier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
     // Number of tasks to be assigned in a batch when reading files.
@@ -96,12 +96,12 @@ struct CopyCSVConfig {
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};
-    static constexpr char DEFAULT_ESCAPE_CHAR = '\\';
-    static constexpr char DEFAULT_TOKEN_SEPARATOR = ',';
-    static constexpr char DEFAULT_QUOTE_CHAR = '"';
-    static constexpr char DEFAULT_LIST_BEGIN_CHAR = '[';
-    static constexpr char DEFAULT_LIST_END_CHAR = ']';
-    static constexpr bool DEFAULT_HAS_HEADER = false;
+    static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '\\';
+    static constexpr char DEFAULT_CSV_DELIMITER = ',';
+    static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
+    static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
+    static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
+    static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
 };
 
 struct EnumeratorKnobs {

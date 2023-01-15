@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 class OrderByTests : public DBTest {
 
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/order-by-tests/");
     }
 };

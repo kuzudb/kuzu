@@ -243,9 +243,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         }
         diskOverflowFile->resetLoggedNewOverflowFileNextBytePosRecord();
     } break;
-    case WALRecordType::COPY_NODE_CSV_RECORD: {
+    case WALRecordType::COPY_NODE_RECORD: {
         if (isCheckpoint) {
-            auto tableID = walRecord.copyNodeCsvRecord.tableID;
+            auto tableID = walRecord.copyNodeRecord.tableID;
             if (!isRecovering) {
                 auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
                 // If the WAL version of the file doesn't exist, we must have already replayed
@@ -276,14 +276,14 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // impossible for users to roll back a COPY_CSV statement.
         }
     } break;
-    case WALRecordType::COPY_REL_CSV_RECORD: {
+    case WALRecordType::COPY_REL_RECORD: {
         if (isCheckpoint) {
-            auto tableID = walRecord.copyRelCsvRecord.tableID;
+            auto tableID = walRecord.copyRelRecord.tableID;
             if (!isRecovering) {
-                // See comments for COPY_NODE_CSV_RECORD.
+                // See comments for COPY_NODE_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
-                // See comments for COPY_NODE_CSV_RECORD.
+                // See comments for COPY_NODE_RECORD.
                 storageManager->getRelsStore().getRelTable(tableID)->initializeData(
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), *bufferManager);
                 storageManager->getNodesStore()
@@ -291,13 +291,13 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     .setAdjListsAndColumns(&storageManager->getRelsStore());
             } else {
                 auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
-                // See comments for COPY_NODE_CSV_RECORD.
+                // See comments for COPY_NODE_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
                     catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),
                     wal->getDirectory());
             }
         } else {
-            // See comments for COPY_NODE_CSV_RECORD.
+            // See comments for COPY_NODE_RECORD.
         }
     } break;
     case WALRecordType::DROP_TABLE_RECORD: {
@@ -328,7 +328,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 }
             }
         } else {
-            // See comments for COPY_NODE_CSV_RECORD.
+            // See comments for COPY_NODE_RECORD.
         }
     } break;
     case WALRecordType::DROP_PROPERTY_RECORD: {
@@ -358,7 +358,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 }
             }
         } else {
-            // See comments for COPY_NODE_CSV_RECORD.
+            // See comments for COPY_NODE_RECORD.
         }
     } break;
     default:

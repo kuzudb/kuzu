@@ -4,14 +4,14 @@ using ::testing::Test;
 using namespace kuzu::testing;
 
 class LongStringPKTest : public DBTest {
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/long-string-pk-tests/");
     }
 };
 
 class TinySnbReadTest : public DBTest {
 public:
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(LongStringPKTest, LongStringPKTest) {

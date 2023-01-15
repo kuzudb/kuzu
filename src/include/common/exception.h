@@ -42,14 +42,14 @@ public:
     explicit ConversionException(const string& msg) : Exception(msg){};
 };
 
-class CSVReaderException : public Exception {
+class ReaderException : public Exception {
 public:
-    explicit CSVReaderException(const string& msg) : Exception("CSVReader exception: " + msg){};
+    explicit ReaderException(const string& msg) : Exception("Reader exception: " + msg){};
 };
 
-class CopyCSVException : public Exception {
+class CopyException : public Exception {
 public:
-    explicit CopyCSVException(const string& msg) : Exception("CopyCSV exception: " + msg){};
+    explicit CopyException(const string& msg) : Exception("Copy exception: " + msg){};
 };
 
 class CatalogException : public Exception {

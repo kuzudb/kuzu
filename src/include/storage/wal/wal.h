@@ -110,9 +110,9 @@ public:
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeCSVRecord(table_id_t tableID);
+    void logCopyNodeRecord(table_id_t tableID);
 
-    void logCopyRelCSVRecord(table_id_t tableID);
+    void logCopyRelRecord(table_id_t tableID);
 
     void logDropTableRecord(table_id_t tableID);
 

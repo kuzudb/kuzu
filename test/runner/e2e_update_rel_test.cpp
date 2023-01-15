@@ -4,7 +4,7 @@ using namespace kuzu::testing;
 
 class UpdateRelTest : public DBTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
     string getUpdateRelQuery(string srcTable, string dstTable, string relation, int64_t srcID,

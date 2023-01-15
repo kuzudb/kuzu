@@ -5,7 +5,7 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class WALReplayerTests : public DBTest {
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {

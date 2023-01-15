@@ -1,7 +1,7 @@
 #include "processor/processor.h"
 
 #include "processor/operator/aggregate/base_aggregate.h"
-#include "processor/operator/copy_csv/copy_csv.h"
+#include "processor/operator/copy/copy.h"
 #include "processor/operator/ddl/ddl.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
@@ -18,9 +18,9 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isCopyCSV()) {
-        auto copyCSV = (CopyCSV*)physicalPlan->lastOperator.get();
-        auto outputMsg = copyCSV->execute(taskScheduler.get(), context);
+    if (physicalPlan->isCopy()) {
+        auto copy = (Copy*)physicalPlan->lastOperator.get();
+        auto outputMsg = copy->execute(taskScheduler.get(), context);
         return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();

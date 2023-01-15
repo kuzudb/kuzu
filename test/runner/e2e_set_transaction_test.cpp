@@ -33,7 +33,7 @@ protected:
 
 class SetNodeStructuredPropTransactionTest : public BaseSetNodePropTransactionTest {
 public:
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     void insertLongStrings1000TimesAndVerify(Connection* connection) {
         int numWriteQueries = 1000;

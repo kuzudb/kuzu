@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 
 class BinderErrorTest : public DBTest {
 public:
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
     string getBindingError(const string& input) {
         auto result = conn->query(input);

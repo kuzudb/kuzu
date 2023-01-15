@@ -8,21 +8,21 @@ using namespace kuzu::testing;
 
 class EndToEndReadLists2BytesPerEdgeTest : public DBTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
     }
 };
 
 class EndToEndReadLists4BytesPerEdgeTest : public DBTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
     }
 };
 
 class EndToEndReadListsSubQueryTest : public DBTest {
 public:
-    string getInputCSVDir() override {
+    string getInputDir() override {
         return TestHelper::appendKuzuRootPath(
             "dataset/read-list-tests/large-list-sub-query-tests/");
     }

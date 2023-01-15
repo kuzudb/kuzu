@@ -34,7 +34,7 @@ uint32_t InMemFile::addANewPage(bool setToZero) {
 
 void InMemFile::flush() {
     if (filePath.empty()) {
-        throw CopyCSVException("InMemPages: Empty filename");
+        throw CopyException("InMemPages: Empty filename");
     }
     auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
     for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
@@ -160,7 +160,7 @@ ku_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor
             resultKUList, listLiteral, overflowCursor, numBytesOfListElement);
     } break;
     default: {
-        throw CopyCSVException("Unsupported data type inside LIST.");
+        throw CopyException("Unsupported data type inside LIST.");
     }
     }
     return resultKUList;

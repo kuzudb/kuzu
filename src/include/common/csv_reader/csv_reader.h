@@ -15,26 +15,37 @@ namespace common {
 
 struct CSVReaderConfig {
     CSVReaderConfig()
-        : escapeChar{CopyCSVConfig::DEFAULT_ESCAPE_CHAR},
-          tokenSeparator{CopyCSVConfig::DEFAULT_TOKEN_SEPARATOR},
-          quoteChar{CopyCSVConfig::DEFAULT_QUOTE_CHAR},
-          listBeginChar{CopyCSVConfig::DEFAULT_LIST_BEGIN_CHAR},
-          listEndChar{CopyCSVConfig::DEFAULT_LIST_END_CHAR},
-          hasHeader{CopyCSVConfig::DEFAULT_HAS_HEADER} {}
+        : escapeChar{CopyConfig::DEFAULT_CSV_ESCAPE_CHAR},
+          delimiter{CopyConfig::DEFAULT_CSV_DELIMITER},
+          quoteChar{CopyConfig::DEFAULT_CSV_QUOTE_CHAR},
+          listBeginChar{CopyConfig::DEFAULT_CSV_LIST_BEGIN_CHAR},
+          listEndChar{CopyConfig::DEFAULT_CSV_LIST_END_CHAR},
+          hasHeader{CopyConfig::DEFAULT_CSV_HAS_HEADER} {}
 
     char escapeChar;
-    char tokenSeparator;
+    char delimiter;
     char quoteChar;
     char listBeginChar;
     char listEndChar;
     bool hasHeader;
 };
 
-struct CSVDescription {
-    CSVDescription(const string filePath, const CSVReaderConfig csvReaderConfig)
-        : filePath{move(filePath)}, csvReaderConfig{move(csvReaderConfig)} {}
+struct CopyDescription {
+    CopyDescription(const string& filePath, CSVReaderConfig csvReaderConfig);
+
+    CopyDescription(const CopyDescription& copyDescription);
+
+    enum class FileType { CSV, ARROW, PARQUET };
+
+    static string getFileTypeName(FileType fileType);
+
+    static string getFileTypeSuffix(FileType fileType);
+
+    void setFileType(string const& fileName);
+
     const string filePath;
-    const CSVReaderConfig csvReaderConfig;
+    unique_ptr<CSVReaderConfig> csvReaderConfig;
+    FileType fileType;
 };
 
 // TODO(Guodong): we should add a csv reader test to test edge cases and error messages.

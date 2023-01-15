@@ -45,7 +45,7 @@ public:
     static void executeCypherScript(const string& path, Connection& conn);
 
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
-    static constexpr char COPY_CSV_FILE_NAME[] = "copy_csv.cypher";
+    static constexpr char COPY_CSV_FILE_NAME[] = "copy.cypher";
 
     static string getTmpTestDir() { return appendKuzuRootPath("test/unittest_temp/"); }
 
@@ -69,7 +69,7 @@ public:
         databaseConfig = make_unique<DatabaseConfig>(TestHelper::getTmpTestDir());
     }
 
-    virtual string getInputCSVDir() = 0;
+    virtual string getInputDir() = 0;
 
     void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
@@ -83,6 +83,8 @@ public:
     }
 
     void initGraph();
+
+    void initGraphFromPath(const string& path) const;
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
 
@@ -188,7 +190,7 @@ public:
 
 // This class starts database without initializing graph.
 class EmptyDBTest : public BaseGraphTest {
-    string getInputCSVDir() override { throw NotImplementedException("getInputCSVDir()"); }
+    string getInputDir() override { throw NotImplementedException("getInputDir()"); }
 };
 
 // This class starts database in on-disk mode.

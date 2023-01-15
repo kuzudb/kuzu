@@ -12,9 +12,9 @@ public:
     explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator)
         : lastOperator{std::move(lastOperator)} {}
 
-    inline bool isCopyCSV() const {
-        return lastOperator->getOperatorType() == PhysicalOperatorType::COPY_NODE_CSV ||
-               lastOperator->getOperatorType() == PhysicalOperatorType::COPY_REL_CSV;
+    inline bool isCopy() const {
+        return lastOperator->getOperatorType() == PhysicalOperatorType::COPY_NODE ||
+               lastOperator->getOperatorType() == PhysicalOperatorType::COPY_REL;
     }
 
 public:

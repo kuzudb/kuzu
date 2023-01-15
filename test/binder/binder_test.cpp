@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 
 class BinderTest : public DBTest {
 public:
-    string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 
 TEST_F(BinderTest, VarLenExtendMaxDepthTest) {

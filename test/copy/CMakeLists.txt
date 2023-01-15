@@ -1,0 +1,8 @@
+add_kuzu_test(copy_dates_test copy_dates_test.cpp)
+add_kuzu_test(copy_dos_style_newline_test copy_dos_style_newline_test.cpp)
+add_kuzu_test(copy_fault_test copy_fault_test.cpp)
+add_kuzu_test(copy_interval_test copy_interval_test.cpp)
+add_kuzu_test(copy_lists_test copy_lists_test.cpp)
+add_kuzu_test(copy_test copy_test.cpp)
+add_kuzu_test(copy_timestamp_test copy_timestamp_test.cpp)
+add_kuzu_test(copy_arrow_test arrow_node_copy_test.cpp)

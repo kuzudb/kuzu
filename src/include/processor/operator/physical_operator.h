@@ -11,8 +11,8 @@ namespace processor {
 enum class PhysicalOperatorType : uint8_t {
     AGGREGATE,
     AGGREGATE_SCAN,
-    COPY_NODE_CSV,
-    COPY_REL_CSV,
+    COPY_NODE,
+    COPY_REL,
     CREATE_NODE,
     CREATE_NODE_TABLE,
     CREATE_REL,

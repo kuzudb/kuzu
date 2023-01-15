@@ -1,11 +1,11 @@
-#include "planner/logical_plan/logical_operator/logical_copy_csv.h"
+#include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
 #include "processor/mapper/plan_mapper.h"
-#include "processor/operator/copy_csv/copy_node_csv.h"
-#include "processor/operator/copy_csv/copy_rel_csv.h"
+#include "processor/operator/copy/copy_node.h"
+#include "processor/operator/copy/copy_rel.h"
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rel_table.h"
 #include "processor/operator/ddl/drop_property.h"
@@ -40,20 +40,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
         &storageManager.getRelsStore().getRelsStatistics());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyCSVToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyToPhysical(
     LogicalOperator* logicalOperator) {
-    auto copyCSV = (LogicalCopyCSV*)logicalOperator;
-    auto tableName = catalog->getReadOnlyVersion()->getTableName(copyCSV->getTableID());
+    auto copy = (LogicalCopy*)logicalOperator;
+    auto tableName = catalog->getReadOnlyVersion()->getTableName(copy->getTableID());
     auto nodesStatistics = &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs();
     auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
-        return make_unique<CopyNodeCSV>(catalog, copyCSV->getCSVDescription(),
-            copyCSV->getTableID(), storageManager.getWAL(), nodesStatistics, getOperatorID(),
-            copyCSV->getExpressionsForPrinting());
+        return make_unique<CopyNode>(catalog, copy->getCopyDescription(), copy->getTableID(),
+            storageManager.getWAL(), nodesStatistics, getOperatorID(),
+            copy->getExpressionsForPrinting());
     } else {
-        return make_unique<CopyRelCSV>(catalog, copyCSV->getCSVDescription(), copyCSV->getTableID(),
+        return make_unique<CopyRel>(catalog, copy->getCopyDescription(), copy->getTableID(),
             storageManager.getWAL(), nodesStatistics, relsStatistics, getOperatorID(),
-            copyCSV->getExpressionsForPrinting());
+            copy->getExpressionsForPrinting());
     }
 }
 

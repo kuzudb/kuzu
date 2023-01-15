@@ -1,5 +1,5 @@
 add_subdirectory(aggregate)
-add_subdirectory(copy_csv)
+add_subdirectory(copy)
 add_subdirectory(ddl)
 add_subdirectory(hash_join)
 add_subdirectory(intersect)
