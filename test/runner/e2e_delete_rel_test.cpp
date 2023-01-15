@@ -30,16 +30,6 @@ public:
             srcID, dstID);
     }
 
-    void commitOrRollbackConnectionAndInitDBIfNecessary(
-        bool isCommit, TransactionTestType transactionTestType) {
-        commitOrRollbackConnection(isCommit, transactionTestType);
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            // This creates a new database/conn/readConn and should run the recovery algorithm.
-            createDBAndConn();
-            conn->beginWriteTransaction();
-        }
-    }
-
     void sortAndCheckTestResults(vector<string>& actualResult, vector<string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);

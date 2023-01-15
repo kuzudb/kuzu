@@ -98,10 +98,12 @@ public:
     // store data to the inMemList.
     unique_ptr<InMemList> writeToInMemList(node_offset_t nodeOffset,
         const vector<uint64_t>& insertedRelTupleIdxesInFT,
-        const unordered_set<uint64_t>& deletedRelOffsetsForList);
+        const unordered_set<uint64_t>& deletedRelOffsetsForList,
+        UpdatedPersistentListOffsets* updatedPersistentListOffsets);
     void fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
         uint64_t numElementsInPersistentStore, InMemList& inMemList,
-        const unordered_set<uint64_t>& deletedRelOffsetsInList);
+        const unordered_set<list_offset_t>& deletedRelOffsetsInList,
+        UpdatedPersistentListOffsets* updatedPersistentListOffsets = nullptr);
 
 protected:
     virtual inline DiskOverflowFile* getDiskOverflowFileIfExists() { return nullptr; }
@@ -118,7 +120,12 @@ protected:
 private:
     void fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame, uint64_t elemPosInPage,
         uint64_t numElementsToReadInCurPage, const unordered_set<uint64_t>& deletedRelOffsetsInList,
-        uint64_t numElementsRead, uint64_t& nextPosToWriteToInMemList);
+        uint64_t numElementsRead, uint64_t& nextPosToWriteToInMemList,
+        UpdatedPersistentListOffsets* updatedPersistentListOffsets);
+
+    void readPropertyUpdatesToInMemListIfExists(InMemList& inMemList,
+        UpdatedPersistentListOffsets* updatedPersistentListOffsets, uint64_t numElementsRead,
+        uint64_t numElementsToReadInCurPage, uint64_t nextPosToWriteToInMemList);
 
 protected:
     StorageStructureIDAndFName storageStructureIDAndFName;

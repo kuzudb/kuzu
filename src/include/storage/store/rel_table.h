@@ -22,6 +22,30 @@ enum class RelTableDataType : uint8_t {
     LISTS = 1,
 };
 
+class ListsUpdateIteratorsForDirection {
+public:
+    inline ListsUpdateIterator* getListUpdateIteratorForAdjList() {
+        return listUpdateIteratorForAdjList.get();
+    }
+
+    inline unordered_map<property_id_t, unique_ptr<ListsUpdateIterator>>&
+    getListsUpdateIteratorsForPropertyLists() {
+        return listUpdateIteratorsForPropertyLists;
+    }
+
+    void addListUpdateIteratorForAdjList(unique_ptr<ListsUpdateIterator>);
+
+    void addListUpdateIteratorForPropertyList(
+        property_id_t propertyID, unique_ptr<ListsUpdateIterator> listsUpdateIterator);
+
+    void doneUpdating();
+
+private:
+    unique_ptr<ListsUpdateIterator> listUpdateIteratorForAdjList;
+    unordered_map<property_id_t, unique_ptr<ListsUpdateIterator>>
+        listUpdateIteratorsForPropertyLists;
+};
+
 struct RelTableScanState {
 public:
     explicit RelTableScanState(table_id_t boundNodeTableID, vector<property_id_t> propertyIds,
@@ -100,7 +124,8 @@ public:
         const vector<shared_ptr<ValueVector>>& relPropertyVectors);
     void deleteRel(table_id_t boundTableID, const shared_ptr<ValueVector>& boundVector);
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates);
-    vector<unique_ptr<ListsUpdateIterator>> getListsUpdateIterators(table_id_t srcTableID);
+    unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
+        table_id_t boundNodeTableID);
 
 private:
     void scanColumns(Transaction* transaction, RelTableScanState& scanState,
@@ -185,11 +210,25 @@ public:
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
     inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
+    static void appendInMemListToLargeListOP(
+        ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList);
+    static void updateListOP(
+        ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList);
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
         const std::function<void()>& opIfHasUpdates);
-    vector<unique_ptr<ListsUpdateIterator>> getListsUpdateIterators(
-        RelDirection relDirection, table_id_t srcTableID) const;
+    unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
+        RelDirection relDirection, table_id_t boundNodeTableID) const;
     void prepareCommitForDirection(RelDirection relDirection);
+    void prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, node_offset_t nodeOffset,
+        ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+        ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
+        table_id_t boundNodeTableID,
+        const std::function<void(ListsUpdateIterator* listsUpdateIterator, node_offset_t,
+            InMemList& inMemList)>& opOnListsUpdateIterators);
+    void prepareCommitForList(AdjLists* adjLists, node_offset_t nodeOffset,
+        ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+        ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
+        table_id_t boundNodeTableID);
 
 private:
     table_id_t tableID;

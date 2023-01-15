@@ -187,6 +187,27 @@ void BaseGraphTest::validateRelColumnAndListFilesExistence(
     }
 }
 
+void BaseGraphTest::validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
+    auto catalog = getCatalog(*database);
+    auto statement = Parser::parseQuery(query);
+    auto parsedQuery = (RegularQuery*)statement.get();
+    auto boundQuery = Binder(*catalog).bind(*parsedQuery);
+    auto plan = Planner::getBestPlan(*catalog,
+        getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
+    ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
+}
+
+void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
+    bool isCommit, TransactionTestType transactionTestType) {
+    commitOrRollbackConnection(isCommit, transactionTestType);
+    if (transactionTestType == TransactionTestType::RECOVERY) {
+        // This creates a new database/conn/readConn and should run the recovery algorithm.
+        createDBAndConn();
+        conn->beginWriteTransaction();
+    }
+}
+
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
     table_id_t tableID, RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType,
     bool existence) {

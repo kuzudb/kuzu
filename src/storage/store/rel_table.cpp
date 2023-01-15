@@ -8,6 +8,23 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace storage {
 
+void ListsUpdateIteratorsForDirection::addListUpdateIteratorForAdjList(
+    unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
+    listUpdateIteratorForAdjList = std::move(listsUpdateIterator);
+}
+
+void ListsUpdateIteratorsForDirection::addListUpdateIteratorForPropertyList(
+    property_id_t propertyID, unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
+    listUpdateIteratorsForPropertyLists.emplace(propertyID, std::move(listsUpdateIterator));
+}
+
+void ListsUpdateIteratorsForDirection::doneUpdating() {
+    listUpdateIteratorForAdjList->doneUpdating();
+    for (auto& [_, listUpdateIteratorForPropertyList] : listUpdateIteratorsForPropertyLists) {
+        listUpdateIteratorForPropertyList->doneUpdating();
+    }
+}
+
 Column* DirectedRelTableData::getPropertyColumn(
     table_id_t boundNodeTableID, property_id_t propertyID) {
     if (propertyColumns.contains(boundNodeTableID) &&
@@ -185,16 +202,17 @@ void DirectedRelTableData::performOpOnListsWithUpdates(
     }
 }
 
-vector<unique_ptr<ListsUpdateIterator>> DirectedRelTableData::getListsUpdateIterators(
-    table_id_t boundNodeTableID) {
-    vector<unique_ptr<ListsUpdateIterator>> listsUpdateIterators;
-    listsUpdateIterators.push_back(
+unique_ptr<ListsUpdateIteratorsForDirection>
+DirectedRelTableData::getListsUpdateIteratorsForDirection(table_id_t boundNodeTableID) {
+    unique_ptr<ListsUpdateIteratorsForDirection> listsUpdateIteratorsForDirection =
+        make_unique<ListsUpdateIteratorsForDirection>();
+    listsUpdateIteratorsForDirection->addListUpdateIteratorForAdjList(
         ListsUpdateIteratorFactory::getListsUpdateIterator(adjLists.at(boundNodeTableID).get()));
-    for (auto i = 0u; i < propertyLists.at(boundNodeTableID).size(); i++) {
-        listsUpdateIterators.push_back(ListsUpdateIteratorFactory::getListsUpdateIterator(
-            propertyLists.at(boundNodeTableID).at(i).get()));
+    for (auto& [propertyID, propertyList] : propertyLists.at(boundNodeTableID)) {
+        listsUpdateIteratorsForDirection->addListUpdateIteratorForPropertyList(
+            propertyID, ListsUpdateIteratorFactory::getListsUpdateIterator(propertyList.get()));
     }
-    return listsUpdateIterators;
+    return listsUpdateIteratorsForDirection;
 }
 
 RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
@@ -319,6 +337,16 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
+void RelTable::appendInMemListToLargeListOP(
+    ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList) {
+    listsUpdateIterator->appendToLargeList(nodeOffset, inMemList);
+}
+
+void RelTable::updateListOP(
+    ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList) {
+    listsUpdateIterator->updateList(nodeOffset, inMemList);
+}
+
 void RelTable::performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
     const std::function<void()>& opIfHasUpdates) {
     fwdRelTableData->performOpOnListsWithUpdates(opOnListsWithUpdates);
@@ -328,10 +356,11 @@ void RelTable::performOpOnListsWithUpdates(const std::function<void(Lists*)>& op
     }
 }
 
-vector<unique_ptr<ListsUpdateIterator>> RelTable::getListsUpdateIterators(
+unique_ptr<ListsUpdateIteratorsForDirection> RelTable::getListsUpdateIteratorsForDirection(
     RelDirection relDirection, table_id_t boundNodeTableID) const {
-    return relDirection == FWD ? fwdRelTableData->getListsUpdateIterators(boundNodeTableID) :
-                                 bwdRelTableData->getListsUpdateIterators(boundNodeTableID);
+    return relDirection == FWD ?
+               fwdRelTableData->getListsUpdateIteratorsForDirection(boundNodeTableID) :
+               bwdRelTableData->getListsUpdateIteratorsForDirection(boundNodeTableID);
 }
 
 void RelTable::prepareCommitForDirection(RelDirection relDirection) {
@@ -340,7 +369,8 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
         if (listsUpdatesPerChunk.empty()) {
             continue;
         }
-        auto listsUpdateIterators = getListsUpdateIterators(relDirection, boundNodeTableID);
+        auto listsUpdateIteratorsForDirection =
+            getListsUpdateIteratorsForDirection(relDirection, boundNodeTableID);
         // Note: call writeInMemListToListPages in ascending order of nodeOffsets is critical here.
         for (auto& [chunkIdx, listsUpdatesPerNode] : listsUpdatesPerChunk) {
             for (auto& [nodeOffset, listsUpdatesForNodeOffset] : listsUpdatesPerNode) {
@@ -353,60 +383,76 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
                 }
                 auto adjLists = getAdjLists(relDirection, boundNodeTableID);
                 if (listsUpdatesForNodeOffset->isNewlyAddedNode) {
-                    auto inMemAdjLists = adjLists->createInMemListWithDataFromUpdateStoreOnly(
-                        nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
-                    listsUpdateIterators[0]->updateList(nodeOffset, *inMemAdjLists);
-                    auto numPropertyLists = getNumPropertyLists(relDirection, boundNodeTableID);
-                    for (auto i = 0u; i < numPropertyLists; i++) {
-                        auto inMemPropLists =
-                            getPropertyLists(relDirection, boundNodeTableID, i)
-                                ->createInMemListWithDataFromUpdateStoreOnly(nodeOffset,
-                                    listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
-                        listsUpdateIterators[i + 1]->updateList(nodeOffset, *inMemPropLists);
-                    }
+                    prepareCommitForListWithUpdateStoreDataOnly(adjLists, nodeOffset,
+                        listsUpdatesForNodeOffset.get(), relDirection,
+                        listsUpdateIteratorsForDirection.get(), boundNodeTableID, updateListOP);
                     // TODO(Guodong): Do we need to access the header in this way?
                 } else if (ListHeaders::isALargeList(adjLists->getHeaders()->headersDiskArray->get(
                                nodeOffset, TransactionType::READ_ONLY)) &&
-                           listsUpdatesForNodeOffset->deletedRelIDs.empty()) {
+                           listsUpdatesForNodeOffset->deletedRelIDs.empty() &&
+                           !listsUpdatesForNodeOffset->hasUpdates()) {
                     // We do an optimization for relPropertyList and adjList : If the initial list
-                    // is a largeList and we didn't delete any rel from the persistentStore, we can
-                    // simply append the newly inserted rels from the listsUpdatesStore to
-                    // largeList. In this case, we can skip reading the data from persistentStore to
-                    // InMemList and only need to read the data from listsUpdatesStore to InMemList.
-                    auto inMemAdjLists = adjLists->createInMemListWithDataFromUpdateStoreOnly(
-                        nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
-                    listsUpdateIterators[0]->appendToLargeList(nodeOffset, *inMemAdjLists);
-                    auto numPropertyLists = getNumPropertyLists(relDirection, boundNodeTableID);
-                    for (auto i = 0u; i < numPropertyLists; i++) {
-                        auto inMemPropLists =
-                            getPropertyLists(relDirection, boundNodeTableID, i)
-                                ->createInMemListWithDataFromUpdateStoreOnly(nodeOffset,
-                                    listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
-                        listsUpdateIterators[i + 1]->appendToLargeList(nodeOffset, *inMemPropLists);
-                    }
+                    // is a largeList and we didn't delete or update any rel from the
+                    // persistentStore, we can simply append the newly inserted rels from the
+                    // listsUpdatesStore to largeList. In this case, we can skip reading the data
+                    // from persistentStore to InMemList and only need to read the data from
+                    // listsUpdatesStore to InMemList.
+                    prepareCommitForListWithUpdateStoreDataOnly(adjLists, nodeOffset,
+                        listsUpdatesForNodeOffset.get(), relDirection,
+                        listsUpdateIteratorsForDirection.get(), boundNodeTableID,
+                        appendInMemListToLargeListOP);
                 } else {
-                    auto relIDLists = (RelIDList*)getPropertyLists(relDirection, boundNodeTableID,
-                        RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX);
-                    auto deletedRelOffsets =
-                        relIDLists->getDeletedRelOffsetsInListForNodeOffset(nodeOffset);
-                    auto inMemAdjLists = adjLists->writeToInMemList(nodeOffset,
-                        listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT, deletedRelOffsets);
-                    listsUpdateIterators[0]->updateList(nodeOffset, *inMemAdjLists);
-                    auto numPropertyLists = getNumPropertyLists(relDirection, boundNodeTableID);
-                    for (auto i = 0u; i < numPropertyLists; i++) {
-                        auto inMemPropLists =
-                            getPropertyLists(relDirection, boundNodeTableID, i)
-                                ->writeToInMemList(nodeOffset,
-                                    listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT,
-                                    deletedRelOffsets);
-                        listsUpdateIterators[i + 1]->updateList(nodeOffset, *inMemPropLists);
-                    }
+                    prepareCommitForList(adjLists, nodeOffset, listsUpdatesForNodeOffset.get(),
+                        relDirection, listsUpdateIteratorsForDirection.get(), boundNodeTableID);
                 }
             }
-            for (auto& listsUpdateIterator : listsUpdateIterators) {
-                listsUpdateIterator->doneUpdating();
-            }
+            listsUpdateIteratorsForDirection->doneUpdating();
         }
+    }
+}
+
+void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists,
+    node_offset_t nodeOffset, ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset,
+    RelDirection relDirection, ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
+    table_id_t boundNodeTableID,
+    const std::function<void(ListsUpdateIterator* listsUpdateIterator, node_offset_t,
+        InMemList& inMemList)>& opOnListsUpdateIterators) {
+    auto inMemAdjLists = adjLists->createInMemListWithDataFromUpdateStoreOnly(
+        nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
+    opOnListsUpdateIterators(listsUpdateIteratorsForDirection->getListUpdateIteratorForAdjList(),
+        nodeOffset, *inMemAdjLists);
+    for (auto& [propertyID, listUpdateIteratorForPropertyList] :
+        listsUpdateIteratorsForDirection->getListsUpdateIteratorsForPropertyLists()) {
+        auto inMemPropLists = getPropertyLists(relDirection, boundNodeTableID, propertyID)
+                                  ->createInMemListWithDataFromUpdateStoreOnly(nodeOffset,
+                                      listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
+        opOnListsUpdateIterators(
+            listUpdateIteratorForPropertyList.get(), nodeOffset, *inMemPropLists);
+    }
+}
+
+void RelTable::prepareCommitForList(AdjLists* adjLists, node_offset_t nodeOffset,
+    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+    ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
+    table_id_t boundNodeTableID) {
+    auto relIDLists = (RelIDList*)getPropertyLists(
+        relDirection, boundNodeTableID, RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX);
+    auto deletedRelOffsets = relIDLists->getDeletedRelOffsetsInListForNodeOffset(nodeOffset);
+    // Note: updating adjList is not supported, thus updatedPersistentListOffsets
+    // for adjList should be empty.
+    auto inMemAdjLists =
+        adjLists->writeToInMemList(nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT,
+            deletedRelOffsets, nullptr /* updatedPersistentListOffsets */);
+    listsUpdateIteratorsForDirection->getListUpdateIteratorForAdjList()->updateList(
+        nodeOffset, *inMemAdjLists);
+    for (auto& [propertyID, listUpdateIteratorForPropertyList] :
+        listsUpdateIteratorsForDirection->getListsUpdateIteratorsForPropertyLists()) {
+        auto inMemPropLists =
+            getPropertyLists(relDirection, boundNodeTableID, propertyID)
+                ->writeToInMemList(nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT,
+                    deletedRelOffsets,
+                    &listsUpdatesForNodeOffset->updatedPersistentListOffsets.at(propertyID));
+        listUpdateIteratorForPropertyList->updateList(nodeOffset, *inMemPropLists);
     }
 }
 

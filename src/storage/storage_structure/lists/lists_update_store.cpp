@@ -13,13 +13,13 @@ ListsUpdatesForNodeOffset::ListsUpdatesForNodeOffset(const RelTableSchema& relTa
     }
 }
 
-bool ListsUpdatesForNodeOffset::hasUpdates() const {
+bool ListsUpdatesForNodeOffset::hasAnyUpdatedPersistentListOffsets() const {
     for (auto& [propertyID, persistentStoreUpdate] : updatedPersistentListOffsets) {
         if (persistentStoreUpdate.hasUpdates()) {
             return true;
         }
     }
-    return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty();
+    return false;
 }
 
 ListsUpdatesStore::ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
@@ -248,6 +248,20 @@ void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFile
             ->copySingleValueToVector(
                 ftTupleIdx, LISTS_UPDATES_IDX_IN_FT, valueVector, elemPosInVector);
     }
+}
+
+void ListsUpdatesStore::readPropertyUpdateToInMemList(ListFileID& listFileID,
+    ft_tuple_idx_t ftTupleIdx, InMemList& inMemList, uint64_t posToWriteToInMemList,
+    const DataType& dataType, DiskOverflowFile* overflowFileOfInMemList) {
+    assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
+    auto propertyID = listFileID.relPropertyListID.propertyID;
+    auto tupleIdxesToRead = vector<ft_tuple_idx_t>{ftTupleIdx};
+    // Updating source and dst nodeID of a relation is not allowed, so the nodeIDCompression is
+    // always a nullptr.
+    listsUpdates.at(propertyID)
+        ->copyToInMemList(LISTS_UPDATES_IDX_IN_FT, tupleIdxesToRead, inMemList.getListData(),
+            inMemList.nullMask.get(), posToWriteToInMemList, overflowFileOfInMemList, dataType,
+            nullptr /* nodeIDCompression */);
 }
 
 void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
