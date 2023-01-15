@@ -1,6 +1,4 @@
-.PHONY: all release debug test clean arrow clean-external clean-all
-
-all: release
+.PHONY: release debug test benchmark all debug-all arrow clean clean-external clean-all
 
 GENERATOR=
 FORCE_COLOR=
@@ -46,8 +44,29 @@ debug: arrow
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug -- -j $(NUM_THREADS)
 
+all: arrow
+	mkdir -p build/release && \
+	cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
 
-test: release
+alldebug: arrow
+	mkdir -p build/debug && \
+	cd build/debug && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake --build . --config Debug -- -j $(NUM_THREADS)
+
+benchmark: arrow
+	mkdir -p build/release && \
+	cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+
+test: arrow
+	mkdir -p build/release && \
+	cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest
 

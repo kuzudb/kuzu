@@ -1,14 +1,13 @@
 add_library(
-        test_helper
+        graph_test
         OBJECT
-        test_helper.cpp
-)
+        graph_test.cpp)
 
 target_include_directories(
-        test_helper
+        graph_test
         PUBLIC
         ../include/
         ../../src/include
 )
 
-target_link_libraries(test_helper PUBLIC kuzu)
+target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)

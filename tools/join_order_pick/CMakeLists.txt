@@ -8,4 +8,3 @@ target_include_directories(join_order_pick
         ../../test/include/test_helper)
 
 target_link_libraries(join_order_pick PUBLIC kuzu)
-

@@ -1,6 +1,5 @@
 #include "common/exception.h"
-#include "gtest/gtest.h"
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;

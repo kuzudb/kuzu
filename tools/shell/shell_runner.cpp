@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     try {
         auto shell = EmbeddedShell(databaseConfig, systemConfig);
         shell.run();
-    } catch (exception &e) {
+    } catch (exception& e) {
         cerr << e.what() << endl;
         return 1;
     }

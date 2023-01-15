@@ -1,5 +1,5 @@
+#include "graph_test/graph_test.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 

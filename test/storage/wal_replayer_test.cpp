@@ -1,5 +1,5 @@
+#include "graph_test/graph_test.h"
 #include "storage/wal_replayer.h"
-#include "test_helper/test_helper.h"
 
 using namespace kuzu::storage;
 using namespace kuzu::testing;

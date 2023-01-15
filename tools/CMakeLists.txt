@@ -1,4 +1,6 @@
 add_subdirectory(shell)
-add_subdirectory(join_order_pick)
 add_subdirectory(python_api)
-add_subdirectory(benchmark)
+if(${BUILD_BENCHMARK})
+    add_subdirectory(join_order_pick)
+    add_subdirectory(benchmark)
+endif()

@@ -1,7 +1,7 @@
 #include <set>
 
+#include "graph_test/graph_test.h"
 #include "processor/mapper/plan_mapper.h"
-#include "test_helper/test_helper.h"
 
 using namespace kuzu::testing;
 

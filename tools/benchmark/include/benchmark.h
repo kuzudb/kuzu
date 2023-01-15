@@ -17,7 +17,7 @@ class Benchmark {
 public:
     Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config);
 
-    unique_ptr<QueryResult> run();
+    unique_ptr<QueryResult> run() const;
     void log(uint32_t runNum, QueryResult& queryResult) const;
 
 private:

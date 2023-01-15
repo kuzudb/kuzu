@@ -1,8 +1,6 @@
 #include "catalog/catalog.h"
-#include "gtest/gtest.h"
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 
-using namespace std;
 using namespace kuzu::catalog;
 
 class CatalogTest : public testing::Test {
