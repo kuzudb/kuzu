@@ -243,6 +243,41 @@ public:
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
+    void updateManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+            "teaches" /* relation */, 21 /* srcID */, 2 /* dstID */, "SET e.length=null")));
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+            "teaches" /* relation */, 32 /* srcID */, 3 /* dstID */, "SET e.length = 512")));
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* relation */,
+            "teaches" /* relation */, 33 /* srcID */, 3 /* dstID */, "SET e.length = 312")));
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        auto expectedResult = isCommit ? vector<string>{"11", "", "22", "31", "512", "312"} :
+                                         vector<string>{"11", "21", "22", "31", "32", "33"};
+        auto result = conn->query("MATCH (p:person)-[e:teaches]->(:person) RETURN e.length");
+        auto actualResult = TestHelper::convertResultToString(*result);
+        sortAndCheckTestResults(actualResult, expectedResult);
+    }
+
+    void updateOneToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
+        conn->beginWriteTransaction();
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
+            "hasOwner" /* relation */, 2 /* srcID */, 52 /* dstID */, "SET e.place='kuzu'")));
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
+            "hasOwner" /* relation */, 4 /* srcID */, 54 /* dstID */, "SET e.place='db'")));
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* relation */,
+            "hasOwner" /* relation */, 8 /* srcID */, 58 /* dstID */, "SET e.place=null")));
+        commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
+        auto expectedResult =
+            isCommit ? vector<string>{"1999", "kuzu", "1997", "db", "1995", "199419941994", "1993",
+                           "", "1991", "1989"} :
+                       vector<string>{"1999", "199819981998", "1997", "199619961996", "1995",
+                           "199419941994", "1993", "199219921992", "1991", "1989"};
+        auto result = conn->query("MATCH (:animal)-[e:hasOwner]->(:person) RETURN e.place");
+        auto actualResult = TestHelper::convertResultToString(*result);
+        sortAndCheckTestResults(actualResult, expectedResult);
+    }
+
     static constexpr uint64_t NUM_PERSON_KNOWS_PERSON_RELS = 2500;
 };
 
@@ -391,4 +426,36 @@ TEST_F(UpdateRelTest, InsertAndUpdateRelsForNewlyAddedNodeRollbackNormalExecutio
 
 TEST_F(UpdateRelTest, InsertAndUpdateRelsForNewlyAddedNodeRollbackRecovery) {
     insertAndUpdateRelsForNewlyAddedNode(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(UpdateRelTest, UpdateManyToOneRelTableCommitNormalExecution) {
+    updateManyToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(UpdateRelTest, UpdateManyToOneRelTableCommitRecovery) {
+    updateManyToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(UpdateRelTest, UpdateManyToOneRelTableRollbackNormalExecution) {
+    updateManyToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(UpdateRelTest, UpdateManyToOneRelTableRollbackRecovery) {
+    updateManyToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(UpdateRelTest, UpdateOneToOneRelTableCommitNormalExecution) {
+    updateOneToOneRelTable(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(UpdateRelTest, UpdateOneToOneRelTableCommitRecovery) {
+    updateOneToOneRelTable(true /* isCommit */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(UpdateRelTest, UpdateOneToOneRelTableRollbackNormalExecution) {
+    updateOneToOneRelTable(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(UpdateRelTest, UpdateOneToOneRelTableRollbackRecovery) {
+    updateOneToOneRelTable(false /* isCommit */, TransactionTestType::RECOVERY);
 }
