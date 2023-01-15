@@ -14,38 +14,62 @@ namespace storage {
 
 class WALReplayerUtils {
 public:
-    static void createEmptyDBFilesForNewRelTable(Catalog* catalog, table_id_t tableID,
-        const string& directory, const map<table_id_t, node_offset_t>& maxNodeOffsetsPerTable);
-
-    static void createEmptyDBFilesForNewNodeTable(
-        Catalog* catalog, table_id_t tableID, const string& directory);
-
     static inline void replaceNodeFilesWithVersionFromWALIfExists(
-        NodeTableSchema* nodeTableSchema, string directory) {
+        NodeTableSchema* nodeTableSchema, const string& directory) {
         fileOperationOnNodeFiles(nodeTableSchema, directory,
             replaceOriginalColumnFilesWithWALVersionIfExists,
             replaceOriginalListFilesWithWALVersionIfExists);
     }
 
-    static void replaceRelPropertyFilesWithVersionFromWALIfExists(
-        RelTableSchema* relTableSchema, string directory, const Catalog* catalog) {
-        fileOperationOnRelFiles(relTableSchema, directory, catalog,
+    static inline void replaceRelPropertyFilesWithVersionFromWALIfExists(
+        RelTableSchema* relTableSchema, const string& directory) {
+        fileOperationOnRelFiles(relTableSchema, directory,
             replaceOriginalColumnFilesWithWALVersionIfExists,
             replaceOriginalListFilesWithWALVersionIfExists);
     }
 
-    static inline void removeDBFilesForNodeTable(NodeTableSchema* tableSchema, string directory) {
+    static inline void removeDBFilesForNodeTable(
+        NodeTableSchema* tableSchema, const string& directory) {
         fileOperationOnNodeFiles(
             tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
     }
 
-    static void removeDBFilesForRelTable(
-        RelTableSchema* tableSchema, string directory, const Catalog* catalog) {
+    static inline void removeDBFilesForRelTable(
+        RelTableSchema* tableSchema, const string& directory) {
         fileOperationOnRelFiles(
-            tableSchema, directory, catalog, removeColumnFilesIfExists, removeListFilesIfExists);
+            tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
     }
 
+    static inline void removeDBFilesForNodeProperty(
+        const string& directory, table_id_t tableID, property_id_t propertyID) {
+        removeColumnFilesIfExists(StorageUtils::getNodePropertyColumnFName(
+            directory, tableID, propertyID, DBFileType::ORIGINAL));
+    }
+
+    static void removeDBFilesForRelProperty(
+        const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID);
+
+    static void createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
+        const string& directory, const map<table_id_t, node_offset_t>& maxNodeOffsetsPerTable);
+
+    static void createEmptyDBFilesForNewNodeTable(
+        NodeTableSchema* nodeTableSchema, const string& directory);
+
 private:
+    static inline void removeColumnFilesForPropertyIfExists(const string& directory,
+        table_id_t relTableID, table_id_t boundTableID, RelDirection relDirection,
+        property_id_t propertyID, DBFileType dbFileType) {
+        removeColumnFilesIfExists(StorageUtils::getRelPropertyColumnFName(
+            directory, relTableID, boundTableID, relDirection, propertyID, DBFileType::ORIGINAL));
+    }
+
+    static inline void removeListFilesForPropertyIfExists(const string& directory,
+        table_id_t relTableID, table_id_t boundTableID, RelDirection relDirection,
+        property_id_t propertyID, DBFileType dbFileType) {
+        removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(
+            directory, relTableID, boundTableID, relDirection, propertyID, DBFileType::ORIGINAL));
+    }
+
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
     static void createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
@@ -73,7 +97,7 @@ private:
         std::function<void(string fileName)> listFileOperation);
 
     static void fileOperationOnRelFiles(RelTableSchema* relTableSchema, const string& directory,
-        const Catalog* catalog, std::function<void(string fileName)> columnFileOperation,
+        std::function<void(string fileName)> columnFileOperation,
         std::function<void(string fileName)> listFileOperation);
 
     static void fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema, table_id_t nodeTableID,

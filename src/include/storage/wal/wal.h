@@ -114,7 +114,9 @@ public:
 
     void logCopyRelCSVRecord(table_id_t tableID);
 
-    void logDropTableRecord(bool isNodeTable, table_id_t tableID);
+    void logDropTableRecord(table_id_t tableID);
+
+    void logDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
 
     // Removes the contents of WAL file.
     void clearWAL();

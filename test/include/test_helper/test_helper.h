@@ -155,6 +155,9 @@ protected:
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
+    static inline bool containsOverflowFile(DataTypeID typeID) {
+        return typeID == STRING || typeID == LIST;
+    }
 
     void validateColumnFilesExistence(string fileName, bool existence, bool hasOverflow);
 
@@ -173,10 +176,6 @@ protected:
         bool isCommit, TransactionTestType transactionTestType);
 
 private:
-    static inline bool containsOverflowFile(DataTypeID typeID) {
-        return typeID == STRING || typeID == LIST;
-    }
-
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema, table_id_t tableID,
         RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence);
 

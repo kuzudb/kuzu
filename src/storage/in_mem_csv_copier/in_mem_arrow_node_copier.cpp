@@ -276,7 +276,7 @@ arrow::Status InMemArrowNodeCopier::populateColumnsFromCSV(
             ARROW_ASSIGN_OR_RAISE(currBatch, *it);
             taskScheduler.scheduleTask(
                 CopyCSVTaskFactory::createCopyCSVTask(batchPopulateColumnsTask<T, arrow::Array>,
-                    nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(),
+                    nodeTableSchema->primaryKeyPropertyID, blockIdx, offsetStart, pkIndex.get(),
                     this, currBatch->columns(), csvDescription.csvReaderConfig.tokenSeparator));
             offsetStart += currBatch->num_rows();
             ++blockIdx;
@@ -311,7 +311,7 @@ arrow::Status InMemArrowNodeCopier::populateColumnsFromArrow(
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
             taskScheduler.scheduleTask(
                 CopyCSVTaskFactory::createCopyCSVTask(batchPopulateColumnsTask<T, arrow::Array>,
-                    nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(),
+                    nodeTableSchema->primaryKeyPropertyID, blockIdx, offsetStart, pkIndex.get(),
                     this, currBatch->columns(), csvDescription.csvReaderConfig.tokenSeparator));
             offsetStart += currBatch->num_rows();
             ++blockIdx;
@@ -345,7 +345,7 @@ arrow::Status InMemArrowNodeCopier::populateColumnsFromParquet(
             ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
             taskScheduler.scheduleTask(CopyCSVTaskFactory::createCopyCSVTask(
                 batchPopulateColumnsTask<T, arrow::ChunkedArray>,
-                nodeTableSchema->primaryKeyPropertyIdx, blockIdx, offsetStart, pkIndex.get(), this,
+                nodeTableSchema->primaryKeyPropertyID, blockIdx, offsetStart, pkIndex.get(), this,
                 currTable->columns(), csvDescription.csvReaderConfig.tokenSeparator));
             offsetStart += currTable->num_rows();
             ++blockIdx;

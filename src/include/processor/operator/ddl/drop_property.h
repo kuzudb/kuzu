@@ -11,24 +11,21 @@ namespace processor {
 class DropProperty : public DDL {
 public:
     DropProperty(Catalog* catalog, table_id_t tableID, property_id_t propertyID,
-        StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
-        const string& paramsString)
+        const DataPos& outputPos, uint32_t id, const string& paramsString)
         : DDL{PhysicalOperatorType::DROP_PROPERTY, catalog, outputPos, id, paramsString},
-          tableID{tableID}, propertyID{propertyID}, storageManager{storageManager} {}
+          tableID{tableID}, propertyID{propertyID} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal() override { catalog->dropProperty(tableID, propertyID); }
 
-    std::string getOutputMsg() override;
+    string getOutputMsg() override { return {"Drop succeed."}; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DropProperty>(
-            catalog, tableID, propertyID, storageManager, outputPos, id, paramsString);
+        return make_unique<DropProperty>(catalog, tableID, propertyID, outputPos, id, paramsString);
     }
 
 protected:
     table_id_t tableID;
     property_id_t propertyID;
-    StorageManager& storageManager;
 };
 
 } // namespace processor

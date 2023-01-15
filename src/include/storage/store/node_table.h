@@ -40,6 +40,7 @@ public:
     inline table_id_t getTableID() const { return tableID; }
     inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
+    inline void removeProperty(property_id_t propertyID) { propertyColumns.erase(propertyID); }
 
     node_offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);

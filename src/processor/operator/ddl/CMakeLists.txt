@@ -3,7 +3,6 @@ add_library(kuzu_processor_operator_ddl
         create_node_table.cpp
         create_rel_table.cpp
         ddl.cpp
-        drop_property.cpp
         drop_table.cpp)
 
 set(ALL_OBJECT_FILES

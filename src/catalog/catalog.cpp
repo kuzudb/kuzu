@@ -128,7 +128,7 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
     const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
+    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -140,7 +140,7 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     offset = SerDeser::deserializeValue<string>(value.tableName, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset =
-        SerDeser::deserializeValue<property_id_t>(value.primaryKeyPropertyIdx, fileInfo, offset);
+        SerDeser::deserializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
@@ -263,6 +263,17 @@ vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const 
     return nodeTableSchemas.at(tableID)->getAllNodeProperties();
 }
 
+void CatalogContent::dropTableSchema(table_id_t tableID) {
+    auto tableSchema = getTableSchema(tableID);
+    if (tableSchema->isNodeTable) {
+        nodeTableNameToIDMap.erase(tableSchema->tableName);
+        nodeTableSchemas.erase(tableID);
+    } else {
+        relTableNameToIDMap.erase(tableSchema->tableName);
+        relTableSchemas.erase(tableID);
+    }
+}
+
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
@@ -313,17 +324,6 @@ void CatalogContent::readFromFile(const string& directory, DBFileType dbFileType
     SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
 }
 
-void CatalogContent::removeTableSchema(TableSchema* tableSchema) {
-    auto tableID = tableSchema->tableID;
-    if (tableSchema->isNodeTable) {
-        nodeTableNameToIDMap.erase(tableSchema->tableName);
-        nodeTableSchemas.erase(tableID);
-    } else {
-        relTableNameToIDMap.erase(tableSchema->tableName);
-        relTableSchemas.erase(tableID);
-    }
-}
-
 Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = make_unique<CatalogContent>();
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
@@ -370,6 +370,18 @@ table_id_t Catalog::addRelTableSchema(string tableName, RelMultiplicity relMulti
         std::move(tableName), relMultiplicity, propertyDefinitions, std::move(srcDstTableIDs));
     wal->logRelTableRecord(tableID);
     return tableID;
+}
+
+void Catalog::dropTableSchema(table_id_t tableID) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->dropTableSchema(tableID);
+    wal->logDropTableRecord(tableID);
+}
+
+void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->dropProperty(tableID, propertyID);
+    wal->logDropPropertyRecord(tableID, propertyID);
 }
 
 } // namespace catalog

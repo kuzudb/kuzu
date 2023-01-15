@@ -109,7 +109,8 @@ public:
         executionContext = make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
         personNodeTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        knowsRelTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
+        organisationTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
+        studyAtRelTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("studyAt");
     }
 
     void initWithoutLoadingGraph() {
@@ -119,9 +120,18 @@ public:
 
     string getInputCSVDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 
+    void validateDatabaseStateAfterCommitCreateNodeTable() {
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
+        ASSERT_EQ(getStorageManager(*database)
+                      ->getNodesStore()
+                      .getNodesStatisticsAndDeletedIDs()
+                      .getNumNodeStatisticsAndDeleteIDsPerTable(),
+            4);
+    }
+
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
-    void createNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
+    void createNodeTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
@@ -134,24 +144,19 @@ public:
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
             initWithoutLoadingGraph();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(getStorageManager(*database)
-                          ->getNodesStore()
-                          .getNodesStatisticsAndDeletedIDs()
-                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                4);
+            validateDatabaseStateAfterCommitCreateNodeTable();
         } else {
             conn->commit();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(getStorageManager(*database)
-                          ->getNodesStore()
-                          .getNodesStatisticsAndDeletedIDs()
-                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
-                4);
+            validateDatabaseStateAfterCommitCreateNodeTable();
         }
     }
 
-    void createRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
+    void validateDatabaseStateAfterCommitCreateRelTable() {
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
+        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
+    }
+
+    void createRelTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "CREATE REL TABLE likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
@@ -160,12 +165,10 @@ public:
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
             ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
+            validateDatabaseStateAfterCommitCreateRelTable();
         } else {
             conn->commit();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
+            validateDatabaseStateAfterCommitCreateRelTable();
         }
     }
 
@@ -271,6 +274,100 @@ public:
         }
     }
 
+    void validateDatabaseStateAfterCommitDropNodeTableProperty(
+        const string& propertyFileName, bool hasOverflowFile, const string& propertyName) {
+        validateColumnFilesExistence(propertyFileName, false /* existence */, hasOverflowFile);
+        ASSERT_FALSE(catalog->getReadOnlyVersion()
+                         ->getTableSchema(personNodeTableID)
+                         ->containProperty(propertyName));
+        auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
+        ASSERT_EQ(TestHelper::convertResultToString(*result),
+            vector<string>{
+                "(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
+                "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
+                "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
+                "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})"});
+    }
+
+    void dropNodeTableProperty(TransactionTestType transactionTestType) {
+        auto propertyToDrop =
+            catalog->getReadOnlyVersion()->getNodeProperty(personNodeTableID, "gender");
+        auto propertyFileName =
+            StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath,
+                personNodeTableID, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
+        executeQueryWithoutCommit("ALTER TABLE person DROP gender");
+        validateColumnFilesExistence(propertyFileName, true /* existence */, hasOverflowFile);
+        ASSERT_TRUE(catalog->getReadOnlyVersion()
+                        ->getTableSchema(personNodeTableID)
+                        ->containProperty("gender"));
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            // The file for property gender should still exist until we do checkpoint.
+            validateColumnFilesExistence(propertyFileName, true /* existence */, hasOverflowFile);
+            initWithoutLoadingGraph();
+            validateDatabaseStateAfterCommitDropNodeTableProperty(
+                propertyFileName, hasOverflowFile, propertyToDrop.name);
+        } else {
+            conn->commit();
+            validateDatabaseStateAfterCommitDropNodeTableProperty(
+                propertyFileName, hasOverflowFile, propertyToDrop.name);
+        }
+    }
+
+    void validateDatabaseStateAfterCommitDropRelTableProperty(
+        const string& propertyFWDColumnFileName, const string& propertyBWDListFileName,
+        bool hasOverflowFile, const string& propertyName) {
+        validateColumnFilesExistence(
+            propertyFWDColumnFileName, false /* existence */, hasOverflowFile);
+        validateListFilesExistence(
+            propertyBWDListFileName, false /* existence */, hasOverflowFile, false /* hasHeader */);
+        ASSERT_FALSE(catalog->getReadOnlyVersion()
+                         ->getTableSchema(personNodeTableID)
+                         ->containProperty(propertyName));
+        auto result = conn->query(
+            "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
+        ASSERT_EQ(TestHelper::convertResultToString(*result),
+            vector<string>{"(0:0)-[{_id:14, year:2021}]->(1:0)"});
+    }
+
+    void dropRelTableProperty(TransactionTestType transactionTestType) {
+        auto propertyToDrop =
+            catalog->getReadOnlyVersion()->getRelProperty(studyAtRelTableID, "places");
+        // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
+        // direction and stored as lists in the bwd direction.
+        auto propertyFWDColumnFileName = StorageUtils::getRelPropertyColumnFName(
+            databaseConfig->databasePath, studyAtRelTableID, personNodeTableID, RelDirection::FWD,
+            propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(
+            databaseConfig->databasePath, studyAtRelTableID, organisationTableID, RelDirection::BWD,
+            propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
+        executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
+        validateColumnFilesExistence(
+            propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
+        validateListFilesExistence(
+            propertyBWDListFileName, true /* existence */, hasOverflowFile, false /* hasHeader */);
+        ASSERT_TRUE(catalog->getReadOnlyVersion()
+                        ->getTableSchema(studyAtRelTableID)
+                        ->containProperty("places"));
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            // The file for property places should still exist until we do checkpoint.
+            validateColumnFilesExistence(
+                propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
+            validateListFilesExistence(propertyBWDListFileName, true /* existence */,
+                hasOverflowFile, false /* hasHeader */);
+            initWithoutLoadingGraph();
+            validateDatabaseStateAfterCommitDropRelTableProperty(propertyFWDColumnFileName,
+                propertyBWDListFileName, hasOverflowFile, propertyToDrop.name);
+        } else {
+            conn->commit();
+            validateDatabaseStateAfterCommitDropRelTableProperty(propertyFWDColumnFileName,
+                propertyBWDListFileName, hasOverflowFile, propertyToDrop.name);
+        }
+    }
+
     void ddlStatementsInsideActiveTransactionErrorTest(string query) {
         conn->beginWriteTransaction();
         auto result = conn->query(query);
@@ -298,7 +395,8 @@ public:
     unique_ptr<ExecutionContext> executionContext;
     unique_ptr<Profiler> profiler;
     table_id_t personNodeTableID;
-    table_id_t knowsRelTableID;
+    table_id_t organisationTableID;
+    table_id_t studyAtRelTableID;
 };
 } // namespace transaction
 } // namespace kuzu
@@ -319,39 +417,6 @@ TEST_F(IntPrimaryKeyTest, PrimaryKeySecondColumn) {
     testPrimaryKey("secondIntCol");
 }
 
-TEST_F(TinySnbDDLTest, MultipleCreateNodeTables) {
-    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-                              "STRING, REGISTER_TIME DATE, PRIMARY KEY(NAME))");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-    result = conn->query(
-        "CREATE NODE TABLE STUDENT(STUDENT_ID INT64, NAME STRING, PRIMARY KEY(STUDENT_ID))");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("STUDENT"));
-    result = conn->query("MATCH (S:STUDENT) return S.STUDENT_ID");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-    result = conn->query("MATCH (U:UNIVERSITY) return U.NAME");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-    result = conn->query("MATCH (C:COLLEGE) return C.NAME");
-    ASSERT_FALSE(result->isSuccess());
-}
-
-TEST_F(TinySnbDDLTest, CreateNodeAfterCreateNodeTable) {
-    auto result = conn->query("CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-                              "STRING, PRIMARY KEY(NAME))");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("UNIVERSITY"));
-    result =
-        conn->query("CREATE (university:UNIVERSITY {NAME: 'WATERLOO', WEBSITE: 'WATERLOO.CA'})");
-    ASSERT_TRUE(result->isSuccess());
-    result = conn->query("MATCH (a:UNIVERSITY) RETURN a;");
-    auto groundTruth = vector<string>{"(9:0:UNIVERSITY {NAME:WATERLOO, WEBSITE:WATERLOO.CA})"};
-    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
-}
-
 TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
     ddlStatementsInsideActiveTransactionErrorTest(
         "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
@@ -361,44 +426,19 @@ TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
-    createNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+    createNodeTable(TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecovery) {
-    createNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, MultipleCreateRelTables) {
-    auto result = conn->query("CREATE REL TABLE likes (FROM person TO person, FROM person TO "
-                              "organisation, date DATE, MANY_MANY)");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-    result =
-        conn->query("CREATE REL TABLE pays (FROM organisation TO person , date DATE, MANY_MANY)");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("pays"));
-    result = conn->query("MATCH (p:person)-[l:likes]->(p1:person) return l.date");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-    result = conn->query("MATCH (o:organisation)-[l:pays]->(p1:person) return l.date");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-    result = conn->query("MATCH (o:organisation)-[l:employees]->(p1:person) return l.ID");
-    ASSERT_FALSE(result->isSuccess());
-    result = conn->query("CREATE (p:person {ID:100})-[:likes]->(p1:person {ID:101})");
-    ASSERT_TRUE(result->isSuccess());
-    result = conn->query("MATCH (p:person)-[l:likes]->(p1:person) return l");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 1);
+    createNodeTable(TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {
-    createRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+    createRelTable(TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitRecovery) {
-    createRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+    createRelTable(TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, MultipleDropTables) {
@@ -464,6 +504,10 @@ TEST_F(TinySnbDDLTest, DDLOutputMsg) {
     result = conn->query("DROP TABLE university;");
     ASSERT_EQ(TestHelper::convertResultToString(*result),
         vector<string>{"NodeTable: university has been dropped."});
+    result = conn->query("ALTER TABLE person DROP fName;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"Drop succeed."});
+    result = conn->query("ALTER TABLE knows DROP date;");
+    ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"Drop succeed."});
 }
 
 TEST_F(TinySnbDDLTest, CreateMixedRelationTableNormalExecution) {
@@ -474,48 +518,18 @@ TEST_F(TinySnbDDLTest, CreateMixedRelationTableRecovery) {
     createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DeleteNodeTableColumnTest) {
-    ASSERT_TRUE(catalog->getReadOnlyVersion()
-                    ->getTableSchema(personNodeTableID)
-                    ->containProperty("gender"));
-    ASSERT_TRUE(conn->query("ALTER TABLE person DROP gender")->isSuccess());
-    auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
-                       "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
-                       "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
-                       "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})"});
-    ASSERT_FALSE(catalog->getReadOnlyVersion()
-                     ->getTableSchema(personNodeTableID)
-                     ->containProperty("gender"));
-
-    ASSERT_TRUE(catalog->getReadOnlyVersion()
-                    ->getTableSchema(personNodeTableID)
-                    ->containProperty("courseScoresPerTerm"));
-    ASSERT_TRUE(conn->query("ALTER TABLE person DROP courseScoresPerTerm")->isSuccess());
-    result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
-                       "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
-                       "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
-                       "usedNames:[Aida]})"});
-    ASSERT_FALSE(catalog->getReadOnlyVersion()
-                     ->getTableSchema(personNodeTableID)
-                     ->containProperty("courseScoresPerTerm"));
+TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {
+    dropNodeTableProperty(TransactionTestType::NORMAL_EXECUTION);
 }
 
-TEST_F(TinySnbDDLTest, DeleteRelTableColumnTest) {
-    ASSERT_TRUE(
-        catalog->getReadOnlyVersion()->getTableSchema(knowsRelTableID)->containProperty("date"));
-    ASSERT_TRUE(conn->query("ALTER TABLE knows DROP date")->isSuccess());
-    ASSERT_FALSE(
-        catalog->getReadOnlyVersion()->getTableSchema(knowsRelTableID)->containProperty("date"));
+TEST_F(TinySnbDDLTest, DropNodeTablePropertyRecovery) {
+    dropNodeTableProperty(TransactionTestType::RECOVERY);
+}
 
-    ASSERT_TRUE(catalog->getReadOnlyVersion()
-                    ->getTableSchema(knowsRelTableID)
-                    ->containProperty("comments"));
-    ASSERT_TRUE(conn->query("ALTER TABLE knows DROP comments")->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()
-                     ->getTableSchema(knowsRelTableID)
-                     ->containProperty("comments"));
+TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
+    dropRelTableProperty(TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
+    dropRelTableProperty(TransactionTestType::RECOVERY);
 }

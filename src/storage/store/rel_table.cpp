@@ -363,6 +363,26 @@ unique_ptr<ListsUpdateIteratorsForDirection> RelTable::getListsUpdateIteratorsFo
                bwdRelTableData->getListsUpdateIteratorsForDirection(boundNodeTableID);
 }
 
+void DirectedRelTableData::removeProperty(property_id_t propertyID) {
+    for (auto& [_, propertyColumnsPerBoundTable] : propertyColumns) {
+        for (auto& [propertyID_, propertyColumn] : propertyColumnsPerBoundTable) {
+            if (propertyID_ == propertyID) {
+                propertyColumnsPerBoundTable.erase(propertyID_);
+                break;
+            }
+        }
+    }
+
+    for (auto& [_, propertyListsPerBoundTable] : propertyLists) {
+        for (auto& [propertyID_, propertyList] : propertyListsPerBoundTable) {
+            if (propertyID_ == propertyID) {
+                propertyListsPerBoundTable.erase(propertyID_);
+                break;
+            }
+        }
+    }
+}
+
 void RelTable::prepareCommitForDirection(RelDirection relDirection) {
     for (auto& [boundNodeTableID, listsUpdatesPerChunk] :
         listsUpdatesStore->getListsUpdatesPerBoundNodeTableOfDirection(relDirection)) {

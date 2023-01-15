@@ -78,10 +78,51 @@ StorageStructureID StorageStructureID::newAdjColumnID(
     return retVal;
 }
 
+string walRecordTypeToString(WALRecordType walRecordType) {
+    switch (walRecordType) {
+    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
+        return "PAGE_UPDATE_OR_INSERT_RECORD";
+    }
+    case WALRecordType::TABLE_STATISTICS_RECORD: {
+        return "TABLE_STATISTICS_RECORD";
+    }
+    case WALRecordType::COMMIT_RECORD: {
+        return "COMMIT_RECORD";
+    }
+    case WALRecordType::CATALOG_RECORD: {
+        return "CATALOG_RECORD";
+    }
+    case WALRecordType::NODE_TABLE_RECORD: {
+        return "NODE_TABLE_RECORD";
+    }
+    case WALRecordType::REL_TABLE_RECORD: {
+        return "REL_TABLE_RECORD";
+    }
+    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
+        return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
+    }
+    case WALRecordType::COPY_NODE_CSV_RECORD: {
+        return "COPY_NODE_CSV_RECORD";
+    }
+    case WALRecordType::COPY_REL_CSV_RECORD: {
+        return "COPY_REL_CSV_RECORD";
+    }
+    case WALRecordType::DROP_TABLE_RECORD: {
+        return "DROP_TABLE_RECORD";
+    }
+    case WALRecordType::DROP_PROPERTY_RECORD: {
+        return "DROP_PROPERTY_RECORD";
+    }
+    default: {
+        assert(false);
+    }
+    }
+}
+
 WALRecord WALRecord::newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
     uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
-    retVal.recordType = PAGE_UPDATE_OR_INSERT_RECORD;
+    retVal.recordType = WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD;
     retVal.pageInsertOrUpdateRecord = PageUpdateOrInsertRecord(
         storageStructureID_, pageIdxInOriginalFile, pageIdxInWAL, isInsert);
     return retVal;
@@ -101,34 +142,34 @@ WALRecord WALRecord::newPageInsertRecord(
 
 WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
     WALRecord retVal;
-    retVal.recordType = COMMIT_RECORD;
+    retVal.recordType = WALRecordType::COMMIT_RECORD;
     retVal.commitRecord = CommitRecord(transactionID);
     return retVal;
 }
 
 WALRecord WALRecord::newTableStatisticsRecord(bool isNodeTable) {
     WALRecord retVal;
-    retVal.recordType = TABLE_STATISTICS_RECORD;
+    retVal.recordType = WALRecordType::TABLE_STATISTICS_RECORD;
     retVal.tableStatisticsRecord = TableStatisticsRecord(isNodeTable);
     return retVal;
 }
 
 WALRecord WALRecord::newCatalogRecord() {
     WALRecord retVal;
-    retVal.recordType = CATALOG_RECORD;
+    retVal.recordType = WALRecordType::CATALOG_RECORD;
     return retVal;
 }
 
 WALRecord WALRecord::newNodeTableRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = NODE_TABLE_RECORD;
+    retVal.recordType = WALRecordType::NODE_TABLE_RECORD;
     retVal.nodeTableRecord = NodeTableRecord(tableID);
     return retVal;
 }
 
 WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = REL_TABLE_RECORD;
+    retVal.recordType = WALRecordType::REL_TABLE_RECORD;
     retVal.relTableRecord = RelTableRecord(tableID);
     return retVal;
 }
@@ -136,7 +177,7 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
 WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
     WALRecord retVal;
-    retVal.recordType = OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
+    retVal.recordType = WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
     retVal.diskOverflowFileNextBytePosRecord =
         DiskOverflowFileNextBytePosRecord(storageStructureID_, prevNextByteToWriteTo_);
     return retVal;
@@ -144,22 +185,29 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
 
 WALRecord WALRecord::newCopyNodeCSVRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = COPY_NODE_CSV_RECORD;
+    retVal.recordType = WALRecordType::COPY_NODE_CSV_RECORD;
     retVal.copyNodeCsvRecord = CopyNodeCSVRecord(tableID);
     return retVal;
 }
 
 WALRecord WALRecord::newCopyRelCSVRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = COPY_REL_CSV_RECORD;
+    retVal.recordType = WALRecordType::COPY_REL_CSV_RECORD;
     retVal.copyRelCsvRecord = CopyRelCSVRecord(tableID);
     return retVal;
 }
 
-WALRecord WALRecord::newDropTableRecord(bool isNodeTable, table_id_t tableID) {
+WALRecord WALRecord::newDropTableRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = DROP_TABLE_RECORD;
-    retVal.dropTableRecord = DropTableRecord(isNodeTable, tableID);
+    retVal.recordType = WALRecordType::DROP_TABLE_RECORD;
+    retVal.dropTableRecord = DropTableRecord(tableID);
+    return retVal;
+}
+
+WALRecord WALRecord::newDropPropertyRecord(table_id_t tableID, property_id_t propertyID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::DROP_PROPERTY_RECORD;
+    retVal.dropPropertyRecord = DropPropertyRecord(tableID, propertyID);
     return retVal;
 }
 

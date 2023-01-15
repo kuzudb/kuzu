@@ -49,7 +49,7 @@ private:
     vector<PropertyNameDataType> bindPropertyNameDataTypes(
         vector<pair<string, string>> propertyNameDataTypes);
     uint32_t bindPrimaryKey(string pkColName, vector<pair<string, string>> propertyNameDataTypes);
-    property_id_t bindPropertyName(TableSchema* tableSchema, string propertyName);
+    property_id_t bindPropertyName(TableSchema* tableSchema, const string& propertyName);
 
     /*** bind copy csv ***/
     unique_ptr<BoundStatement> bindCopyCSV(const Statement& statement);

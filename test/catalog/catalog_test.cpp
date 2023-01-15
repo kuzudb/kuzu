@@ -73,7 +73,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     // properties
     ASSERT_EQ(0 /* pkPropertyIdx */,
         ((NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
-            ->primaryKeyPropertyIdx);
+            ->primaryKeyPropertyID);
 
     ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeProperty(PERSON_TABLE_ID, "age").propertyID, 5);
     ASSERT_EQ(
@@ -140,7 +140,7 @@ TEST_F(CatalogTest, SaveAndReadTest) {
      * properties */
     ASSERT_EQ(0 /* pkPropertyIdx */,
         ((NodeTableSchema*)newCatalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
-            ->primaryKeyPropertyIdx);
+            ->primaryKeyPropertyID);
     // Test getting table id from string
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("person"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));

@@ -397,14 +397,20 @@ TEST_F(BinderErrorTest, ReturnInternalType) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, DeleteColumnFromNonExistTable) {
+TEST_F(BinderErrorTest, DropColumnFromNonExistedTable) {
     string expectedException = "Binder exception: Node/Rel person1 does not exist.";
     auto input = "alter table person1 drop k";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, DeleteNonExistColumn) {
+TEST_F(BinderErrorTest, DropNonExistedColumn) {
     string expectedException = "Binder exception: person table doesn't have property: random.";
     auto input = "alter table person drop random";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, DropPrimaryKeyColumn) {
+    string expectedException = "Binder exception: Cannot drop primary key of a node table.";
+    auto input = "alter table person drop ID";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
