@@ -58,9 +58,9 @@ public:
     // NOTICE: appendString should not be called mixed with copyString/copyList. They have
     // in-compatible locking mechanisms.
 
-    // This function appends a string if the length of the string
-    // is larger than SHORT_STR_LENGTH, otherwise, construct the ku_string for the rawString and
-    // return it. Multiple threads coordinate by taking an exclusive lock each time it needs to copy
+    // This function appends a string if the length of the string is larger than SHORT_STR_LENGTH,
+    // otherwise, construct the ku_string for the rawString and return it.
+    // Multiple threads are coordinate by taking an exclusive lock each time it needs to copy
     // overflow values to the file and updating nextPageIdxToAppend/nextOffsetInPageToAppend.
     ku_string_t appendString(const char* rawString);
     // These two functions copies a string/list value to the file according to the cursor. Multiple
@@ -79,19 +79,19 @@ public:
     string readString(ku_string_t* strInInMemOvfFile);
 
 private:
-    uint32_t addANewOverflowPage();
+    page_idx_t addANewOverflowPage();
 
-    void copyFixedSizedValuesToPages(
+    void copyFixedSizedValuesInList(
         const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
     template<DataTypeID DT>
-    void copyVarSizedValuesToPages(ku_list_t& resultKUList, const Literal& listVal,
+    void copyVarSizedValuesInList(ku_list_t& resultKUList, const Literal& listVal,
         PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
 
 private:
     // These two fields (currentPageIdxToAppend, currentOffsetInPageToAppend) are used when
     // appendString to the file.
     page_idx_t nextPageIdxToAppend;
-    uint32_t nextOffsetInPageToAppend;
+    page_offset_t nextOffsetInPageToAppend;
     std::shared_mutex lock;
 };
 
