@@ -10,7 +10,6 @@ class CreateClause : public UpdatingClause {
 public:
     CreateClause(vector<unique_ptr<PatternElement>> patternElements)
         : UpdatingClause{ClauseType::CREATE}, patternElements{std::move(patternElements)} {};
-    ~CreateClause() override = default;
 
     inline const vector<unique_ptr<PatternElement>>& getPatternElements() const {
         return patternElements;

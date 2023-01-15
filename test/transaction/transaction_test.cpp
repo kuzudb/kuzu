@@ -21,7 +21,7 @@ public:
         readTrx = getTransactionManager(*database)->beginReadOnlyTransaction();
 
         table_id_t personTableID =
-            getCatalog(*database)->getReadOnlyVersion()->getNodeTableIDFromName("person");
+            getCatalog(*database)->getReadOnlyVersion()->getTableID("person");
         uint32_t agePropertyID = getCatalog(*database)
                                      ->getReadOnlyVersion()
                                      ->getNodeProperty(personTableID, "age")

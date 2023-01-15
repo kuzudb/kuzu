@@ -31,7 +31,7 @@ public:
 TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "workedHours");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
     ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
@@ -47,7 +47,7 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
 TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "usedNames");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
     ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
@@ -63,9 +63,8 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
 TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("studyAt");
-    auto nodeTablesForAdjColumnAndProperties =
-        catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
+    auto nodeTablesForAdjColumnAndProperties = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getRelProperty(tableID, "places");
     auto col = graph->getRelsStore().getRelPropertyColumn(
         RelDirection::FWD, nodeTablesForAdjColumnAndProperties, tableID, property.propertyID);

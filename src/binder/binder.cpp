@@ -20,6 +20,9 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::DROP_PROPERTY: {
         return bindDropProperty(statement);
     }
+    case StatementType::ADD_PROPERTY: {
+        return bindAddProperty(statement);
+    }
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);
     }
@@ -38,14 +41,14 @@ table_id_t Binder::bindRelTableID(const string& tableName) const {
     if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Rel table " + tableName + " does not exist.");
     }
-    return catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
+    return catalog.getReadOnlyVersion()->getTableID(tableName);
 }
 
 table_id_t Binder::bindNodeTableID(const string& tableName) const {
     if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
         throw BinderException("Node table " + tableName + " does not exist.");
     }
-    return catalog.getReadOnlyVersion()->getNodeTableIDFromName(tableName);
+    return catalog.getReadOnlyVersion()->getTableID(tableName);
 }
 
 shared_ptr<Expression> Binder::createVariable(const string& name, const DataType& dataType) {

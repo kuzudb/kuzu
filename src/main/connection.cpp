@@ -111,7 +111,7 @@ string Connection::getNodePropertyNames(const string& tableName) {
         throw Exception("Cannot find node table " + tableName);
     }
     string result = tableName + " properties: \n";
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName(tableName);
+    auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
     auto primaryKeyPropertyID =
         catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
     for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
@@ -127,7 +127,7 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     if (!catalog->getReadOnlyVersion()->containRelTable(relTableName)) {
         throw Exception("Cannot find rel table " + relTableName);
     }
-    auto relTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName(relTableName);
+    auto relTableID = catalog->getReadOnlyVersion()->getTableID(relTableName);
     string result = relTableName + " src nodes: \n";
     for (auto& nodeTableID :
         catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, FWD)) {

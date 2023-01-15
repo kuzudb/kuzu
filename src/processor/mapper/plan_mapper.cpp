@@ -124,6 +124,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::DROP_TABLE: {
         physicalOperator = mapLogicalDropTableToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::ADD_PROPERTY: {
+        physicalOperator = mapLogicalAddPropertyToPhysical(logicalOperator.get());
+    } break;
     default:
         assert(false);
     }

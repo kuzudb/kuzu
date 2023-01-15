@@ -9,6 +9,7 @@ namespace planner {
 
 enum class LogicalOperatorType : uint8_t {
     ACCUMULATE,
+    ADD_PROPERTY,
     AGGREGATE,
     COPY_CSV,
     CREATE_NODE,

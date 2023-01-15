@@ -1,10 +1,12 @@
 #include "planner/planner.h"
 
 #include "binder/copy/bound_copy.h"
+#include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
@@ -36,6 +38,9 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::COPY_CSV: {
         return planCopy(statement);
     }
+    case StatementType::ADD_PROPERTY: {
+        return planAddProperty(statement);
+    }
     default:
         assert(false);
     }
@@ -44,8 +49,8 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
 vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
-    // We enumerate all plans for our testing framework. This API should only be used for QUERY but
-    // not DDL or COPY_CSV.
+    // We enumerate all plans for our testing framework. This API should only be used for QUERY
+    // but not DDL or COPY_CSV.
     assert(statement.getStatementType() == StatementType::QUERY);
     return QueryPlanner(catalog, nodesStatistics, relsStatistics).getAllPlans(statement);
 }
@@ -102,6 +107,18 @@ unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
         copyCSVClause.getTableID(), copyCSVClause.getTableName());
     copyCSV->computeSchema();
     plan->setLastOperator(std::move(copyCSV));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& statement) {
+    auto& addPropertyClause = (BoundAddProperty&)statement;
+    auto plan = make_unique<LogicalPlan>();
+    auto addProperty = make_shared<LogicalAddProperty>(addPropertyClause.getTableID(),
+        addPropertyClause.getPropertyName(), addPropertyClause.getDataType(),
+        addPropertyClause.getDefaultValue(), addPropertyClause.getTableName(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
+    addProperty->computeSchema();
+    plan->setLastOperator(std::move(addProperty));
     return plan;
 }
 

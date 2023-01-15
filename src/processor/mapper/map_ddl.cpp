@@ -1,3 +1,4 @@
+#include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
@@ -6,6 +7,8 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
 #include "processor/operator/copy/copy_rel.h"
+#include "processor/operator/ddl/add_node_property.h"
+#include "processor/operator/ddl/add_rel_property.h"
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rel_table.h"
 #include "processor/operator/ddl/drop_property.h"
@@ -70,6 +73,24 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
     return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
         dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
         dropProperty->getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAddPropertyToPhysical(
+    LogicalOperator* logicalOperator) {
+    auto addProperty = (LogicalAddProperty*)logicalOperator;
+    auto expressionEvaluator =
+        expressionMapper.mapExpression(addProperty->getDefaultValue(), *addProperty->getSchema());
+    if (catalog->getReadOnlyVersion()->containNodeTable(addProperty->getTableID())) {
+        return make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
+            addProperty->getPropertyName(), addProperty->getDataType(),
+            std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
+            getOperatorID(), addProperty->getExpressionsForPrinting());
+    } else {
+        return make_unique<AddRelProperty>(catalog, addProperty->getTableID(),
+            addProperty->getPropertyName(), addProperty->getDataType(),
+            std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
+            getOperatorID(), addProperty->getExpressionsForPrinting());
+    }
 }
 
 } // namespace processor

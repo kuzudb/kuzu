@@ -15,9 +15,11 @@ namespace storage {
 
 using namespace kuzu::common;
 
+class StorageManager;
+
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, string fName)
-        : storageStructureID{storageStructureID}, fName{move(fName)} {};
+        : storageStructureID{storageStructureID}, fName{std::move(fName)} {};
     StorageStructureID storageStructureID;
     string fName;
 };
@@ -270,8 +272,24 @@ public:
 
     static string getListFName(const string& directory, StorageStructureID storageStructureID);
 
+    static void createFileForNodePropertyWithDefaultVal(table_id_t tableID, const string& directory,
+        const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
+        uint64_t numNodes);
+
+    static void createFileForRelPropertyWithDefaultVal(catalog::RelTableSchema* tableSchema,
+        const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
+        StorageManager& storageManager);
+
 private:
     static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix);
+
+    static void createFileForRelColumnPropertyWithDefaultVal(table_id_t relTableID,
+        table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
+        uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager);
+
+    static void createFileForRelListsPropertyWithDefaultVal(table_id_t relTableID,
+        table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
+        uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager);
 };
 
 } // namespace storage

@@ -263,7 +263,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
                 // have likely changed they need to reconstruct their page locks).
                 storageManager->getNodesStore().getNodeTable(tableID)->initializeData(
-                    nodeTableSchema, *bufferManager, wal);
+                    nodeTableSchema);
             } else {
                 auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
                 // See comments above.
@@ -285,7 +285,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
                 // See comments for COPY_NODE_RECORD.
                 storageManager->getRelsStore().getRelTable(tableID)->initializeData(
-                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID), *bufferManager);
+                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
                     .setAdjListsAndColumns(&storageManager->getRelsStore());

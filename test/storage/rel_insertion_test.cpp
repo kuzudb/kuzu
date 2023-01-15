@@ -12,12 +12,12 @@ public:
         DBTest::SetUp();
         // Set tableIDs
         auto catalogContents = getCatalog(*database)->getReadOnlyVersion();
-        ANIMAL_TABLE_ID = catalogContents->getNodeTableIDFromName("animal");
-        PERSON_TABLE_ID = catalogContents->getNodeTableIDFromName("person");
-        KNOWS_TABLE_ID = catalogContents->getRelTableIDFromName("knows");
-        PLAYS_TABLE_ID = catalogContents->getRelTableIDFromName("plays");
-        HAS_OWNER_TABLE_ID = catalogContents->getRelTableIDFromName("hasOwner");
-        TEACHES_TABLE_ID = catalogContents->getRelTableIDFromName("teaches");
+        ANIMAL_TABLE_ID = catalogContents->getTableID("animal");
+        PERSON_TABLE_ID = catalogContents->getTableID("person");
+        KNOWS_TABLE_ID = catalogContents->getTableID("knows");
+        PLAYS_TABLE_ID = catalogContents->getTableID("plays");
+        HAS_OWNER_TABLE_ID = catalogContents->getTableID("hasOwner");
+        TEACHES_TABLE_ID = catalogContents->getTableID("teaches");
 
         // Set vectors
         relIDPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());

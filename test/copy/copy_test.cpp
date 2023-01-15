@@ -73,8 +73,8 @@ struct ATableAKnowsLists {
 KnowsTablePTablePKnowsLists getKnowsTablePTablePKnowsLists(
     const Catalog& catalog, StorageManager* graph) {
     KnowsTablePTablePKnowsLists retVal;
-    retVal.pNodeTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("person");
-    retVal.knowsRelTableID = catalog.getReadOnlyVersion()->getRelTableIDFromName("knows");
+    retVal.pNodeTableID = catalog.getReadOnlyVersion()->getTableID("person");
+    retVal.knowsRelTableID = catalog.getReadOnlyVersion()->getTableID("knows");
     retVal.fwdPKnowsLists =
         graph->getRelsStore().getAdjLists(FWD, retVal.pNodeTableID, retVal.knowsRelTableID);
     retVal.bwdPKnowsLists =
@@ -84,8 +84,8 @@ KnowsTablePTablePKnowsLists getKnowsTablePTablePKnowsLists(
 
 ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* storageManager) {
     ATableAKnowsLists retVal;
-    retVal.aNodeTableID = catalog.getReadOnlyVersion()->getNodeTableIDFromName("animal");
-    auto knowsRelTableID = catalog.getReadOnlyVersion()->getRelTableIDFromName("knows");
+    retVal.aNodeTableID = catalog.getReadOnlyVersion()->getTableID("animal");
+    auto knowsRelTableID = catalog.getReadOnlyVersion()->getTableID("knows");
     retVal.fwdAKnowsLists =
         storageManager->getRelsStore().getAdjLists(FWD, retVal.aNodeTableID, knowsRelTableID);
     retVal.bwdAKnowsLists =
@@ -98,7 +98,7 @@ ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* s
 TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
@@ -229,7 +229,7 @@ TEST_F(CopyReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
 TEST_F(CopySpecialCharTest, CopySpecialChars) {
     auto storageManager = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
@@ -242,7 +242,7 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
     EXPECT_EQ("this is a #plain# string", col->readValue(5).strVal);
     EXPECT_EQ("this is another #plain# string with \\", col->readValue(6).strVal);
 
-    tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
+    tableID = catalog->getReadOnlyVersion()->getTableID("organisation");
     propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
@@ -253,7 +253,7 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
 TEST_F(CopyLongStringTest, LongStringError) {
     auto storageManager = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "fName");
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);

@@ -380,8 +380,14 @@ void Catalog::dropTableSchema(table_id_t tableID) {
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->dropProperty(tableID, propertyID);
+    catalogContentForWriteTrx->getTableSchema(tableID)->dropProperty(propertyID);
     wal->logDropPropertyRecord(tableID, propertyID);
+}
+
+void Catalog::addProperty(table_id_t tableID, string propertyName, DataType dataType) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
+        std::move(propertyName), std::move(dataType));
 }
 
 } // namespace catalog

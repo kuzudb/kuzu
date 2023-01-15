@@ -1,8 +1,10 @@
 #include "binder/binder.h"
+#include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
@@ -49,8 +51,7 @@ unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto isNodeTable = catalogContent->containNodeTable(tableName);
-    auto tableID = isNodeTable ? catalogContent->getNodeTableIDFromName(tableName) :
-                                 catalogContent->getRelTableIDFromName(tableName);
+    auto tableID = catalogContent->getTableID(tableName);
     if (isNodeTable) {
         validateNodeTableHasNoEdge(catalog, tableID);
     }
@@ -63,8 +64,7 @@ unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) 
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto isNodeTable = catalogContent->containNodeTable(tableName);
-    auto tableID = isNodeTable ? catalogContent->getNodeTableIDFromName(tableName) :
-                                 catalogContent->getRelTableIDFromName(tableName);
+    auto tableID = catalogContent->getTableID(tableName);
     auto propertyID =
         bindPropertyName(catalogContent->getTableSchema(tableID), dropProperty.getPropertyName());
     if (isNodeTable &&
@@ -73,6 +73,22 @@ unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) 
         throw BinderException("Cannot drop primary key of a node table.");
     }
     return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
+}
+
+unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
+    auto& addProperty = (AddProperty&)statement;
+    auto tableName = addProperty.getTableName();
+    validateTableExist(catalog, tableName);
+    auto catalogContent = catalog.getReadOnlyVersion();
+    auto tableID = catalogContent->getTableID(tableName);
+    auto dataType = Types::dataTypeFromString(addProperty.getDataType());
+    if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
+        throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
+    }
+    return make_unique<BoundAddProperty>(tableID, addProperty.getPropertyName(), dataType,
+        ExpressionBinder::implicitCastIfNecessary(
+            expressionBinder.bindExpression(*addProperty.getDefaultValue()), dataType),
+        tableName);
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(

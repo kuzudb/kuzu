@@ -72,9 +72,11 @@ public:
     // Copy overflow data at srcOverflow into dstKUString.
     void copyStringOverflow(
         PageByteCursor& overflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString);
-    void copyListOverflow(InMemOverflowFile* srcInMemOverflowFile,
+    void copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
         ku_list_t* dstKUList, DataType* listChildDataType);
+    void copyListOverflowToFile(
+        PageByteCursor& pageByteCursor, ku_list_t* srcKUList, DataType* childDataType);
 
     string readString(ku_string_t* strInInMemOvfFile);
 
@@ -86,6 +88,9 @@ private:
     template<DataTypeID DT>
     void copyVarSizedValuesInList(ku_list_t& resultKUList, const Value& listVal,
         PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
+
+    void resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor, DataType* elementType,
+        uint64_t numElementsToReset, uint8_t* elementsToReset);
 
 private:
     // These two fields (currentPageIdxToAppend, currentOffsetInPageToAppend) are used when

@@ -48,6 +48,27 @@ string TableSchema::getPropertyName(property_id_t propertyID) const {
         "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
 }
 
+property_id_t TableSchema::getPropertyID(string propertyName) const {
+    for (auto& property : properties) {
+        if (property.name == propertyName) {
+            return property.propertyID;
+        }
+    }
+    throw RuntimeException(
+        StringUtils::string_format("Table: %s doesn't have a property with propertyName=%s.",
+            tableName.c_str(), propertyName.c_str()));
+}
+
+Property TableSchema::getProperty(property_id_t propertyID) const {
+    for (auto& property : properties) {
+        if (property.propertyID == propertyID) {
+            return property;
+        }
+    }
+    throw RuntimeException(StringUtils::string_format(
+        "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
+}
+
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
     unordered_set<table_id_t> allNodeTableIDs;
     for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {

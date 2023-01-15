@@ -57,8 +57,7 @@ AdjLists* DirectedRelTableData::getAdjLists(table_id_t boundNodeTableID) {
     return nullptr;
 }
 
-void DirectedRelTableData::initializeData(
-    RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal) {
+void DirectedRelTableData::initializeData(RelTableSchema* tableSchema, WAL* wal) {
     for (auto& [srcTableID, dstTableID] : tableSchema->getSrcDstTableIDs()) {
         auto boundNodeTableID = direction == FWD ? srcTableID : dstTableID;
         NodeIDCompressionScheme nodeIDCompressionScheme(
@@ -234,16 +233,16 @@ RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bu
     : tableID{tableID}, wal{wal} {
     auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     listsUpdatesStore = make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
-    fwdRelTableData =
-        make_unique<DirectedRelTableData>(tableID, FWD, listsUpdatesStore.get(), isInMemoryMode);
-    bwdRelTableData =
-        make_unique<DirectedRelTableData>(tableID, BWD, listsUpdatesStore.get(), isInMemoryMode);
-    initializeData(tableSchema, bufferManager);
+    fwdRelTableData = make_unique<DirectedRelTableData>(
+        tableID, FWD, listsUpdatesStore.get(), isInMemoryMode, bufferManager);
+    bwdRelTableData = make_unique<DirectedRelTableData>(
+        tableID, BWD, listsUpdatesStore.get(), isInMemoryMode, bufferManager);
+    initializeData(tableSchema);
 }
 
-void RelTable::initializeData(RelTableSchema* tableSchema, BufferManager& bufferManager) {
-    fwdRelTableData->initializeData(tableSchema, bufferManager, wal);
-    bwdRelTableData->initializeData(tableSchema, bufferManager, wal);
+void RelTable::initializeData(RelTableSchema* tableSchema) {
+    fwdRelTableData->initializeData(tableSchema, wal);
+    bwdRelTableData->initializeData(tableSchema, wal);
 }
 
 vector<AdjLists*> RelTable::getAdjListsForNodeTable(table_id_t boundNodeTableID) {
@@ -341,6 +340,11 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
+void RelTable::addProperty(Property property, table_id_t tableID) {
+    fwdRelTableData->addProperty(property, tableID, wal);
+    bwdRelTableData->addProperty(property, tableID, wal);
+}
+
 void RelTable::appendInMemListToLargeListOP(
     ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList) {
     listsUpdateIterator->appendToLargeList(nodeOffset, inMemList);
@@ -384,6 +388,25 @@ void DirectedRelTableData::removeProperty(property_id_t propertyID) {
                 break;
             }
         }
+    }
+}
+
+void DirectedRelTableData::addProperty(Property& property, table_id_t tableID, WAL* wal) {
+    for (auto& [boundTableID, propertyColumnsPerBoundTable] : propertyColumns) {
+        propertyColumnsPerBoundTable.emplace(property.propertyID,
+            ColumnFactory::getColumn(
+                StorageUtils::getRelPropertyColumnStructureIDAndFName(
+                    wal->getDirectory(), tableID, boundTableID, direction, property.propertyID),
+                property.dataType, bufferManager, isInMemoryMode, wal));
+    }
+
+    for (auto& [boundTableID, propertyListsPerBoundTable] : propertyLists) {
+        propertyListsPerBoundTable.emplace(property.propertyID,
+            ListsFactory::getLists(
+                StorageUtils::getRelPropertyListsStructureIDAndFName(
+                    wal->getDirectory(), tableID, boundTableID, direction, property),
+                property.dataType, adjLists[boundTableID]->getHeaders(), bufferManager,
+                isInMemoryMode, wal, listsUpdatesStore));
     }
 }
 
