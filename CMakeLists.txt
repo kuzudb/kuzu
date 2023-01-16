@@ -32,6 +32,9 @@ set(INSTALL_CMAKE_DIR
         ${DEF_INSTALL_CMAKE_DIR}
         CACHE PATH "Installation directory for CMake files")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-common -fpermissive")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer -fno-common -fpermissive")
+
 option(ENABLE_ADDRESS_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
