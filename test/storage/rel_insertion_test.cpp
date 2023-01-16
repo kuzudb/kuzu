@@ -1,4 +1,4 @@
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 
 using namespace kuzu::testing;
 

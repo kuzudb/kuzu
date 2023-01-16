@@ -1,10 +1,9 @@
 #include <string>
 
 #include "common/types/types_include.h"
-#include "include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
 using namespace kuzu::common;
-using namespace std;
 
 TEST(IntervalTests, FromCString) {
     interval_t result;

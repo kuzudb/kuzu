@@ -12,6 +12,7 @@ target_link_libraries(GTest::GTest INTERFACE gmock_main)
 
 enable_testing()
 add_subdirectory(test_helper)
+add_subdirectory(graph_test)
 add_subdirectory(binder)
 add_subdirectory(catalog)
 add_subdirectory(common)

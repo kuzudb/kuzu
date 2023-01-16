@@ -58,7 +58,7 @@ jobs:
       - run: pip3 install --user -r tools/python_api/requirements_dev.txt
 
       - name: build
-        run: make release NUM_THREADS=30
+        run: make benchmark NUM_THREADS=30
 
       - name: benchmark
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 1

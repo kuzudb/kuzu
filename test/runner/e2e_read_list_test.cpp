@@ -1,7 +1,6 @@
 #include <filesystem>
 
-#include "gtest/gtest.h"
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;

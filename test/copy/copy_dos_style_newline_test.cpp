@@ -1,6 +1,5 @@
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 
-using namespace std;
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
