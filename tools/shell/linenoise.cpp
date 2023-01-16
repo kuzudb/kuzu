@@ -103,6 +103,8 @@
  *
  */
 
+#include "linenoise.h"
+
 #include <ctype.h>
 #include <errno.h>
 #include <poll.h>
@@ -117,7 +119,6 @@
 #include <cstddef>
 #include <string>
 
-#include "linenoise.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 #include <sys/ioctl.h>

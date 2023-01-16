@@ -1,6 +1,5 @@
-#include "test_helper/test_helper.h"
+#include "graph_test/graph_test.h"
 
-using ::testing::Test;
 using namespace kuzu::testing;
 
 class BinderTest : public DBTest {

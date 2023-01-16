@@ -28,7 +28,7 @@ void Benchmark::loadBenchmark(const string& benchmarkPath) {
     encodedJoin = queryConfig->encodedJoin;
 }
 
-unique_ptr<QueryResult> Benchmark::run() {
+unique_ptr<QueryResult> Benchmark::run() const {
     return conn->query(query, encodedJoin);
 }
 

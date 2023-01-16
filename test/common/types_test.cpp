@@ -5,7 +5,6 @@
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;
-using namespace std;
 
 TEST(TypesTests, StringToINT64Conversion) {
     EXPECT_EQ(2147483648, TypeUtils::TypeUtils::convertToInt64("2147483648"));

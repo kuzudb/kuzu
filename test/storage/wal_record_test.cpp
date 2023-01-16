@@ -1,5 +1,5 @@
 #include "common/exception.h"
-#include "include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #include "storage/wal/wal_record.h"
 
 using namespace kuzu::common;

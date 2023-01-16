@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;
-using namespace std;
 
 TEST(DateTests, IsLeapYearTest) {
     EXPECT_TRUE(Date::IsLeapYear(2000));
