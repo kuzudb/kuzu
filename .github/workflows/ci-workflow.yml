@@ -23,6 +23,17 @@ jobs:
       - name: test
         run: CC=gcc CXX=g++ make test
 
+  gcc-make-debug:
+    name: gcc make debug
+    needs: [ clang-formatting-check ]
+    runs-on: kuzu-self-hosted-testing
+    steps:
+      - uses: actions/checkout@v2
+      - run: pip install -r tools/python_api/requirements_dev.txt
+
+      - name: debug
+        run: CC=gcc CXX=g++ make debug NUM_THREADS=32 ASAN=1
+
   clang-build-test:
     name: clang build & test
     needs: [clang-formatting-check]
