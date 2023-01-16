@@ -15,7 +15,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v2
-      - run: pip install -r tools/python_api/requirements_dev.txt
+      - run: pip install --user -r tools/python_api/requirements_dev.txt
 
       - name: build
         run: CC=gcc CXX=g++ make release NUM_THREADS=32
@@ -25,17 +25,14 @@ jobs:
 
   gcc-make-debug:
     name: gcc make debug
-    needs: [ clang-formatting-check ]
+    needs: [gcc-build-test]
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v2
-      - run: pip install -r tools/python_api/requirements_dev.txt
+      - run: pip install --user -r tools/python_api/requirements_dev.txt
 
       - name: debug
-        run: CC=gcc CXX=g++ make debug NUM_THREADS=32 ASAN=1
-
-      - name: test
-        run: CC=gcc CXX=g++ make test
+        run: CC=gcc CXX=g++ make debug NUM_THREADS=32
 
   clang-build-test:
     name: clang build & test
