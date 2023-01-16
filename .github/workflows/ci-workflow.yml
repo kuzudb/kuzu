@@ -34,6 +34,9 @@ jobs:
       - name: debug
         run: CC=gcc CXX=g++ make debug NUM_THREADS=32 ASAN=1
 
+      - name: test
+        run: CC=gcc CXX=g++ make test
+
   clang-build-test:
     name: clang build & test
     needs: [clang-formatting-check]
