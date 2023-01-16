@@ -21,7 +21,7 @@ jobs:
         run: CC=gcc CXX=g++ make release NUM_THREADS=32
 
       - name: test
-        run: CC=gcc CXX=g++ make test
+        run: CC=gcc CXX=g++ make test NUM_THREADS=32
 
   clang-build-test:
     name: clang build & test
@@ -35,7 +35,7 @@ jobs:
         run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
 
       - name: test
-        run: CC=clang-14 CXX=clang++-14 make test
+        run: CC=clang-14 CXX=clang++-14 make test NUM_THREADS=32
 
   clang-formatting-check:
     name: clang-formatting-check
