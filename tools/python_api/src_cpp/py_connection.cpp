@@ -19,7 +19,7 @@ PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     }
 }
 
-unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list params) {
+unique_ptr<PyQueryResult> PyConnection::execute(const string& query, const py::list& params) {
     auto preparedStatement = conn->prepare(query);
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
@@ -37,7 +37,7 @@ void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
 }
 
-unordered_map<string, shared_ptr<Value>> PyConnection::transformPythonParameters(py::list params) {
+unordered_map<string, shared_ptr<Value>> PyConnection::transformPythonParameters(const py::list& params) {
     unordered_map<string, shared_ptr<Value>> result;
     for (auto param : params) {
         if (!py::isinstance<py::tuple>(param)) {
@@ -49,7 +49,7 @@ unordered_map<string, shared_ptr<Value>> PyConnection::transformPythonParameters
     return result;
 }
 
-pair<string, shared_ptr<Value>> PyConnection::transformPythonParameter(py::tuple param) {
+pair<string, shared_ptr<Value>> PyConnection::transformPythonParameter(const py::tuple& param) {
     if (py::len(param) != 2) {
         throw runtime_error("Each parameter must be in the form of <name, val>");
     }

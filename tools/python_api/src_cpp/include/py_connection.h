@@ -12,14 +12,14 @@ public:
 
     ~PyConnection() = default;
 
-    unique_ptr<PyQueryResult> execute(const string& query, py::list params);
+    unique_ptr<PyQueryResult> execute(const string& query, const py::list& params);
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
 private:
-    unordered_map<string, shared_ptr<Value>> transformPythonParameters(py::list params);
+    unordered_map<string, shared_ptr<Value>> transformPythonParameters(const py::list& params);
 
-    pair<string, shared_ptr<Value>> transformPythonParameter(py::tuple param);
+    pair<string, shared_ptr<Value>> transformPythonParameter(const py::tuple& param);
 
     Value transformPythonValue(py::handle val);
 

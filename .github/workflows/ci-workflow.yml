@@ -40,7 +40,7 @@ jobs:
           LD_PRELOAD: '/usr/lib/x86_64-linux-gnu/libasan.so.6'
           ASAN_OPTIONS: 'detect_leaks=1:log_path=/tmp/asan.log'
         working-directory: ./build/debug/test
-        continue-on-error: true
+        continue-on-error: false
 
       - name: cat asan log
         run: cat /tmp/asan.log* || true
