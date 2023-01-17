@@ -7,8 +7,8 @@ namespace evaluator {
 
 class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
 public:
-    LiteralExpressionEvaluator(shared_ptr<Literal> literal)
-        : BaseExpressionEvaluator{true /* isResultFlat */}, literal{std::move(literal)} {}
+    LiteralExpressionEvaluator(shared_ptr<Value> value)
+        : BaseExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
     ~LiteralExpressionEvaluator() = default;
 
@@ -17,14 +17,14 @@ public:
     bool select(SelectionVector& selVector) override;
 
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
-        return make_unique<LiteralExpressionEvaluator>(literal);
+        return make_unique<LiteralExpressionEvaluator>(value);
     }
 
 protected:
     void resolveResultVector(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
 private:
-    shared_ptr<Literal> literal;
+    shared_ptr<Value> value;
 };
 
 } // namespace evaluator

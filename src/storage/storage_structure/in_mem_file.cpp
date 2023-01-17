@@ -79,17 +79,17 @@ ku_string_t InMemOverflowFile::copyString(const char* rawString, PageByteCursor&
 }
 
 void InMemOverflowFile::copyFixedSizedValuesInList(
-    const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
+    const Value& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     shared_lock lck(lock);
-    for (auto& literal : listVal.listVal) {
+    for (auto& value : listVal.getListValReference()) {
         pages[overflowCursor.pageIdx]->write(overflowCursor.offsetInPage,
-            overflowCursor.offsetInPage, (uint8_t*)&literal.val, numBytesOfListElement);
+            overflowCursor.offsetInPage, (uint8_t*)&value->val, numBytesOfListElement);
         overflowCursor.offsetInPage += numBytesOfListElement;
     }
 }
 
 template<DataTypeID DT>
-void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const Literal& listVal,
+void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const Value& listVal,
     PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     auto overflowPageIdx = overflowCursor.pageIdx;
     auto overflowPageOffset = overflowCursor.offsetInPage;
@@ -98,8 +98,8 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
     if constexpr (DT == STRING) {
         vector<ku_string_t> kuStrings(listVal.listVal.size());
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
-            assert(listVal.listVal[i].dataType.typeID == STRING);
-            kuStrings[i] = copyString(listVal.listVal[i].strVal.c_str(), overflowCursor);
+            assert(listVal.listVal[i]->dataType.typeID == STRING);
+            kuStrings[i] = copyString(listVal.listVal[i]->strVal.c_str(), overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
@@ -111,8 +111,8 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
         assert(DT == LIST);
         vector<ku_list_t> kuLists(listVal.listVal.size());
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
-            assert(listVal.listVal[i].dataType.typeID == LIST);
-            kuLists[i] = copyList(listVal.listVal[i], overflowCursor);
+            assert(listVal.listVal[i]->dataType.typeID == LIST);
+            kuLists[i] = copyList(*listVal.listVal[i], overflowCursor);
         }
         shared_lock lck(lock);
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
@@ -123,11 +123,11 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
     }
 }
 
-ku_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor& overflowCursor) {
-    assert(listLiteral.dataType.typeID == LIST);
+ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
+    assert(listValue.dataType.typeID == LIST);
     ku_list_t resultKUList;
-    auto numBytesOfListElement = Types::getDataTypeSize(*listLiteral.dataType.childType);
-    resultKUList.size = listLiteral.listVal.size();
+    auto numBytesOfListElement = Types::getDataTypeSize(*listValue.dataType.childType);
+    resultKUList.size = listValue.listVal.size();
     // Allocate a new page if necessary.
     if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
             DEFAULT_PAGE_SIZE ||
@@ -137,22 +137,22 @@ ku_list_t InMemOverflowFile::copyList(const Literal& listLiteral, PageByteCursor
     }
     TypeUtils::encodeOverflowPtr(
         resultKUList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
-    switch (listLiteral.dataType.childType->typeID) {
+    switch (listValue.dataType.childType->typeID) {
     case INT64:
     case DOUBLE:
     case BOOL:
     case DATE:
     case TIMESTAMP:
     case INTERVAL: {
-        copyFixedSizedValuesInList(listLiteral, overflowCursor, numBytesOfListElement);
+        copyFixedSizedValuesInList(listValue, overflowCursor, numBytesOfListElement);
     } break;
     case STRING: {
         copyVarSizedValuesInList<STRING>(
-            resultKUList, listLiteral, overflowCursor, numBytesOfListElement);
+            resultKUList, listValue, overflowCursor, numBytesOfListElement);
     } break;
     case LIST: {
         copyVarSizedValuesInList<LIST>(
-            resultKUList, listLiteral, overflowCursor, numBytesOfListElement);
+            resultKUList, listValue, overflowCursor, numBytesOfListElement);
     } break;
     default: {
         throw CopyException("Unsupported data type inside LIST.");

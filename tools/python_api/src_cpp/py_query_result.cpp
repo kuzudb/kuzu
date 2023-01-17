@@ -57,31 +57,31 @@ void PyQueryResult::close() {
 }
 
 py::object PyQueryResult::convertValueToPyObject(const Value& value) {
-    if (value.isNullVal()) {
+    if (value.isNull()) {
         return py::none();
     }
     auto dataType = value.getDataType();
     switch (dataType.typeID) {
     case BOOL: {
-        return py::cast(value.getBooleanVal());
+        return py::cast(value.getValue<bool>());
     }
     case INT64: {
-        return py::cast(value.getInt64Val());
+        return py::cast(value.getValue<int64_t>());
     }
     case DOUBLE: {
-        return py::cast(value.getDoubleVal());
+        return py::cast(value.getValue<double>());
     }
     case STRING: {
-        return py::cast(value.getStringVal());
+        return py::cast(value.getValue<string>());
     }
     case DATE: {
-        auto dateVal = value.getDateVal();
+        auto dateVal = value.getValue<date_t>();
         int32_t year, month, day;
         Date::Convert(dateVal, year, month, day);
         return py::cast<py::object>(PyDate_FromDate(year, month, day));
     }
     case TIMESTAMP: {
-        auto timestampVal = value.getTimestampVal();
+        auto timestampVal = value.getValue<timestamp_t>();
         int32_t year, month, day, hour, min, sec, micros;
         date_t date;
         dtime_t time;
@@ -92,14 +92,14 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
     }
     case INTERVAL: {
-        auto intervalVal = value.getIntervalVal();
+        auto intervalVal = value.getValue<interval_t>();
         auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
         return py::cast<py::object>(py::module::import("datetime")
                                         .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
     case LIST: {
-        auto& listVal = value.getListVal();
+        auto& listVal = value.getListValReference();
         py::list list;
         for (auto i = 0u; i < listVal.size(); ++i) {
             list.append(convertValueToPyObject(*listVal[i]));

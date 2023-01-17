@@ -9,7 +9,7 @@ namespace planner {
 class LogicalExpressionsScan : public LogicalOperator {
 public:
     // LogicalExpressionsScan does not take input from child operator. So its input expressions must
-    // be evaluated statically i.e. must be literal.
+    // be evaluated statically i.e. must be value.
     explicit LogicalExpressionsScan(expression_vector expressions)
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
                                                                       std::move(expressions)} {}

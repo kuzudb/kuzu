@@ -64,7 +64,7 @@ public:
     }
     static int64_t getCount(Connection* connection, const string& queryPrefix) {
         auto result = connection->query(queryPrefix + " RETURN COUNT(*)");
-        return result->getNext()->getResultValue(0)->getInt64Val();
+        return result->getNext()->getResultValue(0)->getValue<int64_t>();
     }
     int64_t getNumNodes(Connection* connection) { return getCount(connection, "MATCH (:person)"); }
     void validateNodesExistOrNot(
@@ -501,7 +501,7 @@ static void validateInsertedRel(
     auto length = to_string(param);
     auto place = to_string(param);
     if (testNullAndLongString) {
-        length = ""; // null
+        length = "";
         place = CreateRelTrxTest::getLongStr(place);
     }
     auto groundTruth = length + "|" + place + "|[" + to_string(param) + "]";

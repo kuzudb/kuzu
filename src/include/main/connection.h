@@ -94,13 +94,13 @@ public:
     template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, pair<string, Args>... args) {
-        unordered_map<string, shared_ptr<Literal>> inputParameters;
+        unordered_map<string, shared_ptr<Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
     }
     // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
     // executeLock(...).
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Literal>>& inputParams);
+        unordered_map<string, shared_ptr<Value>>& inputParams);
 
     string getNodeTableNames();
     string getRelTableNames();
@@ -168,16 +168,16 @@ protected:
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Literal>>& params, pair<string, T> arg,
+        unordered_map<string, shared_ptr<Value>>& params, pair<string, T> arg,
         pair<string, Args>... args) {
         auto name = arg.first;
-        auto val = make_shared<Literal>(Literal::createLiteral<T>(arg.second));
+        auto val = make_shared<Value>(Value::createValue<T>(arg.second));
         params.insert({name, val});
         return executeWithParams(preparedStatement, params, args...);
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Literal>>& inputParams);
+        unordered_map<string, shared_ptr<Value>>& inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);

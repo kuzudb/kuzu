@@ -284,19 +284,18 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,
     const ParsedExpression& parsedExpression, const expression_vector& children) {
+    assert(children[0]->expressionType == common::LITERAL);
+    auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<string>();
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(DATE),
-            make_unique<Literal>(Date::FromCString(strVal.c_str(), strVal.length())));
+        return make_shared<LiteralExpression>(
+            make_unique<Value>(Date::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(TIMESTAMP),
-            make_unique<Literal>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
+        return make_shared<LiteralExpression>(
+            make_unique<Value>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
     } else {
         assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
-        auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(INTERVAL),
-            make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
+        return make_shared<LiteralExpression>(
+            make_unique<Value>(Interval::FromCString(strVal.c_str(), strVal.length())));
     }
 }
 
@@ -342,26 +341,26 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     auto& node = (NodeExpression&)expression;
     if (!node.isMultiLabeled()) {
         auto labelName = catalogContent->getTableName(node.getSingleTableID());
-        return make_shared<LiteralExpression>(STRING, make_unique<Literal>(labelName));
+        return make_shared<LiteralExpression>(make_unique<Value>(labelName));
     }
     // bind string node labels as list literal
     auto nodeTableIDs = catalogContent->getNodeTableIDs();
     table_id_t maxNodeTableID = *std::max_element(nodeTableIDs.begin(), nodeTableIDs.end());
-    vector<Literal> nodeLabels;
+    vector<unique_ptr<Value>> nodeLabels;
     nodeLabels.resize(maxNodeTableID + 1);
     for (auto i = 0; i < nodeLabels.size(); ++i) {
         if (catalogContent->containNodeTable(i)) {
-            nodeLabels[i] = Literal(catalogContent->getTableName(i));
+            nodeLabels[i] = make_unique<Value>(catalogContent->getTableName(i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
-            nodeLabels[i] = Literal(string(""));
+            nodeLabels[i] = make_unique<Value>(string(""));
         }
     }
     auto literalDataType = DataType(LIST, make_unique<DataType>(STRING));
     expression_vector children;
     children.push_back(node.getInternalIDProperty());
-    children.push_back(make_shared<LiteralExpression>(
-        literalDataType, make_unique<Literal>(nodeLabels, literalDataType)));
+    children.push_back(
+        make_shared<LiteralExpression>(make_unique<Value>(literalDataType, std::move(nodeLabels))));
     auto execFunc = NodeLabelVectorOperation::execFunction;
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(
@@ -375,25 +374,25 @@ shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     if (parameterMap.contains(parameterName)) {
         return make_shared<ParameterExpression>(parameterName, parameterMap.at(parameterName));
     } else {
-        auto literal = make_shared<Literal>();
-        parameterMap.insert({parameterName, literal});
-        return make_shared<ParameterExpression>(parameterName, literal);
+        auto value = make_shared<Value>(Value::createNullValue());
+        parameterMap.insert({parameterName, value});
+        return make_shared<ParameterExpression>(parameterName, value);
     }
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
-    auto literal = literalExpression.getLiteral();
-    if (literal->isNull()) {
+    auto value = literalExpression.getValue();
+    if (value->isNull()) {
         return bindNullLiteralExpression();
     }
-    return make_shared<LiteralExpression>(literal->dataType, make_unique<Literal>(*literal));
+    return make_shared<LiteralExpression>(value->copy());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullLiteralExpression() {
     return make_shared<LiteralExpression>(
-        DataType(ANY), make_unique<Literal>(), binder->getUniqueExpressionName("NULL"));
+        make_unique<Value>(Value::createNullValue()), binder->getUniqueExpressionName("NULL"));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(

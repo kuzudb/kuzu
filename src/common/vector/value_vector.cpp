@@ -67,50 +67,50 @@ template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template void ValueVector::setValue<ku_string_t>(uint32_t pos, ku_string_t val);
 template void ValueVector::setValue<ku_list_t>(uint32_t pos, ku_list_t val);
 
-void ValueVector::setLiteral(uint32_t pos, const common::Literal& literal) {
-    assert(dataType == literal.dataType);
-    if (literal.isNull()) {
+void ValueVector::addValue(uint32_t pos, const Value& value) {
+    assert(dataType == value.getDataType());
+    if (value.isNull()) {
         setNull(pos, true);
         return;
     }
     auto size = Types::getDataTypeSize(dataType);
-    copyLiteral(getData() + size * pos, literal);
+    copyValue(getData() + size * pos, value);
 }
 
-void ValueVector::copyLiteral(uint8_t* dest, const common::Literal& literal) {
-    auto size = Types::getDataTypeSize(literal.dataType);
-    switch (literal.dataType.typeID) {
+void ValueVector::copyValue(uint8_t* dest, const Value& value) {
+    auto size = Types::getDataTypeSize(value.getDataType());
+    switch (value.getDataType().typeID) {
     case INT64: {
-        memcpy(dest, &literal.val.int64Val, size);
+        memcpy(dest, &value.val.int64Val, size);
     } break;
     case DOUBLE: {
-        memcpy(dest, &literal.val.doubleVal, size);
+        memcpy(dest, &value.val.doubleVal, size);
     } break;
     case BOOL: {
-        memcpy(dest, &literal.val.booleanVal, size);
+        memcpy(dest, &value.val.booleanVal, size);
     } break;
     case DATE: {
-        memcpy(dest, &literal.val.dateVal, size);
+        memcpy(dest, &value.val.dateVal, size);
     } break;
     case TIMESTAMP: {
-        memcpy(dest, &literal.val.timestampVal, size);
+        memcpy(dest, &value.val.timestampVal, size);
     } break;
     case INTERVAL: {
-        memcpy(dest, &literal.val.intervalVal, size);
+        memcpy(dest, &value.val.intervalVal, size);
     } break;
     case STRING: {
-        InMemOverflowBufferUtils::copyString(literal.strVal.data(), literal.strVal.length(),
-            *(ku_string_t*)dest, getOverflowBuffer());
+        InMemOverflowBufferUtils::copyString(
+            value.strVal.data(), value.strVal.length(), *(ku_string_t*)dest, getOverflowBuffer());
     } break;
     case LIST: {
         auto& entry = *(ku_list_t*)dest;
-        auto numElements = literal.listVal.size();
+        auto numElements = value.listVal.size();
         auto elementSize = Types::getDataTypeSize(*dataType.childType);
         InMemOverflowBufferUtils::allocateSpaceForList(
             entry, numElements * elementSize, getOverflowBuffer());
         entry.size = numElements;
         for (auto i = 0u; i < numElements; ++i) {
-            copyLiteral((uint8_t*)entry.overflowPtr + i * elementSize, literal.listVal[i]);
+            copyValue((uint8_t*)entry.overflowPtr + i * elementSize, *value.listVal[i]);
         }
     } break;
     default:

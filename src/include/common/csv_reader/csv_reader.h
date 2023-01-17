@@ -3,8 +3,8 @@
 #include <fstream>
 
 #include "common/configs.h"
-#include "common/types/literal.h"
 #include "common/types/types_include.h"
+#include "common/types/value.h"
 
 namespace spdlog {
 class logger;
@@ -86,7 +86,7 @@ public:
     date_t getDate();
     timestamp_t getTimestamp();
     interval_t getInterval();
-    Literal getList(const DataType& dataType);
+    unique_ptr<Value> getList(const DataType& dataType);
 
 private:
     void openFile(const string& fName);

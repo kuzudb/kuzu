@@ -42,7 +42,7 @@ private:
     bool readOnly = false;
     string errMsg;
     PreparedSummary preparedSummary;
-    unordered_map<string, shared_ptr<Literal>> parameterMap;
+    unordered_map<string, shared_ptr<Value>> parameterMap;
     unique_ptr<BoundStatementResult> statementResult;
     vector<unique_ptr<LogicalPlan>> logicalPlans;
 };

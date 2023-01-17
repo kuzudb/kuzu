@@ -142,7 +142,7 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
         ((LiteralExpression&)(*boundExpression)).getDataType().typeID != INT64) {
         throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
     }
-    return ((LiteralExpression&)(*boundExpression)).literal->val.int64Val;
+    return ((LiteralExpression&)(*boundExpression)).value->getValue<int64_t>();
 }
 
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {

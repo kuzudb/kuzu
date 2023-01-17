@@ -390,10 +390,10 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
         case LIST: {
-            Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
-                listVal, inMemOverflowFileCursors[propertyIdx]);
+                *listVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuList));
         } break;
@@ -528,10 +528,10 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;
         case LIST: {
-            Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
-                listVal, inMemOverflowFileCursors[propertyIdx]);
+                *listVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
         } break;

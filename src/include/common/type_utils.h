@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/types/literal.h"
+#include "common/exception.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
@@ -26,7 +26,6 @@ public:
     static inline string toString(const ku_string_t& val) { return val.getAsString(); }
     static inline string toString(const string& val) { return val; }
     static string toString(const ku_list_t& val, const DataType& dataType);
-    static string toString(const Literal& literal);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
