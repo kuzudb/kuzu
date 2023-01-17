@@ -273,10 +273,10 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& s
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case LIST: {
-                Literal listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+                auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
                     column->getDataType(), copyDescription);
                 auto kuList =
-                    column->getInMemOverflowFile()->copyList(listVal, overflowCursors[columnIdx]);
+                    column->getInMemOverflowFile()->copyList(*listVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
             } break;
             default:

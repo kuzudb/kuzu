@@ -11,36 +11,38 @@ NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
 }
 
 void NPArrayWrapper::appendElement(Value* value) {
-    ((uint8_t*)mask.mutable_data())[numElements] = value->isNullVal();
-    if (!value->isNullVal()) {
+    ((uint8_t*)mask.mutable_data())[numElements] = value->isNull();
+    if (!value->isNull()) {
         switch (type.typeID) {
         case BOOL: {
-            ((uint8_t*)dataBuffer)[numElements] = value->getBooleanVal();
+            ((uint8_t*)dataBuffer)[numElements] = value->getValue<bool>();
             break;
         }
         case INT64: {
-            ((int64_t*)dataBuffer)[numElements] = value->getInt64Val();
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
             break;
         }
         case DOUBLE: {
-            ((double_t*)dataBuffer)[numElements] = value->getDoubleVal();
+            ((double_t*)dataBuffer)[numElements] = value->getValue<double>();
             break;
         }
         case DATE: {
-            ((int64_t*)dataBuffer)[numElements] = Date::getEpochNanoSeconds(value->getDateVal());
+            ((int64_t*)dataBuffer)[numElements] =
+                Date::getEpochNanoSeconds(value->getValue<date_t>());
             break;
         }
         case TIMESTAMP: {
             ((int64_t*)dataBuffer)[numElements] =
-                Timestamp::getEpochNanoSeconds(value->getTimestampVal());
+                Timestamp::getEpochNanoSeconds(value->getValue<timestamp_t>());
             break;
         }
         case INTERVAL: {
-            ((int64_t*)dataBuffer)[numElements] = Interval::getNanoseconds(value->getIntervalVal());
+            ((int64_t*)dataBuffer)[numElements] =
+                Interval::getNanoseconds(value->getValue<interval_t>());
             break;
         }
         case STRING: {
-            auto val = value->getStringVal();
+            auto val = value->getValue<string>();
             auto result = PyUnicode_New(val.length(), 127);
             auto target_data = PyUnicode_DATA(result);
             memcpy(target_data, val.c_str(), val.length());

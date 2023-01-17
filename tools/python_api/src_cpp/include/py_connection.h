@@ -17,11 +17,11 @@ public:
     void setMaxNumThreadForExec(uint64_t numThreads);
 
 private:
-    unordered_map<string, shared_ptr<Literal>> transformPythonParameters(py::list params);
+    unordered_map<string, shared_ptr<Value>> transformPythonParameters(py::list params);
 
-    pair<string, shared_ptr<Literal>> transformPythonParameter(py::tuple param);
+    pair<string, shared_ptr<Value>> transformPythonParameter(py::tuple param);
 
-    Literal transformPythonValue(py::handle val);
+    Value transformPythonValue(py::handle val);
 
 private:
     unique_ptr<Connection> conn;

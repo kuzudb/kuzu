@@ -8,7 +8,7 @@ using namespace kuzu::testing;
 class TinySnbListTest : public InMemoryDBTest {
 
 public:
-    static bool CheckEquals(const vector<string>& expected, const Literal& listVal) {
+    static bool CheckEquals(const vector<string>& expected, const Value& listVal) {
         if (listVal.dataType.typeID != LIST) {
             return false;
         }
@@ -16,7 +16,7 @@ public:
             return false;
         }
         for (auto i = 0u; i < expected.size(); i++) {
-            if (expected[i] != TypeUtils::toString(listVal.listVal[i])) {
+            if (expected[i] != listVal.listVal[i]->toString()) {
                 return false;
             }
         }

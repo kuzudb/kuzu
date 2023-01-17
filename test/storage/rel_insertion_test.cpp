@@ -125,16 +125,16 @@ public:
         bool containNullValues, bool containLongString) {
         for (auto i = 0u; i < numInsertedRels; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->getResultValue(0)->isNullVal(), containNullValues && (i % 2 != 0));
+            ASSERT_EQ(tuple->getResultValue(0)->isNull(), containNullValues && (i % 2 != 0));
             if (!containNullValues || i % 2 == 0) {
-                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
+                ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), i);
             }
-            ASSERT_EQ(tuple->getResultValue(1)->isNullVal(), containNullValues);
+            ASSERT_EQ(tuple->getResultValue(1)->isNull(), containNullValues);
             if (!containNullValues) {
-                ASSERT_EQ(tuple->getResultValue(1)->getStringVal(),
+                ASSERT_EQ(tuple->getResultValue(1)->getValue<string>(),
                     (containLongString ? "long long string prefix " : "") + to_string(i));
             }
-            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
+            ASSERT_EQ((tuple->getResultValue(2)->getListValReference())[0]->getValue<string>(),
                 (containLongString ? "long long string prefix " : "") + to_string(i));
         }
     }
@@ -205,10 +205,11 @@ public:
         for (auto i = 0u; i < 50; i++) {
             auto tuple = result->getNext();
             // Check rels stored in the persistent store.
-            ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i);
+            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), i);
             auto strVal = getStringValToValidate(1000 - i);
-            ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
-            ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(), strVal);
+            ASSERT_EQ(tuple->getResultValue(1)->getValue<string>(), strVal);
+            ASSERT_EQ(
+                (tuple->getResultValue(2)->getListValReference())[0]->getValue<string>(), strVal);
             if (!isCommit) {
                 continue;
             }
@@ -222,20 +223,22 @@ public:
                 for (auto j = 0u; j < 100; j++) {
                     tuple = result->getNext();
                     auto dstNodeOffset = 700 + i + j;
-                    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 3);
+                    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), dstNodeOffset * 3);
                     ASSERT_EQ(
-                        tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 5));
-                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
+                        tuple->getResultValue(1)->getValue<string>(), to_string(dstNodeOffset - 5));
+                    ASSERT_EQ(
+                        (tuple->getResultValue(2)->getListValReference())[0]->getValue<string>(),
                         to_string(dstNodeOffset - 5));
                 }
             } else {
                 for (auto j = 0u; j < 1000; j++) {
                     tuple = result->getNext();
                     auto dstNodeOffset = 500 + i + j;
-                    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), dstNodeOffset * 2);
+                    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), dstNodeOffset * 2);
+                    ASSERT_EQ(tuple->getResultValue(1)->getValue<string>(),
+                        to_string(dstNodeOffset - 25));
                     ASSERT_EQ(
-                        tuple->getResultValue(1)->getStringVal(), to_string(dstNodeOffset - 25));
-                    ASSERT_EQ((tuple->getResultValue(2)->getListVal())[0]->getStringVal(),
+                        (tuple->getResultValue(2)->getListValReference())[0]->getValue<string>(),
                         to_string(dstNodeOffset - 25));
                 }
             }
@@ -274,11 +277,11 @@ public:
         for (auto i = 0u; i < 10; i++) {
             auto tuple = queryResult->getNext();
             ASSERT_EQ(
-                tuple->getResultValue(0)->getStringVal(), to_string(i + 1) + to_string(i + 1));
+                tuple->getResultValue(0)->getValue<string>(), to_string(i + 1) + to_string(i + 1));
         }
         for (auto i = 0u; i < numValuesToInsert; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->getResultValue(0)->getStringVal(), to_string(i));
+            ASSERT_EQ(tuple->getResultValue(0)->getValue<string>(), to_string(i));
         }
     }
 
@@ -332,13 +335,13 @@ public:
             // is an inserted edge(checked by i % 10) and the srcNodeOffset is not a multiple of
             // 20(checked by i % 20).
             auto isNull = i % 10 == 0 && (testNull && i % 20);
-            ASSERT_EQ(tuple->getResultValue(0)->isNullVal(), isNull);
+            ASSERT_EQ(tuple->getResultValue(0)->isNull(), isNull);
             if (!isNull) {
                 // If this is an inserted edge(checked by i % 10), the length property value
                 // is i / 10. Otherwise, the length property value is i.
-                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i % 10 ? i : i / 10);
+                ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), i % 10 ? i : i / 10);
             }
-            ASSERT_EQ(tuple->getResultValue(1)->isNullVal(), isNull);
+            ASSERT_EQ(tuple->getResultValue(1)->isNull(), isNull);
             if (!isNull) {
                 // If this is an inserted edge(checked by i % 10), the place property value
                 // is prefix(if we are testing long strings) + i / 10. Otherwise,
@@ -350,7 +353,7 @@ public:
                                  to_string(2000 - i) + to_string(2000 - i) + to_string(2000 - i)) :
                         ((testLongString && i % 20 ? "long string prefix " : "") +
                             to_string(i / 10));
-                ASSERT_EQ(tuple->getResultValue(1)->getStringVal(), strVal);
+                ASSERT_EQ(tuple->getResultValue(1)->getValue<string>(), strVal);
             }
         }
     }
@@ -404,7 +407,7 @@ public:
                     tuple = queryResult->getNext();
                 }
                 // The length property's value is equal to the srcPerson's ID.
-                ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), i * 10 + j);
+                ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), i * 10 + j);
             }
         }
     }

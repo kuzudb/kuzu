@@ -5,7 +5,7 @@
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/in_mem_overflow_buffer.h"
 #include "common/null_mask.h"
-#include "common/types/literal.h"
+#include "common/types/value.h"
 
 namespace kuzu {
 namespace common {
@@ -49,7 +49,7 @@ public:
     template<typename T>
     void setValue(uint32_t pos, T val);
 
-    void setLiteral(uint32_t pos, const Literal& literal);
+    void addValue(uint32_t pos, const Value& value);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
@@ -75,7 +75,7 @@ private:
 
     void addString(uint32_t pos, char* value, uint64_t len) const;
 
-    void copyLiteral(uint8_t* dest, const Literal& literal);
+    void copyValue(uint8_t* dest, const Value& value);
 
 public:
     DataType dataType;

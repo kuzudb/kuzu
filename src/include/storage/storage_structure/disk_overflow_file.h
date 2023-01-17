@@ -66,7 +66,7 @@ public:
     void readListsToVector(TransactionType trxType, ValueVector& valueVector);
 
     string readString(TransactionType trxType, const ku_string_t& str);
-    vector<Literal> readList(
+    vector<unique_ptr<Value>> readList(
         TransactionType trxType, const ku_list_t& listVal, const DataType& dataType);
 
     ku_string_t writeString(const char* rawString);

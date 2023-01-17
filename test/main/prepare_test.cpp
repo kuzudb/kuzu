@@ -9,7 +9,7 @@ TEST_F(ApiTest, MultiParamsPrepare) {
         preparedStatement.get(), make_pair(string("n"), "A"), make_pair(string("xx"), "ooq"));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 2);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 2);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -19,7 +19,7 @@ TEST_F(ApiTest, PrepareBool) {
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), true));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 3);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 3);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -28,7 +28,7 @@ TEST_F(ApiTest, PrepareInt) {
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (int64_t)10));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 45);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 45);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -38,7 +38,7 @@ TEST_F(ApiTest, PrepareDouble) {
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (double_t)10.5));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getDoubleVal(), 15.5);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<double>(), 15.5);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -48,7 +48,7 @@ TEST_F(ApiTest, PrepareString) {
     auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -59,7 +59,7 @@ TEST_F(ApiTest, PrepareDate) {
         conn->execute(preparedStatement.get(), make_pair(string("n"), Date::FromDate(1900, 1, 1)));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 2);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 2);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -72,7 +72,7 @@ TEST_F(ApiTest, PrepareTimestamp) {
         preparedStatement.get(), make_pair(string("n"), Timestamp::FromDatetime(date, time)));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 1);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -84,7 +84,7 @@ TEST_F(ApiTest, PrepareInterval) {
         make_pair(string("n"), Interval::FromCString(intervalStr.c_str(), intervalStr.length())));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 2);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 2);
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -94,7 +94,7 @@ TEST_F(ApiTest, DefaultParam) {
         make_pair(string("2"), (int64_t)1.4));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getResultValue(0)->getInt64Val(), 8);
+    ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 8);
     ASSERT_FALSE(result->hasNext());
 }
 

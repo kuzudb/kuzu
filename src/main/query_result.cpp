@@ -24,44 +24,47 @@ void QueryResult::initResultTableAndIterator(
         columnDataTypes.push_back(columnType);
         columnNames.push_back(columnName);
         auto expressionsToCollect = expressionToCollectPerColumn[i];
-        auto value = make_unique<Value>(columnType);
+        unique_ptr<Value> value;
         if (columnType.typeID == common::NODE) {
             // first expression is node ID.
             assert(expressionsToCollect[0]->dataType.typeID == common::NODE_ID);
-            auto nodeIDVal = make_unique<Value>(DataType(NODE_ID));
+            auto nodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
             valuesToCollect.push_back(nodeIDVal.get());
             // second expression is node label function.
             assert(expressionsToCollect[1]->dataType.typeID == common::STRING);
-            auto labelNameVal = make_unique<Value>(DataType(STRING));
+            auto labelNameVal = make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
             valuesToCollect.push_back(labelNameVal.get());
             auto nodeVal = make_unique<NodeVal>(std::move(nodeIDVal), std::move(labelNameVal));
             for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
                 assert(expressionsToCollect[j]->expressionType == common::PROPERTY);
                 auto property = (PropertyExpression*)expressionsToCollect[j].get();
-                auto propertyValue = make_unique<Value>(property->getDataType());
+                auto propertyValue =
+                    make_unique<Value>(Value::createDefaultValue(property->getDataType()));
                 valuesToCollect.push_back(propertyValue.get());
                 nodeVal->addProperty(property->getPropertyName(), std::move(propertyValue));
             }
-            value->setNodeVal(std::move(nodeVal));
+            value = make_unique<Value>(std::move(nodeVal));
         } else if (columnType.typeID == common::REL) {
             // first expression is src node ID.
             assert(expressionsToCollect[0]->dataType.typeID == common::NODE_ID);
-            auto srcNodeIDVal = make_unique<Value>(DataType(NODE_ID));
+            auto srcNodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
             valuesToCollect.push_back(srcNodeIDVal.get());
             // second expression is dst node ID.
             assert(expressionsToCollect[1]->dataType.typeID == common::NODE_ID);
-            auto dstNodeIDVal = make_unique<Value>(DataType(NODE_ID));
+            auto dstNodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
             valuesToCollect.push_back(dstNodeIDVal.get());
             auto relVal = make_unique<RelVal>(std::move(srcNodeIDVal), std::move(dstNodeIDVal));
             for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
                 assert(expressionsToCollect[j]->expressionType == common::PROPERTY);
                 auto property = (PropertyExpression*)expressionsToCollect[j].get();
-                auto propertyValue = make_unique<Value>(property->getDataType());
+                auto propertyValue =
+                    make_unique<Value>(Value::createDefaultValue(property->getDataType()));
                 valuesToCollect.push_back(propertyValue.get());
                 relVal->addProperty(property->getPropertyName(), std::move(propertyValue));
             }
-            value->setRelVal(std::move(relVal));
+            value = make_unique<Value>(std::move(relVal));
         } else {
+            value = make_unique<Value>(Value::createDefaultValue(columnType));
             assert(expressionsToCollect.size() == 1);
             valuesToCollect.push_back(value.get());
         }

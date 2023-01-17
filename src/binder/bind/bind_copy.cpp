@@ -34,7 +34,7 @@ CSVReaderConfig Binder::bindParsingOptions(
                     "The value type of parsing csv option " + copyOptionName + " must be boolean.");
             }
             csvReaderConfig.hasHeader =
-                ((LiteralExpression&)(*boundCopyOptionExpression)).literal->val.booleanVal;
+                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<bool>();
         } else if (boundCopyOptionExpression->dataType.typeID == STRING &&
                    isValidStringParsingOption) {
             if (boundCopyOptionExpression->dataType.typeID != STRING) {
@@ -42,7 +42,7 @@ CSVReaderConfig Binder::bindParsingOptions(
                     "The value type of parsing csv option " + copyOptionName + " must be string.");
             }
             auto copyOptionValue =
-                ((LiteralExpression&)(*boundCopyOptionExpression)).literal->strVal;
+                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<string>();
             bindStringParsingOptions(csvReaderConfig, copyOptionName, copyOptionValue);
         } else {
             throw BinderException("Unrecognized parsing csv option: " + copyOptionName + ".");

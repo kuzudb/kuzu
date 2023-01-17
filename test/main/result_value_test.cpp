@@ -42,7 +42,7 @@ TEST_F(ResultValueTest, getResultValueWrongTypeException) {
     auto result = conn->query(query);
     auto flatTuple = result->getNext();
     try {
-        flatTuple->getResultValue(0)->getBooleanVal();
+        flatTuple->getResultValue(0)->getValue<bool>();
         FAIL();
     } catch (RuntimeException& exception) {
         ASSERT_STREQ("Runtime exception: Cannot get BOOL value from the STRING result value.",

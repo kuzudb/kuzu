@@ -28,7 +28,7 @@ public:
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
-    inline unordered_map<string, shared_ptr<Literal>> getParameterMap() {
+    inline unordered_map<string, shared_ptr<Value>> getParameterMap() {
         return expressionBinder.parameterMap;
     }
 

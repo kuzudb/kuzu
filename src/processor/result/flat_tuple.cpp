@@ -1,7 +1,5 @@
 #include "processor/result/flat_tuple.h"
 
-#include <sstream>
-
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -10,7 +8,7 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace processor {
 
-Value* FlatTuple::getResultValue(uint32_t idx) {
+common::Value* FlatTuple::getResultValue(uint32_t idx) {
     if (idx >= len()) {
         throw common::RuntimeException(common::StringUtils::string_format(
             "ValIdx is out of range. Number of values in flatTuple: %d, valIdx: %d.", len(), idx));
