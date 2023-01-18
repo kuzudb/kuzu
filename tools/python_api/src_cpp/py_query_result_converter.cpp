@@ -115,7 +115,7 @@ py::object QueryResultConverter::toDF() {
     while (queryResult->hasNext()) {
         auto flatTuple = queryResult->getNext();
         for (auto i = 0u; i < columns.size(); i++) {
-            columns[i]->appendElement(flatTuple->getResultValue(i));
+            columns[i]->appendElement(flatTuple->getValue(i));
         }
     }
     py::dict result;

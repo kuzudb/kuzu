@@ -168,11 +168,10 @@ void AggregateHashTable::initializeFT(const vector<unique_ptr<AggregateFunction>
 }
 
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
-    maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
-        max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
+    maxNumHashSlots = nextPowerOfTwo(max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
     bitmask = maxNumHashSlots - 1;
     auto numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
-    assert(numHashSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numHashSlotsPerBlock));
+    assert(numHashSlotsPerBlock == nextPowerOfTwo(numHashSlotsPerBlock));
     numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     auto numDataBlocks =

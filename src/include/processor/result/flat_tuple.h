@@ -11,8 +11,7 @@ public:
 
     inline uint32_t len() { return values.size(); }
 
-    // TODO(Everyone): rename this to get.
-    common::Value* getResultValue(uint32_t idx);
+    common::Value* getValue(uint32_t idx);
 
     string toString(
         const vector<uint32_t>& colsWidth, const string& delimiter = "|", uint32_t maxWidth = -1);

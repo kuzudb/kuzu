@@ -99,10 +99,9 @@ void QueryResult::writeToCSV(
     while (hasNext()) {
         nextTuple = getNext();
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            string resultVal = nextTuple->getResultValue(idx)->toString();
+            string resultVal = nextTuple->getValue(idx)->toString();
             bool isStringList = false;
-            if (Types::dataTypeToString(nextTuple->getResultValue(idx)->getDataType()) ==
-                "STRING[]") {
+            if (Types::dataTypeToString(nextTuple->getValue(idx)->getDataType()) == "STRING[]") {
                 isStringList = true;
             }
             bool surroundQuotes = false;

@@ -64,7 +64,7 @@ public:
     }
     static int64_t getCount(Connection* connection, const string& queryPrefix) {
         auto result = connection->query(queryPrefix + " RETURN COUNT(*)");
-        return result->getNext()->getResultValue(0)->getValue<int64_t>();
+        return result->getNext()->getValue(0)->getValue<int64_t>();
     }
     int64_t getNumNodes(Connection* connection) { return getCount(connection, "MATCH (:person)"); }
     void validateNodesExistOrNot(
