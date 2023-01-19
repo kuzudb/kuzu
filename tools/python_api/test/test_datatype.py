@@ -72,3 +72,46 @@ def test_list_wrap(establish_connection):
     assert not result.has_next()
     result.close()
 
+
+def test_node(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a")
+    assert result.has_next()
+    n = result.get_next()
+    assert(len(n) == 1)
+    n = n[0]
+    assert (n['_label'] == 'person')
+    assert (n['ID'] == 0)
+    assert (n['fName'] == 'Alice')
+    assert (n['gender'] == 1)
+    assert (n['isStudent'] == True)
+    assert (n['eyeSight'] == 5.0)
+    assert (n['birthdate'] == datetime.date(1900, 1, 1))
+    assert (n['registerTime'] == datetime.datetime(2011, 8, 20, 11, 25, 30))
+    assert (n['lastJobDuration'] == datetime.timedelta(
+        days=1082, seconds=46920))
+    assert (n['courseScoresPerTerm'] == [[10, 8], [6, 7, 8]])
+    assert (n['usedNames'] == ['Aida'])
+    assert not result.has_next()
+    result.close()
+
+
+def test_rel(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (p:person)-[r:workAt]->(o:organisation) WHERE p.ID = 5 RETURN p, r, o")
+    assert result.has_next()
+    n = result.get_next()
+    assert (len(n) == 3)
+    p = n[0]
+    r = n[1]
+    o = n[2]
+    assert (p['_label'] == 'person')
+    assert (p['ID'] == 5)
+    assert (o['_label'] == 'organisation')
+    assert (o['ID'] == 6)
+    assert (r['year'] == 2010)
+    assert (r['_src'] == p['_id'])
+    assert (r['_dst'] == o['_id'])
+    assert not result.has_next()
+    result.close()

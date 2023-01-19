@@ -30,6 +30,13 @@ public:
 
     py::list getColumnNames();
 
+    void resetIterator();
+
 private:
+    static py::dict getPyDictFromProperties(
+        const vector<pair<std::string, unique_ptr<Value>>>& properties);
+
+    static py::dict convertNodeIdToPyDict(const nodeID_t& nodeId);
+
     unique_ptr<QueryResult> queryResult;
 };

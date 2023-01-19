@@ -22,7 +22,10 @@ jobs:
 
       - name: test
         run: CC=gcc CXX=g++ make test NUM_THREADS=32
-  
+
+      - name: python test
+        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
+
   gcc-build-test-with-asan:
     name: gcc build & test with asan
     needs: [gcc-build-test]
@@ -32,7 +35,7 @@ jobs:
       - run: pip install --user -r tools/python_api/requirements_dev.txt
 
       - name: build debug
-        run: CC=gcc CXX=g++ make NUM_THREADS=32 alldebug
+        run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
       
       - name: run test with asan
         run: ctest
@@ -62,6 +65,9 @@ jobs:
 
       - name: test
         run: CC=clang-14 CXX=clang++-14 make test NUM_THREADS=32
+      
+      - name: python test
+        run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
 
   clang-formatting-check:
     name: clang-formatting-check

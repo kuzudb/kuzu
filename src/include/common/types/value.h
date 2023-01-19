@@ -109,6 +109,13 @@ public:
         properties.emplace_back(key, std::move(value));
     }
 
+    inline const vector<pair<std::string, unique_ptr<Value>>>& getProperties() const {
+        return properties;
+    }
+
+    nodeID_t getNodeID() const;
+    string getLabelName() const;
+
     inline unique_ptr<NodeVal> copy() const { return make_unique<NodeVal>(*this); }
 
     string toString() const;
@@ -129,7 +136,14 @@ public:
         properties.emplace_back(key, std::move(value));
     }
 
+    inline const vector<pair<std::string, unique_ptr<Value>>>& getProperties() const {
+        return properties;
+    }
+
     inline unique_ptr<RelVal> copy() const { return make_unique<RelVal>(*this); }
+
+    nodeID_t getSrcNodeID() const;
+    nodeID_t getDstNodeID() const;
 
     string toString() const;
 

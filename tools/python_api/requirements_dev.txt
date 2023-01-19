@@ -1,4 +1,5 @@
 pybind11>=2.6.0
 pytest
 pandas
+networkx~=3.0.0
 numpy
