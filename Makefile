@@ -70,6 +70,11 @@ test: arrow
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest
 
+pytest: arrow
+	$(MAKE) release
+	cd $(ROOT_DIR)/tools/python_api/test && \
+	python3 -m pytest -v test_main.py
+
 clean-external:
 	rm -rf external/build
 

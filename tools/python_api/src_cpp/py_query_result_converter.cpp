@@ -49,6 +49,11 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((PyObject**)dataBuffer)[numElements] = result;
             break;
         }
+        case NODE:
+        case REL: {
+            ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
+            break;
+        }
         case LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
@@ -76,6 +81,8 @@ py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
         dtype = "bool";
         break;
     }
+    case NODE:
+    case REL:
     case LIST:
     case STRING: {
         dtype = "object";
@@ -104,6 +111,7 @@ QueryResultConverter::QueryResultConverter(QueryResult* queryResult) : queryResu
 }
 
 py::object QueryResultConverter::toDF() {
+    queryResult->resetIterator();
     while (queryResult->hasNext()) {
         auto flatTuple = queryResult->getNext();
         for (auto i = 0u; i < columns.size(); i++) {

@@ -264,6 +264,14 @@ NodeVal::NodeVal(const NodeVal& other) {
     }
 }
 
+nodeID_t NodeVal::getNodeID() const {
+    return idVal->getValue<nodeID_t>();
+}
+
+string NodeVal::getLabelName() const {
+    return labelVal->getValue<string>();
+}
+
 string NodeVal::toString() const {
     std::string result = "(";
     result += idVal->toString();
@@ -279,6 +287,14 @@ RelVal::RelVal(const RelVal& other) {
     for (auto& [key, val] : other.properties) {
         addProperty(key, val->copy());
     }
+}
+
+nodeID_t RelVal::getSrcNodeID() const {
+    return srcNodeIDVal->getValue<nodeID_t>();
+}
+
+nodeID_t RelVal::getDstNodeID() const {
+    return dstNodeIDVal->getValue<nodeID_t>();
 }
 
 string RelVal::toString() const {

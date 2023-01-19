@@ -18,7 +18,8 @@ void PyQueryResult::initialize(py::handle& m) {
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
         .def("getColumnNames", &PyQueryResult::getColumnNames)
-        .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes);
+        .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes)
+        .def("resetIterator", &PyQueryResult::resetIterator);
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
     // https://docs.python.org/3/c-api/datetime.html for details.
@@ -106,8 +107,25 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         }
         return move(list);
     }
+    case NODE: {
+        auto nodeVal = value.getValue<NodeVal>();
+        auto dict = PyQueryResult::getPyDictFromProperties(nodeVal.getProperties());
+        dict["_label"] = py::cast(nodeVal.getLabelName());
+        dict["_id"] = convertNodeIdToPyDict(nodeVal.getNodeID());
+        return move(dict);
+    }
+    case REL: {
+        auto relVal = value.getValue<RelVal>();
+        auto dict = PyQueryResult::getPyDictFromProperties(relVal.getProperties());
+        dict["_src"] = convertNodeIdToPyDict(relVal.getSrcNodeID());
+        dict["_dst"] = convertNodeIdToPyDict(relVal.getDstNodeID());
+        return move(dict);
+    }
+    case NODE_ID: {
+        return convertNodeIdToPyDict(value.getValue<nodeID_t>());
+    }
     default:
-        throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));
+        throw NotImplementedException("Unsupported type: " + Types::dataTypeToString(dataType));
     }
 }
 
@@ -131,4 +149,25 @@ py::list PyQueryResult::getColumnNames() {
         result[i] = py::cast(columnNames[i]);
     }
     return move(result);
+}
+
+void PyQueryResult::resetIterator() {
+    queryResult->resetIterator();
+}
+
+py::dict PyQueryResult::getPyDictFromProperties(
+    const vector<pair<std::string, unique_ptr<Value>>>& properties) {
+    py::dict result;
+    for (auto i = 0u; i < properties.size(); ++i) {
+        auto& [name, value] = properties[i];
+        result[py::cast(name)] = convertValueToPyObject(*value);
+    }
+    return result;
+}
+
+py::dict PyQueryResult::convertNodeIdToPyDict(const nodeID_t& nodeId) {
+    py::dict idDict;
+    idDict["offset"] = py::cast(nodeId.offset);
+    idDict["table"] = py::cast(nodeId.tableID);
+    return idDict;
 }
