@@ -12,8 +12,7 @@ unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     auto tableName = copyCSV.getTableName();
     validateTableExist(catalog, tableName);
     auto isNodeTable = catalogContent->containNodeTable(tableName);
-    auto tableID = isNodeTable ? catalogContent->getNodeTableIDFromName(tableName) :
-                                 catalogContent->getRelTableIDFromName(tableName);
+    auto tableID = catalogContent->getTableID(tableName);
     auto filePath = copyCSV.getCSVFileName();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
     return make_unique<BoundCopy>(CopyDescription(filePath, csvReaderConfig), tableID, tableName);

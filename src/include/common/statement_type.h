@@ -12,6 +12,7 @@ enum class StatementType : uint8_t {
     COPY_CSV = 3,
     DROP_TABLE = 4,
     DROP_PROPERTY = 5,
+    ADD_PROPERTY = 6,
 };
 
 class StatementTypeUtils {

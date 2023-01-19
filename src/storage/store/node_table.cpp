@@ -6,12 +6,11 @@ namespace storage {
 NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
     BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{nodeTableSchema->tableID},
-      isInMemory{isInMemory} {
-    initializeData(nodeTableSchema, bufferManager, wal);
+      bufferManager{bufferManager}, isInMemory{isInMemory}, wal{wal} {
+    initializeData(nodeTableSchema);
 }
 
-void NodeTable::initializeData(
-    NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal) {
+void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getAllNodeProperties()) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),

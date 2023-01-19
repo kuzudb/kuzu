@@ -84,7 +84,7 @@ public:
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
-        auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+        auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
         validateDatabaseStateBeforeCheckPointCopyNode(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
@@ -170,7 +170,7 @@ public:
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
-        auto tableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("knows");
+        auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
         validateDatabaseStateBeforeCheckPointCopyRel(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);

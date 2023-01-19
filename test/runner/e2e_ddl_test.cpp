@@ -108,9 +108,9 @@ public:
         memoryManager = make_unique<MemoryManager>(bufferManager.get());
         executionContext = make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
-        personNodeTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
-        organisationTableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("organisation");
-        studyAtRelTableID = catalog->getReadOnlyVersion()->getRelTableIDFromName("studyAt");
+        personNodeTableID = catalog->getReadOnlyVersion()->getTableID("person");
+        organisationTableID = catalog->getReadOnlyVersion()->getTableID("organisation");
+        studyAtRelTableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
     }
 
     void initWithoutLoadingGraph() {
@@ -213,7 +213,7 @@ public:
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
         }
         auto relTableSchema = (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-            catalog->getReadOnlyVersion()->getRelTableIDFromName("belongs"));
+            catalog->getReadOnlyVersion()->getTableID("belongs"));
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         executeQueryWithoutCommit("COPY belongs FROM \"" +
@@ -232,7 +232,7 @@ public:
         conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
         auto nodeTableSchema = make_unique<NodeTableSchema>(
             *(NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-                catalog->getReadOnlyVersion()->getNodeTableIDFromName("university")));
+                catalog->getReadOnlyVersion()->getTableID("university")));
         executeQueryWithoutCommit("DROP TABLE university");
         validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
@@ -253,7 +253,7 @@ public:
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         auto relTableSchema = make_unique<RelTableSchema>(
             *(RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-                catalog->getReadOnlyVersion()->getRelTableIDFromName("knows")));
+                catalog->getReadOnlyVersion()->getTableID("knows")));
         executeQueryWithoutCommit("DROP TABLE knows");
         validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
@@ -387,6 +387,28 @@ public:
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
+    }
+
+    void addPropertyToPersonTableWithoutDefaultValue(string propertyType) {
+        ASSERT_TRUE(
+            conn->query(StringUtils::string_format(
+                            "ALTER TABLE person ADD COLUMN random %s", propertyType.c_str()))
+                ->isSuccess());
+        auto result = conn->query(StringUtils::string_format("MATCH (p:person) return p.random"));
+        while (result->hasNext()) {
+            ASSERT_TRUE(result->getNext()->getResultValue(0 /* idx */)->isNull());
+        }
+    }
+
+    void addPropertyToKnowsTableWithoutDefaultValue(string propertyType) {
+        ASSERT_TRUE(conn->query(StringUtils::string_format(
+                                    "ALTER TABLE knows ADD COLUMN random %s", propertyType.c_str()))
+                        ->isSuccess());
+        auto result = conn->query(
+            StringUtils::string_format("MATCH (:person)-[e:knows]->(:person) return e.random"));
+        while (result->hasNext()) {
+            ASSERT_TRUE(result->getNext()->getResultValue(0 /* idx */)->isNull());
+        }
     }
 
     Catalog* catalog;
@@ -532,4 +554,153 @@ TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
 
 TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
     dropRelTableProperty(TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToNodeTableWithoutDefaultValue) {
+    addPropertyToPersonTableWithoutDefaultValue("INT64");
+}
+
+TEST_F(TinySnbDDLTest, AddStringPropertyToNodeTableWithoutDefaultValue) {
+    addPropertyToPersonTableWithoutDefaultValue("STRING");
+}
+
+TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToNodeTableWithoutDefaultValue) {
+    addPropertyToPersonTableWithoutDefaultValue("INT64[]");
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStringPropertyToNodeTableWithoutDefaultValue) {
+    addPropertyToPersonTableWithoutDefaultValue("STRING[]");
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToNodeTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE person ADD COLUMN random INT64 DEFAULT 57")->isSuccess());
+    vector<string> expectedResult(8, "57");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddStringPropertyToNodeTableWithDefaultValue) {
+    ASSERT_TRUE(
+        conn->query(
+                "ALTER TABLE person ADD COLUMN random STRING DEFAULT 'this is a long string!!!'")
+            ->isSuccess());
+    vector<string> expectedResult(8, "this is a long string!!!");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToNodeTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE person ADD COLUMN random INT64[] DEFAULT [142, 123, 789]")
+                    ->isSuccess());
+    vector<string> expectedResult(8, "[142,123,789]");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStringPropertyToNodeTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE person ADD COLUMN random STRING[] DEFAULT ['142', "
+                            "'short', 'long long long string']")
+                    ->isSuccess());
+    vector<string> expectedResult(8, "[142,short,long long long string]");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToNodeTableWithDefaultValue) {
+    ASSERT_TRUE(
+        conn->query("ALTER TABLE person ADD COLUMN random STRING[][] DEFAULT [['142', '341'], "
+                    "['short'], ['long long long string', '132321412421421414214']]")
+            ->isSuccess());
+    vector<string> expectedResult(
+        8, "[[142,341],[short],[long long long string,132321412421421414214]]");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToRelTableWithoutDefaultValue) {
+    addPropertyToKnowsTableWithoutDefaultValue("INT64");
+}
+
+TEST_F(TinySnbDDLTest, AddStringPropertyToRelTableWithoutDefaultValue) {
+    addPropertyToKnowsTableWithoutDefaultValue("STRING");
+}
+
+TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToRelTableWithoutDefaultValue) {
+    addPropertyToKnowsTableWithoutDefaultValue("INT64[]");
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStringPropertyToRelTableWithoutDefaultValue) {
+    addPropertyToKnowsTableWithoutDefaultValue("STRING[]");
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToManyManyRelTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE knows ADD COLUMN random INT64 DEFAULT 23")->isSuccess());
+    vector<string> expectedResult(14, "23");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:knows]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddStringPropertyToManyManyRelTableWithDefaultValue) {
+    ASSERT_TRUE(
+        conn->query("ALTER TABLE knows ADD COLUMN random STRING DEFAULT 'very very long long'")
+            ->isSuccess());
+    vector<string> expectedResult(14, "very very long long");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:knows]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToManyManyRelTableWithDefaultValue) {
+    ASSERT_TRUE(
+        conn->query("ALTER TABLE knows ADD COLUMN random INT64[] DEFAULT [7,8,9]")->isSuccess());
+    vector<string> expectedResult(14, "[7,8,9]");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:knows]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStringPropertyToManyManyRelTableWithDefaultValue) {
+    ASSERT_TRUE(
+        conn->query(
+                "ALTER TABLE knows ADD COLUMN random STRING[] DEFAULT ['7','long str long str']")
+            ->isSuccess());
+    vector<string> expectedResult(14, "[7,long str long str]");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:knows]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToManyManyRelTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE knows ADD COLUMN random STRING[][] DEFAULT [['7', 'very "
+                            "very long long'],['long str long str', 'short']]")
+                    ->isSuccess());
+    vector<string> expectedResult(14, "[[7,very very long long],[long str long str,short]]");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:knows]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToManyOneRelTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE studyAt ADD COLUMN random INT64 DEFAULT 8")->isSuccess());
+    vector<string> expectedResult(3, "8");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:studyAt]->(:organisation) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddInt64PropertyToOneOneRelTableWithDefaultValue) {
+    ASSERT_TRUE(conn->query("ALTER TABLE marries ADD COLUMN random INT64 DEFAULT 12")->isSuccess());
+    vector<string> expectedResult(3, "12");
+    ASSERT_EQ(TestHelper::convertResultToString(
+                  *conn->query("MATCH (:person)-[e:marries]->(:person) return e.random")),
+        expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, AddPropertyWithComplexExpression) {
+    ASSERT_TRUE(conn->query("ALTER TABLE person ADD COLUMN random INT64 DEFAULT  2 * abs(-2)")
+                    ->isSuccess());
+    vector<string> expectedResult(8, "4");
+    ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+        expectedResult);
 }

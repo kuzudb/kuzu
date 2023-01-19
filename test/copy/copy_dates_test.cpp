@@ -13,7 +13,7 @@ class TinySnbCopyDateTest : public InMemoryDBTest {
 // ID 1, so on and so forth).
 TEST_F(TinySnbCopyDateTest, NodePropertyColumnWithDate) {
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
     auto storageManager = getStorageManager(*database);
     auto col =

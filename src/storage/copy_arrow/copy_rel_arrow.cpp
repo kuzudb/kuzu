@@ -419,8 +419,7 @@ void CopyRelArrow::inferTableIDsAndOffsets(const vector<shared_ptr<T>>& batchCol
             if (!catalog.getReadOnlyVersion()->containNodeTable(nodeTableName)) {
                 throw CopyException("NodeTableName: " + nodeTableName + " does not exist.");
             }
-            nodeIDs[relDirection].tableID =
-                catalog.getReadOnlyVersion()->getNodeTableIDFromName(nodeTableName);
+            nodeIDs[relDirection].tableID = catalog.getReadOnlyVersion()->getTableID(nodeTableName);
             ++colIndex;
         }
         if (colIndex >= batchColumns.size()) {
@@ -668,7 +667,7 @@ void CopyRelArrow::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList
     InMemOverflowFile* orderedOverflowFile) {
     TypeUtils::decodeOverflowPtr(
         kuList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
-    orderedOverflowFile->copyListOverflow(unorderedOverflowFile, unorderedOverflowCursor,
+    orderedOverflowFile->copyListOverflowFromFile(unorderedOverflowFile, unorderedOverflowCursor,
         orderedOverflowCursor, kuList, dataType.childType.get());
 }
 

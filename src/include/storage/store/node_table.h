@@ -15,7 +15,7 @@ public:
     NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
         BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema);
 
-    void initializeData(NodeTableSchema* nodeTableSchema, BufferManager& bufferManager, WAL* wal);
+    void initializeData(NodeTableSchema* nodeTableSchema);
 
     inline node_offset_t getMaxNodeOffset(Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
@@ -41,6 +41,12 @@ public:
     inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
     inline void removeProperty(property_id_t propertyID) { propertyColumns.erase(propertyID); }
+    inline void addProperty(Property property) {
+        propertyColumns.emplace(property.propertyID,
+            ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
+                                         wal->getDirectory(), property),
+                property.dataType, bufferManager, isInMemory, wal));
+    }
 
     node_offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
@@ -56,6 +62,8 @@ private:
     unique_ptr<PrimaryKeyIndex> pkIndex;
     table_id_t tableID;
     bool isInMemory;
+    BufferManager& bufferManager;
+    WAL* wal;
 };
 
 } // namespace storage

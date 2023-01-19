@@ -10,6 +10,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::ACCUMULATE: {
         return "ACCUMULATE";
     }
+    case LogicalOperatorType::ADD_PROPERTY: {
+        return "ADD_PROPERTY";
+    }
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }

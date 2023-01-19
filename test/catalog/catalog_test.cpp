@@ -60,8 +60,8 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
     ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getNodeTableIDFromName("person"), PERSON_TABLE_ID);
-    ASSERT_EQ(catalog->getReadOnlyVersion()->getRelTableIDFromName("knows"), KNOWS_TABLE_ID);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->getTableID("person"), PERSON_TABLE_ID);
+    ASSERT_EQ(catalog->getReadOnlyVersion()->getTableID("knows"), KNOWS_TABLE_ID);
     ASSERT_NE(PERSON_TABLE_ID, KNOWS_TABLE_ID);
     // Test rel single relMultiplicity
     ASSERT_FALSE(

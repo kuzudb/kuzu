@@ -9,6 +9,7 @@ namespace kuzu {
 namespace processor {
 
 enum class PhysicalOperatorType : uint8_t {
+    ADD_PROPERTY,
     AGGREGATE,
     AGGREGATE_SCAN,
     COPY_NODE,

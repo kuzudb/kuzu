@@ -58,6 +58,12 @@ public:
             directory, DBFileType::ORIGINAL, TransactionType::READ_ONLY);
     }
 
+    inline RelStatistics* getRelStatistics(table_id_t tableID) const {
+        auto& tableStatisticPerTable =
+            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable;
+        return (RelStatistics*)tableStatisticPerTable[tableID].get();
+    }
+
     void setNumRelsForTable(table_id_t relTableID, uint64_t numRels);
 
     void assertNumRelsIsSound(

@@ -16,7 +16,7 @@ class TinySnbCopyIntervalTest : public InMemoryDBTest {
 TEST_F(TinySnbCopyIntervalTest, NodePropertyColumnWithInterval) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
-    auto tableID = catalog->getReadOnlyVersion()->getNodeTableIDFromName("person");
+    auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(Interval::FromCString(

@@ -33,23 +33,22 @@ struct PropertyNameDataType {
 };
 
 struct Property : PropertyNameDataType {
-private:
-    Property(string name, DataType dataType, uint32_t propertyID, table_id_t tableID)
+public:
+    // This constructor is needed for ser/deser functions
+    Property() = default;
+
+    Property(string name, DataType dataType, property_id_t propertyID, table_id_t tableID)
         : PropertyNameDataType{std::move(name), std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
 
-public:
-    // This constructor is needed for ser/deser functions
-    Property() {}
-
     static Property constructNodeProperty(
-        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
+        const PropertyNameDataType& nameDataType, property_id_t propertyID, table_id_t tableID) {
+        return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
     }
 
     static inline Property constructRelProperty(
-        const PropertyNameDataType& nameDataType, uint32_t propertyID, table_id_t tableID) {
-        return Property(nameDataType.name, nameDataType.dataType, propertyID, tableID);
+        const PropertyNameDataType& nameDataType, property_id_t propertyID, table_id_t tableID) {
+        return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
     }
 
     property_id_t propertyID;
@@ -60,7 +59,8 @@ struct TableSchema {
 public:
     TableSchema(string tableName, table_id_t tableID, bool isNodeTable, vector<Property> properties)
         : tableName{std::move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable},
-          properties{std::move(properties)} {}
+          properties{std::move(properties)}, nextPropertyID{
+                                                 (property_id_t)this->properties.size()} {}
 
     virtual ~TableSchema() = default;
 
@@ -83,13 +83,28 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
 
+    inline void addProperty(string propertyName, DataType dataType) {
+        properties.emplace_back(
+            std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
+    }
+
     string getPropertyName(property_id_t propertyID) const;
+
+    property_id_t getPropertyID(string propertyName) const;
+
+    Property getProperty(property_id_t propertyID) const;
+
+private:
+    inline property_id_t increaseNextPropertyID() { return nextPropertyID++; }
 
 public:
     string tableName;
     table_id_t tableID;
     bool isNodeTable;
     vector<Property> properties;
+
+private:
+    property_id_t nextPropertyID;
 };
 
 struct NodeTableSchema : TableSchema {

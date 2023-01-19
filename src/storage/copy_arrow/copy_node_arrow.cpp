@@ -269,7 +269,6 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& s
             case STRING: {
                 auto val =
                     column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);
-
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case LIST: {

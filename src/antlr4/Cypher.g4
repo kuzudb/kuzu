@@ -51,9 +51,25 @@ kU_DropTable
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
 kU_AlterTable
-    : ALTER SP TABLE SP oC_SchemaName SP DROP SP oC_PropertyKeyName ;
+    : ALTER SP TABLE SP oC_SchemaName SP kU_AlterOptions ;
 
 ALTER: ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
+
+kU_AlterOptions
+    : kU_AddProperty
+        | kU_DropProperty;
+
+kU_AddProperty
+    : ADD SP ( COLUMN SP )? oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
+
+DEFAULT : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ;
+
+kU_DropProperty
+    : DROP SP ( COLUMN SP )? oC_PropertyKeyName ;
+
+ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
+
+COLUMN: ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u'  ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
 
 kU_RelConnections : kU_RelConnection ( SP? ',' SP? kU_RelConnection )* ;
 

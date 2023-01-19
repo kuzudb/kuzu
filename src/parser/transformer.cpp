@@ -3,6 +3,7 @@
 #include "common/exception.h"
 #include "common/utils.h"
 #include "parser/copy_csv/copy_csv.h"
+#include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
@@ -914,8 +915,26 @@ unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTable
 }
 
 unique_ptr<Statement> Transformer::transformAlterTable(CypherParser::KU_AlterTableContext& ctx) {
+    if (ctx.kU_AlterOptions()->kU_DropProperty()) {
+        return transformAddProperty(ctx);
+    } else {
+        return transformDropProperty(ctx);
+    }
+}
+
+unique_ptr<Statement> Transformer::transformAddProperty(CypherParser::KU_AlterTableContext& ctx) {
     return make_unique<DropProperty>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformPropertyKeyName(*ctx.oC_PropertyKeyName()));
+        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName()));
+}
+
+unique_ptr<Statement> Transformer::transformDropProperty(CypherParser::KU_AlterTableContext& ctx) {
+    return make_unique<AddProperty>(transformSchemaName(*ctx.oC_SchemaName()),
+        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_PropertyKeyName()),
+        transformDataType(*ctx.kU_AlterOptions()->kU_AddProperty()->kU_DataType()),
+        ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression() ?
+            transformExpression(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression()) :
+            make_unique<ParsedLiteralExpression>(
+                make_unique<Value>(Value::createNullValue()), "NULL"));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(

@@ -79,6 +79,11 @@ public:
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.erase(tableID);
     }
 
+    inline uint64_t getNumTuplesForTable(table_id_t tableID) {
+        return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID]
+            ->getNumTuples();
+    }
+
 protected:
     virtual inline string getTableTypeForPrinting() const = 0;
 

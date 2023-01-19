@@ -1,5 +1,5 @@
 
-// Generated from /Users/xiyangfeng/kuzu/kuzu/src/antlr4/Cypher.g4 by ANTLR 4.9
+// Generated from src/antlr4/Cypher.g4 by ANTLR 4.9
 
 #pragma once
 
@@ -20,19 +20,20 @@ public:
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
     T__44 = 45, COPY = 46, FROM = 47, NODE = 48, TABLE = 49, DROP = 50, 
-    ALTER = 51, PRIMARY = 52, KEY = 53, REL = 54, TO = 55, EXPLAIN = 56, 
-    PROFILE = 57, UNION = 58, ALL = 59, OPTIONAL = 60, MATCH = 61, UNWIND = 62, 
-    CREATE = 63, SET = 64, DELETE = 65, WITH = 66, RETURN = 67, DISTINCT = 68, 
-    STAR = 69, AS = 70, ORDER = 71, BY = 72, L_SKIP = 73, LIMIT = 74, ASCENDING = 75, 
-    ASC = 76, DESCENDING = 77, DESC = 78, WHERE = 79, OR = 80, XOR = 81, 
-    AND = 82, NOT = 83, INVALID_NOT_EQUAL = 84, MINUS = 85, FACTORIAL = 86, 
-    STARTS = 87, ENDS = 88, CONTAINS = 89, IS = 90, NULL_ = 91, TRUE = 92, 
-    FALSE = 93, EXISTS = 94, CASE = 95, ELSE = 96, END = 97, WHEN = 98, 
-    THEN = 99, StringLiteral = 100, EscapedChar = 101, DecimalInteger = 102, 
-    HexLetter = 103, HexDigit = 104, Digit = 105, NonZeroDigit = 106, NonZeroOctDigit = 107, 
-    ZeroDigit = 108, RegularDecimalReal = 109, UnescapedSymbolicName = 110, 
-    IdentifierStart = 111, IdentifierPart = 112, EscapedSymbolicName = 113, 
-    SP = 114, WHITESPACE = 115, Comment = 116, Unknown = 117
+    ALTER = 51, DEFAULT = 52, ADD = 53, COLUMN = 54, PRIMARY = 55, KEY = 56, 
+    REL = 57, TO = 58, EXPLAIN = 59, PROFILE = 60, UNION = 61, ALL = 62, 
+    OPTIONAL = 63, MATCH = 64, UNWIND = 65, CREATE = 66, SET = 67, DELETE = 68, 
+    WITH = 69, RETURN = 70, DISTINCT = 71, STAR = 72, AS = 73, ORDER = 74, 
+    BY = 75, L_SKIP = 76, LIMIT = 77, ASCENDING = 78, ASC = 79, DESCENDING = 80, 
+    DESC = 81, WHERE = 82, OR = 83, XOR = 84, AND = 85, NOT = 86, INVALID_NOT_EQUAL = 87, 
+    MINUS = 88, FACTORIAL = 89, STARTS = 90, ENDS = 91, CONTAINS = 92, IS = 93, 
+    NULL_ = 94, TRUE = 95, FALSE = 96, EXISTS = 97, CASE = 98, ELSE = 99, 
+    END = 100, WHEN = 101, THEN = 102, StringLiteral = 103, EscapedChar = 104, 
+    DecimalInteger = 105, HexLetter = 106, HexDigit = 107, Digit = 108, 
+    NonZeroDigit = 109, NonZeroOctDigit = 110, ZeroDigit = 111, RegularDecimalReal = 112, 
+    UnescapedSymbolicName = 113, IdentifierStart = 114, IdentifierPart = 115, 
+    EscapedSymbolicName = 116, SP = 117, WHITESPACE = 118, Comment = 119, 
+    Unknown = 120
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

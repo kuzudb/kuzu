@@ -9,6 +9,9 @@ namespace processor {
 
 std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType operatorType) {
     switch (operatorType) {
+    case PhysicalOperatorType::ADD_PROPERTY: {
+        return "ADD_PROPERTY";
+    }
     case PhysicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }
