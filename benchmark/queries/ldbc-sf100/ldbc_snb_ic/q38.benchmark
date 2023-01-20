@@ -1,0 +1,5 @@
+-NAME interactive_complex_query_4
+-COMPARE_RESULT 1
+-QUERY MATCH (person:Person {ID: 933})-[:knows]->(friend:Person), (friend)<-[:postHasCreator]-(post:Post)-[:postHasTag]->(tag) WITH DISTINCT tag, post WITH tag, CASE WHEN timestamp('2010-06-30 12:00:00') > post.creationDate AND post.creationDate >= timestamp('2010-06-01 12:00:00') THEN 1 ELSE 0 END AS valid, CASE WHEN timestamp('2010-06-01 12:00:00') > post.creationDate THEN 1 ELSE 0 END AS inValid WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount WHERE postCount > 0 AND inValidPostCount=0 RETURN tag.name AS tagName, postCount ORDER BY postCount DESC, tagName ASC LIMIT 10
+---- 1
+1980-02-01|1980-02-01
