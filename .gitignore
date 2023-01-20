@@ -15,6 +15,9 @@ __pycache__/
 cmake-build-debug/
 test/unittest_temp/
 
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
 # antlr4 jar
 scripts/antlr4/antlr4.jar
 

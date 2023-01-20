@@ -29,6 +29,9 @@ target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 target_link_libraries(kuzu_shared PUBLIC antlr4_cypher antlr4_runtime utf8proc
         parquet_lib arrow_lib arrow_deps Threads::Threads)
+add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
+target_link_libraries(kuzu_shared PUBLIC antlr4_cypher antlr4_runtime utf8proc
+        parquet_lib arrow_lib arrow_deps Threads::Threads)
 target_include_directories(
         kuzu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 <<<<<<< HEAD
