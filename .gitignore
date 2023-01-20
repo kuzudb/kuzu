@@ -14,3 +14,7 @@ __pycache__/
 *$py.class
 cmake-build-debug/
 test/unittest_temp/
+
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
