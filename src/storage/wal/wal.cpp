@@ -96,6 +96,12 @@ void WAL::logDropPropertyRecord(table_id_t tableID, property_id_t propertyID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logAddPropertyRecord(table_id_t tableID, property_id_t propertyID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newAddPropertyRecord(tableID, propertyID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();

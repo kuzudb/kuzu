@@ -132,7 +132,7 @@ public:
     unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
         table_id_t boundNodeTableID);
     void removeProperty(property_id_t propertyID);
-    void addProperty(Property& property, table_id_t tableID, WAL* wal);
+    void addProperty(Property& property, WAL* wal);
 
 private:
     void scanColumns(Transaction* transaction, RelTableScanState& scanState,
@@ -218,7 +218,7 @@ public:
         const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector,
         const shared_ptr<ValueVector>& propertyVector, uint32_t propertyID);
     void initEmptyRelsForNewNode(nodeID_t& nodeID);
-    void addProperty(Property property, table_id_t tableID);
+    void addProperty(Property property);
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }

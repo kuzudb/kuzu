@@ -108,7 +108,7 @@ void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
     bool isDefaultValNull, uint64_t numNodes) {
     auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
         StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, property.propertyID, DBFileType::ORIGINAL),
+            directory, tableID, property.propertyID, DBFileType::WAL_VERSION),
         property.dataType, numNodes);
     if (!isDefaultValNull) {
         inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
@@ -135,7 +135,7 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
-            boundTableID, direction, property.propertyID, DBFileType::ORIGINAL),
+            boundTableID, direction, property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
     if (!isDefaultValNull) {
@@ -152,7 +152,7 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemList = InMemListsFactory::getInMemPropertyLists(
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID,
-            boundTableID, direction, property.propertyID, DBFileType::ORIGINAL),
+            boundTableID, direction, property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
     // Note: we need the listMetadata to get the num of elements in a large list, and headers to

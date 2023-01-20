@@ -29,8 +29,8 @@ protected:
     BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
     explicit BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle)
-        : fileHandle{move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX}, currentHeaderPageIdx{
-                                                                                  INT32_MAX} {
+        : fileHandle{std::move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX},
+          currentHeaderPageIdx{INT32_MAX} {
         currentHeaderPageBuffer = make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
     }
 
@@ -117,6 +117,8 @@ public:
     void logDropTableRecord(table_id_t tableID);
 
     void logDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
+
+    void logAddPropertyRecord(table_id_t tableID, property_id_t propertyID);
 
     // Removes the contents of WAL file.
     void clearWAL();

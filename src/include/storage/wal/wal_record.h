@@ -263,6 +263,7 @@ enum class WALRecordType : uint8_t {
     COPY_REL_RECORD = 8,
     DROP_TABLE_RECORD = 9,
     DROP_PROPERTY_RECORD = 10,
+    ADD_PROPERTY_RECORD = 11,
 };
 
 string walRecordTypeToString(WALRecordType walRecordType);
@@ -392,6 +393,20 @@ struct DropPropertyRecord {
     }
 };
 
+struct AddPropertyRecord {
+    table_id_t tableID;
+    property_id_t propertyID;
+
+    AddPropertyRecord() = default;
+
+    AddPropertyRecord(table_id_t tableID, property_id_t propertyID)
+        : tableID{tableID}, propertyID{propertyID} {}
+
+    inline bool operator==(const AddPropertyRecord& rhs) const {
+        return tableID == rhs.tableID && propertyID == rhs.propertyID;
+    }
+};
+
 struct WALRecord {
     WALRecordType recordType;
     union {
@@ -405,6 +420,7 @@ struct WALRecord {
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
         DropPropertyRecord dropPropertyRecord;
+        AddPropertyRecord addPropertyRecord;
     };
 
     bool operator==(const WALRecord& rhs) const {
@@ -446,6 +462,9 @@ struct WALRecord {
         case WALRecordType::DROP_PROPERTY_RECORD: {
             return dropPropertyRecord == rhs.dropPropertyRecord;
         }
+        case WALRecordType::ADD_PROPERTY_RECORD: {
+            return addPropertyRecord == rhs.addPropertyRecord;
+        }
         default: {
             throw RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
                                    walRecordTypeToString(recordType));
@@ -468,6 +487,7 @@ struct WALRecord {
     static WALRecord newCopyRelRecord(table_id_t tableID);
     static WALRecord newDropTableRecord(table_id_t tableID);
     static WALRecord newDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
+    static WALRecord newAddPropertyRecord(table_id_t tableID, property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

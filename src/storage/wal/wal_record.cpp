@@ -211,6 +211,13 @@ WALRecord WALRecord::newDropPropertyRecord(table_id_t tableID, property_id_t pro
     return retVal;
 }
 
+WALRecord WALRecord::newAddPropertyRecord(table_id_t tableID, property_id_t propertyID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::ADD_PROPERTY_RECORD;
+    retVal.addPropertyRecord = AddPropertyRecord(tableID, propertyID);
+    return retVal;
+}
+
 void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset) {
     ((WALRecord*)&retVal)[0] = ((WALRecord*)(bytes + offset))[0];
     offset += sizeof(WALRecord);

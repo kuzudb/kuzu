@@ -46,6 +46,12 @@ public:
             directory, tableID, propertyID, DBFileType::ORIGINAL));
     }
 
+    static inline void renameDBFilesForNodeProperty(
+        const string& directory, table_id_t tableID, property_id_t propertyID) {
+        replaceOriginalColumnFilesWithWALVersionIfExists(StorageUtils::getNodePropertyColumnFName(
+            directory, tableID, propertyID, DBFileType::ORIGINAL));
+    }
+
     static void removeDBFilesForRelProperty(
         const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID);
 
@@ -54,6 +60,9 @@ public:
 
     static void createEmptyDBFilesForNewNodeTable(
         NodeTableSchema* nodeTableSchema, const string& directory);
+
+    static void renameDBFilesForRelProperty(
+        const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID);
 
 private:
     static inline void removeColumnFilesForPropertyIfExists(const string& directory,

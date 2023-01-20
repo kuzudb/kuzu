@@ -361,6 +361,39 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             // See comments for COPY_NODE_RECORD.
         }
     } break;
+    case WALRecordType::ADD_PROPERTY_RECORD: {
+        if (isCheckpoint) {
+            auto tableID = walRecord.addPropertyRecord.tableID;
+            auto propertyID = walRecord.addPropertyRecord.propertyID;
+            if (!isRecovering) {
+                auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
+                auto property = tableSchema->getProperty(propertyID);
+                if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
+                    WALReplayerUtils::renameDBFilesForNodeProperty(
+                        wal->getDirectory(), tableID, propertyID);
+                    storageManager->getNodesStore().getNodeTable(tableID)->addProperty(property);
+                } else {
+                    WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
+                        reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
+                    storageManager->getRelsStore().getRelTable(tableID)->addProperty(property);
+                }
+            } else {
+                auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
+                auto tableSchema =
+                    catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
+                auto property = tableSchema->getProperty(propertyID);
+                if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
+                    WALReplayerUtils::renameDBFilesForNodeProperty(
+                        wal->getDirectory(), tableID, propertyID);
+                } else {
+                    WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
+                        reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
+                }
+            }
+        } else {
+            // See comments for COPY_NODE_RECORD.
+        }
+    } break;
     default:
         throw RuntimeException(
             "Unrecognized WAL record type inside WALReplayer::replay. recordType: " +
