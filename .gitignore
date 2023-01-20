@@ -27,3 +27,7 @@ scripts/antlr4/antlr4.jar
 scripts/pre-compiled-bins/headers
 scripts/pre-compiled-bins/lib*
 scripts/pre-compiled-bins/kuzu*
+
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
