@@ -3,13 +3,13 @@ project (kuzujs)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_definitions(-DNAPI_VERSION=5)
+add_definitions(-DNAPI_VERSION=4)
 
 if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
-    set(LIB_KUZU_PATH ../../build/debug/src/libkuzu_shared.so)
+    set(LIB_KUZU_PATH ../../build/debug/src/libkuzu_shared.dylib)
     set(THIRD_PARTY_BIN_PATH ../../build/debug/third_party)
 else()
-    set(LIB_KUZU_PATH ../../build/release/src/libkuzu_shared.so)
+    set(LIB_KUZU_PATH ../../build/release/src/libkuzu_shared.dylib)
     set(THIRD_PARTY_BIN_PATH ../../build/release/third_party)
 endif()
 
@@ -36,9 +36,7 @@ include_directories(${NLOHMANN_JSON_INCLUDE_PATH})
 include_directories(${UTF8PROC_INCLUDE_PATH})
 
 
-file(GLOB SOURCE_FILES ./src_cpp/*)
-file(GLOB CMAKE_JS_SRC ./src_nodejs/*)
-file(COPY ${CMAKE_JS_SRC} DESTINATION ./kuzu)
+file(GLOB SOURCE_FILES ./src/*.cpp ./src/*.h)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
