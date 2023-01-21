@@ -1,8 +1,8 @@
 #include "include/py_query_result.h"
 
-#include <fstream>
 #include <string>
 
+#include "common/arrow/arrow_converter.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
@@ -17,6 +17,7 @@ void PyQueryResult::initialize(py::handle& m) {
             py::arg("newline") = "\n")
         .def("close", &PyQueryResult::close)
         .def("getAsDF", &PyQueryResult::getAsDF)
+        .def("getAsArrow", &PyQueryResult::getAsArrow)
         .def("getColumnNames", &PyQueryResult::getColumnNames)
         .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes)
         .def("resetIterator", &PyQueryResult::resetIterator);
@@ -34,13 +35,13 @@ py::list PyQueryResult::getNext() {
     auto tuple = queryResult->getNext();
     py::tuple result(tuple->len());
     for (auto i = 0u; i < tuple->len(); ++i) {
-        result[i] = convertValueToPyObject(*tuple->getResultValue(i));
+        result[i] = convertValueToPyObject(*tuple->getValue(i));
     }
-    return move(result);
+    return std::move(result);
 }
 
-void PyQueryResult::writeToCSV(
-    py::str filename, py::str delimiter, py::str escapeCharacter, py::str newline) {
+void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter,
+    const py::str& escapeCharacter, const py::str& newline) {
     std::string delimiterStr = delimiter;
     std::string escapeCharacterStr = escapeCharacter;
     std::string newlineStr = newline;
@@ -105,7 +106,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         for (auto i = 0u; i < listVal.size(); ++i) {
             list.append(convertValueToPyObject(*listVal[i]));
         }
-        return move(list);
+        return std::move(list);
     }
     case NODE: {
         auto nodeVal = value.getValue<NodeVal>();
@@ -133,13 +134,54 @@ py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();
 }
 
+bool PyQueryResult::getNextArrowChunk(py::list& batches, std::int64_t chunkSize) {
+    if (!queryResult->hasNext()) {
+        return false;
+    }
+    ArrowSchema arrowSchema;
+    ArrowArray data;
+    auto types = queryResult->getColumnDataTypes();
+    auto names = queryResult->getColumnNames();
+    ArrowConverter::toArrowSchema(&arrowSchema, types, names);
+    ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
+
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
+    auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
+    batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)&arrowSchema));
+    return true;
+}
+
+py::object PyQueryResult::getArrowChunks(std::int64_t chunkSize) {
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
+    py::list batches;
+    while (getNextArrowChunk(batches, chunkSize)) {}
+    return std::move(batches);
+}
+
+kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
+    py::gil_scoped_acquire acquire;
+
+    auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
+    auto fromBatchesFunc = pyarrowLibModule.attr("Table").attr("from_batches");
+    auto schemaImportFunc = pyarrowLibModule.attr("Schema").attr("_import_from_c");
+
+    ArrowSchema schema;
+    auto types = queryResult->getColumnDataTypes();
+    auto names = queryResult->getColumnNames();
+    ArrowConverter::toArrowSchema(&schema, types, names);
+
+    auto schemaObj = schemaImportFunc((std::uint64_t)&schema);
+    py::list batches = getArrowChunks(chunkSize);
+    return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
+}
+
 py::list PyQueryResult::getColumnDataTypes() {
     auto columnDataTypes = queryResult->getColumnDataTypes();
     py::tuple result(columnDataTypes.size());
     for (auto i = 0u; i < columnDataTypes.size(); ++i) {
         result[i] = py::cast(Types::dataTypeToString(columnDataTypes[i]));
     }
-    return move(result);
+    return std::move(result);
 }
 
 py::list PyQueryResult::getColumnNames() {
@@ -148,7 +190,7 @@ py::list PyQueryResult::getColumnNames() {
     for (auto i = 0u; i < columnNames.size(); ++i) {
         result[i] = py::cast(columnNames[i]);
     }
-    return move(result);
+    return std::move(result);
 }
 
 void PyQueryResult::resetIterator() {

@@ -38,9 +38,9 @@ public:
         // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 1 result.
         // If key is secondIntCol we expect to find 0 result.
         if (pkColName == "firstIntCol") {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
         } else {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 0);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
         }
         tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 1 "
                             "RETURN COUNT(*)")
@@ -48,9 +48,9 @@ public:
         // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 0 result.
         // If key is secondIntCol we expect to find 1 result.
         if (pkColName == "firstIntCol") {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 0);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
         } else {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
         }
     }
 };
@@ -79,9 +79,9 @@ public:
         // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 1
         // result. If key is secondStrCol we expect to find 0 result.
         if (pkColName == "firstStrCol") {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
         } else {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 0);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
         }
         tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Bob\" "
                             "RETURN COUNT(*)")
@@ -89,9 +89,9 @@ public:
         // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 0
         // result. If key is secondStrCol we expect to find 1 result.
         if (pkColName == "firstStrCol") {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 0);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
         } else {
-            ASSERT_EQ(tuple->getResultValue(0)->getValue<int64_t>(), 1);
+            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
         }
     }
 };
@@ -396,7 +396,7 @@ public:
                 ->isSuccess());
         auto result = conn->query(StringUtils::string_format("MATCH (p:person) return p.random"));
         while (result->hasNext()) {
-            ASSERT_TRUE(result->getNext()->getResultValue(0 /* idx */)->isNull());
+            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
     }
 
@@ -407,7 +407,7 @@ public:
         auto result = conn->query(
             StringUtils::string_format("MATCH (:person)-[e:knows]->(:person) return e.random"));
         while (result->hasNext()) {
-            ASSERT_TRUE(result->getNext()->getResultValue(0 /* idx */)->isNull());
+            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
     }
 

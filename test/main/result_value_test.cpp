@@ -26,7 +26,7 @@ TEST_F(ResultValueTest, getResultValueException) {
     auto result = conn->query(query);
     auto flatTuple = result->getNext();
     try {
-        flatTuple->getResultValue(100);
+        flatTuple->getValue(100);
         FAIL();
     } catch (RuntimeException& exception) {
         ASSERT_STREQ("Runtime exception: ValIdx is out of range. Number of values in flatTuple: 1, "
@@ -42,7 +42,7 @@ TEST_F(ResultValueTest, getResultValueWrongTypeException) {
     auto result = conn->query(query);
     auto flatTuple = result->getNext();
     try {
-        flatTuple->getResultValue(0)->getValue<bool>();
+        flatTuple->getValue(0)->getValue<bool>();
         FAIL();
     } catch (RuntimeException& exception) {
         ASSERT_STREQ("Runtime exception: Cannot get BOOL value from the STRING result value.",

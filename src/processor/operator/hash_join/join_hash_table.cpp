@@ -9,7 +9,7 @@ JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumn
     unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager}, numKeyColumns{numKeyColumns} {
     auto numSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
-    assert(numSlotsPerBlock == HashTableUtils::nextPowerOfTwo(numSlotsPerBlock));
+    assert(numSlotsPerBlock == nextPowerOfTwo(numSlotsPerBlock));
     numSlotsPerBlockLog2 = log2(numSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     // Prev pointer is always the last column in the table.
@@ -55,7 +55,7 @@ void JoinHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsToAppen
 }
 
 void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
-    maxNumHashSlots = HashTableUtils::nextPowerOfTwo(numTuples * 2);
+    maxNumHashSlots = nextPowerOfTwo(numTuples * 2);
     bitmask = maxNumHashSlots - 1;
     auto numSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
     auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;

@@ -75,10 +75,13 @@ pytest: arrow
 	cd $(ROOT_DIR)/tools/python_api/test && \
 	python3 -m pytest -v test_main.py
 
+clean-python-api:
+	rm -rf tools/python_api/build
+
 clean-external:
 	rm -rf external/build
 
-clean:
+clean: clean-python-api
 	rm -rf build
 
 clean-all: clean-external clean

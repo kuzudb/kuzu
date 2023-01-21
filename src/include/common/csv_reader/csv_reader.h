@@ -48,9 +48,7 @@ struct CopyDescription {
     FileType fileType;
 };
 
-// TODO(Guodong): we should add a csv reader test to test edge cases and error messages.
-// Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
-// dataTypes.
+// TODO(Guodong): Remove this class and file and related code.
 class CSVReader {
 
 public:

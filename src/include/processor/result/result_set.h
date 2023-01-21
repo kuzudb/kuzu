@@ -5,9 +5,6 @@
 #include "common/data_chunk/data_chunk.h"
 #include "processor/data_pos.h"
 
-using namespace kuzu::common;
-using namespace kuzu::storage;
-
 namespace kuzu {
 namespace processor {
 

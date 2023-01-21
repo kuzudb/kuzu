@@ -23,10 +23,10 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNext()
 
-    def write_to_csv(self, filename, delimiter=',', escapeCharacter='"', newline='\n'):
+    def write_to_csv(self, filename, delimiter=',', escape_character='"', newline='\n'):
         self.check_for_query_result_close()
         self._query_result.writeToCSV(
-            filename, delimiter, escapeCharacter, newline)
+            filename, delimiter, escape_character, newline)
 
     def close(self):
         if self.is_closed:
@@ -40,6 +40,10 @@ class QueryResult:
     def get_as_df(self):
         self.check_for_query_result_close()
         return self._query_result.getAsDF()
+
+    def get_as_arrow(self, chunk_size):
+        self.check_for_query_result_close()
+        return self._query_result.getAsArrow(chunk_size)
 
     def get_column_data_types(self):
         self.check_for_query_result_close()

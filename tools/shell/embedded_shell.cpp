@@ -338,10 +338,10 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < colsWidth.size(); i++) {
-                if (tuple->getResultValue(i)->isNull()) {
+                if (tuple->getValue(i)->isNull()) {
                     continue;
                 }
-                string tupleString = tuple->getResultValue(i)->toString();
+                string tupleString = tuple->getValue(i)->toString();
                 uint32_t fieldLen = 0;
                 uint32_t chrIter = 0;
                 while (chrIter < tupleString.length()) {

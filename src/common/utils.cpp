@@ -27,11 +27,5 @@ vector<string> StringUtils::split(const string& input, const string& delimiter) 
     return result;
 }
 
-string ThreadUtils::getThreadIDString() {
-    std::ostringstream oss;
-    oss << std::this_thread::get_id();
-    return oss.str();
-}
-
 } // namespace common
 } // namespace kuzu
