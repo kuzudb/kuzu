@@ -54,6 +54,9 @@ static void setArrowFormat(ArrowSchema& child, const DataType& type) {
     case DataTypeID::INTERVAL: {
         child.format = "tDm";
     } break;
+    case DataTypeID::STRING: {
+        child.format = "u";
+    } break;
     default:
         throw InternalException("Unsupported Arrow type " + Types::dataTypeToString(type));
     }
