@@ -6,11 +6,9 @@ namespace processor {
 void AddRelProperty::executeDDLInternal() {
     AddProperty::executeDDLInternal();
     auto tableSchema = catalog->getWriteVersion()->getRelTableSchema(tableID);
-    auto propertyID = tableSchema->getPropertyID(propertyName);
-    auto property = tableSchema->getProperty(propertyID);
+    auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
     StorageUtils::createFileForRelPropertyWithDefaultVal(
         tableSchema, property, getDefaultVal(), isDefaultValueNull(), storageManager);
-    storageManager.getRelsStore().getRelTable(tableID)->addProperty(property, tableID);
 }
 
 } // namespace processor

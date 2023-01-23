@@ -387,7 +387,9 @@ void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
 void Catalog::addProperty(table_id_t tableID, string propertyName, DataType dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
-        std::move(propertyName), std::move(dataType));
+        propertyName, std::move(dataType));
+    wal->logAddPropertyRecord(tableID,
+        catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(std::move(propertyName)));
 }
 
 } // namespace catalog

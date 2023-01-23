@@ -340,9 +340,9 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
-void RelTable::addProperty(Property property, table_id_t tableID) {
-    fwdRelTableData->addProperty(property, tableID, wal);
-    bwdRelTableData->addProperty(property, tableID, wal);
+void RelTable::addProperty(Property property) {
+    fwdRelTableData->addProperty(property, wal);
+    bwdRelTableData->addProperty(property, wal);
 }
 
 void RelTable::appendInMemListToLargeListOP(
@@ -391,7 +391,7 @@ void DirectedRelTableData::removeProperty(property_id_t propertyID) {
     }
 }
 
-void DirectedRelTableData::addProperty(Property& property, table_id_t tableID, WAL* wal) {
+void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
     for (auto& [boundTableID, propertyColumnsPerBoundTable] : propertyColumns) {
         propertyColumnsPerBoundTable.emplace(property.propertyID,
             ColumnFactory::getColumn(

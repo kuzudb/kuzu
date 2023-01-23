@@ -62,6 +62,23 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     }
 }
 
+void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
+    kuzu::catalog::RelTableSchema* relTableSchema, kuzu::common::property_id_t propertyID) {
+    for (auto direction : REL_DIRECTIONS) {
+        for (auto boundTableID : relTableSchema->getUniqueBoundTableIDs(direction)) {
+            if (relTableSchema->isSingleMultiplicityInDirection(direction)) {
+                replaceOriginalColumnFilesWithWALVersionIfExists(
+                    StorageUtils::getRelPropertyColumnFName(directory, relTableSchema->tableID,
+                        boundTableID, direction, propertyID, DBFileType::ORIGINAL));
+            } else {
+                replaceOriginalListFilesWithWALVersionIfExists(
+                    StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
+                        boundTableID, direction, propertyID, DBFileType::ORIGINAL));
+            }
+        }
+    }
+}
+
 void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {
     inMemLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
     inMemLists->saveToFile();

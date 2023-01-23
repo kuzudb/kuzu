@@ -11,7 +11,6 @@ void AddNodeProperty::executeDDLInternal() {
         property, getDefaultVal(), isDefaultValueNull(),
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
             tableID));
-    storageManager.getNodesStore().getNodeTable(tableID)->addProperty(property);
 }
 
 } // namespace processor
