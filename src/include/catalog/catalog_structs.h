@@ -94,6 +94,8 @@ public:
 
     Property getProperty(property_id_t propertyID) const;
 
+    void renameProperty(property_id_t propertyID, const string& newName);
+
 private:
     inline property_id_t increaseNextPropertyID() { return nextPropertyID++; }
 

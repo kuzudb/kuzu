@@ -60,6 +60,12 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
+    case PhysicalOperatorType::RENAME_PROPERTY: {
+        return "RENAME_PROPERTY";
+    }
+    case PhysicalOperatorType::RENAME_TABLE: {
+        return "RENAME_TABLE";
+    }
     case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
         return "SCAN_REL_TABLE_COLUMNS";
     }

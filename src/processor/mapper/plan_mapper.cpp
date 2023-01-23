@@ -118,14 +118,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::COPY_CSV: {
         physicalOperator = mapLogicalCopyToPhysical(logicalOperator.get());
     } break;
-    case LogicalOperatorType::DROP_PROPERTY: {
-        physicalOperator = mapLogicalDropPropertyToPhysical(logicalOperator.get());
-    } break;
     case LogicalOperatorType::DROP_TABLE: {
         physicalOperator = mapLogicalDropTableToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::RENAME_TABLE: {
+        physicalOperator = mapLogicalRenameTableToPhysical(logicalOperator.get());
+    } break;
     case LogicalOperatorType::ADD_PROPERTY: {
         physicalOperator = mapLogicalAddPropertyToPhysical(logicalOperator.get());
+    } break;
+    case LogicalOperatorType::DROP_PROPERTY: {
+        physicalOperator = mapLogicalDropPropertyToPhysical(logicalOperator.get());
+    } break;
+    case LogicalOperatorType::RENAME_PROPERTY: {
+        physicalOperator = mapLogicalRenamePropertyToPhysical(logicalOperator.get());
     } break;
     default:
         assert(false);

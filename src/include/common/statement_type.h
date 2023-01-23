@@ -11,8 +11,10 @@ enum class StatementType : uint8_t {
     CREATE_REL_CLAUSE = 2,
     COPY_CSV = 3,
     DROP_TABLE = 4,
-    DROP_PROPERTY = 5,
+    RENAME_TABLE = 5,
     ADD_PROPERTY = 6,
+    DROP_PROPERTY = 7,
+    RENAME_PROPERTY = 8,
 };
 
 class StatementTypeUtils {

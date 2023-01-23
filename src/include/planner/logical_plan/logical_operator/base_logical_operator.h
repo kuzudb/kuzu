@@ -33,6 +33,8 @@ enum class LogicalOperatorType : uint8_t {
     MULTIPLICITY_REDUCER,
     ORDER_BY,
     PROJECTION,
+    RENAME_TABLE,
+    RENAME_PROPERTY,
     SCAN_NODE,
     INDEX_SCAN_NODE,
     SCAN_NODE_PROPERTY,

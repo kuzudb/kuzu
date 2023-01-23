@@ -4,11 +4,15 @@
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_rename_property.h"
+#include "binder/ddl/bound_rename_table.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
+#include "parser/ddl/rename_property.h"
+#include "parser/ddl/rename_table.h"
 
 namespace kuzu {
 namespace binder {
@@ -16,7 +20,7 @@ namespace binder {
 unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& statement) {
     auto& createNodeClause = (CreateNodeClause&)statement;
     auto tableName = createNodeClause.getTableName();
-    if (catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
+    if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
     auto boundPropertyNameDataTypes =
@@ -30,7 +34,7 @@ unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& stateme
 unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statement) {
     auto& createRelClause = (CreateRelClause&)statement;
     auto tableName = createRelClause.getTableName();
-    if (catalog.getReadOnlyVersion()->containRelTable(tableName)) {
+    if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
     auto propertyNameDataTypes =
@@ -50,12 +54,39 @@ unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     auto tableName = dropTable.getTableName();
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
-    auto isNodeTable = catalogContent->containNodeTable(tableName);
     auto tableID = catalogContent->getTableID(tableName);
-    if (isNodeTable) {
+    if (catalogContent->containNodeTable(tableName)) {
         validateNodeTableHasNoEdge(catalog, tableID);
     }
     return make_unique<BoundDropTable>(tableID, tableName);
+}
+
+unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
+    auto renameTable = (RenameTable&)statement;
+    auto tableName = renameTable.getTableName();
+    auto catalogContent = catalog.getReadOnlyVersion();
+    validateTableExist(catalog, tableName);
+    if (catalogContent->containTable(renameTable.getNewName())) {
+        throw BinderException("Table: " + renameTable.getNewName() + " already exists.");
+    }
+    return make_unique<BoundRenameTable>(
+        catalogContent->getTableID(tableName), tableName, renameTable.getNewName());
+}
+
+unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
+    auto& addProperty = (AddProperty&)statement;
+    auto tableName = addProperty.getTableName();
+    validateTableExist(catalog, tableName);
+    auto catalogContent = catalog.getReadOnlyVersion();
+    auto tableID = catalogContent->getTableID(tableName);
+    auto dataType = Types::dataTypeFromString(addProperty.getDataType());
+    if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
+        throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
+    }
+    auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
+        expressionBinder.bindExpression(*addProperty.getDefaultValue()), dataType);
+    return make_unique<BoundAddProperty>(
+        tableID, addProperty.getPropertyName(), dataType, defaultVal, tableName);
 }
 
 unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
@@ -75,20 +106,20 @@ unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) 
     return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
 }
 
-unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
-    auto& addProperty = (AddProperty&)statement;
-    auto tableName = addProperty.getTableName();
+unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
+    auto& renameProperty = (RenameProperty&)statement;
+    auto tableName = renameProperty.getTableName();
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
-    auto dataType = Types::dataTypeFromString(addProperty.getDataType());
-    if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
-        throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
+    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto propertyID = bindPropertyName(tableSchema, renameProperty.getPropertyName());
+    if (tableSchema->containProperty(renameProperty.getNewName())) {
+        throw BinderException("Property " + renameProperty.getNewName() +
+                              " already exists in table: " + tableName + ".");
     }
-    return make_unique<BoundAddProperty>(tableID, addProperty.getPropertyName(), dataType,
-        ExpressionBinder::implicitCastIfNecessary(
-            expressionBinder.bindExpression(*addProperty.getDefaultValue()), dataType),
-        tableName);
+    return make_unique<BoundRenameProperty>(
+        tableID, tableName, propertyID, renameProperty.getNewName());
 }
 
 vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(

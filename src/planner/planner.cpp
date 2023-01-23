@@ -6,12 +6,16 @@
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_rename_property.h"
+#include "binder/ddl/bound_rename_table.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_rename_property.h"
+#include "planner/logical_plan/logical_operator/logical_rename_table.h"
 
 namespace kuzu {
 namespace planner {
@@ -29,17 +33,23 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_REL_CLAUSE: {
         return planCreateRelTable(statement);
     }
+    case StatementType::COPY_CSV: {
+        return planCopy(statement);
+    }
     case StatementType::DROP_TABLE: {
         return planDropTable(statement);
+    }
+    case StatementType::RENAME_TABLE: {
+        return planRenameTable(statement);
+    }
+    case StatementType::ADD_PROPERTY: {
+        return planAddProperty(statement);
     }
     case StatementType::DROP_PROPERTY: {
         return planDropProperty(statement);
     }
-    case StatementType::COPY_CSV: {
-        return planCopy(statement);
-    }
-    case StatementType::ADD_PROPERTY: {
-        return planAddProperty(statement);
+    case StatementType::RENAME_PROPERTY: {
+        return planRenameProperty(statement);
     }
     default:
         assert(false);
@@ -89,24 +99,14 @@ unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) 
     return plan;
 }
 
-unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statement) {
-    auto& dropPropertyClause = (BoundDropProperty&)statement;
+unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& statement) {
+    auto& renameTableClause = (BoundRenameTable&)statement;
     auto plan = make_unique<LogicalPlan>();
-    auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
-        dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
+    auto renameTable = make_shared<LogicalRenameTable>(renameTableClause.getTableID(),
+        renameTableClause.getTableName(), renameTableClause.getNewName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    dropProperty->computeSchema();
-    plan->setLastOperator(std::move(dropProperty));
-    return plan;
-}
-
-unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
-    auto& copyCSVClause = (BoundCopy&)statement;
-    auto plan = make_unique<LogicalPlan>();
-    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
-        copyCSVClause.getTableID(), copyCSVClause.getTableName());
-    copyCSV->computeSchema();
-    plan->setLastOperator(std::move(copyCSV));
+    renameTable->computeSchema();
+    plan->setLastOperator(std::move(renameTable));
     return plan;
 }
 
@@ -119,6 +119,39 @@ unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& statement
         statement.getStatementResult()->getSingleExpressionToCollect());
     addProperty->computeSchema();
     plan->setLastOperator(std::move(addProperty));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statement) {
+    auto& dropPropertyClause = (BoundDropProperty&)statement;
+    auto plan = make_unique<LogicalPlan>();
+    auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
+        dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
+    dropProperty->computeSchema();
+    plan->setLastOperator(std::move(dropProperty));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& statement) {
+    auto& renamePropertyClause = (BoundRenameProperty&)statement;
+    auto plan = make_unique<LogicalPlan>();
+    auto renameProperty = make_shared<LogicalRenameProperty>(renamePropertyClause.getTableID(),
+        renamePropertyClause.getTableName(), renamePropertyClause.getPropertyID(),
+        renamePropertyClause.getNewName(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
+    renameProperty->computeSchema();
+    plan->setLastOperator(std::move(renameProperty));
+    return plan;
+}
+
+unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
+    auto& copyCSVClause = (BoundCopy&)statement;
+    auto plan = make_unique<LogicalPlan>();
+    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
+        copyCSVClause.getTableID(), copyCSVClause.getTableName());
+    copyCSV->computeSchema();
+    plan->setLastOperator(std::move(copyCSV));
     return plan;
 }
 

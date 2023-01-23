@@ -44,8 +44,10 @@ private:
     unique_ptr<BoundStatement> bindCreateNodeClause(const Statement& statement);
     unique_ptr<BoundStatement> bindCreateRelClause(const Statement& statement);
     unique_ptr<BoundStatement> bindDropTable(const Statement& statement);
-    unique_ptr<BoundStatement> bindDropProperty(const Statement& statement);
+    unique_ptr<BoundStatement> bindRenameTable(const Statement& statement);
     unique_ptr<BoundStatement> bindAddProperty(const Statement& statement);
+    unique_ptr<BoundStatement> bindDropProperty(const Statement& statement);
+    unique_ptr<BoundStatement> bindRenameProperty(const Statement& statement);
 
     vector<PropertyNameDataType> bindPropertyNameDataTypes(
         vector<pair<string, string>> propertyNameDataTypes);

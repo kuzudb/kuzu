@@ -144,11 +144,10 @@ public:
                           .getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCommitCreateNodeTable();
         } else {
             conn->commit();
-            validateDatabaseStateAfterCommitCreateNodeTable();
         }
+        validateDatabaseStateAfterCommitCreateNodeTable();
     }
 
     void validateDatabaseStateAfterCommitCreateRelTable() {
@@ -165,11 +164,10 @@ public:
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
             ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCommitCreateRelTable();
         } else {
             conn->commit();
-            validateDatabaseStateAfterCommitCreateRelTable();
         }
+        validateDatabaseStateAfterCommitCreateRelTable();
     }
 
     void validateBelongsRelTable() {
@@ -221,11 +219,10 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             initWithoutLoadingGraph();
-            validateBelongsRelTable();
         } else {
             conn->commit();
-            validateBelongsRelTable();
         }
+        validateBelongsRelTable();
     }
 
     void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
@@ -241,13 +238,11 @@ public:
             validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
             initWithoutLoadingGraph();
-            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         } else {
             conn->commit();
-            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         }
+        validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
     }
 
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
@@ -263,30 +258,11 @@ public:
                 relTableSchema.get(), DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
             initWithoutLoadingGraph();
-            validateRelColumnAndListFilesExistence(
-                relTableSchema.get(), DBFileType::ORIGINAL, false);
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         } else {
             conn->commit();
-            validateRelColumnAndListFilesExistence(
-                relTableSchema.get(), DBFileType::ORIGINAL, false);
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         }
-    }
-
-    void validateDatabaseStateAfterCommitDropNodeTableProperty(
-        const string& propertyFileName, bool hasOverflowFile, const string& propertyName) {
-        validateColumnFilesExistence(propertyFileName, false /* existence */, hasOverflowFile);
-        ASSERT_FALSE(catalog->getReadOnlyVersion()
-                         ->getTableSchema(personTableID)
-                         ->containProperty(propertyName));
-        auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
-        ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>{
-                "(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
-                "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
-                "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
-                "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})"});
+        validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, false);
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
     }
 
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
@@ -306,29 +282,20 @@ public:
             // The file for property gender should still exist until we do checkpoint.
             validateColumnFilesExistence(propertyFileName, true /* existence */, hasOverflowFile);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCommitDropNodeTableProperty(
-                propertyFileName, hasOverflowFile, propertyToDrop.name);
         } else {
             conn->commit();
-            validateDatabaseStateAfterCommitDropNodeTableProperty(
-                propertyFileName, hasOverflowFile, propertyToDrop.name);
         }
-    }
-
-    void validateDatabaseStateAfterCommitDropRelTableProperty(
-        const string& propertyFWDColumnFileName, const string& propertyBWDListFileName,
-        bool hasOverflowFile, const string& propertyName) {
-        validateColumnFilesExistence(
-            propertyFWDColumnFileName, false /* existence */, hasOverflowFile);
-        validateListFilesExistence(
-            propertyBWDListFileName, false /* existence */, hasOverflowFile, false /* hasHeader */);
+        validateColumnFilesExistence(propertyFileName, false /* existence */, hasOverflowFile);
         ASSERT_FALSE(catalog->getReadOnlyVersion()
                          ->getTableSchema(personTableID)
-                         ->containProperty(propertyName));
-        auto result = conn->query(
-            "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
+                         ->containProperty("gender"));
+        auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>{"(0:0)-[{_id:14, year:2021}]->(1:0)"});
+            vector<string>{
+                "(0:0:person {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
+                "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
+                "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
+                "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})"});
     }
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
@@ -359,13 +326,20 @@ public:
             validateListFilesExistence(propertyBWDListFileName, true /* existence */,
                 hasOverflowFile, false /* hasHeader */);
             initWithoutLoadingGraph();
-            validateDatabaseStateAfterCommitDropRelTableProperty(propertyFWDColumnFileName,
-                propertyBWDListFileName, hasOverflowFile, propertyToDrop.name);
         } else {
             conn->commit();
-            validateDatabaseStateAfterCommitDropRelTableProperty(propertyFWDColumnFileName,
-                propertyBWDListFileName, hasOverflowFile, propertyToDrop.name);
         }
+        validateColumnFilesExistence(
+            propertyFWDColumnFileName, false /* existence */, hasOverflowFile);
+        validateListFilesExistence(
+            propertyBWDListFileName, false /* existence */, hasOverflowFile, false /* hasHeader */);
+        ASSERT_FALSE(catalog->getReadOnlyVersion()
+                         ->getTableSchema(personTableID)
+                         ->containProperty("places"));
+        auto result = conn->query(
+            "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
+        ASSERT_EQ(TestHelper::convertResultToString(*result),
+            vector<string>{"(0:0)-[{_id:14, year:2021}]->(1:0)"});
     }
 
     void ddlStatementsInsideActiveTransactionErrorTest(string query) {
@@ -401,13 +375,6 @@ public:
         validateColumnFilesExistence(originalVersionFileName, true /* existence */, hasOverflow);
     }
 
-    void validateAddPropertyToPersonWithoutDefaultValAfterCheckpoint() {
-        auto result = conn->query(StringUtils::string_format("MATCH (p:person) return p.random"));
-        while (result->hasNext()) {
-            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
-        }
-    }
-
     void addPropertyToPersonTableWithoutDefaultValue(
         string propertyType, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(StringUtils::string_format(
@@ -427,14 +394,15 @@ public:
             validateDatabaseFileBeforeCheckpointAddProperty(
                 columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
-            validateAddPropertyToPersonWithoutDefaultValAfterCheckpoint();
         } else {
             conn->commit();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
-            validateAddPropertyToPersonWithoutDefaultValAfterCheckpoint();
+        }
+        validateDatabaseFileAfterCheckpointAddProperty(
+            columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
+        // The default value of the property is NULL if not specified by the user.
+        auto result = conn->query(StringUtils::string_format("MATCH (p:person) return p.random"));
+        while (result->hasNext()) {
+            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
     }
 
@@ -461,27 +429,14 @@ public:
             validateDatabaseFileBeforeCheckpointAddProperty(
                 columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
-            ASSERT_EQ(
-                TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
-                expectedResult);
         } else {
             conn->commit();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
-            ASSERT_EQ(
-                TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
-                expectedResult);
         }
-    }
-
-    void validateAddPropertyToStudyAtWithoutDefaultValAfterCheckpoint() {
-        auto result = conn->query(StringUtils::string_format(
-            "MATCH (:person)-[e:studyAt]->(:organisation) return e.random"));
-        while (result->hasNext()) {
-            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
-        }
+        validateDatabaseFileAfterCheckpointAddProperty(
+            columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
+        ASSERT_EQ(
+            TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
+            expectedResult);
     }
 
     void addPropertyToStudyAtTableWithoutDefaultValue(
@@ -515,18 +470,18 @@ public:
             validateDatabaseFileBeforeCheckpointAddProperty(
                 bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileAfterCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
-            validateAddPropertyToStudyAtWithoutDefaultValAfterCheckpoint();
         } else {
             conn->commit();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileAfterCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
-            validateAddPropertyToStudyAtWithoutDefaultValAfterCheckpoint();
+        }
+        validateDatabaseFileAfterCheckpointAddProperty(
+            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
+        validateDatabaseFileAfterCheckpointAddProperty(
+            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
+        // Note: the default value of the new property is NULL if not specified by the user.
+        auto result = conn->query(StringUtils::string_format(
+            "MATCH (:person)-[e:studyAt]->(:organisation) return e.random"));
+        while (result->hasNext()) {
+            ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
     }
 
@@ -563,23 +518,63 @@ public:
             validateDatabaseFileBeforeCheckpointAddProperty(
                 bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileAfterCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
-            ASSERT_EQ(TestHelper::convertResultToString(*conn->query(
-                          "MATCH (:person)-[e:studyAt]->(:organisation) return e.random")),
-                expectedResult);
         } else {
             conn->commit();
-            validateDatabaseFileAfterCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileAfterCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
-            ASSERT_EQ(TestHelper::convertResultToString(*conn->query(
-                          "MATCH (:person)-[e:studyAt]->(:organisation) return e.random")),
-                expectedResult);
         }
+        validateDatabaseFileAfterCheckpointAddProperty(
+            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
+        validateDatabaseFileAfterCheckpointAddProperty(
+            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
+        ASSERT_EQ(TestHelper::convertResultToString(
+                      *conn->query("MATCH (:person)-[e:studyAt]->(:organisation) return e.random")),
+            expectedResult);
+    }
+
+    void renameTable(TransactionTestType transactionTestType) {
+        executeQueryWithoutCommit("ALTER TABLE person RENAME TO student");
+        ASSERT_EQ(catalog->getWriteVersion()->getTableSchema(personTableID)->tableName, "student");
+        ASSERT_EQ(
+            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            ASSERT_EQ(
+                catalog->getWriteVersion()->getTableSchema(personTableID)->tableName, "student");
+            ASSERT_EQ(
+                catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
+            initWithoutLoadingGraph();
+        } else {
+            conn->commit();
+        }
+        ASSERT_EQ(
+            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "student");
+        auto result = conn->query("MATCH (s:student) return s.age order by s.age");
+        ASSERT_EQ(TestHelper::convertResultToString(*result),
+            vector<string>({"20", "20", "25", "30", "35", "40", "45", "83"}));
+    }
+
+    void renameProperty(TransactionTestType transactionTestType) {
+        executeQueryWithoutCommit("ALTER TABLE person RENAME fName TO name");
+        ASSERT_TRUE(
+            catalog->getWriteVersion()->getTableSchema(personTableID)->containProperty("name"));
+        ASSERT_TRUE(
+            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("fName"));
+        if (transactionTestType == TransactionTestType::RECOVERY) {
+            commitButSkipCheckpointingForTestingRecovery(*conn);
+            ASSERT_TRUE(
+                catalog->getWriteVersion()->getTableSchema(personTableID)->containProperty("name"));
+            ASSERT_TRUE(catalog->getReadOnlyVersion()
+                            ->getTableSchema(personTableID)
+                            ->containProperty("fName"));
+            initWithoutLoadingGraph();
+        } else {
+            conn->commit();
+        }
+        ASSERT_TRUE(
+            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("name"));
+        auto result = conn->query("MATCH (p:person) return p.name order by p.name");
+        ASSERT_EQ(TestHelper::convertResultToString(*result),
+            vector<string>({"Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
+                "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"}));
     }
 
     Catalog* catalog;
@@ -925,4 +920,20 @@ TEST_F(TinySnbDDLTest, AddPropertyWithComplexExpression) {
     vector<string> expectedResult(8, "4");
     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
         expectedResult);
+}
+
+TEST_F(TinySnbDDLTest, RenameTableNormalExecution) {
+    renameTable(TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, RenameTableRecovery) {
+    renameTable(TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, RenamePropertyNormalExecution) {
+    renameProperty(TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
+    renameTable(TransactionTestType::RECOVERY);
 }

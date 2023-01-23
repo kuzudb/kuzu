@@ -8,6 +8,8 @@
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
+#include "parser/ddl/rename_property.h"
+#include "parser/ddl/rename_table.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -887,6 +889,18 @@ unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext& ctx
     }
 }
 
+unique_ptr<Statement> Transformer::transformAlterTable(CypherParser::KU_AlterTableContext& ctx) {
+    if (ctx.kU_AlterOptions()->kU_AddProperty()) {
+        return transformAddProperty(ctx);
+    } else if (ctx.kU_AlterOptions()->kU_DropProperty()) {
+        return transformDropProperty(ctx);
+    } else if (ctx.kU_AlterOptions()->kU_RenameTable()) {
+        return transformRenameTable(ctx);
+    } else {
+        return transformRenameProperty(ctx);
+    }
+}
+
 unique_ptr<Statement> Transformer::transformCreateNodeClause(
     CypherParser::KU_CreateNodeContext& ctx) {
     auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
@@ -914,20 +928,12 @@ unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTable
     return make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
 }
 
-unique_ptr<Statement> Transformer::transformAlterTable(CypherParser::KU_AlterTableContext& ctx) {
-    if (ctx.kU_AlterOptions()->kU_DropProperty()) {
-        return transformAddProperty(ctx);
-    } else {
-        return transformDropProperty(ctx);
-    }
+unique_ptr<Statement> Transformer::transformRenameTable(CypherParser::KU_AlterTableContext& ctx) {
+    return make_unique<RenameTable>(transformSchemaName(*ctx.oC_SchemaName()),
+        transformSchemaName(*ctx.kU_AlterOptions()->kU_RenameTable()->oC_SchemaName()));
 }
 
 unique_ptr<Statement> Transformer::transformAddProperty(CypherParser::KU_AlterTableContext& ctx) {
-    return make_unique<DropProperty>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName()));
-}
-
-unique_ptr<Statement> Transformer::transformDropProperty(CypherParser::KU_AlterTableContext& ctx) {
     return make_unique<AddProperty>(transformSchemaName(*ctx.oC_SchemaName()),
         transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_PropertyKeyName()),
         transformDataType(*ctx.kU_AlterOptions()->kU_AddProperty()->kU_DataType()),
@@ -935,6 +941,20 @@ unique_ptr<Statement> Transformer::transformDropProperty(CypherParser::KU_AlterT
             transformExpression(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression()) :
             make_unique<ParsedLiteralExpression>(
                 make_unique<Value>(Value::createNullValue()), "NULL"));
+}
+
+unique_ptr<Statement> Transformer::transformDropProperty(CypherParser::KU_AlterTableContext& ctx) {
+    return make_unique<DropProperty>(transformSchemaName(*ctx.oC_SchemaName()),
+        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName()));
+}
+
+unique_ptr<Statement> Transformer::transformRenameProperty(
+    CypherParser::KU_AlterTableContext& ctx) {
+    return make_unique<RenameProperty>(transformSchemaName(*ctx.oC_SchemaName()),
+        transformPropertyKeyName(
+            *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[0]),
+        transformPropertyKeyName(
+            *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[1]));
 }
 
 vector<pair<string, string>> Transformer::transformPropertyDefinitions(

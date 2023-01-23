@@ -50,6 +50,9 @@ public:
     inline bool containRelTable(table_id_t tableID) const {
         return relTableSchemas.contains(tableID);
     }
+    inline bool containTable(const string& name) const {
+        return containNodeTable(name) || containRelTable(name);
+    }
 
     inline string getTableName(table_id_t tableID) const {
         return getTableSchema(tableID)->tableName;
@@ -126,6 +129,8 @@ public:
 
     void dropTableSchema(table_id_t tableID);
 
+    void renameTable(table_id_t tableID, string newName);
+
     void saveToFile(const string& directory, DBFileType dbFileType);
     void readFromFile(const string& directory, DBFileType dbFileType);
 
@@ -191,9 +196,13 @@ public:
 
     void dropTableSchema(table_id_t tableID);
 
-    void dropProperty(table_id_t tableID, property_id_t propertyID);
+    void renameTable(table_id_t tableID, string newName);
 
     void addProperty(table_id_t tableID, string propertyName, DataType dataType);
+
+    void dropProperty(table_id_t tableID, property_id_t propertyID);
+
+    void renameProperty(table_id_t tableID, property_id_t propertyID, string newName);
 
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
