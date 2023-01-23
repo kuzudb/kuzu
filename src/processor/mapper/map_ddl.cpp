@@ -4,6 +4,8 @@
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_rename_property.h"
+#include "planner/logical_plan/logical_operator/logical_rename_table.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
 #include "processor/operator/copy/copy_rel.h"
@@ -13,6 +15,8 @@
 #include "processor/operator/ddl/create_rel_table.h"
 #include "processor/operator/ddl/drop_property.h"
 #include "processor/operator/ddl/drop_table.h"
+#include "processor/operator/ddl/rename_property.h"
+#include "processor/operator/ddl/rename_table.h"
 
 namespace kuzu {
 namespace processor {
@@ -67,12 +71,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
         getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRenameTableToPhysical(
     LogicalOperator* logicalOperator) {
-    auto dropProperty = (LogicalDropProperty*)logicalOperator;
-    return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
-        dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
-        dropProperty->getExpressionsForPrinting());
+    auto renameTable = (LogicalRenameTable*)logicalOperator;
+    return make_unique<RenameTable>(catalog, renameTable->getTableID(), renameTable->getNewName(),
+        getOutputPos(renameTable), getOperatorID(), renameTable->getExpressionsForPrinting());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAddPropertyToPhysical(
@@ -91,6 +94,22 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAddPropertyToPhysical(
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
     }
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
+    LogicalOperator* logicalOperator) {
+    auto dropProperty = (LogicalDropProperty*)logicalOperator;
+    return make_unique<DropProperty>(catalog, dropProperty->getTableID(),
+        dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
+        dropProperty->getExpressionsForPrinting());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRenamePropertyToPhysical(
+    LogicalOperator* logicalOperator) {
+    auto renameProperty = (LogicalRenameProperty*)logicalOperator;
+    return make_unique<RenameProperty>(catalog, renameProperty->getTableID(),
+        renameProperty->getPropertyID(), renameProperty->getNewName(), getOutputPos(renameProperty),
+        getOperatorID(), renameProperty->getExpressionsForPrinting());
 }
 
 } // namespace processor

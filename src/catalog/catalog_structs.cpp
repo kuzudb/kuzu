@@ -69,6 +69,16 @@ Property TableSchema::getProperty(property_id_t propertyID) const {
         "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
 }
 
+void TableSchema::renameProperty(property_id_t propertyID, const string& newName) {
+    for (auto& property : properties) {
+        if (property.propertyID == propertyID) {
+            property.name = newName;
+            return;
+        }
+    }
+    throw InternalException("Property with id=" + to_string(propertyID) + " not found.");
+}
+
 unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
     unordered_set<table_id_t> allNodeTableIDs;
     for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {

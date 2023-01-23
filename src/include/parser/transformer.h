@@ -200,17 +200,21 @@ private:
 
     unique_ptr<Statement> transformDDL(CypherParser::KU_DDLContext& ctx);
 
+    unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
+
     unique_ptr<Statement> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
 
     unique_ptr<Statement> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);
 
     unique_ptr<Statement> transformDropTable(CypherParser::KU_DropTableContext& ctx);
 
-    unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
+    unique_ptr<Statement> transformRenameTable(CypherParser::KU_AlterTableContext& ctx);
 
     unique_ptr<Statement> transformAddProperty(CypherParser::KU_AlterTableContext& ctx);
 
     unique_ptr<Statement> transformDropProperty(CypherParser::KU_AlterTableContext& ctx);
+
+    unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
 
     string transformDataType(CypherParser::KU_DataTypeContext& ctx);
 

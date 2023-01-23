@@ -11,17 +11,23 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_REL_CLAUSE: {
         return bindCreateRelClause(statement);
     }
+    case StatementType::COPY_CSV: {
+        return bindCopy(statement);
+    }
     case StatementType::DROP_TABLE: {
         return bindDropTable(statement);
     }
-    case StatementType::COPY_CSV: {
-        return bindCopy(statement);
+    case StatementType::RENAME_TABLE: {
+        return bindRenameTable(statement);
+    }
+    case StatementType::ADD_PROPERTY: {
+        return bindAddProperty(statement);
     }
     case StatementType::DROP_PROPERTY: {
         return bindDropProperty(statement);
     }
-    case StatementType::ADD_PROPERTY: {
-        return bindAddProperty(statement);
+    case StatementType::RENAME_PROPERTY: {
+        return bindRenameProperty(statement);
     }
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);

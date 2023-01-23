@@ -71,8 +71,11 @@ private:
         LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalRenameTableToPhysical(LogicalOperator* logicalOperator);
     unique_ptr<PhysicalOperator> mapLogicalAddPropertyToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(LogicalOperator* logicalOperator);
+    unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
+        LogicalOperator* logicalOperator);
 
     unique_ptr<ResultCollector> appendResultCollector(const expression_vector& expressionsToCollect,
         const Schema& schema, unique_ptr<PhysicalOperator> prevOperator);

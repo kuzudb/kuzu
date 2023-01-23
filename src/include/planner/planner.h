@@ -22,11 +22,15 @@ private:
 
     static unique_ptr<LogicalPlan> planDropTable(const BoundStatement& statement);
 
-    static unique_ptr<LogicalPlan> planDropProperty(const BoundStatement& statement);
-
-    static unique_ptr<LogicalPlan> planCopy(const BoundStatement& statement);
+    static unique_ptr<LogicalPlan> planRenameTable(const BoundStatement& statement);
 
     static unique_ptr<LogicalPlan> planAddProperty(const BoundStatement& statement);
+
+    static unique_ptr<LogicalPlan> planDropProperty(const BoundStatement& statement);
+
+    static unique_ptr<LogicalPlan> planRenameProperty(const BoundStatement& statement);
+
+    static unique_ptr<LogicalPlan> planCopy(const BoundStatement& statement);
 };
 
 } // namespace planner

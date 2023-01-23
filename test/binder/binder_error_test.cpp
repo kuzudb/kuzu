@@ -426,3 +426,27 @@ TEST_F(BinderErrorTest, AddPropertyUnmatchedDefaultValueType) {
     auto input = "alter table person add column intCol INT64 DEFAULT 3.2";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, RenameNonExistedTable) {
+    string expectedException = "Binder exception: Node/Rel person1 does not exist.";
+    auto input = "alter table person1 rename to person2";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, RenameTableDuplicateName) {
+    string expectedException = "Binder exception: Table: organisation already exists.";
+    auto input = "alter table person rename to organisation";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, RenamePropertyOfNonExistedTable) {
+    string expectedException = "Binder exception: Node/Rel person1 does not exist.";
+    auto input = "alter table person1 rename col1 to col2";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, RenamePropertyDuplicateName) {
+    string expectedException = "Binder exception: Property gender already exists in table: person.";
+    auto input = "alter table person rename fName to gender";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

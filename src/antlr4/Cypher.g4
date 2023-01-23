@@ -57,15 +57,25 @@ ALTER: ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
 
 kU_AlterOptions
     : kU_AddProperty
-        | kU_DropProperty;
+        | kU_DropProperty
+        | kU_RenameTable
+        | kU_RenameProperty;
 
 kU_AddProperty
-    : ADD SP ( COLUMN SP )? oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
+    : ADD SP oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
 
 DEFAULT : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ;
 
 kU_DropProperty
-    : DROP SP ( COLUMN SP )? oC_PropertyKeyName ;
+    : DROP SP oC_PropertyKeyName ;
+
+kU_RenameTable
+    : RENAME SP TO SP oC_SchemaName ;
+
+kU_RenameProperty
+    : RENAME SP oC_PropertyKeyName SP TO SP oC_PropertyKeyName ;
+
+RENAME: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ;
 
 ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 

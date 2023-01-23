@@ -9,8 +9,7 @@ class LogicalDropTable : public LogicalDDL {
 public:
     explicit LogicalDropTable(
         table_id_t tableID, string tableName, shared_ptr<Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::DROP_TABLE, std::move(tableName),
-              std::move(outputExpression)},
+        : LogicalDDL{LogicalOperatorType::DROP_TABLE, std::move(tableName), outputExpression},
           tableID{tableID} {}
 
     inline table_id_t getTableID() const { return tableID; }

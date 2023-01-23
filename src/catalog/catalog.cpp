@@ -274,6 +274,14 @@ void CatalogContent::dropTableSchema(table_id_t tableID) {
     }
 }
 
+void CatalogContent::renameTable(table_id_t tableID, string newName) {
+    auto tableSchema = getTableSchema(tableID);
+    auto& tableNameToIDMap = tableSchema->isNodeTable ? nodeTableNameToIDMap : relTableNameToIDMap;
+    tableNameToIDMap.erase(tableSchema->tableName);
+    tableNameToIDMap.emplace(newName, tableID);
+    tableSchema->tableName = newName;
+}
+
 void CatalogContent::saveToFile(const string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
@@ -378,10 +386,9 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     wal->logDropTableRecord(tableID);
 }
 
-void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
+void Catalog::renameTable(table_id_t tableID, string newName) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->getTableSchema(tableID)->dropProperty(propertyID);
-    wal->logDropPropertyRecord(tableID, propertyID);
+    catalogContentForWriteTrx->renameTable(tableID, newName);
 }
 
 void Catalog::addProperty(table_id_t tableID, string propertyName, DataType dataType) {
@@ -390,6 +397,17 @@ void Catalog::addProperty(table_id_t tableID, string propertyName, DataType data
         propertyName, std::move(dataType));
     wal->logAddPropertyRecord(tableID,
         catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(std::move(propertyName)));
+}
+
+void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->getTableSchema(tableID)->dropProperty(propertyID);
+    wal->logDropPropertyRecord(tableID, propertyID);
+}
+
+void Catalog::renameProperty(table_id_t tableID, property_id_t propertyID, string newName) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->getTableSchema(tableID)->renameProperty(propertyID, newName);
 }
 
 } // namespace catalog
