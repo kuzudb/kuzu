@@ -1,9 +1,11 @@
 import numpy as np
 import datetime
 import sys
+
 sys.path.append('../build/')
 import kuzu
 from pandas import Timestamp, Timedelta, isna
+
 
 def test_to_df(establish_connection):
     conn, db = establish_connection
@@ -119,16 +121,16 @@ def test_df_get_node(establish_connection):
         'registerTime': [Timestamp('2011-08-20 11:25:30'),
                          Timestamp('2008-11-03 15:25:30.000526'),
                          Timestamp(
-            '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
-            Timestamp('1976-12-23 11:21:42'),
-            Timestamp('1972-07-31 13:22:30.678559'),
-            Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
+                             '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
+                         Timestamp('1976-12-23 11:21:42'),
+                         Timestamp('1972-07-31 13:22:30.678559'),
+                         Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
         'lastJobDuration': [Timedelta('1082 days 13:02:00'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'), Timedelta(
-                                '0 days 00:18:00.024000'),
+                '0 days 00:18:00.024000'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('1082 days 13:02:00')],
         'workedHours': [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1],
@@ -159,56 +161,55 @@ def test_df_get_node_rel(establish_connection):
     p_list = df['p'].tolist()
     o_list = df['o'].tolist()
 
-    assert len(p_list) == 2
-    assert len(o_list) == 2
+    assert len(p_list) == 3
+    assert len(o_list) == 3
 
     ground_truth_p = {
-        'ID': [5, 7],
-        'fName': ["Dan", "Elizabeth"],
-        'gender': [2, 1],
-        'isStudent': [False, False],
-        'eyeSight': [4.8, 4.7],
-        'birthdate': [datetime.date(1950, 7, 23),
+        'ID': [3, 5, 7],
+        'fName': ["Carol", "Dan", "Elizabeth"],
+        'gender': [1, 2, 1],
+        'isStudent': [False, False, False],
+        'eyeSight': [5.0, 4.8, 4.7],
+        'birthdate': [datetime.date(1940, 6, 22), datetime.date(1950, 7, 23),
                       datetime.date(1980, 10, 26)],
-        'registerTime': [Timestamp('2031-11-30 12:25:30'),
+        'registerTime': [Timestamp('1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
                          Timestamp('1976-12-23 11:21:42')
                          ],
         'lastJobDuration': [
+            Timedelta('48 hours 24 minutes 11 seconds'),
             Timedelta('3750 days 13:00:00.000024'),
             Timedelta('2 days 00:24:11')],
-        'workedHours': [[1, 9], [2]],
-        'usedNames': [
-            ['Wolfeschlegelstein', 'Daniel'], [
-                'Ein']],
-        'courseScoresPerTerm': [
-            [[7, 4], [8, 8], [9]], [
-                [6], [7], [8]]],
-        '_label': ['person', 'person'],
+        'workedHours': [[4, 5], [1, 9], [2]],
+        'usedNames': [["Carmen", "Fred"], ['Wolfeschlegelstein', 'Daniel'], ['Ein']],
+        'courseScoresPerTerm': [[[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]]],
+        '_label': ['person', 'person', 'person'],
     }
     for i in range(len(p_list)):
         p = p_list[i]
         for key in ground_truth_p:
             assert p[key] == ground_truth_p[key][i]
 
-    ground_truth_o = {'ID': [6, 6],
-                      'name': ['DEsWork', 'DEsWork'],
-                      'orgCode': [824, 824],
-                      'mark': [4.1, 4.1],
-                      'score': [7, 7],
-                      'history': ['2 years 4 hours 22 us 34 minutes',
+    ground_truth_o = {'ID': [4, 6, 6],
+                      'name': ['CsWork', 'DEsWork', 'DEsWork'],
+                      'orgCode': [934, 824, 824],
+                      'mark': [4.1, 4.1, 4.1],
+                      'score': [-100, 7, 7],
+                      'history': ['2 years 4 days 10 hours', '2 years 4 hours 22 us 34 minutes',
                                   '2 years 4 hours 22 us 34 minutes'],
-                      'licenseValidInterval': [Timedelta(days=3, seconds=36000, microseconds=100000),
+                      'licenseValidInterval': [Timedelta(days=9414),
+                                               Timedelta(days=3, seconds=36000, microseconds=100000),
                                                Timedelta(days=3, seconds=36000, microseconds=100000)],
-                      'rating': [0.52, 0.52],
-                      '_label': ['organisation', 'organisation'],
+                      'rating': [0.78, 0.52, 0.52],
+                      '_label': ['organisation', 'organisation', 'organisation'],
                       }
     for i in range(len(o_list)):
         o = df['o'][i]
         for key in ground_truth_o:
             assert o[key] == ground_truth_o[key][i]
 
-    assert (df['r'][0]['year'] == 2010)
-    assert (df['r'][1]['year'] == 2015)
+    assert (df['r'][0]['year'] == 2015)
+    assert (df['r'][1]['year'] == 2010)
+    assert (df['r'][2]['year'] == 2015)
 
     for i in range(len(df['r'])):
         assert (df['r'][i]['_src'] == df['p'][i]['_id'])

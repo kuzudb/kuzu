@@ -25,16 +25,16 @@ def test_to_networkx_node(establish_connection):
         'registerTime': [Timestamp('2011-08-20 11:25:30'),
                          Timestamp('2008-11-03 15:25:30.000526'),
                          Timestamp(
-            '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
-            Timestamp('1976-12-23 11:21:42'),
-            Timestamp('1972-07-31 13:22:30.678559'),
-            Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
+                             '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
+                         Timestamp('1976-12-23 11:21:42'),
+                         Timestamp('1972-07-31 13:22:30.678559'),
+                         Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
         'lastJobDuration': [Timedelta('1082 days 13:02:00'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'), Timedelta(
-                                '0 days 00:18:00.024000'),
+                '0 days 00:18:00.024000'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('1082 days 13:02:00')],
         'workedHours': [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1],
@@ -84,16 +84,16 @@ def test_networkx_undirected(establish_connection):
         'registerTime': [Timestamp('2011-08-20 11:25:30'),
                          Timestamp('2008-11-03 15:25:30.000526'),
                          Timestamp(
-            '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
-            Timestamp('1976-12-23 11:21:42'),
-            Timestamp('1972-07-31 13:22:30.678559'),
-            Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
+                             '1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
+                         Timestamp('1976-12-23 11:21:42'),
+                         Timestamp('1972-07-31 13:22:30.678559'),
+                         Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')],
         'lastJobDuration': [Timedelta('1082 days 13:02:00'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('2 days 00:24:11'), Timedelta(
-                                '0 days 00:18:00.024000'),
+                '0 days 00:18:00.024000'),
                             Timedelta('3750 days 13:00:00.000024'),
                             Timedelta('1082 days 13:02:00')],
         'workedHours': [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1],
@@ -140,32 +140,29 @@ def test_networkx_directed(establish_connection):
     assert nx_graph.is_directed()
 
     nodes = list(nx_graph.nodes(data=True))
-    assert len(nodes) == 3
+    assert len(nodes) == 5
 
     edges = list(nx_graph.edges(data=True))
 
     ground_truth_p = {
-        'ID': [5, 7],
-        'fName': ["Dan", "Elizabeth"],
-        'gender': [2, 1],
-        'isStudent': [False, False],
-        'eyeSight': [4.8, 4.7],
-        'birthdate': [datetime.date(1950, 7, 23),
+        'ID': [3, 5, 7],
+        'fName': ["Carol", "Dan", "Elizabeth"],
+        'gender': [1, 2, 1],
+        'isStudent': [False, False, False],
+        'eyeSight': [5.0, 4.8, 4.7],
+        'birthdate': [datetime.date(1940, 6, 22), datetime.date(1950, 7, 23),
                       datetime.date(1980, 10, 26)],
-        'registerTime': [Timestamp('2031-11-30 12:25:30'),
+        'registerTime': [Timestamp('1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
                          Timestamp('1976-12-23 11:21:42')
                          ],
         'lastJobDuration': [
+            Timedelta('48 hours 24 minutes 11 seconds'),
             Timedelta('3750 days 13:00:00.000024'),
             Timedelta('2 days 00:24:11')],
-        'workedHours': [[1, 9], [2]],
-        'usedNames': [
-            ['Wolfeschlegelstein', 'Daniel'], [
-                'Ein']],
-        'courseScoresPerTerm': [
-            [[7, 4], [8, 8], [9]], [
-                [6], [7], [8]]],
-        '_label': ['person', 'person'],
+        'workedHours': [[4, 5], [1, 9], [2]],
+        'usedNames': [["Carmen", "Fred"], ['Wolfeschlegelstein', 'Daniel'], ['Ein']],
+        'courseScoresPerTerm': [[[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]]],
+        '_label': ['person', 'person', 'person'],
     }
 
     for (node_id, node) in nodes:
@@ -183,15 +180,16 @@ def test_networkx_directed(establish_connection):
                 assert node[key] == ground_truth_p[key][i]
         assert found
 
-    ground_truth_o = {'ID': [6],
-                      'name': ['DEsWork'],
-                      'orgCode': [824],
-                      'mark': [4.1],
-                      'score': [7],
-                      'history': ['2 years 4 hours 22 us 34 minutes'],
-                      'licenseValidInterval': [Timedelta(days=3, seconds=36000, microseconds=100000)],
-                      'rating': [0.52],
-                      '_label': ['organisation'],
+    ground_truth_o = {'ID': [4, 6],
+                      'name': ['CsWork', 'DEsWork'],
+                      'orgCode': [934, 824],
+                      'mark': [4.1, 4.1],
+                      'score': [-100, 7],
+                      'history': ['2 years 4 days 10 hours', '2 years 4 hours 22 us 34 minutes'],
+                      'licenseValidInterval': [Timedelta(days=9414),
+                                               Timedelta(days=3, seconds=36000, microseconds=100000)],
+                      'rating': [0.78, 0.52],
+                      '_label': ['organisation', 'organisation'],
                       }
 
     for (_, node) in nodes:
@@ -208,15 +206,15 @@ def test_networkx_directed(establish_connection):
 
     nodes_dict = dict(nx_graph.nodes(data=True))
     edges = list(nx_graph.edges(data=True))
-    assert len(edges) == 2
+    assert len(edges) == 3
 
-    years_ground_truth = [2010, 2015]
+    years_ground_truth = [2010, 2015, 2015]
     for (src, dst, edge) in edges:
         assert nodes_dict[dst]['_label'] == 'organisation'
-        assert nodes_dict[dst]['ID'] == 6
+        assert nodes_dict[dst]['ID'] in [4, 6]
 
         assert nodes_dict[src]['_label'] == 'person'
-        assert nodes_dict[src]['ID'] in [5, 7]
+        assert nodes_dict[src]['ID'] in [3, 5, 7]
         assert edge['year'] in years_ground_truth
 
         # If the edge is found, remove it from ground truth so we can check
@@ -225,4 +223,4 @@ def test_networkx_directed(establish_connection):
         del nodes_dict[src]
 
     assert len(years_ground_truth) == 0
-    assert len(nodes_dict) == 1  # Only the organisation node should be left
+    assert len(nodes_dict) == 2  # Only the organisation node should be left

@@ -19,19 +19,18 @@ def init_tiny_snb(tmp_path):
                  "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
                  "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY "
                  "KEY (ID))")
-    conn.execute(
-        "COPY person FROM \"../../../dataset/tinysnb/vPerson.csv\" (HEADER=true)")
+    conn.execute("COPY person FROM \"../../../dataset/tinysnb/vPerson.csv\" (HEADER=true)")
     conn.execute(
         "create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, "
         "comments STRING[], MANY_MANY);")
     conn.execute("COPY knows FROM \"../../../dataset/tinysnb/eKnows.csv\"")
-    conn.execute("create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))")
-    conn.execute(
-        'COPY organisation FROM "../../../dataset/tinysnb/vOrganisation.csv" (HEADER=true)')
-    conn.execute(
-        'create rel table workAt (FROM person TO organisation, year INT64, MANY_ONE)')
-    conn.execute(
-        'COPY workAt FROM "../../../dataset/tinysnb/eWorkAt.csv" (HEADER=true)')
+    conn.execute("create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, "
+                 "history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))")
+    conn.execute('COPY organisation FROM "../../../dataset/tinysnb/vOrganisation.csv"')
+    conn.execute('CREATE NODE TABLE movies (name STRING, PRIMARY KEY (name))')
+    conn.execute('COPY movies FROM "../../../dataset/tinysnb/vMovies.csv"')
+    conn.execute('create rel table workAt (FROM person TO organisation, year INT64, MANY_ONE)')
+    conn.execute('COPY workAt FROM "../../../dataset/tinysnb/eWorkAt.csv"')
     return output_path
 
 
