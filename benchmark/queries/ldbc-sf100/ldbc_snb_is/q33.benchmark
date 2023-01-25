@@ -1,0 +1,5 @@
+-NAME interactive_short_query_3
+-COMPARE_RESULT 1
+-QUERY MATCH (n:Person {ID: 933})-[r:knows]->(friend) RETURN friend.ID AS personId, friend.firstName AS firstName, friend.lastName AS lastName, r.creationDate AS friendshipCreationDate ORDER BY friendshipCreationDate DESC, personId ASC
+---- 1
+1980-02-01|1980-02-01

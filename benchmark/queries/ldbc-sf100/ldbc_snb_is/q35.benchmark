@@ -1,0 +1,5 @@
+-NAME interactive_short_query_6
+-COMPARE_RESULT 1
+-QUERY MATCH (m:Post:Comment {ID: 2061584302085})-[:replyOfPost|:replyOfComment]->(p)<-[:containerOf]-(f:Forum)-[:hasModerator]->(mod:Person) RETURN f.ID AS forumId, f.title AS forumTitle, mod.ID AS moderatorId, mod.firstName AS moderatorFirstName, mod.lastName AS moderatorLastName
+---- 1
+1980-02-01|1980-02-01

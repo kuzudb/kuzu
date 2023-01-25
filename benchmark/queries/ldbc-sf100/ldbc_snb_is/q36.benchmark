@@ -1,0 +1,5 @@
+-NAME interactive_short_query_7
+-COMPARE_RESULT 1
+-QUERY MATCH (m:Post:Comment {id: 2061584302085})<-[:replyOfComment|:replyOfPost]-(c:Comment)-[:commentHasCreator|:postHasCreator]->(p:Person) OPTIONAL MATCH (m)-[:commentHasCreator|:postHasCreator]->(a:Person)-[r:knows]->(p) RETURN c.ID AS commentId, c.content AS commentContent, c.creationDate AS commentCreationDate, p.ID AS replyAuthorId, p.firstName AS replyAuthorFirstName, p.lastName AS replyAuthorLastName, CASE WHEN r IS NULL THEN false ELSE true END AS replyAuthorKnowsOriginalMessageAuthor ORDER BY commentCreationDate DESC, replyAuthorId;
+---- 1
+1980-02-01|1980-02-01
