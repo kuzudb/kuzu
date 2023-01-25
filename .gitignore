@@ -18,6 +18,8 @@ test/unittest_temp/
 ### Node.js
 tools/nodejs_api/node_modules/
 tools/nodejs_api/cmake_install.cmake
+tools/nodejs_api/test/
+tools/nodejs_api/package-lock.json
 
 # antlr4 jar
 scripts/antlr4/antlr4.jar
