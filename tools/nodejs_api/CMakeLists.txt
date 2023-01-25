@@ -1,0 +1,43 @@
+cmake_minimum_required(VERSION 3.25)
+project (kuzujs)
+
+set(CMAKE_CXX_STANDARD 20)
+
+add_definitions(-DNAPI_VERSION=4)
+
+if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
+    set(LIB_KUZU_PATH ../../build/debug/src/libkuzu_shared.dylib)
+    set(THIRD_PARTY_BIN_PATH ../../build/debug/third_party)
+else()
+    set(LIB_KUZU_PATH ../../build/release/src/libkuzu_shared.dylib)
+    set(THIRD_PARTY_BIN_PATH ../../build/release/third_party)
+endif()
+
+get_filename_component(LIB_KUZU_PATH ${LIB_KUZU_PATH} ABSOLUTE)
+add_library(kuzu SHARED IMPORTED)
+set_target_properties(kuzu PROPERTIES IMPORTED_LOCATION ${LIB_KUZU_PATH})
+
+get_filename_component(NODE_ADDON_API_INCLUDE_PATH ./node_modules/node-addon-api ABSOLUTE)
+get_filename_component(KUZU_INCLUDE_PATH ../../src/include ABSOLUTE)
+get_filename_component(ANTLR4_CYPHER_INCLUDE_PATH ../../third_party/antlr4_cypher/include ABSOLUTE)
+get_filename_component(ANTLR4_RUNTIME_INCLUDE_PATH ../../third_party/antlr4_runtime/src ABSOLUTE)
+get_filename_component(SPDLOG_INCLUDE_PATH ../../third_party/spdlog ABSOLUTE)
+get_filename_component(NLOHMANN_JSON_INCLUDE_PATH ../../third_party/nlohmann_json ABSOLUTE)
+get_filename_component(UTF8PROC_INCLUDE_PATH ../../third_party/utf8proc/include ABSOLUTE)
+get_filename_component(THIRD_PARTY_PATH ../../third_party ABSOLUTE)
+
+include_directories(${CMAKE_JS_INC})
+include_directories(${NODE_ADDON_API_INCLUDE_PATH})
+include_directories(${KUZU_INCLUDE_PATH})
+include_directories(${ANTLR4_CYPHER_INCLUDE_PATH})
+include_directories(${ANTLR4_RUNTIME_INCLUDE_PATH})
+include_directories(${SPDLOG_INCLUDE_PATH})
+include_directories(${NLOHMANN_JSON_INCLUDE_PATH})
+include_directories(${UTF8PROC_INCLUDE_PATH})
+
+
+file(GLOB SOURCE_FILES ./src/*.cpp ./src/*.h ./src/Samples/*.cpp ./src/Samples/*.h)
+
+add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_JS_LIB} kuzu)
