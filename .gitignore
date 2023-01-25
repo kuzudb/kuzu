@@ -15,8 +15,16 @@ __pycache__/
 cmake-build-debug/
 test/unittest_temp/
 
+<<<<<<< HEAD
 # antlr4 jar
 scripts/antlr4/antlr4.jar
 
 # macOS
 .DS_Store
+=======
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
+tools/nodejs_api/test/
+tools/nodejs_api/package-lock.json
+>>>>>>> remove package-lock.json and modify gitignore
