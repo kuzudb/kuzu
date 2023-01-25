@@ -1,26 +1,26 @@
-#include "classexample.h"
+#include "njsdatabase.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
 
-Napi::FunctionReference ClassExample::constructor;
+Napi::FunctionReference NjsDatabase::constructor;
 
-Napi::Object ClassExample::Init(Napi::Env env, Napi::Object exports) {
+Napi::Object NjsDatabase::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
-  Napi::Function t = DefineClass(env, "ClassExample", {
-      InstanceMethod("temp", &ClassExample::Temp),
+  Napi::Function t = DefineClass(env, "NjsDatabase", {
+      InstanceMethod("temp", &NjsDatabase::Temp),
   });
 
   constructor = Napi::Persistent(t);
   constructor.SuppressDestruct();
 
-  exports.Set("ClassExample", t);
+  exports.Set("NjsDatabase", t);
   return exports;
 }
 
 
-ClassExample::ClassExample(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClassExample>(info)  {
+NjsDatabase::NjsDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NjsDatabase>(info)  {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
@@ -34,7 +34,12 @@ ClassExample::ClassExample(const Napi::CallbackInfo& info) : Napi::ObjectWrap<Cl
   this->connection_ = connection;
 }
 
-Napi::Value ClassExample::Temp(const Napi::CallbackInfo& info) {
+NjsDatabase::~NjsDatabase() {
+  delete this->database_;
+  delete this->connection_;
+}
+
+Napi::Value NjsDatabase::Temp(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
