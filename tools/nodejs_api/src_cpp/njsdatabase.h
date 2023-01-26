@@ -9,7 +9,7 @@ class NjsDatabase : public Napi::ObjectWrap<NjsDatabase> {
   ~NjsDatabase();
  private:
   static Napi::FunctionReference constructor;
-  Napi::Value Temp(const Napi::CallbackInfo& info);
+  Napi::Value Execute(const Napi::CallbackInfo& info);
   kuzu::main::Database *database_;
   kuzu::main::Connection *connection_;
 };
