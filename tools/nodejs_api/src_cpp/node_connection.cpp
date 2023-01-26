@@ -1,26 +1,27 @@
-#include "njsdatabase.h"
+#include "node_connection.h"
+
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
 
-Napi::FunctionReference NjsDatabase::constructor;
+Napi::FunctionReference NodeConnection::constructor;
 
-Napi::Object NjsDatabase::Init(Napi::Env env, Napi::Object exports) {
+Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
-  Napi::Function t = DefineClass(env, "NjsDatabase", {
-      InstanceMethod("execute", &NjsDatabase::Execute),
+  Napi::Function t = DefineClass(env, "NodeConnection", {
+      InstanceMethod("execute", &NodeConnection::Execute),
   });
 
   constructor = Napi::Persistent(t);
   constructor.SuppressDestruct();
 
-  exports.Set("NjsDatabase", t);
+  exports.Set("NodeConnection", t);
   return exports;
 }
 
 
-NjsDatabase::NjsDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NjsDatabase>(info)  {
+NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NodeConnection>(info)  {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
@@ -43,12 +44,12 @@ NjsDatabase::NjsDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NjsD
   this->connection_ = connection;
 }
 
-NjsDatabase::~NjsDatabase() {
+NodeConnection::~NodeConnection() {
   delete this->database_;
   delete this->connection_;
 }
 
-Napi::Value NjsDatabase::Execute(const Napi::CallbackInfo& info) {
+Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 

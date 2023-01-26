@@ -2,11 +2,11 @@
 #include <iostream>
 #include "main/kuzu.h"
 
-class NjsDatabase : public Napi::ObjectWrap<NjsDatabase> {
+class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
  public:
   static Napi::Object Init(Napi::Env env, Napi::Object exports);
-  NjsDatabase(const Napi::CallbackInfo& info);
-  ~NjsDatabase();
+  NodeConnection(const Napi::CallbackInfo& info);
+  ~NodeConnection();
  private:
   static Napi::FunctionReference constructor;
   Napi::Value Execute(const Napi::CallbackInfo& info);
