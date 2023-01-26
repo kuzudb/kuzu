@@ -113,6 +113,9 @@ public:
         return properties;
     }
 
+    inline Value* getNodeIDVal() { return idVal.get(); }
+    inline Value* getLabelVal() { return labelVal.get(); }
+
     nodeID_t getNodeID() const;
     string getLabelName() const;
 
@@ -139,6 +142,9 @@ public:
     inline const vector<pair<std::string, unique_ptr<Value>>>& getProperties() const {
         return properties;
     }
+
+    inline Value* getSrcNodeIDVal() { return srcNodeIDVal.get(); }
+    inline Value* getDstNodeIDVal() { return dstNodeIDVal.get(); }
 
     inline unique_ptr<RelVal> copy() const { return make_unique<RelVal>(*this); }
 

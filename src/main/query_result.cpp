@@ -5,11 +5,62 @@
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
 
-using namespace std;
 using namespace kuzu::processor;
 
 namespace kuzu {
 namespace main {
+
+std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
+    const DataType& type, const string& name) {
+    auto columnTypeInfo = make_unique<DataTypeInfo>(type.typeID, name);
+    switch (type.typeID) {
+    case common::INTERNAL_ID: {
+        columnTypeInfo->childrenTypesInfo.push_back(
+            make_unique<DataTypeInfo>(common::INT64, "offset"));
+        columnTypeInfo->childrenTypesInfo.push_back(
+            make_unique<DataTypeInfo>(common::INT64, "tableID"));
+    } break;
+    case common::LIST: {
+        auto parentTypeInfo = columnTypeInfo.get();
+        auto childType = type.childType.get();
+        parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
+    } break;
+    default: {
+        // DO NOTHING
+    }
+    }
+    return std::move(columnTypeInfo);
+}
+
+vector<unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
+    vector<unique_ptr<DataTypeInfo>> result;
+    for (auto i = 0u; i < columnDataTypes.size(); i++) {
+        auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
+        if (columnTypeInfo->typeID == common::NODE) {
+            auto value = tuple->getValue(i)->nodeVal.get();
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_id"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::STRING), "_label"));
+            for (auto& [name, val] : value->getProperties()) {
+                columnTypeInfo->childrenTypesInfo.push_back(
+                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+            }
+        } else if (columnTypeInfo->typeID == common::REL) {
+            auto value = tuple->getValue(i)->relVal.get();
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_src"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_dst"));
+            for (auto& [name, val] : value->getProperties()) {
+                columnTypeInfo->childrenTypesInfo.push_back(
+                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+            }
+        }
+        result.push_back(std::move(columnTypeInfo));
+    }
+    return std::move(result);
+}
 
 void QueryResult::initResultTableAndIterator(
     std::shared_ptr<processor::FactorizedTable> factorizedTable_, const expression_vector& columns,

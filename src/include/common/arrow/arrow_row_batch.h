@@ -44,36 +44,46 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    ArrowRowBatch(std::vector<DataType> types, std::int64_t capacity);
+    ArrowRowBatch(
+        std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo, std::int64_t capacity);
 
     //! Append a data chunk to the underlying arrow array
     ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
 
 private:
-    static std::unique_ptr<ArrowVector> createVector(const DataType& type, std::int64_t capacity);
-    static void appendValue(ArrowVector* vector, Value* value);
+    static std::unique_ptr<ArrowVector> createVector(
+        const main::DataTypeInfo& typeInfo, std::int64_t capacity);
+    static void appendValue(ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value);
 
-    static ArrowArray* convertVectorToArray(const DataType& type, ArrowVector& vector);
+    static ArrowArray* convertVectorToArray(
+        ArrowVector& vector, const main::DataTypeInfo& typeInfo);
+    static ArrowArray* convertStructVectorToArray(
+        ArrowVector& vector, const main::DataTypeInfo& typeInfo);
     static inline void initializeNullBits(ArrowBuffer& validity, std::int64_t capacity) {
         auto numBytesForValidity = getNumBytesForBits(capacity);
         validity.resize(numBytesForValidity, 0xFF);
     }
-    static void copyNonNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
+    static void initializeStructVector(
+        ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity);
+    static void copyNonNullValue(
+        ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
     static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
 
-    template<typename T>
-    static void templateInitializeVector(ArrowVector* vector, std::int64_t capacity);
-    template<typename T>
-    static void templateCopyNonNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
-    template<typename T>
-    static void templateCopyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
-    template<typename T>
-    static ArrowArray* templateCreateArray(ArrowVector& vector);
+    template<DataTypeID DT>
+    static void templateInitializeVector(
+        ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity);
+    template<DataTypeID DT>
+    static void templateCopyNonNullValue(
+        ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
+    template<DataTypeID DT>
+    static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
+    template<DataTypeID DT>
+    static ArrowArray* templateCreateArray(ArrowVector& vector, const main::DataTypeInfo& typeInfo);
 
     ArrowArray toArray();
 
 private:
-    std::vector<DataType> types;
+    std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo;
     std::vector<std::unique_ptr<ArrowVector>> vectors;
     std::int64_t numTuples;
 };

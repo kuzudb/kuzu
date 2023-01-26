@@ -1,29 +1,32 @@
 #include "common/arrow/arrow_row_batch.h"
 
-ArrowRowBatch::ArrowRowBatch(std::vector<DataType> types, std::int64_t capacity)
-    : types{std::move(types)}, numTuples{0} {
-    auto numVectors = this->types.size();
+ArrowRowBatch::ArrowRowBatch(
+    std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo, std::int64_t capacity)
+    : typesInfo{std::move(typesInfo)}, numTuples{0} {
+    auto numVectors = this->typesInfo.size();
     vectors.resize(numVectors);
     for (auto i = 0u; i < numVectors; i++) {
-        vectors[i] = createVector(this->types[i], capacity);
+        vectors[i] = createVector(*this->typesInfo[i], capacity);
     }
 }
 
-template<typename T>
-void ArrowRowBatch::templateInitializeVector(ArrowVector* vector, std::int64_t capacity) {
+template<DataTypeID DT>
+void ArrowRowBatch::templateInitializeVector(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
-    vector->data.reserve(sizeof(T) * capacity);
+    vector->data.reserve(Types::getDataTypeSize(DT) * capacity);
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<bool>(ArrowVector* vector, std::int64_t capacity) {
+void ArrowRowBatch::templateInitializeVector<BOOL>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     vector->data.reserve(getNumBytesForBits(capacity));
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<std::string>(
-    ArrowVector* vector, std::int64_t capacity) {
+void ArrowRowBatch::templateInitializeVector<STRING>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     // Initialize offsets and string values buffer.
     vector->data.reserve((capacity + 1) * sizeof(std::uint32_t));
@@ -31,34 +34,86 @@ void ArrowRowBatch::templateInitializeVector<std::string>(
     vector->overflow.reserve(capacity);
 }
 
+template<>
+void ArrowRowBatch::templateInitializeVector<LIST>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    initializeNullBits(vector->validity, capacity);
+    assert(typeInfo.childrenTypesInfo.size() == 1);
+    auto childTypeInfo = typeInfo.childrenTypesInfo[0].get();
+    // Initialize offsets and child buffer.
+    vector->data.reserve((capacity + 1) * sizeof(std::uint32_t));
+    ((std::uint32_t*)vector->data.data())[0] = 0;
+    auto childVector = createVector(*childTypeInfo, capacity);
+    vector->childData.push_back(std::move(childVector));
+}
+
+void ArrowRowBatch::initializeStructVector(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    initializeNullBits(vector->validity, capacity);
+    for (auto& childTypeInfo : typeInfo.childrenTypesInfo) {
+        auto childVector = createVector(*childTypeInfo, capacity);
+        vector->childData.push_back(std::move(childVector));
+    }
+}
+
+template<>
+void ArrowRowBatch::templateInitializeVector<INTERNAL_ID>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    initializeStructVector(vector, typeInfo, capacity);
+}
+
+template<>
+void ArrowRowBatch::templateInitializeVector<NODE>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    initializeStructVector(vector, typeInfo, capacity);
+}
+
+template<>
+void ArrowRowBatch::templateInitializeVector<REL>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    initializeStructVector(vector, typeInfo, capacity);
+}
+
 std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
-    const DataType& type, std::int64_t capacity) {
+    const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     auto result = make_unique<ArrowVector>();
-    switch (type.typeID) {
+    switch (typeInfo.typeID) {
     case BOOL: {
-        templateInitializeVector<bool>(result.get(), capacity);
+        templateInitializeVector<BOOL>(result.get(), typeInfo, capacity);
     } break;
     case INT64: {
-        templateInitializeVector<std::int64_t>(result.get(), capacity);
+        templateInitializeVector<INT64>(result.get(), typeInfo, capacity);
     } break;
     case DOUBLE: {
-        templateInitializeVector<std::double_t>(result.get(), capacity);
+        templateInitializeVector<DOUBLE>(result.get(), typeInfo, capacity);
     } break;
     case DATE: {
-        templateInitializeVector<date_t>(result.get(), capacity);
+        templateInitializeVector<DATE>(result.get(), typeInfo, capacity);
     } break;
     case TIMESTAMP: {
-        templateInitializeVector<timestamp_t>(result.get(), capacity);
+        templateInitializeVector<TIMESTAMP>(result.get(), typeInfo, capacity);
     } break;
     case INTERVAL: {
-        templateInitializeVector<interval_t>(result.get(), capacity);
+        templateInitializeVector<INTERVAL>(result.get(), typeInfo, capacity);
     } break;
     case STRING: {
-        templateInitializeVector<std::string>(result.get(), capacity);
+        templateInitializeVector<STRING>(result.get(), typeInfo, capacity);
+    } break;
+    case LIST: {
+        templateInitializeVector<LIST>(result.get(), typeInfo, capacity);
+    } break;
+    case INTERNAL_ID: {
+        templateInitializeVector<INTERNAL_ID>(result.get(), typeInfo, capacity);
+    } break;
+    case NODE: {
+        templateInitializeVector<NODE>(result.get(), typeInfo, capacity);
+    } break;
+    case REL: {
+        templateInitializeVector<REL>(result.get(), typeInfo, capacity);
     } break;
     default: {
-        throw RuntimeException("Unsupported data type " + Types::dataTypeToString(type) +
-                               " for arrow vector initialization.");
+        throw RuntimeException(
+            "Invalid data type " + Types::dataTypeToString(typeInfo.typeID) + " for arrow export.");
     }
     }
     return std::move(result);
@@ -81,23 +136,26 @@ static void setBitToOne(std::uint8_t* data, std::int64_t pos) {
     data[bytePos] |= ((std::uint64_t)1 << bitOffset);
 }
 
-void ArrowRowBatch::appendValue(ArrowVector* vector, Value* value) {
+void ArrowRowBatch::appendValue(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value) {
     if (value->isNull_) {
         copyNullValue(vector, value, vector->numValues);
     } else {
-        copyNonNullValue(vector, value, vector->numValues);
+        copyNonNullValue(vector, typeInfo, value, vector->numValues);
     }
     vector->numValues++;
 }
 
-template<typename T>
-void ArrowRowBatch::templateCopyNonNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
-    std::memcpy(vector->data.data() + pos * sizeof(T), &value->val, sizeof(T));
+template<DataTypeID DT>
+void ArrowRowBatch::templateCopyNonNullValue(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    auto valSize = Types::getDataTypeSize(DT);
+    std::memcpy(vector->data.data() + pos * valSize, &value->val, valSize);
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<bool>(
-    ArrowVector* vector, Value* value, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNonNullValue<BOOL>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     if (value->val.booleanVal) {
         setBitToOne(vector->data.data(), pos);
     } else {
@@ -106,8 +164,8 @@ void ArrowRowBatch::templateCopyNonNullValue<bool>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<std::string>(
-    ArrowVector* vector, Value* value, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNonNullValue<STRING>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     auto strLength = value->strVal.length();
     offsets[pos + 1] = offsets[pos] + strLength;
@@ -115,77 +173,175 @@ void ArrowRowBatch::templateCopyNonNullValue<std::string>(
     std::memcpy(vector->overflow.data() + offsets[pos], value->strVal.data(), strLength);
 }
 
-void ArrowRowBatch::copyNonNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
-    switch (value->dataType.typeID) {
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<LIST>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    vector->data.resize((pos + 2) * sizeof(std::uint32_t));
+    auto offsets = (std::uint32_t*)vector->data.data();
+    auto numElements = value->listVal.size();
+    offsets[pos + 1] = offsets[pos] + numElements;
+    auto numChildElements = offsets[pos + 1] + 1;
+    auto currentNumBytesForChildValidity = vector->childData[0]->validity.size();
+    auto numBytesForChildValidity = getNumBytesForBits(numChildElements);
+    vector->childData[0]->validity.resize(numBytesForChildValidity);
+    // Initialize validity mask which is used to mark each value is valid (non-null) or not (null).
+    for (auto i = currentNumBytesForChildValidity; i < numBytesForChildValidity; i++) {
+        vector->childData[0]->validity.data()[i] = 0xFF; // Init each value to be valid (as 1).
+    }
+    if (typeInfo.childrenTypesInfo[0]->typeID != LIST) {
+        vector->childData[0]->data.resize(
+            numChildElements * Types::getDataTypeSize(typeInfo.childrenTypesInfo[0]->typeID));
+    }
+    for (auto i = 0u; i < numElements; i++) {
+        appendValue(
+            vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->listVal[i].get());
+    }
+}
+
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<INTERNAL_ID>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    auto nodeID = value->getValue<nodeID_t>();
+    Value offsetVal((std::int64_t)nodeID.offset);
+    Value tableIDVal((std::int64_t)nodeID.tableID);
+    appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], &offsetVal);
+    appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], &tableIDVal);
+}
+
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<NODE>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    appendValue(
+        vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->nodeVal->getNodeIDVal());
+    appendValue(
+        vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], value->nodeVal->getLabelVal());
+    std::int64_t propertyId = 2;
+    for (auto& [name, val] : value->nodeVal->getProperties()) {
+        appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
+            val.get());
+        propertyId++;
+    }
+}
+
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<REL>(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
+        value->relVal->getSrcNodeIDVal());
+    appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1],
+        value->relVal->getDstNodeIDVal());
+    std::int64_t propertyId = 2;
+    for (auto& [name, val] : value->relVal->getProperties()) {
+        appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
+            val.get());
+        propertyId++;
+    }
+}
+
+void ArrowRowBatch::copyNonNullValue(
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    switch (typeInfo.typeID) {
     case BOOL: {
-        templateCopyNonNullValue<bool>(vector, value, pos);
+        templateCopyNonNullValue<BOOL>(vector, typeInfo, value, pos);
     } break;
     case INT64: {
-        templateCopyNonNullValue<std::int64_t>(vector, value, pos);
+        templateCopyNonNullValue<INT64>(vector, typeInfo, value, pos);
     } break;
     case DOUBLE: {
-        templateCopyNonNullValue<std::double_t>(vector, value, pos);
+        templateCopyNonNullValue<DOUBLE>(vector, typeInfo, value, pos);
     } break;
     case DATE: {
-        templateCopyNonNullValue<date_t>(vector, value, pos);
+        templateCopyNonNullValue<DATE>(vector, typeInfo, value, pos);
     } break;
     case TIMESTAMP: {
-        templateCopyNonNullValue<timestamp_t>(vector, value, pos);
+        templateCopyNonNullValue<TIMESTAMP>(vector, typeInfo, value, pos);
     } break;
     case INTERVAL: {
-        templateCopyNonNullValue<interval_t>(vector, value, pos);
+        templateCopyNonNullValue<INTERVAL>(vector, typeInfo, value, pos);
     } break;
     case STRING: {
-        templateCopyNonNullValue<std::string>(vector, value, pos);
+        templateCopyNonNullValue<STRING>(vector, typeInfo, value, pos);
+    } break;
+    case LIST: {
+        templateCopyNonNullValue<LIST>(vector, typeInfo, value, pos);
+    } break;
+    case INTERNAL_ID: {
+        templateCopyNonNullValue<INTERNAL_ID>(vector, typeInfo, value, pos);
+    } break;
+    case NODE: {
+        templateCopyNonNullValue<NODE>(vector, typeInfo, value, pos);
+    } break;
+    case REL: {
+        templateCopyNonNullValue<REL>(vector, typeInfo, value, pos);
     } break;
     default: {
-        throw RuntimeException("Data type " + Types::dataTypeToString(value->dataType) +
-                               " is not supported for arrow exportation.");
+        throw RuntimeException(
+            "Invalid data type " + Types::dataTypeToString(value->dataType) + " for arrow export.");
     }
     }
 }
 
-template<typename T>
-void ArrowRowBatch::templateCopyNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
-    setBitToZero(vector->validity.data(), vector->numValues);
+template<DataTypeID DT>
+void ArrowRowBatch::templateCopyNullValue(ArrowVector* vector, std::int64_t pos) {
+    // TODO(Guodong): make this as a function.
+    setBitToZero(vector->validity.data(), pos);
     vector->numNulls++;
 }
 
 template<>
-void ArrowRowBatch::templateCopyNullValue<std::string>(
-    ArrowVector* vector, Value* value, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNullValue<STRING>(ArrowVector* vector, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     offsets[pos + 1] = offsets[pos];
-    setBitToZero(vector->validity.data(), vector->numValues);
+    setBitToZero(vector->validity.data(), pos);
+    vector->numNulls++;
+}
+
+template<>
+void ArrowRowBatch::templateCopyNullValue<LIST>(ArrowVector* vector, std::int64_t pos) {
+    auto offsets = (std::uint32_t*)vector->data.data();
+    offsets[pos + 1] = offsets[pos];
+    setBitToZero(vector->validity.data(), pos);
     vector->numNulls++;
 }
 
 void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
     switch (value->dataType.typeID) {
     case BOOL: {
-        templateCopyNullValue<bool>(vector, value, pos);
+        templateCopyNullValue<BOOL>(vector, pos);
     } break;
     case INT64: {
-        templateCopyNullValue<std::int64_t>(vector, value, pos);
+        templateCopyNullValue<INT64>(vector, pos);
     } break;
     case DOUBLE: {
-        templateCopyNullValue<std::double_t>(vector, value, pos);
+        templateCopyNullValue<DOUBLE>(vector, pos);
     } break;
     case DATE: {
-        templateCopyNullValue<date_t>(vector, value, pos);
+        templateCopyNullValue<DATE>(vector, pos);
     } break;
     case TIMESTAMP: {
-        templateCopyNullValue<timestamp_t>(vector, value, pos);
+        templateCopyNullValue<TIMESTAMP>(vector, pos);
     } break;
     case INTERVAL: {
-        templateCopyNullValue<interval_t>(vector, value, pos);
+        templateCopyNullValue<INTERVAL>(vector, pos);
     } break;
     case STRING: {
-        templateCopyNullValue<std::string>(vector, value, pos);
+        templateCopyNullValue<STRING>(vector, pos);
+    } break;
+    case LIST: {
+        templateCopyNullValue<LIST>(vector, pos);
+    } break;
+    case INTERNAL_ID: {
+        templateCopyNullValue<INTERNAL_ID>(vector, pos);
+    } break;
+    case NODE: {
+        templateCopyNullValue<NODE>(vector, pos);
+    } break;
+    case REL: {
+        templateCopyNullValue<REL>(vector, pos);
     } break;
     default: {
-        throw RuntimeException("Data type " + Types::dataTypeToString(value->dataType) +
-                               " is not supported for arrow exportation.");
+        throw RuntimeException(
+            "Invalid data type " + Types::dataTypeToString(value->dataType) + " for arrow export.");
     }
     }
 }
@@ -215,15 +371,17 @@ static unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
     return std::move(result);
 }
 
-template<typename T>
-ArrowArray* ArrowRowBatch::templateCreateArray(ArrowVector& vector) {
+template<DataTypeID DT>
+ArrowArray* ArrowRowBatch::templateCreateArray(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
     vector.array = std::move(result);
     return vector.array.get();
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<string>(ArrowVector& vector) {
+ArrowArray* ArrowRowBatch::templateCreateArray<STRING>(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
     result->n_buffers = 3;
     result->buffers[2] = vector.overflow.data();
@@ -231,32 +389,91 @@ ArrowArray* ArrowRowBatch::templateCreateArray<string>(ArrowVector& vector) {
     return vector.array.get();
 }
 
-ArrowArray* ArrowRowBatch::convertVectorToArray(const DataType& type, ArrowVector& vector) {
-    switch (type.typeID) {
+template<>
+ArrowArray* ArrowRowBatch::templateCreateArray<LIST>(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    auto result = createArrayFromVector(vector);
+    vector.childPointers.resize(1);
+    result->children = vector.childPointers.data();
+    result->n_children = 1;
+    vector.childPointers[0] =
+        convertVectorToArray(*vector.childData[0], *typeInfo.childrenTypesInfo[0]);
+    vector.array = std::move(result);
+    return vector.array.get();
+}
+
+ArrowArray* ArrowRowBatch::convertStructVectorToArray(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    auto result = createArrayFromVector(vector);
+    result->n_buffers = 1;
+    vector.childPointers.resize(typeInfo.childrenTypesInfo.size());
+    result->children = vector.childPointers.data();
+    result->n_children = (std::int64_t)typeInfo.childrenTypesInfo.size();
+    for (auto i = 0u; i < typeInfo.childrenTypesInfo.size(); i++) {
+        auto& childTypeInfo = typeInfo.childrenTypesInfo[i];
+        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], *childTypeInfo);
+    }
+    vector.array = std::move(result);
+    return vector.array.get();
+}
+
+template<>
+ArrowArray* ArrowRowBatch::templateCreateArray<INTERNAL_ID>(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    return convertStructVectorToArray(vector, typeInfo);
+}
+
+template<>
+ArrowArray* ArrowRowBatch::templateCreateArray<NODE>(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    return convertStructVectorToArray(vector, typeInfo);
+}
+
+template<>
+ArrowArray* ArrowRowBatch::templateCreateArray<REL>(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    return convertStructVectorToArray(vector, typeInfo);
+}
+
+ArrowArray* ArrowRowBatch::convertVectorToArray(
+    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    switch (typeInfo.typeID) {
     case BOOL: {
-        return templateCreateArray<bool>(vector);
+        return templateCreateArray<BOOL>(vector, typeInfo);
     }
     case INT64: {
-        return templateCreateArray<std::int64_t>(vector);
+        return templateCreateArray<INT64>(vector, typeInfo);
     }
     case DOUBLE: {
-        return templateCreateArray<std::double_t>(vector);
+        return templateCreateArray<DOUBLE>(vector, typeInfo);
     }
     case DATE: {
-        return templateCreateArray<date_t>(vector);
+        return templateCreateArray<DATE>(vector, typeInfo);
     }
     case TIMESTAMP: {
-        return templateCreateArray<timestamp_t>(vector);
+        return templateCreateArray<TIMESTAMP>(vector, typeInfo);
     }
     case INTERVAL: {
-        return templateCreateArray<interval_t>(vector);
+        return templateCreateArray<INTERVAL>(vector, typeInfo);
     }
     case STRING: {
-        return templateCreateArray<string>(vector);
+        return templateCreateArray<STRING>(vector, typeInfo);
+    }
+    case LIST: {
+        return templateCreateArray<LIST>(vector, typeInfo);
+    }
+    case INTERNAL_ID: {
+        return templateCreateArray<INTERNAL_ID>(vector, typeInfo);
+    }
+    case NODE: {
+        return templateCreateArray<NODE>(vector, typeInfo);
+    }
+    case REL: {
+        return templateCreateArray<REL>(vector, typeInfo);
     }
     default: {
-        throw RuntimeException("Data type " + Types::dataTypeToString(type) +
-                               " is not supported for arrow exportation.");
+        throw RuntimeException(
+            "Invalid data type " + Types::dataTypeToString(typeInfo.typeID) + " for arrow export.");
     }
     }
 }
@@ -264,9 +481,9 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(const DataType& type, ArrowVecto
 ArrowArray ArrowRowBatch::toArray() {
     auto rootHolder = make_unique<ArrowVector>();
     ArrowArray result;
-    rootHolder->childPointers.resize(types.size());
+    rootHolder->childPointers.resize(typesInfo.size());
     result.children = rootHolder->childPointers.data();
-    result.n_children = (std::int64_t)types.size();
+    result.n_children = (std::int64_t)typesInfo.size();
     result.length = numTuples;
     result.n_buffers = 1;
     result.buffers = rootHolder->buffers.data(); // no actual buffer
@@ -275,7 +492,8 @@ ArrowArray ArrowRowBatch::toArray() {
     result.dictionary = nullptr;
     rootHolder->childData = std::move(vectors);
     for (auto i = 0u; i < rootHolder->childData.size(); i++) {
-        rootHolder->childPointers[i] = convertVectorToArray(types[i], *rootHolder->childData[i]);
+        rootHolder->childPointers[i] =
+            convertVectorToArray(*rootHolder->childData[i], *typesInfo[i]);
     }
     result.private_data = rootHolder.release();
     result.release = releaseArrowVector;
@@ -292,7 +510,7 @@ ArrowArray ArrowRowBatch::append(main::QueryResult& queryResult, std::int64_t ch
         auto tuple = queryResult.getNext();
         vector<std::uint32_t> colWidths(numColumns, 10);
         for (auto i = 0u; i < numColumns; i++) {
-            appendValue(vectors[i].get(), tuple->getValue(i));
+            appendValue(vectors[i].get(), *typesInfo[i], tuple->getValue(i));
         }
         numTuplesInBatch++;
     }

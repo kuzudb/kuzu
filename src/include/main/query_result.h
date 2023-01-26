@@ -10,6 +10,18 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
+struct DataTypeInfo {
+public:
+    DataTypeInfo(DataTypeID typeID, std::string name) : typeID{typeID}, name{std::move(name)} {}
+
+    DataTypeID typeID;
+    std::string name;
+    std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
+
+    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
+        const DataType& type, const string& name);
+};
+
 class QueryResult {
     friend class Connection;
 
@@ -33,6 +45,8 @@ public:
     }
 
     inline QuerySummary* getQuerySummary() const { return querySummary.get(); }
+
+    vector<unique_ptr<DataTypeInfo>> getColumnTypesInfo();
 
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
         const expression_vector& columns,
