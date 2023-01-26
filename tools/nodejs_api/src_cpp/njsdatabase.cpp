@@ -9,7 +9,7 @@ Napi::Object NjsDatabase::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
   Napi::Function t = DefineClass(env, "NjsDatabase", {
-      InstanceMethod("temp", &NjsDatabase::Temp),
+      InstanceMethod("execute", &NjsDatabase::Execute),
   });
 
   constructor = Napi::Persistent(t);
@@ -24,7 +24,16 @@ NjsDatabase::NjsDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NjsD
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  DatabaseConfig databaseConfig("test");
+  if (info.Length()!=1) {
+      Napi::TypeError::New(env, "Need database config string (of length 1)").ThrowAsJavaScriptException();
+  }
+  if (!info[0].IsString()) {
+      Napi::TypeError::New(env, "Database config parameter must be a string").ThrowAsJavaScriptException();
+  }
+
+  std::string databaseConfigString = info[0].ToString().Utf8Value().c_str();
+  std::cout << databaseConfigString << std::endl;
+  DatabaseConfig databaseConfig(databaseConfigString);
   SystemConfig systemConfig(1ull << 30 /* set buffer manager size to 2GB */);
   Database * database = new Database(databaseConfig, systemConfig);
 
@@ -39,7 +48,7 @@ NjsDatabase::~NjsDatabase() {
   delete this->connection_;
 }
 
-Napi::Value NjsDatabase::Temp(const Napi::CallbackInfo& info) {
+Napi::Value NjsDatabase::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 

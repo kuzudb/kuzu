@@ -1,37 +1,16 @@
-const kuzu = require("../Release/kuzujs.node");
-const QueryResult = require("./queryResult.js");
-
 class Connection {
     #connection;
-    constructor(database, numThreads = 0) {
-        this.#connection = new kuzu.NodeConnection(database.database, numThreads);
+    constructor(databaseConfigString) {
+        const kuzu = require("../build/Release/kuzujs.node");
+        this.#connection = new kuzu.NjsDatabase(databaseConfigString);
+        console.log('Connection Created', kuzu);
     }
 
-    execute(query, callback=null, params=[]){
-        const nodeQueryResult = new kuzu.NodeQueryResult();
-        if (callback) {
-            this.#connection.execute(query, err => {
-                const queryResult = new QueryResult(nodeQueryResult);
-                callback(err, queryResult);
-            }, nodeQueryResult, params);
-        } else {
-            return new Promise ((resolve, reject) => {
-                this.#connection.execute(query, err => {
-                    if (err) { return reject(err); }
-                    return resolve(new QueryResult(nodeQueryResult));
-                }, nodeQueryResult, params);
-            })
-        }
+    execute(query){
+        console.log("The query is ", query);
+        return this.#connection.execute(query);
     }
-
-    setMaxNumThreadForExec(numThreads) {
-        this.#connection.setMaxNumThreadForExec(numThreads);
-    }
-
-    getNodePropertyNames(tableName) {
-        return this.#connection.getNodePropertyNames(tableName);
-    }
-
 }
+
 
 module.exports = Connection
