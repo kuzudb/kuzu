@@ -96,6 +96,21 @@ protected:
         PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
 
+    void readRelIDsBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
+        PageElementCursor& cursor,
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
+        table_id_t commonTableID, bool hasNoNullGuarantee);
+
+    void readRelIDsFromAPageBySequentialCopy(Transaction* transaction,
+        const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
+        uint16_t pagePosOfFirstElement, uint64_t numValuesToRead, table_id_t commonTableID,
+        bool hasNoNullGuarantee);
+
+    void readRelIDsBySequentialCopyWithSelState(Transaction* transaction,
+        const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+        const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
+        table_id_t commonTableID);
+
     void readBySequentialCopyWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper);
@@ -103,7 +118,7 @@ protected:
     void readNodeIDsBySequentialCopy(Transaction* transaction,
         const shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
         const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-        NodeIDCompressionScheme nodeIDCompressionScheme, bool isAdjLists);
+        NodeIDCompressionScheme nodeIDCompressionScheme, bool hasNoNullGuarantee);
 
     void readNodeIDsBySequentialCopyWithSelState(Transaction* transaction,
         const shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
@@ -113,7 +128,7 @@ protected:
     void readNodeIDsFromAPageBySequentialCopy(Transaction* transaction,
         const shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
         uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
-        NodeIDCompressionScheme& nodeIDCompressionScheme, bool isAdjLists);
+        NodeIDCompressionScheme& nodeIDCompressionScheme, bool hasNoNullGuarantee);
 
     void readSingleNullBit(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector) const;

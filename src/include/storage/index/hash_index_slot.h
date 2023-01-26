@@ -3,8 +3,8 @@
 #include <cstdint>
 
 #include "common/configs.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
-#include "common/types/node_id_t.h"
 
 namespace kuzu {
 namespace storage {
@@ -40,7 +40,7 @@ public:
 
 template<typename T>
 struct SlotEntry {
-    uint8_t data[sizeof(T) + sizeof(common::node_offset_t)];
+    uint8_t data[sizeof(T) + sizeof(common::offset_t)];
 };
 
 template<typename T>

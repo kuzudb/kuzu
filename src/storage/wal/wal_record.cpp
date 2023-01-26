@@ -54,7 +54,7 @@ StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTabl
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::LISTS;
     retVal.listFileID = ListFileID(listFileType,
-        RelPropertyListID(RelNodeTableAndDir(nodeTableID, relTableID, dir), propertyID));
+        RelPropertyListsID(RelNodeTableAndDir(nodeTableID, relTableID, dir), propertyID));
     return retVal;
 }
 

@@ -18,7 +18,8 @@ protected:
                 definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
             }
         }
-        for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL}) {
+        for (auto& typeID :
+            vector<DataTypeID>{BOOL, STRING, INTERNAL_ID, DATE, TIMESTAMP, INTERVAL}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
         definitions.push_back(getDefinition<FUNC>(name, DATE, TIMESTAMP));
@@ -75,8 +76,8 @@ private:
             assert(rightTypeID == STRING);
             return BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, FUNC>;
         }
-        case NODE_ID: {
-            assert(rightTypeID == NODE_ID);
+        case INTERNAL_ID: {
+            assert(rightTypeID == INTERNAL_ID);
             return BinaryExecFunction<nodeID_t, nodeID_t, uint8_t, FUNC>;
         }
         case DATE: {
@@ -157,8 +158,8 @@ private:
             assert(rightTypeID == STRING);
             return BinarySelectFunction<ku_string_t, ku_string_t, FUNC>;
         }
-        case NODE_ID: {
-            assert(rightTypeID == NODE_ID);
+        case INTERNAL_ID: {
+            assert(rightTypeID == INTERNAL_ID);
             return BinarySelectFunction<nodeID_t, nodeID_t, FUNC>;
         }
         case DATE: {

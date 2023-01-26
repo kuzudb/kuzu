@@ -10,7 +10,7 @@ namespace storage {
 
 template<typename T>
 HashIndexLocalLookupState TemplatedHashIndexLocalStorage<T>::lookup(
-    const T& key, node_offset_t& result) {
+    const T& key, offset_t& result) {
     if (localDeletions.contains(key)) {
         return HashIndexLocalLookupState::KEY_DELETED;
     } else if (localInsertions.contains(key)) {
@@ -31,7 +31,7 @@ void TemplatedHashIndexLocalStorage<T>::deleteKey(const T& key) {
 }
 
 template<typename T>
-bool TemplatedHashIndexLocalStorage<T>::insert(const T& key, node_offset_t value) {
+bool TemplatedHashIndexLocalStorage<T>::insert(const T& key, offset_t value) {
     if (localDeletions.contains(key)) {
         localDeletions.erase(key);
     }
@@ -45,7 +45,7 @@ bool TemplatedHashIndexLocalStorage<T>::insert(const T& key, node_offset_t value
 template class TemplatedHashIndexLocalStorage<int64_t>;
 template class TemplatedHashIndexLocalStorage<string>;
 
-HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, node_offset_t& result) {
+HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, offset_t& result) {
     shared_lock sLck{localStorageSharedMutex};
     if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
@@ -69,7 +69,7 @@ void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
     }
 }
 
-bool HashIndexLocalStorage::insert(const uint8_t* key, node_offset_t value) {
+bool HashIndexLocalStorage::insert(const uint8_t* key, offset_t value) {
     unique_lock xLck{localStorageSharedMutex};
     if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
@@ -82,7 +82,7 @@ bool HashIndexLocalStorage::insert(const uint8_t* key, node_offset_t value) {
 }
 
 void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
-    const std::function<void(const uint8_t*, node_offset_t)>& insertOp) {
+    const std::function<void(const uint8_t*, offset_t)>& insertOp) {
     if (keyDataType.typeID == INT64) {
         for (auto& key : templatedLocalStorageForInt.localDeletions) {
             deleteOp((uint8_t*)&key);
@@ -154,8 +154,7 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
 // - the key is neither deleted nor found in the local storage, lookup in the persistent
 // storage.
 template<typename T>
-bool HashIndex<T>::lookupInternal(
-    Transaction* transaction, const uint8_t* key, node_offset_t& result) {
+bool HashIndex<T>::lookupInternal(Transaction* transaction, const uint8_t* key, offset_t& result) {
     if (transaction->isReadOnly()) {
         return lookupInPersistentIndex(transaction->getType(), key, result);
     } else {
@@ -186,8 +185,8 @@ void HashIndex<T>::deleteInternal(const uint8_t* key) const {
 // index, if
 //   so, return false, else insert the key to the local storage.
 template<typename T>
-bool HashIndex<T>::insertInternal(const uint8_t* key, node_offset_t value) {
-    node_offset_t tmpResult;
+bool HashIndex<T>::insertInternal(const uint8_t* key, offset_t value) {
+    offset_t tmpResult;
     auto localLookupState = localStorage->lookup(key, tmpResult);
     if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
         return false;
@@ -202,7 +201,7 @@ bool HashIndex<T>::insertInternal(const uint8_t* key, node_offset_t value) {
 template<typename T>
 template<ChainedSlotsAction action>
 bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashIndexHeader& header,
-    SlotInfo& slotInfo, const uint8_t* key, node_offset_t& result) {
+    SlotInfo& slotInfo, const uint8_t* key, offset_t& result) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(trxType, slotInfo);
         if constexpr (action == ChainedSlotsAction::FIND_FREE_SLOT) {
@@ -215,8 +214,8 @@ bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashInde
             auto entryPos = findMatchedEntryInSlot(trxType, slot, key);
             if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
                 if constexpr (action == ChainedSlotsAction::LOOKUP_IN_SLOTS) {
-                    result = *(
-                        node_offset_t*)(slot.entries[entryPos].data + indexHeader->numBytesPerKey);
+                    result =
+                        *(offset_t*)(slot.entries[entryPos].data + indexHeader->numBytesPerKey);
                 } else if constexpr (action == ChainedSlotsAction::DELETE_IN_SLOTS) {
                     slot.header.setEntryInvalid(entryPos);
                     slot.header.numEntries--;
@@ -234,7 +233,7 @@ bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashInde
 
 template<typename T>
 bool HashIndex<T>::lookupInPersistentIndex(
-    TransactionType trxType, const uint8_t* key, node_offset_t& result) {
+    TransactionType trxType, const uint8_t* key, offset_t& result) {
     auto header = trxType == TransactionType::READ_ONLY ?
                       *indexHeader :
                       headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
@@ -244,7 +243,7 @@ bool HashIndex<T>::lookupInPersistentIndex(
 }
 
 template<typename T>
-void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, node_offset_t value) {
+void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, offset_t value) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     slot_id_t numRequiredEntries = getNumRequiredEntries(header.numEntries, 1);
     while (numRequiredEntries >
@@ -253,7 +252,7 @@ void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, node_offset_t v
     }
     auto pSlotId = getPrimarySlotIdForKey(header, key);
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
-    node_offset_t result;
+    offset_t result;
     performActionInChainedSlots<ChainedSlotsAction::FIND_FREE_SLOT>(
         TransactionType::WRITE, header, slotInfo, key, result);
     Slot slot = getSlot(TransactionType::WRITE, slotInfo);
@@ -266,7 +265,7 @@ template<typename T>
 void HashIndex<T>::deleteFromPersistentIndex(const uint8_t* key) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     SlotInfo slotInfo{getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
-    node_offset_t result;
+    offset_t result;
     performActionInChainedSlots<ChainedSlotsAction::DELETE_IN_SLOTS>(
         TransactionType::WRITE, header, slotInfo, key, result);
     headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, header);
@@ -341,8 +340,8 @@ vector<pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId)
 }
 
 template<typename T>
-void HashIndex<T>::copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos,
-    const uint8_t* key, node_offset_t value) {
+void HashIndex<T>::copyAndUpdateSlotHeader(
+    bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos, const uint8_t* key, offset_t value) {
     if (isCopyEntry) {
         memcpy(slot.entries[entryPos].data, key, indexHeader->numBytesPerEntry);
     } else {
@@ -353,8 +352,8 @@ void HashIndex<T>::copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entr
 }
 
 template<typename T>
-void HashIndex<T>::copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot,
-    const uint8_t* key, node_offset_t value) {
+void HashIndex<T>::copyKVOrEntryToSlot(
+    bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot, const uint8_t* key, offset_t value) {
     if (slot.header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
         // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
         // nextOvfSlotId.
@@ -391,7 +390,7 @@ template<typename T>
 void HashIndex<T>::prepareCommit() {
     localStorage->applyLocalChanges(
         [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
-        [this](const uint8_t* key, node_offset_t value) -> void {
+        [this](const uint8_t* key, offset_t value) -> void {
             this->insertIntoPersistentIndex(key, value);
         });
 }
@@ -436,7 +435,7 @@ template class HashIndex<int64_t>;
 template class HashIndex<ku_string_t>;
 
 bool PrimaryKeyIndex::lookup(
-    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result) {
+    Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, offset_t& result) {
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);
@@ -460,7 +459,7 @@ void PrimaryKeyIndex::deleteKey(ValueVector* keyVector, uint64_t vectorPos) {
     }
 }
 
-bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, node_offset_t value) {
+bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, offset_t value) {
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);

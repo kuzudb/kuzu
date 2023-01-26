@@ -4,7 +4,6 @@
 
 #include "catalog/catalog_structs.h"
 #include "common/data_chunk/data_chunk.h"
-#include "common/types/node_id_t.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
 #include "storage/storage_structure/lists/list_handle.h"
@@ -34,8 +33,8 @@ public:
     explicit ListsUpdatesForNodeOffset(const RelTableSchema& relTableSchema);
 
     inline bool hasUpdates() const {
-        return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() || !deletedRelIDs.empty() ||
-               hasAnyUpdatedPersistentListOffsets();
+        return isNewlyAddedNode || !insertedRelsTupleIdxInFT.empty() ||
+               !deletedRelOffsets.empty() || hasAnyUpdatedPersistentListOffsets();
     }
 
     bool hasAnyUpdatedPersistentListOffsets() const;
@@ -44,7 +43,7 @@ public:
     bool isNewlyAddedNode;
     vector<ft_tuple_idx_t> insertedRelsTupleIdxInFT;
     unordered_map<property_id_t, UpdatedPersistentListOffsets> updatedPersistentListOffsets;
-    unordered_set<int64_t> deletedRelIDs;
+    unordered_set<offset_t> deletedRelOffsets;
 };
 
 struct ListsUpdateInfo {
@@ -64,7 +63,7 @@ public:
     list_offset_t bwdListOffset;
 };
 
-using ListsUpdatesPerNode = map<node_offset_t, unique_ptr<ListsUpdatesForNodeOffset>>;
+using ListsUpdatesPerNode = map<offset_t, unique_ptr<ListsUpdatesForNodeOffset>>;
 using ListsUpdatesPerChunk = map<chunk_idx_t, ListsUpdatesPerNode>;
 
 struct InMemList;
@@ -84,12 +83,12 @@ public:
         return listsUpdatesPerTablePerDirection[relDirection];
     }
 
-    bool isNewlyAddedNode(ListFileID& listFileID, node_offset_t nodeOffset) const;
+    bool isNewlyAddedNode(ListFileID& listFileID, offset_t nodeOffset) const;
 
-    uint64_t getNumDeletedRels(ListFileID& listFileID, node_offset_t nodeOffset) const;
+    uint64_t getNumDeletedRels(ListFileID& listFileID, offset_t nodeOffset) const;
 
     bool isRelDeletedInPersistentStore(
-        ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const;
+        ListFileID& listFileID, offset_t nodeOffset, offset_t relOffset) const;
 
     bool hasUpdates() const;
 
@@ -107,13 +106,12 @@ public:
     void deleteRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
         const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector);
 
-    uint64_t getNumInsertedRelsForNodeOffset(
-        ListFileID& listFileID, node_offset_t nodeOffset) const;
+    uint64_t getNumInsertedRelsForNodeOffset(ListFileID& listFileID, offset_t nodeOffset) const;
 
     void readValues(ListFileID& listFileID, ListHandle& listSyncState,
         shared_ptr<ValueVector> valueVector) const;
 
-    bool hasAnyDeletedRelsInPersistentStore(ListFileID& listFileID, node_offset_t nodeOffset) const;
+    bool hasAnyDeletedRelsInPersistentStore(ListFileID& listFileID, offset_t nodeOffset) const;
 
     // This function is called ifNecessary because it only handles the updates to a propertyList.
     // If the property is stored as a column in both direction(e.g. we are updating a ONE-ONE rel
@@ -121,7 +119,7 @@ public:
     void updateRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
         const shared_ptr<ValueVector>& dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo);
 
-    void readUpdatesToPropertyVectorIfExists(ListFileID& listFileID, node_offset_t nodeOffset,
+    void readUpdatesToPropertyVectorIfExists(ListFileID& listFileID, offset_t nodeOffset,
         const shared_ptr<ValueVector>& valueVector, list_offset_t startListOffset);
 
     void readPropertyUpdateToInMemList(ListFileID& listFileID, ft_tuple_idx_t ftTupleIdx,
@@ -150,7 +148,7 @@ private:
         RelDirection relDirection, nodeID_t nodeID);
 
     ListsUpdatesForNodeOffset* getListsUpdatesForNodeOffsetIfExists(
-        ListFileID& listFileID, node_offset_t nodeOffset) const;
+        ListFileID& listFileID, offset_t nodeOffset) const;
 
 private:
     /* ListsUpdatesStore stores all inserted edges in a factorizedTable in the format:

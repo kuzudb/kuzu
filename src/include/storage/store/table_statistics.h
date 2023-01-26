@@ -41,11 +41,8 @@ private:
 };
 
 struct TablesStatisticsContent {
-    TablesStatisticsContent() : nextRelID{0} {}
+    TablesStatisticsContent() {}
     unordered_map<table_id_t, unique_ptr<TableStatistics>> tableStatisticPerTable;
-    // This is only needed for RelsStatistics and is a temporary solution until we move to a
-    // uniform node and edge ID scheme (and then open an issue about this.)
-    uint64_t nextRelID;
 };
 
 class TablesStatistics {

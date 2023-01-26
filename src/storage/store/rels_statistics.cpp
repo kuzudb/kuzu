@@ -4,7 +4,7 @@ namespace kuzu {
 namespace storage {
 
 RelStatistics::RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
-    : TableStatistics{0} {
+    : TableStatistics{0}, nextRelOffset{0} {
     numRelsPerDirectionBoundTable.resize(2);
     for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
         numRelsPerDirectionBoundTable[RelDirection::FWD].emplace(srcTableID, 0);
@@ -32,7 +32,7 @@ void RelsStatistics::setNumRelsForTable(table_id_t relTableID, uint64_t numRels)
     auto relStatistics =
         (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();
-    tablesStatisticsContentForWriteTrx->nextRelID += (numRels - relStatistics->getNumTuples());
+    increaseNextRelOffset(relTableID, numRels - relStatistics->getNumTuples());
     relStatistics->setNumTuples(numRels);
     assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRels);
     assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRels);
@@ -66,7 +66,7 @@ void RelsStatistics::updateNumRelsByValue(
     }
     // Update the nextRelID only when we are inserting rels.
     if (value > 0) {
-        tablesStatisticsContentForWriteTrx->nextRelID += value;
+        increaseNextRelOffset(relTableID, value);
     }
     assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[FWD], numRelsAfterUpdate);
     assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRelsAfterUpdate);
@@ -86,21 +86,25 @@ void RelsStatistics::setNumRelsPerDirectionBoundTableID(
     }
 }
 
-uint64_t RelsStatistics::getNextRelID(Transaction* transaction) {
+offset_t RelsStatistics::getNextRelOffset(Transaction* transaction, table_id_t tableID) {
     lock_t lck{mtx};
     auto& tableStatisticContent =
         (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
             tablesStatisticsContentForReadOnlyTrx :
             tablesStatisticsContentForWriteTrx;
-    return tableStatisticContent->nextRelID;
+    return ((RelStatistics*)tableStatisticContent->tableStatisticPerTable.at(tableID).get())
+        ->getNextRelOffset();
 }
 
 unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
     uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
     vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
+    offset_t nextRelOffset;
     offset = SerDeser::deserializeUnorderedMap(numRelsPerDirectionBoundTable[0], fileInfo, offset);
     offset = SerDeser::deserializeUnorderedMap(numRelsPerDirectionBoundTable[1], fileInfo, offset);
-    return make_unique<RelStatistics>(numTuples, move(numRelsPerDirectionBoundTable));
+    offset = SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
+    return make_unique<RelStatistics>(
+        numTuples, std::move(numRelsPerDirectionBoundTable), nextRelOffset);
 }
 
 void RelsStatistics::serializeTableStatistics(
@@ -110,6 +114,7 @@ void RelsStatistics::serializeTableStatistics(
         relStatistic->numRelsPerDirectionBoundTable[0], fileInfo, offset);
     offset = SerDeser::serializeUnorderedMap(
         relStatistic->numRelsPerDirectionBoundTable[1], fileInfo, offset);
+    offset = SerDeser::serializeValue(relStatistic->nextRelOffset, fileInfo, offset);
 }
 
 } // namespace storage

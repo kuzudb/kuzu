@@ -11,8 +11,8 @@ public:
     explicit HashIndexHeader(common::DataTypeID keyDataTypeID)
         : currentLevel{1}, levelHashMask{1}, higherLevelHashMask{3}, nextSplitSlotId{0},
           numEntries{0}, numBytesPerKey{common::Types::getDataTypeSize(keyDataTypeID)},
-          numBytesPerEntry{(uint32_t)(
-              common::Types::getDataTypeSize(keyDataTypeID) + sizeof(common::node_offset_t))},
+          numBytesPerEntry{
+              (uint32_t)(common::Types::getDataTypeSize(keyDataTypeID) + sizeof(common::offset_t))},
           keyDataTypeID{keyDataTypeID} {}
 
     // Used for element initialization in disk array only.

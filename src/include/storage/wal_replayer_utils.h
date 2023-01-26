@@ -56,7 +56,7 @@ public:
         const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID);
 
     static void createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
-        const string& directory, const map<table_id_t, node_offset_t>& maxNodeOffsetsPerTable);
+        const string& directory, const map<table_id_t, offset_t>& maxNodeOffsetsPerTable);
 
     static void createEmptyDBFilesForNewNodeTable(
         NodeTableSchema* nodeTableSchema, const string& directory);

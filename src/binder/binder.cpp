@@ -88,17 +88,6 @@ void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& exp
     }
 }
 
-void Binder::validateProjectionColumnHasNoInternalType(const expression_vector& expressions) {
-    auto internalTypes = unordered_set<DataTypeID>{NODE_ID};
-    for (auto& expression : expressions) {
-        if (internalTypes.contains(expression->dataType.typeID)) {
-            throw BinderException("Cannot return expression " + expression->getRawName() +
-                                  " with internal type " +
-                                  Types::dataTypeToString(expression->dataType));
-        }
-    }
-}
-
 void Binder::validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions) {
     for (auto& expression : expressions) {
         if (!expression->hasAlias()) {

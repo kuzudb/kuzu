@@ -18,7 +18,7 @@ bool IndexScan::getNextTuplesInternal() {
     indexKeyEvaluator->evaluate();
     auto indexKeyVector = indexKeyEvaluator->resultVector.get();
     assert(indexKeyVector->state->isFlat());
-    node_offset_t nodeOffset;
+    offset_t nodeOffset;
     bool isSuccessfulLookup = pkIndex->lookup(transaction, indexKeyVector,
         indexKeyVector->state->selVector->selectedPositions[0], nodeOffset);
     if (isSuccessfulLookup) {

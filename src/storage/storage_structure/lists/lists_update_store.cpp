@@ -28,7 +28,7 @@ ListsUpdatesStore::ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchem
     initListsUpdatesPerTablePerDirection();
 }
 
-bool ListsUpdatesStore::isNewlyAddedNode(ListFileID& listFileID, node_offset_t nodeOffset) const {
+bool ListsUpdatesStore::isNewlyAddedNode(ListFileID& listFileID, offset_t nodeOffset) const {
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
     if (listsUpdatesForNodeOffset == nullptr) {
         return false;
@@ -36,22 +36,21 @@ bool ListsUpdatesStore::isNewlyAddedNode(ListFileID& listFileID, node_offset_t n
     return listsUpdatesForNodeOffset->isNewlyAddedNode;
 }
 
-uint64_t ListsUpdatesStore::getNumDeletedRels(
-    ListFileID& listFileID, node_offset_t nodeOffset) const {
+uint64_t ListsUpdatesStore::getNumDeletedRels(ListFileID& listFileID, offset_t nodeOffset) const {
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
     if (listsUpdatesForNodeOffset == nullptr) {
         return 0;
     }
-    return listsUpdatesForNodeOffset->deletedRelIDs.size();
+    return listsUpdatesForNodeOffset->deletedRelOffsets.size();
 }
 
 bool ListsUpdatesStore::isRelDeletedInPersistentStore(
-    ListFileID& listFileID, node_offset_t nodeOffset, int64_t relID) const {
+    ListFileID& listFileID, offset_t nodeOffset, offset_t relOffset) const {
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
     if (listsUpdatesForNodeOffset == nullptr) {
         return false;
     }
-    return listsUpdatesForNodeOffset->deletedRelIDs.contains(relID);
+    return listsUpdatesForNodeOffset->deletedRelOffsets.contains(relOffset);
 }
 
 bool ListsUpdatesStore::hasUpdates() const {
@@ -111,8 +110,8 @@ void ListsUpdatesStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcN
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
     auto relID =
-        relIDVector->getValue<int64_t>(relIDVector->state->selVector->selectedPositions[0]);
-    auto tupleIdx = getTupleIdxIfInsertedRel(relID);
+        relIDVector->getValue<relID_t>(relIDVector->state->selVector->selectedPositions[0]);
+    auto tupleIdx = getTupleIdxIfInsertedRel(relID.offset);
     if (tupleIdx != -1) {
         // If the rel that we are going to delete is a newly inserted rel, we need to delete
         // its tupleIdx from the insertedRelsTupleIdxInFT of listsUpdatesStore in FWD and BWD
@@ -137,14 +136,14 @@ void ListsUpdatesStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcN
             auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
             if (listsUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
-                    ->deletedRelIDs.insert(relID);
+                    ->deletedRelOffsets.insert(relID.offset);
             }
         }
     }
 }
 
 uint64_t ListsUpdatesStore::getNumInsertedRelsForNodeOffset(
-    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    ListFileID& listFileID, offset_t nodeOffset) const {
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
     if (listsUpdatesForNodeOffset == nullptr) {
         return 0;
@@ -173,12 +172,12 @@ void ListsUpdatesStore::readValues(
 }
 
 bool ListsUpdatesStore::hasAnyDeletedRelsInPersistentStore(
-    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    ListFileID& listFileID, offset_t nodeOffset) const {
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
     if (listsUpdatesForNodeOffset == nullptr) {
         return false;
     }
-    return !listsUpdatesForNodeOffset->deletedRelIDs.empty();
+    return !listsUpdatesForNodeOffset->deletedRelOffsets.empty();
 }
 
 void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
@@ -227,7 +226,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcN
 }
 
 void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFileID,
-    node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
+    offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
     list_offset_t startListOffset) {
     // Note: only rel property lists can have updates.
     assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
@@ -287,7 +286,10 @@ void ListsUpdatesStore::initInsertedRels() {
     factorizedTableSchema->appendColumn(
         make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
     for (auto& relProperty : relTableSchema.properties) {
-        auto numBytesForProperty = Types::getDataTypeSize(relProperty.dataType);
+        auto numBytesForProperty =
+            relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX ?
+                sizeof(offset_t) :
+                Types::getDataTypeSize(relProperty.dataType);
         propertyIDToColIdxMap.emplace(
             relProperty.propertyID, factorizedTableSchema->getNumColumns());
         factorizedTableSchema->appendColumn(make_unique<ColumnSchema>(
@@ -341,7 +343,7 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffs
 }
 
 ListsUpdatesForNodeOffset* ListsUpdatesStore::getListsUpdatesForNodeOffsetIfExists(
-    ListFileID& listFileID, node_offset_t nodeOffset) const {
+    ListFileID& listFileID, offset_t nodeOffset) const {
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listsUpdatesPerChunk = listsUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
         relNodeTableAndDir.srcNodeTableID);

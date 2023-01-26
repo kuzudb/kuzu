@@ -55,7 +55,7 @@ void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, node_offset_t value) {
+bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot<T>* currentSlot = nullptr;
@@ -81,7 +81,7 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, node_offset_t value
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, node_offset_t& result) {
+bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, offset_t& result) {
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
     Slot<T>* currentSlot;
@@ -132,7 +132,7 @@ Slot<T>* HashIndexBuilder<T>::getSlot(const SlotInfo& slotInfo) {
 template<typename T>
 template<bool IS_LOOKUP>
 bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
-    Slot<T>* slot, const uint8_t* key, node_offset_t* result) {
+    Slot<T>* slot, const uint8_t* key, offset_t* result) {
     for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
         if (!slot->header.isEntryValid(entryPos)) {
             continue;
@@ -140,7 +140,7 @@ bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
         auto& entry = slot->entries[entryPos];
         if (keyEqualsFunc(key, entry.data, inMemOverflowFile.get())) {
             if constexpr (IS_LOOKUP) {
-                memcpy(result, entry.data + indexHeader->numBytesPerKey, sizeof(node_offset_t));
+                memcpy(result, entry.data + indexHeader->numBytesPerKey, sizeof(offset_t));
             }
             return true;
         }
@@ -150,7 +150,7 @@ bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
 
 template<typename T>
 void HashIndexBuilder<T>::insertToSlotWithoutLock(
-    Slot<T>* slot, const uint8_t* key, node_offset_t value) {
+    Slot<T>* slot, const uint8_t* key, offset_t value) {
     if (slot->header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
         // Allocate a new oSlot and change the nextOvfSlotId.
         auto ovfSlotId = allocateAOSlot();

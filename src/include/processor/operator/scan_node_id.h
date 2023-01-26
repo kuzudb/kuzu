@@ -36,7 +36,7 @@ private:
 
 struct ScanNodeIDSemiMask {
 public:
-    ScanNodeIDSemiMask(node_offset_t maxNodeOffset, uint8_t maskedFlag) {
+    ScanNodeIDSemiMask(offset_t maxNodeOffset, uint8_t maskedFlag) {
         nodeMask = make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
         morselMask =
             make_unique<Mask>((maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
@@ -78,7 +78,7 @@ public:
     inline uint8_t getNumMaskers() { return numMaskers; }
     inline void incrementNumMaskers() { numMaskers++; }
 
-    pair<node_offset_t, node_offset_t> getNextRangeToRead();
+    pair<offset_t, offset_t> getNextRangeToRead();
 
 private:
     NodeTable* table;
@@ -107,7 +107,7 @@ public:
         }
     }
 
-    tuple<ScanTableNodeIDSharedState*, node_offset_t, node_offset_t> getNextRangeToRead();
+    tuple<ScanTableNodeIDSharedState*, offset_t, offset_t> getNextRangeToRead();
 
 private:
     mutex mtx;
@@ -140,7 +140,7 @@ private:
     void initGlobalStateInternal(ExecutionContext* context) override;
 
     void setSelVector(
-        ScanTableNodeIDSharedState* tableState, node_offset_t startOffset, node_offset_t endOffset);
+        ScanTableNodeIDSharedState* tableState, offset_t startOffset, offset_t endOffset);
 
 private:
     string nodeID;

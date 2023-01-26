@@ -8,7 +8,7 @@ void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
     morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
 }
 
-pair<node_offset_t, node_offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
+pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
         return make_pair(currentNodeOffset, currentNodeOffset);
@@ -27,8 +27,7 @@ pair<node_offset_t, node_offset_t> ScanTableNodeIDSharedState::getNextRangeToRea
     return make_pair(startOffset, startOffset + range);
 }
 
-tuple<ScanTableNodeIDSharedState*, node_offset_t, node_offset_t>
-ScanNodeIDSharedState::getNextRangeToRead() {
+tuple<ScanTableNodeIDSharedState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
     unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
         return make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
@@ -76,7 +75,7 @@ void ScanNodeID::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void ScanNodeID::setSelVector(
-    ScanTableNodeIDSharedState* tableState, node_offset_t startOffset, node_offset_t endOffset) {
+    ScanTableNodeIDSharedState* tableState, offset_t startOffset, offset_t endOffset) {
     if (tableState->isSemiMaskEnabled()) {
         outValueVector->state->selVector->resetSelectorToValuePosBuffer();
         // Fill selected positions based on node mask for nodes between the given startOffset and

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/types/node_id_t.h"
 #include "common/types/types.h"
 #include "storage/storage_structure/lists/list_headers.h"
 #include "storage/storage_structure/lists/lists_metadata.h"
@@ -52,7 +51,7 @@ private:
     }
 
 private:
-    node_offset_t boundNodeOffset;
+    offset_t boundNodeOffset;
     list_header_t listHeader;
     uint32_t numValuesInUpdateStore;
     uint32_t numValuesInPersistentStore;
@@ -65,7 +64,7 @@ struct ListHandle {
     explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
 
     static inline std::function<uint32_t(uint32_t)> getPageMapper(
-        ListsMetadata& listMetadata, list_header_t listHeader, node_offset_t nodeOffset) {
+        ListsMetadata& listMetadata, list_header_t listHeader, offset_t nodeOffset) {
         return ListHeaders::isALargeList(listHeader) ?
                    listMetadata.getPageMapperForLargeListIdx(
                        ListHeaders::getLargeListIdx(listHeader)) :
@@ -84,7 +83,7 @@ struct ListHandle {
             getPageMapper(listMetadata, listSyncState.listHeader, listSyncState.boundNodeOffset);
     }
     inline void resetSyncState() { listSyncState.resetState(); }
-    inline void initSyncState(node_offset_t boundNodeOffset, list_header_t listHeader,
+    inline void initSyncState(offset_t boundNodeOffset, list_header_t listHeader,
         uint64_t numValuesInUpdateStore, uint64_t numValuesInPersistentStore,
         ListSourceStore sourceStore) {
         listSyncState.boundNodeOffset = boundNodeOffset;
@@ -94,7 +93,7 @@ struct ListHandle {
         listSyncState.sourceStore = sourceStore;
     }
     inline list_header_t getListHeader() const { return listSyncState.listHeader; }
-    inline node_offset_t getBoundNodeOffset() const { return listSyncState.boundNodeOffset; }
+    inline offset_t getBoundNodeOffset() const { return listSyncState.boundNodeOffset; }
     inline ListSourceStore getListSourceStore() { return listSyncState.sourceStore; }
     inline uint32_t getStartElemOffset() const { return listSyncState.startElemOffset; }
     inline uint32_t getEndElemOffset() const {

@@ -82,13 +82,13 @@ public:
 
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
-    inline bool append(int64_t key, node_offset_t value) {
+    inline bool append(int64_t key, offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
-    inline bool append(const char* key, node_offset_t value) {
+    inline bool append(const char* key, offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
-    inline bool lookup(int64_t key, node_offset_t& result) {
+    inline bool lookup(int64_t key, offset_t& result) {
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
 
@@ -96,13 +96,13 @@ public:
     void flush();
 
 private:
-    bool appendInternal(const uint8_t* key, node_offset_t value);
-    bool lookupInternalWithoutLock(const uint8_t* key, node_offset_t& result);
+    bool appendInternal(const uint8_t* key, offset_t value);
+    bool lookupInternalWithoutLock(const uint8_t* key, offset_t& result);
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
-        Slot<T>* slot, const uint8_t* key, node_offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, node_offset_t value);
+        Slot<T>* slot, const uint8_t* key, offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, offset_t value);
     Slot<T>* getSlot(const SlotInfo& slotInfo);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();

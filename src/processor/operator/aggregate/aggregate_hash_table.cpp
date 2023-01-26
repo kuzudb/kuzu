@@ -664,7 +664,7 @@ bool AggregateHashTable::compareEntryWithKeys(const uint8_t* keyValue, const uin
 
 compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID typeId) {
     switch (typeId) {
-    case NODE_ID: {
+    case INTERNAL_ID: {
         return compareEntryWithKeys<nodeID_t>;
     }
     case BOOL: {

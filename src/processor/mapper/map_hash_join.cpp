@@ -97,7 +97,7 @@ BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
     for (auto& key : keys) {
         auto buildSideKeyPos = DataPos(buildSideSchema.getExpressionPos(*key));
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysPosAndType.emplace_back(buildSideKeyPos, NODE_ID);
+        buildKeysPosAndType.emplace_back(buildSideKeyPos, INTERNAL_ID);
         joinKeyNames.insert(key->getUniqueName());
     }
     for (auto& payload : payloads) {

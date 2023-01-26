@@ -18,7 +18,7 @@ class CopyRelArrow : public CopyStructuresArrow {
 public:
     CopyRelArrow(CopyDescription& copyDescription, string outputDirectory,
         TaskScheduler& taskScheduler, Catalog& catalog,
-        map<table_id_t, node_offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+        map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
         table_id_t tableID, RelsStatistics* relsStatistics);
 
     ~CopyRelArrow() override = default;
@@ -109,17 +109,16 @@ private:
         const vector<shared_ptr<T>>& batchColumns, CopyDescription& copyDescription);
 
     static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
-        node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
+        offset_t offsetStart, offset_t offsetEnd, InMemColumn* propertyColumn,
         InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile);
 
     static void sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
-        node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
+        offset_t offsetStart, offset_t offsetEnd, InMemAdjLists* adjLists,
         InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
         InMemOverflowFile* orderedInMemOverflowFile);
 
 private:
-    const map<table_id_t, node_offset_t> maxNodeOffsetsPerTable;
-    uint64_t startRelID;
+    const map<table_id_t, offset_t> maxNodeOffsetsPerTable;
     RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;
     unique_ptr<Transaction> dummyReadOnlyTrx;

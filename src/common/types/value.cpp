@@ -27,7 +27,7 @@ Value Value::createDefaultValue(const DataType& dataType) {
         return Value(timestamp_t());
     case INTERVAL:
         return Value(interval_t());
-    case NODE_ID:
+    case INTERNAL_ID:
         return Value(nodeID_t());
     case STRING:
         return Value(string(""));
@@ -67,8 +67,8 @@ Value::Value(kuzu::common::interval_t val_) : dataType{INTERVAL}, isNull_{false}
     val.intervalVal = val_;
 }
 
-Value::Value(kuzu::common::nodeID_t val_) : dataType{NODE_ID}, isNull_{false} {
-    val.nodeIDVal = val_;
+Value::Value(kuzu::common::internalID_t val_) : dataType{INTERNAL_ID}, isNull_{false} {
+    val.internalIDVal = val_;
 }
 
 Value::Value(const char* val_) : dataType{STRING}, isNull_{false} {
@@ -121,8 +121,8 @@ void Value::copyValueFrom(const uint8_t* value) {
     case INTERVAL: {
         val.intervalVal = *((interval_t*)value);
     } break;
-    case NODE_ID: {
-        val.nodeIDVal = *((nodeID_t*)value);
+    case INTERNAL_ID: {
+        val.internalIDVal = *((nodeID_t*)value);
     } break;
     case STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
@@ -162,8 +162,8 @@ void Value::copyValueFrom(const Value& other) {
     case INTERVAL: {
         val.intervalVal = other.val.intervalVal;
     } break;
-    case NODE_ID: {
-        val.nodeIDVal = other.val.nodeIDVal;
+    case INTERNAL_ID: {
+        val.internalIDVal = other.val.internalIDVal;
     } break;
     case STRING: {
         strVal = other.strVal;
@@ -202,8 +202,8 @@ string Value::toString() const {
         return TypeUtils::toString(val.timestampVal);
     case INTERVAL:
         return TypeUtils::toString(val.intervalVal);
-    case NODE_ID:
-        return TypeUtils::toString(val.nodeIDVal);
+    case INTERNAL_ID:
+        return TypeUtils::toString(val.internalIDVal);
     case STRING:
         return strVal;
     case LIST: {

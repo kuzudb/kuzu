@@ -5,7 +5,7 @@ namespace processor {
 
 void SemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     keyValueVector = resultSet->getValueVector(keyDataPos);
-    assert(keyValueVector->dataType.typeID == NODE_ID);
+    assert(keyValueVector->dataType.typeID == INTERNAL_ID);
 }
 
 bool SemiMasker::getNextTuplesInternal() {

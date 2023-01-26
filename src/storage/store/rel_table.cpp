@@ -346,12 +346,12 @@ void RelTable::addProperty(Property property) {
 }
 
 void RelTable::appendInMemListToLargeListOP(
-    ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList) {
+    ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList) {
     listsUpdateIterator->appendToLargeList(nodeOffset, inMemList);
 }
 
 void RelTable::updateListOP(
-    ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList) {
+    ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList) {
     listsUpdateIterator->updateList(nodeOffset, inMemList);
 }
 
@@ -436,7 +436,7 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
                     // TODO(Guodong): Do we need to access the header in this way?
                 } else if (ListHeaders::isALargeList(adjLists->getHeaders()->headersDiskArray->get(
                                nodeOffset, TransactionType::READ_ONLY)) &&
-                           listsUpdatesForNodeOffset->deletedRelIDs.empty() &&
+                           listsUpdatesForNodeOffset->deletedRelOffsets.empty() &&
                            !listsUpdatesForNodeOffset->hasUpdates()) {
                     // We do an optimization for relPropertyList and adjList : If the initial list
                     // is a largeList and we didn't delete or update any rel from the
@@ -458,11 +458,10 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
     }
 }
 
-void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists,
-    node_offset_t nodeOffset, ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset,
-    RelDirection relDirection, ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
-    table_id_t boundNodeTableID,
-    const std::function<void(ListsUpdateIterator* listsUpdateIterator, node_offset_t,
+void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, offset_t nodeOffset,
+    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+    ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection, table_id_t boundNodeTableID,
+    const std::function<void(ListsUpdateIterator* listsUpdateIterator, offset_t,
         InMemList& inMemList)>& opOnListsUpdateIterators) {
     auto inMemAdjLists = adjLists->createInMemListWithDataFromUpdateStoreOnly(
         nodeOffset, listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT);
@@ -478,7 +477,7 @@ void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists,
     }
 }
 
-void RelTable::prepareCommitForList(AdjLists* adjLists, node_offset_t nodeOffset,
+void RelTable::prepareCommitForList(AdjLists* adjLists, offset_t nodeOffset,
     ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
     ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
     table_id_t boundNodeTableID) {

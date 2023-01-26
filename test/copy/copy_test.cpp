@@ -126,7 +126,7 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
 
 void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     // p0 has 5001 fwd edges to p0...p5000
-    node_offset_t p0Offset = 0;
+    offset_t p0Offset = 0;
     auto pOFwdList = knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p0Offset);
     EXPECT_EQ(5001, pOFwdList->size());
     for (int nodeOffset = 0; nodeOffset <= 5000; ++nodeOffset) {
@@ -142,7 +142,7 @@ void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
 
     // p1,p2,...,p5000 have a single fwd edge to p5000 and 1 bwd edge from node p0
     nodeID_t nodeIDP5000(5000ul, knowsTablePTablePKnowsLists.pNodeTableID);
-    for (node_offset_t nodeOffset = 1; nodeOffset <= 5000; ++nodeOffset) {
+    for (offset_t nodeOffset = 1; nodeOffset <= 5000; ++nodeOffset) {
         auto fwdAdjList =
             knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset);
         EXPECT_EQ(1, fwdAdjList->size());
@@ -154,7 +154,7 @@ void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     }
 
     // p5001 to p6000 are singletons
-    for (node_offset_t nodeOffset = 5001; nodeOffset < 6000; ++nodeOffset) {
+    for (offset_t nodeOffset = 5001; nodeOffset < 6000; ++nodeOffset) {
         EXPECT_TRUE(knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
                         ->empty());
         EXPECT_TRUE(knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(nodeOffset)
@@ -166,8 +166,8 @@ void verifya0Andp6000(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists,
     const Catalog& catalog, StorageManager* storageManager) {
     auto aTableAKnowsLists = getATableAKnowsLists(catalog, storageManager);
     // a0 has 1 fwd edge to p6000, and no backward edges.
-    node_offset_t a0NodeOffset = 0;
-    node_offset_t p6000NodeOffset = 6000;
+    offset_t a0NodeOffset = 0;
+    offset_t p6000NodeOffset = 6000;
     auto a0FwdList = aTableAKnowsLists.fwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
     EXPECT_EQ(1, a0FwdList->size());
     nodeID_t p6000NodeID(p6000NodeOffset, knowsTablePTablePKnowsLists.pNodeTableID);
@@ -186,7 +186,7 @@ void verifya0Andp6000(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists,
 }
 
 void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
-    for (node_offset_t node_offset_t = 6001; node_offset_t < 66000; ++node_offset_t) {
+    for (offset_t node_offset_t = 6001; node_offset_t < 66000; ++node_offset_t) {
         EXPECT_TRUE(
             knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
                 ->empty());

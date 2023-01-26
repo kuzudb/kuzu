@@ -26,7 +26,7 @@ public:
     explicit Value(date_t val_);
     explicit Value(timestamp_t val_);
     explicit Value(interval_t val_);
-    explicit Value(nodeID_t val_);
+    explicit Value(internalID_t val_);
     explicit Value(const char* val_);
     explicit Value(const string& val_);
     explicit Value(DataType dataType, vector<unique_ptr<Value>> vals);
@@ -91,7 +91,7 @@ public:
         common::date_t dateVal;
         common::timestamp_t timestampVal;
         common::interval_t intervalVal;
-        common::nodeID_t nodeIDVal;
+        common::internalID_t internalIDVal;
     } val;
     std::string strVal;
     vector<unique_ptr<Value>> listVal;
@@ -191,8 +191,8 @@ inline interval_t Value::getValue() const {
 
 template<>
 inline nodeID_t Value::getValue() const {
-    validateType(NODE_ID);
-    return val.nodeIDVal;
+    validateType(INTERNAL_ID);
+    return val.internalIDVal;
 }
 
 template<>
@@ -251,8 +251,8 @@ inline interval_t& Value::getValueReference() {
 
 template<>
 inline nodeID_t& Value::getValueReference() {
-    assert(dataType.typeID == NODE_ID);
-    return val.nodeIDVal;
+    assert(dataType.typeID == INTERNAL_ID);
+    return val.internalIDVal;
 }
 
 template<>

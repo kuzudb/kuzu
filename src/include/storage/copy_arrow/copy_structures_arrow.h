@@ -38,7 +38,7 @@ protected:
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
-    static void calculateListHeadersTask(node_offset_t numNodes, uint32_t elementSize,
+    static void calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
         atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
         const shared_ptr<spdlog::logger>& logger);
 

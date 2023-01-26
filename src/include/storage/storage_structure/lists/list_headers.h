@@ -99,9 +99,9 @@ class ListHeadersBuilder : public BaseListHeaders {
 public:
     explicit ListHeadersBuilder(const string& baseListFName, uint64_t numElements);
 
-    inline list_header_t getHeader(node_offset_t offset) { return (*headersBuilder)[offset]; };
+    inline list_header_t getHeader(offset_t offset) { return (*headersBuilder)[offset]; };
 
-    inline void setHeader(node_offset_t offset, list_header_t header) {
+    inline void setHeader(offset_t offset, list_header_t header) {
         (*headersBuilder)[offset] = header;
     }
     void saveToDisk();
@@ -117,7 +117,7 @@ public:
     explicit ListHeaders(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
         BufferManager* bufferManager, WAL* wal);
 
-    inline list_header_t getHeader(node_offset_t offset) { return (*headersDiskArray)[offset]; };
+    inline list_header_t getHeader(offset_t offset) { return (*headersDiskArray)[offset]; };
 
     inline VersionedFileHandle* getFileHandle() { return versionedFileHandle.get(); }
 

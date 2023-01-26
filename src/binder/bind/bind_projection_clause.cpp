@@ -26,8 +26,6 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
-    validateProjectionColumnHasNoInternalType(boundProjectionExpressions);
-    // expand node/rel to all of its properties.
     auto statementResult = make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
         auto dataType = expression->getDataType();

@@ -227,8 +227,8 @@ TEST_F(TinySnbUpdateTest, InsertSingleNToNRelTest) {
         "CREATE (a)-[:knows {meetTime:timestamp('1976-12-23 11:21:42'), validInterval:interval('2 "
         "years'), comments:['A', 'k'], date:date('1997-03-22')}]->(b);");
     auto groundTruth =
-        vector<string>{"9|10|(0:6)-[{_id:40, date:1997-03-22, meetTime:1976-12-23 11:21:42, "
-                       "validInterval:2 years, comments:[A,k]}]->(0:7)|40"};
+        vector<string>{"9|10|(0:6)-[{_id:3:14, date:1997-03-22, meetTime:1976-12-23 11:21:42, "
+                       "validInterval:2 years, comments:[A,k]}]->(0:7)|3:14"};
     auto result = conn->query(
         "MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
@@ -238,9 +238,9 @@ TEST_F(TinySnbUpdateTest, InsertSingleNTo1RelTest) {
     // insert studyAt edge between Greg and CsWork
     conn->query("MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 "
                 "CREATE (a)-[:studyAt {year:2022}]->(b);");
-    auto groundTruth = vector<string>{
-        "8|325|(0:5)-[{_id:16, year:2020, places:[awndsnjwejwen,isuhuwennjnuhuhuwewe]}]->(1:0)|16",
-        "9|934|(0:6)-[{_id:40, year:2022, places:}]->(1:1)|40"};
+    auto groundTruth = vector<string>{"8|325|(0:5)-[{_id:4:2, year:2020, "
+                                      "places:[awndsnjwejwen,isuhuwennjnuhuhuwewe]}]->(1:0)|4:2",
+        "9|934|(0:6)-[{_id:4:3, year:2022, places:}]->(1:1)|4:3"};
     auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 "
                               "RETURN a.ID, b.orgCode, e, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
@@ -258,6 +258,7 @@ TEST_F(TinySnbUpdateTest, InsertRepeatedNToNRelTest) {
 TEST_F(TinySnbUpdateTest, InsertMixedRelTest) {
     conn->query(
         "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "
+        "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "
         "CREATE (b)-[:studyAt]->(c), (a)<-[:knows]-(b)");
     auto groundTruth = vector<string>{"9"};
     auto result = conn->query(
@@ -268,7 +269,7 @@ TEST_F(TinySnbUpdateTest, InsertMixedRelTest) {
 TEST_F(TinySnbUpdateTest, InsertMultipleRelsTest) {
     conn->query("MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 "
                 "CREATE (a)<-[:knows]-(b);");
-    auto groundTruth = vector<string>{"7|8|12", "7|9|13", "8|7|40", "9|7|41"};
+    auto groundTruth = vector<string>{"7|8|3:12", "7|9|3:13", "8|7|3:14", "9|7|3:15"};
     auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, "
                               "b.ID, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
@@ -286,7 +287,7 @@ TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest) {
 TEST_F(TinySnbUpdateTest, InsertNodeAndRelTest2) {
     conn->query(
         "CREATE (c:organisation {ID:50})<-[:workAt]-(a:person {ID:100}), (a)-[:studyAt]->(c)");
-    auto groundTruth = vector<string>{"100|50|41|40"};
+    auto groundTruth = vector<string>{"100|50|4:3|5:3"};
     auto result = conn->query(
         "MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, "
         "b.ID, ID(e1), ID(e2)");

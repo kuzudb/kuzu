@@ -224,21 +224,21 @@ private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
     inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
     static void appendInMemListToLargeListOP(
-        ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList);
+        ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList);
     static void updateListOP(
-        ListsUpdateIterator* listsUpdateIterator, node_offset_t nodeOffset, InMemList& inMemList);
+        ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList);
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
         const std::function<void()>& opIfHasUpdates);
     unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
         RelDirection relDirection, table_id_t boundNodeTableID) const;
     void prepareCommitForDirection(RelDirection relDirection);
-    void prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, node_offset_t nodeOffset,
+    void prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, offset_t nodeOffset,
         ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
         ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
         table_id_t boundNodeTableID,
-        const std::function<void(ListsUpdateIterator* listsUpdateIterator, node_offset_t,
+        const std::function<void(ListsUpdateIterator* listsUpdateIterator, offset_t,
             InMemList& inMemList)>& opOnListsUpdateIterators);
-    void prepareCommitForList(AdjLists* adjLists, node_offset_t nodeOffset,
+    void prepareCommitForList(AdjLists* adjLists, offset_t nodeOffset,
         ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
         ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
         table_id_t boundNodeTableID);

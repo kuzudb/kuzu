@@ -52,18 +52,18 @@ public:
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() const { return headers; };
     // TODO(Guodong): change the input to header.
-    inline uint64_t getNumElementsFromListHeader(node_offset_t nodeOffset) const {
+    inline uint64_t getNumElementsFromListHeader(offset_t nodeOffset) const {
         auto header = headers->getHeader(nodeOffset);
         return ListHeaders::isALargeList(header) ?
                    metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
                    ListHeaders::getSmallListLen(header);
     }
-    inline uint64_t getNumElementsInListsUpdatesStore(node_offset_t nodeOffset) {
+    inline uint64_t getNumElementsInListsUpdatesStore(offset_t nodeOffset) {
         return listsUpdatesStore->getNumInsertedRelsForNodeOffset(
             storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset);
     }
     inline uint64_t getTotalNumElementsInList(
-        TransactionType transactionType, node_offset_t nodeOffset) {
+        TransactionType transactionType, offset_t nodeOffset) {
         return getNumElementsInPersistentStore(transactionType, nodeOffset) +
                (transactionType == TransactionType::WRITE ?
                        getNumElementsInListsUpdatesStore(nodeOffset) -
@@ -88,19 +88,18 @@ public:
     virtual void readFromLargeList(
         const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
     void readFromList(const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle);
-    uint64_t getNumElementsInPersistentStore(
-        TransactionType transactionType, node_offset_t nodeOffset);
+    uint64_t getNumElementsInPersistentStore(TransactionType transactionType, offset_t nodeOffset);
     void initListReadingState(
-        node_offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
+        offset_t nodeOffset, ListHandle& listHandle, TransactionType transactionType);
     unique_ptr<InMemList> createInMemListWithDataFromUpdateStoreOnly(
-        node_offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT);
+        offset_t nodeOffset, vector<uint64_t>& insertedRelsTupleIdxInFT);
     // This function writes the persistent store data (skipping over the deleted rels) and update
     // store data to the inMemList.
-    unique_ptr<InMemList> writeToInMemList(node_offset_t nodeOffset,
+    unique_ptr<InMemList> writeToInMemList(offset_t nodeOffset,
         const vector<uint64_t>& insertedRelTupleIdxesInFT,
         const unordered_set<uint64_t>& deletedRelOffsetsForList,
         UpdatedPersistentListOffsets* updatedPersistentListOffsets);
-    void fillInMemListsFromPersistentStore(node_offset_t nodeOffset,
+    void fillInMemListsFromPersistentStore(offset_t nodeOffset,
         uint64_t numElementsInPersistentStore, InMemList& inMemList,
         const unordered_set<list_offset_t>& deletedRelOffsetsInList,
         UpdatedPersistentListOffsets* updatedPersistentListOffsets = nullptr);
@@ -189,7 +188,7 @@ public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
         bool isInMemory, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
-        : Lists{storageStructureIDAndFName, DataType(NODE_ID),
+        : Lists{storageStructureIDAndFName, DataType(INTERNAL_ID),
               nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(),
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
               bufferManager, false /* hasNullBytes */, isInMemory, wal, listsUpdatesStore},
@@ -201,7 +200,7 @@ public:
         ListHandle& listHandle) override;
 
     // Currently, used only in copyCSV tests.
-    unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
+    unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(offset_t nodeOffset);
 
     void checkpointInMemoryIfNecessary() override {
         headers->checkpointInMemoryIfNecessary();
@@ -235,15 +234,31 @@ class RelIDList : public Lists {
 
 public:
     RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const DataType& dataType, const size_t& elementSize, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
-        : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
-              bufferManager, isInMemory, wal, listsUpdatesStore} {}
+        : Lists{storageStructureIDAndFName, DataType{INTERNAL_ID}, sizeof(offset_t),
+              std::move(headers), bufferManager, isInMemory, wal, listsUpdatesStore} {}
+
     void setDeletedRelsIfNecessary(Transaction* transaction, ListHandle& listHandle,
         const shared_ptr<ValueVector>& relIDVector) override;
-    unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(node_offset_t nodeOffset);
-    list_offset_t getListOffset(node_offset_t nodeOffset, int64_t relID);
+
+    unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(offset_t nodeOffset);
+
+    list_offset_t getListOffset(offset_t nodeOffset, offset_t relOffset);
+
+    void readFromSmallList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
+
+    void readFromLargeList(
+        const shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) override;
+
+private:
+    inline bool mayContainNulls() const override { return false; }
+
+    inline table_id_t getRelTableID() const {
+        return storageStructureIDAndFName.storageStructureID.listFileID.relPropertyListID
+            .relNodeTableAndDir.relTableID;
+    }
 };
 
 class ListsFactory {
@@ -254,15 +269,6 @@ public:
         BufferManager& bufferManager, bool isInMemory, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore) {
         assert(listsUpdatesStore != nullptr);
-        // TODO(Ziyi): this is a super hacky design. Consider storing a relIDColumn/List in relTable
-        // just like adjColumn/List and we can have Extend read from both relIDColumn/List and
-        // adjColumn/List.
-        if (structureIDAndFName.storageStructureID.listFileID.relPropertyListID.propertyID ==
-            RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
-            return make_unique<RelIDList>(structureIDAndFName, dataType,
-                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal,
-                listsUpdatesStore);
-        }
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -279,6 +285,9 @@ public:
         case LIST:
             return make_unique<ListPropertyLists>(structureIDAndFName, dataType, adjListsHeaders,
                 bufferManager, isInMemory, wal, listsUpdatesStore);
+        case INTERNAL_ID:
+            return make_unique<RelIDList>(structureIDAndFName, adjListsHeaders, bufferManager,
+                isInMemory, wal, listsUpdatesStore);
         default:
             throw StorageException("Invalid type for property list creation.");
         }

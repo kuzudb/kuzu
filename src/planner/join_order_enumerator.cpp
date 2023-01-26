@@ -112,7 +112,7 @@ void JoinOrderEnumerator::planLevel(uint32_t level) {
 void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expressions) {
     auto newSubgraph = context->getEmptySubqueryGraph();
     for (auto& expression : expressions) {
-        if (expression->getDataType().typeID == NODE_ID) {
+        if (expression->getDataType().typeID == INTERNAL_ID) {
             auto node = static_pointer_cast<NodeExpression>(expression->getChild(0));
             auto nodePos = context->getQueryGraph()->getQueryNodePos(*node);
             newSubgraph.addQueryNode(nodePos);

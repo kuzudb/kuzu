@@ -43,9 +43,9 @@ public:
 
     virtual ~ListsUpdateIterator() { assert(finishCalled); }
 
-    void updateList(node_offset_t nodeOffset, InMemList& inMemList);
+    void updateList(offset_t nodeOffset, InMemList& inMemList);
 
-    void appendToLargeList(node_offset_t nodeOffset, InMemList& inMemList);
+    void appendToLargeList(offset_t nodeOffset, InMemList& inMemList);
 
     void doneUpdating();
 
@@ -60,7 +60,7 @@ protected:
 
     void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
 
-    void seekToNodeOffsetAndSlideListsIfNecessary(node_offset_t nodeOffsetToSeekTo);
+    void seekToNodeOffsetAndSlideListsIfNecessary(offset_t nodeOffsetToSeekTo);
 
     void writeInMemListToListPages(
         InMemList& inMemList, page_idx_t pageListHeadIdx, bool isSmallList);
