@@ -1,5 +1,5 @@
-NODE_TYPE = "NODE"
-REL_TYPE = "REL"
+from .torch_geometric_result_converter import TorchGeometricResultConverter
+from .types import Type
 
 
 class QueryResult:
@@ -65,16 +65,7 @@ class QueryResult:
             nx_graph = nx.DiGraph()
         else:
             nx_graph = nx.Graph()
-        column_names = self.get_column_names()
-        column_types = self.get_column_data_types()
-        column_to_extract = {}
-
-        # Iterate over columns and extract nodes and rels, ignoring other columns
-        for i in range(len(column_names)):
-            column_name = column_names[i]
-            column_type = column_types[i]
-            if column_type in [NODE_TYPE, REL_TYPE]:
-                column_to_extract[i] = (column_type, column_name)
+        properties_to_extract = self._get_properties_to_extract()
 
         self.reset_iterator()
 
@@ -85,14 +76,14 @@ class QueryResult:
         # De-duplicate nodes and rels
         while self.has_next():
             row = self.get_next()
-            for i in column_to_extract:
-                column_type, _ = column_to_extract[i]
-                if column_type == NODE_TYPE:
+            for i in properties_to_extract:
+                column_type, _ = properties_to_extract[i]
+                if column_type == Type.NODE.value:
                     _id = row[i]["_id"]
                     nodes[(_id["table"], _id["offset"])] = row[i]
                     table_to_label_dict[_id["table"]] = row[i]["_label"]
 
-                elif column_type == REL_TYPE:
+                elif column_type == Type.REL.value:
                     _src = row[i]["_src"]
                     _dst = row[i]["_dst"]
                     rels[(_src["table"], _src["offset"], _dst["table"],
@@ -115,3 +106,28 @@ class QueryResult:
                 table_to_label_dict[_dst["table"]]) + "_" + str(_dst["offset"])
             nx_graph.add_edge(src_id, dst_id, **rel)
         return nx_graph
+
+    def _get_properties_to_extract(self):
+        column_names = self.get_column_names()
+        column_types = self.get_column_data_types()
+        properties_to_extract = {}
+
+        # Iterate over columns and extract nodes and rels, ignoring other columns
+        for i in range(len(column_names)):
+            column_name = column_names[i]
+            column_type = column_types[i]
+            if column_type in [Type.NODE.value, Type.REL.value]:
+                properties_to_extract[i] = (column_type, column_name)
+        return properties_to_extract
+
+    def get_as_torch_geometric(self):
+        self.check_for_query_result_close()
+        # Despite we are not using torch_geometric in this file, we need to
+        # import it here to throw an error early if the user does not have
+        # torch_geometric or torch installed.
+
+        import torch
+        import torch_geometric
+
+        converter = TorchGeometricResultConverter(self)
+        return converter.get_as_torch_geometric()

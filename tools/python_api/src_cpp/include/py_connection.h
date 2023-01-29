@@ -16,6 +16,8 @@ public:
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
+    py::str getNodePropertyNames(const string& tableName);
+
 private:
     unordered_map<string, shared_ptr<Value>> transformPythonParameters(py::list params);
 
