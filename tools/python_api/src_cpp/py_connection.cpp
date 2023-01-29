@@ -8,7 +8,8 @@ void PyConnection::initialize(py::handle& m) {
         .def(
             "execute", &PyConnection::execute, py::arg("query"), py::arg("parameters") = py::list())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
-            py::arg("num_threads"));
+            py::arg("num_threads"))
+        .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"));
     PyDateTime_IMPORT;
 }
 
@@ -35,6 +36,10 @@ unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list pa
 
 void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
+}
+
+py::str PyConnection::getNodePropertyNames(const string& tableName) {
+    return conn->getNodePropertyNames(tableName);
 }
 
 unordered_map<string, shared_ptr<Value>> PyConnection::transformPythonParameters(py::list params) {

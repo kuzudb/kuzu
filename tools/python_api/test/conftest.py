@@ -31,6 +31,9 @@ def init_tiny_snb(tmp_path):
     conn.execute('COPY movies FROM "../../../dataset/tinysnb/vMovies.csv"')
     conn.execute('create rel table workAt (FROM person TO organisation, year INT64, MANY_ONE)')
     conn.execute('COPY workAt FROM "../../../dataset/tinysnb/eWorkAt.csv"')
+    conn.execute('create node table tensor (ID INT64, boolTensor BOOLEAN[], doubleTensor DOUBLE[][], intTensor INT64[][][], oneDimInt INT64, PRIMARY KEY (ID));')
+    conn.execute(
+        'COPY tensor FROM "../../../dataset/tensor-list/vTensor.csv" (HEADER=true)')
     return output_path
 
 
