@@ -86,15 +86,12 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v3
-        with:
-          repository: Sarcasm/run-clang-format
-          path: run-clang-format
-      
+
       - name: Check source format
-        run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
+        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
 
       - name: Check test format
-        run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
+        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
 
   benchmark:
     name: benchmark
