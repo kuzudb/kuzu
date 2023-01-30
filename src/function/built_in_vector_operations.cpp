@@ -326,10 +326,10 @@ void BuiltInVectorOperations::registerListOperations() {
 void BuiltInVectorOperations::registerInternalIDOperation() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(
-        ID_FUNC_NAME, vector<DataTypeID>{NODE}, NODE_ID, nullptr));
+        ID_FUNC_NAME, vector<DataTypeID>{NODE}, INTERNAL_ID, nullptr));
     definitions.push_back(make_unique<VectorOperationDefinition>(
-        ID_FUNC_NAME, vector<DataTypeID>{REL}, INT64, nullptr));
-    vectorOperations.insert({ID_FUNC_NAME, move(definitions)});
+        ID_FUNC_NAME, vector<DataTypeID>{REL}, INTERNAL_ID, nullptr));
+    vectorOperations.insert({ID_FUNC_NAME, std::move(definitions)});
 }
 
 } // namespace function

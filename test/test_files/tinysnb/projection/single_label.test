@@ -291,52 +291,52 @@ Dan|Carol
 -QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
 -ENUMERATE
 ---- 14
-0
-1
-10
-11
-12
-13
-2
-3
-4
-5
-6
-7
-8
-9
+3:0
+3:1
+3:10
+3:11
+3:12
+3:13
+3:2
+3:3
+3:4
+3:5
+3:6
+3:7
+3:8
+3:9
 
 -NAME RelID2
 -QUERY MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
-14
-15
-16
+4:0
+4:1
+4:2
 
 -NAME RelID3
 -QUERY MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
-17
-18
-19
+5:0
+5:1
+5:2
 
 -NAME QueryOneToOneRelTable
 -QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
-(0:0)-[{_id:37, usedAddress:[toronto], note:}]->(0:1)
-(0:2)-[{_id:38, usedAddress:, note:long long long string}]->(0:3)
-(0:4)-[{_id:39, usedAddress:[vancouver], note:short str}]->(0:5)
+(0:0)-[{_id:8:0, usedAddress:[toronto], note:}]->(0:1)
+(0:2)-[{_id:8:1, usedAddress:, note:long long long string}]->(0:3)
+(0:4)-[{_id:8:2, usedAddress:[vancouver], note:short str}]->(0:5)
 
 -NAME OneHopMixedTest
 -QUERY MATCH (a:person)-[e:mixed]->(b:person) RETURN a.ID, e, b.ID, b.fName
 -ENUMERATE
 ---- 7
-0|(0:0)-[{_id:27, year:1930}]->(0:1)|2|Bob
-10|(0:7)-[{_id:33, year:2020}]->(0:1)|2|Bob
-2|(0:1)-[{_id:28, year:1945}]->(0:3)|5|Dan
-3|(0:2)-[{_id:29, year:2088}]->(0:4)|7|Elizabeth
-7|(0:4)-[{_id:30, year:2066}]->(0:2)|3|Carol
-8|(0:5)-[{_id:31, year:2120}]->(0:2)|3|Carol
-9|(0:6)-[{_id:32, year:2022}]->(0:2)|3|Carol
+0|(0:0)-[{_id:7:0, year:1930}]->(0:1)|2|Bob
+10|(0:7)-[{_id:7:6, year:2020}]->(0:1)|2|Bob
+2|(0:1)-[{_id:7:1, year:1945}]->(0:3)|5|Dan
+3|(0:2)-[{_id:7:2, year:2088}]->(0:4)|7|Elizabeth
+7|(0:4)-[{_id:7:3, year:2066}]->(0:2)|3|Carol
+8|(0:5)-[{_id:7:4, year:2120}]->(0:2)|3|Carol
+9|(0:6)-[{_id:7:5, year:2022}]->(0:2)|3|Carol

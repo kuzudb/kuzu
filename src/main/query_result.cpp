@@ -27,8 +27,8 @@ void QueryResult::initResultTableAndIterator(
         unique_ptr<Value> value;
         if (columnType.typeID == common::NODE) {
             // first expression is node ID.
-            assert(expressionsToCollect[0]->dataType.typeID == common::NODE_ID);
-            auto nodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
+            assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
+            auto nodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(nodeIDVal.get());
             // second expression is node label function.
             assert(expressionsToCollect[1]->dataType.typeID == common::STRING);
@@ -46,12 +46,14 @@ void QueryResult::initResultTableAndIterator(
             value = make_unique<Value>(std::move(nodeVal));
         } else if (columnType.typeID == common::REL) {
             // first expression is src node ID.
-            assert(expressionsToCollect[0]->dataType.typeID == common::NODE_ID);
-            auto srcNodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
+            assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
+            auto srcNodeIDVal =
+                make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(srcNodeIDVal.get());
             // second expression is dst node ID.
-            assert(expressionsToCollect[1]->dataType.typeID == common::NODE_ID);
-            auto dstNodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(NODE_ID)));
+            assert(expressionsToCollect[1]->dataType.typeID == common::INTERNAL_ID);
+            auto dstNodeIDVal =
+                make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(dstNodeIDVal.get());
             auto relVal = make_unique<RelVal>(std::move(srcNodeIDVal), std::move(dstNodeIDVal));
             for (auto j = 2u; j < expressionsToCollect.size(); ++j) {

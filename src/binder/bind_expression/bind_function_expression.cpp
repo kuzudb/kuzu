@@ -128,7 +128,7 @@ unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     auto result = make_unique<PropertyExpression>(
-        DataType(NODE_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
+        DataType(INTERNAL_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
     return result;
 }
 

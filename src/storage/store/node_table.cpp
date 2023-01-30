@@ -33,7 +33,7 @@ void NodeTable::scan(Transaction* transaction, const shared_ptr<ValueVector>& in
     }
 }
 
-node_offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
+offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     auto nodeOffset = nodesStatisticsAndDeletedIDs->addNode(tableID);
     assert(primaryKeyVector->state->selVector->selectedSize == 1);
     auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
@@ -70,8 +70,7 @@ void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
     pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
 }
 
-void NodeTable::deleteNode(
-    node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
+void NodeTable::deleteNode(offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     pkIndex->deleteKey(primaryKeyVector, pos);
 }

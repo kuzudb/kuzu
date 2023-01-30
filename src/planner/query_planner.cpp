@@ -166,7 +166,7 @@ static expression_vector getCorrelatedExpressions(
 static expression_vector getJoinNodeIDs(expression_vector& expressions) {
     expression_vector joinNodeIDs;
     for (auto& expression : expressions) {
-        if (expression->dataType.typeID == NODE_ID) {
+        if (expression->dataType.typeID == INTERNAL_ID) {
             joinNodeIDs.push_back(expression);
         }
     }
@@ -180,7 +180,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
     if (correlatedExpressions.empty()) {
         throw NotImplementedException("Optional match is disconnected with previous MATCH clause.");
     }
-    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
+    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, INTERNAL_ID)) {
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
         // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
@@ -239,7 +239,7 @@ void QueryPlanner::planExistsSubquery(shared_ptr<Expression>& expression, Logica
     if (correlatedExpressions.empty()) {
         throw NotImplementedException("Subquery is disconnected with outer query.");
     }
-    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, NODE_ID)) {
+    if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, INTERNAL_ID)) {
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(

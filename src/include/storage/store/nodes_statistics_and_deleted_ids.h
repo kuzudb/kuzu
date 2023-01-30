@@ -11,12 +11,12 @@ namespace storage {
 class NodeStatisticsAndDeletedIDs : public TableStatistics {
 
 public:
-    NodeStatisticsAndDeletedIDs(table_id_t tableID, node_offset_t maxNodeOffset)
+    NodeStatisticsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset)
         : NodeStatisticsAndDeletedIDs(tableID, maxNodeOffset,
-              vector<node_offset_t>() /* no deleted node offsets during initial loading */) {}
+              vector<offset_t>() /* no deleted node offsets during initial loading */) {}
 
-    NodeStatisticsAndDeletedIDs(table_id_t tableID, node_offset_t maxNodeOffset,
-        const vector<node_offset_t>& deletedNodeOffsets);
+    NodeStatisticsAndDeletedIDs(
+        table_id_t tableID, offset_t maxNodeOffset, const vector<offset_t>& deletedNodeOffsets);
 
     NodeStatisticsAndDeletedIDs(const NodeStatisticsAndDeletedIDs& other)
         : TableStatistics{other.getNumTuples()}, tableID{other.tableID},
@@ -24,18 +24,16 @@ public:
           hasDeletedNodesPerMorsel{other.hasDeletedNodesPerMorsel},
           deletedNodeOffsetsPerMorsel{other.deletedNodeOffsetsPerMorsel} {}
 
-    inline node_offset_t getMaxNodeOffset() {
-        return getMaxNodeOffsetFromNumTuples(getNumTuples());
-    }
+    inline offset_t getMaxNodeOffset() { return getMaxNodeOffsetFromNumTuples(getNumTuples()); }
 
     inline void setAdjListsAndColumns(
         pair<vector<AdjLists*>, vector<AdjColumn*>> adjListsAndColumns_) {
         adjListsAndColumns = adjListsAndColumns_;
     }
 
-    node_offset_t addNode();
+    offset_t addNode();
 
-    void deleteNode(node_offset_t nodeOffset);
+    void deleteNode(offset_t nodeOffset);
 
     // This function assumes that it is being called right after ScanNodeID has obtained a
     // morsel and that the nodeID structs in nodeOffsetVector.values have consecutive node
@@ -44,9 +42,9 @@ public:
 
     void setNumTuples(uint64_t numTuples) override;
 
-    vector<node_offset_t> getDeletedNodeOffsets();
+    vector<offset_t> getDeletedNodeOffsets();
 
-    static inline uint64_t geNumTuplesFromMaxNodeOffset(node_offset_t maxNodeOffset) {
+    static inline uint64_t geNumTuplesFromMaxNodeOffset(offset_t maxNodeOffset) {
         return (maxNodeOffset == UINT64_MAX) ? 0ull : maxNodeOffset + 1ull;
     }
 
@@ -55,10 +53,10 @@ public:
     }
 
 private:
-    void errorIfNodeHasEdges(node_offset_t nodeOffset);
+    void errorIfNodeHasEdges(offset_t nodeOffset);
 
     // We pass the morselIdx to not do the division nodeOffset/DEFAULT_VECTOR_CAPACITY again
-    bool isDeleted(node_offset_t nodeOffset, uint64_t morselIdx);
+    bool isDeleted(offset_t nodeOffset, uint64_t morselIdx);
 
 private:
     table_id_t tableID;
@@ -66,7 +64,7 @@ private:
     // construction.
     pair<vector<AdjLists*>, vector<AdjColumn*>> adjListsAndColumns;
     vector<bool> hasDeletedNodesPerMorsel;
-    map<uint64_t, set<node_offset_t>> deletedNodeOffsetsPerMorsel;
+    map<uint64_t, set<offset_t>> deletedNodeOffsetsPerMorsel;
 };
 
 // Manages the disk image of the maxNodeOffsets and deleted node IDs (per node table).
@@ -113,14 +111,14 @@ public:
             ->setNumTuples(numTuples);
     }
 
-    inline node_offset_t getMaxNodeOffset(Transaction* transaction, table_id_t tableID) {
+    inline offset_t getMaxNodeOffset(Transaction* transaction, table_id_t tableID) {
         return getMaxNodeOffset(transaction == nullptr || transaction->isReadOnly() ?
                                     TransactionType::READ_ONLY :
                                     TransactionType::WRITE,
             tableID);
     }
 
-    inline node_offset_t getMaxNodeOffset(TransactionType transactionType, table_id_t tableID) {
+    inline offset_t getMaxNodeOffset(TransactionType transactionType, table_id_t tableID) {
         return (transactionType == TransactionType::READ_ONLY ||
                    tablesStatisticsContentForWriteTrx == nullptr) ?
                    getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
@@ -139,7 +137,7 @@ public:
 
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
-    node_offset_t addNode(table_id_t tableID) {
+    offset_t addNode(table_id_t tableID) {
         lock_t lck{mtx};
         initTableStatisticPerTableForWriteTrxIfNecessary();
         return ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
@@ -149,7 +147,7 @@ public:
     }
 
     // Refer to the comments for addNode.
-    void deleteNode(table_id_t tableID, node_offset_t nodeOffset) {
+    void deleteNode(table_id_t tableID, offset_t nodeOffset) {
         lock_t lck{mtx};
         initTableStatisticPerTableForWriteTrxIfNecessary();
         ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
@@ -160,7 +158,7 @@ public:
 
     // This function is only used by storageManager to construct relsStore during start-up, so
     // we can just safely return the maxNodeOffsetPerTable for readOnlyVersion.
-    map<table_id_t, node_offset_t> getMaxNodeOffsetPerTable() const;
+    map<table_id_t, offset_t> getMaxNodeOffsetPerTable() const;
 
     void setDeletedNodeOffsetsForMorsel(Transaction* transaction,
         const shared_ptr<ValueVector>& nodeOffsetVector, table_id_t tableID);

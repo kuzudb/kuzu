@@ -54,8 +54,8 @@ DataType Types::dataTypeFromString(const string& dataTypeString) {
 }
 
 DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
-    if ("NODE_ID" == dataTypeIDString) {
-        return NODE_ID;
+    if ("INTERNAL_ID" == dataTypeIDString) {
+        return INTERNAL_ID;
     } else if ("INT64" == dataTypeIDString) {
         return INT64;
     } else if ("DOUBLE" == dataTypeIDString) {
@@ -93,8 +93,8 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "NODE";
     case REL:
         return "REL";
-    case NODE_ID:
-        return "NODE_ID";
+    case INTERNAL_ID:
+        return "INTERNAL_ID";
     case BOOL:
         return "BOOL";
     case INT64:
@@ -138,8 +138,8 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
 
 uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case NODE_ID:
-        return sizeof(nodeID_t);
+    case INTERNAL_ID:
+        return sizeof(internalID_t);
     case BOOL:
         return sizeof(uint8_t);
     case INT64:

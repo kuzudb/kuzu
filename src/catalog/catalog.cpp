@@ -225,7 +225,7 @@ table_id_t CatalogContent::addRelTableSchema(string tableName, RelMultiplicity r
     }
     vector<Property> properties;
     auto propertyID = 0;
-    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INT64);
+    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INTERNAL_ID);
     properties.push_back(
         Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
     for (auto& propertyDefinition : propertyDefinitions) {

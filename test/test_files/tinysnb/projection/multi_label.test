@@ -34,20 +34,20 @@
 -QUERY MATCH (a:person)-[e:mixed|:marries]->(b:person) RETURN e
 -ENUMERATE
 ---- 10
-(0:0)-[{_id:27, year:1930, usedAddress:, note:}]->(0:1)
-(0:0)-[{_id:37, year:, usedAddress:[toronto], note:}]->(0:1)
-(0:1)-[{_id:28, year:1945, usedAddress:, note:}]->(0:3)
-(0:2)-[{_id:29, year:2088, usedAddress:, note:}]->(0:4)
-(0:2)-[{_id:38, year:, usedAddress:, note:long long long string}]->(0:3)
-(0:4)-[{_id:30, year:2066, usedAddress:, note:}]->(0:2)
-(0:4)-[{_id:39, year:, usedAddress:[vancouver], note:short str}]->(0:5)
-(0:5)-[{_id:31, year:2120, usedAddress:, note:}]->(0:2)
-(0:6)-[{_id:32, year:2022, usedAddress:, note:}]->(0:2)
-(0:7)-[{_id:33, year:2020, usedAddress:, note:}]->(0:1)
+(0:0)-[{_id:7:0, year:1930, usedAddress:, note:}]->(0:1)
+(0:0)-[{_id:8:0, year:, usedAddress:[toronto], note:}]->(0:1)
+(0:1)-[{_id:7:1, year:1945, usedAddress:, note:}]->(0:3)
+(0:2)-[{_id:7:2, year:2088, usedAddress:, note:}]->(0:4)
+(0:2)-[{_id:8:1, year:, usedAddress:, note:long long long string}]->(0:3)
+(0:4)-[{_id:7:3, year:2066, usedAddress:, note:}]->(0:2)
+(0:4)-[{_id:8:2, year:, usedAddress:[vancouver], note:short str}]->(0:5)
+(0:5)-[{_id:7:4, year:2120, usedAddress:, note:}]->(0:2)
+(0:6)-[{_id:7:5, year:2022, usedAddress:, note:}]->(0:2)
+(0:7)-[{_id:7:6, year:2020, usedAddress:, note:}]->(0:1)
 
 -NAME MultiLabelReturnTest
 -QUERY MATCH (a:person:organisation)-[e:mixed|:studyAt]->(b:person:organisation) WHERE a.fName='Alice' RETURN e, b.fName, b.name
 -ENUMERATE
 ---- 2
-(0:0)-[{_id:14, year:2021, places:[wwAewsdndweusd,wek]}]->(1:0)||ABFsUni
-(0:0)-[{_id:27, year:1930, places:}]->(0:1)|Bob|
+(0:0)-[{_id:4:0, year:2021, places:[wwAewsdndweusd,wek]}]->(1:0)||ABFsUni
+(0:0)-[{_id:7:0, year:1930, places:}]->(0:1)|Bob|

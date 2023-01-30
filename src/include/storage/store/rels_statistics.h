@@ -12,10 +12,12 @@ class RelStatistics : public TableStatistics {
     friend class RelsStatistics;
 
 public:
-    RelStatistics(
-        uint64_t numRels, vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable)
-        : TableStatistics{numRels}, numRelsPerDirectionBoundTable{
-                                        move(numRelsPerDirectionBoundTable)} {}
+    RelStatistics(uint64_t numRels,
+        vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable,
+        offset_t nextRelOffset)
+        : TableStatistics{numRels}, numRelsPerDirectionBoundTable{std::move(
+                                        numRelsPerDirectionBoundTable)},
+          nextRelOffset{nextRelOffset} {}
     RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
 
     inline uint64_t getNumRelsForDirectionBoundTable(
@@ -31,8 +33,11 @@ public:
         numRelsPerDirectionBoundTable[relDirection][boundTableID] = numRels;
     }
 
+    inline offset_t getNextRelOffset() { return nextRelOffset; }
+
 private:
     vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable;
+    offset_t nextRelOffset;
 };
 
 // Manages the disk image of the numRels and numRelsPerDirectionBoundTable.
@@ -76,7 +81,7 @@ public:
     void setNumRelsPerDirectionBoundTableID(
         table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable);
 
-    uint64_t getNextRelID(Transaction* transaction);
+    offset_t getNextRelOffset(Transaction* transaction, table_id_t tableID);
 
 protected:
     inline string getTableTypeForPrinting() const override { return "RelsStatistics"; }
@@ -93,6 +98,12 @@ protected:
     inline string getTableStatisticsFilePath(
         const string& directory, DBFileType dbFileType) override {
         return StorageUtils::getRelsStatisticsFilePath(directory, dbFileType);
+    }
+
+    inline void increaseNextRelOffset(table_id_t relTableID, uint64_t numTuples) {
+        ((RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
+                .get())
+            ->nextRelOffset += numTuples;
     }
 
     unique_ptr<TableStatistics> deserializeTableStatistics(

@@ -13,13 +13,13 @@ CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription, strin
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0} {}
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
-void CopyStructuresArrow::calculateListHeadersTask(node_offset_t numNodes, uint32_t elementSize,
+void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
     atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
-    node_offset_t nodeOffset = 0u;
+    offset_t nodeOffset = 0u;
     uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
@@ -47,7 +47,7 @@ void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(ui
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
-    node_offset_t nodeOffset = 0u;
+    offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto lastNodeOffsetInChunk =

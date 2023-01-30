@@ -16,8 +16,8 @@ public:
     }
 
     inline uint64_t getNumBytesForNodeIDAfterCompression() const {
-        return commonTableID == INVALID_TABLE_ID ? Types::getDataTypeSize(NODE_ID) :
-                                                   sizeof(node_offset_t);
+        return commonTableID == INVALID_TABLE_ID ? Types::getDataTypeSize(INTERNAL_ID) :
+                                                   sizeof(offset_t);
     }
 
     void readNodeID(uint8_t* data, nodeID_t* nodeID) const;

@@ -122,7 +122,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         dict["_dst"] = convertNodeIdToPyDict(relVal.getDstNodeID());
         return move(dict);
     }
-    case NODE_ID: {
+    case INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
     }
     default:

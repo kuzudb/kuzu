@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace storage {
 
-void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemList) {
+void ListsUpdateIterator::updateList(offset_t nodeOffset, InMemList& inMemList) {
     seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
     list_header_t oldHeader;
     if (nodeOffset >=
@@ -33,7 +33,7 @@ void ListsUpdateIterator::updateList(node_offset_t nodeOffset, InMemList& inMemL
 
 // If the initial list is a largeList, we can simply append the data in inMemList to the
 // largeList.
-void ListsUpdateIterator::appendToLargeList(node_offset_t nodeOffset, InMemList& inMemList) {
+void ListsUpdateIterator::appendToLargeList(offset_t nodeOffset, InMemList& inMemList) {
     seekToNodeOffsetAndSlideListsIfNecessary(nodeOffset);
     auto largeListIdx = ListHeaders::getLargeListIdx(
         lists->headers->headersDiskArray->get(nodeOffset, TransactionType::READ_ONLY));
@@ -75,7 +75,7 @@ void ListsUpdateIterator::seekToBeginningOfChunkIdx(uint64_t chunkIdx) {
 }
 
 void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive) {
-    for (node_offset_t nodeOffsetToSlide = curUnprocessedNodeOffset;
+    for (offset_t nodeOffsetToSlide = curUnprocessedNodeOffset;
          nodeOffsetToSlide <= endNodeOffsetInclusive; ++nodeOffsetToSlide) {
         list_header_t oldHeader = lists->getHeaders()->headersDiskArray->get(
             nodeOffsetToSlide, TransactionType::READ_ONLY);
@@ -101,8 +101,7 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
     }
 }
 
-void ListsUpdateIterator::seekToNodeOffsetAndSlideListsIfNecessary(
-    node_offset_t nodeOffsetToSeekTo) {
+void ListsUpdateIterator::seekToNodeOffsetAndSlideListsIfNecessary(offset_t nodeOffsetToSeekTo) {
     auto chunkIdxOfNode = StorageUtils::getListChunkIdx(nodeOffsetToSeekTo);
     if (curChunkIdx == UINT64_MAX) {
         seekToBeginningOfChunkIdx(chunkIdxOfNode);

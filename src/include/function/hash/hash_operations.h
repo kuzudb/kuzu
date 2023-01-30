@@ -46,6 +46,11 @@ struct CombineHash {
 };
 
 template<>
+inline void Hash::operation(const internalID_t& key, hash_t& result) {
+    result = murmurhash64(key.offset) ^ murmurhash64(key.tableID);
+}
+
+template<>
 inline void Hash::operation(const bool& key, hash_t& result) {
     result = murmurhash64(key);
 }
@@ -94,11 +99,6 @@ template<>
 inline void Hash::operation(const interval_t& key, hash_t& result) {
     result = combineHashScalar(murmurhash64(key.months),
         combineHashScalar(murmurhash64(key.days), murmurhash64(key.micros)));
-}
-
-template<>
-inline void Hash::operation(const nodeID_t& key, hash_t& result) {
-    result = murmurhash64(key.offset) ^ murmurhash64(key.tableID);
 }
 
 template<>

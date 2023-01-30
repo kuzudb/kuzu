@@ -339,7 +339,7 @@ public:
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>{"(0:0)-[{_id:14, year:2021}]->(1:0)"});
+            vector<string>{"(0:0)-[{_id:4:0, year:2021}]->(1:0)"});
     }
 
     void ddlStatementsInsideActiveTransactionErrorTest(string query) {

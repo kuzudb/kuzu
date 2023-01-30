@@ -16,8 +16,6 @@ void TablesStatistics::readFromFile(const string& directory) {
     logger->info("Reading {} from {}.", getTableTypeForPrinting(), filePath);
     uint64_t offset = 0;
     uint64_t numTables;
-    offset = SerDeser::deserializeValue(
-        tablesStatisticsContentForReadOnlyTrx->nextRelID, fileInfo.get(), offset);
     offset = SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
     for (auto i = 0u; i < numTables; i++) {
         uint64_t numTuples;
@@ -39,7 +37,6 @@ void TablesStatistics::saveToFile(
                                         tablesStatisticsContentForWriteTrx == nullptr) ?
                                         tablesStatisticsContentForReadOnlyTrx :
                                         tablesStatisticsContentForWriteTrx;
-    offset = SerDeser::serializeValue(tablesStatisticsContent->nextRelID, fileInfo.get(), offset);
     offset = SerDeser::serializeValue(
         tablesStatisticsContent->tableStatisticPerTable.size(), fileInfo.get(), offset);
     for (auto& tableStatistic : tablesStatisticsContent->tableStatisticPerTable) {
@@ -54,8 +51,6 @@ void TablesStatistics::saveToFile(
 void TablesStatistics::initTableStatisticPerTableForWriteTrxIfNecessary() {
     if (tablesStatisticsContentForWriteTrx == nullptr) {
         tablesStatisticsContentForWriteTrx = make_unique<TablesStatisticsContent>();
-        tablesStatisticsContentForWriteTrx->nextRelID =
-            tablesStatisticsContentForReadOnlyTrx->nextRelID;
         for (auto& tableStatistic : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
             tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableStatistic.first] =
                 constructTableStatistic(tableStatistic.second.get());

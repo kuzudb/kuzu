@@ -42,7 +42,7 @@ private:
 
     template<typename T>
     static void populatePKIndex(InMemColumn* column, HashIndexBuilder<T>* pkIndex,
-        node_offset_t startOffset, uint64_t numValues);
+        offset_t startOffset, uint64_t numValues);
 
     // Concurrent tasks.
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.

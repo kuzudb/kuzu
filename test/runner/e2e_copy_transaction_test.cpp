@@ -131,8 +131,8 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         auto dummyWriteTrx = Transaction::getDummyWriteTrx();
-        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getRelsStatistics().getNextRelID(
-                      dummyWriteTrx.get()),
+        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getRelsStatistics().getNextRelOffset(
+                      dummyWriteTrx.get(), tableID),
             14);
     }
 
@@ -148,7 +148,7 @@ public:
         validateTinysnbKnowsDateProperty();
         auto& relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
         auto dummyWriteTrx = Transaction::getDummyWriteTrx();
-        ASSERT_EQ(relsStatistics.getNextRelID(dummyWriteTrx.get()), 14);
+        ASSERT_EQ(relsStatistics.getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
         ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
         auto knowsRelStatistics = (RelStatistics*)relsStatistics.getReadOnlyVersion()
                                       ->tableStatisticPerTable.at(knowsTableID)

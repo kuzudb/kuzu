@@ -5,7 +5,6 @@
 
 #include "common/configs.h"
 #include "common/null_mask.h"
-#include "common/types/node_id_t.h"
 #include "storage/node_id_compression_scheme.h"
 
 using namespace kuzu::common;

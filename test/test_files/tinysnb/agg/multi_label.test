@@ -7,8 +7,8 @@
 -NAME MultiLabelAggTest2
 -QUERY MATCH (a:person)<-[e1:marries|:mixed|studyAt]-(b:person)-[e2:knows]->(c:person) WHERE b.ID = 7 RETURN ID(e1), COUNT(*), MIN(e2.date)
 ---- 2
-30|2|1905-12-12
-39|2|1905-12-12
+7:3|2|1905-12-12
+8:2|2|1905-12-12
 
 -NAME MultiLabelAggTest3
 -QUERY MATCH (a:person)-[e1:marries|:mixed|studyAt]->(b:person) RETURN e1.year, COUNT(*)

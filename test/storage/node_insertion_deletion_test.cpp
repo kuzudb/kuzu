@@ -33,19 +33,19 @@ public:
         conn->beginWriteTransaction();
     }
 
-    node_offset_t addNode() {
+    offset_t addNode() {
         // TODO(Guodong/Semih/Xiyang): Currently it is not clear when and from where the hash index,
         // structured columns, adjacency Lists, and adj columns of a
         // newly added node should be informed that a new node is being inserted, so these data
         // structures either write values or NULLs or empty Lists etc. Within the scope of these
         // tests we only have an ID column and we are manually from outside
         // NodesStatisticsAndDeletedIDs adding a NULL value for the ID. This should change later.
-        node_offset_t nodeOffset = personNodeTable->getNodeStatisticsAndDeletedIDs()->addNode(
+        offset_t nodeOffset = personNodeTable->getNodeStatisticsAndDeletedIDs()->addNode(
             personNodeTable->getTableID());
         auto dataChunk = make_shared<DataChunk>(2);
         // Flatten the data chunk
         dataChunk->state->currIdx = 0;
-        auto nodeIDVector = make_shared<ValueVector>(NODE_ID, getMemoryManager(*database));
+        auto nodeIDVector = make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeIDVector);
         auto idVector = make_shared<ValueVector>(INT64, getMemoryManager(*database));
         dataChunk->insert(1, idVector);
@@ -73,7 +73,7 @@ TEST_F(NodeInsertionDeletionTests, DeletingSameNodeOffsetErrorsTest) {
 }
 
 TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
-    for (node_offset_t nodeOffset = 1000; nodeOffset < 9000; ++nodeOffset) {
+    for (offset_t nodeOffset = 1000; nodeOffset < 9000; ++nodeOffset) {
         personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             personNodeTable->getTableID(), nodeOffset);
     }
@@ -96,7 +96,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
 
-    for (node_offset_t nodeOffset = 0; nodeOffset < 10010; ++nodeOffset) {
+    for (offset_t nodeOffset = 0; nodeOffset < 10010; ++nodeOffset) {
         personNodeTable->getNodeStatisticsAndDeletedIDs()->deleteNode(
             personNodeTable->getTableID(), nodeOffset);
     }

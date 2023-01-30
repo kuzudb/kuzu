@@ -211,7 +211,7 @@ public:
                            common::StorageConfig::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
-    static inline uint64_t getNumChunks(node_offset_t numNodes) {
+    static inline uint64_t getNumChunks(offset_t numNodes) {
         auto numChunks = StorageUtils::getListChunkIdx(numNodes);
         if (0 != (numNodes & (ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
             numChunks++;
@@ -219,15 +219,15 @@ public:
         return numChunks;
     }
 
-    static inline uint64_t getListChunkIdx(node_offset_t nodeOffset) {
+    static inline uint64_t getListChunkIdx(offset_t nodeOffset) {
         return nodeOffset >> ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
     }
 
-    static inline node_offset_t getChunkIdxBeginNodeOffset(uint64_t chunkIdx) {
+    static inline offset_t getChunkIdxBeginNodeOffset(uint64_t chunkIdx) {
         return chunkIdx << ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
     }
 
-    static inline node_offset_t getChunkIdxEndNodeOffsetInclusive(uint64_t chunkIdx) {
+    static inline offset_t getChunkIdxEndNodeOffsetInclusive(uint64_t chunkIdx) {
         return ((chunkIdx + 1) << ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2) - 1;
     }
 

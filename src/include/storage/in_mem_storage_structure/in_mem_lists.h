@@ -12,9 +12,9 @@ typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
 class InMemLists;
 class AdjLists;
 
-using fill_in_mem_lists_function_t = std::function<void(InMemLists* inMemLists, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, node_offset_t nodeOffset, list_header_t header,
-    uint64_t posInList, const DataType& dataType)>;
+using fill_in_mem_lists_function_t =
+    std::function<void(InMemLists* inMemLists, uint8_t* defaultVal, PageByteCursor& pageByteCursor,
+        offset_t nodeOffset, list_header_t header, uint64_t posInList, const DataType& dataType)>;
 
 class InMemListsUtils {
 
@@ -33,7 +33,7 @@ public:
     // Calculates the page id and offset in page where the data of a particular list has to be put
     // in the in-mem pages.
     static PageElementCursor calcPageElementCursor(uint32_t header, uint64_t reversePos,
-        uint8_t numBytesPerElement, node_offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
+        uint8_t numBytesPerElement, offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
         bool hasNULLBytes);
 };
 
@@ -48,7 +48,7 @@ public:
     virtual ~InMemLists() = default;
 
     virtual void saveToFile();
-    virtual void setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val);
+    virtual void setElement(uint32_t header, offset_t nodeOffset, uint64_t pos, uint8_t* val);
     virtual inline InMemOverflowFile* getInMemOverflowFile() { return nullptr; }
     inline ListsMetadataBuilder* getListsMetadataBuilder() { return listsMetadataBuilder.get(); }
     inline uint8_t* getMemPtrToLoc(uint64_t pageIdx, uint16_t posInPage) {
@@ -68,17 +68,17 @@ private:
         uint64_t numElementsInList, uint64_t numElementsPerPage);
 
     static inline void fillInMemListsWithNonOverflowValFunc(InMemLists* inMemLists,
-        uint8_t* defaultVal, PageByteCursor& pageByteCursor, node_offset_t nodeOffset,
+        uint8_t* defaultVal, PageByteCursor& pageByteCursor, offset_t nodeOffset,
         list_header_t header, uint64_t posInList, const DataType& dataType) {
         inMemLists->setElement(header, nodeOffset, posInList, defaultVal);
     }
 
     static void fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
-        PageByteCursor& pageByteCursor, node_offset_t nodeOffset, list_header_t header,
+        PageByteCursor& pageByteCursor, offset_t nodeOffset, list_header_t header,
         uint64_t posInList, const DataType& dataType);
 
     static void fillInMemListsWithListValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
-        PageByteCursor& pageByteCursor, node_offset_t nodeOffset, list_header_t header,
+        PageByteCursor& pageByteCursor, offset_t nodeOffset, list_header_t header,
         uint64_t posInList, const DataType& dataType);
 
     static fill_in_mem_lists_function_t getFillInMemListsFunc(const DataType& dataType);
@@ -93,12 +93,16 @@ protected:
     unique_ptr<ListsMetadataBuilder> listsMetadataBuilder;
 };
 
+class InMemRelIDLists : public InMemLists {
+public:
+    InMemRelIDLists(string fName, uint64_t numNodes)
+        : InMemLists{std::move(fName), DataType{INTERNAL_ID}, sizeof(offset_t), numNodes} {}
+};
+
 class InMemListsWithOverflow : public InMemLists {
 
 protected:
     InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes);
-
-    ~InMemListsWithOverflow() override = default;
 
     InMemOverflowFile* getInMemOverflowFile() override { return overflowInMemFile.get(); }
     void saveToFile() override;
@@ -112,15 +116,13 @@ class InMemAdjLists : public InMemLists {
 public:
     InMemAdjLists(
         string fName, const NodeIDCompressionScheme& nodeIDCompressionScheme, uint64_t numNodes)
-        : InMemLists{move(fName), DataType(NODE_ID),
+        : InMemLists{move(fName), DataType(INTERNAL_ID),
               nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), numNodes},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {
         listHeadersBuilder = make_unique<ListHeadersBuilder>(this->fName, numNodes);
     };
 
-    ~InMemAdjLists() override = default;
-
-    void setElement(uint32_t header, node_offset_t nodeOffset, uint64_t pos, uint8_t* val) override;
+    void setElement(uint32_t header, offset_t nodeOffset, uint64_t pos, uint8_t* val) override;
 
     void saveToFile() override;
 

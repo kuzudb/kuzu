@@ -56,9 +56,10 @@ bool CreateRel::getNextTuplesInternal() {
             // Rel ID is our interval property, so we overwrite relID=$expr with system ID.
             if (j == createRelInfo->relIDEvaluatorIdx) {
                 auto relIDVector = evaluator->resultVector;
-                assert(relIDVector->dataType.typeID == INT64 &&
+                assert(relIDVector->dataType.typeID == INTERNAL_ID &&
                        relIDVector->state->selVector->selectedPositions[0] == 0);
-                relIDVector->setValue(0, relsStatistics.getNextRelID(transaction));
+                relIDVector->setValue(0, relsStatistics.getNextRelOffset(
+                                             transaction, createRelInfo->table->getRelTableID()));
                 relIDVector->setNull(0, false);
             } else {
                 createRelInfo->evaluators[j]->evaluate();

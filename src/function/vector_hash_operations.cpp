@@ -10,8 +10,8 @@ void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result
     result->state = operand->state;
     assert(result->dataType.typeID == INT64);
     switch (operand->dataType.typeID) {
-    case NODE_ID: {
-        UnaryHashOperationExecutor::execute<nodeID_t, hash_t>(*operand, *result);
+    case INTERNAL_ID: {
+        UnaryHashOperationExecutor::execute<internalID_t, hash_t>(*operand, *result);
     } break;
     case BOOL: {
         UnaryHashOperationExecutor::execute<bool, hash_t>(*operand, *result);

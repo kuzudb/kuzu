@@ -101,7 +101,7 @@ arrow::Status CopyNodeArrow::populateColumns() {
 
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    node_offset_t offsetStart = 0;
+    offset_t offsetStart = 0;
 
     shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
     auto status = initCSVReader(csv_streaming_reader, copyDescription.filePath);
@@ -134,7 +134,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<
 
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    node_offset_t offsetStart = 0;
+    offset_t offsetStart = 0;
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
     auto status = initArrowReader(ipc_reader, copyDescription.filePath);
@@ -165,7 +165,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilde
 
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    node_offset_t offsetStart = 0;
+    offset_t offsetStart = 0;
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
     auto status = initParquetReader(reader, copyDescription.filePath);
@@ -195,8 +195,8 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(unique_ptr<HashIndexBuil
 }
 
 template<typename T>
-void CopyNodeArrow::populatePKIndex(InMemColumn* column, HashIndexBuilder<T>* pkIndex,
-    node_offset_t startOffset, uint64_t numValues) {
+void CopyNodeArrow::populatePKIndex(
+    InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         if constexpr (is_same<T, int64_t>::value) {

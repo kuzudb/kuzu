@@ -53,8 +53,8 @@ public:
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
-    inline node_offset_t readNodeOffset(uint32_t pos) const {
-        assert(dataType.typeID == NODE_ID);
+    inline offset_t readNodeOffset(uint32_t pos) const {
+        assert(dataType.typeID == INTERNAL_ID);
         return getValue<nodeID_t>(pos).offset;
     }
 

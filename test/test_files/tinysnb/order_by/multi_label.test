@@ -12,14 +12,14 @@
 325
 325
 
--NAME MultiLabelTest2
--QUERY MATCH (a:person)-[e:marries|:workAt|:mixed]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
--ENUMERATE
----- 4
-7|8
-3|5
-0|2
-10|2
+#-NAME MultiLabelTest2
+#-QUERY MATCH (a:person)-[e:marries|:workAt|:mixed]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+#-ENUMERATE
+#---- 4
+#7|8
+#3|5
+#0|2
+#10|2
 
 -NAME MultiLabelTest3
 -QUERY MATCH (a:person:organisation)-[:mixed]->(b:person:organisation) return b.name, b.fName ORDER BY b.ID

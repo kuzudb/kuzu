@@ -32,7 +32,7 @@ public:
                                           .propertyID;
 
         dataChunk = make_shared<DataChunk>(3);
-        nodeVector = make_shared<ValueVector>(NODE_ID, getMemoryManager(*database));
+        nodeVector = make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeVector);
         ((nodeID_t*)nodeVector->getData())[0].offset = 0;
         ((nodeID_t*)nodeVector->getData())[1].offset = 1;

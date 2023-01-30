@@ -15,9 +15,9 @@ enum class ChainedSlotsAction : uint8_t { LOOKUP_IN_SLOTS, DELETE_IN_SLOTS, FIND
 template<typename T>
 class TemplatedHashIndexLocalStorage {
 public:
-    HashIndexLocalLookupState lookup(const T& key, node_offset_t& result);
+    HashIndexLocalLookupState lookup(const T& key, offset_t& result);
     void deleteKey(const T& key);
-    bool insert(const T& key, node_offset_t value);
+    bool insert(const T& key, offset_t value);
 
     inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
     inline void clear() {
@@ -25,7 +25,7 @@ public:
         localDeletions.clear();
     }
 
-    unordered_map<T, node_offset_t> localInsertions;
+    unordered_map<T, offset_t> localInsertions;
     unordered_set<T> localDeletions;
 };
 
@@ -40,11 +40,11 @@ public:
     // never happen concurrently. Thus, lookup requires no local storage lock. Writes are
     // coordinated to execute in serial with the help of the localStorageMutex. This is a
     // simplification to the lock scheme, but can be relaxed later if necessary.
-    HashIndexLocalLookupState lookup(const uint8_t* key, node_offset_t& result);
+    HashIndexLocalLookupState lookup(const uint8_t* key, offset_t& result);
     void deleteKey(const uint8_t* key);
-    bool insert(const uint8_t* key, node_offset_t value);
+    bool insert(const uint8_t* key, offset_t value);
     void applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
-        const std::function<void(const uint8_t*, node_offset_t)>& insertOp);
+        const std::function<void(const uint8_t*, offset_t)>& insertOp);
 
     bool hasUpdates() const;
     void clear();
@@ -84,9 +84,9 @@ public:
         const DataType& keyDataType, BufferManager& bufferManager, WAL* wal);
 
 public:
-    bool lookupInternal(Transaction* transaction, const uint8_t* key, node_offset_t& result);
+    bool lookupInternal(Transaction* transaction, const uint8_t* key, offset_t& result);
     void deleteInternal(const uint8_t* key) const;
-    bool insertInternal(const uint8_t* key, node_offset_t value);
+    bool insertInternal(const uint8_t* key, offset_t value);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
     void checkpointInMemoryIfNecessary();
@@ -96,17 +96,16 @@ public:
 private:
     template<ChainedSlotsAction action>
     bool performActionInChainedSlots(TransactionType trxType, HashIndexHeader& header,
-        SlotInfo& slotInfo, const uint8_t* key, node_offset_t& result);
-    bool lookupInPersistentIndex(
-        TransactionType trxType, const uint8_t* key, node_offset_t& result);
+        SlotInfo& slotInfo, const uint8_t* key, offset_t& result);
+    bool lookupInPersistentIndex(TransactionType trxType, const uint8_t* key, offset_t& result);
     // The following two functions are only used in prepareCommit, and are not thread-safe.
-    void insertIntoPersistentIndex(const uint8_t* key, node_offset_t value);
+    void insertIntoPersistentIndex(const uint8_t* key, offset_t value);
     void deleteFromPersistentIndex(const uint8_t* key);
 
-    void copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos,
-        const uint8_t* key, node_offset_t value);
+    void copyAndUpdateSlotHeader(
+        bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos, const uint8_t* key, offset_t value);
     void copyKVOrEntryToSlot(bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot,
-        const uint8_t* key, node_offset_t value);
+        const uint8_t* key, offset_t value);
     void splitSlot(HashIndexHeader& header);
     void rehashSlots(HashIndexHeader& header);
     vector<pair<SlotInfo, Slot<T>>> getChainedSlots(slot_id_t pSlotId);
@@ -160,20 +159,19 @@ public:
         }
     }
 
-    bool lookup(
-        Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, node_offset_t& result);
+    bool lookup(Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, offset_t& result);
 
     void deleteKey(ValueVector* keyVector, uint64_t vectorPos);
 
-    bool insert(ValueVector* keyVector, uint64_t vectorPos, node_offset_t value);
+    bool insert(ValueVector* keyVector, uint64_t vectorPos, offset_t value);
 
     // These two lookups are used by InMemRelCSVCopier.
-    inline bool lookup(Transaction* transaction, int64_t key, node_offset_t& result) {
+    inline bool lookup(Transaction* transaction, int64_t key, offset_t& result) {
         assert(keyDataTypeID == INT64);
         return hashIndexForInt64->lookupInternal(
             transaction, reinterpret_cast<const uint8_t*>(&key), result);
     }
-    inline bool lookup(Transaction* transaction, const char* key, node_offset_t& result) {
+    inline bool lookup(Transaction* transaction, const char* key, offset_t& result) {
         assert(keyDataTypeID == STRING);
         return hashIndexForString->lookupInternal(
             transaction, reinterpret_cast<const uint8_t*>(key), result);
@@ -209,11 +207,11 @@ private:
         assert(keyDataTypeID == STRING);
         hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key));
     }
-    inline bool insert(int64_t key, node_offset_t value) {
+    inline bool insert(int64_t key, offset_t value) {
         assert(keyDataTypeID == INT64);
         return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
-    inline bool insert(const char* key, node_offset_t value) {
+    inline bool insert(const char* key, offset_t value) {
         assert(keyDataTypeID == STRING);
         return hashIndexForString->insertInternal(reinterpret_cast<const uint8_t*>(key), value);
     }

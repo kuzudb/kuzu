@@ -8,13 +8,12 @@ namespace storage {
 
 CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog,
-    map<table_id_t, node_offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+    map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
     : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog},
       maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)}, relsStatistics{
                                                                          relsStatistics} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    startRelID = relsStatistics->getNextRelID(dummyReadOnlyTrx.get());
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     for (auto& nodeTableID : relTableSchema->getAllNodeTableIDs()) {
         assert(!pkIndexes.contains(nodeTableID));
@@ -180,7 +179,7 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, *it);
             taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
-                startRelID + blockStartOffset, this, currBatch->columns(), copyDescription));
+                blockStartOffset, this, currBatch->columns(), copyDescription));
             blockStartOffset += numLinesPerBlock[blockIdx];
             ++it;
             ++blockIdx;
@@ -212,7 +211,7 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
             taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
-                startRelID + blockStartOffset, this, currBatch->columns(), copyDescription));
+                blockStartOffset, this, currBatch->columns(), copyDescription));
             blockStartOffset += numLinesPerBlock[blockIdx];
             ++blockIdx;
         }
@@ -244,7 +243,7 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
             }
             ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
             taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
-                startRelID + blockStartOffset, this, currTable->columns(), copyDescription));
+                blockStartOffset, this, currTable->columns(), copyDescription));
             blockStartOffset += numLinesPerBlock[blockIdx];
             ++blockIdx;
         }
@@ -672,7 +671,7 @@ void CopyRelArrow::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList
 }
 
 void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
-    node_offset_t offsetStart, node_offset_t offsetEnd, InMemColumn* propertyColumn,
+    offset_t offsetStart, offset_t offsetEnd, InMemColumn* propertyColumn,
     InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -691,9 +690,8 @@ void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataTy
 }
 
 void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
-    node_offset_t offsetStart, node_offset_t offsetEnd, InMemAdjLists* adjLists,
-    InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
-    InMemOverflowFile* orderedInMemOverflowFile) {
+    offset_t offsetStart, offset_t offsetEnd, InMemAdjLists* adjLists, InMemLists* propertyLists,
+    InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -734,7 +732,7 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    node_offset_t offsetStart = 0, offsetEnd = 0;
+                    offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
@@ -760,7 +758,7 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    node_offset_t offsetStart = 0, offsetEnd = 0;
+                    offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);

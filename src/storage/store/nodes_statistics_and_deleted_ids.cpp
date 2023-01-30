@@ -8,37 +8,37 @@ using namespace std;
 namespace kuzu {
 namespace storage {
 
-NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID,
-    node_offset_t maxNodeOffset, const vector<node_offset_t>& deletedNodeOffsets)
+NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(
+    table_id_t tableID, offset_t maxNodeOffset, const vector<offset_t>& deletedNodeOffsets)
     : tableID{tableID} {
     auto numTuples = geNumTuplesFromMaxNodeOffset(maxNodeOffset);
     TableStatistics::setNumTuples(numTuples);
     if (numTuples > 0) {
         hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
-    for (node_offset_t deletedNodeOffset : deletedNodeOffsets) {
+    for (offset_t deletedNodeOffset : deletedNodeOffsets) {
         auto morselIdxAndOffset =
             StorageUtils::getQuotientRemainder(deletedNodeOffset, DEFAULT_VECTOR_CAPACITY);
         hasDeletedNodesPerMorsel[morselIdxAndOffset.first] = true;
         if (!deletedNodeOffsetsPerMorsel.contains(morselIdxAndOffset.first)) {
-            deletedNodeOffsetsPerMorsel.insert({morselIdxAndOffset.first, set<node_offset_t>()});
+            deletedNodeOffsetsPerMorsel.insert({morselIdxAndOffset.first, set<offset_t>()});
         }
         deletedNodeOffsetsPerMorsel.find(morselIdxAndOffset.first)
             ->second.insert(deletedNodeOffset);
     }
 }
 
-node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
+offset_t NodeStatisticsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerMorsel.empty()) {
         setNumTuples(getNumTuples() + 1);
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find
     auto iter = deletedNodeOffsetsPerMorsel.begin();
-    set<node_offset_t> deletedNodeOffsets = iter->second;
+    set<offset_t> deletedNodeOffsets = iter->second;
     auto nodeOffsetIter = iter->second.end();
     nodeOffsetIter--;
-    node_offset_t retVal = *nodeOffsetIter;
+    offset_t retVal = *nodeOffsetIter;
     iter->second.erase(nodeOffsetIter);
     if (iter->second.empty()) {
         hasDeletedNodesPerMorsel[iter->first] = false;
@@ -47,7 +47,7 @@ node_offset_t NodeStatisticsAndDeletedIDs::addNode() {
     return retVal;
 }
 
-void NodeStatisticsAndDeletedIDs::deleteNode(node_offset_t nodeOffset) {
+void NodeStatisticsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     // TODO(Semih/Guodong): This check can go into nodeOffsetsInfoForWriteTrx->deleteNode
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init
     // nodeOffsetsInfoForWriteTrx before calling delete on it.
@@ -66,7 +66,7 @@ void NodeStatisticsAndDeletedIDs::deleteNode(node_offset_t nodeOffset) {
     }
     errorIfNodeHasEdges(nodeOffset);
     if (!hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
-        set<node_offset_t> deletedNodeOffsets;
+        set<offset_t> deletedNodeOffsets;
         deletedNodeOffsetsPerMorsel.insert({morselIdxAndOffset.first, deletedNodeOffsets});
     }
     deletedNodeOffsetsPerMorsel.find(morselIdxAndOffset.first)->second.insert(nodeOffset);
@@ -112,8 +112,8 @@ void NodeStatisticsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
     }
 }
 
-vector<node_offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
-    vector<node_offset_t> retVal;
+vector<offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
+    vector<offset_t> retVal;
     auto morselIter = deletedNodeOffsetsPerMorsel.begin();
     while (morselIter != deletedNodeOffsetsPerMorsel.end()) {
         retVal.insert(retVal.cend(), morselIter->second.begin(), morselIter->second.end());
@@ -122,7 +122,7 @@ vector<node_offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
     return retVal;
 }
 
-void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) {
+void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
     for (AdjLists* adjList : adjListsAndColumns.first) {
         auto numElementsInList =
             adjList->getTotalNumElementsInList(TransactionType::WRITE, nodeOffset);
@@ -144,7 +144,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(node_offset_t nodeOffset) 
     }
 }
 
-bool NodeStatisticsAndDeletedIDs::isDeleted(node_offset_t nodeOffset, uint64_t morselIdx) {
+bool NodeStatisticsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {
     auto iter = deletedNodeOffsetsPerMorsel.find(morselIdx);
     if (iter != deletedNodeOffsetsPerMorsel.end()) {
         return iter->second.contains(nodeOffset);
@@ -174,8 +174,8 @@ void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
     }
 }
 
-map<table_id_t, node_offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
-    map<table_id_t, node_offset_t> retVal;
+map<table_id_t, offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPerTable() const {
+    map<table_id_t, offset_t> retVal;
     for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
         retVal[tableIDStatistics.first] =
             getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)->getMaxNodeOffset();
@@ -212,7 +212,7 @@ void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(NodeTableSchem
 
 unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(
     uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
-    vector<node_offset_t> deletedNodeIDs;
+    vector<offset_t> deletedNodeIDs;
     offset = SerDeser::deserializeVector(deletedNodeIDs, fileInfo, offset);
     return make_unique<NodeStatisticsAndDeletedIDs>(tableID,
         NodeStatisticsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deletedNodeIDs);

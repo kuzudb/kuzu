@@ -21,7 +21,7 @@
 -QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
 -ENUMERATE
 ---- 1
-10000
+1:10000
 
 -NAME CrossProduct1
 -QUERY MATCH (a:person), (b:person) RETURN COUNT(*)

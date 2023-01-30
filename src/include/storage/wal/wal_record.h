@@ -54,16 +54,16 @@ struct AdjListsID {
     }
 };
 
-struct RelPropertyListID {
+struct RelPropertyListsID {
     RelNodeTableAndDir relNodeTableAndDir;
     property_id_t propertyID;
 
-    RelPropertyListID() = default;
+    RelPropertyListsID() = default;
 
-    RelPropertyListID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
+    RelPropertyListsID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
         : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
-    inline bool operator==(const RelPropertyListID& rhs) const {
+    inline bool operator==(const RelPropertyListsID& rhs) const {
         return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
     }
 };
@@ -73,7 +73,7 @@ struct ListFileID {
     ListFileType listFileType;
     union {
         AdjListsID adjListsID;
-        RelPropertyListID relPropertyListID;
+        RelPropertyListsID relPropertyListID;
     };
 
     ListFileID() = default;
@@ -81,7 +81,7 @@ struct ListFileID {
     ListFileID(ListFileType listFileType, AdjListsID adjListsID)
         : listType{ListType::ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
 
-    ListFileID(ListFileType listFileType, RelPropertyListID relPropertyListID)
+    ListFileID(ListFileType listFileType, RelPropertyListsID relPropertyListID)
         : listType{ListType::REL_PROPERTY_LISTS}, listFileType{listFileType},
           relPropertyListID{relPropertyListID} {}
 

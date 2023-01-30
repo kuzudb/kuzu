@@ -26,7 +26,7 @@ void InMemColumn::saveToFile() {
     inMemFile->flush();
 }
 
-void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
+void InMemColumn::setElement(offset_t offset, const uint8_t* val) {
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->getPage(cursor.pageIdx)
         ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val,
@@ -34,7 +34,7 @@ void InMemColumn::setElement(node_offset_t offset, const uint8_t* val) {
 }
 
 void InMemColumn::fillInMemColumnWithStrValFunc(InMemColumn* inMemColumn, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, node_offset_t nodeOffset, const DataType& dataType) {
+    PageByteCursor& pageByteCursor, offset_t nodeOffset, const DataType& dataType) {
     auto strVal = *reinterpret_cast<ku_string_t*>(defaultVal);
     if (strVal.len > ku_string_t::SHORT_STR_LENGTH) {
         inMemColumn->getInMemOverflowFile()->copyStringOverflow(
@@ -44,7 +44,7 @@ void InMemColumn::fillInMemColumnWithStrValFunc(InMemColumn* inMemColumn, uint8_
 }
 
 void InMemColumn::fillInMemColumnWithListValFunc(InMemColumn* inMemColumn, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, node_offset_t nodeOffset, const DataType& dataType) {
+    PageByteCursor& pageByteCursor, offset_t nodeOffset, const DataType& dataType) {
     auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
     inMemColumn->getInMemOverflowFile()->copyListOverflowToFile(
         pageByteCursor, &listVal, dataType.childType.get());
@@ -87,7 +87,7 @@ void InMemColumnWithOverflow::saveToFile() {
     InMemColumn::saveToFile();
 }
 
-void InMemAdjColumn::setElement(node_offset_t offset, const uint8_t* val) {
+void InMemAdjColumn::setElement(offset_t offset, const uint8_t* val) {
     auto node = (nodeID_t*)val;
     auto cursor = getPageElementCursorForOffset(offset);
     inMemFile->getPage(cursor.pageIdx)
@@ -110,6 +110,8 @@ unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
         return make_unique<InMemStringColumn>(fName, numElements);
     case LIST:
         return make_unique<InMemListColumn>(fName, dataType, numElements);
+    case INTERNAL_ID:
+        return make_unique<InMemRelIDColumn>(fName, numElements);
     default:
         throw CopyException("Invalid type for property column creation.");
     }

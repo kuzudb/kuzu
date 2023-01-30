@@ -56,7 +56,7 @@ void Column::writeValues(
     }
 }
 
-Value Column::readValue(node_offset_t offset) {
+Value Column::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
     auto retVal = Value(dataType, frame + mapElementPosToByteOffset(cursor.elemPosInPage));
@@ -64,7 +64,7 @@ Value Column::readValue(node_offset_t offset) {
     return retVal;
 }
 
-bool Column::isNull(node_offset_t nodeOffset, Transaction* transaction) {
+bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto originalPageIdx = cursor.pageIdx;
     fileHandle.acquirePageLock(originalPageIdx, true /* block */);
@@ -91,7 +91,7 @@ bool Column::isNull(node_offset_t nodeOffset, Transaction* transaction) {
     return isNull;
 }
 
-void Column::setNodeOffsetToNull(node_offset_t nodeOffset) {
+void Column::setNodeOffsetToNull(offset_t nodeOffset) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, true /* isNull */);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
@@ -122,7 +122,7 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
+WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     auto walPageInfo = beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, isNull);
@@ -133,13 +133,13 @@ WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(node_offset_t nodeOffset,
 }
 
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPageAndWriteOnlyNullBit(
-    node_offset_t nodeOffset, bool isNull) {
+    offset_t nodeOffset, bool isNull) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
     setNullBitOfAPosInFrame(walPageInfo.frame, walPageInfo.posInPage, isNull);
     return walPageInfo;
 }
 
-void Column::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+void Column::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
@@ -147,7 +147,7 @@ void Column::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+void StringPropertyColumn::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
@@ -167,7 +167,7 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeO
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-Value StringPropertyColumn::readValue(node_offset_t offset) {
+Value StringPropertyColumn::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_string_t kuString;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
@@ -176,7 +176,7 @@ Value StringPropertyColumn::readValue(node_offset_t offset) {
     return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
-void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOffset,
+void ListPropertyColumn::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
     const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     assert(vectorToWriteFrom->dataType.typeID == LIST);
     auto updatedPageInfoAndWALPageFrame =
@@ -193,7 +193,7 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(node_offset_t nodeOff
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-Value ListPropertyColumn::readValue(node_offset_t offset) {
+Value ListPropertyColumn::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_list_t kuList;
     auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);

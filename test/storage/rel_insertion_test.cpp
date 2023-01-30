@@ -26,8 +26,8 @@ public:
         lengthValues = (int64_t*)lengthPropertyVector->getData();
         placePropertyVector = make_shared<ValueVector>(STRING, memoryManager.get());
         placeValues = (ku_string_t*)placePropertyVector->getData();
-        srcNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
-        dstNodeVector = make_shared<ValueVector>(NODE_ID, memoryManager.get());
+        srcNodeVector = make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
+        dstNodeVector = make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
         tagPropertyVector = make_shared<ValueVector>(
             DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
         tagValues = (ku_list_t*)tagPropertyVector->getData();
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    void insertRelsToNode(node_offset_t srcNodeOffset) {
+    void insertRelsToNode(offset_t srcNodeOffset) {
         auto placeStr = ku_string_t();
         auto tagList = ku_list_t();
         tagList.overflowPtr =

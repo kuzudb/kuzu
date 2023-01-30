@@ -12,7 +12,7 @@ namespace kuzu {
 namespace storage {
 
 using insert_function_t =
-    std::function<void(const uint8_t*, node_offset_t, uint8_t*, DiskOverflowFile*)>;
+    std::function<void(const uint8_t*, offset_t, uint8_t*, DiskOverflowFile*)>;
 using hash_function_t = std::function<hash_t(const uint8_t*)>;
 using equals_function_t =
     std::function<bool(TransactionType trxType, const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
@@ -21,7 +21,7 @@ static const uint32_t NUM_BYTES_FOR_INT64_KEY = Types::getDataTypeSize(INT64);
 static const uint32_t NUM_BYTES_FOR_STRING_KEY = Types::getDataTypeSize(STRING);
 
 using in_mem_insert_function_t =
-    std::function<void(const uint8_t*, node_offset_t, uint8_t*, InMemOverflowFile*)>;
+    std::function<void(const uint8_t*, offset_t, uint8_t*, InMemOverflowFile*)>;
 using in_mem_equals_function_t =
     std::function<bool(const uint8_t*, const uint8_t*, const InMemOverflowFile*)>;
 
@@ -32,16 +32,16 @@ public:
 
 private:
     // InsertFunc
-    inline static void insertFuncForInt64(const uint8_t* key, node_offset_t offset, uint8_t* entry,
+    inline static void insertFuncForInt64(const uint8_t* key, offset_t offset, uint8_t* entry,
         InMemOverflowFile* inMemOverflowFile = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
-        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
+        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(offset_t));
     }
-    inline static void insertFuncForString(const uint8_t* key, node_offset_t offset, uint8_t* entry,
-        InMemOverflowFile* inMemOverflowFile) {
+    inline static void insertFuncForString(
+        const uint8_t* key, offset_t offset, uint8_t* entry, InMemOverflowFile* inMemOverflowFile) {
         auto kuString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
         memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
-        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
+        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
         const InMemOverflowFile* inMemOverflowFile = nullptr) {
@@ -55,16 +55,16 @@ class HashIndexUtils {
 
 public:
     // InsertFunc
-    inline static void insertFuncForInt64(const uint8_t* key, node_offset_t offset, uint8_t* entry,
+    inline static void insertFuncForInt64(const uint8_t* key, offset_t offset, uint8_t* entry,
         DiskOverflowFile* overflowFile = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
-        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(node_offset_t));
+        memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(offset_t));
     }
     inline static void insertFuncForString(
-        const uint8_t* key, node_offset_t offset, uint8_t* entry, DiskOverflowFile* overflowFile) {
+        const uint8_t* key, offset_t offset, uint8_t* entry, DiskOverflowFile* overflowFile) {
         auto kuString = overflowFile->writeString((const char*)key);
         memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
-        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(node_offset_t));
+        memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(offset_t));
     }
     static insert_function_t initializeInsertFunc(DataTypeID dataTypeID);
 

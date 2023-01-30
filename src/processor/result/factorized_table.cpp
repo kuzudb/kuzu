@@ -284,9 +284,10 @@ void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx, vector<ft_tuple_idx_t
     NodeIDCompressionScheme* nodeIDCompressionScheme) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
-    auto numBytesPerValue = nodeIDCompressionScheme == nullptr ?
-                                Types::getDataTypeSize(type) :
-                                nodeIDCompressionScheme->getNumBytesForNodeIDAfterCompression();
+    auto numBytesPerValue =
+        nodeIDCompressionScheme == nullptr ?
+            (type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type)) :
+            nodeIDCompressionScheme->getNumBytesForNodeIDAfterCompression();
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto listToFill = data + startElemPosInList * numBytesPerValue;
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {

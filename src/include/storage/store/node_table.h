@@ -17,7 +17,7 @@ public:
 
     void initializeData(NodeTableSchema* nodeTableSchema);
 
-    inline node_offset_t getMaxNodeOffset(Transaction* trx) const {
+    inline offset_t getMaxNodeOffset(Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
     }
     inline void setSelVectorForDeletedOffsets(
@@ -48,13 +48,13 @@ public:
                 property.dataType, bufferManager, isInMemory, wal));
     }
 
-    node_offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
+    offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
     void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
 private:
-    void deleteNode(node_offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
+    void deleteNode(offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

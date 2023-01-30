@@ -91,8 +91,8 @@ TEST_F(BinderErrorTest, BindPropertyNotExist2) {
 
 TEST_F(BinderErrorTest, BindIDArithmetic) {
     string expectedException =
-        "Binder exception: Cannot match a built-in function for given function +(NODE_ID,INT64). "
-        "Supported inputs "
+        "Binder exception: Cannot match a built-in function for given function "
+        "+(INTERNAL_ID,INT64). Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
         "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
@@ -373,7 +373,7 @@ TEST_F(BinderErrorTest, DuplicateVariableName) {
 
 TEST_F(BinderErrorTest, MaxNodeID) {
     string expectedException =
-        "Binder exception: Cannot match a built-in function for given function MIN(NODE_ID). "
+        "Binder exception: Cannot match a built-in function for given function MIN(INTERNAL_ID). "
         "Supported inputs are\nDISTINCT (BOOL) -> BOOL\n(BOOL) -> BOOL\nDISTINCT (INT64) -> "
         "INT64\n(INT64) -> INT64\nDISTINCT (DOUBLE) -> DOUBLE\n(DOUBLE) -> DOUBLE\nDISTINCT "
         "(DATE) -> DATE\n(DATE) -> DATE\nDISTINCT (STRING) -> STRING\n(STRING) -> "
@@ -386,13 +386,6 @@ TEST_F(BinderErrorTest, OrderByNodeID) {
     string expectedException =
         "Binder exception: Cannot order by x. Order by node or rel is not supported.";
     auto input = "match (p:person) with p as x order by x skip 1 return x;";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, ReturnInternalType) {
-    string expectedException =
-        "Binder exception: Cannot return expression ID(p) with internal type NODE_ID";
-    auto input = "match (p:person) return ID(p);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

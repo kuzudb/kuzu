@@ -53,7 +53,7 @@ enum DataTypeID : uint8_t {
     TIMESTAMP = 26,
     INTERVAL = 27,
 
-    NODE_ID = 40,
+    INTERNAL_ID = 40,
 
     // variable size types
     STRING = 50,
@@ -80,7 +80,7 @@ public:
     }
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {
         return std::vector<DataTypeID>{
-            NODE_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
+            INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
     }
 
     DataType& operator=(const DataType& other);
