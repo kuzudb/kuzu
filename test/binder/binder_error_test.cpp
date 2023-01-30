@@ -416,14 +416,14 @@ TEST_F(BinderErrorTest, DropPrimaryKeyColumn) {
 
 TEST_F(BinderErrorTest, AddPropertyDuplicateName) {
     string expectedException = "Binder exception: Property: fName already exists.";
-    auto input = "alter table person add column fName STRING";
+    auto input = "alter table person add fName STRING";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, AddPropertyUnmatchedDefaultValueType) {
     string expectedException = "Binder exception: Expression 3.2 has data type DOUBLE but expect "
                                "INT64. Implicit cast is not supported.";
-    auto input = "alter table person add column intCol INT64 DEFAULT 3.2";
+    auto input = "alter table person add intCol INT64 DEFAULT 3.2";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
