@@ -377,8 +377,8 @@ public:
 
     void addPropertyToPersonTableWithoutDefaultValue(
         string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(StringUtils::string_format(
-            "ALTER TABLE person ADD COLUMN random %s", propertyType.c_str()));
+        executeQueryWithoutCommit(
+            StringUtils::string_format("ALTER TABLE person ADD random %s", propertyType.c_str()));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -409,7 +409,7 @@ public:
     void addPropertyToPersonTableWithDefaultValue(
         string propertyType, string defaultVal, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
-            "ALTER TABLE person ADD COLUMN random " + propertyType + " DEFAULT " + defaultVal);
+            "ALTER TABLE person ADD random " + propertyType + " DEFAULT " + defaultVal);
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -441,8 +441,8 @@ public:
 
     void addPropertyToStudyAtTableWithoutDefaultValue(
         string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(StringUtils::string_format(
-            "ALTER TABLE studyAt ADD COLUMN random %s", propertyType.c_str()));
+        executeQueryWithoutCommit(
+            StringUtils::string_format("ALTER TABLE studyAt ADD random %s", propertyType.c_str()));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -488,7 +488,7 @@ public:
     void addPropertyToStudyAtTableWithDefaultValue(
         string propertyType, string defaultVal, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
-            "ALTER TABLE studyAt ADD COLUMN random " + propertyType + " DEFAULT " + defaultVal);
+            "ALTER TABLE studyAt ADD random " + propertyType + " DEFAULT " + defaultVal);
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = relTableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -915,8 +915,8 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultVal
 }
 
 TEST_F(TinySnbDDLTest, AddPropertyWithComplexExpression) {
-    ASSERT_TRUE(conn->query("ALTER TABLE person ADD COLUMN random INT64 DEFAULT  2 * abs(-2)")
-                    ->isSuccess());
+    ASSERT_TRUE(
+        conn->query("ALTER TABLE person ADD random INT64 DEFAULT  2 * abs(-2)")->isSuccess());
     vector<string> expectedResult(8, "4");
     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
         expectedResult);

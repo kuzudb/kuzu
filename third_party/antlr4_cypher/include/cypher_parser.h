@@ -20,20 +20,20 @@ public:
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
     T__44 = 45, COPY = 46, FROM = 47, NODE = 48, TABLE = 49, DROP = 50, 
-    ALTER = 51, DEFAULT = 52, RENAME = 53, ADD = 54, COLUMN = 55, PRIMARY = 56, 
-    KEY = 57, REL = 58, TO = 59, EXPLAIN = 60, PROFILE = 61, UNION = 62, 
-    ALL = 63, OPTIONAL = 64, MATCH = 65, UNWIND = 66, CREATE = 67, SET = 68, 
-    DELETE = 69, WITH = 70, RETURN = 71, DISTINCT = 72, STAR = 73, AS = 74, 
-    ORDER = 75, BY = 76, L_SKIP = 77, LIMIT = 78, ASCENDING = 79, ASC = 80, 
-    DESCENDING = 81, DESC = 82, WHERE = 83, OR = 84, XOR = 85, AND = 86, 
-    NOT = 87, INVALID_NOT_EQUAL = 88, MINUS = 89, FACTORIAL = 90, STARTS = 91, 
-    ENDS = 92, CONTAINS = 93, IS = 94, NULL_ = 95, TRUE = 96, FALSE = 97, 
-    EXISTS = 98, CASE = 99, ELSE = 100, END = 101, WHEN = 102, THEN = 103, 
-    StringLiteral = 104, EscapedChar = 105, DecimalInteger = 106, HexLetter = 107, 
-    HexDigit = 108, Digit = 109, NonZeroDigit = 110, NonZeroOctDigit = 111, 
-    ZeroDigit = 112, RegularDecimalReal = 113, UnescapedSymbolicName = 114, 
-    IdentifierStart = 115, IdentifierPart = 116, EscapedSymbolicName = 117, 
-    SP = 118, WHITESPACE = 119, Comment = 120, Unknown = 121
+    ALTER = 51, DEFAULT = 52, RENAME = 53, ADD = 54, PRIMARY = 55, KEY = 56, 
+    REL = 57, TO = 58, EXPLAIN = 59, PROFILE = 60, UNION = 61, ALL = 62, 
+    OPTIONAL = 63, MATCH = 64, UNWIND = 65, CREATE = 66, SET = 67, DELETE = 68, 
+    WITH = 69, RETURN = 70, DISTINCT = 71, STAR = 72, AS = 73, ORDER = 74, 
+    BY = 75, L_SKIP = 76, LIMIT = 77, ASCENDING = 78, ASC = 79, DESCENDING = 80, 
+    DESC = 81, WHERE = 82, OR = 83, XOR = 84, AND = 85, NOT = 86, INVALID_NOT_EQUAL = 87, 
+    MINUS = 88, FACTORIAL = 89, STARTS = 90, ENDS = 91, CONTAINS = 92, IS = 93, 
+    NULL_ = 94, TRUE = 95, FALSE = 96, EXISTS = 97, CASE = 98, ELSE = 99, 
+    END = 100, WHEN = 101, THEN = 102, StringLiteral = 103, EscapedChar = 104, 
+    DecimalInteger = 105, HexLetter = 106, HexDigit = 107, Digit = 108, 
+    NonZeroDigit = 109, NonZeroOctDigit = 110, ZeroDigit = 111, RegularDecimalReal = 112, 
+    UnescapedSymbolicName = 113, IdentifierStart = 114, IdentifierPart = 115, 
+    EscapedSymbolicName = 116, SP = 117, WHITESPACE = 118, Comment = 119, 
+    Unknown = 120
   };
 
   enum {
@@ -369,7 +369,6 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
     KU_DataTypeContext *kU_DataType();
-    antlr4::tree::TerminalNode *COLUMN();
     antlr4::tree::TerminalNode *DEFAULT();
     OC_ExpressionContext *oC_Expression();
 
@@ -383,10 +382,8 @@ public:
     KU_DropPropertyContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *DROP();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *SP();
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
-    antlr4::tree::TerminalNode *COLUMN();
 
    
   };
@@ -418,7 +415,6 @@ public:
     std::vector<OC_PropertyKeyNameContext *> oC_PropertyKeyName();
     OC_PropertyKeyNameContext* oC_PropertyKeyName(size_t i);
     antlr4::tree::TerminalNode *TO();
-    antlr4::tree::TerminalNode *COLUMN();
 
    
   };

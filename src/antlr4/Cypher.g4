@@ -79,8 +79,6 @@ RENAME: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'M' | 'm' ) ( 
 
 ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
-COLUMN: ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u'  ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
-
 kU_RelConnections : kU_RelConnection ( SP? ',' SP? kU_RelConnection )* ;
 
 kU_RelConnection: FROM SP kU_NodeLabels SP TO SP kU_NodeLabels ;
