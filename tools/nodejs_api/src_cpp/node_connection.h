@@ -10,6 +10,5 @@ class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
  private:
   static Napi::FunctionReference constructor;
   Napi::Value Execute(const Napi::CallbackInfo& info);
-  kuzu::main::Database *database_;
   kuzu::main::Connection *connection_;
 };
