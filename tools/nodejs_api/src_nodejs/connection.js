@@ -1,8 +1,8 @@
 class Connection {
     #connection;
-    constructor(databaseConfigString) {
+    constructor(database) {
         const kuzu = require("../build/Release/kuzujs.node");
-        this.#connection = new kuzu.NodeConnection(databaseConfigString);
+        this.#connection = new kuzu.NodeConnection(database.database);
         console.log('Connection Created', kuzu);
     }
 
@@ -11,6 +11,5 @@ class Connection {
         return this.#connection.execute(query);
     }
 }
-
 
 module.exports = Connection
