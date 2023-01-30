@@ -1,7 +1,7 @@
+const kuzu = require("../build/Release/kuzujs.node");
 class Connection {
     #connection;
     constructor(database) {
-        const kuzu = require("../build/Release/kuzujs.node");
         this.#connection = new kuzu.NodeConnection(database.database);
         console.log('Connection Created', kuzu);
     }
