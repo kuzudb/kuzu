@@ -208,15 +208,15 @@ def test_to_torch_geometric_nodes_only(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
     warnings_ground_truth = set([
-        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is ignored.",
-        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is ignored.",
-        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is ignored.",
-        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is ignored.",
-        "Property person.fName of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property person.workedHours has an inconsistent shape. The property is ignored.",
-        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is ignored.",
+        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is marked as unconverted.",
+        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.fName of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.workedHours has an inconsistent shape. The property is marked as unconverted.",
+        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
     ])
     assert len(ws) == 7
     for w in ws:
@@ -252,6 +252,36 @@ def test_to_torch_geometric_nodes_only(establish_connection):
         assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]]['eyeSight'] - \
             torch_geometric_data.eyeSight[i].item() < 1e-6
 
+    assert len(unconverted_properties) == 7
+    assert 'courseScoresPerTerm' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['courseScoresPerTerm'] == unconverted_properties['courseScoresPerTerm'][i]
+    assert 'lastJobDuration' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['lastJobDuration'] == unconverted_properties['lastJobDuration'][i]
+    assert 'registerTime' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['registerTime'] == unconverted_properties['registerTime'][i]
+    assert 'birthdate' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['birthdate'] == unconverted_properties['birthdate'][i]
+    assert 'fName' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['fName'] == unconverted_properties['fName'][i]
+    assert 'usedNames' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['usedNames'] == unconverted_properties['usedNames'][i]
+
+    assert 'workedHours' in unconverted_properties
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['workedHours'] == unconverted_properties['workedHours'][i]
 
 def test_to_torch_geometric_homogeneous_graph(establish_connection):
     conn, _ = establish_connection
@@ -259,15 +289,15 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
     warnings_ground_truth = set([
-        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is ignored.",
-        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is ignored.",
-        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is ignored.",
-        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is ignored.",
-        "Property person.fName of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property person.workedHours has an inconsistent shape. The property is ignored.",
-        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is ignored.",
+        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is marked as unconverted.",
+        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.fName of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.workedHours has an inconsistent shape. The property is marked as unconverted.",
+        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
     ])
     assert len(ws) == 7
     for w in ws:
@@ -303,6 +333,37 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
         assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]]['eyeSight'] - \
             torch_geometric_data.eyeSight[i].item() < 1e-6
 
+    assert len(unconverted_properties) == 7
+    assert 'courseScoresPerTerm' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['courseScoresPerTerm'] == unconverted_properties['courseScoresPerTerm'][i]
+    assert 'lastJobDuration' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['lastJobDuration'] == unconverted_properties['lastJobDuration'][i]
+    assert 'registerTime' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['registerTime'] == unconverted_properties['registerTime'][i]
+    assert 'birthdate' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['birthdate'] == unconverted_properties['birthdate'][i]
+    assert 'fName' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['fName'] == unconverted_properties['fName'][i]
+    assert 'usedNames' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['usedNames'] == unconverted_properties['usedNames'][i]
+
+    assert 'workedHours' in unconverted_properties
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['workedHours'] == unconverted_properties['workedHours'][i]
+
     assert torch_geometric_data.edge_index.shape == torch.Size([2, 14])
     for i in range(14):
         src, dst = torch_geometric_data.edge_index[0][i].item(
@@ -319,19 +380,19 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
 
     assert len(ws) == 9
     warnings_ground_truth = set([
-        "Property organisation.name of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is ignored.",
-        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is ignored.",
-        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is ignored.",
-        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is ignored.",
-        "Property person.fName of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property organisation.history of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is ignored.",
-        "Property organisation.licenseValidInterval of type INTERVAL is not supported by torch_geometric. The property is ignored.",
+        "Property organisation.name of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is marked as unconverted.",
+        "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.registerTime of type TIMESTAMP is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.birthdate of type DATE is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.fName of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property organisation.history of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property organisation.licenseValidInterval of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
     ])
 
     for w in ws:
@@ -366,6 +427,33 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
     for i in range(4):
         assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]]['eyeSight'] - \
             torch_geometric_data['person'].eyeSight[i].item() < 1e-6
+
+    assert 'person' in unconverted_properties
+    assert len(unconverted_properties['person']) == 6
+    assert 'courseScoresPerTerm' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['courseScoresPerTerm'] == unconverted_properties['person']['courseScoresPerTerm'][i]
+    assert 'lastJobDuration' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['lastJobDuration'] == unconverted_properties['person']['lastJobDuration'][i]
+    assert 'registerTime' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['registerTime'] == unconverted_properties['person']['registerTime'][i]
+    assert 'birthdate' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['birthdate'] == unconverted_properties['person']['birthdate'][i]
+    assert 'fName' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['fName'] == unconverted_properties['person']['fName'][i]
+    assert 'usedNames' in unconverted_properties['person']
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['usedNames'] == unconverted_properties['person']['usedNames'][i]
 
     assert torch_geometric_data['person', 'person'].edge_index.shape == torch.Size([
                                                                                    2, 6])
@@ -402,6 +490,23 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]
                                                    ]['rating'] - torch_geometric_data['organisation'].rating[i].item() < 1e-6
 
+    assert 'organisation' in unconverted_properties
+    assert len(unconverted_properties['organisation']) == 3
+    assert 'name' in unconverted_properties['organisation']
+    for i in range(2):
+        assert TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]
+                                                   ]['name'] == unconverted_properties['organisation']['name'][i]
+
+    assert 'history' in unconverted_properties['organisation']
+    for i in range(2):
+        assert TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]
+                                                   ]['history'] == unconverted_properties['organisation']['history'][i]
+
+    assert 'licenseValidInterval' in unconverted_properties['organisation']
+    for i in range(2):
+        assert TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]
+                                                   ]['licenseValidInterval'] == unconverted_properties['organisation']['licenseValidInterval'][i]
+
     assert torch_geometric_data['person', 'organisation'].edge_index.shape == torch.Size([
         2, 2])
     for i in range(2):
@@ -419,9 +524,9 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
     assert len(ws) == 1
-    assert str(ws[0].message) == "Property tensor.oneDimInt has a null value. torch_geometric does not support null values. The property is ignored."
+    assert str(ws[0].message) == "Property tensor.oneDimInt has a null value. torch_geometric does not support null values. The property is marked as unconverted."
 
     bool_list = []
     float_list = []
@@ -448,3 +553,8 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
     assert torch_geometric_data.intTensor.shape == int_tensor.shape
     assert torch_geometric_data.intTensor.dtype == int_tensor.dtype
     assert torch.all(torch_geometric_data.intTensor == int_tensor)
+
+    assert len(unconverted_properties) == 1
+    assert "oneDimInt" in unconverted_properties
+    assert len(unconverted_properties["oneDimInt"]) == 6
+    assert unconverted_properties["oneDimInt"] == [1, 2, None, None, 5, 6]
