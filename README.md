@@ -19,7 +19,7 @@ Kùzu is being actively developed at University of Waterloo as a feature-rich an
 ## Build
 To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`.
 - Perform a full clean build without tests and benchmark:
-  - `make clean && make`
+  - `make clean && make release`
 - Perform a full clean build with tests and benchmark (optional):
   - `make clean && make all`
 - Run tests (optional):
