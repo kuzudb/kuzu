@@ -4,9 +4,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 ExternalProject_Add(apache_arrow
         GIT_REPOSITORY "https://github.com/apache/arrow"
-        GIT_TAG 89f9a0948961f6e94f1ef5e4f310b707d22a3c11
+        GIT_TAG f10f5cfd1376fb0e602334588b3f3624d41dee7d
         PREFIX "${CMAKE_BINARY_DIR}/arrow/"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/arrow/install"
+        PATCH_COMMAND 
+                sed "s| URL_HASH \"SHA256=.*\"||g" "./cpp/cmake_modules/ThirdpartyToolchain.cmake" > "./cpp/cmake_modules/ThirdpartyToolchain.cmake.new" 
+                && mv "./cpp/cmake_modules/ThirdpartyToolchain.cmake.new" "./cpp/cmake_modules/ThirdpartyToolchain.cmake"
         CONFIGURE_COMMAND
         ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -DCMAKE_BUILD_TYPE=Release
         -DBUILD_WARNING_LEVEL=PRODUCTION -DARROW_DEPENDENCY_SOURCE=BUNDLED
