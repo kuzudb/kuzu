@@ -6,8 +6,6 @@
 #include "common/metric.h"
 #include "storage/buffer_manager/file_handle.h"
 
-using namespace kuzu::common;
-
 namespace spdlog {
 class logger;
 }
@@ -38,7 +36,7 @@ class Frame {
     friend class BufferPool;
 
 public:
-    explicit Frame(uint64_t pageSize);
+    explicit Frame(page_offset_t pageSize, uint8_t* buffer);
     ~Frame() noexcept(false);
 
 private:
@@ -46,6 +44,7 @@ private:
     bool acquireFrameLock(bool block);
     void releaseFrameLock() { frameLock.clear(); }
     void setIsDirty(bool _isDirty) { isDirty = _isDirty; }
+    void releaseBuffer();
 
 private:
     // fileHandlePtr and pageIdx identify the file and the page in file whose data the buffer is
@@ -56,7 +55,8 @@ private:
 
     bool recentlyAccessed;
     bool isDirty;
-    unique_ptr<uint8_t[]> buffer;
+    uint8_t* buffer;
+    page_offset_t pageSize;
     atomic_flag frameLock;
 };
 
@@ -130,7 +130,6 @@ private:
     vector<unique_ptr<Frame>> bufferCache;
     atomic<uint64_t> clockHand;
     page_idx_t numFrames;
-
     BufferManagerMetrics bmMetrics;
 };
 
