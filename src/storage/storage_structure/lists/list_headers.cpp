@@ -18,7 +18,7 @@ ListHeadersBuilder::ListHeadersBuilder(const string& baseListFName, uint64_t num
     // to the fileHandle. Currently, the header page is at page 0, so we add one page here.
     fileHandle->addNewPage();
     headersBuilder = make_unique<InMemDiskArrayBuilder<list_header_t>>(
-        *fileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements);
+        *fileHandle, LIST_HEADERS_HEADER_PAGE_IDX, numElements, true /* setToZero */);
 }
 
 void ListHeadersBuilder::saveToDisk() {

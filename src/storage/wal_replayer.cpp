@@ -257,6 +257,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // of the file does not exist, it will not do anything.
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
                     nodeTableSchema, wal->getDirectory());
+                auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
+                WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
+                    relTableSchemas, tableID, wal->getDirectory());
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
                 // then we need to update the nodeTable because the actual columns and lists
                 // files have been changed during checkpoint. So the in memory
@@ -264,11 +267,19 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // have likely changed they need to reconstruct their page locks).
                 storageManager->getNodesStore().getNodeTable(tableID)->initializeData(
                     nodeTableSchema);
+                for (auto relTableSchema : relTableSchemas) {
+                    storageManager->getRelsStore()
+                        .getRelTable(relTableSchema->tableID)
+                        ->initializeData(relTableSchema);
+                }
             } else {
                 auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
                 // See comments above.
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
                     catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID),
+                    wal->getDirectory());
+                WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
+                    catalogForRecovery->getAllRelTableSchemasContainBoundTable(tableID), tableID,
                     wal->getDirectory());
             }
         } else {

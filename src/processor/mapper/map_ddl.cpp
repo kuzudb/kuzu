@@ -55,8 +55,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyToPhysical(
     auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
         return make_unique<CopyNode>(catalog, copy->getCopyDescription(), copy->getTableID(),
-            storageManager.getWAL(), nodesStatistics, getOperatorID(),
-            copy->getExpressionsForPrinting());
+            storageManager.getWAL(), nodesStatistics, storageManager.getRelsStore(),
+            getOperatorID(), copy->getExpressionsForPrinting());
     } else {
         return make_unique<CopyRel>(catalog, copy->getCopyDescription(), copy->getTableID(),
             storageManager.getWAL(), nodesStatistics, relsStatistics, getOperatorID(),

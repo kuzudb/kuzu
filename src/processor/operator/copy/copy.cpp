@@ -17,9 +17,7 @@ void Copy::errorIfTableIsNonEmpty() {
     auto numTuples = getNumTuplesInTable();
     if (numTuples > 0) {
         auto tableName = catalog->getReadOnlyVersion()->getTableSchema(tableID)->tableName;
-        throw CopyException(
-            "COPY commands can be executed only on completely empty tables. Table: " + tableName +
-            " has " + to_string(numTuples) + " many tuples.");
+        throw CopyException("COPY commands can be executed only on completely empty tables.");
     }
 }
 

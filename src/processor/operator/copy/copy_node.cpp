@@ -10,6 +10,10 @@ uint64_t CopyNode::executeInternal(
     auto nodeCSVCopier = make_unique<CopyNodeArrow>(
         copyDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
     auto numNodesCopied = nodeCSVCopier->copy();
+    for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
+        relsStore.getRelTable(relTableSchema->tableID)
+            ->batchInitEmptyRelsForNewNodes(relTableSchema, tableID, numNodesCopied);
+    }
     wal->logCopyNodeRecord(tableID);
     return numNodesCopied;
 }

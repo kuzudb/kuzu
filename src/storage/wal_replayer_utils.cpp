@@ -79,6 +79,23 @@ void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
     }
 }
 
+void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
+    unordered_set<RelTableSchema*> relTableSchemas, table_id_t boundTableID,
+    const string& directory) {
+    for (auto relTableSchema : relTableSchemas) {
+        for (auto direction : REL_DIRECTIONS) {
+            if (!relTableSchema->isSingleMultiplicityInDirection(direction)) {
+                auto listsHeadersFileName =
+                    StorageUtils::getListHeadersFName(StorageUtils::getAdjListsFName(directory,
+                        relTableSchema->tableID, boundTableID, direction, DBFileType::ORIGINAL));
+                auto walListsHeadersFileName =
+                    StorageUtils::appendWALFileSuffix(listsHeadersFileName);
+                FileUtils::renameFileIfExists(walListsHeadersFileName, listsHeadersFileName);
+            }
+        }
+    }
+}
+
 void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {
     inMemLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
     inMemLists->saveToFile();
