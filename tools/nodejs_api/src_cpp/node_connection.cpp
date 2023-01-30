@@ -1,4 +1,5 @@
 #include "node_connection.h"
+#include "node_database.h"
 
 #include "main/kuzu.h"
 
@@ -25,27 +26,17 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=1) {
-      Napi::TypeError::New(env, "Need database config string (of length 1)").ThrowAsJavaScriptException();
-  }
-  if (!info[0].IsString()) {
-      Napi::TypeError::New(env, "Database config parameter must be a string").ThrowAsJavaScriptException();
+  if (info.Length()!=1 || !info[0].IsObject()) {
+      Napi::TypeError::New(env, "Need database class passed in").ThrowAsJavaScriptException();
   }
 
-  std::string databaseConfigString = info[0].ToString().Utf8Value().c_str();
-  std::cout << databaseConfigString << std::endl;
-  DatabaseConfig databaseConfig(databaseConfigString);
-  SystemConfig systemConfig(1ull << 30 /* set buffer manager size to 2GB */);
-  Database * database = new Database(databaseConfig, systemConfig);
+  NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
 
-  this->database_ = database;
-
-  auto connection = new Connection(this->database_);
+  auto connection = new Connection(nodeDatabase->database_);
   this->connection_ = connection;
 }
 
 NodeConnection::~NodeConnection() {
-  delete this->database_;
   delete this->connection_;
 }
 
