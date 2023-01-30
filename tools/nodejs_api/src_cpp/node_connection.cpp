@@ -23,6 +23,7 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
 
 
 NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NodeConnection>(info)  {
+<<<<<<< HEAD
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
@@ -38,6 +39,23 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
 
 NodeConnection::~NodeConnection() {
     delete this->connection_;
+=======
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+
+  if (info.Length()!=1 || !info[0].IsObject()) {
+      Napi::TypeError::New(env, "Need database class passed in").ThrowAsJavaScriptException();
+  }
+
+  NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
+
+  auto connection = new Connection(nodeDatabase->database_);
+  this->connection_ = connection;
+}
+
+NodeConnection::~NodeConnection() {
+  delete this->connection_;
+>>>>>>> added Database Class, all its methods, database java class, and added it to connection
 }
 
 Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
