@@ -20,8 +20,8 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     recoverIfNecessary();
     queryProcessor = make_unique<processor::QueryProcessor>(systemConfig.maxNumThreads);
     catalog = make_unique<catalog::Catalog>(wal.get());
-    storageManager = make_unique<storage::StorageManager>(
-        *catalog, *bufferManager, *memoryManager, databaseConfig.inMemoryMode, wal.get());
+    storageManager =
+        make_unique<storage::StorageManager>(*catalog, *bufferManager, *memoryManager, wal.get());
     transactionManager = make_unique<transaction::TransactionManager>(*wal);
 }
 

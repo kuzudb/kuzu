@@ -78,9 +78,9 @@ public:
 class DirectedRelTableData {
 public:
     DirectedRelTableData(table_id_t tableID, RelDirection direction,
-        ListsUpdatesStore* listsUpdatesStore, bool isInMemoryMode, BufferManager& bufferManager)
+        ListsUpdatesStore* listsUpdatesStore, BufferManager& bufferManager)
         : tableID{tableID}, direction{direction}, listsUpdatesStore{listsUpdatesStore},
-          isInMemoryMode{isInMemoryMode}, bufferManager{bufferManager} {}
+          bufferManager{bufferManager} {}
 
     inline bool hasAdjColumn(table_id_t boundNodeTableID) {
         return adjColumns.contains(boundNodeTableID);
@@ -150,14 +150,13 @@ private:
     table_id_t tableID;
     RelDirection direction;
     ListsUpdatesStore* listsUpdatesStore;
-    bool isInMemoryMode;
     BufferManager& bufferManager;
 };
 
 class RelTable {
 public:
     RelTable(const catalog::Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
-        MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
+        MemoryManager& memoryManager, WAL* wal);
 
     void initializeData(RelTableSchema* tableSchema);
 

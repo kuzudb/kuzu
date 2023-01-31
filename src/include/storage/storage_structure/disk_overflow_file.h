@@ -22,18 +22,12 @@ class DiskOverflowFile : public StorageStructure {
 
 public:
     DiskOverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        BufferManager& bufferManager, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
-              bufferManager, isInMemory, wal),
+              bufferManager, wal),
           loggedNewOverflowFileNextBytePosRecord{false} {
         nextBytePosToWriteTo = fileHandle.getNumPages() * DEFAULT_PAGE_SIZE;
-    }
-
-    ~DiskOverflowFile() {
-        if (isInMemory_) {
-            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
-        }
     }
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(

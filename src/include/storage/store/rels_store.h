@@ -16,7 +16,7 @@ class RelsStore {
 
 public:
     RelsStore(const Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager,
-        bool isInMemoryMode, WAL* wal);
+        WAL* wal);
 
     inline Column* getRelPropertyColumn(RelDirection relDirection, table_id_t boundNodeTableID,
         table_id_t relTableID, uint64_t propertyIdx) const {
@@ -55,8 +55,8 @@ public:
     // is running on the system, so we can directly create and insert a RelTable into relTables.
     inline void createRelTable(table_id_t tableID, BufferManager* bufferManager, WAL* wal,
         Catalog* catalog, MemoryManager* memoryManager) {
-        relTables[tableID] = make_unique<RelTable>(
-            *catalog, tableID, *bufferManager, *memoryManager, isInMemoryMode, wal);
+        relTables[tableID] =
+            make_unique<RelTable>(*catalog, tableID, *bufferManager, *memoryManager, wal);
     }
 
     // This function is used for testing only.
@@ -79,7 +79,6 @@ public:
 private:
     unordered_map<table_id_t, unique_ptr<RelTable>> relTables;
     RelsStatistics relsStatistics;
-    bool isInMemoryMode;
 };
 
 } // namespace storage

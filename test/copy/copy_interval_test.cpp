@@ -6,7 +6,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbCopyIntervalTest : public InMemoryDBTest {
+class TinySnbCopyIntervalTest : public DBTest {
     string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 

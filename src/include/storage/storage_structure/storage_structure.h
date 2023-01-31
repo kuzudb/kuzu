@@ -27,14 +27,10 @@ class StorageStructure {
 
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        BufferManager& bufferManager, WAL* wal)
         : logger{LoggerUtils::getOrCreateLogger("storage")},
           fileHandle{storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE},
-          bufferManager{bufferManager}, isInMemory_{isInMemory}, wal{wal} {
-        if (isInMemory) {
-            StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
-        }
-    }
+          bufferManager{bufferManager}, wal{wal} {}
 
     virtual ~StorageStructure() = default;
 
@@ -56,7 +52,6 @@ protected:
     shared_ptr<spdlog::logger> logger;
     VersionedFileHandle fileHandle;
     BufferManager& bufferManager;
-    bool isInMemory_;
     WAL* wal;
 };
 
@@ -67,12 +62,6 @@ protected:
 class BaseColumnOrList : public StorageStructure {
 
 public:
-    ~BaseColumnOrList() override {
-        if (isInMemory_) {
-            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
-        }
-    }
-
     // Maps the position of element in page to its byte offset in page.
     // TODO(Everyone): we should slowly get rid of this function.
     inline uint16_t mapElementPosToByteOffset(uint16_t pageElementPos) const {
@@ -90,7 +79,7 @@ protected:
 
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
-        bool hasNULLBytes, bool isInMemory, WAL* wal);
+        bool hasNULLBytes, WAL* wal);
 
     void readBySequentialCopy(Transaction* transaction, const shared_ptr<ValueVector>& vector,
         PageElementCursor& cursor,

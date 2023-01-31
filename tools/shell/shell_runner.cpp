@@ -14,7 +14,6 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
         1024);
-    args::Flag inMemoryFlag(parser, "", "Runs the system in in-memory mode", {'m', "in-memory"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (exception& e) {
@@ -27,7 +26,7 @@ int main(int argc, char* argv[]) {
     cout << "Opened the database at path: " << databasePath << endl;
     cout << "Enter \":help\" for usage hints." << endl;
     SystemConfig systemConfig(bpSizeInMB << 20);
-    DatabaseConfig databaseConfig(databasePath, inMemoryFlag);
+    DatabaseConfig databaseConfig(databasePath);
     try {
         auto shell = EmbeddedShell(databaseConfig, systemConfig);
         shell.run();

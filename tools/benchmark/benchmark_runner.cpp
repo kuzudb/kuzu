@@ -10,9 +10,9 @@ namespace benchmark {
 const string BENCHMARK_SUFFIX = ".benchmark";
 
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
-    : config{move(config)} {
-    database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode),
-        SystemConfig(this->config->bufferPoolSize));
+    : config{std::move(config)} {
+    database = make_unique<Database>(
+        DatabaseConfig(datasetPath), SystemConfig(this->config->bufferPoolSize));
     spdlog::set_level(spdlog::level::debug);
 }
 

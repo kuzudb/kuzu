@@ -180,17 +180,5 @@ public:
     }
 };
 
-// This class starts database in in-memory mode.
-class InMemoryDBTest : public BaseGraphTest {
-
-public:
-    void SetUp() override {
-        BaseGraphTest::SetUp();
-        databaseConfig->inMemoryMode = true;
-        createDBAndConn();
-        initGraph();
-    }
-};
-
 } // namespace testing
 } // namespace kuzu

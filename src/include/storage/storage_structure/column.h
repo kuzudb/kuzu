@@ -16,14 +16,14 @@ class Column : public BaseColumnOrList {
 
 public:
     Column(const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
-        size_t elementSize, BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        size_t elementSize, BufferManager& bufferManager, WAL* wal)
         : BaseColumnOrList{structureIDAndFName, dataType, elementSize, bufferManager,
-              true /*hasNULLBytes*/, isInMemory, wal} {};
+              true /*hasNULLBytes*/, wal} {};
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const DataType& dataType,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        BufferManager& bufferManager, WAL* wal)
         : Column(structureIDAndFName, dataType, Types::getDataTypeSize(dataType), bufferManager,
-              isInMemory, wal){};
+              wal){};
 
     void read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector);
@@ -81,9 +81,9 @@ protected:
 class PropertyColumnWithOverflow : public Column {
 public:
     PropertyColumnWithOverflow(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
-        : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal},
-          diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, isInMemory, wal} {}
+        const DataType& dataType, BufferManager& bufferManager, WAL* wal)
+        : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, wal},
+          diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, wal} {}
 
     inline void read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector) {
@@ -104,9 +104,9 @@ class StringPropertyColumn : public PropertyColumnWithOverflow {
 
 public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        const DataType& dataType, BufferManager& bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
-              structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal} {};
+              structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {};
 
     void writeValueForSingleNodeIDPosition(offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -139,9 +139,9 @@ class ListPropertyColumn : public PropertyColumnWithOverflow {
 
 public:
     ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal)
+        const DataType& dataType, BufferManager& bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
-              structureIDAndFNameOfMainColumn, dataType, bufferManager, isInMemory, wal} {};
+              structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {};
 
     void writeValueForSingleNodeIDPosition(offset_t nodeOffset,
         const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -173,9 +173,8 @@ class RelIDColumn : public Column {
 
 public:
     RelIDColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal)
-        : Column{structureIDAndFName, DataType(INTERNAL_ID), sizeof(offset_t), bufferManager,
-              isInMemory, wal},
+        WAL* wal)
+        : Column{structureIDAndFName, DataType(INTERNAL_ID), sizeof(offset_t), bufferManager, wal},
           commonTableID{structureIDAndFName.storageStructureID.columnFileID.relPropertyColumnID
                             .relNodeTableAndDir.relTableID} {
         assert(structureIDAndFName.storageStructureID.columnFileID.columnType ==
@@ -217,10 +216,9 @@ class AdjColumn : public Column {
 
 public:
     AdjColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager& bufferManager,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory, WAL* wal)
+        const NodeIDCompressionScheme& nodeIDCompressionScheme, WAL* wal)
         : Column{structureIDAndFName, DataType(INTERNAL_ID),
-              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), bufferManager,
-              isInMemory, wal},
+              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), bufferManager, wal},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:
@@ -256,7 +254,7 @@ class ColumnFactory {
 
 public:
     static unique_ptr<Column> getColumn(const StorageStructureIDAndFName& structureIDAndFName,
-        const DataType& dataType, BufferManager& bufferManager, bool isInMemory, WAL* wal) {
+        const DataType& dataType, BufferManager& bufferManager, WAL* wal) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -264,20 +262,19 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Column>(
-                structureIDAndFName, dataType, bufferManager, isInMemory, wal);
+            return make_unique<Column>(structureIDAndFName, dataType, bufferManager, wal);
         case STRING:
             return make_unique<StringPropertyColumn>(
-                structureIDAndFName, dataType, bufferManager, isInMemory, wal);
+                structureIDAndFName, dataType, bufferManager, wal);
         case LIST:
             return make_unique<ListPropertyColumn>(
-                structureIDAndFName, dataType, bufferManager, isInMemory, wal);
+                structureIDAndFName, dataType, bufferManager, wal);
         case INTERNAL_ID:
             assert(structureIDAndFName.storageStructureID.storageStructureType ==
                    StorageStructureType::COLUMN);
             assert(structureIDAndFName.storageStructureID.columnFileID.columnType ==
                    ColumnType::REL_PROPERTY_COLUMN);
-            return make_unique<RelIDColumn>(structureIDAndFName, bufferManager, isInMemory, wal);
+            return make_unique<RelIDColumn>(structureIDAndFName, bufferManager, wal);
         default:
             throw StorageException("Invalid type for property column creation.");
         }

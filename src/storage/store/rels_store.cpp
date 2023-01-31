@@ -3,12 +3,12 @@
 namespace kuzu {
 namespace storage {
 
-RelsStore::RelsStore(const Catalog& catalog, BufferManager& bufferManager,
-    MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
-    : relsStatistics{wal->getDirectory()}, isInMemoryMode{isInMemoryMode} {
+RelsStore::RelsStore(
+    const Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager, WAL* wal)
+    : relsStatistics{wal->getDirectory()} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        relTables[tableIDSchema.first] = make_unique<RelTable>(
-            catalog, tableIDSchema.first, bufferManager, memoryManager, isInMemoryMode, wal);
+        relTables[tableIDSchema.first] =
+            make_unique<RelTable>(catalog, tableIDSchema.first, bufferManager, memoryManager, wal);
     }
 }
 

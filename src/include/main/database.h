@@ -33,11 +33,9 @@ struct SystemConfig {
 };
 
 struct DatabaseConfig {
-    explicit DatabaseConfig(std::string databasePath, bool inMemoryMode = false)
-        : databasePath{std::move(databasePath)}, inMemoryMode{inMemoryMode} {}
+    explicit DatabaseConfig(std::string databasePath) : databasePath{std::move(databasePath)} {}
 
     std::string databasePath;
-    bool inMemoryMode;
 };
 
 class Database {

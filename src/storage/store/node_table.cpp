@@ -4,9 +4,9 @@ namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
-    BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema)
+    BufferManager& bufferManager, WAL* wal, NodeTableSchema* nodeTableSchema)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, tableID{nodeTableSchema->tableID},
-      bufferManager{bufferManager}, isInMemory{isInMemory}, wal{wal} {
+      bufferManager{bufferManager}, wal{wal} {
     initializeData(nodeTableSchema);
 }
 
@@ -14,7 +14,7 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getAllNodeProperties()) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
-            property.dataType, bufferManager, isInMemory, wal);
+            property.dataType, bufferManager, wal);
     }
     pkIndex = make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
