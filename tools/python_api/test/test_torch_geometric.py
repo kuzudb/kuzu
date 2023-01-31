@@ -201,6 +201,21 @@ TENSOR_LIST_GROUND_TRUTH = {
     }
 }
 
+PERSONLONGSTRING_GROUND_TRUTH = {
+    'AAAAAAAAAAAAAAAAAAAA': {
+        'name': 'AAAAAAAAAAAAAAAAAAAA',
+        'spouse': 'Bob',
+    },
+    'Bob': {
+        'name': 'Bob',
+        'spouse': 'AAAAAAAAAAAAAAAAAAAA',
+    },
+}
+
+PERSONLONGSTRING_KNOWS_GROUND_TRUTH = {
+    'AAAAAAAAAAAAAAAAAAAA': ['Bob'],
+}
+
 
 def test_to_torch_geometric_nodes_only(establish_connection):
     conn, _ = establish_connection
@@ -282,6 +297,7 @@ def test_to_torch_geometric_nodes_only(establish_connection):
     for i in range(8):
         assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
                                              ]['workedHours'] == unconverted_properties['workedHours'][i]
+
 
 def test_to_torch_geometric_homogeneous_graph(establish_connection):
     conn, _ = establish_connection
@@ -558,3 +574,37 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
     assert "oneDimInt" in unconverted_properties
     assert len(unconverted_properties["oneDimInt"]) == 6
     assert unconverted_properties["oneDimInt"] == [1, 2, None, None, 5, 6]
+
+
+def test_to_torch_geometric_no_properties_converted(establish_connection):
+    conn, _ = establish_connection
+    query = "MATCH (p:personLongString)-[r:knowsLongString]->(q:personLongString) RETURN p, r, q"
+
+    res = conn.execute(query)
+    with warnings.catch_warnings(record=True) as ws:
+        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+    assert len(ws) == 2
+    warnings_ground_truth = set([
+        "Property personLongString.spouse of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "No nodes found or all node properties are not converted."])
+    for w in ws:
+        assert str(w.message) in warnings_ground_truth
+    assert torch_geometric_data['personLongString'] == {}
+    assert torch_geometric_data['personLongString',
+                                'personLongString'].edge_index.shape == torch.Size([2, 1])
+
+    for i in range(1):
+        src, dst = torch_geometric_data['personLongString', 'personLongString'].edge_index[0][i].item(
+        ), torch_geometric_data['personLongString', 'personLongString'].edge_index[1][i].item()
+        assert src in pos_to_idx['personLongString']
+        assert dst in pos_to_idx['personLongString']
+        assert src != dst
+        assert pos_to_idx['personLongString'][dst] in PERSONLONGSTRING_KNOWS_GROUND_TRUTH[pos_to_idx['personLongString'][src]]
+
+    assert len(unconverted_properties) == 1
+    assert len(unconverted_properties['personLongString']) == 1
+    assert 'spouse' in unconverted_properties['personLongString']
+    assert len(unconverted_properties['personLongString']['spouse']) == 2
+    for i in range(2):
+        assert PERSONLONGSTRING_GROUND_TRUTH[pos_to_idx['personLongString'][i]
+                                             ]['spouse'] == unconverted_properties['personLongString']['spouse'][i]
