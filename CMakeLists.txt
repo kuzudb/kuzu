@@ -86,6 +86,7 @@ include_directories(third_party/spdlog)
 include_directories(third_party/nlohmann_json)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/pybind11/include)
+include_directories(third_party/re2/include)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

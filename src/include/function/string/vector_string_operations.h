@@ -63,6 +63,10 @@ struct EndsWithVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct REMatchVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct LeftVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };

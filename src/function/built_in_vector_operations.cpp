@@ -255,6 +255,7 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
     vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
     vectorOperations.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({RE_MATCH_FUNC_NAME, REMatchVectorOperation::getDefinitions()});
     vectorOperations.insert({LCASE_FUNC_NAME, LowerVectorOperation::getDefinitions()});
     vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
     vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});

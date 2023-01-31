@@ -114,6 +114,7 @@ const string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
 const string CONCAT_FUNC_NAME = "CONCAT";
 const string CONTAINS_FUNC_NAME = "CONTAINS";
 const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
+const string RE_MATCH_FUNC_NAME = "RE_MATCH";
 const string LCASE_FUNC_NAME = "LCASE";
 const string LEFT_FUNC_NAME = "LEFT";
 const string LENGTH_FUNC_NAME = "LENGTH";
