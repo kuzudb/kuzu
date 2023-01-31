@@ -147,11 +147,10 @@ public:
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
           relMultiplicity{MANY_MANY} {}
     RelTableSchema(std::string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
-        std::vector<Property> properties,
-        std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs)
+        std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID)
         : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
               std::move(properties)},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)} {}
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
@@ -167,10 +166,6 @@ public:
                relMultiplicity == (direction == RelDirection::FWD ? MANY_ONE : ONE_MANY);
     }
 
-    inline std::vector<std::pair<table_id_t, table_id_t>> getSrcDstTableIDs() const {
-        return srcDstTableIDs;
-    }
-
     inline uint32_t getNumUserDefinedProperties() const {
         // Note: the first column stores the relID property.
         return properties.size() - 1;
@@ -181,28 +176,21 @@ public:
                (relMultiplicity == MANY_ONE && relDirection == RelDirection::BWD);
     }
 
-    inline bool edgeContainsNodeTable(table_id_t tableID) const {
-        return any_of(srcDstTableIDs.begin(), srcDstTableIDs.end(),
-            [tableID](std::pair<table_id_t, table_id_t> srcDstTableID) {
-                return srcDstTableID.first == tableID || srcDstTableID.second == tableID;
-            });
+    inline bool isSrcOrDstTable(table_id_t tableID) const {
+        return srcTableID == tableID || dstTableID == tableID;
     }
 
-    inline std::unordered_set<table_id_t> getUniqueBoundTableIDs(RelDirection relDirection) const {
-        return relDirection == RelDirection::FWD ? getUniqueSrcTableIDs() : getUniqueDstTableIDs();
+    inline table_id_t getBoundTableID(RelDirection relDirection) const {
+        return relDirection == RelDirection::FWD ? srcTableID : dstTableID;
     }
 
-    std::unordered_set<table_id_t> getAllNodeTableIDs() const;
-
-    std::unordered_set<table_id_t> getUniqueSrcTableIDs() const;
-
-    std::unordered_set<table_id_t> getUniqueDstTableIDs() const;
-
-    std::unordered_set<table_id_t> getUniqueNbrTableIDsForBoundTableIDDirection(
-        RelDirection direction, table_id_t boundTableID) const;
+    inline table_id_t getNbrTableID(RelDirection relDirection) const {
+        return relDirection == RelDirection::FWD ? dstTableID : srcTableID;
+    }
 
     RelMultiplicity relMultiplicity;
-    std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs;
+    table_id_t srcTableID;
+    table_id_t dstTableID;
 };
 
 } // namespace catalog

@@ -112,7 +112,6 @@ public:
         executionContext = std::make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
         personTableID = catalog->getReadOnlyVersion()->getTableID("person");
-        organisationTableID = catalog->getReadOnlyVersion()->getTableID("organisation");
         studyAtTableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
     }
 
@@ -157,17 +156,17 @@ public:
 
     void validateDatabaseStateAfterCommitCreateRelTable() {
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 7);
+        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
     }
 
     void createRelTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
-            "CREATE REL TABLE likes(FROM person TO person | organisation, RATING INT64, MANY_ONE)");
+            "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
-            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
+            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 5);
             initWithoutLoadingGraph();
         } else {
             conn->commit();
@@ -310,10 +309,10 @@ public:
         // direction and stored as lists in the bwd direction.
         auto propertyFWDColumnFileName =
             StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                personTableID, RelDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(
-            databaseConfig->databasePath, studyAtTableID, organisationTableID, RelDirection::BWD,
-            propertyToDrop.propertyID, DBFileType::ORIGINAL);
+                RelDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        auto propertyBWDListFileName =
+            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
+                RelDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
         validateColumnFilesExistence(
@@ -405,7 +404,7 @@ public:
         validateDatabaseFileAfterCheckpointAddProperty(
             columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
         // The default value of the property is NULL if not specified by the user.
-        auto result = conn->query(StringUtils::string_format("MATCH (p:person) return p.random"));
+        auto result = conn->query("MATCH (p:person) return p.random");
         while (result->hasNext()) {
             ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
@@ -454,16 +453,16 @@ public:
             containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
         auto fwdColumnOriginalVersionFileName =
             StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                personTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
+                RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName =
             StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                personTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+                RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
         auto bwdListOriginalVersionFileName =
             StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                organisationTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
+                RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
         auto bwdListWALVersionFileName =
             StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                organisationTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+                RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(
@@ -500,16 +499,16 @@ public:
             containsOverflowFile(relTableSchema->getProperty(propertyID).dataType.typeID);
         auto fwdColumnOriginalVersionFileName =
             StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                personTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
+                RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName =
             StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                personTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+                RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
         auto bwdListOriginalVersionFileName =
             StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                organisationTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
+                RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
         auto bwdListWALVersionFileName =
             StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                organisationTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+                RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(
@@ -588,7 +587,6 @@ public:
     std::unique_ptr<ExecutionContext> executionContext;
     std::unique_ptr<Profiler> profiler;
     table_id_t personTableID;
-    table_id_t organisationTableID;
     table_id_t studyAtTableID;
 };
 
@@ -639,9 +637,6 @@ TEST_F(TinySnbDDLTest, MultipleDropTables) {
     result = conn->query("DROP TABLE workAt");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("workAt"));
-    result = conn->query("DROP TABLE mixed");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("mixed"));
     result = conn->query("DROP TABLE organisation");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
@@ -701,14 +696,6 @@ TEST_F(TinySnbDDLTest, DDLOutputMsg) {
     result = conn->query("ALTER TABLE knows DROP date;");
     ASSERT_EQ(
         TestHelper::convertResultToString(*result), std::vector<std::string>{"Drop succeed."});
-}
-
-TEST_F(TinySnbDDLTest, CreateMixedRelationTableNormalExecution) {
-    createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(TinySnbDDLTest, CreateMixedRelationTableRecovery) {
-    createRelMixedRelationCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {

@@ -760,7 +760,7 @@ uint64_t JoinOrderEnumerator::getExtensionRate(
             auto relStatistic = (storage::RelStatistics*)relsStatistics.getReadOnlyVersion()
                                     ->tableStatisticPerTable[relTableID]
                                     .get();
-            numRels += relStatistic->getNumRelsForDirectionBoundTable(direction, boundNodeTableID);
+            numRels += relStatistic->getNumTuples();
         }
     }
     return ceil(numRels / numBoundNodes);

@@ -7,23 +7,24 @@ namespace parser {
 
 class CreateRelClause : public CreateTable {
 public:
-    explicit CreateRelClause(std::string tableName,
+    CreateRelClause(std::string tableName,
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes,
-        std::string relMultiplicity,
-        std::vector<std::pair<std::string, std::string>> relConnections)
+        std::string relMultiplicity, std::string srcTableName, std::string dstTableName)
         : CreateTable{common::StatementType::CREATE_REL_CLAUSE, std::move(tableName),
               std::move(propertyNameDataTypes)},
-          relMultiplicity{std::move(relMultiplicity)}, relConnections{std::move(relConnections)} {}
+          relMultiplicity{std::move(relMultiplicity)}, srcTableName{std::move(srcTableName)},
+          dstTableName{std::move(dstTableName)} {}
 
     inline std::string getRelMultiplicity() const { return relMultiplicity; }
 
-    inline std::vector<std::pair<std::string, std::string>> getRelConnections() const {
-        return relConnections;
-    }
+    inline std::string getSrcTableName() const { return srcTableName; }
+
+    inline std::string getDstTableName() const { return dstTableName; }
 
 private:
     std::string relMultiplicity;
-    std::vector<std::pair<std::string, std::string>> relConnections;
+    std::string srcTableName;
+    std::string dstTableName;
 };
 
 } // namespace parser

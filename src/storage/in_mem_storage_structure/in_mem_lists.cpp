@@ -74,8 +74,7 @@ void InMemAdjLists::setElement(uint32_t header, offset_t nodeOffset, uint64_t po
         nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
-        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
-            nodeIDCompressionScheme);
+        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage);
 }
 
 void InMemLists::initListsMetadataAndAllocatePages(

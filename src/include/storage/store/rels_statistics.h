@@ -13,32 +13,13 @@ class RelStatistics : public TableStatistics {
     friend class RelsStatistics;
 
 public:
-    RelStatistics(uint64_t numRels,
-        std::vector<std::unordered_map<common::table_id_t, uint64_t>> numRelsPerDirectionBoundTable,
-        common::offset_t nextRelOffset)
-        : TableStatistics{numRels}, numRelsPerDirectionBoundTable{std::move(
-                                        numRelsPerDirectionBoundTable)},
-          nextRelOffset{nextRelOffset} {}
-    explicit RelStatistics(
-        std::vector<std::pair<common::table_id_t, common::table_id_t>> srcDstTableIDs);
-
-    inline uint64_t getNumRelsForDirectionBoundTable(
-        common::RelDirection relDirection, common::table_id_t boundNodeTableID) const {
-        if (!numRelsPerDirectionBoundTable[relDirection].contains(boundNodeTableID)) {
-            return 0;
-        }
-        return numRelsPerDirectionBoundTable[relDirection].at(boundNodeTableID);
-    }
-
-    inline void setNumRelsForDirectionBoundTable(
-        common::RelDirection relDirection, common::table_id_t boundTableID, uint64_t numRels) {
-        numRelsPerDirectionBoundTable[relDirection][boundTableID] = numRels;
-    }
+    RelStatistics() : TableStatistics{0 /* numTuples */}, nextRelOffset{0} {}
+    RelStatistics(uint64_t numRels, common::offset_t nextRelOffset)
+        : TableStatistics{numRels}, nextRelOffset{nextRelOffset} {}
 
     inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
 
 private:
-    std::vector<std::unordered_map<common::table_id_t, uint64_t>> numRelsPerDirectionBoundTable;
     common::offset_t nextRelOffset;
 };
 
@@ -73,15 +54,7 @@ public:
 
     void setNumRelsForTable(common::table_id_t relTableID, uint64_t numRels);
 
-    void assertNumRelsIsSound(
-        std::unordered_map<common::table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels);
-
-    void updateNumRelsByValue(common::table_id_t relTableID, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, int64_t value);
-
-    // Note: This function will not set the numTuples field. That should be called separately.
-    void setNumRelsPerDirectionBoundTableID(common::table_id_t tableID,
-        std::vector<std::map<common::table_id_t, std::atomic<uint64_t>>>& directionNumRelsPerTable);
+    void updateNumRelsByValue(common::table_id_t relTableID, int64_t value);
 
     common::offset_t getNextRelOffset(
         transaction::Transaction* transaction, common::table_id_t tableID);
@@ -91,8 +64,7 @@ protected:
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelStatistics>(
-            ((catalog::RelTableSchema*)tableSchema)->getSrcDstTableIDs());
+        return std::make_unique<RelStatistics>();
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(

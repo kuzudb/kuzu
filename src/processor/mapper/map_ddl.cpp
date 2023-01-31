@@ -44,8 +44,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical
     auto createRelTable = (LogicalCreateRelTable*)logicalOperator;
     return std::make_unique<CreateRelTable>(catalog, createRelTable->getTableName(),
         createRelTable->getPropertyNameDataTypes(), createRelTable->getRelMultiplicity(),
-        createRelTable->getSrcDstTableIDs(), getOutputPos(createRelTable), getOperatorID(),
-        createRelTable->getExpressionsForPrinting(),
+        createRelTable->getSrcTableID(), createRelTable->getDstTableID(),
+        getOutputPos(createRelTable), getOperatorID(), createRelTable->getExpressionsForPrinting(),
         &storageManager.getRelsStore().getRelsStatistics());
 }
 

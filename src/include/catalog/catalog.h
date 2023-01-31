@@ -38,8 +38,8 @@ public:
         std::vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        const std::vector<PropertyNameDataType>& propertyDefinitions,
-        std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs);
+        const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
+        table_id_t dstTableID);
 
     inline bool containNodeTable(table_id_t tableID) const {
         return nodeTableSchemas.contains(tableID);
@@ -117,12 +117,6 @@ public:
     inline std::unordered_map<table_id_t, std::unique_ptr<RelTableSchema>>& getRelTableSchemas() {
         return relTableSchemas;
     }
-    inline std::unordered_set<table_id_t> getNodeTableIDsForRelTableDirection(
-        table_id_t relTableID, RelDirection direction) const {
-        auto relTableSchema = getRelTableSchema(relTableID);
-        return direction == common::FWD ? relTableSchema->getUniqueSrcTableIDs() :
-                                          relTableSchema->getUniqueDstTableIDs();
-    }
 
     void dropTableSchema(table_id_t tableID);
 
@@ -190,8 +184,8 @@ public:
         std::vector<PropertyNameDataType> propertyDefinitions);
 
     table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        const std::vector<PropertyNameDataType>& propertyDefinitions,
-        std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs);
+        const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
+        table_id_t dstTableID);
 
     void dropTableSchema(table_id_t tableID);
 

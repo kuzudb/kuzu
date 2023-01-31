@@ -1,7 +1,7 @@
 -NAME MultiLabelTest1
--QUERY MATCH (a:organisation) OPTIONAL MATCH (a)<-[:knows|:studyAt|:mixed]-(b:person) RETURN COUNT(*)
+-QUERY MATCH (a:organisation) OPTIONAL MATCH (a)<-[:knows|:studyAt]-(b:person) RETURN COUNT(*)
 ---- 1
-6
+5
 
 -NAME MultiLabelTest2
 -QUERY MATCH (a:organisation:person) OPTIONAL MATCH (a)-[:studyAt|:workAt]->(b:person:organisation) RETURN COUNT(*)

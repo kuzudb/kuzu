@@ -281,14 +281,12 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t co
 
 void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx,
     std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint8_t* data, NullMask* nullMask,
-    uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList, const DataType& type,
-    NodeIDCompressionScheme* nodeIDCompressionScheme) const {
+    uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
+    const DataType& type) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
     auto numBytesPerValue =
-        nodeIDCompressionScheme == nullptr ?
-            (type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type)) :
-            nodeIDCompressionScheme->getNumBytesForNodeIDAfterCompression();
+        type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto listToFill = data + startElemPosInList * numBytesPerValue;
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {

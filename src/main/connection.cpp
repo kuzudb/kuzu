@@ -135,16 +135,14 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
         throw Exception("Cannot find rel table " + relTableName);
     }
     auto relTableID = catalog->getReadOnlyVersion()->getTableID(relTableName);
-    std::string result = relTableName + " src nodes: \n";
-    for (auto& nodeTableID :
-        catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, FWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getTableName(nodeTableID) + "\n";
-    }
-    result += relTableName + " dst nodes: \n";
-    for (auto& nodeTableID :
-        catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, BWD)) {
-        result += "\t" + catalog->getReadOnlyVersion()->getTableName(nodeTableID) + "\n";
-    }
+    auto srcTableID =
+        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(FWD);
+    auto srcTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(srcTableID);
+    auto dstTableID =
+        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(FWD);
+    auto dstTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(dstTableID);
+    std::string result = relTableName + " src node: " + srcTableSchema->tableName + "\n";
+    result += relTableName + " dst node: " + dstTableSchema->tableName + "\n";
     result += relTableName + " properties: \n";
     for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
         if (catalog::TableSchema::isReservedPropertyName(property.name)) {
@@ -247,8 +245,8 @@ void Connection::beginTransactionNoLock(TransactionType type) {
         throw ConnectionException(
             "Connection already has an active transaction. Applications can have one "
             "transaction per connection at any point in time. For concurrent multiple "
-            "transactions, please open other connections. Current active transaction is not "
-            "affected by this exception and can still be used.");
+            "transactions, please open other connections. Current active transaction is "
+            "not affected by this exception and can still be used.");
     }
     activeTransaction = type == READ_ONLY ?
                             database->transactionManager->beginReadOnlyTransaction() :

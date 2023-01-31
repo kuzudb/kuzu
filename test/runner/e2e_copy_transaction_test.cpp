@@ -158,8 +158,6 @@ public:
                                       ->tableStatisticPerTable.at(knowsTableID)
                                       .get();
         ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
-        ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::FWD, 0), 14);
-        ASSERT_EQ(knowsRelStatistics->getNumRelsForDirectionBoundTable(RelDirection::BWD, 0), 14);
     }
 
     void copyRelCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {

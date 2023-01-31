@@ -39,13 +39,12 @@ bool DeleteRel::getNextTuplesInternal() {
         return false;
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
-        auto createRelInfo = deleteRelInfos[i].get();
+        auto deleteRelInfo = deleteRelInfos[i].get();
         auto srcNodeVector = srcNodeVectors[i];
         auto dstNodeVector = dstNodeVectors[i];
         auto relIDVector = relIDVectors[i];
-        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
-        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
-            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+        deleteRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
+        relsStatistics.updateNumRelsByValue(deleteRelInfo->table->getRelTableID(),
             -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
     }
     return true;

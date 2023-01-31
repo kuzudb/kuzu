@@ -41,42 +41,39 @@ StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
 }
 
 StorageStructureID StorageStructureID::newAdjListsID(
-    table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType) {
+    table_id_t relTableID, RelDirection dir, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::LISTS;
-    retVal.listFileID =
-        ListFileID(listFileType, AdjListsID(RelNodeTableAndDir(tableID, srcNodeTableID, dir)));
+    retVal.listFileID = ListFileID(listFileType, AdjListsID(RelNodeTableAndDir(relTableID, dir)));
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t nodeTableID,
+StorageStructureID StorageStructureID::newRelPropertyListsID(
     table_id_t relTableID, RelDirection dir, property_id_t propertyID, ListFileType listFileType) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::LISTS;
-    retVal.listFileID = ListFileID(listFileType,
-        RelPropertyListsID(RelNodeTableAndDir(nodeTableID, relTableID, dir), propertyID));
+    retVal.listFileID = ListFileID(
+        listFileType, RelPropertyListsID(RelNodeTableAndDir(relTableID, dir), propertyID));
     return retVal;
 }
 
 StorageStructureID StorageStructureID::newRelPropertyColumnID(
-    table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, property_id_t propertyID) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.storageStructureType = StorageStructureType::COLUMN;
-    retVal.columnFileID = ColumnFileID(
-        RelPropertyColumnID(RelNodeTableAndDir(relTableID, nodeTableID, dir), propertyID));
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newAdjColumnID(
-    table_id_t nodeTableID, table_id_t relTableID, RelDirection dir) {
+    table_id_t relTableID, RelDirection dir, property_id_t propertyID) {
     StorageStructureID retVal;
     retVal.isOverflow = false;
     retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.columnFileID =
-        ColumnFileID(AdjColumnID(RelNodeTableAndDir(relTableID, nodeTableID, dir)));
+        ColumnFileID(RelPropertyColumnID(RelNodeTableAndDir(relTableID, dir), propertyID));
+    return retVal;
+}
+
+StorageStructureID StorageStructureID::newAdjColumnID(table_id_t relTableID, RelDirection dir) {
+    StorageStructureID retVal;
+    retVal.isOverflow = false;
+    retVal.storageStructureType = StorageStructureType::COLUMN;
+    retVal.columnFileID = ColumnFileID(AdjColumnID(RelNodeTableAndDir(relTableID, dir)));
     return retVal;
 }
 

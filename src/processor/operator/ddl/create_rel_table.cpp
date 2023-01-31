@@ -7,7 +7,7 @@ namespace processor {
 
 void CreateRelTable::executeDDLInternal() {
     auto newRelTableID = catalog->addRelTableSchema(
-        tableName, relMultiplicity, propertyNameDataTypes, srcDstTableIDs);
+        tableName, relMultiplicity, propertyNameDataTypes, srcTableID, dstTableID);
     relsStatistics->addTableStatistic(catalog->getWriteVersion()->getRelTableSchema(newRelTableID));
 }
 

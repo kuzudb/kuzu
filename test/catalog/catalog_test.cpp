@@ -46,10 +46,8 @@ public:
         knowsProperties.emplace_back("date", DATE);
         knowsProperties.emplace_back("meetTime", TIMESTAMP);
         knowsProperties.emplace_back("validInterval", INTERVAL);
-        KNOWS_TABLE_ID =
-            catalog->getReadOnlyVersion()->addRelTableSchema("knows", MANY_MANY, knowsProperties,
-                std::vector<std::pair<table_id_t, table_id_t>>{
-                    {0 /* srcTableID */, 0 /* dstTableID */}});
+        KNOWS_TABLE_ID = catalog->getReadOnlyVersion()->addRelTableSchema(
+            "knows", MANY_MANY, knowsProperties, 0 /* srcTableID */, 0 /* dstTableID */);
     }
 
 public:

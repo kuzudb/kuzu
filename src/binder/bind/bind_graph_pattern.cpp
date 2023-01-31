@@ -48,10 +48,8 @@ static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpres
     const NodeExpression& srcNode, const NodeExpression& dstNode) {
     std::set<std::pair<table_id_t, table_id_t>> srcDstTableIDs;
     for (auto relTableID : rel.getTableIDs()) {
-        for (auto [srcTableID, dstTableID] :
-            catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID)->srcDstTableIDs) {
-            srcDstTableIDs.insert({srcTableID, dstTableID});
-        }
+        auto relTableSchema = catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID);
+        srcDstTableIDs.insert({relTableSchema->srcTableID, relTableSchema->dstTableID});
     }
     for (auto srcTableID : srcNode.getTableIDs()) {
         for (auto dstTableID : dstNode.getTableIDs()) {

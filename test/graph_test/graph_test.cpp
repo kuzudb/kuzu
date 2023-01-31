@@ -49,27 +49,21 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
-        std::unordered_set<table_id_t> boundTableIDs = relDirection == FWD ?
-                                                           relTableSchema->getUniqueSrcTableIDs() :
-                                                           relTableSchema->getUniqueDstTableIDs();
+        auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         if (relTableSchema->relMultiplicity) {
-            for (auto boundTableID : boundTableIDs) {
-                validateColumnFilesExistence(
-                    StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
-                    existence, false /* hasOverflow */);
-                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
-                    true /* isColumnProperty */, dbFileType, existence);
-            }
+            validateColumnFilesExistence(
+                StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
+                    relTableSchema->tableID, relDirection, dbFileType),
+                existence, false /* hasOverflow */);
+            validateRelPropertyFiles(
+                relTableSchema, relDirection, true /* isColumnProperty */, dbFileType, existence);
+
         } else {
-            for (auto boundTableID : boundTableIDs) {
-                validateListFilesExistence(
-                    StorageUtils::getAdjListsFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
-                    existence, false /* hasOverflow */, true /* hasHeader */);
-                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
-                    false /* isColumnProperty */, dbFileType, existence);
-            }
+            validateListFilesExistence(StorageUtils::getAdjListsFName(databaseConfig->databasePath,
+                                           relTableSchema->tableID, relDirection, dbFileType),
+                existence, false /* hasOverflow */, true /* hasHeader */);
+            validateRelPropertyFiles(
+                relTableSchema, relDirection, false /* isColumnProperty */, dbFileType, existence);
         }
     }
 }
@@ -97,20 +91,18 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 }
 
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-    table_id_t tableID, RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType,
-    bool existence) {
+    RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
     for (auto& property : relTableSchema->properties) {
         auto hasOverflow = containsOverflowFile(property.dataType.typeID);
         if (isColumnProperty) {
             validateColumnFilesExistence(
                 StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, tableID, relDirection, property.propertyID,
-                    dbFileType),
+                    relTableSchema->tableID, relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow);
         } else {
-            validateListFilesExistence(StorageUtils::getRelPropertyListsFName(
-                                           databaseConfig->databasePath, relTableSchema->tableID,
-                                           tableID, relDirection, property.propertyID, dbFileType),
+            validateListFilesExistence(
+                StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath,
+                    relTableSchema->tableID, relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow, false /* hasHeader */);
         }
     }

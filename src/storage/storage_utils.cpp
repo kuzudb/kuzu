@@ -50,14 +50,14 @@ std::string StorageUtils::getColumnFName(
     } break;
     case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;
-        fName = getAdjColumnFName(directory, relNodeTableAndDir.relTableID,
-            relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
+        fName = getAdjColumnFName(
+            directory, relNodeTableAndDir.relTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
     } break;
     case ColumnType::REL_PROPERTY_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.relPropertyColumnID.relNodeTableAndDir;
         fName = getRelPropertyColumnFName(directory, relNodeTableAndDir.relTableID,
-            relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
-            columnFileID.relPropertyColumnID.propertyID, DBFileType::ORIGINAL);
+            relNodeTableAndDir.dir, columnFileID.relPropertyColumnID.propertyID,
+            DBFileType::ORIGINAL);
         if (storageStructureID.isOverflow) {
             fName = getOverflowFileName(fName);
         }
@@ -76,14 +76,13 @@ std::string StorageUtils::getListFName(
     switch (listFileID.listType) {
     case ListType::ADJ_LISTS: {
         auto& relNodeTableAndDir = listFileID.adjListsID.relNodeTableAndDir;
-        baseFName = getAdjListsFName(directory, relNodeTableAndDir.relTableID,
-            relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
+        baseFName = getAdjListsFName(
+            directory, relNodeTableAndDir.relTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
     } break;
     case ListType::REL_PROPERTY_LISTS: {
         auto& relNodeTableAndDir = listFileID.relPropertyListID.relNodeTableAndDir;
         baseFName = getRelPropertyListsFName(directory, relNodeTableAndDir.relTableID,
-            relNodeTableAndDir.srcNodeTableID, relNodeTableAndDir.dir,
-            listFileID.relPropertyListID.propertyID, DBFileType::ORIGINAL);
+            relNodeTableAndDir.dir, listFileID.relPropertyListID.propertyID, DBFileType::ORIGINAL);
     } break;
     default:
         assert(false);
@@ -127,10 +126,8 @@ void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableS
         auto createPropertyFileFunc = tableSchema->isSingleMultiplicityInDirection(direction) ?
                                           createFileForRelColumnPropertyWithDefaultVal :
                                           createFileForRelListsPropertyWithDefaultVal;
-        for (auto boundTableID : tableSchema->getUniqueBoundTableIDs(direction)) {
-            createPropertyFileFunc(tableSchema->tableID, boundTableID, direction, property,
-                defaultVal, isDefaultValNull, storageManager);
-        }
+        createPropertyFileFunc(tableSchema->tableID, tableSchema->getBoundTableID(direction),
+            direction, property, defaultVal, isDefaultValNull, storageManager);
     }
 }
 
@@ -139,7 +136,7 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
-            boundTableID, direction, property.propertyID, DBFileType::WAL_VERSION),
+            direction, property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
     if (!isDefaultValNull) {
@@ -155,14 +152,14 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
     table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemList = InMemListsFactory::getInMemPropertyLists(
-        StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID,
-            boundTableID, direction, property.propertyID, DBFileType::WAL_VERSION),
+        StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
+            property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
     // Note: we need the listMetadata to get the num of elements in a large list, and headers to
     // get the num of elements in a small list as well as determine whether a list is large or
     // small. All property lists share the same listHeader which is stored in the adjList.
-    auto adjLists = storageManager.getRelsStore().getAdjLists(direction, boundTableID, relTableID);
+    auto adjLists = storageManager.getRelsStore().getAdjLists(direction, relTableID);
     auto numNodesInBoundTable =
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
             boundTableID);
@@ -196,11 +193,11 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
     return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
 }
 
-void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema, table_id_t tableID,
+void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,
     uint64_t numNodesInTable, const std::string& directory, RelDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
         StorageUtils::getAdjListsFName(
-            directory, relTableSchema->tableID, tableID, relDirection, DBFileType::WAL_VERSION),
+            directory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
         numNodesInTable);
     listHeadersBuilder->saveToDisk();
 }

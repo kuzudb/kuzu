@@ -8,7 +8,6 @@ add_subdirectory(wal)
 
 add_library(kuzu_storage
         OBJECT
-        node_id_compression_scheme.cpp
         storage_manager.cpp
         storage_utils.cpp
         wal_replayer.cpp

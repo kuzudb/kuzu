@@ -208,10 +208,6 @@ TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
     result = conn->query("CREATE (a:person:organisation {ID:0})");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Create node a with multiple node labels is not supported.");
-    result = conn->query("CREATE (a:person {ID:0})-[e:knows|:mixed]->(b:person {ID:1})");
-    ASSERT_STREQ(result->getErrorMessage().c_str(),
-        "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "
-        "is not supported.");
     result = conn->query("MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "

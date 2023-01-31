@@ -25,18 +25,15 @@ enum class ColumnType : uint8_t {
 
 struct RelNodeTableAndDir {
     common::table_id_t relTableID;
-    common::table_id_t srcNodeTableID;
     common::RelDirection dir;
 
     RelNodeTableAndDir() = default;
 
-    RelNodeTableAndDir(
-        common::table_id_t relTableID, common::table_id_t srcNodeTableID, common::RelDirection dir)
-        : relTableID{relTableID}, srcNodeTableID{srcNodeTableID}, dir{dir} {}
+    RelNodeTableAndDir(common::table_id_t relTableID, common::RelDirection dir)
+        : relTableID{relTableID}, dir{dir} {}
 
     inline bool operator==(const RelNodeTableAndDir& rhs) const {
-        return relTableID == rhs.relTableID && srcNodeTableID == rhs.srcNodeTableID &&
-               dir == rhs.dir;
+        return relTableID == rhs.relTableID && dir == rhs.dir;
     }
 };
 
@@ -234,20 +231,19 @@ struct StorageStructureID {
     static StorageStructureID newNodePropertyColumnID(
         common::table_id_t tableID, common::property_id_t propertyID);
 
-    static StorageStructureID newRelPropertyColumnID(common::table_id_t nodeTableID,
+    static StorageStructureID newRelPropertyColumnID(
         common::table_id_t relTableID, common::RelDirection dir, common::property_id_t propertyID);
 
     static StorageStructureID newAdjColumnID(
-        common::table_id_t nodeTableID, common::table_id_t relTableID, common::RelDirection dir);
+        common::table_id_t relTableID, common::RelDirection dir);
 
     static StorageStructureID newNodeIndexID(common::table_id_t tableID);
 
-    static StorageStructureID newAdjListsID(common::table_id_t tableID,
-        common::table_id_t srcNodeTableID, common::RelDirection dir, ListFileType listFileType);
+    static StorageStructureID newAdjListsID(
+        common::table_id_t relTableID, common::RelDirection dir, ListFileType listFileType);
 
-    static StorageStructureID newRelPropertyListsID(common::table_id_t nodeTableID,
-        common::table_id_t relTableID, common::RelDirection dir, common::property_id_t propertyID,
-        ListFileType listFileType);
+    static StorageStructureID newRelPropertyListsID(common::table_id_t relTableID,
+        common::RelDirection dir, common::property_id_t propertyID, ListFileType listFileType);
 };
 
 enum class WALRecordType : uint8_t {

@@ -33,9 +33,9 @@ void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
     nullEntriesInPage[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
 }
 
-uint8_t* InMemPage::writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
-    const NodeIDCompressionScheme& nodeIDCompressionScheme) {
-    nodeIDCompressionScheme.writeNodeID(data + byteOffsetInPage, *nodeID);
+uint8_t* InMemPage::writeNodeID(
+    nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage) {
+    *(offset_t*)(data + byteOffsetInPage) = nodeID->offset;
     if (nullMask) {
         nullMask[elemPosInPage] = false;
     }

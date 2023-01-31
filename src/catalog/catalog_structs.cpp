@@ -81,43 +81,5 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
         "Property with id=" + std::to_string(propertyID) + " not found.");
 }
 
-std::unordered_set<table_id_t> RelTableSchema::getAllNodeTableIDs() const {
-    std::unordered_set<table_id_t> allNodeTableIDs;
-    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
-        allNodeTableIDs.insert(srcTableID);
-        allNodeTableIDs.insert(dstTableID);
-    }
-    return allNodeTableIDs;
-}
-
-std::unordered_set<table_id_t> RelTableSchema::getUniqueSrcTableIDs() const {
-    std::unordered_set<table_id_t> srcTableIDs;
-    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
-        srcTableIDs.insert(srcTableID);
-    }
-    return srcTableIDs;
-}
-
-std::unordered_set<table_id_t> RelTableSchema::getUniqueDstTableIDs() const {
-    std::unordered_set<table_id_t> dstTableIDs;
-    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
-        dstTableIDs.insert(dstTableID);
-    }
-    return dstTableIDs;
-}
-
-std::unordered_set<table_id_t> RelTableSchema::getUniqueNbrTableIDsForBoundTableIDDirection(
-    RelDirection direction, table_id_t boundTableID) const {
-    std::unordered_set<table_id_t> nbrTableIDs;
-    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
-        if (direction == RelDirection::FWD && srcTableID == boundTableID) {
-            nbrTableIDs.insert(dstTableID);
-        } else if (direction == RelDirection::BWD && dstTableID == boundTableID) {
-            nbrTableIDs.insert(srcTableID);
-        }
-    }
-    return nbrTableIDs;
-}
-
 } // namespace catalog
 } // namespace kuzu
