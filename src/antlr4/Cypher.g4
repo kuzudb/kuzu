@@ -390,7 +390,10 @@ kU_ListSliceOperatorExpression
     : SP ? '[' oC_Expression? ':' oC_Expression? ']' ;
 
 oC_StringOperatorExpression
-    :  ( ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
+    :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
+
+oC_RegularExpression
+    :  SP? '=~' ;
 
 STARTS : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 

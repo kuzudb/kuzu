@@ -144,6 +144,37 @@ False
 ---- 1
 Carol
 
+-NAME RegExprMatchString
+-QUERY MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
+---- 1
+0
+
+-NAME RegExprAnchorMatchString
+-QUERY MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
+---- 2
+Ad
+Aida
+
+-NAME RegExprUTF8MatchString
+-QUERY MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
+---- 1
+Sóló cón tu párejâ
+
+-NAME RegExprEscapeSeq1
+-QUERY Return RE_MATCH("peter_n@example.com", ".*\\.com");
+---- 1
+True
+
+-NAME RegExprEscapeSeq2
+-QUERY Return RE_MATCH("Alice.*^Alice", ".*\\.\\*.*");
+---- 1
+True
+
+-NAME RegExprEscapeSeq3
+-QUERY Return RE_MATCH("peter_n@examplecom", ".*\\.com");
+---- 1
+False
+
 -NAME LowerStructuredStr
 -QUERY MATCH (o:organisation) RETURN lower(o.name)
 ---- 3
