@@ -64,11 +64,11 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
     while (result->hasNext()) {
         auto row = result->getNext();
         Napi::Object obj = Napi::Object::New(env);
-        std::string fName = row->getResultValue(0)->getValue<std::string>();
+        std::string fName = row->getValue(0)->toString();
         obj.Set("fName", Napi::String::New(env, fName));
-        obj.Set("gender", Napi::Number::New(env, row->getResultValue(1)->getValue<int64_t>()));
-        obj.Set("eyeSight", Napi::Number::New(env, row->getResultValue(2)->getValue<double>()));
-        obj.Set("isStudent", row->getResultValue(3)->getValue<bool>());
+        obj.Set("gender", Napi::Number::New(env, std::stoull(row->getValue(1)->toString())));
+        obj.Set("eyeSight", Napi::Number::New(env, std::stod(row->getValue(2)->toString())));
+        obj.Set("isStudent", row->getValue(3)->toString());
         output.Set(uint32_t(i), obj);
         ++i;
     }
