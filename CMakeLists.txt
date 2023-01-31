@@ -71,7 +71,7 @@ find_library(ARROW_DEPS_PATH arrow_bundled_dependencies HINTS ${ARROW_INSTALL}/l
 find_library(PARQUET_PATH parquet HINTS ${ARROW_INSTALL}/lib ${ARROW_INSTALL}/lib64)
 find_library(ARROW_PATH arrow HINTS ${ARROW_INSTALL}/lib ${ARROW_INSTALL}/lib64)
 
-add_library(arrow_deps STATIC IMPORTED tools/nodejs_api/src_cpp/node_database.cpp tools/nodejs_api/src_cpp/node_database.h)
+add_library(arrow_deps STATIC IMPORTED)
 set_target_properties(arrow_deps PROPERTIES IMPORTED_LOCATION ${ARROW_DEPS_PATH})
 add_library(parquet_lib STATIC IMPORTED)
 set_target_properties(parquet_lib PROPERTIES IMPORTED_LOCATION ${PARQUET_PATH})
