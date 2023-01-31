@@ -18,4 +18,4 @@ private:
 };
 
 
-#endif // KUZU_NODE_DATABASE_H
+#endif
