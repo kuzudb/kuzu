@@ -36,11 +36,9 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     }
 
     std::string databaseConfigString = info[0].ToString().Utf8Value().c_str();
-    std::cout << "Database config is " << databaseConfigString << std::endl;
     DatabaseConfig databaseConfig(databaseConfigString);
 
     std::int64_t bufferSize = info[1].As<Napi::Number>().DoubleValue();
-    std::cout  << "Database buffer size is " << bufferSize << std::endl;
     SystemConfig systemConfig(bufferSize);
 
     Database * database = new Database(databaseConfig, systemConfig);

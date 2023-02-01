@@ -41,20 +41,17 @@ NodeConnection::~NodeConnection() {
 }
 
 Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
 
-    // add parsing for queries TODO: make this smart? like check whether a user created before matching???
-    std::string query = "";
-    if (info.Length()>0) {
-        query = info[0].ToString().Utf8Value().c_str();
-        if (!query.starts_with("MATCH") && !query.starts_with("create") && !query.starts_with("COPY")) {
-            Napi::TypeError::New(env, "Wrong arguments").ThrowAsJavaScriptException();
-            return Napi::Object::New(env);
-        }
+  // add parsing for queries TODO: make this smart? like check whether a user created before matching???
+  std::string query = "";
+  if (info.Length()>0) {
+    query = info[0].ToString();
+    if (!query.starts_with("MATCH") && !query.starts_with("create") && !query.starts_with("COPY")) {
+        Napi::TypeError::New(env, "Wrong arguments").ThrowAsJavaScriptException();
+        return Napi::Object::New(env);
     }
-
-  std::cout << "Arg: " << query << std::endl;
 
   auto result = this->connection_->query(query);
 
