@@ -9,12 +9,12 @@
 namespace kuzu {
 namespace storage {
 
-StorageManager::StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager,
-    MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
+StorageManager::StorageManager(
+    catalog::Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager, WAL* wal)
     : logger{LoggerUtils::getOrCreateLogger("storage")}, catalog{catalog}, wal{wal} {
     logger->info("Initializing StorageManager from directory: " + wal->getDirectory());
-    nodesStore = make_unique<NodesStore>(catalog, bufferManager, isInMemoryMode, wal);
-    relsStore = make_unique<RelsStore>(catalog, bufferManager, memoryManager, isInMemoryMode, wal);
+    nodesStore = make_unique<NodesStore>(catalog, bufferManager, wal);
+    relsStore = make_unique<RelsStore>(catalog, bufferManager, memoryManager, wal);
     nodesStore->getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(relsStore.get());
     logger->info("Done.");
 }

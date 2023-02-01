@@ -78,12 +78,12 @@ void DirectedRelTableData::initializeColumnsForBoundNodeTable(RelTableSchema* ta
     adjColumns[boundNodeTableID] =
         make_unique<AdjColumn>(StorageUtils::getAdjColumnStructureIDAndFName(wal->getDirectory(),
                                    tableSchema->tableID, boundNodeTableID, direction),
-            bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal);
+            bufferManager, nodeIDCompressionScheme, wal);
     for (auto& property : tableSchema->properties) {
         propertyColumns[boundNodeTableID][property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
                 tableSchema->tableID, boundNodeTableID, direction, property.propertyID),
-            property.dataType, bufferManager, isInMemoryMode, wal);
+            property.dataType, bufferManager, wal);
     }
 }
 
@@ -93,13 +93,13 @@ void DirectedRelTableData::initializeListsForBoundNodeTabl(RelTableSchema* table
     adjLists[boundNodeTableID] =
         make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(wal->getDirectory(),
                                   tableSchema->tableID, boundNodeTableID, direction),
-            bufferManager, nodeIDCompressionScheme, isInMemoryMode, wal, listsUpdatesStore);
+            bufferManager, nodeIDCompressionScheme, wal, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
         propertyLists[boundNodeTableID][property.propertyID] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, boundNodeTableID, direction, property),
-            property.dataType, adjLists[boundNodeTableID]->getHeaders(), bufferManager,
-            isInMemoryMode, wal, listsUpdatesStore);
+            property.dataType, adjLists[boundNodeTableID]->getHeaders(), bufferManager, wal,
+            listsUpdatesStore);
     }
 }
 
@@ -229,14 +229,14 @@ DirectedRelTableData::getListsUpdateIteratorsForDirection(table_id_t boundNodeTa
 }
 
 RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
-    MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal)
+    MemoryManager& memoryManager, WAL* wal)
     : tableID{tableID}, wal{wal} {
     auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     listsUpdatesStore = make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
-    fwdRelTableData = make_unique<DirectedRelTableData>(
-        tableID, FWD, listsUpdatesStore.get(), isInMemoryMode, bufferManager);
-    bwdRelTableData = make_unique<DirectedRelTableData>(
-        tableID, BWD, listsUpdatesStore.get(), isInMemoryMode, bufferManager);
+    fwdRelTableData =
+        make_unique<DirectedRelTableData>(tableID, FWD, listsUpdatesStore.get(), bufferManager);
+    bwdRelTableData =
+        make_unique<DirectedRelTableData>(tableID, BWD, listsUpdatesStore.get(), bufferManager);
     initializeData(tableSchema);
 }
 
@@ -397,7 +397,7 @@ void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
             ColumnFactory::getColumn(
                 StorageUtils::getRelPropertyColumnStructureIDAndFName(
                     wal->getDirectory(), tableID, boundTableID, direction, property.propertyID),
-                property.dataType, bufferManager, isInMemoryMode, wal));
+                property.dataType, bufferManager, wal));
     }
 
     for (auto& [boundTableID, propertyListsPerBoundTable] : propertyLists) {
@@ -405,8 +405,8 @@ void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
             ListsFactory::getLists(
                 StorageUtils::getRelPropertyListsStructureIDAndFName(
                     wal->getDirectory(), tableID, boundTableID, direction, property),
-                property.dataType, adjLists[boundTableID]->getHeaders(), bufferManager,
-                isInMemoryMode, wal, listsUpdatesStore));
+                property.dataType, adjLists[boundTableID]->getHeaders(), bufferManager, wal,
+                listsUpdatesStore));
     }
 }
 

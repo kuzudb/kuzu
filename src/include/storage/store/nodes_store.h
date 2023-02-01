@@ -14,7 +14,7 @@ namespace storage {
 class NodesStore {
 
 public:
-    NodesStore(const Catalog& catalog, BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
+    NodesStore(const Catalog& catalog, BufferManager& bufferManager, WAL* wal);
 
     inline Column* getNodePropertyColumn(table_id_t tableID, uint64_t propertyIdx) const {
         return nodeTables.at(tableID)->getPropertyColumn(propertyIdx);
@@ -34,7 +34,7 @@ public:
     inline void createNodeTable(
         table_id_t tableID, BufferManager* bufferManager, WAL* wal, Catalog* catalog) {
         nodeTables[tableID] = make_unique<NodeTable>(&nodesStatisticsAndDeletedIDs, *bufferManager,
-            isInMemoryMode, wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
+            wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
     inline void removeNodeTable(table_id_t tableID) {
         nodeTables.erase(tableID);
@@ -49,8 +49,6 @@ public:
 private:
     unordered_map<table_id_t, unique_ptr<NodeTable>> nodeTables;
     NodesStatisticsAndDeletedIDs nodesStatisticsAndDeletedIDs;
-    // Used to dynamically create nodeTables during checkpointing.
-    bool isInMemoryMode;
 };
 
 } // namespace storage

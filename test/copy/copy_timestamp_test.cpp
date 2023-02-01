@@ -4,7 +4,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbTimestampTest : public InMemoryDBTest {
+class TinySnbTimestampTest : public DBTest {
     string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 

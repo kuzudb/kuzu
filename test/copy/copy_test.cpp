@@ -9,49 +9,49 @@ using namespace kuzu::testing;
 namespace kuzu {
 namespace testing {
 
-class CopyNodePropertyTest : public InMemoryDBTest {
+class CopyNodePropertyTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/");
     }
 };
 
-class CopySpecialCharTest : public InMemoryDBTest {
+class CopySpecialCharTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-special-char-test/");
     }
 };
 
-class CopyReadLists2BytesPerEdgeTest : public InMemoryDBTest {
+class CopyReadLists2BytesPerEdgeTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
     }
 };
 
-class CopyReadLists3BytesPerEdgeTest : public InMemoryDBTest {
+class CopyReadLists3BytesPerEdgeTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/3-bytes-per-edge/");
     }
 };
 
-class CopyReadLists4BytesPerEdgeTest : public InMemoryDBTest {
+class CopyReadLists4BytesPerEdgeTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
     }
 };
 
-class CopyReadLists5BytesPerEdgeTest : public InMemoryDBTest {
+class CopyReadLists5BytesPerEdgeTest : public DBTest {
 public:
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/5-bytes-per-edge/");
     }
 };
 
-class CopyLongStringTest : public InMemoryDBTest {
+class CopyLongStringTest : public DBTest {
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/long-string/");
     }

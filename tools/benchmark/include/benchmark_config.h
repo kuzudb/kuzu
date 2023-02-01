@@ -20,8 +20,6 @@ struct BenchmarkConfig {
     uint32_t numThreads = 1;
     // output benchmark log to file
     string outputPath;
-    // in-memory mode
-    bool isInMemoryMode = false;
     uint64_t bufferPoolSize = 1 << 23;
 };
 

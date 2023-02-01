@@ -13,7 +13,7 @@ class NodeTable {
 
 public:
     NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema);
+        BufferManager& bufferManager, WAL* wal, NodeTableSchema* nodeTableSchema);
 
     void initializeData(NodeTableSchema* nodeTableSchema);
 
@@ -45,7 +45,7 @@ public:
         propertyColumns.emplace(property.propertyID,
             ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
                                          wal->getDirectory(), property),
-                property.dataType, bufferManager, isInMemory, wal));
+                property.dataType, bufferManager, wal));
     }
 
     offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
@@ -61,7 +61,6 @@ private:
     unordered_map<property_id_t, unique_ptr<Column>> propertyColumns;
     unique_ptr<PrimaryKeyIndex> pkIndex;
     table_id_t tableID;
-    bool isInMemory;
     BufferManager& bufferManager;
     WAL* wal;
 };

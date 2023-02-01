@@ -5,7 +5,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbListTest : public InMemoryDBTest {
+class TinySnbListTest : public DBTest {
 
 public:
     static bool CheckEquals(const vector<string>& expected, const Value& listVal) {

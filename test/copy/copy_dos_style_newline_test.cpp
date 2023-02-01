@@ -4,7 +4,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbCopyDOSStyleNewlineTest : public InMemoryDBTest {
+class TinySnbCopyDOSStyleNewlineTest : public DBTest {
     string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-dos-style-newline/");
     }

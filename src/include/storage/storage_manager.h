@@ -17,7 +17,7 @@ class StorageManager {
 
 public:
     StorageManager(catalog::Catalog& catalog, BufferManager& bufferManager,
-        MemoryManager& memoryManager, bool isInMemoryMode, WAL* wal);
+        MemoryManager& memoryManager, WAL* wal);
 
     ~StorageManager() = default;
 

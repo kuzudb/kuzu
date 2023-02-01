@@ -7,7 +7,6 @@ class CopyFaultTest : public EmptyDBTest {
 public:
     void SetUp() override {
         EmptyDBTest::SetUp();
-        databaseConfig->inMemoryMode = true;
         createDBAndConn();
     }
 

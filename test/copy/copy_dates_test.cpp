@@ -4,7 +4,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbCopyDateTest : public InMemoryDBTest {
+class TinySnbCopyDateTest : public DBTest {
     string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
 };
 

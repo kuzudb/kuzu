@@ -46,9 +46,9 @@ class Lists : public BaseColumnOrList {
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
-              bufferManager, true /*hasNULLBytes*/, isInMemory, wal, listsUpdatesStore} {};
+              bufferManager, true /*hasNULLBytes*/, wal, listsUpdatesStore} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline shared_ptr<ListHeaders> getHeaders() const { return headers; };
     // TODO(Guodong): change the input to header.
@@ -109,9 +109,9 @@ protected:
     virtual inline NodeIDCompressionScheme* getNodeIDCompressionIfExists() { return nullptr; }
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName, const DataType& dataType,
         const size_t& elementSize, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool hasNULLBytes, bool isInMemory, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        bool hasNULLBytes, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
-              hasNULLBytes, isInMemory, wal},
+              hasNULLBytes, wal},
           storageStructureIDAndFName{storageStructureIDAndFName},
           metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{std::move(headers)},
           listsUpdatesStore{listsUpdatesStore} {};
@@ -137,10 +137,10 @@ class PropertyListsWithOverflow : public Lists {
 public:
     PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
-        bool isInMemory, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType, Types::getDataTypeSize(dataType),
-              std::move(headers), bufferManager, isInMemory, wal, listsUpdatesStore},
-          diskOverflowFile{storageStructureIDAndFName, bufferManager, isInMemory, wal} {}
+              std::move(headers), bufferManager, wal, listsUpdatesStore},
+          diskOverflowFile{storageStructureIDAndFName, bufferManager, wal} {}
 
 private:
     inline DiskOverflowFile* getDiskOverflowFileIfExists() override { return &diskOverflowFile; }
@@ -153,10 +153,10 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const shared_ptr<ListHeaders>& headers, BufferManager& bufferManager, bool isInMemory,
-        WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        const shared_ptr<ListHeaders>& headers, BufferManager& bufferManager, WAL* wal,
+        ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, DataType{STRING}, headers,
-              bufferManager, isInMemory, wal, listsUpdatesStore} {};
+              bufferManager, wal, listsUpdatesStore} {};
 
 private:
     void readFromLargeList(
@@ -170,10 +170,9 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const DataType& dataType, const shared_ptr<ListHeaders>& headers,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore)
+        BufferManager& bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
-              isInMemory, wal, listsUpdatesStore} {};
+              wal, listsUpdatesStore} {};
 
 private:
     void readFromLargeList(
@@ -186,12 +185,12 @@ class AdjLists : public Lists {
 
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme,
-        bool isInMemory, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        BufferManager& bufferManager, NodeIDCompressionScheme nodeIDCompressionScheme, WAL* wal,
+        ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, DataType(INTERNAL_ID),
               nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(),
               make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
-              bufferManager, false /* hasNullBytes */, isInMemory, wal, listsUpdatesStore},
+              bufferManager, false /* hasNullBytes */, wal, listsUpdatesStore},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     inline bool mayContainNulls() const override { return false; }
@@ -234,10 +233,10 @@ class RelIDList : public Lists {
 
 public:
     RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory, WAL* wal,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, DataType{INTERNAL_ID}, sizeof(offset_t),
-              std::move(headers), bufferManager, isInMemory, wal, listsUpdatesStore} {}
+              std::move(headers), bufferManager, wal, listsUpdatesStore} {}
 
     void setDeletedRelsIfNecessary(Transaction* transaction, ListHandle& listHandle,
         const shared_ptr<ValueVector>& relIDVector) override;
@@ -266,8 +265,7 @@ class ListsFactory {
 public:
     static unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
         const DataType& dataType, const shared_ptr<ListHeaders>& adjListsHeaders,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore) {
+        BufferManager& bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore) {
         assert(listsUpdatesStore != nullptr);
         switch (dataType.typeID) {
         case INT64:
@@ -277,17 +275,17 @@ public:
         case TIMESTAMP:
         case INTERVAL:
             return make_unique<Lists>(structureIDAndFName, dataType,
-                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, isInMemory, wal,
+                Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, wal,
                 listsUpdatesStore);
         case STRING:
-            return make_unique<StringPropertyLists>(structureIDAndFName, adjListsHeaders,
-                bufferManager, isInMemory, wal, listsUpdatesStore);
+            return make_unique<StringPropertyLists>(
+                structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
         case LIST:
             return make_unique<ListPropertyLists>(structureIDAndFName, dataType, adjListsHeaders,
-                bufferManager, isInMemory, wal, listsUpdatesStore);
+                bufferManager, wal, listsUpdatesStore);
         case INTERNAL_ID:
-            return make_unique<RelIDList>(structureIDAndFName, adjListsHeaders, bufferManager,
-                isInMemory, wal, listsUpdatesStore);
+            return make_unique<RelIDList>(
+                structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
         default:
             throw StorageException("Invalid type for property list creation.");
         }

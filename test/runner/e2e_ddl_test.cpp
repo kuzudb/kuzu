@@ -10,7 +10,6 @@ class PrimaryKeyTest : public EmptyDBTest {
 public:
     void SetUp() override {
         EmptyDBTest::SetUp();
-        databaseConfig->inMemoryMode = true;
         createDBAndConn();
     }
 };

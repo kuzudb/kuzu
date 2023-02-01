@@ -30,8 +30,6 @@ int main(int argc, char** argv) {
             config->numThreads = stoul(getArgumentValue(arg));
         } else if (arg.starts_with("--out")) { // save benchmark result to file
             config->outputPath = getArgumentValue(arg);
-        } else if (arg.starts_with("--in-memory")) {
-            config->isInMemoryMode = true;
         } else if (arg.starts_with("--profile")) {
             config->enableProfile = true;
         } else if (arg.starts_with("--bm-size")) {
@@ -49,7 +47,7 @@ int main(int argc, char** argv) {
         printf("Missing --benchmark input");
         exit(1);
     }
-    auto runner = BenchmarkRunner(datasetPath, move(config));
+    auto runner = BenchmarkRunner(datasetPath, std::move(config));
     try {
         runner.registerBenchmarks(benchmarkPath);
         runner.runAllBenchmarks();
