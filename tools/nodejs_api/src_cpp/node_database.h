@@ -17,5 +17,4 @@ private:
     kuzu::main::Database * database_;
 };
 
-
 #endif
