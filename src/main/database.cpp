@@ -8,6 +8,19 @@
 namespace kuzu {
 namespace main {
 
+SystemConfig::SystemConfig(uint64_t bufferPoolSize) {
+    if (bufferPoolSize == -1u) {
+        auto systemMemSize =
+            (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
+        bufferPoolSize = (uint64_t)(StorageConfig::DEFAULT_BUFFER_POOL_RATIO *
+                                    (double_t)min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+    }
+    defaultPageBufferPoolSize =
+        (uint64_t)((double_t)bufferPoolSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO);
+    largePageBufferPoolSize =
+        (uint64_t)((double_t)bufferPoolSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+}
+
 Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig)
     : databaseConfig{databaseConfig},
       systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateLogger("database")} {

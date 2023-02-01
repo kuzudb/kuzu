@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
         parser, "", "Database path.", {'i', "inputDir"}, args::Options::Required);
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
-        1024);
+        -1u);
     try {
         parser.ParseCLI(argc, argv);
     } catch (exception& e) {
@@ -22,10 +22,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     auto databasePath = args::get(inputDirFlag);
-    uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
     cout << "Opened the database at path: " << databasePath << endl;
     cout << "Enter \":help\" for usage hints." << endl;
-    SystemConfig systemConfig(bpSizeInMB << 20);
+    uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
+    uint64_t bpSizeInBytes = -1u;
+    if (bpSizeInMB != -1u) {
+        bpSizeInBytes = bpSizeInMB << 20;
+    }
+    SystemConfig systemConfig(bpSizeInBytes);
     DatabaseConfig databaseConfig(databasePath);
     try {
         auto shell = EmbeddedShell(databaseConfig, systemConfig);

@@ -20,11 +20,7 @@ namespace kuzu {
 namespace main {
 
 struct SystemConfig {
-    explicit SystemConfig(uint64_t bufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE)
-        : defaultPageBufferPoolSize{(uint64_t)(
-              bufferPoolSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO)},
-          largePageBufferPoolSize{
-              (uint64_t)(bufferPoolSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO)} {}
+    explicit SystemConfig(uint64_t bufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
 
     uint64_t defaultPageBufferPoolSize;
     uint64_t largePageBufferPoolSize;

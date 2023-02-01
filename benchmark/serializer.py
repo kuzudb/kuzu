@@ -28,14 +28,15 @@ def serialize(dataset_name, dataset_path, serialized_graph_path):
             dataset_version = f.readline().strip()
             if dataset_version == bin_version:
                 logging.info(
-                    'Dataset %s has version of %s, which matches the database version, skip serializing', dataset_name, bin_version)
+                    'Dataset %s has version of %s, which matches the database version, skip serializing', dataset_name,
+                    bin_version)
                 return
             else:
                 logging.info(
-                    'Dataset %s has version of %s, which does not match the database version %s, serializing dataset...', dataset_name, dataset_version, bin_version)
-
-    logging.info(
-        'Dataset %s does not exist or does not have a version file, serializing dataset...', dataset_name)
+                    'Dataset %s has version of %s, which does not match the database version %s, serializing dataset...',
+                    dataset_name, dataset_version, bin_version)
+    else:
+        logging.info('Dataset %s does not exist or does not have a version file, serializing dataset...', dataset_name)
 
     shutil.rmtree(serialized_graph_path, ignore_errors=True)
     os.mkdir(serialized_graph_path)
@@ -50,7 +51,7 @@ def serialize(dataset_name, dataset_path, serialized_graph_path):
         try:
             # Run kuzu shell one query at a time. This ensures a new process is
             # created for each query to avoid memory leaks.
-            subprocess.run([kuzu_exec_path, '-i', serialized_graph_path, '-d', str(100)],
+            subprocess.run([kuzu_exec_path, '-i', serialized_graph_path],
                            input=(s + ";" + "\n").encode("ascii"), check=True)
         except subprocess.CalledProcessError as e:
             logging.error('Error executing query: %s', s)

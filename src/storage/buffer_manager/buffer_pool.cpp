@@ -1,17 +1,20 @@
+#include "storage/buffer_manager/buffer_pool.h"
+
+#include <sys/mman.h>
+
 #include "common/configs.h"
 #include "common/exception.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h"
-#include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-Frame::Frame(uint64_t pageSize) : frameLock{ATOMIC_FLAG_INIT} {
+Frame::Frame(page_offset_t pageSize, std::uint8_t* buffer)
+    : frameLock{ATOMIC_FLAG_INIT}, pageSize{pageSize}, buffer{buffer} {
     resetFrameWithoutLock();
-    buffer = make_unique<uint8_t[]>(pageSize);
 }
 
 Frame::~Frame() noexcept(false) {
@@ -39,17 +42,26 @@ bool Frame::acquireFrameLock(bool block) {
     return !frameLock.test_and_set();
 }
 
+void Frame::releaseBuffer() {
+    int error = madvise(buffer, pageSize, MADV_DONTNEED);
+    if (error) {
+        throw BufferManagerException("Releasing frame buffer failed with error code " +
+                                     to_string(error) + ": " + string(std::strerror(errno)));
+    }
+}
+
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
     : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
+    auto mmapRegion =
+        (u_int8_t*)mmap(NULL, maxSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>(pageSize));
+        auto buffer = mmapRegion + (i * pageSize);
+        bufferCache.emplace_back(make_unique<Frame>(pageSize, buffer));
     }
-    logger->info("Initializing Buffer Pool.");
-    logger->info("BufferPool Size {}B, #{}byte-pages {}.", maxSize, pageSize,
-        ceil((double)maxSize / (double)pageSize));
-    logger->info("Done Initializing Buffer Pool.");
+    logger->info("Initialize buffer pool with the max size {}B, #{}byte-pages {}.", maxSize,
+        pageSize, numFrames);
 }
 
 void BufferPool::resize(uint64_t newSize) {
@@ -58,13 +70,15 @@ void BufferPool::resize(uint64_t newSize) {
     }
     auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
     assert(newNumFrames < UINT32_MAX);
+    auto mmapRegion =
+        (u_int8_t*)mmap(NULL, newSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>(pageSize));
+        auto buffer = mmapRegion + (i * pageSize);
+        bufferCache.emplace_back(make_unique<Frame>(pageSize, buffer));
     }
     numFrames = newNumFrames;
-    logger->info("Resizing buffer pool.");
-    logger->info("New buffer pool size {}B, #{}byte-pages {}.", newSize, pageSize, newNumFrames);
-    logger->info("Done resizing buffer pool.");
+    logger->info(
+        "Resize buffer pool's max size to {}B, #{}byte-pages {}.", newSize, pageSize, newNumFrames);
 }
 
 uint8_t* BufferPool::pin(FileHandle& fileHandle, page_idx_t pageIdx) {
@@ -91,6 +105,7 @@ void BufferPool::removePageFromFrame(FileHandle& fileHandle, page_idx_t pageIdx,
             flushIfDirty(frame);
         }
         clearFrameAndUnswizzleWithoutLock(frame, fileHandle, pageIdx);
+        frame->releaseBuffer();
         frame->releaseFrameLock();
     }
     fileHandle.releasePageLock(pageIdx);
@@ -114,7 +129,7 @@ void BufferPool::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
     FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
-        memcpy(bufferCache[frameIdx]->buffer.get(), newPage, DEFAULT_PAGE_SIZE);
+        memcpy(bufferCache[frameIdx]->buffer, newPage, DEFAULT_PAGE_SIZE);
     }
 }
 
@@ -132,7 +147,7 @@ uint8_t* BufferPool::pinWithoutAcquiringPageLock(
         auto& frame = bufferCache[frameIdx];
         frame->pinCount.fetch_add(1);
         frame->recentlyAccessed = true;
-        //        bmMetrics.numCacheHit += 1;
+        bmMetrics.numCacheHit += 1;
     } else {
         frameIdx = claimAFrame(fileHandle, pageIdx, doNotReadFromFile);
         fileHandle.swizzle(pageIdx, frameIdx);
@@ -141,7 +156,7 @@ uint8_t* BufferPool::pinWithoutAcquiringPageLock(
         }
     }
     bmMetrics.numPins += 1;
-    return bufferCache[fileHandle.getFrameIdx(pageIdx)]->buffer.get();
+    return bufferCache[fileHandle.getFrameIdx(pageIdx)]->buffer;
 }
 
 void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx) {
@@ -165,10 +180,8 @@ page_idx_t BufferPool::claimAFrame(
     for (auto i = 0u; i < 2 * numFrames; ++i) {
         auto frameIdx = (startFrame + i) % numFrames;
         auto pinCount = bufferCache[frameIdx]->pinCount.load();
-        if (-1u == pinCount && fillEmptyFrame(frameIdx, fileHandle, pageIdx, doNotReadFromFile)) {
-            moveClockHand(localClockHand + i + 1);
-            return frameIdx;
-        } else if (0u == pinCount && tryEvict(frameIdx, fileHandle, pageIdx, doNotReadFromFile)) {
+        if ((-1u == pinCount && fillEmptyFrame(frameIdx, fileHandle, pageIdx, doNotReadFromFile)) ||
+            (0u == pinCount && tryEvict(frameIdx, fileHandle, pageIdx, doNotReadFromFile))) {
             moveClockHand(localClockHand + i + 1);
             return frameIdx;
         }
@@ -234,7 +247,7 @@ void BufferPool::flushIfDirty(const unique_ptr<Frame>& frame) {
     auto pageIdxInFrame = frame->pageIdx.load();
     if (frame->isDirty) {
         bmMetrics.numDirtyPageWriteIO += 1;
-        fileHandleInFrame->writePage(frame->buffer.get(), pageIdxInFrame);
+        fileHandleInFrame->writePage(frame->buffer, pageIdxInFrame);
     }
 }
 
@@ -252,7 +265,7 @@ void BufferPool::readNewPageIntoFrame(
     frame.pageIdx.store(pageIdx);
     frame.fileHandlePtr.store(reinterpret_cast<uint64_t>(&fileHandle));
     if (!doNotReadFromFile) {
-        fileHandle.readPage(frame.buffer.get(), pageIdx);
+        fileHandle.readPage(frame.buffer, pageIdx);
     }
 }
 
