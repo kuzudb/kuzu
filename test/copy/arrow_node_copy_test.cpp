@@ -4,7 +4,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class arrowNodeCopyTest : public DBTest {
+class ArrowNodeCopyTest : public DBTest {
     void SetUp() override {
         BaseGraphTest::SetUp();
         createDBAndConn();
@@ -15,17 +15,17 @@ class arrowNodeCopyTest : public DBTest {
     }
 };
 
-TEST_F(arrowNodeCopyTest, arrowNodeCopyCSVTest) {
+TEST_F(ArrowNodeCopyTest, ArrowNodeCopyCSVTest) {
     initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/csv/"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
 }
 
-TEST_F(arrowNodeCopyTest, arrowNodeCopyArrowTest) {
+TEST_F(ArrowNodeCopyTest, ArrowNodeCopyArrowTest) {
     initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/arrow/"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
 }
 
-TEST_F(arrowNodeCopyTest, arrowNodeCopyParquetTest) {
+TEST_F(ArrowNodeCopyTest, ArrowNodeCopyParquetTest) {
     initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/parquet/"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
 }

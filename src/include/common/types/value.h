@@ -131,8 +131,10 @@ private:
 
 class RelVal {
 public:
-    RelVal(unique_ptr<Value> srcNodeIDVal, unique_ptr<Value> dstNodeIDVal)
-        : srcNodeIDVal{std::move(srcNodeIDVal)}, dstNodeIDVal{std::move(dstNodeIDVal)} {}
+    RelVal(
+        unique_ptr<Value> srcNodeIDVal, unique_ptr<Value> dstNodeIDVal, unique_ptr<Value> labelVal)
+        : srcNodeIDVal{std::move(srcNodeIDVal)},
+          dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
     RelVal(const RelVal& other);
 
     inline void addProperty(const std::string& key, unique_ptr<Value> value) {
@@ -146,14 +148,16 @@ public:
     inline Value* getSrcNodeIDVal() { return srcNodeIDVal.get(); }
     inline Value* getDstNodeIDVal() { return dstNodeIDVal.get(); }
 
-    inline unique_ptr<RelVal> copy() const { return make_unique<RelVal>(*this); }
-
     nodeID_t getSrcNodeID() const;
     nodeID_t getDstNodeID() const;
+    string getLabelName();
 
     string toString() const;
 
+    inline unique_ptr<RelVal> copy() const { return make_unique<RelVal>(*this); }
+
 private:
+    unique_ptr<Value> labelVal;
     unique_ptr<Value> srcNodeIDVal;
     unique_ptr<Value> dstNodeIDVal;
     vector<pair<std::string, unique_ptr<Value>>> properties;

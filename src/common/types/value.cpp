@@ -274,8 +274,8 @@ string NodeVal::getLabelName() const {
 
 string NodeVal::toString() const {
     std::string result = "(";
-    result += idVal->toString();
-    result += ":" + labelVal->toString() + " ";
+    result += "label:" + labelVal->toString() + ", ";
+    result += idVal->toString() + ", ";
     result += propertiesToString(properties);
     result += ")";
     return result;
@@ -284,6 +284,7 @@ string NodeVal::toString() const {
 RelVal::RelVal(const RelVal& other) {
     srcNodeIDVal = other.srcNodeIDVal->copy();
     dstNodeIDVal = other.dstNodeIDVal->copy();
+    labelVal = other.labelVal->copy();
     for (auto& [key, val] : other.properties) {
         addProperty(key, val->copy());
     }
@@ -297,10 +298,14 @@ nodeID_t RelVal::getDstNodeID() const {
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
+string RelVal::getLabelName() {
+    return labelVal->getValue<string>();
+}
+
 string RelVal::toString() const {
     std::string result;
     result += "(" + srcNodeIDVal->toString() + ")";
-    result += "-[" + propertiesToString(properties) + "]->";
+    result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";
     result += "(" + dstNodeIDVal->toString() + ")";
     return result;
 }
