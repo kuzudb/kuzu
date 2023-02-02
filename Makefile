@@ -1,4 +1,4 @@
-.PHONY: release debug test benchmark all debug-all arrow clean clean-external clean-all
+.PHONY: release debug test benchmark all alldebug arrow clean clean-external clean-all
 
 GENERATOR=
 FORCE_COLOR=

@@ -39,10 +39,15 @@ class QueryResult:
 
     def get_as_df(self):
         self.check_for_query_result_close()
+        import numpy
+        import pandas
+
         return self._query_result.getAsDF()
 
     def get_as_arrow(self, chunk_size):
         self.check_for_query_result_close()
+        import pyarrow
+
         return self._query_result.getAsArrow(chunk_size)
 
     def get_column_data_types(self):

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "arrow_array.h"
+#include "common/arrow/arrow.h"
 #include "main/kuzu.h"
 #include "pybind_include.h"
 
@@ -42,8 +43,8 @@ private:
 
     static py::dict convertNodeIdToPyDict(const nodeID_t& nodeId);
 
-    bool getNextArrowChunk(py::list& batches, std::int64_t chunk_size);
-    py::object getArrowChunks(std::int64_t chunkSize);
+    bool getNextArrowChunk(const ArrowSchema& schema, py::list& batches, std::int64_t chunk_size);
+    py::object getArrowChunks(const ArrowSchema& schema, std::int64_t chunkSize);
 
 private:
     unique_ptr<QueryResult> queryResult;
