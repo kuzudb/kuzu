@@ -60,18 +60,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case PhysicalOperatorType::RENAME_PROPERTY: {
-        return "RENAME_PROPERTY";
-    }
-    case PhysicalOperatorType::RENAME_TABLE: {
-        return "RENAME_TABLE";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
-        return "SCAN_REL_TABLE_COLUMNS";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
-        return "SCAN_REL_TABLE_LISTS";
-    }
     case PhysicalOperatorType::GENERIC_SCAN_REL_TABLES: {
         return "GENERIC_SCAN_REL_TABLES";
     }
@@ -99,8 +87,11 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }
-    case PhysicalOperatorType::SCAN_REL_PROPERTY: {
-        return "SCAN_REL_PROPERTY";
+    case PhysicalOperatorType::RENAME_PROPERTY: {
+        return "RENAME_PROPERTY";
+    }
+    case PhysicalOperatorType::RENAME_TABLE: {
+        return "RENAME_TABLE";
     }
     case PhysicalOperatorType::RESULT_COLLECTOR: {
         return "RESULT_COLLECTOR";
@@ -110,6 +101,15 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SCAN_NODE_PROPERTY: {
         return "SCAN_NODE_PROPERTY";
+    }
+    case PhysicalOperatorType::SCAN_REL_PROPERTY: {
+        return "SCAN_REL_PROPERTY";
+    }
+    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
+        return "SCAN_REL_TABLE_COLUMNS";
+    }
+    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
+        return "SCAN_REL_TABLE_LISTS";
     }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";

@@ -5,8 +5,6 @@
 namespace kuzu {
 namespace planner {
 
-const uint64_t MAX_NUM_PLANS_PER_SUBGRAPH = 100;
-
 void SubPlansTable::resize(uint32_t newSize) {
     auto prevSize = subPlans.size();
     subPlans.resize(newSize);
@@ -37,13 +35,17 @@ vector<SubqueryGraph> SubPlansTable::getSubqueryGraphs(uint32_t level) {
 void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan) {
     assert(subPlans[subqueryGraph.getTotalNumVariables()]);
     auto subgraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
+    if (subgraphPlansMap->size() > MAX_NUM_SUBGRAPHS_PER_LEVEL) {
+        return;
+    }
     if (!subgraphPlansMap->contains(subqueryGraph)) {
         subgraphPlansMap->emplace(subqueryGraph, vector<unique_ptr<LogicalPlan>>());
     }
-    subgraphPlansMap->at(subqueryGraph).push_back(move(plan));
+    subgraphPlansMap->at(subqueryGraph).push_back(std::move(plan));
 }
 
 void SubPlansTable::finalizeLevel(uint32_t level) {
+    // cap number of plans per subgraph
     for (auto& [subgraph, plans] : *subPlans[level]) {
         if (plans.size() < MAX_NUM_PLANS_PER_SUBGRAPH) {
             continue;

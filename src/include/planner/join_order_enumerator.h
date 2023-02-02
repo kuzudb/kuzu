@@ -85,6 +85,8 @@ private:
         expression_vector& predicates, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
+    void planLevelExactly(uint32_t level);
+    void planLevelApproximately(uint32_t level);
 
     void planWCOJoin(uint32_t leftLevel, uint32_t rightLevel);
     void planWCOJoin(const SubqueryGraph& subgraph, vector<shared_ptr<RelExpression>> rels,
