@@ -35,7 +35,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
         Napi::TypeError::New(env, "Database buffer manager size must be an int_64").ThrowAsJavaScriptException();
     }
 
-    std::string databaseConfigString = info[0].ToString().Utf8Value().c_str();
+    std::string databaseConfigString = info[0].ToString();
     DatabaseConfig databaseConfig(databaseConfigString);
 
     std::int64_t bufferSize = info[1].As<Napi::Number>().DoubleValue();
