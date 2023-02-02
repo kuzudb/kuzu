@@ -2,6 +2,7 @@
 
 #include "main/database.h"
 #include "main/plan_printer.h"
+#include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "planner/planner.h"
 #include "processor/mapper/plan_mapper.h"
@@ -70,13 +71,18 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         auto& nodeStatistics =
             database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
         auto& relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        vector<unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
-            preparedStatement->logicalPlans = Planner::getAllPlans(
+            plans = Planner::getAllPlans(
                 *database->catalog, nodeStatistics, relStatistics, *boundStatement);
         } else {
-            preparedStatement->logicalPlans.push_back(Planner::getBestPlan(
+            plans.push_back(Planner::getBestPlan(
                 *database->catalog, nodeStatistics, relStatistics, *boundStatement));
         }
+        for (auto& plan : plans) {
+            optimizer::Optimizer::optimize(plan.get());
+        }
+        preparedStatement->logicalPlans = std::move(plans);
     } catch (exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();

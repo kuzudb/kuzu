@@ -69,13 +69,13 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
 }
 
 unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const vector<Property>& properties) {
+    const Expression& nodeOrRel, const vector<Property>& properties, bool isPrimaryKey) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
     validatePropertiesWithSameDataType(
         properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
     return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,
-        populatePropertyIDPerTable(properties));
+        populatePropertyIDPerTable(properties), isPrimaryKey);
 }
 
 } // namespace binder

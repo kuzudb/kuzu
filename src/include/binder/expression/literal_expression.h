@@ -8,12 +8,6 @@ namespace binder {
 
 class LiteralExpression : public Expression {
 public:
-    LiteralExpression(unique_ptr<Value> value)
-        : Expression(LITERAL, value->getDataType(), "_" + value->toString()), value{std::move(
-                                                                                  value)} {
-        assert(!isNull());
-    }
-
     LiteralExpression(unique_ptr<Value> value, const string& uniqueName)
         : Expression{LITERAL, value->getDataType(), uniqueName}, value{std::move(value)} {}
 

@@ -9,17 +9,21 @@ namespace binder {
 class PropertyExpression : public Expression {
 public:
     PropertyExpression(DataType dataType, const string& propertyName, const Expression& nodeOrRel,
-        unordered_map<table_id_t, property_id_t> propertyIDPerTable)
+        unordered_map<table_id_t, property_id_t> propertyIDPerTable, bool isPrimaryKey_)
         : Expression{PROPERTY, std::move(dataType), nodeOrRel.getUniqueName() + "." + propertyName},
-          propertyName{propertyName}, variableName{nodeOrRel.getUniqueName()},
-          propertyIDPerTable{std::move(propertyIDPerTable)} {
+          isPrimaryKey_{isPrimaryKey_}, propertyName{propertyName},
+          variableName{nodeOrRel.getUniqueName()}, propertyIDPerTable{
+                                                       std::move(propertyIDPerTable)} {
         rawName = nodeOrRel.getRawName() + "." + propertyName;
     }
     PropertyExpression(const PropertyExpression& other)
-        : Expression{PROPERTY, other.dataType, other.uniqueName}, propertyName{other.propertyName},
+        : Expression{PROPERTY, other.dataType, other.uniqueName},
+          isPrimaryKey_{other.isPrimaryKey_}, propertyName{other.propertyName},
           variableName{other.variableName}, propertyIDPerTable{other.propertyIDPerTable} {
         rawName = other.rawName;
     }
+
+    inline bool isPrimaryKey() const { return isPrimaryKey_; }
 
     inline string getPropertyName() const { return propertyName; }
 
@@ -40,6 +44,7 @@ public:
     }
 
 private:
+    bool isPrimaryKey_ = false;
     string propertyName;
     // reference to a node/rel table
     string variableName;

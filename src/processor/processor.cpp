@@ -60,10 +60,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     }
     switch (op->getOperatorType()) {
         // Ordered table should be scanned in single-thread mode.
-    case PhysicalOperatorType::ORDER_BY_MERGE:
-        // Index lookup should happen exactly once. We don't need to lock if index look is executed
-        // in single-thread mode.
-    case PhysicalOperatorType::INDEX_SCAN: {
+    case PhysicalOperatorType::ORDER_BY_MERGE: {
         parentTask->setSingleThreadedTask();
     } break;
         // DDL should be executed exactly once.

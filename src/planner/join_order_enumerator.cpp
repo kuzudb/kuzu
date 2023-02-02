@@ -139,24 +139,22 @@ void JoinOrderEnumerator::planTableScan() {
     }
 }
 
-static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expression& right,
-    const NodeExpression& node, uint32_t primaryKeyID) {
+static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expression& right) {
     if (left.expressionType != PROPERTY || right.expressionType != LITERAL) {
         return false;
     }
     auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.getPropertyID(node.getSingleTableID()) == primaryKeyID;
+    return propertyExpression.isPrimaryKey();
 }
 
-static bool isIndexScanExpression(
-    Expression& expression, const NodeExpression& node, uint32_t primaryKeyID) {
+static bool isIndexScanExpression(Expression& expression) {
     if (expression.expressionType != EQUALS) { // check equality comparison
         return false;
     }
     auto left = expression.getChild(0);
     auto right = expression.getChild(1);
-    if (isPrimaryPropertyAndLiteralPair(*left, *right, node, primaryKeyID) ||
-        isPrimaryPropertyAndLiteralPair(*right, *left, node, primaryKeyID)) {
+    if (isPrimaryPropertyAndLiteralPair(*left, *right) ||
+        isPrimaryPropertyAndLiteralPair(*right, *left)) {
         return true;
     }
     return false;
@@ -170,14 +168,11 @@ static shared_ptr<Expression> extractIndexExpression(Expression& expression) {
 }
 
 static pair<shared_ptr<Expression>, expression_vector> splitIndexAndPredicates(
-    const CatalogContent& catalogContent, NodeExpression& node,
     const expression_vector& predicates) {
-    auto nodeTableSchema = catalogContent.getNodeTableSchema(node.getSingleTableID());
-    auto primaryKeyID = nodeTableSchema->getPrimaryKey().propertyID;
     shared_ptr<Expression> indexExpression;
     expression_vector predicatesToApply;
     for (auto& predicate : predicates) {
-        if (isIndexScanExpression(*predicate, node, primaryKeyID)) {
+        if (isIndexScanExpression(*predicate)) {
             indexExpression = extractIndexExpression(*predicate);
         } else {
             predicatesToApply.push_back(predicate);
@@ -201,8 +196,7 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
         shared_ptr<Expression> indexExpression = nullptr;
         expression_vector predicatesToApply = predicates;
         if (!node->isMultiLabeled()) { // check for index scan
-            auto [_indexExpression, _predicatesToApply] =
-                splitIndexAndPredicates(*catalog.getReadOnlyVersion(), *node, predicates);
+            auto [_indexExpression, _predicatesToApply] = splitIndexAndPredicates(predicates);
             indexExpression = _indexExpression;
             predicatesToApply = _predicatesToApply;
         }
@@ -519,7 +513,9 @@ void JoinOrderEnumerator::appendScanNode(shared_ptr<NodeExpression>& node, Logic
 void JoinOrderEnumerator::appendIndexScanNode(
     shared_ptr<NodeExpression>& node, shared_ptr<Expression> indexExpression, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto scan = make_shared<LogicalIndexScanNode>(node, std::move(indexExpression));
+    QueryPlanner::appendExpressionsScan(expression_vector{indexExpression}, plan);
+    auto scan =
+        make_shared<LogicalIndexScanNode>(node, std::move(indexExpression), plan.getLastOperator());
     scan->computeSchema();
     // update cardinality
     auto group = scan->getSchema()->getGroup(node->getInternalIDPropertyName());
