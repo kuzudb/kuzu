@@ -340,6 +340,14 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
+void RelTable::batchInitEmptyRelsForNewNodes(
+    const RelTableSchema* relTableSchema, table_id_t tableID, uint64_t numNodesInTable) {
+    fwdRelTableData->batchInitEmptyRelsForNewNodes(
+        relTableSchema, tableID, numNodesInTable, wal->getDirectory());
+    bwdRelTableData->batchInitEmptyRelsForNewNodes(
+        relTableSchema, tableID, numNodesInTable, wal->getDirectory());
+}
+
 void RelTable::addProperty(Property property) {
     fwdRelTableData->addProperty(property, wal);
     bwdRelTableData->addProperty(property, wal);
@@ -407,6 +415,14 @@ void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
                     wal->getDirectory(), tableID, boundTableID, direction, property),
                 property.dataType, adjLists[boundTableID]->getHeaders(), bufferManager, wal,
                 listsUpdatesStore));
+    }
+}
+
+void DirectedRelTableData::batchInitEmptyRelsForNewNodes(const RelTableSchema* relTableSchema,
+    table_id_t boundTableID, uint64_t numNodesInTable, const string& directory) {
+    if (adjLists.contains(boundTableID)) {
+        StorageUtils::initializeListsHeaders(
+            relTableSchema, boundTableID, numNodesInTable, directory, direction);
     }
 }
 

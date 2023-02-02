@@ -410,5 +410,18 @@ void Catalog::renameProperty(table_id_t tableID, property_id_t propertyID, strin
     catalogContentForWriteTrx->getTableSchema(tableID)->renameProperty(propertyID, newName);
 }
 
+unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTable(
+    table_id_t boundTableID) {
+    unordered_set<RelTableSchema*> relTableSchemas;
+    auto nodeTableSchema = getReadOnlyVersion()->getNodeTableSchema(boundTableID);
+    for (auto& fwdRelTableID : nodeTableSchema->fwdRelTableIDSet) {
+        relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(fwdRelTableID));
+    }
+    for (auto& bwdRelTableID : nodeTableSchema->bwdRelTableIDSet) {
+        relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(bwdRelTableID));
+    }
+    return relTableSchemas;
+}
+
 } // namespace catalog
 } // namespace kuzu

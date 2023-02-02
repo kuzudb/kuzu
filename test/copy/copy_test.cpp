@@ -57,6 +57,16 @@ class CopyLongStringTest : public DBTest {
     }
 };
 
+class CopyNodeInitRelTablesTest : public BaseGraphTest {
+public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        createDBAndConn();
+    }
+
+    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+};
+
 struct KnowsTablePTablePKnowsLists {
     table_id_t knowsRelTableID;
     table_id_t pNodeTableID;
@@ -272,4 +282,26 @@ TEST_F(CopyLongStringTest, LongStringError) {
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(1, col->readValue(0).val.int64Val);
     EXPECT_EQ(2, col->readValue(1).val.int64Val);
+}
+
+TEST_F(CopyNodeInitRelTablesTest, CopyNodeAndQueryEmptyRelTable) {
+    // The purpose of this test is to make sure that we correctly initialize the rel table for the
+    // newly added nodes (E.g. we need to set the column entry to NULL and create listHeader for
+    // each newly added node).
+    ASSERT_TRUE(
+        conn->query(
+                "create node table person (ID INt64, fName StRING, gender INT64, isStudent "
+                "BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, "
+                "registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames "
+                "STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));")
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table knows (FROM person TO person, date DATE, meetTime "
+                            "TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);")
+                    ->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table meets (FROM person TO person, MANY_ONE);"));
+    ASSERT_TRUE(
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true);"))
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("MATCH (:person)-[:knows]->(:person) return count(*)")->isSuccess());
 }

@@ -191,5 +191,14 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
     return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
 }
 
+void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema, table_id_t tableID,
+    uint64_t numNodesInTable, const string& directory, RelDirection relDirection) {
+    auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
+        StorageUtils::getAdjListsFName(
+            directory, relTableSchema->tableID, tableID, relDirection, DBFileType::WAL_VERSION),
+        numNodesInTable);
+    listHeadersBuilder->saveToDisk();
+}
+
 } // namespace storage
 } // namespace kuzu

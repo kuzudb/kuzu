@@ -204,6 +204,8 @@ public:
 
     void renameProperty(table_id_t tableID, property_id_t propertyID, string newName);
 
+    unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(table_id_t boundTableID);
+
 protected:
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
     unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;

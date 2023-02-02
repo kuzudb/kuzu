@@ -75,7 +75,9 @@ public:
 
     inline void clear() {
         ftOfInsertedRels->clear();
-        listsUpdates.clear();
+        for (auto& [_, propertyUpdates] : listsUpdates) {
+            propertyUpdates->clear();
+        }
         initListsUpdatesPerTablePerDirection();
     }
     inline map<table_id_t, ListsUpdatesPerChunk>& getListsUpdatesPerBoundNodeTableOfDirection(

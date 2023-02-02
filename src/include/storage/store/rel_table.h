@@ -133,6 +133,8 @@ public:
         table_id_t boundNodeTableID);
     void removeProperty(property_id_t propertyID);
     void addProperty(Property& property, WAL* wal);
+    void batchInitEmptyRelsForNewNodes(const RelTableSchema* relTableSchema,
+        table_id_t boundTableID, uint64_t numNodesInTable, const string& directory);
 
 private:
     void scanColumns(Transaction* transaction, RelTableScanState& scanState,
@@ -217,6 +219,8 @@ public:
         const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector,
         const shared_ptr<ValueVector>& propertyVector, uint32_t propertyID);
     void initEmptyRelsForNewNode(nodeID_t& nodeID);
+    void batchInitEmptyRelsForNewNodes(
+        const RelTableSchema* relTableSchema, table_id_t boundTableID, uint64_t numNodesInTable);
     void addProperty(Property property);
 
 private:

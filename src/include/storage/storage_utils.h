@@ -280,6 +280,10 @@ public:
         const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
         StorageManager& storageManager);
 
+    static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
+        table_id_t tableID, uint64_t numNodesInTable, const string& directory,
+        RelDirection relDirection);
+
 private:
     static string appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix);
 

@@ -64,6 +64,10 @@ public:
     static void renameDBFilesForRelProperty(
         const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID);
 
+    static void replaceListsHeadersFilesWithVersionFromWALIfExists(
+        unordered_set<RelTableSchema*> relTableSchemas, table_id_t boundTableID,
+        const string& directory);
+
 private:
     static inline void removeColumnFilesForPropertyIfExists(const string& directory,
         table_id_t relTableID, table_id_t boundTableID, RelDirection relDirection,
