@@ -54,8 +54,8 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
     : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
-    auto mmapRegion =
-        (u_int8_t*)mmap(NULL, maxSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    auto mmapRegion = (u_int8_t*)mmap(
+        NULL, (numFrames * pageSize), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < numFrames; ++i) {
         auto buffer = mmapRegion + (i * pageSize);
         bufferCache.emplace_back(make_unique<Frame>(pageSize, buffer));
