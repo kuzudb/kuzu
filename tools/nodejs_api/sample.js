@@ -1,6 +1,6 @@
 // Make sure the test directory is removed as it will be recreated
 const fs = require("fs");
-const {Database, Connection} = require("./build/kuzu/index.js");
+const {Database, Connection} = require("./build/kuzu");
 
 try {
   fs.rmSync("./test", { recursive: true });
