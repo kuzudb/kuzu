@@ -87,6 +87,7 @@ expression_vector Binder::rewriteRelExpression(const Expression& expression) {
     auto& rel = (RelExpression&)expression;
     result.push_back(rel.getSrcNode()->getInternalIDProperty());
     result.push_back(rel.getDstNode()->getInternalIDProperty());
+    result.push_back(expressionBinder.bindRelLabelFunction(rel));
     for (auto& property : rel.getPropertyExpressions()) {
         result.push_back(property->copy());
     }

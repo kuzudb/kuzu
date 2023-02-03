@@ -106,8 +106,12 @@ void QueryResult::initResultTableAndIterator(
             auto dstNodeIDVal =
                 make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(dstNodeIDVal.get());
-            auto relVal = make_unique<RelVal>(std::move(srcNodeIDVal), std::move(dstNodeIDVal));
-            for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
+            // third expression is rel label function.
+            auto labelNameVal = make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
+            valuesToCollect.push_back(labelNameVal.get());
+            auto relVal = make_unique<RelVal>(
+                std::move(srcNodeIDVal), std::move(dstNodeIDVal), std::move(labelNameVal));
+            for (auto j = 3u; j < expressionsToCollect.size(); ++j) {
                 assert(expressionsToCollect[j]->expressionType == common::PROPERTY);
                 auto property = (PropertyExpression*)expressionsToCollect[j].get();
                 auto propertyValue =

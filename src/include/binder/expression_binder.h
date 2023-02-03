@@ -56,6 +56,7 @@ private:
     unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
     shared_ptr<Expression> bindLabelFunction(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindNodeLabelFunction(const Expression& expression);
+    shared_ptr<Expression> bindRelLabelFunction(const Expression& expression);
 
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 

@@ -2,7 +2,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
-#include "function/node/vector_node_operations.h"
+#include "function/schema/vector_label_operations.h"
 #include "parser/expression/parsed_function_expression.h"
 
 namespace kuzu {
@@ -135,8 +135,29 @@ shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
     const ParsedExpression& parsedExpression) {
     // bind child node
     auto child = bindExpression(*parsedExpression.getChild(0));
-    assert(child->dataType.typeID == common::NODE);
-    return bindNodeLabelFunction(*child);
+    if (child->dataType.typeID == common::NODE) {
+        return bindNodeLabelFunction(*child);
+    } else {
+        assert(child->dataType.typeID == common::REL);
+        return bindRelLabelFunction(*child);
+    }
+}
+
+static vector<unique_ptr<Value>> populateLabelValues(
+    vector<table_id_t> tableIDs, const CatalogContent& catalogContent) {
+    auto tableIDsSet = unordered_set<table_id_t>(tableIDs.begin(), tableIDs.end());
+    table_id_t maxTableID = *std::max_element(tableIDsSet.begin(), tableIDsSet.end());
+    vector<unique_ptr<Value>> labels;
+    labels.resize(maxTableID + 1);
+    for (auto i = 0; i < labels.size(); ++i) {
+        if (tableIDsSet.contains(i)) {
+            labels[i] = make_unique<Value>(catalogContent.getTableName(i));
+        } else {
+            // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
+            labels[i] = make_unique<Value>(string(""));
+        }
+    }
+    return labels;
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression& expression) {
@@ -144,28 +165,34 @@ shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expression&
     auto& node = (NodeExpression&)expression;
     if (!node.isMultiLabeled()) {
         auto labelName = catalogContent->getTableName(node.getSingleTableID());
-        auto value = make_unique<Value>(labelName);
-        return createLiteralExpression(std::move(value));
+        return createLiteralExpression(make_unique<Value>(labelName));
     }
-    // bind string node labels as list literal
     auto nodeTableIDs = catalogContent->getNodeTableIDs();
-    table_id_t maxNodeTableID = *std::max_element(nodeTableIDs.begin(), nodeTableIDs.end());
-    vector<unique_ptr<Value>> nodeLabels;
-    nodeLabels.resize(maxNodeTableID + 1);
-    for (auto i = 0; i < nodeLabels.size(); ++i) {
-        if (catalogContent->containNodeTable(i)) {
-            nodeLabels[i] = make_unique<Value>(catalogContent->getTableName(i));
-        } else {
-            // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
-            nodeLabels[i] = make_unique<Value>(string(""));
-        }
-    }
-    auto literalDataType = DataType(LIST, make_unique<DataType>(STRING));
     expression_vector children;
     children.push_back(node.getInternalIDProperty());
-    auto value = make_unique<Value>(literalDataType, std::move(nodeLabels));
-    children.push_back(createLiteralExpression(std::move(value)));
-    auto execFunc = NodeLabelVectorOperation::execFunction;
+    auto labelsValue = make_unique<Value>(DataType(LIST, make_unique<DataType>(STRING)),
+        populateLabelValues(nodeTableIDs, *catalogContent));
+    children.push_back(createLiteralExpression(std::move(labelsValue)));
+    auto execFunc = LabelVectorOperation::execFunction;
+    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(
+        FUNCTION, DataType(STRING), std::move(children), execFunc, nullptr, uniqueExpressionName);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindRelLabelFunction(const Expression& expression) {
+    auto catalogContent = binder->catalog.getReadOnlyVersion();
+    auto& rel = (RelExpression&)expression;
+    if (!rel.isMultiLabeled()) {
+        auto labelName = catalogContent->getTableName(rel.getSingleTableID());
+        return createLiteralExpression(make_unique<Value>(labelName));
+    }
+    auto relTableIDs = catalogContent->getRelTableIDs();
+    expression_vector children;
+    children.push_back(rel.getInternalIDProperty());
+    auto labelsValue = make_unique<Value>(DataType(LIST, make_unique<DataType>(STRING)),
+        populateLabelValues(relTableIDs, *catalogContent));
+    children.push_back(createLiteralExpression(std::move(labelsValue)));
+    auto execFunc = LabelVectorOperation::execFunction;
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(
         FUNCTION, DataType(STRING), std::move(children), execFunc, nullptr, uniqueExpressionName);

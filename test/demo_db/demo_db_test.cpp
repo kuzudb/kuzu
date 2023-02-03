@@ -28,11 +28,11 @@ TEST_F(DemoDBTest, CreateAvgNullTest) {
     auto result =
         conn->query("MATCH (a:User) WITH a, avg(a.age) AS b, SUM(a.age) AS c, COUNT(a.age) AS d, "
                     "COUNT(*) AS e RETURN a, b, c,d, e ORDER BY c DESC");
-    auto groundTruth = vector<string>{"(0:4:User {name:Alice, age:})|||0|1",
-        "(0:2:User {name:Zhang, age:50})|50.000000|50|1|1",
-        "(0:1:User {name:Karissa, age:40})|40.000000|40|1|1",
-        "(0:0:User {name:Adam, age:30})|30.000000|30|1|1",
-        "(0:3:User {name:Noura, age:25})|25.000000|25|1|1"};
+    auto groundTruth = vector<string>{"(label:User, 0:4, {name:Alice, age:})|||0|1",
+        "(label:User, 0:2, {name:Zhang, age:50})|50.000000|50|1|1",
+        "(label:User, 0:1, {name:Karissa, age:40})|40.000000|40|1|1",
+        "(label:User, 0:0, {name:Adam, age:30})|30.000000|30|1|1",
+        "(label:User, 0:3, {name:Noura, age:25})|25.000000|25|1|1"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
 
