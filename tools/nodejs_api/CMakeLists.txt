@@ -36,7 +36,9 @@ include_directories(${NLOHMANN_JSON_INCLUDE_PATH})
 include_directories(${UTF8PROC_INCLUDE_PATH})
 
 
-file(GLOB SOURCE_FILES ./src_cpp/*.cpp ./src_cpp/*.h)
+file(GLOB SOURCE_FILES ./src_cpp/*)
+file(GLOB CMAKE_JS_SRC ./src_nodejs/*)
+file(COPY ${CMAKE_JS_SRC} DESTINATION ./kuzu)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
