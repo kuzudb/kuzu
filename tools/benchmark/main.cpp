@@ -1,5 +1,6 @@
 #include "benchmark_runner.h"
 #include "common/utils.h"
+#include "spdlog/spdlog.h"
 
 using namespace kuzu::benchmark;
 
@@ -50,7 +51,10 @@ int main(int argc, char** argv) {
     auto runner = BenchmarkRunner(datasetPath, std::move(config));
     try {
         runner.registerBenchmarks(benchmarkPath);
-        runner.runAllBenchmarks();
-    } catch (exception& e) { printf("Error encountered during benchmarking. %s", e.what()); }
+    } catch (exception& e) {
+        spdlog::error(
+            "Error encountered while registering benchmark in {}: {}.", benchmarkPath, e.what());
+    }
+    runner.runAllBenchmarks();
     return 0;
 }
